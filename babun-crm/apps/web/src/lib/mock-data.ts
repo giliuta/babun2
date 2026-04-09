@@ -202,3 +202,128 @@ export function getMockAppointments(weekStartDate: Date): MockAppointment[] {
     },
   ];
 }
+
+// ─── Mock Clients ────────────────────────────────────────────────────────────
+
+export interface MockClient {
+  id: string;
+  full_name: string;
+  phone: string;
+  sms_name: string;
+  balance: number;
+  discount: number;
+  comment: string;
+}
+
+export const MOCK_CLIENTS: MockClient[] = [
+  { id: "1", full_name: "Анастасия Петрова", phone: "+35799352086", sms_name: "Анастасия", balance: 0, discount: 0, comment: "Повторная чистка" },
+  { id: "2", full_name: "John Thompson", phone: "+35796123456", sms_name: "John", balance: 45, discount: 0, comment: "4 гри, заправка" },
+  { id: "3", full_name: "Александр Сидоров", phone: "+35797654321", sms_name: "Александр", balance: 0, discount: 5, comment: "" },
+  { id: "4", full_name: "Светлана Козлова", phone: "+35798765432", sms_name: "Светлана", balance: 0, discount: 0, comment: "2 Lg, заправка верхнего" },
+  { id: "5", full_name: "Angela Martinez", phone: "+35791234567", sms_name: "Angela", balance: 0, discount: 0, comment: "Мадам, раньше 15.00 не может" },
+  { id: "6", full_name: "Johannes Weber", phone: "+35792345678", sms_name: "Johannes", balance: 0, discount: 0, comment: "" },
+  { id: "7", full_name: "Сергей Морозов", phone: "+35793456789", sms_name: "Сергей", balance: 135, discount: 10, comment: "Пиргос" },
+  { id: "8", full_name: "Ольга Новикова", phone: "+35794567890", sms_name: "Ольга", balance: 0, discount: 0, comment: "3 аукс" },
+  { id: "9", full_name: "Laima Berzina", phone: "+35795678901", sms_name: "Laima", balance: 0, discount: 0, comment: "Говорит на англ." },
+  { id: "10", full_name: "Руслан Абрамов", phone: "+35796789012", sms_name: "Руслан", balance: 0, discount: 0, comment: "" },
+  { id: "11", full_name: "Надежда Волкова", phone: "+35797890123", sms_name: "Надежда", balance: 0, discount: 0, comment: "Никосия" },
+  { id: "12", full_name: "Marina Antoniou", phone: "+35798901234", sms_name: "Marina", balance: 0, discount: 0, comment: "5шт кабинет" },
+];
+
+// ─── Mock Client Appointments (for Client Card "Записи" tab) ────────────────
+
+export interface MockClientAppointment {
+  id: string;
+  client_id: string;
+  date: string;
+  master: string;
+  service: string;
+  address: string;
+  amount: number;
+  status: "completed" | "cancelled" | "new" | "online";
+}
+
+export const MOCK_CLIENT_APPOINTMENTS: MockClientAppointment[] = [
+  { id: "ca-1", client_id: "1", date: "09.04.2026", master: "Y&D", service: "x2 A/C Чистка", address: "Лимассол", amount: 80, status: "completed" },
+  { id: "ca-2", client_id: "1", date: "15.01.2026", master: "Y&D", service: "x3 A/C Чистка", address: "Лимассол", amount: 120, status: "completed" },
+  { id: "ca-3", client_id: "2", date: "02.03.2026", master: "D&K", service: "x4 A/C Заправка", address: "Ларнака", amount: 160, status: "completed" },
+  { id: "ca-4", client_id: "7", date: "20.02.2026", master: "Y&D", service: "x1 A/C Диагностика", address: "Пиргос", amount: 40, status: "cancelled" },
+  { id: "ca-5", client_id: "7", date: "11.03.2026", master: "Y&D", service: "x2 A/C Чистка", address: "Пиргос", amount: 80, status: "completed" },
+];
+
+// ─── Mock Financial Data ─────────────────────────────────────────────────────
+
+export interface MockReport {
+  period: string;
+  income: number;
+  expenses: number;
+  profit: number;
+}
+
+export const MOCK_REPORTS: MockReport[] = [
+  { period: "Янв 2026", income: 8180, expenses: 2955, profit: 5225 },
+  { period: "Фев 2026", income: 3430, expenses: 2025, profit: 1405 },
+  { period: "Мар 2026", income: 7445, expenses: 6385, profit: 1060 },
+  { period: "Апр 2026", income: 5190, expenses: 2275, profit: 2915 },
+];
+
+// ─── Mock Income Entries ─────────────────────────────────────────────────────
+
+export interface MockIncomeEntry {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  team: string;
+  category: string;
+}
+
+export const MOCK_INCOME: MockIncomeEntry[] = [
+  { id: "inc-1", date: "09.04.2026", description: "x4 A/C Чистка — Иванов А.", amount: 160, team: "Y&D", category: "Услуги" },
+  { id: "inc-2", date: "09.04.2026", description: "x2 A/C Чистка — Петрова М.", amount: 80, team: "Y&D", category: "Услуги" },
+  { id: "inc-3", date: "08.04.2026", description: "x3 A/C Установка — Козлов Д.", amount: 450, team: "Y&D", category: "Услуги" },
+  { id: "inc-4", date: "08.04.2026", description: "x1 A/C Диагностика — Смирнова Е.", amount: 40, team: "Y&D", category: "Услуги" },
+  { id: "inc-5", date: "07.04.2026", description: "x6 A/C Чистка — Николаев С.", amount: 240, team: "D&K", category: "Услуги" },
+  { id: "inc-6", date: "07.04.2026", description: "x2 A/C Заправка — Орлова А.", amount: 120, team: "D&K", category: "Услуги" },
+  { id: "inc-7", date: "06.04.2026", description: "x2 A/C Чистка — Федоров А.", amount: 80, team: "Y&D", category: "Услуги" },
+  { id: "inc-8", date: "05.04.2026", description: "x4 A/C Установка — Белов В.", amount: 600, team: "D&K", category: "Услуги" },
+];
+
+// ─── Mock Expense Entries ────────────────────────────────────────────────────
+
+export interface MockExpenseEntry {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  team: string;
+  category: string;
+}
+
+export const MOCK_EXPENSES: MockExpenseEntry[] = [
+  { id: "exp-1", date: "09.04.2026", description: "Бензин", amount: 55, team: "Y&D", category: "Транспорт" },
+  { id: "exp-2", date: "08.04.2026", description: "Фреон R410A (5 кг)", amount: 180, team: "Y&D", category: "Материалы" },
+  { id: "exp-3", date: "07.04.2026", description: "Бензин", amount: 60, team: "D&K", category: "Транспорт" },
+  { id: "exp-4", date: "06.04.2026", description: "Запчасти — компрессор", amount: 320, team: "D&K", category: "Материалы" },
+  { id: "exp-5", date: "05.04.2026", description: "Бензин", amount: 50, team: "Y&D", category: "Транспорт" },
+  { id: "exp-6", date: "04.04.2026", description: "Химия для чистки", amount: 95, team: "Y&D", category: "Материалы" },
+];
+
+// ─── Mock Waitlist ───────────────────────────────────────────────────────────
+
+export interface MockWaitlistItem {
+  id: string;
+  client_name: string;
+  services: string;
+  master: string;
+  deadline: string;
+  time: string;
+  location: string;
+  status: string;
+}
+
+export const MOCK_WAITLIST: MockWaitlistItem[] = [
+  { id: "1", client_name: "Руслан", services: "Услуги: 1 (2 ч. 30 мин.)", master: "AirFix", deadline: "08.10.2025", time: "любое время", location: "", status: "Не актуально" },
+  { id: "2", client_name: "Илья", services: "Услуги: 1 (2 ч.)", master: "AirFix", deadline: "01.09.2025", time: "любое время", location: "Ларнака", status: "Не актуально" },
+  { id: "3", client_name: "Надежда", services: "Услуги: 1 (3 ч. 30 мин.)", master: "AirFix", deadline: "30.11.2025", time: "любое время", location: "Никосия", status: "Не актуально" },
+];

@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 
+export type DialogType = "clients" | "income" | "expenses" | "reports" | "waitlist" | null;
+
 interface SidebarProps {
   onLogout: () => void;
+  onNavigate?: (dialog: DialogType) => void;
 }
 
-export default function Sidebar({ onLogout }: SidebarProps) {
+export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -87,7 +90,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
               </svg>
             }
             label="Клиенты"
-            active
+            onClick={() => onNavigate?.("clients")}
           />
           <NavItem
             icon={
@@ -104,6 +107,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
             }
             label="Доходы"
             hasAction
+            onClick={() => onNavigate?.("income")}
           />
           <NavItem
             icon={
@@ -120,6 +124,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
             }
             label="Расходы"
             hasAction
+            onClick={() => onNavigate?.("expenses")}
           />
           <NavItem
             icon={
@@ -135,6 +140,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
               </svg>
             }
             label="Отчеты и планирование"
+            onClick={() => onNavigate?.("reports")}
           />
           <NavItem
             icon={
@@ -152,6 +158,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
             }
             label="Лист ожидания"
             badge={3}
+            onClick={() => onNavigate?.("waitlist")}
           />
           <NavItem
             icon={
@@ -206,17 +213,20 @@ function NavItem({
   active,
   hasAction,
   badge,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
   hasAction?: boolean;
   badge?: number;
+  onClick?: () => void;
 }) {
   return (
-    <a
-      href="#"
-      className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
         active
           ? "bg-indigo-800 text-white"
           : "text-indigo-200 hover:bg-indigo-800 hover:text-white"
@@ -234,6 +244,6 @@ function NavItem({
           {badge}
         </span>
       )}
-    </a>
+    </button>
   );
 }
