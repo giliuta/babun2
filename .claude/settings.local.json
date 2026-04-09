@@ -4,7 +4,8 @@
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_click",
       "Read(//tmp/**)",
-      "Read(//c/tmp/**)"
+      "Read(//c/tmp/**)",
+      "mcp__playwright__browser_fill_form"
     ]
   }
 }
