@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export type DialogType = "clients" | "income" | "expenses" | "reports" | "waitlist" | null;
+export type DialogType = "clients" | "income" | "expenses" | "reports" | "waitlist" | "settings" | "master-profile" | null;
 
 interface SidebarProps {
   onLogout: () => void;
@@ -52,8 +52,9 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
               airfix.cy@gmail.com
             </div>
           </div>
-          <a
-            href="#"
+          <button
+            type="button"
+            onClick={() => onNavigate?.("master-profile")}
             className="text-xs text-indigo-300 hover:text-white flex items-center gap-1"
           >
             <svg
@@ -68,7 +69,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
               <circle cx="12" cy="7" r="4" />
             </svg>
             Профиль мастера
-          </a>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -175,6 +176,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
               </svg>
             }
             label="Настройки"
+            onClick={() => onNavigate?.("settings")}
           />
         </nav>
 

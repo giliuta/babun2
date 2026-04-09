@@ -67,6 +67,15 @@ export function timeToMinutes(time: string): number {
   return h * 60 + m;
 }
 
+export function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+export function getFirstDayOfMonth(year: number, month: number): number {
+  // Returns 0=Sunday ... 6=Saturday
+  return new Date(year, month, 1).getDay();
+}
+
 export function getCurrentCyprusTime(): Date {
   // Cyprus is UTC+2 (EET) / UTC+3 (EEST in summer)
   // We approximate with +3 as the user specified GMT+3

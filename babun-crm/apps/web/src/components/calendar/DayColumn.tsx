@@ -15,7 +15,9 @@ interface DayColumnProps {
   today: Date;
   appointments: MockAppointment[];
   currentTimeMinutes: number; // minutes since midnight for current time line
+  hourHeight?: number;
   onAppointmentClick: (appointment: MockAppointment) => void;
+  onEmptySlotClick?: (date: string, time: string) => void;
 }
 
 export default function DayColumn({
@@ -23,7 +25,9 @@ export default function DayColumn({
   today,
   appointments,
   currentTimeMinutes,
+  hourHeight = 60,
   onAppointmentClick,
+  onEmptySlotClick,
 }: DayColumnProps) {
   const isToday = isSameDay(date, today);
   const dateKey = formatDateKey(date);
@@ -31,9 +35,32 @@ export default function DayColumn({
   const dayName = getDayNameShort(date);
   const monthName = getMonthNameGenitive(date.getMonth());
 
+  const pxPerMinute = hourHeight / 60;
+
   // Current time indicator position (relative to 08:00)
   const showTimeLine = isToday && currentTimeMinutes >= 480 && currentTimeMinutes <= 1320; // 08:00-22:00
-  const timeLineTop = currentTimeMinutes - 480; // offset from 08:00
+  const timeLineTop = (currentTimeMinutes - 480) * pxPerMinute;
+
+  const handleColumnClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onEmptySlotClick) return;
+    // Only handle clicks on the column background, not on appointment blocks
+    if ((e.target as HTMLElement).closest("button")) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const minutesFromStart = clickY / pxPerMinute;
+    const totalMinutes = 480 + minutesFromStart; // 08:00 = 480 min
+
+    // Snap to nearest 15 minutes
+    const snapped = Math.round(totalMinutes / 15) * 15;
+    const hours = Math.floor(snapped / 60);
+    const mins = snapped % 60;
+
+    if (hours >= 8 && hours <= 22) {
+      const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+      onEmptySlotClick(dateKey, timeStr);
+    }
+  };
 
   return (
     <div className="flex-1 min-w-[120px] border-r border-gray-200 last:border-r-0">
@@ -68,10 +95,17 @@ export default function DayColumn({
       </div>
 
       {/* Time slots */}
-      <div className={`relative ${isToday ? "bg-green-50/30" : "bg-white"}`}>
+      <div
+        className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"}`}
+        onClick={handleColumnClick}
+      >
         {/* Hour grid lines */}
         {HOURS.map((hour) => (
-          <div key={hour} className="h-[60px] border-b border-gray-100" />
+          <div
+            key={hour}
+            className="border-b border-gray-100"
+            style={{ height: `${hourHeight}px` }}
+          />
         ))}
 
         {/* Current time indicator */}
@@ -92,6 +126,7 @@ export default function DayColumn({
           <AppointmentBlock
             key={apt.id}
             appointment={apt}
+            hourHeight={hourHeight}
             onClick={onAppointmentClick}
           />
         ))}

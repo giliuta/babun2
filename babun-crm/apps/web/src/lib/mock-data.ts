@@ -203,6 +203,29 @@ export function getMockAppointments(weekStartDate: Date): MockAppointment[] {
   ];
 }
 
+// ─── Mock Services ─────────────────────────────────────────────────────────
+
+export interface MockService {
+  id: string;
+  name: string;
+  category: string;
+  duration_minutes: number;
+  price: number;
+}
+
+export const MOCK_SERVICES: MockService[] = [
+  { id: '1', name: 'x1 A/C Чистка', category: 'cleaning', duration_minutes: 30, price: 50 },
+  { id: '2', name: 'x2 A/C Чистка', category: 'cleaning', duration_minutes: 60, price: 100 },
+  { id: '3', name: 'x3 A/C Чистка', category: 'cleaning', duration_minutes: 90, price: 135 },
+  { id: '4', name: 'x4 A/C Чистка', category: 'cleaning', duration_minutes: 120, price: 180 },
+  { id: '5', name: 'x5 A/C Чистка', category: 'cleaning', duration_minutes: 150, price: 225 },
+  { id: '6', name: 'x6 A/C Чистка', category: 'cleaning', duration_minutes: 180, price: 270 },
+  { id: '7', name: 'x1 A/C Установка', category: 'installation', duration_minutes: 120, price: 150 },
+  { id: '8', name: 'x1 A/C Диагностика', category: 'consultation', duration_minutes: 60, price: 50 },
+  { id: '9', name: 'x1 A/C Ремонт', category: 'repair', duration_minutes: 120, price: 200 },
+  { id: '10', name: 'Заправка', category: 'maintenance', duration_minutes: 30, price: 80 },
+];
+
 // ─── Mock Clients ────────────────────────────────────────────────────────────
 
 export interface MockClient {

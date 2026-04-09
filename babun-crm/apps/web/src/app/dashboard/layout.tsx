@@ -9,6 +9,8 @@ import IncomeDialog from "@/components/finance/IncomeDialog";
 import ExpensesDialog from "@/components/finance/ExpensesDialog";
 import ReportsDialog from "@/components/reports/ReportsDialog";
 import WaitlistDialog from "@/components/waitlist/WaitlistDialog";
+import SettingsDialog from "@/components/settings/SettingsDialog";
+import MasterProfileDialog from "@/components/master/MasterProfileDialog";
 
 export default function DashboardLayout({
   children,
@@ -40,6 +42,8 @@ export default function DashboardLayout({
       <ExpensesDialog open={activeDialog === "expenses"} onClose={closeDialog} />
       <ReportsDialog open={activeDialog === "reports"} onClose={closeDialog} />
       <WaitlistDialog open={activeDialog === "waitlist"} onClose={closeDialog} />
+      <SettingsDialog open={activeDialog === "settings"} onClose={closeDialog} />
+      <MasterProfileDialog open={activeDialog === "master-profile"} onClose={closeDialog} />
     </div>
   );
 }

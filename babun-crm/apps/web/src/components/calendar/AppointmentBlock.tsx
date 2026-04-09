@@ -11,16 +11,18 @@ const COLOR_MAP: Record<string, { bg: string; border: string }> = {
 
 interface AppointmentBlockProps {
   appointment: MockAppointment;
+  hourHeight?: number;
   onClick: (appointment: MockAppointment) => void;
 }
 
 export default function AppointmentBlock({
   appointment,
+  hourHeight = 60,
   onClick,
 }: AppointmentBlockProps) {
   const colors = COLOR_MAP[appointment.color] || COLOR_MAP.blue;
 
-  // Calculate position: each hour = 60px, starting from 08:00
+  // Calculate position: each hour = hourHeight px, starting from 08:00
   const [startH, startM] = appointment.time_start.split(":").map(Number);
   const [endH, endM] = appointment.time_end.split(":").map(Number);
 
@@ -28,8 +30,9 @@ export default function AppointmentBlock({
   const endMinutes = (endH - 8) * 60 + endM;
   const durationMinutes = endMinutes - startMinutes;
 
-  const topPx = startMinutes; // 1 minute = 1px (60px per hour)
-  const heightPx = Math.max(durationMinutes, 20); // Minimum 20px
+  const pxPerMinute = hourHeight / 60;
+  const topPx = startMinutes * pxPerMinute;
+  const heightPx = Math.max(durationMinutes * pxPerMinute, 20); // Minimum 20px
 
   return (
     <button
