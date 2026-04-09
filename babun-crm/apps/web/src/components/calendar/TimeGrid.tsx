@@ -1,0 +1,26 @@
+"use client";
+
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 08:00 to 22:00
+
+export default function TimeGrid() {
+  return (
+    <div className="w-14 flex-shrink-0 border-r border-gray-200 bg-gray-50">
+      {/* Spacer matching the day column header */}
+      <div className="h-[72px] border-b border-gray-200" />
+
+      {/* Hour labels */}
+      {HOURS.map((hour) => (
+        <div
+          key={hour}
+          className="h-[60px] border-b border-gray-100 flex items-start justify-end pr-2 pt-0"
+        >
+          <span className="text-[11px] text-gray-400 -mt-1.5 select-none">
+            {String(hour).padStart(2, "0")}:00
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export { HOURS };
