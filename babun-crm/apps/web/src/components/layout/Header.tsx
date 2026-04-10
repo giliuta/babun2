@@ -53,7 +53,7 @@ export default function Header({
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
   return (
-    <header className="bg-indigo-700 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col">
+    <header className="flex-shrink-0 bg-indigo-700 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col z-30">
       {/* Top row: hamburger + month + nav arrows + actions */}
       <div className="px-2 lg:px-4 py-2 lg:py-3 flex items-center gap-1 lg:gap-3">
         {/* Hamburger menu (mobile only) */}

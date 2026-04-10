@@ -39,11 +39,17 @@ export default function SwipeableCalendar({
   const committedDirRef = useRef<-1 | 0 | 1>(0);
   const animatingRef = useRef(false);
 
+  // RAF throttling so touchmove never updates more than once per frame.
+  const rafIdRef = useRef<number | null>(null);
+  const lastDxRef = useRef(0);
+
   // Apply translate to the track. Center position = -width.
   const setTrackOffset = (offsetPx: number, withTransition: boolean) => {
     const track = trackRef.current;
     if (!track) return;
-    track.style.transition = withTransition ? "transform 250ms ease-out" : "none";
+    track.style.transition = withTransition
+      ? "transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1)"
+      : "none";
     track.style.transform = `translate3d(${offsetPx}px, 0, 0)`;
     if (!withTransition) {
       // Force a layout flush so the next transition (if any) starts from the new offset
@@ -73,6 +79,13 @@ export default function SwipeableCalendar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width]);
 
+  // Cancel any pending RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     if (animatingRef.current) return;
     if (e.touches.length !== 1) return;
@@ -81,6 +94,8 @@ export default function SwipeableCalendar({
     startYRef.current = t.clientY;
     directionRef.current = "none";
     draggingRef.current = true;
+    // Mark track as actively transforming (helps the compositor)
+    if (trackRef.current) trackRef.current.style.willChange = "transform";
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -101,12 +116,26 @@ export default function SwipeableCalendar({
 
     // Horizontal: drag the track. Try to prevent vertical scroll.
     if (e.cancelable) e.preventDefault();
-    setTrackOffset(-width + dx, false);
+    lastDxRef.current = dx;
+
+    // Throttle DOM updates to one per animation frame for buttery scrolling
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        setTrackOffset(-width + lastDxRef.current, false);
+      });
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+
+    // Apply any pending RAF update synchronously
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
 
     if (directionRef.current !== "horizontal") {
       directionRef.current = "none";
@@ -138,6 +167,9 @@ export default function SwipeableCalendar({
     animatingRef.current = false;
     committedDirRef.current = 0;
 
+    // Release will-change so the layer can be recycled
+    if (trackRef.current) trackRef.current.style.willChange = "auto";
+
     // Atomically: re-center the track AND notify parent to advance state.
     // flushSync forces the parent re-render to happen synchronously, so the
     // new children appear in the same paint as the recenter — no flicker.
@@ -153,8 +185,12 @@ export default function SwipeableCalendar({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-hidden touch-pan-y relative"
-      style={{ width: 0, minWidth: "100%" }}
+      className="flex-1 touch-pan-y relative"
+      style={{
+        width: 0,
+        minWidth: "100%",
+        overflowX: "clip",
+      }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -163,29 +199,28 @@ export default function SwipeableCalendar({
       {width > 0 && (
         <div
           ref={trackRef}
-          className="flex h-full"
+          className="flex"
           style={{
             width: `${width * 3}px`,
             transform: `translate3d(${-width}px, 0, 0)`,
-            willChange: "transform",
           }}
           onTransitionEnd={handleTransitionEnd}
         >
           <div
-            className="h-full flex flex-col overflow-hidden"
-            style={{ width: `${width}px`, flexShrink: 0 }}
+            className="flex flex-col"
+            style={{ width: `${width}px`, flexShrink: 0, overflowX: "clip" }}
           >
             {renderPage(-1)}
           </div>
           <div
-            className="h-full flex flex-col overflow-hidden"
-            style={{ width: `${width}px`, flexShrink: 0 }}
+            className="flex flex-col"
+            style={{ width: `${width}px`, flexShrink: 0, overflowX: "clip" }}
           >
             {renderPage(0)}
           </div>
           <div
-            className="h-full flex flex-col overflow-hidden"
-            style={{ width: `${width}px`, flexShrink: 0 }}
+            className="flex flex-col"
+            style={{ width: `${width}px`, flexShrink: 0, overflowX: "clip" }}
           >
             {renderPage(1)}
           </div>

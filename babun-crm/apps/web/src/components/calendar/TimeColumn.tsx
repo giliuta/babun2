@@ -1,23 +1,25 @@
 "use client";
 
-// Full 24-hour grid: 00:00 .. 23:00
+// Standalone time column rendered OUTSIDE the swipeable area, so it stays
+// fixed on the left while the user swipes between weeks.
+
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-interface TimeGridProps {
-  hourHeight?: number;
+interface TimeColumnProps {
+  hourHeight: number;
 }
 
-export default function TimeGrid({ hourHeight = 60 }: TimeGridProps) {
+export default function TimeColumn({ hourHeight }: TimeColumnProps) {
   return (
     <div className="w-9 lg:w-14 flex-shrink-0 border-r border-gray-200 bg-gray-50">
-      {/* Spacer matching the day column header — sticks while scrolling */}
+      {/* Header spacer (sticks while vertically scrolling) */}
       <div className="sticky top-0 z-30 h-[52px] lg:h-[72px] border-b border-gray-200 bg-gray-50" />
 
       {/* Hour labels */}
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="border-b border-gray-100 flex items-start justify-end pr-1 lg:pr-2 pt-0"
+          className="border-b border-gray-100 flex items-start justify-end pr-1 lg:pr-2"
           style={{ height: `${hourHeight}px` }}
         >
           <span className="text-[9px] lg:text-[11px] text-gray-400 -mt-1.5 select-none">

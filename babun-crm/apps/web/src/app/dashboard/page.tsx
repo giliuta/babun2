@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
 import { getMockAppointments, MOCK_TEAMS, type MockAppointment } from "@/lib/mock-data";
-import { getTeamSchedule } from "@/lib/schedule";
+import { getTeamSchedule, timeToMinutes } from "@/lib/schedule";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
+import TimeColumn from "@/components/calendar/TimeColumn";
 import AppointmentDialog from "@/components/appointments/AppointmentDialog";
 import { useSidebar, useSchedules } from "./layout";
 
@@ -37,6 +38,18 @@ export default function DashboardPage() {
     () => getTeamSchedule(activeTeamId, schedules),
     [activeTeamId, schedules]
   );
+
+  // Single shared vertical scroller for time column + day columns
+  const outerScrollerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the team's work-start hour when schedule/team/zoom changes
+  useEffect(() => {
+    const el = outerScrollerRef.current;
+    if (!el) return;
+    const startMin = timeToMinutes(activeSchedule.start);
+    const target = Math.max(0, startMin * (hourHeight / 60));
+    el.scrollTo({ top: target, behavior: "auto" });
+  }, [activeTeamId, activeSchedule.start, hourHeight]);
 
   // All mock appointments are pinned to absolute dates — same data regardless of week
   const allAppointments = useMemo(() => getMockAppointments(), []);
@@ -110,10 +123,7 @@ export default function DashboardPage() {
     setDialogOpen(true);
   }, []);
 
-  // Render a calendar page for a given offset (-1 prev, 0 current, +1 next).
-  // All pages use the same `appointments` array (filtered by team) — DayColumn
-  // shows only those appointments whose `date` matches each visible day, so
-  // appointments are naturally pinned to absolute dates.
+  // Render a calendar page (without TimeGrid — that lives in the shared TimeColumn).
   const renderPage = useCallback(
     (offset: -1 | 0 | 1) => {
       const monday =
@@ -127,7 +137,6 @@ export default function DashboardPage() {
           viewMode={viewMode}
           hourHeight={hourHeight}
           schedule={activeSchedule}
-          autoScrollKey={`${activeTeamId}-${activeSchedule.start}`}
           onAppointmentClick={handleAppointmentClick}
           onEmptySlotClick={handleEmptySlotClick}
         />
@@ -140,7 +149,6 @@ export default function DashboardPage() {
       appointments,
       hourHeight,
       activeSchedule,
-      activeTeamId,
       handleAppointmentClick,
       handleEmptySlotClick,
     ]
@@ -166,11 +174,19 @@ export default function DashboardPage() {
         onMenuToggle={sidebar.toggle}
       />
 
-      <SwipeableCalendar
-        renderPage={renderPage}
-        onSwipeLeft={handleNextWeek}
-        onSwipeRight={handlePrevWeek}
-      />
+      {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
+      <div
+        ref={outerScrollerRef}
+        className="flex-1 flex bg-white min-h-0"
+        style={{ overflowY: "auto", overflowX: "clip" }}
+      >
+        <TimeColumn hourHeight={hourHeight} />
+        <SwipeableCalendar
+          renderPage={renderPage}
+          onSwipeLeft={handleNextWeek}
+          onSwipeRight={handlePrevWeek}
+        />
+      </div>
 
       <AppointmentDialog
         appointment={selectedAppointment}

@@ -73,10 +73,10 @@ export default function DayColumn({
   };
 
   return (
-    <div className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0 overflow-hidden">
-      {/* Day header */}
+    <div className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0 overflow-x-clip">
+      {/* Day header — sticks to top while scrolling */}
       <div
-        className={`h-[52px] lg:h-[72px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
+        className={`sticky top-0 z-20 h-[52px] lg:h-[72px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
           isToday ? "bg-green-50" : "bg-white"
         }`}
       >

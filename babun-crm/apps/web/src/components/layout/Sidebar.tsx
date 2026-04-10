@@ -1,19 +1,38 @@
 "use client";
 
+import { useRouter, usePathname } from "next/navigation";
+
 export type DialogType = "clients" | "income" | "expenses" | "reports" | "waitlist" | "settings" | "master-profile" | null;
 
 interface SidebarProps {
   onLogout: () => void;
-  onNavigate?: (dialog: DialogType) => void;
+  onNavigate?: (dialog: DialogType) => void; // legacy / unused — kept for backward compat
   open: boolean;
   onClose: () => void;
 }
 
-export default function Sidebar({ onLogout, onNavigate, open, onClose }: SidebarProps) {
+const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
+  clients: "/dashboard/clients",
+  income: "/dashboard/income",
+  expenses: "/dashboard/expenses",
+  reports: "/dashboard/reports",
+  waitlist: "/dashboard/waitlist",
+  settings: "/dashboard/settings",
+  "master-profile": "/dashboard/master-profile",
+};
+
+export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const handleNav = (dialog: DialogType) => {
-    onNavigate?.(dialog);
+    if (dialog) {
+      router.push(ROUTE_MAP[dialog]);
+    }
     onClose();
   };
+
+  const isActive = (dialog: Exclude<DialogType, null>) => pathname === ROUTE_MAP[dialog];
 
   return (
     <>
@@ -44,7 +63,9 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
           <button
             type="button"
             onClick={() => handleNav("master-profile")}
-            className="text-xs text-indigo-300 hover:text-white flex items-center gap-1"
+            className={`text-xs flex items-center gap-1 ${
+              isActive("master-profile") ? "text-white" : "text-indigo-300 hover:text-white"
+            }`}
           >
             <svg
               width="14"
@@ -80,6 +101,7 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
               </svg>
             }
             label="Клиенты"
+            active={isActive("clients")}
             onClick={() => handleNav("clients")}
           />
           <NavItem
@@ -97,6 +119,7 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
             }
             label="Доходы"
             hasAction
+            active={isActive("income")}
             onClick={() => handleNav("income")}
           />
           <NavItem
@@ -114,6 +137,7 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
             }
             label="Расходы"
             hasAction
+            active={isActive("expenses")}
             onClick={() => handleNav("expenses")}
           />
           <NavItem
@@ -130,6 +154,7 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
               </svg>
             }
             label="Отчеты и планирование"
+            active={isActive("reports")}
             onClick={() => handleNav("reports")}
           />
           <NavItem
@@ -148,6 +173,7 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
             }
             label="Лист ожидания"
             badge={3}
+            active={isActive("waitlist")}
             onClick={() => handleNav("waitlist")}
           />
           <NavItem
@@ -165,6 +191,7 @@ export default function Sidebar({ onLogout, onNavigate, open, onClose }: Sidebar
               </svg>
             }
             label="Настройки"
+            active={isActive("settings")}
             onClick={() => handleNav("settings")}
           />
         </nav>

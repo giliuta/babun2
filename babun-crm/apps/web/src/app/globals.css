@@ -14,6 +14,15 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Lock scroll on body — only inner panes scroll */
+  overscroll-behavior: none;
+}
+
+html,
+body {
+  /* Prevent the whole page from scrolling — calendar has its own scroller */
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Hide scrollbar utility */
