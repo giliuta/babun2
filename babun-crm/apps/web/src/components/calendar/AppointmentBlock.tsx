@@ -22,12 +22,12 @@ export default function AppointmentBlock({
 }: AppointmentBlockProps) {
   const colors = COLOR_MAP[appointment.color] || COLOR_MAP.blue;
 
-  // Calculate position: each hour = hourHeight px, starting from 08:00
+  // Calculate position: each hour = hourHeight px, starting from 00:00
   const [startH, startM] = appointment.time_start.split(":").map(Number);
   const [endH, endM] = appointment.time_end.split(":").map(Number);
 
-  const startMinutes = (startH - 8) * 60 + startM;
-  const endMinutes = (endH - 8) * 60 + endM;
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
   const durationMinutes = endMinutes - startMinutes;
 
   const pxPerMinute = hourHeight / 60;

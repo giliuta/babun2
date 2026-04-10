@@ -1,6 +1,7 @@
 "use client";
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 08:00 to 22:00
+// Full 24-hour grid: 00:00 .. 23:00
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 interface TimeGridProps {
   hourHeight?: number;

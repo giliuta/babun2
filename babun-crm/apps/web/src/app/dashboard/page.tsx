@@ -3,11 +3,12 @@
 import { useState, useCallback, useMemo } from "react";
 import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
 import { getMockAppointments, MOCK_TEAMS, type MockAppointment } from "@/lib/mock-data";
+import { getTeamSchedule } from "@/lib/schedule";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import AppointmentDialog from "@/components/appointments/AppointmentDialog";
-import { useSidebar } from "./layout";
+import { useSidebar, useSchedules } from "./layout";
 
 const ZOOM_LEVELS = [40, 60, 90, 120];
 
@@ -20,6 +21,7 @@ const STEP_DAYS: Record<ViewMode, number> = {
 
 export default function DashboardPage() {
   const sidebar = useSidebar();
+  const { schedules } = useSchedules();
   const [currentMonday, setCurrentMonday] = useState(() => getMonday(new Date()));
   const [activeTeamId, setActiveTeamId] = useState(MOCK_TEAMS[0].id);
   const [selectedAppointment, setSelectedAppointment] = useState<MockAppointment | null>(null);
@@ -31,6 +33,10 @@ export default function DashboardPage() {
 
   const hourHeight = ZOOM_LEVELS[zoomIndex];
   const stepDays = STEP_DAYS[viewMode];
+  const activeSchedule = useMemo(
+    () => getTeamSchedule(activeTeamId, schedules),
+    [activeTeamId, schedules]
+  );
 
   // All mock appointments are pinned to absolute dates — same data regardless of week
   const allAppointments = useMemo(() => getMockAppointments(), []);
@@ -120,6 +126,8 @@ export default function DashboardPage() {
           appointments={appointments}
           viewMode={viewMode}
           hourHeight={hourHeight}
+          schedule={activeSchedule}
+          autoScrollKey={`${activeTeamId}-${activeSchedule.start}`}
           onAppointmentClick={handleAppointmentClick}
           onEmptySlotClick={handleEmptySlotClick}
         />
@@ -131,6 +139,8 @@ export default function DashboardPage() {
       stepDays,
       appointments,
       hourHeight,
+      activeSchedule,
+      activeTeamId,
       handleAppointmentClick,
       handleEmptySlotClick,
     ]

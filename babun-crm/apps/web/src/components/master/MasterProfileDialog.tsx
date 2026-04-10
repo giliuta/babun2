@@ -1,58 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { MOCK_SERVICES, type MockService } from "@/lib/mock-data";
+import { MOCK_SERVICES, MOCK_TEAMS, type MockService } from "@/lib/mock-data";
+import {
+  type ScheduleMap,
+  type TeamSchedule,
+  DEFAULT_SCHEDULE,
+  getTeamSchedule,
+} from "@/lib/schedule";
 
 interface MasterProfileDialogProps {
   open: boolean;
   onClose: () => void;
+  schedules: ScheduleMap;
+  onSchedulesChange: (next: ScheduleMap) => void;
+  initialTeamId?: string;
 }
 
 type TabId = "profile" | "services" | "schedule";
 
-const DAY_NAMES = [
-  "Понедельник",
-  "Вторник",
-  "Среда",
-  "Четверг",
-  "Пятница",
-  "Суббота",
-  "Воскресенье",
-];
-
-interface DaySchedule {
-  custom: boolean;
-  start: string;
-  end: string;
-  enabled: boolean;
-}
-
-export default function MasterProfileDialog({ open, onClose }: MasterProfileDialogProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+export default function MasterProfileDialog({
+  open,
+  onClose,
+  schedules,
+  onSchedulesChange,
+  initialTeamId,
+}: MasterProfileDialogProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("schedule");
 
   // Profile state
   const [name, setName] = useState("AirFix");
   const [phone, setPhone] = useState("+357 99 000000");
-  const [country] = useState("Кипр");
-  const [currency] = useState("EUR");
+  const country = "Кипр";
+  const currency = "EUR";
 
   // Services state
   const [services, setServices] = useState<MockService[]>([...MOCK_SERVICES]);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
 
-  // Schedule state
-  const [workPattern] = useState("Каждый день");
-  const [workStart, setWorkStart] = useState("08:00");
-  const [workEnd, setWorkEnd] = useState("22:00");
-  const [hasBreak, setHasBreak] = useState(false);
-  const [daysOff] = useState("нет выходных");
-  const [daySchedules, setDaySchedules] = useState<DaySchedule[]>(
-    DAY_NAMES.map(() => ({
-      custom: false,
-      start: "08:00",
-      end: "22:00",
-      enabled: true,
-    })),
+  // Schedule state — which team are we editing
+  const [editingTeamId, setEditingTeamId] = useState<string>(
+    initialTeamId || MOCK_TEAMS[0]?.id || ""
   );
 
   if (!open) return null;
@@ -84,32 +72,39 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
 
   const handleServiceChange = (id: string, field: keyof MockService, value: string | number) => {
     setServices(
-      services.map((s) =>
-        s.id === id ? { ...s, [field]: value } : s,
-      ),
+      services.map((s) => (s.id === id ? { ...s, [field]: value } : s)),
     );
   };
 
-  const handleDayToggle = (index: number) => {
-    const updated = [...daySchedules];
-    updated[index] = { ...updated[index], custom: !updated[index].custom };
-    setDaySchedules(updated);
+  // Schedule helpers
+  const currentSchedule: TeamSchedule = getTeamSchedule(editingTeamId, schedules);
+
+  const updateScheduleField = (field: "start" | "end", value: string) => {
+    const next: ScheduleMap = {
+      ...schedules,
+      [editingTeamId]: {
+        ...(schedules[editingTeamId] || DEFAULT_SCHEDULE),
+        [field]: value,
+      },
+    };
+    onSchedulesChange(next);
   };
 
-  const handleDayScheduleChange = (index: number, field: "start" | "end", value: string) => {
-    const updated = [...daySchedules];
-    updated[index] = { ...updated[index], [field]: value };
-    setDaySchedules(updated);
+  const resetSchedule = () => {
+    const next = { ...schedules };
+    delete next[editingTeamId];
+    onSchedulesChange(next);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-indigo-600 text-white px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">Профиль мастера</h2>
           <button
             onClick={onClose}
+            aria-label="Закрыть"
             className="w-8 h-8 flex items-center justify-center rounded hover:bg-indigo-500"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -180,7 +175,6 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
                   key={service.id}
                   className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg group"
                 >
-                  {/* Drag handle */}
                   <div className="text-gray-300 cursor-grab">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="8" cy="6" r="1.5" />
@@ -204,7 +198,9 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
                         <input
                           type="number"
                           value={service.duration_minutes}
-                          onChange={(e) => handleServiceChange(service.id, "duration_minutes", Number(e.target.value))}
+                          onChange={(e) =>
+                            handleServiceChange(service.id, "duration_minutes", Number(e.target.value))
+                          }
                           className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           placeholder="мин"
                         />
@@ -235,7 +231,8 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
                       <button
                         type="button"
                         onClick={() => setEditingServiceId(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 opacity-100 transition-opacity"
+                        aria-label="Редактировать"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -245,7 +242,8 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
                       <button
                         type="button"
                         onClick={() => handleDeleteService(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-red-50 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        aria-label="Удалить"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <polyline points="3 6 5 6 21 6" />
@@ -270,14 +268,31 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
 
           {activeTab === "schedule" && (
             <div className="space-y-4">
-              {/* Work pattern */}
+              {/* Team selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Рабочий график
-                </label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
-                  {workPattern}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Бригада</label>
+                <div className="flex gap-2 flex-wrap">
+                  {MOCK_TEAMS.map((team) => (
+                    <button
+                      key={team.id}
+                      type="button"
+                      onClick={() => setEditingTeamId(team.id)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                        editingTeamId === team.id
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300"
+                      }`}
+                    >
+                      {team.name}
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                График работы бригады <span className="font-medium text-gray-700">
+                  {MOCK_TEAMS.find((t) => t.id === editingTeamId)?.name}
+                </span>. Часы вне расписания будут затемнены на календаре.
               </div>
 
               {/* Working hours */}
@@ -286,8 +301,8 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
                   <label className="block text-sm font-medium text-gray-700 mb-1">Время работы с</label>
                   <input
                     type="time"
-                    value={workStart}
-                    onChange={(e) => setWorkStart(e.target.value)}
+                    value={currentSchedule.start}
+                    onChange={(e) => updateScheduleField("start", e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
@@ -295,92 +310,29 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
                   <label className="block text-sm font-medium text-gray-700 mb-1">до</label>
                   <input
                     type="time"
-                    value={workEnd}
-                    onChange={(e) => setWorkEnd(e.target.value)}
+                    value={currentSchedule.end}
+                    onChange={(e) => updateScheduleField("end", e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
-              {/* Break toggle */}
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Перерыв</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">
-                    {hasBreak ? "Есть" : "Без перерыва"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setHasBreak(!hasBreak)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      hasBreak ? "bg-indigo-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                        hasBreak ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
+              {/* Quick presets */}
+              <div className="flex gap-2 flex-wrap">
+                <PresetButton label="08–22" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "08:00", end: "22:00" } })} />
+                <PresetButton label="09–18" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "09:00", end: "18:00" } })} />
+                <PresetButton label="07–20" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "07:00", end: "20:00" } })} />
+                <PresetButton label="00–24" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "00:00", end: "23:59" } })} />
               </div>
 
-              {/* Days off */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Выходные дни
-                </label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
-                  {daysOff}
-                </div>
-              </div>
-
-              {/* Per-day schedule */}
-              <div>
-                <div className="text-xs font-semibold text-gray-400 uppercase mb-2">
-                  Расписание по дням
-                </div>
-                <div className="space-y-2">
-                  {DAY_NAMES.map((day, i) => (
-                    <div key={day} className="border border-gray-200 rounded-lg px-3 py-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">{day}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400">Особое расписание</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDayToggle(i)}
-                            className={`relative w-9 h-5 rounded-full transition-colors ${
-                              daySchedules[i].custom ? "bg-indigo-600" : "bg-gray-300"
-                            }`}
-                          >
-                            <span
-                              className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                                daySchedules[i].custom ? "translate-x-4" : "translate-x-0"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </div>
-                      {daySchedules[i].custom && (
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          <input
-                            type="time"
-                            value={daySchedules[i].start}
-                            onChange={(e) => handleDayScheduleChange(i, "start", e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          />
-                          <input
-                            type="time"
-                            value={daySchedules[i].end}
-                            onChange={(e) => handleDayScheduleChange(i, "end", e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={resetSchedule}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                  Сбросить к стандартному (08:00 – 22:00)
+                </button>
               </div>
             </div>
           )}
@@ -397,5 +349,17 @@ export default function MasterProfileDialog({ open, onClose }: MasterProfileDial
         </div>
       </div>
     </div>
+  );
+}
+
+function PresetButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+    >
+      {label}
+    </button>
   );
 }

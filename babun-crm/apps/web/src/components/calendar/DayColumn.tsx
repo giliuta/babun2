@@ -6,6 +6,7 @@ import {
   isSameDay,
   formatDateKey,
 } from "@/lib/date-utils";
+import { timeToMinutes, type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
 import type { MockAppointment } from "@/lib/mock-data";
 import AppointmentBlock from "./AppointmentBlock";
 import { HOURS } from "./TimeGrid";
@@ -16,6 +17,7 @@ interface DayColumnProps {
   appointments: MockAppointment[];
   currentTimeMinutes: number; // minutes since midnight for current time line
   hourHeight?: number;
+  schedule?: TeamSchedule;
   onAppointmentClick: (appointment: MockAppointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
 }
@@ -26,6 +28,7 @@ export default function DayColumn({
   appointments,
   currentTimeMinutes,
   hourHeight = 60,
+  schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
 }: DayColumnProps) {
@@ -37,9 +40,17 @@ export default function DayColumn({
 
   const pxPerMinute = hourHeight / 60;
 
-  // Current time indicator position (relative to 08:00)
-  const showTimeLine = isToday && currentTimeMinutes >= 480 && currentTimeMinutes <= 1320; // 08:00-22:00
-  const timeLineTop = (currentTimeMinutes - 480) * pxPerMinute;
+  // Current time indicator position (relative to 00:00)
+  const showTimeLine = isToday;
+  const timeLineTop = currentTimeMinutes * pxPerMinute;
+
+  // Out-of-hours overlay positions (relative to 00:00)
+  const workStart = timeToMinutes(schedule.start);
+  const workEnd = timeToMinutes(schedule.end);
+  const beforeWorkHeight = workStart * pxPerMinute;
+  const afterWorkTop = workEnd * pxPerMinute;
+  const totalHeight = 24 * 60 * pxPerMinute;
+  const afterWorkHeight = totalHeight - afterWorkTop;
 
   const handleColumnClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onEmptySlotClick) return;
@@ -48,15 +59,14 @@ export default function DayColumn({
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickY = e.clientY - rect.top;
-    const minutesFromStart = clickY / pxPerMinute;
-    const totalMinutes = 480 + minutesFromStart; // 08:00 = 480 min
+    const totalMinutes = clickY / pxPerMinute;
 
     // Snap to nearest 15 minutes
     const snapped = Math.round(totalMinutes / 15) * 15;
     const hours = Math.floor(snapped / 60);
     const mins = snapped % 60;
 
-    if (hours >= 8 && hours <= 22) {
+    if (hours >= 0 && hours < 24) {
       const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
       onEmptySlotClick(dateKey, timeStr);
     }
@@ -99,7 +109,7 @@ export default function DayColumn({
         className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"}`}
         onClick={handleColumnClick}
       >
-        {/* Hour grid lines */}
+        {/* Hour grid lines (24 hours) */}
         {HOURS.map((hour) => (
           <div
             key={hour}
@@ -107,6 +117,22 @@ export default function DayColumn({
             style={{ height: `${hourHeight}px` }}
           />
         ))}
+
+        {/* Out-of-hours overlay: BEFORE work start */}
+        {beforeWorkHeight > 0 && (
+          <div
+            className="absolute left-0 right-0 top-0 bg-gray-200/50 pointer-events-none"
+            style={{ height: `${beforeWorkHeight}px` }}
+          />
+        )}
+
+        {/* Out-of-hours overlay: AFTER work end */}
+        {afterWorkHeight > 0 && (
+          <div
+            className="absolute left-0 right-0 bg-gray-200/50 pointer-events-none"
+            style={{ top: `${afterWorkTop}px`, height: `${afterWorkHeight}px` }}
+          />
+        )}
 
         {/* Current time indicator */}
         {showTimeLine && (
