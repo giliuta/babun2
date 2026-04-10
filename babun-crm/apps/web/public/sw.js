@@ -1,5 +1,6 @@
 // Babun CRM Service Worker
-const CACHE_VERSION = "babun-v1";
+// Increment CACHE_VERSION on every deploy to invalidate caches
+const CACHE_VERSION = "babun-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -104,6 +105,13 @@ self.addEventListener("push", (event) => {
     );
   } catch (e) {
     // ignore malformed payload
+  }
+});
+
+// Allow client to trigger immediate activation of a waiting SW
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
   }
 });
 
