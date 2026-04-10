@@ -32,12 +32,8 @@ export default function DashboardPage() {
   const hourHeight = ZOOM_LEVELS[zoomIndex];
   const stepDays = STEP_DAYS[viewMode];
 
-  // All appointments visible across the swipe pages — fetch a wide window so prev/next pages have data.
-  // For now we use mock data which is generated relative to the current Monday.
-  const allAppointments = useMemo(
-    () => getMockAppointments(currentMonday),
-    [currentMonday]
-  );
+  // All mock appointments are pinned to absolute dates — same data regardless of week
+  const allAppointments = useMemo(() => getMockAppointments(), []);
   const appointments = useMemo(
     () => allAppointments.filter((a) => a.team_id === activeTeamId),
     [allAppointments, activeTeamId]
@@ -108,19 +104,20 @@ export default function DashboardPage() {
     setDialogOpen(true);
   }, []);
 
-  // Render a calendar page for a given offset (-1 prev, 0 current, +1 next)
+  // Render a calendar page for a given offset (-1 prev, 0 current, +1 next).
+  // All pages use the same `appointments` array (filtered by team) — DayColumn
+  // shows only those appointments whose `date` matches each visible day, so
+  // appointments are naturally pinned to absolute dates.
   const renderPage = useCallback(
     (offset: -1 | 0 | 1) => {
       const monday =
         viewMode === "week"
           ? addWeeks(currentMonday, offset)
           : addDays(currentMonday, offset * stepDays);
-      // For prev/next we don't load real appointments — they animate in then state updates
-      const pageAppointments = offset === 0 ? appointments : [];
       return (
         <WeekView
           mondayDate={monday}
-          appointments={pageAppointments}
+          appointments={appointments}
           viewMode={viewMode}
           hourHeight={hourHeight}
           onAppointmentClick={handleAppointmentClick}

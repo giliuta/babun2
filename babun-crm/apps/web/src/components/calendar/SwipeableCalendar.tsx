@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 interface SwipeableCalendarProps {
   /**
@@ -44,6 +45,11 @@ export default function SwipeableCalendar({
     if (!track) return;
     track.style.transition = withTransition ? "transform 250ms ease-out" : "none";
     track.style.transform = `translate3d(${offsetPx}px, 0, 0)`;
+    if (!withTransition) {
+      // Force a layout flush so the next transition (if any) starts from the new offset
+      // without animating from the previous position.
+      void track.offsetHeight;
+    }
   };
 
   const recenter = () => {
@@ -131,11 +137,17 @@ export default function SwipeableCalendar({
     const dir = committedDirRef.current;
     animatingRef.current = false;
     committedDirRef.current = 0;
-    if (dir === -1) onSwipeLeft();
-    else if (dir === 1) onSwipeRight();
-    // Re-center instantly. The state update from onSwipe will swap children
-    // so the (now-centered) middle slot shows the new period.
-    recenter();
+
+    // Atomically: re-center the track AND notify parent to advance state.
+    // flushSync forces the parent re-render to happen synchronously, so the
+    // new children appear in the same paint as the recenter — no flicker.
+    flushSync(() => {
+      // First disable transitions and snap track back to center
+      setTrackOffset(-width, false);
+      // Then advance the parent state — children swap to new period
+      if (dir === -1) onSwipeLeft();
+      else if (dir === 1) onSwipeRight();
+    });
   };
 
   return (
