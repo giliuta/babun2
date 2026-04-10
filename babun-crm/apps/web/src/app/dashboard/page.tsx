@@ -2,14 +2,14 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
-import { getMockAppointments, MOCK_TEAMS, type MockAppointment } from "@/lib/mock-data";
+import { getMockAppointments, type MockAppointment } from "@/lib/mock-data";
 import { getTeamSchedule, timeToMinutes } from "@/lib/schedule";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import AppointmentDialog from "@/components/appointments/AppointmentDialog";
-import { useSidebar, useSchedules } from "./layout";
+import { useSidebar, useSchedules, useTeams } from "./layout";
 
 const ZOOM_LEVELS = [40, 60, 90, 120];
 
@@ -23,8 +23,25 @@ const STEP_DAYS: Record<ViewMode, number> = {
 export default function DashboardPage() {
   const sidebar = useSidebar();
   const { schedules } = useSchedules();
+  const { teams } = useTeams();
+  // Header tabs need a stable shape: { id, name }
+  const teamTabs = useMemo(
+    () => teams.filter((t) => t.active).map((t) => ({ id: t.id, name: t.name })),
+    [teams]
+  );
   const [currentMonday, setCurrentMonday] = useState(() => getMonday(new Date()));
-  const [activeTeamId, setActiveTeamId] = useState(MOCK_TEAMS[0].id);
+  const [activeTeamId, setActiveTeamId] = useState<string>("");
+
+  // When teams load (or change), make sure the active team is still valid
+  useEffect(() => {
+    if (teamTabs.length === 0) {
+      setActiveTeamId("");
+      return;
+    }
+    if (!teamTabs.some((t) => t.id === activeTeamId)) {
+      setActiveTeamId(teamTabs[0].id);
+    }
+  }, [teamTabs, activeTeamId]);
   const [selectedAppointment, setSelectedAppointment] = useState<MockAppointment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
@@ -159,7 +176,7 @@ export default function DashboardPage() {
       <Header
         currentDate={currentMonday}
         activeTeamId={activeTeamId}
-        teams={MOCK_TEAMS}
+        teams={teamTabs}
         viewMode={viewMode}
         hourHeight={hourHeight}
         allAppointments={allAppointments}

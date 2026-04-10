@@ -10,6 +10,14 @@ import {
   saveSchedules,
   type ScheduleMap,
 } from "@/lib/schedule";
+import {
+  loadMasters,
+  saveMasters,
+  loadTeams,
+  saveTeams,
+  type Master,
+  type Team,
+} from "@/lib/masters";
 
 interface SidebarContextValue {
   open: () => void;
@@ -38,6 +46,36 @@ export function useSchedules() {
   return ctx;
 }
 
+interface MastersContextValue {
+  masters: Master[];
+  setMasters: (next: Master[]) => void;
+  upsertMaster: (master: Master) => void;
+  deleteMaster: (id: string) => void;
+}
+
+const MastersContext = createContext<MastersContextValue | null>(null);
+
+export function useMasters() {
+  const ctx = useContext(MastersContext);
+  if (!ctx) throw new Error("useMasters must be used within DashboardLayout");
+  return ctx;
+}
+
+interface TeamsContextValue {
+  teams: Team[];
+  setTeams: (next: Team[]) => void;
+  upsertTeam: (team: Team) => void;
+  deleteTeam: (id: string) => void;
+}
+
+const TeamsContext = createContext<TeamsContextValue | null>(null);
+
+export function useTeams() {
+  const ctx = useContext(TeamsContext);
+  if (!ctx) throw new Error("useTeams must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -46,15 +84,63 @@ export default function DashboardLayout({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
+  const [masters, setMastersState] = useState<Master[]>([]);
+  const [teams, setTeamsState] = useState<Team[]>([]);
 
-  // Load schedules from localStorage on mount
+  // Load all persisted state from localStorage on mount
   useEffect(() => {
     setSchedulesState(loadSchedules());
+    setMastersState(loadMasters());
+    setTeamsState(loadTeams());
   }, []);
 
   const handleSchedulesChange = useCallback((next: ScheduleMap) => {
     setSchedulesState(next);
     saveSchedules(next);
+  }, []);
+
+  const handleMastersChange = useCallback((next: Master[]) => {
+    setMastersState(next);
+    saveMasters(next);
+  }, []);
+
+  const upsertMaster = useCallback((master: Master) => {
+    setMastersState((prev) => {
+      const idx = prev.findIndex((m) => m.id === master.id);
+      const next = idx >= 0 ? prev.map((m, i) => (i === idx ? master : m)) : [...prev, master];
+      saveMasters(next);
+      return next;
+    });
+  }, []);
+
+  const deleteMaster = useCallback((id: string) => {
+    setMastersState((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      saveMasters(next);
+      return next;
+    });
+  }, []);
+
+  const handleTeamsChange = useCallback((next: Team[]) => {
+    setTeamsState(next);
+    saveTeams(next);
+  }, []);
+
+  const upsertTeam = useCallback((team: Team) => {
+    setTeamsState((prev) => {
+      const idx = prev.findIndex((t) => t.id === team.id);
+      const next = idx >= 0 ? prev.map((t, i) => (i === idx ? team : t)) : [...prev, team];
+      saveTeams(next);
+      return next;
+    });
+  }, []);
+
+  const deleteTeam = useCallback((id: string) => {
+    setTeamsState((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      saveTeams(next);
+      return next;
+    });
   }, []);
 
   const handleLogout = async () => {
@@ -78,8 +164,24 @@ export default function DashboardLayout({
     setSchedules: handleSchedulesChange,
   };
 
+  const mastersValue: MastersContextValue = {
+    masters,
+    setMasters: handleMastersChange,
+    upsertMaster,
+    deleteMaster,
+  };
+
+  const teamsValue: TeamsContextValue = {
+    teams,
+    setTeams: handleTeamsChange,
+    upsertTeam,
+    deleteTeam,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
+      <MastersContext.Provider value={mastersValue}>
+      <TeamsContext.Provider value={teamsValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -105,6 +207,8 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </TeamsContext.Provider>
+      </MastersContext.Provider>
     </SidebarContext.Provider>
   );
 }
