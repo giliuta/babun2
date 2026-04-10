@@ -40,7 +40,6 @@ export default function WeekView({
   // Determine which dates to show based on view mode
   let visibleDates: Date[];
   if (viewMode === "day") {
-    // Show just the monday (or the current focused day)
     visibleDates = [weekDates[0]];
   } else if (viewMode === "3days") {
     visibleDates = weekDates.slice(0, 3);
@@ -50,7 +49,7 @@ export default function WeekView({
 
   return (
     <div className="flex-1 overflow-auto bg-white">
-      <div className={`flex ${viewMode === "day" ? "min-w-0" : "min-w-[900px]"}`}>
+      <div className="flex h-full">
         {/* Time column */}
         <TimeGrid hourHeight={hourHeight} />
 

@@ -63,31 +63,31 @@ export default function DayColumn({
   };
 
   return (
-    <div className="flex-1 min-w-[120px] border-r border-gray-200 last:border-r-0">
+    <div className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
       {/* Day header */}
       <div
-        className={`h-[72px] border-b border-gray-200 px-2 py-2 text-center ${
+        className={`h-[52px] lg:h-[72px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
           isToday ? "bg-green-50" : "bg-white"
         }`}
       >
-        <div className="text-[10px] text-gray-400 uppercase">{monthName}</div>
+        <div className="text-[8px] lg:text-[10px] text-gray-400 uppercase truncate">{monthName}</div>
         <div
-          className={`text-xl font-bold leading-tight ${
+          className={`text-base lg:text-xl font-bold leading-tight ${
             isToday ? "text-green-600" : "text-gray-900"
           }`}
         >
           {date.getDate()}
         </div>
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-0.5">
           <span
-            className={`text-xs font-medium ${
+            className={`text-[10px] lg:text-xs font-medium ${
               isToday ? "text-green-600" : "text-gray-500"
             }`}
           >
             {dayName}
           </span>
           {dayAppointments.length > 0 && (
-            <span className="text-[10px] text-gray-400">
+            <span className="text-[8px] lg:text-[10px] text-gray-400">
               ({dayAppointments.length})
             </span>
           )}

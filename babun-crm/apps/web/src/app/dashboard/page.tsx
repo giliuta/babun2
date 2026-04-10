@@ -6,10 +6,12 @@ import { getMockAppointments, MOCK_TEAMS, type MockAppointment } from "@/lib/moc
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import AppointmentDialog from "@/components/appointments/AppointmentDialog";
+import { useSidebar } from "./layout";
 
 const ZOOM_LEVELS = [40, 60, 90, 120];
 
 export default function DashboardPage() {
+  const sidebar = useSidebar();
   const [currentMonday, setCurrentMonday] = useState(() => getMonday(new Date()));
   const [activeTeamId, setActiveTeamId] = useState(MOCK_TEAMS[0].id);
   const [selectedAppointment, setSelectedAppointment] = useState<MockAppointment | null>(null);
@@ -101,6 +103,7 @@ export default function DashboardPage() {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onSelectDate={handleSelectDate}
+        onMenuToggle={sidebar.toggle}
       />
 
       <WeekView

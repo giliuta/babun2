@@ -32,31 +32,31 @@ export default function AppointmentBlock({
 
   const pxPerMinute = hourHeight / 60;
   const topPx = startMinutes * pxPerMinute;
-  const heightPx = Math.max(durationMinutes * pxPerMinute, 20); // Minimum 20px
+  const heightPx = Math.max(durationMinutes * pxPerMinute, 18); // Minimum 18px
 
   return (
     <button
       onClick={() => onClick(appointment)}
-      className={`absolute left-1 right-1 ${colors.bg} rounded-md text-white text-left overflow-hidden cursor-pointer hover:brightness-110 transition-all border-l-[3px] ${colors.border} shadow-sm`}
+      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${colors.bg} rounded-sm lg:rounded-md text-white text-left overflow-hidden cursor-pointer hover:brightness-110 transition-all border-l-2 lg:border-l-[3px] ${colors.border} shadow-sm`}
       style={{
         top: `${topPx}px`,
         height: `${heightPx}px`,
       }}
     >
-      <div className="px-2 py-1 h-full overflow-hidden">
-        <div className="text-[10px] font-medium opacity-90">
-          {appointment.time_start} - {appointment.time_end}
+      <div className="px-1 lg:px-2 py-0.5 lg:py-1 h-full overflow-hidden">
+        <div className="text-[8px] lg:text-[10px] font-medium opacity-90 leading-tight">
+          {appointment.time_start}-{appointment.time_end}
         </div>
         {appointment.client_name && (
-          <div className="text-xs font-semibold truncate leading-tight">
+          <div className="text-[10px] lg:text-xs font-semibold truncate leading-tight">
             {appointment.client_name}
           </div>
         )}
-        <div className="text-[10px] truncate opacity-90">
+        <div className="text-[8px] lg:text-[10px] truncate opacity-90 leading-tight">
           {appointment.service_name}
         </div>
         {heightPx > 60 && appointment.comment && (
-          <div className="text-[10px] truncate opacity-70 mt-0.5">
+          <div className="text-[8px] lg:text-[10px] truncate opacity-70 mt-0.5 leading-tight">
             {appointment.comment}
           </div>
         )}

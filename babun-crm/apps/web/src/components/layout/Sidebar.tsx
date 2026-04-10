@@ -1,45 +1,34 @@
 "use client";
 
-import { useState } from "react";
-
 export type DialogType = "clients" | "income" | "expenses" | "reports" | "waitlist" | "settings" | "master-profile" | null;
 
 interface SidebarProps {
   onLogout: () => void;
   onNavigate?: (dialog: DialogType) => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ onLogout, onNavigate, open, onClose }: SidebarProps) {
+  const handleNav = (dialog: DialogType) => {
+    onNavigate?.(dialog);
+    onClose();
+  };
 
   return (
     <>
       {/* Mobile overlay */}
-      {!collapsed && (
+      {open && (
         <div
           className="fixed inset-0 bg-black/40 z-30 lg:hidden"
-          onClick={() => setCollapsed(true)}
+          onClick={onClose}
         />
       )}
-
-      {/* Mobile toggle button */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 bg-indigo-900 text-white rounded-lg flex items-center justify-center shadow-lg"
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fillRule="evenodd"
-            d="M3 5h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
 
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-full w-[220px] bg-indigo-900 text-white flex flex-col z-40 transition-transform duration-200 ${
-          collapsed ? "-translate-x-full lg:translate-x-0" : "translate-x-0"
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         {/* Account info */}
@@ -54,7 +43,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
           </div>
           <button
             type="button"
-            onClick={() => onNavigate?.("master-profile")}
+            onClick={() => handleNav("master-profile")}
             className="text-xs text-indigo-300 hover:text-white flex items-center gap-1"
           >
             <svg
@@ -91,7 +80,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
               </svg>
             }
             label="Клиенты"
-            onClick={() => onNavigate?.("clients")}
+            onClick={() => handleNav("clients")}
           />
           <NavItem
             icon={
@@ -108,7 +97,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
             }
             label="Доходы"
             hasAction
-            onClick={() => onNavigate?.("income")}
+            onClick={() => handleNav("income")}
           />
           <NavItem
             icon={
@@ -125,7 +114,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
             }
             label="Расходы"
             hasAction
-            onClick={() => onNavigate?.("expenses")}
+            onClick={() => handleNav("expenses")}
           />
           <NavItem
             icon={
@@ -141,7 +130,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
               </svg>
             }
             label="Отчеты и планирование"
-            onClick={() => onNavigate?.("reports")}
+            onClick={() => handleNav("reports")}
           />
           <NavItem
             icon={
@@ -159,7 +148,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
             }
             label="Лист ожидания"
             badge={3}
-            onClick={() => onNavigate?.("waitlist")}
+            onClick={() => handleNav("waitlist")}
           />
           <NavItem
             icon={
@@ -176,7 +165,7 @@ export default function Sidebar({ onLogout, onNavigate }: SidebarProps) {
               </svg>
             }
             label="Настройки"
-            onClick={() => onNavigate?.("settings")}
+            onClick={() => handleNav("settings")}
           />
         </nav>
 
@@ -235,7 +224,7 @@ function NavItem({
       }`}
     >
       {icon}
-      <span className="flex-1 truncate">{label}</span>
+      <span className="flex-1 truncate text-left">{label}</span>
       {hasAction && (
         <span className="w-5 h-5 bg-indigo-700 rounded text-xs flex items-center justify-center text-indigo-200 hover:bg-indigo-600">
           +
