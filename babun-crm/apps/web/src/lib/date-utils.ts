@@ -62,6 +62,12 @@ export function addWeeks(date: Date, weeks: number): Date {
   return d;
 }
 
+export function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
 export function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;

@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { getMonday, addWeeks } from "@/lib/date-utils";
+import { useState, useCallback, useMemo } from "react";
+import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
 import { getMockAppointments, MOCK_TEAMS, type MockAppointment } from "@/lib/mock-data";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
+import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import AppointmentDialog from "@/components/appointments/AppointmentDialog";
 import { useSidebar } from "./layout";
 
 const ZOOM_LEVELS = [40, 60, 90, 120];
+
+// How many days to advance per "next" / "prev" depending on view mode.
+const STEP_DAYS: Record<ViewMode, number> = {
+  day: 1,
+  "3days": 3,
+  week: 7,
+};
 
 export default function DashboardPage() {
   const sidebar = useSidebar();
@@ -22,18 +30,31 @@ export default function DashboardPage() {
   const [prefillTime, setPrefillTime] = useState<string | undefined>();
 
   const hourHeight = ZOOM_LEVELS[zoomIndex];
+  const stepDays = STEP_DAYS[viewMode];
 
-  // Get appointments for the current week filtered by team
-  const allAppointments = getMockAppointments(currentMonday);
-  const appointments = allAppointments.filter((a) => a.team_id === activeTeamId);
+  // All appointments visible across the swipe pages — fetch a wide window so prev/next pages have data.
+  // For now we use mock data which is generated relative to the current Monday.
+  const allAppointments = useMemo(
+    () => getMockAppointments(currentMonday),
+    [currentMonday]
+  );
+  const appointments = useMemo(
+    () => allAppointments.filter((a) => a.team_id === activeTeamId),
+    [allAppointments, activeTeamId]
+  );
 
-  const handlePrevWeek = useCallback(() => {
-    setCurrentMonday((prev) => addWeeks(prev, -1));
-  }, []);
+  const advance = useCallback(
+    (direction: -1 | 1) => {
+      setCurrentMonday((prev) => {
+        if (viewMode === "week") return addWeeks(prev, direction);
+        return addDays(prev, direction * stepDays);
+      });
+    },
+    [viewMode, stepDays]
+  );
 
-  const handleNextWeek = useCallback(() => {
-    setCurrentMonday((prev) => addWeeks(prev, 1));
-  }, []);
+  const handlePrevWeek = useCallback(() => advance(-1), [advance]);
+  const handleNextWeek = useCallback(() => advance(1), [advance]);
 
   const handleToday = useCallback(() => {
     setCurrentMonday(getMonday(new Date()));
@@ -57,11 +78,12 @@ export default function DashboardPage() {
     setPrefillTime(undefined);
   }, []);
 
-  const handleSave = useCallback((_data: Partial<MockAppointment>) => {
-    // In a real app, this would save to Supabase
-    // For now we just close the dialog
-    handleDialogClose();
-  }, [handleDialogClose]);
+  const handleSave = useCallback(
+    (_data: Partial<MockAppointment>) => {
+      handleDialogClose();
+    },
+    [handleDialogClose]
+  );
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
@@ -86,6 +108,37 @@ export default function DashboardPage() {
     setDialogOpen(true);
   }, []);
 
+  // Render a calendar page for a given offset (-1 prev, 0 current, +1 next)
+  const renderPage = useCallback(
+    (offset: -1 | 0 | 1) => {
+      const monday =
+        viewMode === "week"
+          ? addWeeks(currentMonday, offset)
+          : addDays(currentMonday, offset * stepDays);
+      // For prev/next we don't load real appointments — they animate in then state updates
+      const pageAppointments = offset === 0 ? appointments : [];
+      return (
+        <WeekView
+          mondayDate={monday}
+          appointments={pageAppointments}
+          viewMode={viewMode}
+          hourHeight={hourHeight}
+          onAppointmentClick={handleAppointmentClick}
+          onEmptySlotClick={handleEmptySlotClick}
+        />
+      );
+    },
+    [
+      currentMonday,
+      viewMode,
+      stepDays,
+      appointments,
+      hourHeight,
+      handleAppointmentClick,
+      handleEmptySlotClick,
+    ]
+  );
+
   return (
     <>
       <Header
@@ -106,13 +159,10 @@ export default function DashboardPage() {
         onMenuToggle={sidebar.toggle}
       />
 
-      <WeekView
-        mondayDate={currentMonday}
-        appointments={appointments}
-        viewMode={viewMode}
-        hourHeight={hourHeight}
-        onAppointmentClick={handleAppointmentClick}
-        onEmptySlotClick={handleEmptySlotClick}
+      <SwipeableCalendar
+        renderPage={renderPage}
+        onSwipeLeft={handleNextWeek}
+        onSwipeRight={handlePrevWeek}
       />
 
       <AppointmentDialog

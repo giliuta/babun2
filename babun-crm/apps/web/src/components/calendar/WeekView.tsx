@@ -48,8 +48,8 @@ export default function WeekView({
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-white">
-      <div className="flex h-full">
+    <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden bg-white">
+      <div className="flex min-h-full w-full">
         {/* Time column */}
         <TimeGrid hourHeight={hourHeight} />
 
