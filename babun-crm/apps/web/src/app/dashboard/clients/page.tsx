@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import { useTeams } from "@/app/dashboard/layout";
 import {
   MOCK_CLIENTS,
   MOCK_CLIENT_APPOINTMENTS,
@@ -129,7 +131,16 @@ function ClientCardView({
   client: MockClient;
   onBack: () => void;
 }) {
+  const router = useRouter();
+  const { teams } = useTeams();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+
+  const handleBook = () => {
+    const firstTeam = teams.find((t) => t.active);
+    const params = new URLSearchParams({ client_id: client.id });
+    if (firstTeam) params.set("team_id", firstTeam.id);
+    router.push(`/dashboard/appointment/new?${params.toString()}`);
+  };
   const [form, setForm] = useState<FormState>({
     full_name: client.full_name,
     phone: client.phone,
@@ -183,7 +194,15 @@ function ClientCardView({
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4">
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
+          <button
+            type="button"
+            onClick={handleBook}
+            className="w-full min-h-[44px] px-4 py-3 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+          >
+            + Записать клиента
+          </button>
+
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-gray-200">

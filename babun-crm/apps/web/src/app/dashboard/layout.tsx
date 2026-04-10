@@ -18,6 +18,17 @@ import {
   type Master,
   type Team,
 } from "@/lib/masters";
+import {
+  loadAppointments,
+  saveAppointments,
+  loadFieldVisibility,
+  saveFieldVisibility,
+  loadRequiredFields,
+  saveRequiredFields,
+  type Appointment,
+  type FormFieldVisibility,
+  type RequiredFields,
+} from "@/lib/appointments";
 
 interface SidebarContextValue {
   open: () => void;
@@ -76,6 +87,36 @@ export function useTeams() {
   return ctx;
 }
 
+interface AppointmentsContextValue {
+  appointments: Appointment[];
+  upsertAppointment: (apt: Appointment) => void;
+  deleteAppointment: (id: string) => void;
+  getAppointment: (id: string) => Appointment | undefined;
+}
+
+const AppointmentsContext = createContext<AppointmentsContextValue | null>(null);
+
+export function useAppointments() {
+  const ctx = useContext(AppointmentsContext);
+  if (!ctx) throw new Error("useAppointments must be used within DashboardLayout");
+  return ctx;
+}
+
+interface FormSettingsContextValue {
+  fieldVisibility: FormFieldVisibility;
+  setFieldVisibility: (next: FormFieldVisibility) => void;
+  requiredFields: RequiredFields;
+  setRequiredFields: (next: RequiredFields) => void;
+}
+
+const FormSettingsContext = createContext<FormSettingsContextValue | null>(null);
+
+export function useFormSettings() {
+  const ctx = useContext(FormSettingsContext);
+  if (!ctx) throw new Error("useFormSettings must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -86,12 +127,31 @@ export default function DashboardLayout({
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);
+  const [appointments, setAppointmentsState] = useState<Appointment[]>([]);
+  const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
+    show_address: true,
+    show_comment: true,
+    show_prepaid: true,
+    show_payments: true,
+    show_source: false,
+    show_reminder: false,
+  });
+  const [requiredFields, setRequiredFieldsState] = useState<RequiredFields>({
+    require_client: true,
+    require_phone: true,
+    require_services: true,
+    require_address: false,
+    require_comment: false,
+  });
 
   // Load all persisted state from localStorage on mount
   useEffect(() => {
     setSchedulesState(loadSchedules());
     setMastersState(loadMasters());
     setTeamsState(loadTeams());
+    setAppointmentsState(loadAppointments());
+    setFieldVisibilityState(loadFieldVisibility());
+    setRequiredFieldsState(loadRequiredFields());
   }, []);
 
   const handleSchedulesChange = useCallback((next: ScheduleMap) => {
@@ -143,6 +203,38 @@ export default function DashboardLayout({
     });
   }, []);
 
+  const upsertAppointment = useCallback((apt: Appointment) => {
+    setAppointmentsState((prev) => {
+      const idx = prev.findIndex((a) => a.id === apt.id);
+      const next = idx >= 0 ? prev.map((a, i) => (i === idx ? apt : a)) : [...prev, apt];
+      saveAppointments(next);
+      return next;
+    });
+  }, []);
+
+  const deleteAppointment = useCallback((id: string) => {
+    setAppointmentsState((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      saveAppointments(next);
+      return next;
+    });
+  }, []);
+
+  const getAppointment = useCallback(
+    (id: string) => appointments.find((a) => a.id === id),
+    [appointments]
+  );
+
+  const handleFieldVisibilityChange = useCallback((next: FormFieldVisibility) => {
+    setFieldVisibilityState(next);
+    saveFieldVisibility(next);
+  }, []);
+
+  const handleRequiredFieldsChange = useCallback((next: RequiredFields) => {
+    setRequiredFieldsState(next);
+    saveRequiredFields(next);
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -178,10 +270,26 @@ export default function DashboardLayout({
     deleteTeam,
   };
 
+  const appointmentsValue: AppointmentsContextValue = {
+    appointments,
+    upsertAppointment,
+    deleteAppointment,
+    getAppointment,
+  };
+
+  const formSettingsValue: FormSettingsContextValue = {
+    fieldVisibility,
+    setFieldVisibility: handleFieldVisibilityChange,
+    requiredFields,
+    setRequiredFields: handleRequiredFieldsChange,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
       <TeamsContext.Provider value={teamsValue}>
+      <AppointmentsContext.Provider value={appointmentsValue}>
+      <FormSettingsContext.Provider value={formSettingsValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -207,6 +315,8 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </FormSettingsContext.Provider>
+      </AppointmentsContext.Provider>
       </TeamsContext.Provider>
       </MastersContext.Provider>
     </SidebarContext.Provider>

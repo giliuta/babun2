@@ -9,11 +9,13 @@ import {
   getMonday,
   formatDateKey,
 } from "@/lib/date-utils";
-import type { MockAppointment } from "@/lib/mock-data";
+interface MiniCalendarAppointment {
+  date: string;
+}
 
 interface MiniCalendarProps {
   currentDate: Date;
-  appointments: MockAppointment[];
+  appointments: MiniCalendarAppointment[];
   onSelectDate: (monday: Date) => void;
   onClose: () => void;
 }

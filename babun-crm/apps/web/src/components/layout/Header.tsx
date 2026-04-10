@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { getMonthName } from "@/lib/date-utils";
-import type { MockAppointment } from "@/lib/mock-data";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
+
+interface HeaderAppointment {
+  date: string;
+}
 
 export type ViewMode = "day" | "3days" | "week";
 
@@ -13,7 +16,7 @@ interface HeaderProps {
   teams: { id: string; name: string }[];
   viewMode: ViewMode;
   hourHeight: number;
-  allAppointments: MockAppointment[];
+  allAppointments: HeaderAppointment[];
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onToday: () => void;

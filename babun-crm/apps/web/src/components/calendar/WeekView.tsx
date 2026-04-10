@@ -3,23 +3,29 @@
 import { useEffect, useState } from "react";
 import { getWeekDates, getCurrentCyprusTime } from "@/lib/date-utils";
 import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
-import type { MockAppointment } from "@/lib/mock-data";
+import type { Appointment, ValidationResult } from "@/lib/appointments";
+import type { MockClient } from "@/lib/mock-data";
+import type { DraftClient } from "@/components/appointments/AppointmentForm";
 import type { ViewMode } from "@/components/layout/Header";
 import DayColumn from "./DayColumn";
 
 interface WeekViewProps {
   mondayDate: Date;
-  appointments: MockAppointment[];
+  appointments: Appointment[];
+  clientsById: Record<string, MockClient | DraftClient>;
+  validateApt: (apt: Appointment) => ValidationResult;
   viewMode?: ViewMode;
   hourHeight?: number;
   schedule?: TeamSchedule;
-  onAppointmentClick: (appointment: MockAppointment) => void;
+  onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
 }
 
 export default function WeekView({
   mondayDate,
   appointments,
+  clientsById,
+  validateApt,
   viewMode = "week",
   hourHeight = 60,
   schedule = DEFAULT_SCHEDULE,
@@ -57,6 +63,8 @@ export default function WeekView({
           date={date}
           today={now}
           appointments={appointments}
+          clientsById={clientsById}
+          validateApt={validateApt}
           currentTimeMinutes={currentTimeMinutes}
           hourHeight={hourHeight}
           schedule={schedule}

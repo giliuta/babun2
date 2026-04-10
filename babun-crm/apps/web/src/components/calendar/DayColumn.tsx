@@ -7,18 +7,23 @@ import {
   formatDateKey,
 } from "@/lib/date-utils";
 import { timeToMinutes, type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
-import type { MockAppointment } from "@/lib/mock-data";
+import type { Appointment, ValidationResult } from "@/lib/appointments";
+import { getAppointmentColorKind } from "@/lib/appointments";
+import type { MockClient } from "@/lib/mock-data";
+import type { DraftClient } from "@/components/appointments/AppointmentForm";
 import AppointmentBlock from "./AppointmentBlock";
 import { HOURS } from "./TimeGrid";
 
 interface DayColumnProps {
   date: Date;
   today: Date;
-  appointments: MockAppointment[];
+  appointments: Appointment[];
+  clientsById: Record<string, MockClient | DraftClient>;
+  validateApt: (apt: Appointment) => ValidationResult;
   currentTimeMinutes: number; // minutes since midnight for current time line
   hourHeight?: number;
   schedule?: TeamSchedule;
-  onAppointmentClick: (appointment: MockAppointment) => void;
+  onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
 }
 
@@ -26,6 +31,8 @@ export default function DayColumn({
   date,
   today,
   appointments,
+  clientsById,
+  validateApt,
   currentTimeMinutes,
   hourHeight = 60,
   schedule = DEFAULT_SCHEDULE,
@@ -148,14 +155,20 @@ export default function DayColumn({
         )}
 
         {/* Appointment blocks */}
-        {dayAppointments.map((apt) => (
-          <AppointmentBlock
-            key={apt.id}
-            appointment={apt}
-            hourHeight={hourHeight}
-            onClick={onAppointmentClick}
-          />
-        ))}
+        {dayAppointments.map((apt) => {
+          const validation = validateApt(apt);
+          const colorKind = getAppointmentColorKind(apt, validation);
+          return (
+            <AppointmentBlock
+              key={apt.id}
+              appointment={apt}
+              colorKind={colorKind}
+              clientsById={clientsById}
+              hourHeight={hourHeight}
+              onClick={onAppointmentClick}
+            />
+          );
+        })}
       </div>
     </div>
   );

@@ -21,8 +21,8 @@ export interface MockTeam {
 }
 
 export const MOCK_TEAMS: MockTeam[] = [
-  { id: "team-1", name: "Y&D", color: "#6366f1" },
-  { id: "team-2", name: "D&K", color: "#8b5cf6" },
+  { id: "team-yd", name: "Y&D", color: "#6366f1" },
+  { id: "team-dk", name: "D&K", color: "#8b5cf6" },
 ];
 
 // All appointments are pinned to absolute calendar dates (YYYY-MM-DD).
@@ -44,7 +44,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 160,
     comment: "Постоянный клиент, 4 блока",
     color: "blue",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-p2",
@@ -57,7 +57,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 450,
     comment: "Установка сплит-систем",
     color: "purple",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-p3",
@@ -70,7 +70,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 240,
     comment: "Офис, Лимассол",
     color: "blue",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
 
   // ── Current week (Apr 6 – Apr 12, 2026) ───────────────────────────────
@@ -85,7 +85,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 160,
     comment: "4 внутренних блока, 1 наружный. Лимассол, ул. Макариос 42",
     color: "blue",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-2",
@@ -98,7 +98,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 80,
     comment: "Квартира, 2-й этаж",
     color: "blue",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-3",
@@ -111,7 +111,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 450,
     comment: "Новая квартира, установка 3 сплит-систем",
     color: "purple",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-4",
@@ -124,7 +124,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 40,
     comment: "Кондиционер не охлаждает",
     color: "green",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-5",
@@ -137,7 +137,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 240,
     comment: "Офис, 6 блоков. Пафос",
     color: "blue",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
   {
     id: "apt-6",
@@ -150,7 +150,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 120,
     comment: "Заправка фреоном R410A",
     color: "green",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
   {
     id: "apt-7",
@@ -163,7 +163,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 80,
     comment: "",
     color: "blue",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-8",
@@ -176,7 +176,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 0,
     comment: "Перерыв между клиентами",
     color: "red",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-9",
@@ -189,7 +189,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 600,
     comment: "Вилла, 4 инверторных сплит-системы Daikin",
     color: "purple",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
   {
     id: "apt-10",
@@ -202,7 +202,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 90,
     comment: "Замена компрессора, утечка фреона",
     color: "green",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
   {
     id: "apt-11",
@@ -215,7 +215,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 120,
     comment: "Таунхаус, 3 сплита",
     color: "blue",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-12",
@@ -228,7 +228,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 0,
     comment: "Обсуждение новых моделей",
     color: "red",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
 
   // ── Next week (Apr 13 – Apr 19, 2026) ─────────────────────────────────
@@ -243,7 +243,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 80,
     comment: "Квартира",
     color: "blue",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-n2",
@@ -256,7 +256,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 160,
     comment: "Дом, 4 блока",
     color: "blue",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
   {
     id: "apt-n3",
@@ -269,7 +269,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 180,
     comment: "Заправка фреоном",
     color: "green",
-    team_id: "team-1",
+    team_id: "team-yd",
   },
   {
     id: "apt-n4",
@@ -282,7 +282,7 @@ const ALL_MOCK_APPOINTMENTS: MockAppointment[] = [
     amount: 300,
     comment: "Установка двух сплит-систем",
     color: "purple",
-    team_id: "team-2",
+    team_id: "team-dk",
   },
 ];
 
