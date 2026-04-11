@@ -63,15 +63,20 @@ export default function Header({
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
   return (
-    <header className="flex-shrink-0 bg-indigo-700 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col z-30">
+    <header
+      className="flex-shrink-0 lg:bg-white lg:border-b lg:border-gray-200/80 flex flex-col z-30"
+      style={{
+        background: "var(--brand-gradient-mobile)",
+      }}
+    >
       {/* Top row — icon-first, compact */}
-      <div className="px-2 lg:px-4 py-2 lg:py-3 flex items-center gap-1.5">
+      <div className="px-2 lg:px-4 py-2.5 lg:py-3 flex items-center gap-1.5 lg:bg-white">
         {/* Hamburger */}
         <button
           type="button"
           onClick={onMenuToggle}
           aria-label="Меню"
-          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 flex-shrink-0"
+          className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 flex-shrink-0 transition-colors"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="3" y1="6" x2="21" y2="6" />
@@ -85,9 +90,9 @@ export default function Header({
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 hover:bg-indigo-600 lg:hover:bg-gray-50 rounded-lg px-2 py-1 active:scale-95 transition max-w-full"
+            className="flex items-center gap-1 active:bg-white/10 lg:hover:bg-gray-50 rounded-xl px-2.5 py-1.5 active:scale-[0.98] transition max-w-full"
           >
-            <h2 className="text-[15px] lg:text-lg font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap truncate">
+            <h2 className="text-[15px] lg:text-lg font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap truncate tracking-tight">
               {monthName} {year}
             </h2>
             <svg
@@ -121,7 +126,7 @@ export default function Header({
           type="button"
           onClick={onPrevWeek}
           aria-label="Предыдущая неделя"
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95 flex-shrink-0"
+          className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
@@ -133,7 +138,7 @@ export default function Header({
           type="button"
           onClick={onNextWeek}
           aria-label="Следующая неделя"
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95 flex-shrink-0"
+          className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
@@ -145,7 +150,7 @@ export default function Header({
           type="button"
           onClick={onToday}
           aria-label="Сегодня"
-          className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95 flex-shrink-0"
+          className="relative w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -164,7 +169,7 @@ export default function Header({
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95"
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] transition"
           >
             {viewMode === "day" ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -224,7 +229,10 @@ export default function Header({
       </div>
 
       {/* Bottom row: team tabs */}
-      <div className="bg-indigo-700 lg:bg-white px-2 lg:px-4 pb-1 lg:pb-3 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide">
+      <div
+        className="lg:bg-white px-2 lg:px-4 pb-1.5 lg:pb-3 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide"
+        style={{ background: "transparent" }}
+      >
         {teams.map((team) => (
           <TeamTab
             key={team.id}
@@ -290,11 +298,19 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
         onLongPress?.();
         firedRef.current = true;
       }}
-      className={`px-3 lg:px-4 py-1.5 text-[13px] font-medium rounded-md transition-colors whitespace-nowrap select-none ${
+      className={`px-3.5 lg:px-4 py-1.5 text-[12px] font-semibold tracking-tight rounded-full transition-all whitespace-nowrap select-none ${
         active
-          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900 lg:shadow-sm"
-          : "text-indigo-200 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
+          ? "text-white bg-white/15 lg:bg-gray-100 lg:text-gray-900 lg:shadow-sm"
+          : "text-white/70 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
       }`}
+      style={
+        active
+          ? {
+              boxShadow:
+                "inset 0 0 0 1px rgba(255,255,255,0.15), 0 2px 6px -2px rgba(15,23,42,0.2)",
+            }
+          : undefined
+      }
     >
       {team.name}
     </button>

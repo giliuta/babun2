@@ -301,8 +301,8 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
-    // blue — запланирована, ещё не выполнена
-    bg: "bg-blue-500",
+    // sapphire — запланирована, ещё не выполнена
+    bg: "bg-gradient-to-br from-sky-500 to-blue-600",
     border: "border-blue-600",
     text: "text-white",
   },
@@ -313,8 +313,8 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-white",
   },
   debt: {
-    // orange — есть задолженность
-    bg: "bg-orange-500",
+    // amber — есть задолженность
+    bg: "bg-gradient-to-br from-amber-500 to-orange-600",
     border: "border-orange-600",
     text: "text-white",
   },
@@ -331,24 +331,24 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-white",
   },
   in_progress: {
-    bg: "bg-purple-500",
+    bg: "bg-gradient-to-br from-violet-500 to-purple-700",
     border: "border-purple-600",
     text: "text-white",
   },
   online: {
     // cyan — запись через онлайн-форму
-    bg: "bg-cyan-500",
+    bg: "bg-gradient-to-br from-cyan-400 to-teal-600",
     border: "border-cyan-600",
     text: "text-white",
   },
   event: {
     // slate — личное событие
-    bg: "bg-slate-500",
+    bg: "bg-gradient-to-br from-slate-500 to-slate-700",
     border: "border-slate-700",
     text: "text-white",
   },
   past: {
-    bg: "bg-gray-400",
+    bg: "bg-gradient-to-br from-gray-400 to-gray-500",
     border: "border-gray-500",
     text: "text-white",
   },

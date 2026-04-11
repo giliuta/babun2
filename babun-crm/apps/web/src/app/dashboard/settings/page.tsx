@@ -63,7 +63,7 @@ export default function SettingsPage() {
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
           {/* Display settings */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-5">
             <div>
               <div className="text-xs font-semibold text-gray-400 uppercase mb-2">
                 Учетная запись
@@ -145,7 +145,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Form field visibility */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4">
             <div className="text-sm font-semibold text-gray-700 mb-3">
               Поля записи
             </div>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Required fields */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4">
             <div className="text-sm font-semibold text-gray-700 mb-3">
               Обязательные поля
             </div>

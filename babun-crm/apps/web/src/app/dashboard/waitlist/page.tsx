@@ -109,7 +109,7 @@ export default function WaitlistPage() {
           </div>
 
           {/* Items */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
             {visible.map((item, index) => (
               <div
                 key={item.id}

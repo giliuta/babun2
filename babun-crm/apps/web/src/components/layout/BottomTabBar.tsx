@@ -34,10 +34,13 @@ export default function BottomTabBar() {
   return (
     <nav
       aria-label="Главная навигация"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-surface"
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        boxShadow: "0 -8px 32px -12px rgba(15, 23, 42, 0.12)",
+      }}
     >
-      <div className="flex items-end justify-around px-1 h-[60px] relative">
+      <div className="flex items-end justify-around px-1 h-[62px] relative">
         <TabButton
           label="Календарь"
           active={isCalendar}
@@ -65,20 +68,27 @@ export default function BottomTabBar() {
           }
         />
 
-        {/* Centre action — larger, lifted */}
+        {/* Centre action — larger, lifted with premium gradient */}
         <button
           type="button"
           onClick={openNew}
           aria-label="Новая запись"
-          className="relative -top-3 flex flex-col items-center gap-0.5 min-w-[56px]"
+          className="relative -top-4 flex flex-col items-center gap-1 min-w-[56px]"
         >
-          <div className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 active:scale-95 transition">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <div
+            className="w-[58px] h-[58px] rounded-full flex items-center justify-center text-white active:scale-95 transition"
+            style={{
+              background: "linear-gradient(135deg, #6366f1, #4f46e5 60%, #7c3aed)",
+              boxShadow:
+                "0 1px 0 rgba(255,255,255,0.25) inset, 0 0 0 4px rgba(99,102,241,0.1), 0 8px 24px -6px rgba(79,70,229,0.5)",
+            }}
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </div>
-          <span className="text-[10px] text-indigo-600 font-medium">Запись</span>
+          <span className="text-[10px] text-indigo-700 font-semibold">Запись</span>
         </button>
 
         <TabButton
@@ -123,12 +133,16 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 min-w-[44px] h-[60px] flex flex-col items-center justify-center gap-0.5 transition ${
-        active ? "text-indigo-600" : "text-gray-400"
+      className={`flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition ${
+        active ? "text-indigo-700" : "text-gray-400"
       }`}
     >
-      {icon}
-      <span className="text-[10px] font-medium leading-none">{label}</span>
+      <span className={active ? "drop-shadow-sm" : ""}>{icon}</span>
+      <span
+        className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}
+      >
+        {label}
+      </span>
     </button>
   );
 }

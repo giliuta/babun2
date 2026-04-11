@@ -605,7 +605,7 @@ export default function DashboardLayout({
 
           {/* Main content area, offset by sidebar width on lg+. Mobile
               gets bottom padding for the tab bar. */}
-          <div className="flex-1 lg:ml-[220px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0">
+          <div className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0">
             {children}
           </div>
 

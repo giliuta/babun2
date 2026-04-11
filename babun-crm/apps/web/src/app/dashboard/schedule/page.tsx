@@ -72,7 +72,7 @@ export default function SchedulePage() {
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24 space-y-4">
           {/* Team selector */}
-          <div className="bg-white rounded-xl border border-gray-200 p-3">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-3">
             <label className="block text-xs text-gray-500 mb-2">Бригада</label>
             <div className="flex gap-2 overflow-x-auto">
               {activeTeams.map((t) => (
@@ -94,7 +94,7 @@ export default function SchedulePage() {
           </div>
 
           {/* General schedule */}
-          <section className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-3">
             <div className="text-sm font-semibold text-gray-700">Общее расписание</div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -153,7 +153,7 @@ export default function SchedulePage() {
           </section>
 
           {/* Per-weekday overrides */}
-          <section className="bg-white rounded-xl border border-gray-200 p-4">
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4">
             <div className="text-sm font-semibold text-gray-700 mb-3">
               Расписание по дням недели
             </div>

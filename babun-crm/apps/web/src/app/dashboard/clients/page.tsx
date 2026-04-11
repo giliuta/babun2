@@ -120,7 +120,7 @@ export default function ClientsPage() {
                 <div className="text-xs font-bold text-gray-500 mb-1 px-1 sticky top-0 bg-gray-50 py-1 z-10">
                   {group.letter}
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
                   {group.clients.map((client, i) => {
                     const phoneDigits = (client.phone ?? "").replace(/\D/g, "");
                     return (
@@ -309,7 +309,7 @@ function ClientCardView({
             </button>
           )}
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
             <div className="flex border-b border-gray-200">
               {tabs.map((tab) => (
                 <button

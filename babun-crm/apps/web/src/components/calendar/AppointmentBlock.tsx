@@ -125,11 +125,11 @@ function AppointmentBlockInner({
       }}
       {...listeners}
       {...attributes}
-      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${
+      className={`absolute left-1 right-1 lg:left-1 lg:right-1 ${
         // Only fall back to the kind-based color classes when no palette
         // override is set — with override we paint the background inline.
         appointment.color_override ? "text-white" : `${colors.bg} ${colors.text}`
-      } rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 shadow-sm touch-none will-change-transform ${
+      } rounded-lg text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-105 touch-none will-change-transform ${
         isDragging ? "opacity-70 z-30" : ""
       }`}
       style={{
@@ -140,6 +140,8 @@ function AppointmentBlockInner({
           !appointment.color_override && accent
             ? `3px solid ${accent}`
             : undefined,
+        boxShadow:
+          "0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 10px -6px rgba(15,23,42,0.25), 0 1px 2px 0 rgba(15,23,42,0.08)",
         transform: CSS.Translate.toString(transform),
         transition: isDragging ? "none" : undefined,
         contain: "layout paint",

@@ -145,7 +145,7 @@ export default function TeamsPage() {
             return (
               <div
                 key={team.id}
-                className="bg-white rounded-xl border border-gray-200 p-4"
+                className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4"
               >
                 {/* Top row: color circle + name/region + actions */}
                 <div className="flex items-start gap-3">
@@ -280,13 +280,13 @@ export default function TeamsPage() {
           </div>
 
           {masters.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4 text-center text-[12px] text-gray-400">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 text-center text-[12px] text-gray-400">
               Пока нет мастеров. Добавьте их на странице «Мастера».
             </div>
           )}
 
           {masters.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
               {masters.map((m, i) => {
                 const team = m.team_id
                   ? teams.find((t) => t.id === m.team_id) ?? null

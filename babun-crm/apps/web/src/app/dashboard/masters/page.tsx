@@ -185,7 +185,7 @@ export default function MastersPage() {
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
               Активные ({active.length})
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
               {active.length === 0 ? (
                 <div className="text-center text-gray-400 py-8 text-sm">
                   Нет активных мастеров
@@ -201,7 +201,7 @@ export default function MastersPage() {
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
               Неактивные ({inactive.length})
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
               {inactive.length === 0 ? (
                 <div className="text-center text-gray-400 py-8 text-sm">
                   Нет неактивных мастеров

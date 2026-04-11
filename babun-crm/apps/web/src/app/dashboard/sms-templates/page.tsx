@@ -68,7 +68,7 @@ export default function SmsTemplatesPage() {
           {templates.map((tpl) => (
             <div
               key={tpl.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+              className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden"
             >
               <button
                 type="button"

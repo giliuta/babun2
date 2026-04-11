@@ -72,36 +72,60 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay — refined scrim with blur */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          className="fixed inset-0 z-30 lg:hidden"
           onClick={onClose}
+          style={{
+            backgroundColor: "rgba(15, 23, 42, 0.55)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+          }}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — premium dark gradient with hairline right border */}
       <aside
-        className={`fixed top-0 left-0 h-full w-[220px] bg-indigo-900 text-white flex flex-col z-40 transition-transform duration-200 ${
+        className={`fixed top-0 left-0 h-full w-[240px] text-white flex flex-col z-40 transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
+        style={{
+          background: "var(--brand-gradient)",
+          boxShadow: "1px 0 0 0 rgba(255,255,255,0.04) inset, 4px 0 24px -8px rgba(15,23,42,0.24)",
+        }}
       >
-        {/* Account info */}
-        <div className="px-4 pt-5 pb-3 border-b border-indigo-800">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-indigo-700 rounded-full flex items-center justify-center text-sm font-bold">
-              A
+        {/* Brand mark */}
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[13px] font-bold"
+              style={{
+                background: "linear-gradient(135deg, #6366f1, #a855f7)",
+                boxShadow: "0 4px 12px -2px rgba(99,102,241,0.5)",
+              }}
+            >
+              B
             </div>
-            <div className="text-xs text-indigo-200 truncate">
-              airfix.cy@gmail.com
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold tracking-tight text-white">
+                Babun CRM
+              </div>
+              <div className="text-[10px] text-indigo-300/80 truncate">
+                airfix.cy@gmail.com
+              </div>
             </div>
           </div>
+
           <button
             type="button"
             onClick={() => handleNav("master-profile")}
-            className={`text-xs flex items-center gap-1 ${
-              isActive("master-profile") ? "text-white" : "text-indigo-300 hover:text-white"
+            className={`mt-4 w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+              isActive("master-profile")
+                ? "bg-white/10 text-white"
+                : "bg-white/5 text-indigo-200/90 hover:bg-white/10 hover:text-white"
             }`}
+            style={{ border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <svg
               width="14"
@@ -114,8 +138,11 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            Профиль мастера
+            <span className="text-[12px] font-medium">Профиль мастера</span>
           </button>
+        </div>
+        <div className="px-5">
+          <div className="h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
         </div>
 
         {/* Navigation — grouped into semantic sections */}
@@ -240,10 +267,10 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
         </nav>
 
         {/* Bottom section */}
-        <div className="px-4 py-3 border-t border-indigo-800">
+        <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 text-sm text-indigo-300 hover:text-white w-full"
+            className="flex items-center gap-2 text-[12px] font-medium text-indigo-300 hover:text-white w-full transition-colors"
           >
             <svg
               width="16"
@@ -259,8 +286,8 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             </svg>
             Выход
           </button>
-          <div className="text-[10px] text-indigo-400 mt-2">
-            Синхр.: {new Date().toLocaleString("ru-RU", { timeZone: "Asia/Nicosia" })}
+          <div className="text-[10px] text-indigo-400/70 mt-2 tracking-wide">
+            Синхр. {new Date().toLocaleString("ru-RU", { timeZone: "Asia/Nicosia", hour: "2-digit", minute: "2-digit" })}
           </div>
         </div>
       </aside>
@@ -270,7 +297,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-4 pt-3 pb-1 text-[9px] font-semibold uppercase tracking-wider text-indigo-400">
+    <div className="px-5 pt-4 pb-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-indigo-300/60">
       {children}
     </div>
   );
@@ -295,21 +322,46 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+      className={`relative w-[calc(100%-16px)] mx-2 flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200 ${
         active
-          ? "bg-indigo-800 text-white"
-          : "text-indigo-200 hover:bg-indigo-800 hover:text-white"
+          ? "text-white bg-white/10"
+          : "text-indigo-200/80 hover:bg-white/5 hover:text-white"
       }`}
+      style={
+        active
+          ? {
+              boxShadow:
+                "inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px -4px rgba(0,0,0,0.25)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }
+          : undefined
+      }
     >
-      {icon}
-      <span className="flex-1 truncate text-left">{label}</span>
+      {active && (
+        <span
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full"
+          style={{ background: "linear-gradient(180deg, #a855f7, #6366f1)" }}
+        />
+      )}
+      <span
+        className={`flex-shrink-0 ${active ? "text-white" : "text-indigo-300/70"}`}
+      >
+        {icon}
+      </span>
+      <span className="flex-1 truncate text-left font-medium">{label}</span>
       {hasAction && (
         <span className="w-5 h-5 bg-indigo-700 rounded text-xs flex items-center justify-center text-indigo-200 hover:bg-indigo-600">
           +
         </span>
       )}
       {badge !== undefined && (
-        <span className="min-w-[20px] h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white px-1">
+        <span
+          className="min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center text-white px-1"
+          style={{
+            background: "linear-gradient(180deg, #f43f5e, #e11d48)",
+            boxShadow: "0 0 0 1px rgba(244,63,94,0.3), 0 2px 4px rgba(244,63,94,0.35)",
+          }}
+        >
           {badge}
         </span>
       )}

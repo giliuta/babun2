@@ -97,7 +97,7 @@ export default function MasterProfilePage() {
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-3xl mx-auto p-3 lg:p-4">
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-gray-200">
               {tabs.map((tab) => (

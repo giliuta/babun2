@@ -1,35 +1,200 @@
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────────
+   Premium design tokens — Babun CRM
+   ──────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  /* Surface palette — warm neutral, not flat gray */
+  --surface-base: #f6f7fb;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eff1f6;
+  --surface-overlay: rgba(15, 23, 42, 0.55);
+
+  /* Text — refined slate */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-on-accent: #ffffff;
+
+  /* Borders — hairline, not aggressive */
+  --border-subtle: #e5e7ef;
+  --border-default: #d8dbe7;
+
+  /* Brand — deep indigo with a violet hint */
+  --brand-50: #eef1ff;
+  --brand-100: #e0e4ff;
+  --brand-500: #6366f1;
+  --brand-600: #4f46e5;
+  --brand-700: #4338ca;
+  --brand-900: #1e1b4b;
+
+  /* Brand gradient — used on the premium nav surfaces */
+  --brand-gradient:
+    linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+  --brand-gradient-mobile:
+    linear-gradient(135deg, #4338ca 0%, #4f46e5 50%, #6366f1 100%);
+
+  /* Accents */
+  --accent-emerald: #059669;
+  --accent-amber: #d97706;
+  --accent-rose: #e11d48;
+  --accent-sky: #0ea5e9;
+
+  /* Shadows — multi-layer for depth, soft */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm:
+    0 1px 2px 0 rgba(15, 23, 42, 0.04),
+    0 1px 3px 0 rgba(15, 23, 42, 0.06);
+  --shadow-md:
+    0 2px 4px -2px rgba(15, 23, 42, 0.06),
+    0 4px 8px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg:
+    0 4px 8px -4px rgba(15, 23, 42, 0.08),
+    0 12px 24px -8px rgba(15, 23, 42, 0.12);
+  --shadow-xl:
+    0 8px 16px -8px rgba(15, 23, 42, 0.12),
+    0 24px 48px -12px rgba(15, 23, 42, 0.18);
+
+  /* Glass — for floating bars & toasts */
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(15, 23, 42, 0.06);
+  --glass-blur: saturate(180%) blur(20px);
+
+  /* Radii rhythm */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* Motion */
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--surface-base);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-inter);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  /* Lock scroll on body — only inner panes scroll */
-  overscroll-behavior: none;
 }
 
 html,
 body {
-  /* Prevent the whole page from scrolling — calendar has its own scroller */
   height: 100%;
   overflow: hidden;
 }
 
-/* Hide scrollbar utility */
+body {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  overscroll-behavior: none;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.003em;
+}
+
+/* Headings get tighter tracking for a premium editorial feel */
+h1, h2, h3 {
+  letter-spacing: -0.018em;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Utility classes
+   ──────────────────────────────────────────────────────────────── */
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Premium card — soft hairline + multi-layer shadow */
+.card-premium {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 220ms var(--ease-premium),
+    transform 220ms var(--ease-premium);
+}
+.card-premium:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Glass surface — used for BottomTabBar, toasts, floating sheets */
+.glass-surface {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-border);
+}
+
+/* Brand gradient surfaces */
+.bg-brand-gradient {
+  background: var(--brand-gradient);
+}
+.bg-brand-gradient-mobile {
+  background: var(--brand-gradient-mobile);
+}
+
+/* Ring used on focused fields */
+.ring-premium {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+/* Subtle dotted background for empty states */
+.pattern-dotted {
+  background-image: radial-gradient(
+    circle,
+    rgba(15, 23, 42, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
+}
+
+/* Inner stroke for pill buttons so they feel embossed */
+.inner-stroke {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Premium primary button gradient (use on CTA) */
+.btn-gradient-primary {
+  background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 0 0 1px rgba(79, 70, 229, 0.4),
+    0 8px 16px -8px rgba(79, 70, 229, 0.5);
+  color: white;
+  transition: transform 160ms var(--ease-premium),
+    box-shadow 160ms var(--ease-premium);
+}
+.btn-gradient-primary:hover {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.24) inset,
+    0 0 0 1px rgba(79, 70, 229, 0.5),
+    0 10px 20px -8px rgba(79, 70, 229, 0.55);
+}
+.btn-gradient-primary:active {
+  transform: scale(0.985);
+}
+
+/* Fade-in utility */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 320ms var(--ease-premium) both;
 }
