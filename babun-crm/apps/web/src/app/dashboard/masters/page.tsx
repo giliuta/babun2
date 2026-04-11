@@ -1,12 +1,7 @@
 "use client";
 
-// Force dynamic rendering — this page reads ?edit from the URL via
-// useSearchParams() and touches localStorage, so pre-rendering it at
-// build time makes no sense and trips Next's CSR bailout check.
-export const dynamic = "force-dynamic";
-
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
@@ -33,17 +28,20 @@ const ROLE_COLORS: Record<MasterRole, string> = {
 
 export default function MastersPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { masters, upsertMaster, deleteMaster } = useMasters();
   const { teams, setTeams } = useTeams();
 
   const [editing, setEditing] = useState<Master | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  // If another page linked with ?edit=<id>, open that master's edit modal
-  // and scrub the query so a refresh doesn't re-trigger it.
+  // Another page can deep-link with ?edit=<id> to open a master's edit
+  // modal. Reading the query via window.location.search instead of
+  // useSearchParams() dodges the Next 16 CSR-bailout check that breaks
+  // static generation — the effect still runs only on the client.
   useEffect(() => {
-    const editId = searchParams.get("edit");
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("edit");
     if (!editId) return;
     const master = masters.find((m) => m.id === editId);
     if (master) {
@@ -51,7 +49,7 @@ export default function MastersPage() {
       setShowForm(true);
     }
     router.replace("/dashboard/masters");
-  }, [searchParams, masters, router]);
+  }, [masters, router]);
 
   const { active, inactive } = useMemo(() => {
     const a: Master[] = [];

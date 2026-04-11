@@ -1,10 +1,5 @@
 "use client";
 
-// Force dynamic rendering — the dashboard reads ?new=1 via
-// useSearchParams() and mounts a pile of client-only contexts, so
-// static pre-render would only crash in Next 16.
-export const dynamic = "force-dynamic";
-
 import {
   useState,
   useCallback,
@@ -13,7 +8,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   MouseSensor,
@@ -70,7 +65,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v58-force-dynamic";
+const BUILD_TAG = "v59-drop-useSearchParams";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -89,7 +84,6 @@ const SEED_KEY = "babun-seeded";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const sidebar = useSidebar();
   const { schedules, setSchedules } = useSchedules();
   const { teams, setTeams } = useTeams();
@@ -453,15 +447,18 @@ export default function DashboardPage() {
     [activeTeamId]
   );
 
-  // BottomTabBar's centre button navigates here with ?new=1. Consume the
-  // flag once, open the inline sheet, and scrub the URL so a refresh
-  // doesn't re-trigger it.
+  // BottomTabBar's centre button navigates here with ?new=1. Read the
+  // flag directly from window.location.search so we don't pull in
+  // useSearchParams(), which forces Next 16 to abort static
+  // generation on this client-only page.
   useEffect(() => {
-    if (searchParams.get("new") === "1") {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") === "1") {
       openNewAppointmentInline(null, null, "work");
       router.replace("/dashboard");
     }
-  }, [searchParams, openNewAppointmentInline, router]);
+  }, [openNewAppointmentInline, router]);
 
   // Long-press action menu on an existing appointment.
   const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);
