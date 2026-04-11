@@ -114,7 +114,7 @@ function DayColumnInner({
   };
 
   return (
-    <div className="flex-1 min-w-0 border-r-2 border-gray-200 last:border-r-0 overflow-x-clip">
+    <div className="flex-1 min-w-0 border-r border-gray-300 last:border-r-0 overflow-x-clip">
       {/* Day header */}
       <div
         className={`sticky top-0 z-20 h-[62px] lg:h-[82px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
