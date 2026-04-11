@@ -29,6 +29,12 @@ export interface AppointmentPhoto {
   uploaded_at: string;
 }
 
+export interface AppointmentExpense {
+  id: string;
+  name: string;
+  amount: number; // EUR, positive value
+}
+
 export interface Appointment {
   id: string;
   date: string; // YYYY-MM-DD
@@ -43,6 +49,7 @@ export interface Appointment {
   total_amount: number; // фактическая сумма (auto из услуг минус скидка)
   custom_total: boolean; // true если total_amount изменён вручную
   discount_amount: number; // скидка в EUR, вычитается из суммы услуг
+  expenses: AppointmentExpense[]; // расходы по записи (материалы, транспорт и т.п.)
   prepaid_amount: number; // аванс / предоплата
   payments: Payment[]; // массивы платежей (cash/card/transfer)
 
@@ -92,6 +99,7 @@ export function loadAppointments(): Appointment[] {
     return parsed.map((p: Partial<Appointment>) => ({
       ...p,
       discount_amount: p.discount_amount ?? 0,
+      expenses: p.expenses ?? [],
     })) as Appointment[];
   } catch {
     return [];
@@ -347,6 +355,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     total_amount: 0,
     custom_total: false,
     discount_amount: 0,
+    expenses: [],
     prepaid_amount: 0,
     payments: [],
     comment: "",

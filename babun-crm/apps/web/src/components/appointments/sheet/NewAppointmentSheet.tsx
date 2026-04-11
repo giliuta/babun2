@@ -11,6 +11,7 @@ import {
 import {
   type Appointment,
   type AppointmentPhoto,
+  type AppointmentExpense,
 } from "@/lib/appointments";
 import type { Client } from "@/lib/clients";
 import {
@@ -22,7 +23,7 @@ import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
 import TimePickerSheet from "./TimePickerSheet";
 import TeamPickerSheet from "./TeamPickerSheet";
-import DiscountSheet from "./DiscountSheet";
+import FinanceSheet from "./FinanceSheet";
 
 interface NewAppointmentSheetProps {
   initial: Appointment;
@@ -110,12 +111,15 @@ export default function NewAppointmentSheet({
   const [cancelled, setCancelled] = useState(initial.status === "cancelled");
   const [photos, setPhotos] = useState<AppointmentPhoto[]>(initial.photos ?? []);
   const [discount, setDiscount] = useState(initial.discount_amount ?? 0);
+  const [expenses, setExpenses] = useState<AppointmentExpense[]>(
+    initial.expenses ?? []
+  );
 
   const [timeSheet, setTimeSheet] = useState(false);
   const [clientSheet, setClientSheet] = useState(false);
   const [serviceSheet, setServiceSheet] = useState(false);
   const [teamSheetOpen, setTeamSheetOpen] = useState(false);
-  const [discountSheet, setDiscountSheet] = useState(false);
+  const [financeSheet, setFinanceSheet] = useState(false);
   const [savePulse, setSavePulse] = useState<null | "client" | "service">(null);
 
   const [draftClients, setDraftClients] = useState<DraftClient[]>([]);
@@ -177,6 +181,11 @@ export default function NewAppointmentSheet({
 
   const clampedDiscount = Math.min(discount, subtotal);
   const totalAmount = Math.max(0, subtotal - clampedDiscount);
+  const totalExpenses = useMemo(
+    () => expenses.reduce((sum, e) => sum + e.amount, 0),
+    [expenses]
+  );
+  const profit = totalAmount - totalExpenses;
 
   // Default team = first active if none picked
   useEffect(() => {
@@ -228,6 +237,7 @@ export default function NewAppointmentSheet({
       total_amount: totalAmount,
       custom_total: false,
       discount_amount: clampedDiscount,
+      expenses,
       comment,
       photos,
       status: cancelled
@@ -432,11 +442,11 @@ export default function NewAppointmentSheet({
         </button>
         <Divider />
 
-        {/* Доход */}
-        <Label>Доход</Label>
+        {/* Доходы и расходы */}
+        <Label>Доходы и расходы</Label>
         <button
           type="button"
-          onClick={() => subtotal > 0 && setDiscountSheet(true)}
+          onClick={() => subtotal > 0 && setFinanceSheet(true)}
           disabled={subtotal === 0}
           className="w-full flex items-center gap-3 px-4 py-1.5 text-left active:bg-gray-50 disabled:active:bg-transparent"
         >
@@ -447,19 +457,31 @@ export default function NewAppointmentSheet({
             </svg>
           </IconSquare>
           <div className="flex-1 min-w-0 flex items-baseline gap-1">
-            <span className="text-[18px] font-semibold text-gray-900 tabular-nums">
-              {totalAmount}
+            <span className="text-[18px] font-semibold text-sky-600 tabular-nums">
+              {profit}
             </span>
             <span className="text-[11px] text-gray-400 uppercase">EUR</span>
-            {clampedDiscount > 0 && (
-              <span className="text-[11px] text-gray-500 line-through ml-2 tabular-nums">
-                {subtotal}
+            {(clampedDiscount > 0 || totalExpenses > 0) && (
+              <span className="text-[11px] text-gray-400 ml-2 tabular-nums">
+                из {subtotal}
               </span>
             )}
           </div>
           {subtotal > 0 && (
-            <div className="text-[11px] text-indigo-600 font-medium flex-shrink-0">
-              {clampedDiscount > 0 ? `−${clampedDiscount}€` : "+ Скидка"}
+            <div className="text-[11px] flex items-center gap-1.5 flex-shrink-0">
+              {clampedDiscount > 0 && (
+                <span className="text-indigo-600 font-medium">
+                  −{clampedDiscount}€
+                </span>
+              )}
+              {totalExpenses > 0 && (
+                <span className="text-red-600 font-medium">
+                  −{totalExpenses}€
+                </span>
+              )}
+              {clampedDiscount === 0 && totalExpenses === 0 && (
+                <span className="text-indigo-600 font-medium">Изменить</span>
+              )}
             </div>
           )}
         </button>
@@ -622,12 +644,16 @@ export default function NewAppointmentSheet({
         onSelect={(id) => setTeamId(id)}
       />
 
-      <DiscountSheet
-        open={discountSheet}
-        onClose={() => setDiscountSheet(false)}
-        subtotal={subtotal}
+      <FinanceSheet
+        open={financeSheet}
+        onClose={() => setFinanceSheet(false)}
+        services={groupedServices}
         discount={clampedDiscount}
-        onConfirm={(next) => setDiscount(next)}
+        expenses={expenses}
+        onConfirm={(next) => {
+          setDiscount(next.discount);
+          setExpenses(next.expenses);
+        }}
       />
     </>
   );
