@@ -7,8 +7,7 @@ import { loadWaitlist } from "@/lib/waitlist";
 export type DialogType =
   | "clients"
   | "analytics"
-  | "income"
-  | "expenses"
+  | "finances"
   | "reports"
   | "waitlist"
   | "settings"
@@ -30,8 +29,7 @@ interface SidebarProps {
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   clients: "/dashboard/clients",
   analytics: "/dashboard/analytics",
-  income: "/dashboard/income",
-  expenses: "/dashboard/expenses",
+  finances: "/dashboard/finances",
   reports: "/dashboard/reports",
   waitlist: "/dashboard/waitlist",
   settings: "/dashboard/settings",
@@ -168,28 +166,10 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
               </svg>
             }
-            label="Доходы"
+            label="Финансы"
             hasAction
-            active={isActive("income")}
-            onClick={() => handleNav("income")}
-          />
-          <NavItem
-            icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-              </svg>
-            }
-            label="Расходы"
-            hasAction
-            active={isActive("expenses")}
-            onClick={() => handleNav("expenses")}
+            active={isActive("finances")}
+            onClick={() => handleNav("finances")}
           />
           <NavItem
             icon={
