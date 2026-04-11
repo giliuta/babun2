@@ -37,6 +37,9 @@ interface DayColumnProps {
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
+  onFooterTap?: (dateKey: string) => void;
+  extraIncome?: number;
+  extraExpense?: number;
   dragEnabled?: boolean;
 }
 
@@ -59,6 +62,9 @@ function DayColumnInner({
   onAppointmentClick,
   onAppointmentLongPress,
   onEmptySlotClick,
+  onFooterTap,
+  extraIncome = 0,
+  extraExpense = 0,
   dragEnabled = false,
 }: DayColumnProps) {
   const dateKeyFromDate = formatDateKey(date);
@@ -252,24 +258,29 @@ function DayColumnInner({
         })}
       </div>
 
-      {/* Day totals footer — same trick as the header: its own right border
-          paints on top of its semi-transparent background */}
-      <div className="sticky bottom-0 z-10 border-t border-gray-200 border-r border-gray-300 bg-white/95 backdrop-blur-sm px-1 py-1 text-[9px] lg:text-[10px]">
+      {/* Day totals footer — tap to open DayFinanceModal */}
+      <button
+        type="button"
+        onClick={() => onFooterTap?.(dateKey)}
+        className="sticky bottom-0 z-10 w-full text-left border-t border-gray-200 border-r border-gray-300 bg-white/95 backdrop-blur-sm px-1 py-1 text-[9px] lg:text-[10px] active:bg-indigo-50"
+      >
         <div className="flex justify-between text-emerald-600">
           <span>Доход</span>
-          <span className="font-semibold">{dayIncome}€</span>
+          <span className="font-semibold">{dayIncome + extraIncome}€</span>
         </div>
-        {dayMaterialCost > 0 && (
+        {(dayMaterialCost > 0 || extraExpense > 0) && (
           <div className="flex justify-between text-red-600">
             <span>Расход</span>
-            <span className="font-semibold">{dayMaterialCost}€</span>
+            <span className="font-semibold">
+              {dayMaterialCost + extraExpense}€
+            </span>
           </div>
         )}
         <div className="flex justify-between text-gray-900 font-semibold border-t border-gray-200 pt-0.5 mt-0.5">
           <span>Прибыль</span>
-          <span>{dayProfit}€</span>
+          <span>{dayProfit + extraIncome - extraExpense}€</span>
         </div>
-      </div>
+      </button>
     </div>
   );
 }

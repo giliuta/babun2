@@ -23,6 +23,8 @@ interface WeekViewProps {
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
+  onFooterTap?: (dateKey: string) => void;
+  extrasForDate?: (dateKey: string) => { income: number; expense: number };
   dragEnabled?: boolean;
 }
 
@@ -39,6 +41,8 @@ export default function WeekView({
   onAppointmentClick,
   onAppointmentLongPress,
   onEmptySlotClick,
+  onFooterTap,
+  extrasForDate,
   dragEnabled = false,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
@@ -82,6 +86,9 @@ export default function WeekView({
             onAppointmentClick={onAppointmentClick}
             onAppointmentLongPress={onAppointmentLongPress}
             onEmptySlotClick={onEmptySlotClick}
+            onFooterTap={onFooterTap}
+            extraIncome={extrasForDate?.(dateKey).income ?? 0}
+            extraExpense={extrasForDate?.(dateKey).expense ?? 0}
             dragEnabled={dragEnabled}
           />
         );

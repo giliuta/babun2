@@ -61,6 +61,14 @@ import {
   getDayCity,
   type DayCityMap,
 } from "@/lib/day-cities";
+import {
+  loadDayExtras,
+  saveDayExtras,
+  setDayExtrasFor,
+  getDayExtras,
+  type DayExtrasMap,
+  type DayExtra,
+} from "@/lib/day-extras";
 
 interface SidebarContextValue {
   open: () => void;
@@ -224,6 +232,20 @@ export function useDayCities() {
   return ctx;
 }
 
+interface DayExtrasContextValue {
+  dayExtras: DayExtrasMap;
+  getExtrasFor: (teamId: string | null, dateKey: string) => DayExtra[];
+  setExtrasFor: (teamId: string, dateKey: string, extras: DayExtra[]) => void;
+}
+
+const DayExtrasContext = createContext<DayExtrasContextValue | null>(null);
+
+export function useDayExtras() {
+  const ctx = useContext(DayExtrasContext);
+  if (!ctx) throw new Error("useDayExtras must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -242,6 +264,7 @@ export default function DashboardLayout({
   const [smsTemplates, setSmsTemplatesState] = useState<SmsTemplate[]>([]);
   const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
   const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
+  const [dayExtras, setDayExtrasState] = useState<DayExtrasMap>({});
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -271,6 +294,7 @@ export default function DashboardLayout({
     setSmsTemplatesState(loadTemplates());
     setExpenseCategoriesState(loadExpenseCategories());
     setDayCitiesState(loadDayCities());
+    setDayExtrasState(loadDayExtras());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
   }, []);
@@ -525,6 +549,30 @@ export default function DashboardLayout({
     getCityFor: handleGetCityFor,
   };
 
+  const handleSetExtrasFor = useCallback(
+    (teamId: string, dateKey: string, extras: DayExtra[]) => {
+      setDayExtrasState((prev) => {
+        const next = setDayExtrasFor(prev, teamId, dateKey, extras);
+        saveDayExtras(next);
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleGetExtrasFor = useCallback(
+    (teamId: string | null, dateKey: string): DayExtra[] => {
+      return getDayExtras(dayExtras, teamId, dateKey);
+    },
+    [dayExtras]
+  );
+
+  const dayExtrasValue: DayExtrasContextValue = {
+    dayExtras,
+    getExtrasFor: handleGetExtrasFor,
+    setExtrasFor: handleSetExtrasFor,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
@@ -536,6 +584,7 @@ export default function DashboardLayout({
       <SmsTemplatesContext.Provider value={smsTemplatesValue}>
       <ExpenseCategoriesContext.Provider value={expenseCategoriesValue}>
       <DayCitiesContext.Provider value={dayCitiesValue}>
+      <DayExtrasContext.Provider value={dayExtrasValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -561,6 +610,7 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </DayExtrasContext.Provider>
       </DayCitiesContext.Provider>
       </ExpenseCategoriesContext.Provider>
       </SmsTemplatesContext.Provider>

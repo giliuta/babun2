@@ -33,6 +33,7 @@ import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import MonthView from "@/components/calendar/MonthView";
 import CityPickerModal from "@/components/calendar/CityPickerModal";
+import DayFinanceModal from "@/components/calendar/DayFinanceModal";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
@@ -50,7 +51,9 @@ import {
   useServices,
   useClients,
   useDayCities,
+  useDayExtras,
 } from "./layout";
+import { sumExtras } from "@/lib/day-extras";
 
 // Formats "2026-04-12" as "12 апреля 2026 г."
 function formatDateLongRu(dateKey: string): string {
@@ -69,7 +72,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v43-event-form";
+const BUILD_TAG = "v44-day-finance";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -92,6 +95,7 @@ export default function DashboardPage() {
   const { schedules } = useSchedules();
   const { teams } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
+  const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
   const { requiredFields } = useFormSettings();
   const { services } = useServices();
@@ -269,6 +273,21 @@ export default function DashboardPage() {
     | { mode: "new" | "edit"; initial: Appointment }
     | null
   >(null);
+
+  // Day finance modal state
+  const [financeDateKey, setFinanceDateKey] = useState<string | null>(null);
+
+  const handleFooterTap = useCallback((dateKey: string) => {
+    setFinanceDateKey(dateKey);
+  }, []);
+
+  const extrasForDate = useCallback(
+    (dateKey: string) => {
+      const list = getExtrasFor(activeTeamId || null, dateKey);
+      return sumExtras(list);
+    },
+    [getExtrasFor, activeTeamId]
+  );
 
   const handleAppointmentClick = useCallback(
     (appointment: Appointment) => {
@@ -581,6 +600,8 @@ export default function DashboardPage() {
           onAppointmentClick={handleAppointmentClick}
           onAppointmentLongPress={handleAppointmentLongPress}
           onEmptySlotClick={handleEmptySlotClick}
+          onFooterTap={handleFooterTap}
+          extrasForDate={extrasForDate}
           dragEnabled
         />
       );
@@ -599,6 +620,8 @@ export default function DashboardPage() {
       handleAppointmentClick,
       handleAppointmentLongPress,
       handleEmptySlotClick,
+      handleFooterTap,
+      extrasForDate,
     ]
   );
 
@@ -775,6 +798,24 @@ export default function DashboardPage() {
         title="Выберите действие"
         options={longPressOptions}
       />
+
+      {/* Day finance modal */}
+      {financeDateKey && (
+        <DayFinanceModal
+          open
+          onClose={() => setFinanceDateKey(null)}
+          dateKey={financeDateKey}
+          dateLabel={formatDateLongRu(financeDateKey)}
+          appointments={visibleAppointments.filter(
+            (a) => a.date === financeDateKey
+          )}
+          services={services}
+          extras={getExtrasFor(activeTeamId || null, financeDateKey)}
+          onSave={(next) => {
+            if (activeTeamId) setExtrasFor(activeTeamId, financeDateKey, next);
+          }}
+        />
+      )}
 
       {/* Inline new/edit sheet — renders on top of the calendar, no route
           change. Keeps the calendar fully mounted so opening an
