@@ -5,10 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { loadWaitlist } from "@/lib/waitlist";
 
 export type DialogType =
+  | "calendar"
+  | "tech-day"
   | "clients"
-  | "analytics"
   | "finances"
-  | "reports"
   | "waitlist"
   | "settings"
   | "master-profile"
@@ -27,10 +27,10 @@ interface SidebarProps {
 }
 
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
+  calendar: "/dashboard",
+  "tech-day": "/dashboard/day",
   clients: "/dashboard/clients",
-  analytics: "/dashboard/analytics",
   finances: "/dashboard/finances",
-  reports: "/dashboard/reports",
   waitlist: "/dashboard/waitlist",
   settings: "/dashboard/settings",
   "master-profile": "/dashboard/master-profile",
@@ -120,18 +120,36 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 py-3 overflow-y-auto">
+        {/* Navigation — grouped into semantic sections */}
+        <nav className="flex-1 py-2 overflow-y-auto">
+          <SectionLabel>Работа</SectionLabel>
           <NavItem
             icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            }
+            label="Календарь"
+            active={isActive("calendar")}
+            onClick={() => handleNav("calendar")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 11 12 14 22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+            }
+            label="День мастера"
+            active={isActive("tech-day")}
+            onClick={() => handleNav("tech-day")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 00-3-3.87" />
@@ -145,59 +163,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           <NavItem
             icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 3v18h18" />
-                <path d="M9 17V9M13 17V5M17 17v-4" />
-              </svg>
-            }
-            label="Аналитика клиентов"
-            active={isActive("analytics")}
-            onClick={() => handleNav("analytics")}
-          />
-          <NavItem
-            icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-              </svg>
-            }
-            label="Финансы"
-            hasAction
-            active={isActive("finances")}
-            onClick={() => handleNav("finances")}
-          />
-          <NavItem
-            icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M18 20V10M12 20V4M6 20v-6" />
-              </svg>
-            }
-            label="Отчеты и планирование"
-            active={isActive("reports")}
-            onClick={() => handleNav("reports")}
-          />
-          <NavItem
-            icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <path d="M9 3v18M3 9h18" />
               </svg>
@@ -207,44 +172,46 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             active={isActive("waitlist")}
             onClick={() => handleNav("waitlist")}
           />
+
+          <SectionLabel>Деньги</SectionLabel>
           <NavItem
             icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+              </svg>
+            }
+            label="Финансы"
+            active={isActive("finances")}
+            onClick={() => handleNav("finances")}
+          />
+
+          <SectionLabel>Команда</SectionLabel>
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 00-3-3.87" />
                 <path d="M16 3.13a4 4 0 010 7.75" />
               </svg>
             }
-            label="Бригады"
-            active={isActive("teams")}
+            label="Бригады и мастера"
+            active={isActive("teams") || isActive("masters")}
             onClick={() => handleNav("teams")}
           />
           <NavItem
             icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
             }
-            label="Мастера"
-            active={isActive("masters")}
-            onClick={() => handleNav("masters")}
+            label="Расписание"
+            active={isActive("schedule")}
+            onClick={() => handleNav("schedule")}
           />
+
+          <SectionLabel>Настройка</SectionLabel>
           <NavItem
             icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -254,19 +221,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             label="Услуги"
             active={isActive("services")}
             onClick={() => handleNav("services")}
-          />
-          <NavItem
-            icon={
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-            }
-            label="Расписание"
-            active={isActive("schedule")}
-            onClick={() => handleNav("schedule")}
           />
           <NavItem
             icon={
@@ -324,6 +278,14 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
         </div>
       </aside>
     </>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-4 pt-3 pb-1 text-[9px] font-semibold uppercase tracking-wider text-indigo-400">
+      {children}
+    </div>
   );
 }
 

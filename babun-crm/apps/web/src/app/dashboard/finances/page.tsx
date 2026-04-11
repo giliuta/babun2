@@ -2,24 +2,48 @@
 
 import { useMemo, useState } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { MOCK_INCOME, MOCK_EXPENSES } from "@/lib/mock-data";
-import { useExpenseCategories, useTeams } from "@/app/dashboard/layout";
+import {
+  useAppointments,
+  useDayExtras,
+  useExpenseCategories,
+  useServices,
+  useTeams,
+  useClients,
+} from "@/app/dashboard/layout";
+import {
+  getPaidAmount,
+  type Appointment,
+} from "@/lib/appointments";
+import { getServiceMaterialCost, type Service } from "@/lib/services";
 import {
   createBlankExpenseCategory,
   type ExpenseCategory,
 } from "@/lib/expense-categories";
+import type { Client } from "@/lib/clients";
+import type { DraftClient } from "@/lib/draft-clients";
+import { formatDateLongRu } from "@/lib/date-utils";
 
-// Unified Finance page — replaces separate /income and /expenses routes.
-// Top-level tab switches between income, expenses, and a combined P&L view.
+// Unified Finance page — pulls numbers from real appointments + day
+// extras, no more MOCK_INCOME/MOCK_EXPENSES. Income is what clients
+// actually paid for completed/in-progress appointments plus manual
+// day-level extras. Expenses are the per-service material costs, each
+// appointment's custom expense lines, and manual day-level expense
+// extras.
 
 type Mode = "income" | "expenses" | "summary";
+type PeriodKey = "7d" | "30d" | "month" | "all";
 
-const PERIODS = [
-  "За последние 7 дней",
-  "За последние 30 дней",
-  "За текущий месяц",
-  "За все время",
-] as const;
+interface PeriodOption {
+  key: PeriodKey;
+  label: string;
+}
+
+const PERIODS: PeriodOption[] = [
+  { key: "7d", label: "За последние 7 дней" },
+  { key: "30d", label: "За последние 30 дней" },
+  { key: "month", label: "За текущий месяц" },
+  { key: "all", label: "За все время" },
+];
 
 const MODE_LABELS: Record<Mode, string> = {
   income: "Доходы",
@@ -27,11 +51,35 @@ const MODE_LABELS: Record<Mode, string> = {
   summary: "Итого",
 };
 
+interface IncomeLine {
+  id: string;
+  dateKey: string;
+  description: string;
+  amount: number;
+  teamId: string | null;
+  sourceType: "appointment" | "extra";
+}
+
+interface ExpenseLine {
+  id: string;
+  dateKey: string;
+  description: string;
+  amount: number;
+  teamId: string | null;
+  category: string;
+  sourceType: "material" | "custom" | "extra";
+}
+
 export default function FinancesPage() {
+  const { appointments } = useAppointments();
+  const { getExtrasFor } = useDayExtras();
   const { categories, setCategories } = useExpenseCategories();
+  const { services } = useServices();
   const { teams } = useTeams();
+  const { clients } = useClients();
+
   const [mode, setMode] = useState<Mode>("summary");
-  const [period, setPeriod] = useState<string>(PERIODS[0]);
+  const [period, setPeriod] = useState<PeriodKey>("7d");
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [activeTeam, setActiveTeam] = useState<string>("all");
   const [showCategories, setShowCategories] = useState(false);
@@ -44,30 +92,181 @@ export default function FinancesPage() {
     [teams]
   );
 
-  const filteredIncome = useMemo(() => {
-    if (activeTeam === "all") return MOCK_INCOME;
-    const name = teamTabs.find((t) => t.id === activeTeam)?.name ?? "";
-    return MOCK_INCOME.filter((e) => e.team === name);
-  }, [activeTeam, teamTabs]);
+  const teamById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of teams) map.set(t.id, t.name);
+    return map;
+  }, [teams]);
 
-  const filteredExpenses = useMemo(() => {
-    if (activeTeam === "all") return MOCK_EXPENSES;
-    const name = teamTabs.find((t) => t.id === activeTeam)?.name ?? "";
-    return MOCK_EXPENSES.filter((e) => e.team === name);
-  }, [activeTeam, teamTabs]);
+  const clientsById = useMemo(() => {
+    const map = new Map<string, Client | DraftClient>();
+    for (const c of clients) map.set(c.id, c);
+    return map;
+  }, [clients]);
+
+  const servicesById = useMemo(() => {
+    const map = new Map<string, Service>();
+    for (const s of services) map.set(s.id, s);
+    return map;
+  }, [services]);
+
+  // Date range resolution — inclusive start, inclusive end (today).
+  const { rangeStart, rangeEnd } = useMemo(
+    () => computeRange(period),
+    [period]
+  );
+
+  const inRange = (dateKey: string) => {
+    if (!rangeStart) return true; // "all"
+    return dateKey >= rangeStart && dateKey <= rangeEnd;
+  };
+
+  const relevantAppointments = useMemo(
+    () =>
+      appointments.filter(
+        (a) =>
+          (a.status === "completed" || a.status === "in_progress") &&
+          inRange(a.date)
+      ),
+    // inRange is deterministic per rangeStart/rangeEnd
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [appointments, rangeStart, rangeEnd]
+  );
+
+  // Build income & expense lines from the real data model.
+  const { incomeLines, expenseLines } = useMemo(() => {
+    const inc: IncomeLine[] = [];
+    const exp: ExpenseLine[] = [];
+
+    for (const apt of relevantAppointments) {
+      const paid = getPaidAmount(apt);
+      if (paid > 0) {
+        const clientName =
+          (apt.client_id && clientsById.get(apt.client_id)?.full_name) ||
+          apt.comment ||
+          "Запись";
+        const serviceSummary = apt.service_ids
+          .map((sid) => servicesById.get(sid)?.name)
+          .filter(Boolean)
+          .join(", ");
+        inc.push({
+          id: `apt-${apt.id}`,
+          dateKey: apt.date,
+          description: serviceSummary
+            ? `${serviceSummary} — ${clientName}`
+            : clientName,
+          amount: paid,
+          teamId: apt.team_id,
+          sourceType: "appointment",
+        });
+      }
+
+      // Material costs from services on this appointment
+      for (const sid of apt.service_ids) {
+        const svc = servicesById.get(sid);
+        if (!svc) continue;
+        const materialCost = getServiceMaterialCost(svc);
+        if (materialCost > 0) {
+          exp.push({
+            id: `mat-${apt.id}-${sid}`,
+            dateKey: apt.date,
+            description: `Материалы: ${svc.name}`,
+            amount: materialCost,
+            teamId: apt.team_id,
+            category: "Материалы",
+            sourceType: "material",
+          });
+        }
+      }
+
+      // Custom expenses attached to this appointment
+      for (const e of apt.expenses ?? []) {
+        if (e.amount > 0) {
+          exp.push({
+            id: `cex-${apt.id}-${e.id}`,
+            dateKey: apt.date,
+            description: e.name || "Расход",
+            amount: e.amount,
+            teamId: apt.team_id,
+            category: "Прочее",
+            sourceType: "custom",
+          });
+        }
+      }
+    }
+
+    // Day-level extras — iterate every day in the range for every team
+    // and pull from the context. We only look at extras whose date is
+    // in range; team filter applies later so we gather all teams here.
+    const dateRange = datesInRange(rangeStart, rangeEnd);
+    for (const team of teams) {
+      for (const dateKey of dateRange) {
+        const extras = getExtrasFor(team.id, dateKey);
+        for (const ex of extras) {
+          const line = {
+            id: `ex-${team.id}-${dateKey}-${ex.id}`,
+            dateKey,
+            description: ex.name || (ex.kind === "income" ? "Доход" : "Расход"),
+            amount: ex.amount,
+            teamId: team.id,
+          };
+          if (ex.kind === "income") {
+            inc.push({ ...line, sourceType: "extra" });
+          } else {
+            exp.push({ ...line, category: "Прочее", sourceType: "extra" });
+          }
+        }
+      }
+    }
+
+    return { incomeLines: inc, expenseLines: exp };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    relevantAppointments,
+    servicesById,
+    clientsById,
+    teams,
+    getExtrasFor,
+    rangeStart,
+    rangeEnd,
+  ]);
+
+  const filteredIncome = useMemo(
+    () =>
+      activeTeam === "all"
+        ? incomeLines
+        : incomeLines.filter((l) => l.teamId === activeTeam),
+    [incomeLines, activeTeam]
+  );
+
+  const filteredExpenses = useMemo(
+    () =>
+      activeTeam === "all"
+        ? expenseLines
+        : expenseLines.filter((l) => l.teamId === activeTeam),
+    [expenseLines, activeTeam]
+  );
 
   const totalIncome = filteredIncome.reduce((s, e) => s + e.amount, 0);
   const totalExpense = filteredExpenses.reduce((s, e) => s + e.amount, 0);
   const profit = totalIncome - totalExpense;
 
   const expensesGrouped = useMemo(() => {
-    const groups = new Map<string, typeof MOCK_EXPENSES>();
+    const groups = new Map<string, ExpenseLine[]>();
     for (const e of filteredExpenses) {
-      if (!groups.has(e.category)) groups.set(e.category, []);
-      groups.get(e.category)!.push(e);
+      const key = e.category || "Прочее";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(e);
     }
-    return Array.from(groups.entries());
+    return Array.from(groups.entries()).sort(
+      (a, b) =>
+        b[1].reduce((s, x) => s + x.amount, 0) -
+        a[1].reduce((s, x) => s + x.amount, 0)
+    );
   }, [filteredExpenses]);
+
+  const selectedPeriodLabel =
+    PERIODS.find((p) => p.key === period)?.label ?? "";
 
   return (
     <>
@@ -85,8 +284,8 @@ export default function FinancesPage() {
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50 relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24 space-y-3">
-          {/* Summary cards — always visible above the list */}
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-8 space-y-3">
+          {/* Summary cards double as mode switcher */}
           <div className="grid grid-cols-3 gap-2">
             <SummaryCard
               label="Доход"
@@ -119,7 +318,7 @@ export default function FinancesPage() {
                 onClick={() => setShowPeriodMenu((s) => !s)}
                 className="flex items-center gap-1 text-sm font-semibold text-gray-900 hover:opacity-80"
               >
-                {period}
+                {selectedPeriodLabel}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -128,17 +327,19 @@ export default function FinancesPage() {
                 <div className="absolute top-full left-4 mt-1 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[200px] border border-gray-200">
                   {PERIODS.map((p) => (
                     <button
-                      key={p}
+                      key={p.key}
                       type="button"
                       onClick={() => {
-                        setPeriod(p);
+                        setPeriod(p.key);
                         setShowPeriodMenu(false);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                        period === p ? "text-indigo-600 font-medium" : "text-gray-700"
+                        period === p.key
+                          ? "text-indigo-600 font-medium"
+                          : "text-gray-700"
                       }`}
                     >
-                      {p}
+                      {p.label}
                     </button>
                   ))}
                 </div>
@@ -163,7 +364,6 @@ export default function FinancesPage() {
               ))}
             </div>
 
-            {/* Mode tab indicator */}
             <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
               <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">
                 {MODE_LABELS[mode]}
@@ -175,9 +375,12 @@ export default function FinancesPage() {
               )}
             </div>
 
-            {/* Content */}
             {mode === "income" && (
-              <IncomeList entries={filteredIncome} total={totalIncome} />
+              <IncomeList
+                entries={filteredIncome}
+                total={totalIncome}
+                teamById={teamById}
+              />
             )}
 
             {mode === "expenses" && (
@@ -185,20 +388,20 @@ export default function FinancesPage() {
                 groups={expensesGrouped}
                 categories={categories}
                 total={totalExpense}
+                teamById={teamById}
               />
             )}
 
             {mode === "summary" && (
               <CombinedSummary
-                income={filteredIncome}
-                expenses={filteredExpenses}
+                incomeCount={filteredIncome.length}
+                expenseCount={filteredExpenses.length}
                 totalIncome={totalIncome}
                 totalExpense={totalExpense}
               />
             )}
           </div>
         </div>
-
       </div>
 
       {showCategories && (
@@ -213,6 +416,50 @@ export default function FinancesPage() {
       )}
     </>
   );
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────
+
+function toDateKey(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function computeRange(period: PeriodKey): {
+  rangeStart: string | null;
+  rangeEnd: string;
+} {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = toDateKey(today);
+  if (period === "all") return { rangeStart: null, rangeEnd: end };
+  if (period === "month") {
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { rangeStart: toDateKey(first), rangeEnd: end };
+  }
+  const days = period === "7d" ? 7 : 30;
+  const start = new Date(today);
+  start.setDate(start.getDate() - days + 1);
+  return { rangeStart: toDateKey(start), rangeEnd: end };
+}
+
+function datesInRange(
+  rangeStart: string | null,
+  rangeEnd: string
+): string[] {
+  if (!rangeStart) return []; // "all" — extras iteration would be unbounded
+  const out: string[] = [];
+  const [sy, sm, sd] = rangeStart.split("-").map(Number);
+  const [ey, em, ed] = rangeEnd.split("-").map(Number);
+  const cur = new Date(sy, sm - 1, sd);
+  const stop = new Date(ey, em - 1, ed);
+  while (cur <= stop) {
+    out.push(toDateKey(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────
@@ -255,10 +502,19 @@ function SummaryCard({ label, value, color, active, onClick }: SummaryCardProps)
 function IncomeList({
   entries,
   total,
+  teamById,
 }: {
-  entries: typeof MOCK_INCOME;
+  entries: IncomeLine[];
   total: number;
+  teamById: Map<string, string>;
 }) {
+  if (entries.length === 0) {
+    return (
+      <div className="text-center text-gray-400 py-10 text-sm">
+        Нет доходных записей
+      </div>
+    );
+  }
   return (
     <>
       {entries.map((entry) => (
@@ -270,8 +526,12 @@ function IncomeList({
             <div className="text-sm text-gray-900 truncate">
               {entry.description}
             </div>
-            <div className="text-xs text-gray-500">
-              {entry.date} • {entry.team}
+            <div className="text-xs text-gray-500 truncate">
+              {formatDateLongRu(entry.dateKey)}
+              {entry.teamId && teamById.get(entry.teamId)
+                ? ` • ${teamById.get(entry.teamId)}`
+                : ""}
+              {entry.sourceType === "extra" ? " • вручную" : ""}
             </div>
           </div>
           <div className="text-sm font-semibold text-emerald-600">
@@ -279,9 +539,6 @@ function IncomeList({
           </div>
         </div>
       ))}
-      {entries.length === 0 && (
-        <div className="text-center text-gray-400 py-10 text-sm">Нет записей</div>
-      )}
       <TotalRow label="Итого доход" value={total} color="emerald" />
     </>
   );
@@ -291,11 +548,20 @@ function ExpenseGroups({
   groups,
   categories,
   total,
+  teamById,
 }: {
-  groups: [string, typeof MOCK_EXPENSES][];
+  groups: [string, ExpenseLine[]][];
   categories: ExpenseCategory[];
   total: number;
+  teamById: Map<string, string>;
 }) {
+  if (groups.length === 0) {
+    return (
+      <div className="text-center text-gray-400 py-10 text-sm">
+        Нет расходных записей
+      </div>
+    );
+  }
   return (
     <>
       {groups.map(([catName, entries]) => {
@@ -315,7 +581,9 @@ function ExpenseGroups({
                   {catName}
                 </span>
               </div>
-              <span className="text-sm font-bold text-red-600">−{catTotal}€</span>
+              <span className="text-sm font-bold text-red-600">
+                −{catTotal}€
+              </span>
             </div>
             {entries.map((entry) => (
               <div
@@ -326,8 +594,11 @@ function ExpenseGroups({
                   <div className="text-sm text-gray-900 truncate">
                     {entry.description}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {entry.date} • {entry.team}
+                  <div className="text-xs text-gray-500 truncate">
+                    {formatDateLongRu(entry.dateKey)}
+                    {entry.teamId && teamById.get(entry.teamId)
+                      ? ` • ${teamById.get(entry.teamId)}`
+                      : ""}
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-red-600">
@@ -338,22 +609,19 @@ function ExpenseGroups({
           </div>
         );
       })}
-      {groups.length === 0 && (
-        <div className="text-center text-gray-400 py-10 text-sm">Нет записей</div>
-      )}
       <TotalRow label="Итого расход" value={-total} color="red" />
     </>
   );
 }
 
 function CombinedSummary({
-  income,
-  expenses,
+  incomeCount,
+  expenseCount,
   totalIncome,
   totalExpense,
 }: {
-  income: typeof MOCK_INCOME;
-  expenses: typeof MOCK_EXPENSES;
+  incomeCount: number;
+  expenseCount: number;
   totalIncome: number;
   totalExpense: number;
 }) {
@@ -381,10 +649,10 @@ function CombinedSummary({
         </div>
         <div className="mt-1 grid grid-cols-2 gap-2 text-[12px]">
           <div className="text-gray-700">
-            Доходных: <span className="font-semibold">{income.length}</span>
+            Доходных строк: <span className="font-semibold">{incomeCount}</span>
           </div>
           <div className="text-gray-700">
-            Расходных: <span className="font-semibold">{expenses.length}</span>
+            Расходных строк: <span className="font-semibold">{expenseCount}</span>
           </div>
         </div>
       </div>
@@ -392,6 +660,12 @@ function CombinedSummary({
       {profit < 0 && (
         <div className="px-4 py-3 text-[12px] text-red-600 bg-red-50 border-b border-red-100">
           ⚠ За выбранный период расходы превышают доходы.
+        </div>
+      )}
+
+      {incomeCount === 0 && expenseCount === 0 && (
+        <div className="px-4 py-6 text-center text-[12px] text-gray-400">
+          Нет данных за выбранный период.
         </div>
       )}
     </div>
@@ -452,7 +726,7 @@ function TotalRow({
   );
 }
 
-// ─── Categories management sheet (unchanged from old expenses page) ────
+// ─── Categories management sheet (unchanged) ───────────────────────────
 
 function ExpenseCategoriesSheet({
   categories,

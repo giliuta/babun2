@@ -35,6 +35,7 @@ import CityPickerModal from "@/components/calendar/CityPickerModal";
 import DayFinanceModal from "@/components/calendar/DayFinanceModal";
 import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
 import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
+import UndoToast from "@/components/ui/UndoToast";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
@@ -63,7 +64,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v51-no-fab";
+const BUILD_TAG = "v52-ux-upgrade";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -294,6 +295,73 @@ export default function DashboardPage() {
 
   // Repeat-copy modal — duplicate an appointment N times at a cadence
   const [repeatSource, setRepeatSource] = useState<Appointment | null>(null);
+
+  // Undo toast state — generic, reused for delete / cancel / status
+  // change. On undo we run the stored restore callback.
+  const [undoToast, setUndoToast] = useState<{
+    message: string;
+    restore: () => void;
+  } | null>(null);
+
+  const handleQuickStatus = useCallback(
+    (apt: Appointment, next: Appointment["status"]) => {
+      const prev = apt.status;
+      upsertAppointment({
+        ...apt,
+        status: next,
+        updated_at: new Date().toISOString(),
+      });
+      const labels: Record<Appointment["status"], string> = {
+        scheduled: "Запланирована",
+        in_progress: "В работе",
+        completed: "Выполнена",
+        cancelled: "Отменена",
+      };
+      setUndoToast({
+        message: `Статус → ${labels[next]}`,
+        restore: () =>
+          upsertAppointment({
+            ...apt,
+            status: prev,
+            updated_at: new Date().toISOString(),
+          }),
+      });
+    },
+    [upsertAppointment]
+  );
+
+  const handleCancelToggle = useCallback(
+    (apt: Appointment) => {
+      const prev = apt.status;
+      const next = prev === "cancelled" ? "scheduled" : "cancelled";
+      upsertAppointment({
+        ...apt,
+        status: next,
+        updated_at: new Date().toISOString(),
+      });
+      setUndoToast({
+        message: next === "cancelled" ? "Запись отменена" : "Запись восстановлена",
+        restore: () =>
+          upsertAppointment({
+            ...apt,
+            status: prev,
+            updated_at: new Date().toISOString(),
+          }),
+      });
+    },
+    [upsertAppointment]
+  );
+
+  const handleDeleteWithUndo = useCallback(
+    (apt: Appointment) => {
+      deleteAppointment(apt.id);
+      setUndoToast({
+        message: "Запись удалена",
+        restore: () => upsertAppointment(apt),
+      });
+    },
+    [deleteAppointment, upsertAppointment]
+  );
 
   const handleSpecialScheduleSave = useCallback(
     (next: TeamSchedule) => {
@@ -707,12 +775,33 @@ export default function DashboardPage() {
 
   const longPressOptions: ActionMenuOption[] = longPressApt
     ? [
-        {
-          label: "Свободное перемещение",
-          subtitle: "Перетащить запись пальцем",
-          disabled: true,
-          onSelect: () => {},
-        },
+        ...(longPressApt.status !== "completed"
+          ? [
+              {
+                label: "Отметить выполненной",
+                subtitle: "Статус → Выполнена",
+                onSelect: () => handleQuickStatus(longPressApt, "completed"),
+              },
+            ]
+          : []),
+        ...(longPressApt.status !== "in_progress"
+          ? [
+              {
+                label: "В работе",
+                subtitle: "Статус → В работе",
+                onSelect: () => handleQuickStatus(longPressApt, "in_progress"),
+              },
+            ]
+          : []),
+        ...(longPressApt.status !== "scheduled"
+          ? [
+              {
+                label: "Вернуть в план",
+                subtitle: "Статус → Запланирована",
+                onSelect: () => handleQuickStatus(longPressApt, "scheduled"),
+              },
+            ]
+          : []),
         {
           label: "Копировать запись",
           onSelect: () => {
@@ -727,33 +816,16 @@ export default function DashboardPage() {
           onSelect: () => setRepeatSource(longPressApt),
         },
         {
-          label: "Перенести запись",
-          subtitle: "Скоро",
-          disabled: true,
-          onSelect: () => {},
-        },
-        {
           label:
             longPressApt.status === "cancelled"
               ? "Восстановить запись"
-              : "Запись отменена",
-          onSelect: () => {
-            upsertAppointment({
-              ...longPressApt,
-              status:
-                longPressApt.status === "cancelled" ? "scheduled" : "cancelled",
-              updated_at: new Date().toISOString(),
-            });
-          },
+              : "Отменить запись",
+          onSelect: () => handleCancelToggle(longPressApt),
         },
         {
           label: "Удалить",
           danger: true,
-          onSelect: () => {
-            if (typeof window !== "undefined" && !window.confirm("Удалить запись?"))
-              return;
-            deleteAppointment(longPressApt.id);
-          },
+          onSelect: () => handleDeleteWithUndo(longPressApt),
         },
       ]
     : [];
@@ -867,7 +939,18 @@ export default function DashboardPage() {
         onClose={() => setRepeatSource(null)}
         onConfirm={(copies) => {
           copies.forEach((c) => upsertAppointment(c));
+          setUndoToast({
+            message: `Создано ${copies.length} копи${copies.length === 1 ? "я" : copies.length < 5 ? "и" : "й"}`,
+            restore: () => copies.forEach((c) => deleteAppointment(c.id)),
+          });
         }}
+      />
+
+      <UndoToast
+        open={undoToast !== null}
+        message={undoToast?.message ?? ""}
+        onUndo={() => undoToast?.restore()}
+        onClose={() => setUndoToast(null)}
       />
 
       {/* Day finance modal */}

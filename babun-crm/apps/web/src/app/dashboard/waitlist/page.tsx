@@ -11,6 +11,7 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
 } from "@/lib/waitlist";
+import SwipeableRow from "@/components/ui/SwipeableRow";
 
 const STATUS_FILTER: (WaitlistStatus | "all")[] = [
   "all",
@@ -110,57 +111,106 @@ export default function WaitlistPage() {
           {/* Items */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {visible.map((item, index) => (
-              <button
+              <div
                 key={item.id}
-                type="button"
-                onClick={() => setEditing(item)}
-                className={`w-full text-left px-4 py-3 active:bg-gray-50 ${
+                className={
                   index < visible.length - 1
                     ? "border-b border-gray-100"
                     : ""
-                }`}
+                }
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                    {(item.client_name || "?").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 truncate">
-                      {item.client_name || "Без имени"}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {item.services || "—"}
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status]}`}
+                <SwipeableRow
+                  leftActions={
+                    item.phone
+                      ? [
+                          {
+                            label: "Позвонить",
+                            color: "bg-emerald-500",
+                            icon: (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                              </svg>
+                            ),
+                            onSelect: () => {
+                              const digits = item.phone.replace(/\D/g, "");
+                              if (digits) window.location.href = `tel:${digits}`;
+                            },
+                          },
+                        ]
+                      : []
+                  }
+                  rightActions={[
+                    {
+                      label: "Записан",
+                      color: "bg-indigo-600",
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ),
+                      onSelect: () => handleSetStatus(item.id, "booked"),
+                    },
+                    {
+                      label: "Удалить",
+                      color: "bg-red-500",
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                        </svg>
+                      ),
+                      onSelect: () => handleDelete(item.id),
+                    },
+                  ]}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setEditing(item)}
+                    className="w-full text-left px-4 py-3 active:bg-gray-50"
                   >
-                    {STATUS_LABELS[item.status]}
-                  </span>
-                </div>
-                <div className="pl-[52px] mt-1 space-y-0.5">
-                  {item.master && (
-                    <div className="text-xs text-gray-500">
-                      Мастер: {item.master}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        {(item.client_name || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {item.client_name || "Без имени"}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {item.services || "—"}
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status]}`}
+                      >
+                        {STATUS_LABELS[item.status]}
+                      </span>
                     </div>
-                  )}
-                  {item.deadline && (
-                    <div className="text-xs text-gray-500">
-                      До: {item.deadline}
+                    <div className="pl-[52px] mt-1 space-y-0.5">
+                      {item.master && (
+                        <div className="text-xs text-gray-500">
+                          Мастер: {item.master}
+                        </div>
+                      )}
+                      {item.deadline && (
+                        <div className="text-xs text-gray-500">
+                          До: {item.deadline}
+                        </div>
+                      )}
+                      {item.time_pref && (
+                        <div className="text-xs text-gray-500">
+                          Время: {item.time_pref}
+                        </div>
+                      )}
+                      {item.location && (
+                        <div className="text-xs text-gray-500">
+                          {item.location}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {item.time_pref && (
-                    <div className="text-xs text-gray-500">
-                      Время: {item.time_pref}
-                    </div>
-                  )}
-                  {item.location && (
-                    <div className="text-xs text-gray-500">
-                      {item.location}
-                    </div>
-                  )}
-                </div>
-              </button>
+                  </button>
+                </SwipeableRow>
+              </div>
             ))}
             {visible.length === 0 && (
               <div className="text-center text-gray-400 py-10 text-sm">
