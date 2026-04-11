@@ -19,6 +19,7 @@ import {
   loadDraftClients,
 } from "@/lib/draft-clients";
 import { generateId } from "@/lib/masters";
+import { buildMapUrl } from "@/lib/map-links";
 import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
 import DateWheelModal from "./DateWheelModal";
@@ -109,6 +110,7 @@ export default function NewAppointmentSheet({
   const [teamId, setTeamId] = useState<string | null>(initial.team_id);
   const [serviceIds, setServiceIds] = useState<string[]>(initial.service_ids);
   const [comment, setComment] = useState(initial.comment);
+  const [address, setAddress] = useState(initial.address);
   const [cancelled, setCancelled] = useState(initial.status === "cancelled");
   const [photos, setPhotos] = useState<AppointmentPhoto[]>(initial.photos ?? []);
   const [discount, setDiscount] = useState(initial.discount_amount ?? 0);
@@ -248,6 +250,7 @@ export default function NewAppointmentSheet({
       expenses,
       service_price_overrides: priceOverrides,
       comment,
+      address,
       photos,
       status: cancelled
         ? "cancelled"
@@ -434,6 +437,59 @@ export default function NewAppointmentSheet({
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
             </a>
+          )}
+        </div>
+        <Divider />
+
+        {/* Адрес */}
+        <Label>Адрес</Label>
+        <div className="flex items-center gap-2 px-4 py-1.5">
+          <IconSquare color="#ef4444">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </IconSquare>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Адрес или ссылка"
+            className="flex-1 min-w-0 h-8 text-[13px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+          />
+          {address.trim() && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <a
+                href={buildMapUrl("google", address) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Google Maps"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
+                style={{ backgroundColor: "#ea4335" }}
+              >
+                G
+              </a>
+              <a
+                href={buildMapUrl("apple", address) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Apple Maps"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
+                style={{ backgroundColor: "#1d1d1f" }}
+              >
+                A
+              </a>
+              <a
+                href={buildMapUrl("waze", address) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Waze"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
+                style={{ backgroundColor: "#33ccff" }}
+              >
+                W
+              </a>
+            </div>
           )}
         </div>
         <Divider />
