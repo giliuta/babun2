@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
@@ -26,11 +27,26 @@ const ROLE_COLORS: Record<MasterRole, string> = {
 // ─── Page ────────────────────────────────────────────────────────────────
 
 export default function MastersPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { masters, upsertMaster, deleteMaster } = useMasters();
   const { teams, setTeams } = useTeams();
 
   const [editing, setEditing] = useState<Master | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  // If another page linked with ?edit=<id>, open that master's edit modal
+  // and scrub the query so a refresh doesn't re-trigger it.
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (!editId) return;
+    const master = masters.find((m) => m.id === editId);
+    if (master) {
+      setEditing(master);
+      setShowForm(true);
+    }
+    router.replace("/dashboard/masters");
+  }, [searchParams, masters, router]);
 
   const { active, inactive } = useMemo(() => {
     const a: Master[] = [];
