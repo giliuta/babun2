@@ -36,13 +36,13 @@ import {
   useClients,
 } from "./layout";
 
-const HOUR_HEIGHT_MIN = 30;
-const HOUR_HEIGHT_MAX = 240;
+const HOUR_HEIGHT_MIN = 24;
+const HOUR_HEIGHT_MAX = 480;
 const HOUR_HEIGHT_DEFAULT = 60;
-const HOUR_HEIGHT_STEP = 15;
+const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v14-dnd-kit+attribution";
+const BUILD_TAG = "v15-zoom-range";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
