@@ -8,11 +8,7 @@ import {
   useServices,
   useClients,
 } from "@/app/dashboard/layout";
-import {
-  type Appointment,
-  type AppointmentStatus,
-  STATUS_LABELS,
-} from "@/lib/appointments";
+import type { Appointment } from "@/lib/appointments";
 import type { Client } from "@/lib/clients";
 import {
   type DraftClient,
@@ -60,20 +56,6 @@ function addMinutesToTime(time: string, minutes: number): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-const STATUS_ORDER: AppointmentStatus[] = [
-  "scheduled",
-  "in_progress",
-  "completed",
-  "cancelled",
-];
-
-const STATUS_COLORS: Record<AppointmentStatus, string> = {
-  scheduled: "border-indigo-500 bg-indigo-50 text-indigo-700",
-  in_progress: "border-amber-500 bg-amber-50 text-amber-700",
-  completed: "border-emerald-500 bg-emerald-50 text-emerald-700",
-  cancelled: "border-gray-400 bg-gray-50 text-gray-600",
-};
-
 export default function NewAppointmentSheet({
   initial,
   mode,
@@ -92,14 +74,7 @@ export default function NewAppointmentSheet({
   const [clientId, setClientId] = useState<string | null>(initial.client_id);
   const [teamId, setTeamId] = useState<string | null>(initial.team_id);
   const [serviceIds, setServiceIds] = useState<string[]>(initial.service_ids);
-  const [comment, setComment] = useState(initial.comment);
-  const [addressOverride, setAddressOverride] = useState(initial.address);
-  const [status, setStatus] = useState<AppointmentStatus>(initial.status);
-  const [prepaidAmount, setPrepaidAmount] = useState(initial.prepaid_amount);
-  const [customTotal, setCustomTotal] = useState(initial.custom_total);
-  const [totalAmount, setTotalAmount] = useState(initial.total_amount);
 
-  const [showMore, setShowMore] = useState(false);
   const [timeSheet, setTimeSheet] = useState(false);
   const [clientSheet, setClientSheet] = useState(false);
   const [serviceSheet, setServiceSheet] = useState(false);
@@ -128,17 +103,16 @@ export default function NewAppointmentSheet({
     [serviceIds, services]
   );
 
-  // Auto total & duration from services unless customTotal is set
-  useEffect(() => {
-    if (customTotal) return;
-    const sum = selectedServices.reduce((acc, s) => acc + s.price, 0);
-    setTotalAmount(sum);
-  }, [selectedServices, customTotal]);
+  // Auto-total from services
+  const totalAmount = useMemo(
+    () => selectedServices.reduce((acc, s) => acc + s.price, 0),
+    [selectedServices]
+  );
 
+  // Duration follows selected services
   useEffect(() => {
     const totalMin = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0);
     if (totalMin > 0) setDurationMinutes(totalMin);
-    // Only on service change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceIds.join(",")]);
 
@@ -167,14 +141,7 @@ export default function NewAppointmentSheet({
     return out;
   }, [appointments]);
 
-  const clientAddress = selectedClient && "address" in selectedClient
-    ? (selectedClient as Client).address || ""
-    : "";
-  const effectiveAddress = addressOverride || clientAddress;
-  const needsAddress = !effectiveAddress && selectedClient && !addressOverride;
-
   const timeEnd = addMinutesToTime(timeStart, durationMinutes);
-
   const canSave = Boolean(clientId && serviceIds.length > 0);
 
   const handleSave = () => {
@@ -198,11 +165,7 @@ export default function NewAppointmentSheet({
       team_id: teamId,
       service_ids: serviceIds,
       total_amount: totalAmount,
-      custom_total: customTotal,
-      prepaid_amount: prepaidAmount,
-      comment,
-      address: addressOverride,
-      status,
+      custom_total: false,
       updated_at: now,
       created_at: initial.created_at || now,
     };
@@ -329,17 +292,6 @@ export default function NewAppointmentSheet({
             </svg>
           </button>
 
-          {/* Address hint when client has none */}
-          {needsAddress && (
-            <button
-              type="button"
-              onClick={() => setShowMore(true)}
-              className="w-full text-left px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 active:bg-amber-100"
-            >
-              📍 У клиента нет адреса — добавить
-            </button>
-          )}
-
           {/* SERVICE card */}
           <button
             type="button"
@@ -358,171 +310,24 @@ export default function NewAppointmentSheet({
             <div className="flex-1 min-w-0 text-left">
               <div className="text-xs text-gray-500">Услуги</div>
               {selectedServices.length > 0 ? (
-                <>
-                  <div className="text-base font-semibold text-gray-900 truncate">
-                    {selectedServices.map((s) => s.name).join(", ")}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {selectedServices.length} · {totalAmount}€
-                  </div>
-                </>
+                <div className="text-base font-semibold text-gray-900 truncate">
+                  {selectedServices.map((s) => s.name).join(", ")}
+                </div>
               ) : (
                 <div className="text-base font-semibold text-gray-400">
                   Выбрать услуги
                 </div>
               )}
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+            {totalAmount > 0 && (
+              <div className="text-lg font-bold text-indigo-600 flex-shrink-0 ml-1">
+                {totalAmount}€
+              </div>
+            )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 ml-1">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-
-          {/* Comment inline */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-3">
-            <input
-              type="text"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Комментарий (что нужно сделать)"
-              className="w-full px-2 py-2 text-base text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent"
-            />
-          </div>
-
-          {/* Status (edit mode only) */}
-          {mode === "edit" && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">
-                Статус
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {STATUS_ORDER.map((s) => {
-                  const active = status === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setStatus(s)}
-                      className={`h-12 rounded-xl border-2 font-semibold text-sm active:scale-[0.97] transition ${
-                        active
-                          ? STATUS_COLORS[s]
-                          : "border-gray-200 bg-white text-gray-600"
-                      }`}
-                    >
-                      {STATUS_LABELS[s]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* More toggle */}
-          <button
-            type="button"
-            onClick={() => setShowMore((x) => !x)}
-            className="w-full py-3 text-center text-sm font-medium text-indigo-600 active:scale-[0.98]"
-          >
-            {showMore ? "Свернуть" : "Ещё…"}
-          </button>
-
-          {showMore && (
-            <div className="space-y-2.5">
-              {/* Team */}
-              {teams.length > 1 && (
-                <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    Бригада
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {teams
-                      .filter((t) => t.active)
-                      .map((t) => {
-                        const active = teamId === t.id;
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => setTeamId(t.id)}
-                            className={`h-12 rounded-xl border-2 font-medium text-sm active:scale-[0.97] transition truncate px-2 ${
-                              active
-                                ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                : "border-gray-200 bg-white text-gray-700"
-                            }`}
-                          >
-                            {t.name}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-
-              {/* Address override */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                  Адрес
-                </div>
-                <input
-                  type="text"
-                  value={addressOverride}
-                  onChange={(e) => setAddressOverride(e.target.value)}
-                  placeholder={clientAddress || "Улица, дом, квартира"}
-                  className="w-full h-12 px-3 bg-gray-100 rounded-lg text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                {clientAddress && !addressOverride && (
-                  <div className="text-xs text-gray-500 mt-1.5">
-                    По умолчанию: {clientAddress}
-                  </div>
-                )}
-              </div>
-
-              {/* Custom total */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Сумма
-                  </div>
-                  {customTotal && (
-                    <button
-                      type="button"
-                      onClick={() => setCustomTotal(false)}
-                      className="text-xs text-indigo-600"
-                    >
-                      Авто
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={totalAmount}
-                    onChange={(e) => {
-                      setCustomTotal(true);
-                      setTotalAmount(Number(e.target.value) || 0);
-                    }}
-                    className="flex-1 h-12 px-3 bg-gray-100 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <span className="text-base text-gray-500">€</span>
-                </div>
-              </div>
-
-              {/* Prepaid */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                  Аванс
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={prepaidAmount}
-                    onChange={(e) => setPrepaidAmount(Number(e.target.value) || 0)}
-                    className="flex-1 h-12 px-3 bg-gray-100 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <span className="text-base text-gray-500">€</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
