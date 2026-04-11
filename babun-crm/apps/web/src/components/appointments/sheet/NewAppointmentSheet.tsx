@@ -34,16 +34,16 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function formatDateRu(dateStr: string): string {
+function formatWhen(dateStr: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T00:00:00");
   if (isNaN(d.getTime())) return dateStr;
   const months = [
-    "января", "февраля", "марта", "апреля", "мая", "июня",
-    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+    "янв", "фев", "мар", "апр", "май", "июн",
+    "июл", "авг", "сен", "окт", "ноя", "дек",
   ];
-  const dow = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г. (${dow[d.getDay()]})`;
+  const dow = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+  return `${dow[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
 function timeDiffMinutes(start: string, end: string): number {
@@ -60,17 +60,16 @@ function addMinutesToTime(time: string, minutes: number): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-// ─── Section helpers ────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
+// Small uppercase label shown above each row.
+function Label({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400 px-4 pt-4 pb-1.5">
+    <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400 px-4 pt-2 pb-0.5">
       {children}
     </div>
   );
 }
 
-// Icon squares shown on the left of each row — matches Bumpix's look.
+// Colored 32px icon square on the left of each row.
 function IconSquare({
   color,
   children,
@@ -80,7 +79,7 @@ function IconSquare({
 }) {
   return (
     <div
-      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold"
+      className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold"
       style={{ backgroundColor: color }}
     >
       {children}
@@ -88,7 +87,10 @@ function IconSquare({
   );
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────
+// Thin divider between sections.
+function Divider() {
+  return <div className="border-t border-gray-100" />;
+}
 
 export default function NewAppointmentSheet({
   initial,
@@ -176,7 +178,6 @@ export default function NewAppointmentSheet({
 
   const timeEnd = addMinutesToTime(timeStart, durationMinutes);
   const canSave = Boolean(clientId && serviceIds.length > 0);
-
   const currentTeam = teams.find((t) => t.id === teamId);
 
   const handleSave = () => {
@@ -203,7 +204,11 @@ export default function NewAppointmentSheet({
       custom_total: false,
       comment,
       photos,
-      status: cancelled ? "cancelled" : initial.status === "cancelled" ? "scheduled" : initial.status,
+      status: cancelled
+        ? "cancelled"
+        : initial.status === "cancelled"
+          ? "scheduled"
+          : initial.status,
       updated_at: now,
       created_at: initial.created_at || now,
     };
@@ -211,7 +216,7 @@ export default function NewAppointmentSheet({
     router.push("/dashboard");
   };
 
-  const handleCancel = () => router.push("/dashboard");
+  const handleClose = () => router.push("/dashboard");
 
   const handleDelete = () => {
     if (typeof window !== "undefined" && !window.confirm("Удалить запись?")) return;
@@ -236,37 +241,40 @@ export default function NewAppointmentSheet({
     reader.readAsDataURL(file);
   };
 
-  const TEAM_COLOR = "#f59e0b"; // amber — matches Bumpix's orange avatar
-
   return (
     <>
-      {/* Purple header */}
+      {/* Purple header with team chip */}
       <div
         className="flex-shrink-0 flex items-center gap-2 px-3 bg-indigo-600 text-white"
         style={{
-          paddingTop: "calc(env(safe-area-inset-top) + 0.65rem)",
-          paddingBottom: "0.65rem",
+          paddingTop: "calc(env(safe-area-inset-top) + 0.55rem)",
+          paddingBottom: "0.55rem",
         }}
       >
         <button
           type="button"
-          onClick={handleCancel}
+          onClick={handleClose}
           aria-label="Назад"
-          className="w-10 h-10 flex items-center justify-center active:scale-95"
+          className="w-9 h-9 flex items-center justify-center active:scale-95"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h1 className="text-[15px] font-medium flex-1 truncate">Запись клиента</h1>
+        <h1 className="text-[14px] font-medium flex-1 truncate">Запись клиента</h1>
+        {currentTeam && (
+          <div className="text-[11px] font-medium bg-white/15 px-2 py-1 rounded-md">
+            {currentTeam.name}
+          </div>
+        )}
         {mode === "edit" && (
           <button
             type="button"
             onClick={handleDelete}
             aria-label="Удалить"
-            className="w-10 h-10 flex items-center justify-center active:scale-95 text-white/85"
+            className="w-9 h-9 flex items-center justify-center active:scale-95 text-white/85"
           >
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
@@ -277,65 +285,35 @@ export default function NewAppointmentSheet({
       {/* Body */}
       <div
         className="flex-1 overflow-y-auto bg-white"
-        style={{ paddingBottom: "6rem" }}
+        style={{ paddingBottom: "5rem" }}
       >
-        {/* Мастер */}
-        {currentTeam && (
-          <>
-            <SectionLabel>Мастер</SectionLabel>
-            <div className="flex items-center gap-3 px-4 py-2.5">
-              <IconSquare color={TEAM_COLOR}>
-                {currentTeam.name.slice(0, 1).toUpperCase()}
-              </IconSquare>
-              <div className="text-[14px] text-gray-900">{currentTeam.name}</div>
-            </div>
-            <div className="border-t border-gray-100" />
-          </>
-        )}
-
-        {/* Дата */}
-        <SectionLabel>Дата</SectionLabel>
+        {/* Когда (date + time combined) */}
+        <Label>Когда</Label>
         <button
           type="button"
           onClick={() => setTimeSheet(true)}
-          className="w-full flex items-center gap-3 px-4 py-2.5 active:bg-gray-50"
+          className="w-full flex items-center gap-3 px-4 py-1.5 active:bg-gray-50"
         >
           <IconSquare color="#7c3aed">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
           </IconSquare>
-          <div className="text-[14px] text-gray-900 text-left flex-1">
-            {formatDateRu(date)}
+          <div className="flex-1 min-w-0 text-left text-[13px] text-gray-900">
+            <span className="font-medium">{formatWhen(date)}</span>
+            <span className="text-gray-400"> · </span>
+            <span className="tabular-nums font-medium">{timeStart}</span>
+            <span className="text-gray-400"> → </span>
+            <span className="tabular-nums font-medium">{timeEnd}</span>
           </div>
         </button>
-        <div className="border-t border-gray-100" />
-
-        {/* Время */}
-        <SectionLabel>Время</SectionLabel>
-        <button
-          type="button"
-          onClick={() => setTimeSheet(true)}
-          className="w-full flex items-center gap-3 px-4 py-2.5 active:bg-gray-50"
-        >
-          <IconSquare color="#7c3aed">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </IconSquare>
-          <div className="text-[14px] text-gray-900 text-left flex-1">
-            с <span className="font-medium">{timeStart}</span> до{" "}
-            <span className="font-medium">{timeEnd}</span>
-          </div>
-        </button>
-        <div className="border-t border-gray-100" />
+        <Divider />
 
         {/* Клиент */}
-        <SectionLabel>Клиент</SectionLabel>
+        <Label>Клиент</Label>
         <div
           className={`flex items-stretch transition ${
             savePulse === "client" ? "bg-red-50" : ""
@@ -344,15 +322,15 @@ export default function NewAppointmentSheet({
           <button
             type="button"
             onClick={() => setClientSheet(true)}
-            className="flex-1 min-w-0 flex items-center gap-3 px-4 py-2.5 text-left active:bg-gray-50"
+            className="flex-1 min-w-0 flex items-center gap-3 px-4 py-1.5 text-left active:bg-gray-50"
           >
             {selectedClient ? (
-              <IconSquare color={TEAM_COLOR}>
+              <IconSquare color="#f59e0b">
                 {initials(selectedClient.full_name).slice(0, 1)}
               </IconSquare>
             ) : (
-              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -361,17 +339,17 @@ export default function NewAppointmentSheet({
             <div className="flex-1 min-w-0">
               {selectedClient ? (
                 <>
-                  <div className="text-[14px] font-medium text-gray-900 truncate">
+                  <div className="text-[13px] font-medium text-gray-900 truncate leading-tight">
                     {selectedClient.full_name}
                   </div>
                   {selectedClient.phone && (
-                    <div className="text-[12px] text-gray-500 truncate">
+                    <div className="text-[11px] text-gray-500 truncate leading-tight">
                       {selectedClient.phone}
                     </div>
                   )}
                 </>
               ) : (
-                <div className="text-[14px] text-gray-400">Выбрать клиента</div>
+                <div className="text-[13px] text-gray-400">Выбрать клиента</div>
               )}
             </div>
           </button>
@@ -379,174 +357,153 @@ export default function NewAppointmentSheet({
             <a
               href={`tel:${selectedClient.phone.replace(/\s+/g, "")}`}
               aria-label="Позвонить"
-              className="w-12 flex items-center justify-center text-emerald-600 active:bg-emerald-50"
+              className="w-11 flex items-center justify-center text-emerald-600 active:bg-emerald-50"
               onClick={(e) => e.stopPropagation()}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
             </a>
           )}
         </div>
-        <div className="border-t border-gray-100" />
+        <Divider />
 
-        {/* Услуги */}
-        <SectionLabel>Услуги</SectionLabel>
+        {/* Услуги (with total on the right) */}
+        <div className="flex items-baseline justify-between">
+          <Label>Услуги</Label>
+          {totalAmount > 0 && (
+            <div className="text-[13px] font-semibold text-gray-900 px-4 pt-2 pb-0.5 tabular-nums">
+              {totalAmount} <span className="text-[10px] text-gray-400 font-normal">EUR</span>
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setServiceSheet(true)}
-          className={`w-full flex items-start gap-3 px-4 py-2.5 text-left active:bg-gray-50 ${
+          className={`w-full flex items-start gap-3 px-4 py-1.5 text-left active:bg-gray-50 ${
             savePulse === "service" ? "bg-red-50" : ""
           }`}
         >
           <IconSquare color="#9ca3af">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </IconSquare>
           <div className="flex-1 min-w-0 pt-0.5">
             {selectedServices.length > 0 ? (
-              <div className="text-[14px] text-gray-900 leading-snug">
+              <div className="text-[13px] text-gray-900 leading-snug">
                 {selectedServices.map((s) => s.name).join(", ")}
               </div>
             ) : (
-              <div className="text-[14px] text-gray-400">Выбрать услуги</div>
+              <div className="text-[13px] text-gray-400">Выбрать услуги</div>
             )}
           </div>
         </button>
-        <div className="border-t border-gray-100" />
-
-        {/* Доход */}
-        <SectionLabel>Доход</SectionLabel>
-        <div className="flex items-center gap-3 px-4 py-2.5">
-          <IconSquare color="#7c3aed">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </IconSquare>
-          <div className="flex items-baseline gap-1 flex-1">
-            <span className="text-[20px] font-semibold text-gray-900 tabular-nums">
-              {totalAmount}
-            </span>
-            <span className="text-[12px] text-gray-400 uppercase">EUR</span>
-          </div>
-        </div>
-        <div className="border-t border-gray-100" />
+        <Divider />
 
         {/* Комментарий */}
-        <SectionLabel>Комментарий</SectionLabel>
-        <div className="flex items-start gap-3 px-4 py-2.5">
+        <Label>Комментарий</Label>
+        <div className="flex items-start gap-3 px-4 py-1.5">
           <IconSquare color="#7c3aed">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </IconSquare>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Добавить комментарий"
+            placeholder="Что нужно сделать"
             rows={1}
-            className="flex-1 min-h-[32px] text-[14px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none py-0.5"
+            className="flex-1 min-h-[24px] text-[13px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none leading-snug"
             style={{ fieldSizing: "content" } as React.CSSProperties}
           />
         </div>
-        <div className="border-t border-gray-100" />
+        <Divider />
 
         {/* Фото */}
-        <SectionLabel>Фото {photos.length > 0 && `(${photos.length})`}</SectionLabel>
-        <div className="px-4 py-2.5">
-          {photos.length > 0 && (
-            <div className="flex gap-2 mb-2 overflow-x-auto">
-              {photos.map((p) => (
-                <div
-                  key={p.id}
-                  className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200"
+        <Label>Фото {photos.length > 0 && `(${photos.length})`}</Label>
+        <div className="px-4 py-1.5">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <label className="flex items-center justify-center w-12 h-12 rounded-md border border-dashed border-gray-300 text-gray-400 flex-shrink-0 cursor-pointer active:bg-gray-50">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleAddPhoto(file);
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+            {photos.map((p) => (
+              <div
+                key={p.id}
+                className="relative w-12 h-12 rounded-md overflow-hidden flex-shrink-0 border border-gray-200"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.data_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPhotos((prev) => prev.filter((x) => x.id !== p.id))
+                  }
+                  className="absolute top-0 right-0 w-4 h-4 bg-black/60 text-white rounded-bl text-[10px] leading-none flex items-center justify-center"
+                  aria-label="Удалить"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.data_url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPhotos((prev) => prev.filter((x) => x.id !== p.id))
-                    }
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center text-[10px]"
-                    aria-label="Удалить"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <label className="flex items-center gap-3 cursor-pointer active:opacity-70">
-            <IconSquare color="#9ca3af">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                <circle cx="12" cy="13" r="4" />
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Divider />
+
+        {/* Отмена (edit mode only) */}
+        {mode === "edit" && (
+          <label className="w-full flex items-center gap-3 px-4 py-2 cursor-pointer">
+            <IconSquare color={cancelled ? "#ef4444" : "#9ca3af"}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
               </svg>
             </IconSquare>
-            <span className="text-[14px] text-indigo-600 font-medium">
-              Добавить фото
+            <span className="flex-1 text-[13px] text-gray-900">
+              Запись отменена
             </span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleAddPhoto(file);
-                e.currentTarget.value = "";
-              }}
-            />
-          </label>
-        </div>
-        <div className="border-t border-gray-100" />
-
-        {/* Отмена записи */}
-        {mode === "edit" && (
-          <>
-            <SectionLabel>Отмена записи</SectionLabel>
-            <label className="w-full flex items-center gap-3 px-4 py-2.5 cursor-pointer">
-              <IconSquare color={cancelled ? "#ef4444" : "#9ca3af"}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-              </IconSquare>
-              <span className="flex-1 text-[14px] text-gray-900">
-                Запись отменена
-              </span>
+            <span
+              className={`relative inline-block w-9 h-5 rounded-full transition ${
+                cancelled ? "bg-indigo-600" : "bg-gray-300"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={cancelled}
+                onChange={(e) => setCancelled(e.target.checked)}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
               <span
-                className={`relative inline-block w-10 h-6 rounded-full transition ${
-                  cancelled ? "bg-indigo-600" : "bg-gray-300"
+                className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
+                  cancelled ? "left-[1.1rem]" : "left-0.5"
                 }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={cancelled}
-                  onChange={(e) => setCancelled(e.target.checked)}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-                <span
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
-                    cancelled ? "left-4" : "left-0.5"
-                  }`}
-                />
-              </span>
-            </label>
-          </>
+              />
+            </span>
+          </label>
         )}
       </div>
 
-      {/* Floating save button (FAB) */}
+      {/* Floating save FAB */}
       <button
         type="button"
         onClick={handleSave}
