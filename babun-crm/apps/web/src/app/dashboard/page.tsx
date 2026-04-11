@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -18,6 +25,7 @@ import {
   type Appointment,
   validateAppointment,
   duplicateAppointment,
+  createBlankAppointment,
 } from "@/lib/appointments";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
@@ -25,6 +33,7 @@ import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import MonthView from "@/components/calendar/MonthView";
 import CityPickerModal from "@/components/calendar/CityPickerModal";
+import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -60,7 +69,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v41-day-divider-fix";
+const BUILD_TAG = "v42-inline-sheet";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -130,11 +139,14 @@ export default function DashboardPage() {
     if (el) el.style.setProperty("--hh", `${h}px`);
   }, []);
 
-  // Initialize the CSS variable on mount so the first render already has
-  // the correct layout without going through state.
-  useEffect(() => {
+  // Initialize the CSS variable before paint so the first render already
+  // has the correct layout without going through state. Also re-runs
+  // whenever the outer scroller is remounted (e.g. after switching from
+  // month view back to week) so the freshly-mounted DOM picks up --hh
+  // before the user sees a blank "0 px" grid.
+  useLayoutEffect(() => {
     writeHourHeight(hourHeightRef.current);
-  }, [writeHourHeight]);
+  }, [writeHourHeight, viewMode]);
 
   // Seed with mock data on first visit only
   useEffect(() => {
@@ -251,11 +263,18 @@ export default function DashboardPage() {
     setActiveTeamId(teamId);
   }, []);
 
+  // Inline sheet state — keeping the calendar mounted means opening and
+  // closing an appointment is instant (no route transition, no unmount).
+  const [inlineSheet, setInlineSheet] = useState<
+    | { mode: "new" | "edit"; initial: Appointment }
+    | null
+  >(null);
+
   const handleAppointmentClick = useCallback(
     (appointment: Appointment) => {
-      router.push(`/dashboard/appointment/${appointment.id}`);
+      setInlineSheet({ mode: "edit", initial: appointment });
     },
-    [router]
+    []
   );
 
   // Slot action menu — opens when user taps an empty spot on the calendar.
@@ -266,17 +285,27 @@ export default function DashboardPage() {
     setSlotMenu({ date, time });
   }, []);
 
-  const navigateToNewAppointment = useCallback(
+  const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
-      const params = new URLSearchParams();
-      if (date) params.set("date", date);
-      if (time) params.set("time", time);
-      if (activeTeamId) params.set("team_id", activeTeamId);
-      if (kind === "event") params.set("kind", "event");
-      const qs = params.toString();
-      router.push(`/dashboard/appointment/new${qs ? `?${qs}` : ""}`);
+      const today = new Date();
+      const blank = createBlankAppointment({
+        date: date || today.toISOString().slice(0, 10),
+        time_start: time || "10:00",
+        time_end: time
+          ? (() => {
+              const [h, m] = time.split(":").map(Number);
+              const total = h * 60 + m + 60;
+              const hh = Math.floor(total / 60) % 24;
+              const mm = total % 60;
+              return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+            })()
+          : "11:00",
+        team_id: activeTeamId || null,
+        kind,
+      });
+      setInlineSheet({ mode: "new", initial: blank });
     },
-    [router, activeTeamId]
+    [activeTeamId]
   );
 
   // Long-press action menu on an existing appointment.
@@ -579,24 +608,24 @@ export default function DashboardPage() {
         {
           label: "Записать клиента",
           subtitle: "с выбором свободного времени",
-          onSelect: () => navigateToNewAppointment(null, null, "work"),
+          onSelect: () => openNewAppointmentInline(null, null, "work"),
         },
         {
           label: `Записать клиента на ${slotMenu.time}`,
           subtitle: formatDateLongRu(slotMenu.date),
           onSelect: () =>
-            navigateToNewAppointment(slotMenu.date, slotMenu.time, "work"),
+            openNewAppointmentInline(slotMenu.date, slotMenu.time, "work"),
         },
         {
           label: "Создать личное событие",
           subtitle: "с выбором свободного времени",
-          onSelect: () => navigateToNewAppointment(null, null, "event"),
+          onSelect: () => openNewAppointmentInline(null, null, "event"),
         },
         {
           label: `Создать личное событие на ${slotMenu.time}`,
           subtitle: formatDateLongRu(slotMenu.date),
           onSelect: () =>
-            navigateToNewAppointment(slotMenu.date, slotMenu.time, "event"),
+            openNewAppointmentInline(slotMenu.date, slotMenu.time, "event"),
         },
       ]
     : [];
@@ -746,6 +775,19 @@ export default function DashboardPage() {
         title="Выберите действие"
         options={longPressOptions}
       />
+
+      {/* Inline new/edit sheet — renders on top of the calendar, no route
+          change. Keeps the calendar fully mounted so opening an
+          appointment is instant. */}
+      {inlineSheet && (
+        <div className="fixed inset-0 z-40 bg-gray-50 flex flex-col">
+          <NewAppointmentSheet
+            initial={inlineSheet.initial}
+            mode={inlineSheet.mode}
+            onClose={() => setInlineSheet(null)}
+          />
+        </div>
+      )}
     </>
   );
 }

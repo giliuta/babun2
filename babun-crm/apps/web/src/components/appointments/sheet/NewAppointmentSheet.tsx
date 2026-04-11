@@ -30,6 +30,10 @@ import FinanceSheet from "./FinanceSheet";
 interface NewAppointmentSheetProps {
   initial: Appointment;
   mode: "new" | "edit";
+  // Optional callback; when provided the sheet uses it instead of routing
+  // back to /dashboard. Lets the calendar render the sheet inline as a
+  // modal and keep itself mounted.
+  onClose?: () => void;
 }
 
 function initials(name: string): string {
@@ -97,6 +101,7 @@ function Divider() {
 export default function NewAppointmentSheet({
   initial,
   mode,
+  onClose,
 }: NewAppointmentSheetProps) {
   const router = useRouter();
   const { upsertAppointment, deleteAppointment, appointments } = useAppointments();
@@ -304,15 +309,20 @@ export default function NewAppointmentSheet({
       created_at: initial.created_at || now,
     };
     upsertAppointment(apt);
-    router.push("/dashboard");
+    if (onClose) onClose();
+    else router.push("/dashboard");
   };
 
-  const handleClose = () => router.push("/dashboard");
+  const handleClose = () => {
+    if (onClose) onClose();
+    else router.push("/dashboard");
+  };
 
   const handleDelete = () => {
     if (typeof window !== "undefined" && !window.confirm("Удалить запись?")) return;
     deleteAppointment(initial.id);
-    router.push("/dashboard");
+    if (onClose) onClose();
+    else router.push("/dashboard");
   };
 
   const handleAddPhoto = (file: File) => {
