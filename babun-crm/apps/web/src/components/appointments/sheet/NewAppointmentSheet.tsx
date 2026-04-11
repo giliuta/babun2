@@ -20,6 +20,7 @@ import {
 } from "@/lib/draft-clients";
 import { generateId } from "@/lib/masters";
 import { buildMapUrl, parseAddress, resolveMapLink } from "@/lib/map-links";
+import ColorPickerModal from "@/components/calendar/ColorPickerModal";
 import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
 import DateWheelModal from "./DateWheelModal";
@@ -128,6 +129,10 @@ export default function NewAppointmentSheet({
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>(
     initial.service_price_overrides ?? {}
   );
+  const [colorOverride, setColorOverride] = useState<string | null>(
+    initial.color_override ?? null
+  );
+  const [colorModal, setColorModal] = useState(false);
 
   const [dateModal, setDateModal] = useState(false);
   const [timeModal, setTimeModal] = useState(false);
@@ -303,6 +308,7 @@ export default function NewAppointmentSheet({
       discount_amount: clampedDiscount,
       expenses,
       service_price_overrides: priceOverrides,
+      color_override: colorOverride,
       comment,
       address,
       address_lat: addressLat,
@@ -371,6 +377,29 @@ export default function NewAppointmentSheet({
           </svg>
         </button>
         <h1 className="text-[14px] font-medium flex-1 truncate">{headerTitle}</h1>
+        {/* Color palette button — persistent per-appointment color tint */}
+        <button
+          type="button"
+          onClick={() => setColorModal(true)}
+          aria-label="Цвет"
+          className="w-9 h-9 flex items-center justify-center active:scale-95 text-white/85"
+        >
+          {colorOverride ? (
+            <span
+              className="w-5 h-5 rounded-full ring-2 ring-white/60"
+              style={{ backgroundColor: colorOverride }}
+            />
+          ) : (
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" />
+              <circle cx="12" cy="7.5" r="1.2" fill="currentColor" />
+              <circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" />
+              <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" />
+              <path d="M12 22c-1.5-1.5-1.5-3 0-4.5s3.5-2 3-4-2-2.5-3.5-2.5" />
+            </svg>
+          )}
+        </button>
         {currentTeam && (
           <button
             type="button"
@@ -865,6 +894,13 @@ export default function NewAppointmentSheet({
           setExpenses(next.expenses);
           setPriceOverrides(next.priceOverrides);
         }}
+      />
+
+      <ColorPickerModal
+        open={colorModal}
+        onClose={() => setColorModal(false)}
+        value={colorOverride}
+        onPick={(c) => setColorOverride(c)}
       />
     </>
   );

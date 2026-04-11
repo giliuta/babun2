@@ -72,7 +72,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v44-day-finance";
+const BUILD_TAG = "v45-color-palette";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -177,6 +177,7 @@ export default function DashboardPage() {
         discount_amount: 0,
         expenses: [],
         service_price_overrides: {},
+        color_override: null,
         prepaid_amount: m.amount, // seed as fully paid so we don't mark as debt
         payments: [],
         comment: m.client_name ? `${m.client_name} — ${m.comment}` : m.comment,

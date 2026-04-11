@@ -92,7 +92,8 @@ function AppointmentBlockInner({
         ? aptServices[0].name
         : `${aptServices[0].name} +${aptServices.length - 1}`;
   }
-  const serviceAccent = aptServices[0]?.color;
+  // Priority: per-appointment palette override > first service colour.
+  const accent = appointment.color_override ?? aptServices[0]?.color ?? null;
 
   const debt = getDebtAmount(appointment);
   const hasDebt = debt > 0 && appointment.status !== "scheduled";
@@ -124,13 +125,21 @@ function AppointmentBlockInner({
       }}
       {...listeners}
       {...attributes}
-      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${colors.bg} ${colors.text} rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 shadow-sm touch-none will-change-transform ${
+      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${
+        // Only fall back to the kind-based color classes when no palette
+        // override is set — with override we paint the background inline.
+        appointment.color_override ? "text-white" : `${colors.bg} ${colors.text}`
+      } rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 shadow-sm touch-none will-change-transform ${
         isDragging ? "opacity-70 z-30" : ""
       }`}
       style={{
         top: topExpr,
         height: heightExpr,
-        borderLeft: serviceAccent ? `3px solid ${serviceAccent}` : undefined,
+        backgroundColor: appointment.color_override ?? undefined,
+        borderLeft:
+          !appointment.color_override && accent
+            ? `3px solid ${accent}`
+            : undefined,
         transform: CSS.Translate.toString(transform),
         transition: isDragging ? "none" : undefined,
         contain: "layout paint",

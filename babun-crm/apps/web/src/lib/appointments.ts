@@ -51,6 +51,7 @@ export interface Appointment {
   discount_amount: number; // скидка в EUR, вычитается из суммы услуг
   expenses: AppointmentExpense[]; // расходы по записи (материалы, транспорт и т.п.)
   service_price_overrides: Record<string, number>; // id → per-unit цена, если переопределена
+  color_override: string | null; // hex — персональный цвет записи/события (палитра)
   prepaid_amount: number; // аванс / предоплата
   payments: Payment[]; // массивы платежей (cash/card/transfer)
 
@@ -102,6 +103,7 @@ export function loadAppointments(): Appointment[] {
       discount_amount: p.discount_amount ?? 0,
       expenses: p.expenses ?? [],
       service_price_overrides: p.service_price_overrides ?? {},
+      color_override: p.color_override ?? null,
     })) as Appointment[];
   } catch {
     return [];
@@ -359,6 +361,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     discount_amount: 0,
     expenses: [],
     service_price_overrides: {},
+    color_override: null,
     prepaid_amount: 0,
     payments: [],
     comment: "",
