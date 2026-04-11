@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Service, ServiceCategory } from "@/lib/services";
 import BottomSheet from "./BottomSheet";
 
@@ -9,12 +9,35 @@ interface ServicePickerSheetProps {
   onClose: () => void;
   services: Service[];
   categories: ServiceCategory[];
+  // Incoming selection — duplicates encode quantity (e.g. [id, id] = x2).
   initialSelectedIds: string[];
   onConfirm: (selectedIds: string[]) => void;
 }
 
 function normalize(s: string): string {
   return s.toLowerCase().replace(/[^a-zа-я0-9]/gi, "");
+}
+
+// Convert string[] (with duplicates) into an id→quantity map.
+function toQuantities(ids: string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const id of ids) {
+    out[id] = (out[id] ?? 0) + 1;
+  }
+  return out;
+}
+
+// Convert id→quantity map back to a flat string[] array, stable order.
+function fromQuantities(
+  qty: Record<string, number>,
+  services: Service[]
+): string[] {
+  const out: string[] = [];
+  for (const s of services) {
+    const q = qty[s.id] ?? 0;
+    for (let i = 0; i < q; i++) out.push(s.id);
+  }
+  return out;
 }
 
 export default function ServicePickerSheet({
@@ -25,12 +48,17 @@ export default function ServicePickerSheet({
   initialSelectedIds,
   onConfirm,
 }: ServicePickerSheetProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
+  const [quantities, setQuantities] = useState<Record<string, number>>(() =>
+    toQuantities(initialSelectedIds)
+  );
   const [query, setQuery] = useState("");
 
-  // Re-seed selection whenever the sheet opens with fresh initial ids
-  useMemo(() => {
-    if (open) setSelectedIds(initialSelectedIds);
+  // Re-seed when the sheet opens with a fresh appointment.
+  useEffect(() => {
+    if (open) {
+      setQuantities(toQuantities(initialSelectedIds));
+      setQuery("");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -40,7 +68,6 @@ export default function ServicePickerSheet({
     return services.filter((s) => normalize(s.name).includes(q));
   }, [services, query]);
 
-  // Group by category, preserving category order
   const grouped = useMemo(() => {
     const byCat = new Map<string | null, Service[]>();
     for (const s of filteredServices) {
@@ -61,34 +88,39 @@ export default function ServicePickerSheet({
     return orderedGroups;
   }, [filteredServices, categories]);
 
-  const toggle = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const setQty = (id: string, next: number) => {
+    setQuantities((prev) => {
+      const clamped = Math.max(0, next);
+      if (clamped === 0) {
+        const { [id]: _removed, ...rest } = prev;
+        void _removed;
+        return rest;
+      }
+      return { ...prev, [id]: clamped };
+    });
   };
 
-  const totalSum = useMemo(
-    () =>
-      selectedIds.reduce((sum, id) => {
-        const s = services.find((x) => x.id === id);
-        return sum + (s?.price ?? 0);
-      }, 0),
-    [selectedIds, services]
-  );
-
-  const totalDuration = useMemo(
-    () =>
-      selectedIds.reduce((sum, id) => {
-        const s = services.find((x) => x.id === id);
-        return sum + (s?.duration_minutes ?? 0);
-      }, 0),
-    [selectedIds, services]
-  );
+  const totals = useMemo(() => {
+    let count = 0;
+    let sum = 0;
+    let duration = 0;
+    for (const [id, qty] of Object.entries(quantities)) {
+      const s = services.find((x) => x.id === id);
+      if (!s) continue;
+      count += qty;
+      sum += s.price * qty;
+      duration += s.duration_minutes * qty;
+    }
+    return { count, sum, duration };
+  }, [quantities, services]);
 
   const handleConfirm = () => {
-    onConfirm(selectedIds);
+    onConfirm(fromQuantities(quantities, services));
     onClose();
   };
+
+  const countWord = (n: number) =>
+    n === 1 ? "услуга" : n < 5 ? "услуги" : "услуг";
 
   return (
     <BottomSheet
@@ -99,15 +131,15 @@ export default function ServicePickerSheet({
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={selectedIds.length === 0}
-          className="w-full h-14 bg-indigo-600 text-white rounded-xl font-semibold text-base active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-5"
+          disabled={totals.count === 0}
+          className="w-full h-14 bg-indigo-600 text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-5"
         >
           <span>
-            {selectedIds.length > 0
-              ? `${selectedIds.length} ${selectedIds.length === 1 ? "услуга" : selectedIds.length < 5 ? "услуги" : "услуг"} · ${totalDuration} мин`
+            {totals.count > 0
+              ? `${totals.count} ${countWord(totals.count)} · ${totals.duration} мин`
               : "Ничего не выбрано"}
           </span>
-          <span>{totalSum > 0 ? `${totalSum}€` : "Готово"}</span>
+          <span>{totals.sum > 0 ? `${totals.sum}€` : "Готово"}</span>
         </button>
       }
     >
@@ -117,7 +149,7 @@ export default function ServicePickerSheet({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск услуги"
-          className="w-full h-12 px-4 bg-gray-100 rounded-xl text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full h-11 px-4 bg-gray-100 rounded-xl text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
 
         {grouped.length === 0 ? (
@@ -131,44 +163,67 @@ export default function ServicePickerSheet({
                 {category?.name ?? "Без категории"}
               </div>
               {items.map((s) => {
-                const selected = selectedIds.includes(s.id);
+                const qty = quantities[s.id] ?? 0;
+                const selected = qty > 0;
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    type="button"
-                    onClick={() => toggle(s.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left active:scale-[0.99] transition ${
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition ${
                       selected
                         ? "border-indigo-500 bg-indigo-50"
                         : "border-gray-200 bg-white"
                     }`}
                   >
                     <div
-                      className="w-2 h-11 rounded-full flex-shrink-0"
+                      className="w-1.5 h-11 rounded-full flex-shrink-0"
                       style={{ backgroundColor: s.color }}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-base font-medium text-gray-900 truncate">
+                    <button
+                      type="button"
+                      onClick={() => setQty(s.id, qty > 0 ? qty : 1)}
+                      className="flex-1 min-w-0 text-left"
+                    >
+                      <div className="text-[14px] font-medium text-gray-900 truncate">
                         {s.name}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-[12px] text-gray-500">
                         {s.duration_minutes} мин · {s.price}€
                       </div>
-                    </div>
-                    <div
-                      className={`w-6 h-6 flex-shrink-0 rounded-full border-2 flex items-center justify-center ${
-                        selected
-                          ? "bg-indigo-600 border-indigo-600"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selected && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
+                    </button>
+                    {/* Quantity stepper */}
+                    {selected ? (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setQty(s.id, qty - 1)}
+                          className="w-8 h-8 rounded-full bg-white border border-gray-300 text-gray-700 flex items-center justify-center active:scale-95 text-lg"
+                          aria-label="Уменьшить"
+                        >
+                          −
+                        </button>
+                        <div className="w-8 text-center text-[14px] font-semibold text-indigo-700 tabular-nums">
+                          {qty}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setQty(s.id, qty + 1)}
+                          className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center active:scale-95 text-lg"
+                          aria-label="Увеличить"
+                        >
+                          +
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setQty(s.id, 1)}
+                        className="w-8 h-8 rounded-full border-2 border-gray-300 text-gray-400 flex items-center justify-center active:scale-95 flex-shrink-0"
+                        aria-label="Добавить"
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>

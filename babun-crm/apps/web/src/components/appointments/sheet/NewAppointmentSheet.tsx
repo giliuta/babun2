@@ -21,6 +21,8 @@ import { generateId } from "@/lib/masters";
 import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
 import TimePickerSheet from "./TimePickerSheet";
+import TeamPickerSheet from "./TeamPickerSheet";
+import DiscountSheet from "./DiscountSheet";
 
 interface NewAppointmentSheetProps {
   initial: Appointment;
@@ -60,7 +62,6 @@ function addMinutesToTime(time: string, minutes: number): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-// Small uppercase label shown above each row.
 function Label({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400 px-4 pt-2 pb-0.5">
@@ -69,7 +70,6 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Colored 32px icon square on the left of each row.
 function IconSquare({
   color,
   children,
@@ -87,7 +87,6 @@ function IconSquare({
   );
 }
 
-// Thin divider between sections.
 function Divider() {
   return <div className="border-t border-gray-100" />;
 }
@@ -104,19 +103,19 @@ export default function NewAppointmentSheet({
 
   const [date, setDate] = useState(initial.date);
   const [timeStart, setTimeStart] = useState(initial.time_start);
-  const [durationMinutes, setDurationMinutes] = useState(
-    Math.max(15, timeDiffMinutes(initial.time_start, initial.time_end) || 60)
-  );
   const [clientId, setClientId] = useState<string | null>(initial.client_id);
   const [teamId, setTeamId] = useState<string | null>(initial.team_id);
   const [serviceIds, setServiceIds] = useState<string[]>(initial.service_ids);
   const [comment, setComment] = useState(initial.comment);
   const [cancelled, setCancelled] = useState(initial.status === "cancelled");
   const [photos, setPhotos] = useState<AppointmentPhoto[]>(initial.photos ?? []);
+  const [discount, setDiscount] = useState(initial.discount_amount ?? 0);
 
   const [timeSheet, setTimeSheet] = useState(false);
   const [clientSheet, setClientSheet] = useState(false);
   const [serviceSheet, setServiceSheet] = useState(false);
+  const [teamSheetOpen, setTeamSheetOpen] = useState(false);
+  const [discountSheet, setDiscountSheet] = useState(false);
   const [savePulse, setSavePulse] = useState<null | "client" | "service">(null);
 
   const [draftClients, setDraftClients] = useState<DraftClient[]>([]);
@@ -134,25 +133,52 @@ export default function NewAppointmentSheet({
     [allClients, clientId]
   );
 
-  const selectedServices = useMemo(
+  // Count occurrences of each service id (duplicates = quantity).
+  const serviceQuantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const id of serviceIds) map[id] = (map[id] ?? 0) + 1;
+    return map;
+  }, [serviceIds]);
+
+  // Group selected services for display: [{service, qty}, ...] in original order.
+  const groupedServices = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { service: NonNullable<ReturnType<typeof services.find>>; qty: number }[] = [];
+    for (const id of serviceIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const s = services.find((x) => x.id === id);
+      if (s) out.push({ service: s, qty: serviceQuantities[id] });
+    }
+    return out;
+  }, [serviceIds, services, serviceQuantities]);
+
+  // Duration + subtotal come entirely from selected services.
+  const totalDurationMinutes = useMemo(
     () =>
-      serviceIds
-        .map((id) => services.find((s) => s.id === id))
-        .filter((s): s is NonNullable<typeof s> => Boolean(s)),
-    [serviceIds, services]
+      groupedServices.reduce(
+        (sum, { service, qty }) => sum + service.duration_minutes * qty,
+        0
+      ),
+    [groupedServices]
   );
 
-  const totalAmount = useMemo(
-    () => selectedServices.reduce((acc, s) => acc + s.price, 0),
-    [selectedServices]
+  const subtotal = useMemo(
+    () =>
+      groupedServices.reduce(
+        (sum, { service, qty }) => sum + service.price * qty,
+        0
+      ),
+    [groupedServices]
   );
 
-  useEffect(() => {
-    const totalMin = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0);
-    if (totalMin > 0) setDurationMinutes(totalMin);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceIds.join(",")]);
+  const effectiveDuration = totalDurationMinutes > 0 ? totalDurationMinutes : 60;
+  const timeEnd = addMinutesToTime(timeStart, effectiveDuration);
 
+  const clampedDiscount = Math.min(discount, subtotal);
+  const totalAmount = Math.max(0, subtotal - clampedDiscount);
+
+  // Default team = first active if none picked
   useEffect(() => {
     if (!teamId && teams.length > 0) {
       const firstActive = teams.find((t) => t.active);
@@ -176,7 +202,6 @@ export default function NewAppointmentSheet({
     return out;
   }, [appointments]);
 
-  const timeEnd = addMinutesToTime(timeStart, durationMinutes);
   const canSave = Boolean(clientId && serviceIds.length > 0);
   const currentTeam = teams.find((t) => t.id === teamId);
 
@@ -202,6 +227,7 @@ export default function NewAppointmentSheet({
       service_ids: serviceIds,
       total_amount: totalAmount,
       custom_total: false,
+      discount_amount: clampedDiscount,
       comment,
       photos,
       status: cancelled
@@ -243,7 +269,7 @@ export default function NewAppointmentSheet({
 
   return (
     <>
-      {/* Purple header with team chip */}
+      {/* Purple header */}
       <div
         className="flex-shrink-0 flex items-center gap-2 px-3 bg-indigo-600 text-white"
         style={{
@@ -263,9 +289,16 @@ export default function NewAppointmentSheet({
         </button>
         <h1 className="text-[14px] font-medium flex-1 truncate">Запись клиента</h1>
         {currentTeam && (
-          <div className="text-[11px] font-medium bg-white/15 px-2 py-1 rounded-md">
+          <button
+            type="button"
+            onClick={() => setTeamSheetOpen(true)}
+            className="text-[11px] font-medium bg-white/15 px-2 py-1 rounded-md active:bg-white/25 flex items-center gap-1"
+          >
             {currentTeam.name}
-          </div>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
         )}
         {mode === "edit" && (
           <button
@@ -287,7 +320,7 @@ export default function NewAppointmentSheet({
         className="flex-1 overflow-y-auto bg-white"
         style={{ paddingBottom: "5rem" }}
       >
-        {/* Когда (date + time combined) */}
+        {/* Когда */}
         <Label>Когда</Label>
         <button
           type="button"
@@ -368,15 +401,8 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
-        {/* Услуги (with total on the right) */}
-        <div className="flex items-baseline justify-between">
-          <Label>Услуги</Label>
-          {totalAmount > 0 && (
-            <div className="text-[13px] font-semibold text-gray-900 px-4 pt-2 pb-0.5 tabular-nums">
-              {totalAmount} <span className="text-[10px] text-gray-400 font-normal">EUR</span>
-            </div>
-          )}
-        </div>
+        {/* Услуги */}
+        <Label>Услуги</Label>
         <button
           type="button"
           onClick={() => setServiceSheet(true)}
@@ -391,14 +417,51 @@ export default function NewAppointmentSheet({
             </svg>
           </IconSquare>
           <div className="flex-1 min-w-0 pt-0.5">
-            {selectedServices.length > 0 ? (
+            {groupedServices.length > 0 ? (
               <div className="text-[13px] text-gray-900 leading-snug">
-                {selectedServices.map((s) => s.name).join(", ")}
+                {groupedServices
+                  .map(({ service, qty }) =>
+                    qty > 1 ? `${service.name} ×${qty}` : service.name
+                  )
+                  .join(", ")}
               </div>
             ) : (
               <div className="text-[13px] text-gray-400">Выбрать услуги</div>
             )}
           </div>
+        </button>
+        <Divider />
+
+        {/* Доход */}
+        <Label>Доход</Label>
+        <button
+          type="button"
+          onClick={() => subtotal > 0 && setDiscountSheet(true)}
+          disabled={subtotal === 0}
+          className="w-full flex items-center gap-3 px-4 py-1.5 text-left active:bg-gray-50 disabled:active:bg-transparent"
+        >
+          <IconSquare color="#7c3aed">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </IconSquare>
+          <div className="flex-1 min-w-0 flex items-baseline gap-1">
+            <span className="text-[18px] font-semibold text-gray-900 tabular-nums">
+              {totalAmount}
+            </span>
+            <span className="text-[11px] text-gray-400 uppercase">EUR</span>
+            {clampedDiscount > 0 && (
+              <span className="text-[11px] text-gray-500 line-through ml-2 tabular-nums">
+                {subtotal}
+              </span>
+            )}
+          </div>
+          {subtotal > 0 && (
+            <div className="text-[11px] text-indigo-600 font-medium flex-shrink-0">
+              {clampedDiscount > 0 ? `−${clampedDiscount}€` : "+ Скидка"}
+            </div>
+          )}
         </button>
         <Divider />
 
@@ -469,7 +532,7 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
-        {/* Отмена (edit mode only) */}
+        {/* Отмена (edit only) */}
         {mode === "edit" && (
           <label className="w-full flex items-center gap-3 px-4 py-2 cursor-pointer">
             <IconSquare color={cancelled ? "#ef4444" : "#9ca3af"}>
@@ -526,11 +589,10 @@ export default function NewAppointmentSheet({
         onClose={() => setTimeSheet(false)}
         date={date}
         timeStart={timeStart}
-        durationMinutes={durationMinutes}
+        durationMinutes={effectiveDuration}
         onConfirm={(next) => {
           setDate(next.date);
           setTimeStart(next.timeStart);
-          setDurationMinutes(next.durationMinutes);
         }}
       />
 
@@ -550,6 +612,22 @@ export default function NewAppointmentSheet({
         categories={categories}
         initialSelectedIds={serviceIds}
         onConfirm={(ids) => setServiceIds(ids)}
+      />
+
+      <TeamPickerSheet
+        open={teamSheetOpen}
+        onClose={() => setTeamSheetOpen(false)}
+        teams={teams}
+        selectedId={teamId}
+        onSelect={(id) => setTeamId(id)}
+      />
+
+      <DiscountSheet
+        open={discountSheet}
+        onClose={() => setDiscountSheet(false)}
+        subtotal={subtotal}
+        discount={clampedDiscount}
+        onConfirm={(next) => setDiscount(next)}
       />
     </>
   );

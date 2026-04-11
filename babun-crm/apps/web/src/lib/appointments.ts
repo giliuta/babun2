@@ -40,8 +40,9 @@ export interface Appointment {
   service_ids: string[];
 
   // Финансы
-  total_amount: number; // фактическая сумма (auto из услуг или ручная)
+  total_amount: number; // фактическая сумма (auto из услуг минус скидка)
   custom_total: boolean; // true если total_amount изменён вручную
+  discount_amount: number; // скидка в EUR, вычитается из суммы услуг
   prepaid_amount: number; // аванс / предоплата
   payments: Payment[]; // массивы платежей (cash/card/transfer)
 
@@ -86,7 +87,12 @@ export function loadAppointments(): Appointment[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Lightweight migration: fill in fields added after the record was stored
+    return parsed.map((p: Partial<Appointment>) => ({
+      ...p,
+      discount_amount: p.discount_amount ?? 0,
+    })) as Appointment[];
   } catch {
     return [];
   }
@@ -340,6 +346,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     service_ids: [],
     total_amount: 0,
     custom_total: false,
+    discount_amount: 0,
     prepaid_amount: 0,
     payments: [],
     comment: "",
