@@ -59,7 +59,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v35-resolve-links";
+const BUILD_TAG = "v36-header-grid";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -435,13 +435,6 @@ export default function DashboardPage() {
     setCurrentMonday(monday);
   }, []);
 
-  const handleNewAppointment = useCallback(() => {
-    const params = new URLSearchParams();
-    if (activeTeamId) params.set("team_id", activeTeamId);
-    const qs = params.toString();
-    router.push(`/dashboard/appointment/new${qs ? `?${qs}` : ""}`);
-  }, [router, activeTeamId]);
-
   // ─── dnd-kit sensors: mouse for desktop, touch with delay for mobile ───
   // TouchSensor delay is set longer than the appointment block's 550 ms
   // long-press timer so the context menu wins over drag activation.
@@ -687,19 +680,6 @@ export default function DashboardPage() {
       >
         {BUILD_TAG}
       </div>
-
-      {/* FAB — new appointment */}
-      <button
-        type="button"
-        aria-label="Новая запись"
-        onClick={handleNewAppointment}
-        className="fixed right-4 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-indigo-700 transition-colors z-20"
-        style={{
-          bottom: "calc(env(safe-area-inset-bottom) + 1.25rem)",
-        }}
-      >
-        +
-      </button>
 
       {/* City picker modal */}
       <CityPickerModal

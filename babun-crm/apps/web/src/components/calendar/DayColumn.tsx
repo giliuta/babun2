@@ -172,8 +172,12 @@ function DayColumnInner({
         onClick={handleColumnClick}
         style={{
           height: "calc(var(--hh) * 24)",
-          backgroundImage:
-            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgb(243 244 246) calc(var(--hh) - 1px), rgb(243 244 246) var(--hh))",
+          // Hourly grid — a solid 1 px line in gray-200, with a subtle
+          // dashed 0.5 h line at the mid-mark in gray-100 for rhythm.
+          backgroundImage: [
+            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgb(209 213 219) calc(var(--hh) - 1px), rgb(209 213 219) var(--hh))",
+            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / 2 - 1px), rgb(243 244 246) calc(var(--hh) / 2 - 1px), rgb(243 244 246) calc(var(--hh) / 2))",
+          ].join(","),
           contain: "layout paint",
         }}
       >

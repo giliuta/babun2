@@ -17,7 +17,7 @@ function TimeColumnInner() {
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="border-b border-gray-100 flex items-start justify-end pr-1 lg:pr-2"
+          className="border-b border-gray-200 flex items-start justify-end pr-1 lg:pr-2"
           style={{ height: "var(--hh)" }}
         >
           <span className="text-[9px] lg:text-[11px] text-gray-400 -mt-1.5 select-none">

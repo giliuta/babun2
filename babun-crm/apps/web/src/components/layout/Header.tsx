@@ -49,46 +49,52 @@ export default function Header({
   onSelectDate,
   onMenuToggle,
 }: HeaderProps) {
+  // zoom controls are reachable via pinch/ctrl+wheel; silence unused-prop warning
+  void onZoomIn;
+  void onZoomOut;
+
   const monthName = getMonthName(currentDate.getMonth());
   const year = currentDate.getFullYear();
+  const todayNumber = new Date().getDate();
   const [showMiniCalendar, setShowMiniCalendar] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
   return (
     <header className="flex-shrink-0 bg-indigo-700 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col z-30">
-      {/* Top row: hamburger + month + nav arrows + actions */}
-      <div className="px-2 lg:px-4 py-2 lg:py-3 flex items-center gap-1 lg:gap-3">
-        {/* Hamburger menu (mobile only) */}
+      {/* Top row — icon-first, compact */}
+      <div className="px-2 lg:px-4 py-2 lg:py-3 flex items-center gap-1.5">
+        {/* Hamburger */}
         <button
           type="button"
           onClick={onMenuToggle}
           aria-label="Меню"
-          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 shrink-0"
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 flex-shrink-0"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
 
-        {/* Month dropdown */}
-        <div className="relative">
+        {/* Month + year (tap = mini calendar) */}
+        <div className="relative min-w-0 flex-1">
           <button
+            type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 hover:bg-indigo-600 lg:hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors"
+            className="flex items-center gap-1 hover:bg-indigo-600 lg:hover:bg-gray-50 rounded-lg px-2 py-1 active:scale-95 transition max-w-full"
           >
-            <h2 className="text-base lg:text-lg font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap">
+            <h2 className="text-[15px] lg:text-lg font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap truncate">
               {monthName} {year}
             </h2>
             <svg
-              width="14"
-              height="14"
+              width="12"
+              height="12"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
-              className="text-indigo-200 lg:text-gray-400"
+              strokeWidth="2.5"
+              className="text-white/70 lg:text-gray-400 flex-shrink-0"
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -107,75 +113,73 @@ export default function Header({
           )}
         </div>
 
-        {/* Spacer to push right items */}
-        <div className="flex-1" />
-
-        {/* Nav arrows (always visible) */}
-        <div className="flex items-center gap-0.5 lg:gap-1">
-          <button
-            onClick={onPrevWeek}
-            aria-label="Предыдущая неделя"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-600 lg:hover:bg-gray-100 text-white lg:text-gray-600"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            onClick={onNextWeek}
-            aria-label="Следующая неделя"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-600 lg:hover:bg-gray-100 text-white lg:text-gray-600"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Today button */}
+        {/* Prev week */}
         <button
-          onClick={onToday}
-          className="px-2.5 lg:px-3 py-1.5 text-xs lg:text-sm font-medium text-white bg-indigo-500/40 lg:text-indigo-600 lg:bg-indigo-50 rounded-lg hover:bg-indigo-500/60 lg:hover:bg-indigo-100 transition-colors"
+          type="button"
+          onClick={onPrevWeek}
+          aria-label="Предыдущая неделя"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95 flex-shrink-0"
         >
-          Сегодня
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </button>
 
-        {/* Zoom controls */}
-        <div className="flex items-center gap-0.5 border border-white/30 lg:border-gray-200 rounded-lg overflow-hidden">
-          <button
-            onClick={onZoomOut}
-            className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center hover:bg-indigo-500/50 lg:hover:bg-gray-100 text-white lg:text-gray-600"
-            title="Уменьшить"
-            aria-label="Уменьшить"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-          <div className="w-px h-4 lg:h-5 bg-white/30 lg:bg-gray-200" />
-          <button
-            onClick={onZoomIn}
-            className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center hover:bg-indigo-500/50 lg:hover:bg-gray-100 text-white lg:text-gray-600"
-            title="Увеличить"
-            aria-label="Увеличить"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
+        {/* Next week */}
+        <button
+          type="button"
+          onClick={onNextWeek}
+          aria-label="Следующая неделя"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95 flex-shrink-0"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
 
-        {/* View mode dropdown */}
-        <div className="relative">
+        {/* Today — calendar icon with current day number inside */}
+        <button
+          type="button"
+          onClick={onToday}
+          aria-label="Сегодня"
+          className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95 flex-shrink-0"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span className="absolute text-[9px] font-bold translate-y-[3px]">
+            {todayNumber}
+          </span>
+        </button>
+
+        {/* View mode — opens a small dropdown */}
+        <div className="relative flex-shrink-0">
           <button
+            type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
-            className="flex items-center gap-1 px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium text-white bg-indigo-500/40 lg:text-gray-700 lg:bg-gray-100 rounded-lg hover:bg-indigo-500/60 lg:hover:bg-gray-200 transition-colors"
+            aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-95"
           >
-            {VIEW_MODE_LABELS[viewMode]}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-indigo-200 lg:text-gray-400">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            {viewMode === "day" ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="7" y="3" width="10" height="18" rx="1.5" />
+              </svg>
+            ) : viewMode === "3days" ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="5" height="18" rx="1" />
+                <rect x="10" y="3" width="5" height="18" rx="1" />
+                <rect x="17" y="3" width="5" height="18" rx="1" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+              </svg>
+            )}
           </button>
 
           {showViewDropdown && (
@@ -188,11 +192,12 @@ export default function Header({
                 {(["day", "3days", "week"] as ViewMode[]).map((mode) => (
                   <button
                     key={mode}
+                    type="button"
                     onClick={() => {
                       onViewModeChange(mode);
                       setShowViewDropdown(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                    className={`w-full text-left px-3 py-2 text-[13px] hover:bg-gray-50 transition-colors ${
                       viewMode === mode
                         ? "text-indigo-600 font-medium bg-indigo-50"
                         : "text-gray-700"
@@ -212,8 +217,9 @@ export default function Header({
         {teams.map((team) => (
           <button
             key={team.id}
+            type="button"
             onClick={() => onTeamChange(team.id)}
-            className={`px-3 lg:px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+            className={`px-3 lg:px-4 py-1.5 text-[13px] font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTeamId === team.id
                 ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900 lg:shadow-sm"
                 : "text-indigo-200 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
