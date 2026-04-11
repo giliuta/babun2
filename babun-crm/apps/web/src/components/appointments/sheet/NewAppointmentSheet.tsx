@@ -114,6 +114,9 @@ export default function NewAppointmentSheet({
   const [expenses, setExpenses] = useState<AppointmentExpense[]>(
     initial.expenses ?? []
   );
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>(
+    initial.service_price_overrides ?? {}
+  );
 
   const [timeSheet, setTimeSheet] = useState(false);
   const [clientSheet, setClientSheet] = useState(false);
@@ -169,11 +172,14 @@ export default function NewAppointmentSheet({
 
   const subtotal = useMemo(
     () =>
-      groupedServices.reduce(
-        (sum, { service, qty }) => sum + service.price * qty,
-        0
-      ),
-    [groupedServices]
+      groupedServices.reduce((sum, { service, qty }) => {
+        const unit =
+          priceOverrides[service.id] !== undefined
+            ? priceOverrides[service.id]
+            : service.price;
+        return sum + unit * qty;
+      }, 0),
+    [groupedServices, priceOverrides]
   );
 
   const effectiveDuration = totalDurationMinutes > 0 ? totalDurationMinutes : 60;
@@ -238,6 +244,7 @@ export default function NewAppointmentSheet({
       custom_total: false,
       discount_amount: clampedDiscount,
       expenses,
+      service_price_overrides: priceOverrides,
       comment,
       photos,
       status: cancelled
@@ -650,9 +657,11 @@ export default function NewAppointmentSheet({
         services={groupedServices}
         discount={clampedDiscount}
         expenses={expenses}
+        priceOverrides={priceOverrides}
         onConfirm={(next) => {
           setDiscount(next.discount);
           setExpenses(next.expenses);
+          setPriceOverrides(next.priceOverrides);
         }}
       />
     </>

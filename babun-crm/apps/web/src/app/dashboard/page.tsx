@@ -42,7 +42,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v25-finance";
+const BUILD_TAG = "v26-finance-popup";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -139,6 +139,7 @@ export default function DashboardPage() {
         custom_total: true,
         discount_amount: 0,
         expenses: [],
+        service_price_overrides: {},
         prepaid_amount: m.amount, // seed as fully paid so we don't mark as debt
         payments: [],
         comment: m.client_name ? `${m.client_name} — ${m.comment}` : m.comment,
