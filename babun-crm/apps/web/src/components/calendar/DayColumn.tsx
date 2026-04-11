@@ -115,9 +115,10 @@ function DayColumnInner({
 
   return (
     <div className="flex-1 min-w-0 border-r border-gray-300 last:border-r-0 overflow-x-clip">
-      {/* Day header */}
+      {/* Day header — duplicates the column's right border because its
+          background paints over the parent's border */}
       <div
-        className={`sticky top-0 z-20 h-[62px] lg:h-[82px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
+        className={`sticky top-0 z-20 h-[62px] lg:h-[82px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 py-1 lg:py-2 text-center ${
           isToday ? "bg-green-50" : "bg-white"
         }`}
       >
@@ -163,10 +164,12 @@ function DayColumnInner({
 
       {/* Time slots — total height is 24×hourHeight via CSS var. Hour grid
           lines are drawn via a single repeating-linear-gradient instead of
-          24 DOM elements, so pinch-zoom costs nothing. */}
+          24 DOM elements, so pinch-zoom costs nothing. border-r echoes the
+          column's outer border so that today's green tint does not hide
+          the day separator. */}
       <div
         ref={setDroppableRef}
-        className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"} ${
+        className={`relative cursor-pointer border-r border-gray-300 ${isToday ? "bg-green-50/30" : "bg-white"} ${
           isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
         }`}
         onClick={handleColumnClick}
@@ -249,8 +252,9 @@ function DayColumnInner({
         })}
       </div>
 
-      {/* Day totals footer */}
-      <div className="sticky bottom-0 z-10 border-t border-gray-200 bg-white/95 backdrop-blur-sm px-1 py-1 text-[9px] lg:text-[10px]">
+      {/* Day totals footer — same trick as the header: its own right border
+          paints on top of its semi-transparent background */}
+      <div className="sticky bottom-0 z-10 border-t border-gray-200 border-r border-gray-300 bg-white/95 backdrop-blur-sm px-1 py-1 text-[9px] lg:text-[10px]">
         <div className="flex justify-between text-emerald-600">
           <span>Доход</span>
           <span className="font-semibold">{dayIncome}€</span>
