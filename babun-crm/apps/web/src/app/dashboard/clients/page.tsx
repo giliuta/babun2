@@ -7,6 +7,8 @@ import { useTeams, useClients, useAppointments } from "@/app/dashboard/layout";
 import {
   groupClientsByLetter,
   createBlankClient,
+  ACQUISITION_LABELS,
+  type AcquisitionSource,
   type Client,
 } from "@/lib/clients";
 import { MOCK_CLIENT_APPOINTMENTS, type MockClientAppointment } from "@/lib/mock-data";
@@ -200,7 +202,7 @@ function ClientCardView({
 }) {
   const router = useRouter();
   const { teams } = useTeams();
-  const { tags } = useClients();
+  const { tags, clients: allClients } = useClients();
   const { appointments: allAppointments } = useAppointments();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [draft, setDraft] = useState<Client>(client);
@@ -307,6 +309,7 @@ function ClientCardView({
                 setDraft={setDraft}
                 tags={tags}
                 toggleTag={toggleTag}
+                allClients={allClients}
                 onDelete={!isNew ? () => {
                   if (typeof window !== "undefined" && window.confirm("Удалить клиента?")) {
                     onDelete(client.id);
@@ -340,12 +343,14 @@ function ProfileTab({
   setDraft,
   tags,
   toggleTag,
+  allClients,
   onDelete,
 }: {
   draft: Client;
   setDraft: React.Dispatch<React.SetStateAction<Client>>;
   tags: { id: string; name: string; color: string }[];
   toggleTag: (id: string) => void;
+  allClients: Client[];
   onDelete?: () => void;
 }) {
   return (
@@ -395,6 +400,89 @@ function ProfileTab({
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
         />
       </div>
+
+      {/* Address + city */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Город</label>
+          <input
+            type="text"
+            value={draft.city}
+            onChange={(e) => setDraft((p) => ({ ...p, city: e.target.value }))}
+            placeholder="Лимассол"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Первый контакт</label>
+          <input
+            type="date"
+            value={draft.first_contact_date ?? ""}
+            onChange={(e) => setDraft((p) => ({ ...p, first_contact_date: e.target.value || null }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Адрес</label>
+        <input
+          type="text"
+          value={draft.address}
+          onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))}
+          placeholder="Улица, дом"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      {/* Acquisition source */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Как узнал о нас</label>
+        <select
+          value={draft.acquisition_source}
+          onChange={(e) =>
+            setDraft((p) => ({
+              ...p,
+              acquisition_source: e.target.value as AcquisitionSource,
+              // if switched away from referral, clear referrer
+              referred_by_client_id:
+                e.target.value === "referral" ? p.referred_by_client_id : null,
+            }))
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+        >
+          {(Object.keys(ACQUISITION_LABELS) as AcquisitionSource[]).map((s) => (
+            <option key={s} value={s}>
+              {ACQUISITION_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {draft.acquisition_source === "referral" && (
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Кто рекомендовал</label>
+          <select
+            value={draft.referred_by_client_id ?? ""}
+            onChange={(e) =>
+              setDraft((p) => ({
+                ...p,
+                referred_by_client_id: e.target.value || null,
+              }))
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+          >
+            <option value="">— Не указано —</option>
+            {allClients
+              .filter((c) => c.id !== draft.id)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
 
       {/* Balance */}
       <div>

@@ -10,6 +10,33 @@ export interface ClientTag {
   color: string;
 }
 
+/**
+ * Acquisition channel — how did the client find us.
+ * Inspired by Monica's "how_we_met" model, adapted for service businesses.
+ */
+export type AcquisitionSource =
+  | "referral" // друг/знакомый привёл
+  | "instagram"
+  | "whatsapp"
+  | "google_maps"
+  | "website"
+  | "repeat" // повторный клиент
+  | "walk_in" // «просто проезжали мимо»
+  | "other"
+  | "unknown";
+
+export const ACQUISITION_LABELS: Record<AcquisitionSource, string> = {
+  referral: "Рекомендация",
+  instagram: "Instagram",
+  whatsapp: "WhatsApp",
+  google_maps: "Google Maps",
+  website: "Сайт",
+  repeat: "Повторный",
+  walk_in: "Проездом",
+  other: "Другое",
+  unknown: "Неизвестно",
+};
+
 export interface Client {
   id: string;
   full_name: string;
@@ -19,6 +46,12 @@ export interface Client {
   discount: number; // percent 0-100
   comment: string;
   tag_ids: string[];
+  // Attribution: how did we acquire this client
+  acquisition_source: AcquisitionSource;
+  referred_by_client_id: string | null; // if source = "referral" — who referred them
+  first_contact_date: string | null; // ISO date — когда первый раз обратились
+  address: string; // primary address (appointment-level can override)
+  city: string;
   created_at: string;
 }
 
@@ -42,6 +75,11 @@ function mockToClient(m: MockClient): Client {
     discount: m.discount,
     comment: m.comment,
     tag_ids: [],
+    acquisition_source: "unknown",
+    referred_by_client_id: null,
+    first_contact_date: null,
+    address: "",
+    city: "",
     created_at: new Date().toISOString(),
   };
 }
@@ -100,6 +138,11 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     discount: 0,
     comment: "",
     tag_ids: [],
+    acquisition_source: "unknown",
+    referred_by_client_id: null,
+    first_contact_date: new Date().toISOString().slice(0, 10),
+    address: "",
+    city: "",
     created_at: new Date().toISOString(),
     ...overrides,
   };
@@ -233,6 +276,34 @@ export function segmentClient(
   if (client.discount > 0) segments.push("discounted");
 
   return segments;
+}
+
+/** Attribution breakdown by acquisition source. */
+export interface AcquisitionStats {
+  source: AcquisitionSource;
+  label: string;
+  count: number;
+  percent: number;
+}
+
+export function computeAcquisitionStats(clients: Client[]): AcquisitionStats[] {
+  const map = new Map<AcquisitionSource, number>();
+  for (const c of clients) {
+    map.set(c.acquisition_source, (map.get(c.acquisition_source) ?? 0) + 1);
+  }
+  const total = clients.length || 1;
+  return (Object.keys(ACQUISITION_LABELS) as AcquisitionSource[])
+    .map((source) => {
+      const count = map.get(source) ?? 0;
+      return {
+        source,
+        label: ACQUISITION_LABELS[source],
+        count,
+        percent: Math.round((count / total) * 100),
+      };
+    })
+    .filter((s) => s.count > 0)
+    .sort((a, b) => b.count - a.count);
 }
 
 export function computeSegmentStats(

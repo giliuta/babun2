@@ -2,6 +2,14 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
 import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@/lib/mock-data";
 import type { Client } from "@/lib/clients";
@@ -34,7 +42,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 15;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v13-zoom+layout";
+const BUILD_TAG = "v14-dnd-kit+attribution";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -377,23 +385,47 @@ export default function DashboardPage() {
     router.push(`/dashboard/appointment/new${qs ? `?${qs}` : ""}`);
   }, [router, activeTeamId]);
 
-  const handleAppointmentDrop = useCallback(
-    (appointmentId: string, newDate: string, newTime: string) => {
-      const apt = appointments.find((a) => a.id === appointmentId);
+  // ─── dnd-kit sensors: mouse for desktop, touch with delay for mobile ───
+  // TouchSensor with delay avoids conflict with SwipeableCalendar: long-press
+  // 200ms is needed before drag starts, regular swipe is unaffected.
+  const dndSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over, delta } = event;
+      if (!over) return;
+      const aptId = active.data.current?.appointmentId as string | undefined;
+      const dateKey = over.data.current?.dateKey as string | undefined;
+      if (!aptId || !dateKey) return;
+      const apt = appointments.find((a) => a.id === aptId);
       if (!apt) return;
-      const [oldH, oldM] = apt.time_start.split(":").map(Number);
-      const [endH, endM] = apt.time_end.split(":").map(Number);
-      const duration = endH * 60 + endM - (oldH * 60 + oldM);
-      const [newH, newM] = newTime.split(":").map(Number);
-      const newEndTotal = newH * 60 + newM + duration;
-      const newEnd = `${String(Math.floor(newEndTotal / 60)).padStart(2, "0")}:${String(
-        newEndTotal % 60
-      ).padStart(2, "0")}`;
+
+      // Convert Y delta (pixels) into minute delta, snap to 15 min
+      const minuteDelta = Math.round(delta.y / (hourHeightRef.current / 60) / 15) * 15;
+      const [sh, sm] = apt.time_start.split(":").map(Number);
+      const [eh, em] = apt.time_end.split(":").map(Number);
+      const duration = eh * 60 + em - (sh * 60 + sm);
+
+      let newStart = sh * 60 + sm + minuteDelta;
+      newStart = Math.max(0, Math.min(24 * 60 - duration, newStart));
+      const newEnd = newStart + duration;
+
+      const fmt = (t: number) =>
+        `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+
+      // No change? bail out
+      if (dateKey === apt.date && newStart === sh * 60 + sm) return;
+
       upsertAppointment({
         ...apt,
-        date: newDate,
-        time_start: newTime,
-        time_end: newEnd,
+        date: dateKey,
+        time_start: fmt(newStart),
+        time_end: fmt(newEnd),
         updated_at: new Date().toISOString(),
       });
     },
@@ -419,7 +451,7 @@ export default function DashboardPage() {
           schedule={activeSchedule}
           onAppointmentClick={handleAppointmentClick}
           onEmptySlotClick={handleEmptySlotClick}
-          onAppointmentDrop={handleAppointmentDrop}
+          dragEnabled
         />
       );
     },
@@ -435,7 +467,6 @@ export default function DashboardPage() {
       activeSchedule,
       handleAppointmentClick,
       handleEmptySlotClick,
-      handleAppointmentDrop,
     ]
   );
 
@@ -460,23 +491,25 @@ export default function DashboardPage() {
       />
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
-      <div
-        ref={outerScrollerRef}
-        className="flex-1 flex bg-white min-h-0 relative"
-        style={{
-          overflowY: "auto",
-          overflowX: "clip",
-          touchAction: "pan-y",
-          overscrollBehavior: "contain",
-        }}
-      >
-        <TimeColumn hourHeight={hourHeight} />
-        <SwipeableCalendar
-          renderPage={renderPage}
-          onSwipeLeft={handleNextWeek}
-          onSwipeRight={handlePrevWeek}
-        />
-      </div>
+      <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
+        <div
+          ref={outerScrollerRef}
+          className="flex-1 flex bg-white min-h-0 relative"
+          style={{
+            overflowY: "auto",
+            overflowX: "clip",
+            touchAction: "pan-y",
+            overscrollBehavior: "contain",
+          }}
+        >
+          <TimeColumn hourHeight={hourHeight} />
+          <SwipeableCalendar
+            renderPage={renderPage}
+            onSwipeLeft={handleNextWeek}
+            onSwipeRight={handlePrevWeek}
+          />
+        </div>
+      </DndContext>
 
       {/* Build tag — visible proof that latest code is running */}
       <div

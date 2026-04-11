@@ -5,6 +5,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useAppointments, useClients } from "@/app/dashboard/layout";
 import {
   computeSegmentStats,
+  computeAcquisitionStats,
   type ClientSegment,
   type Client,
 } from "@/lib/clients";
@@ -43,6 +44,7 @@ export default function AnalyticsPage() {
   const [selected, setSelected] = useState<ClientSegment>("all");
 
   const stats = useMemo(() => computeSegmentStats(clients, appointments), [clients, appointments]);
+  const acquisitionStats = useMemo(() => computeAcquisitionStats(clients), [clients]);
   const activeStat = stats.find((s) => s.segment === selected) ?? stats[0];
 
   return (
@@ -51,6 +53,33 @@ export default function AnalyticsPage() {
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-5xl mx-auto p-3 lg:p-4 pb-24 space-y-4">
+          {/* Acquisition sources — horizontal bar breakdown */}
+          {acquisitionStats.length > 0 && (
+            <section className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="text-sm font-semibold text-gray-700 mb-3">
+                Откуда приходят клиенты
+              </div>
+              <div className="space-y-2">
+                {acquisitionStats.map((a) => (
+                  <div key={a.source}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-gray-700 font-medium">{a.label}</span>
+                      <span className="text-gray-500">
+                        {a.count} <span className="text-gray-400">({a.percent}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full"
+                        style={{ width: `${a.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Segment cards grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
             {stats.map((s) => {

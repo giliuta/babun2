@@ -1,5 +1,6 @@
 "use client";
 
+import { useDroppable } from "@dnd-kit/core";
 import {
   getDayNameShort,
   getMonthNameGenitive,
@@ -33,7 +34,7 @@ interface DayColumnProps {
   schedule?: TeamSchedule;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
-  onAppointmentDrop?: (appointmentId: string, newDate: string, newTime: string) => void;
+  dragEnabled?: boolean;
 }
 
 export default function DayColumn({
@@ -48,8 +49,14 @@ export default function DayColumn({
   schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
-  onAppointmentDrop,
+  dragEnabled = false,
 }: DayColumnProps) {
+  const dateKeyFromDate = formatDateKey(date);
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `col-${dateKeyFromDate}`,
+    data: { dateKey: dateKeyFromDate },
+    disabled: !dragEnabled,
+  });
   const isToday = isSameDay(date, today);
   const dateKey = formatDateKey(date);
   const dayAppointments = appointments.filter((a) => a.date === dateKey);
@@ -106,29 +113,6 @@ export default function DayColumn({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!onAppointmentDrop) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!onAppointmentDrop) return;
-    e.preventDefault();
-    const aptId = e.dataTransfer.getData("text/appointment-id");
-    if (!aptId) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const dropY = e.clientY - rect.top;
-    const totalMinutes = dropY / pxPerMinute;
-    const snapped = Math.max(0, Math.round(totalMinutes / 15) * 15);
-    const hours = Math.floor(snapped / 60);
-    const mins = snapped % 60;
-    if (hours >= 0 && hours < 24) {
-      const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-      onAppointmentDrop(aptId, dateKey, timeStr);
-    }
-  };
-
   return (
     <div className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0 overflow-x-clip">
       {/* Day header — sticks to top while scrolling */}
@@ -163,10 +147,11 @@ export default function DayColumn({
 
       {/* Time slots */}
       <div
-        className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"}`}
+        ref={setDroppableRef}
+        className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"} ${
+          isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
+        }`}
         onClick={handleColumnClick}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
       >
         {/* Hour grid lines (24 hours) */}
         {HOURS.map((hour) => (
@@ -236,7 +221,7 @@ export default function DayColumn({
               services={services}
               hourHeight={hourHeight}
               onClick={onAppointmentClick}
-              draggable={Boolean(onAppointmentDrop)}
+              draggable={dragEnabled}
             />
           );
         })}

@@ -21,7 +21,7 @@ interface WeekViewProps {
   schedule?: TeamSchedule;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
-  onAppointmentDrop?: (appointmentId: string, newDate: string, newTime: string) => void;
+  dragEnabled?: boolean;
 }
 
 export default function WeekView({
@@ -35,7 +35,7 @@ export default function WeekView({
   schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
-  onAppointmentDrop,
+  dragEnabled = false,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -76,7 +76,7 @@ export default function WeekView({
           schedule={schedule}
           onAppointmentClick={onAppointmentClick}
           onEmptySlotClick={onEmptySlotClick}
-          onAppointmentDrop={onAppointmentDrop}
+          dragEnabled={dragEnabled}
         />
       ))}
     </div>

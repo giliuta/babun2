@@ -1,5 +1,7 @@
 "use client";
 
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import type { Appointment, AppointmentColorKind } from "@/lib/appointments";
 import { COLOR_KIND_TAILWIND, getDebtAmount } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
@@ -38,6 +40,16 @@ export default function AppointmentBlock({
   const topPx = startMinutes * pxPerMinute;
   const heightPx = Math.max(durationMinutes * pxPerMinute, 18);
 
+  // dnd-kit draggable
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `apt-${appointment.id}`,
+    data: {
+      appointmentId: appointment.id,
+      durationMinutes,
+    },
+    disabled: !draggable,
+  });
+
   let clientName = "";
   if (appointment.client_id && clientsById[appointment.client_id]) {
     clientName = clientsById[appointment.client_id].full_name;
@@ -45,7 +57,6 @@ export default function AppointmentBlock({
     clientName = appointment.comment.split("\n")[0];
   }
 
-  // Services: look up by id for summary + color accent
   const aptServices = appointment.service_ids
     .map((id) => services.find((s) => s.id === id))
     .filter((s): s is Service => Boolean(s));
@@ -64,25 +75,25 @@ export default function AppointmentBlock({
   const isCancelled = colorKind === "cancelled";
   const hasPhotos = appointment.photos.length > 0;
 
-  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
-    if (!draggable) return;
-    e.dataTransfer.setData("text/appointment-id", appointment.id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
   return (
     <button
+      ref={setNodeRef}
       onClick={(e) => {
         e.stopPropagation();
+        if (isDragging) return;
         onClick(appointment);
       }}
-      draggable={draggable}
-      onDragStart={handleDragStart}
-      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${colors.bg} ${colors.text} rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 transition-all shadow-sm`}
+      {...listeners}
+      {...attributes}
+      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${colors.bg} ${colors.text} rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 shadow-sm touch-none ${
+        isDragging ? "opacity-70 z-30" : ""
+      }`}
       style={{
         top: `${topPx}px`,
         height: `${heightPx}px`,
         borderLeft: serviceAccent ? `3px solid ${serviceAccent}` : undefined,
+        transform: CSS.Translate.toString(transform),
+        transition: isDragging ? "none" : undefined,
       }}
     >
       <div className="px-1 lg:px-2 py-0.5 lg:py-1 h-full overflow-hidden relative">
@@ -109,7 +120,6 @@ export default function AppointmentBlock({
           </div>
         )}
 
-        {/* Status badges — bottom right */}
         <div className="absolute bottom-0.5 right-1 flex gap-0.5 text-[10px] leading-none">
           {hasPhotos && <span>📷</span>}
           {hasDebt && <span>🟧</span>}
