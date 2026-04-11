@@ -59,7 +59,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v38-day-divider";
+const BUILD_TAG = "v39-smooth-scroll";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -411,8 +411,20 @@ export default function DashboardPage() {
       applyZoom(next, focusY, anchor);
     };
 
+    // iOS Safari handles pinch via gesturestart/gesturechange, so we
+    // can keep touchmove passive there and let the browser scroll at
+    // 120 Hz. Android Chrome (and desktop Chrome with touch) needs
+    // non-passive touchmove to intercept the pinch — but that costs a
+    // non-compositor-driven scroll. Since Babun2 is iPhone-first, we
+    // register touchmove passive when iOS is detected.
+    const isIOS =
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent);
+
     el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, {
+      passive: isIOS ? true : false,
+    });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
     el.addEventListener("touchcancel", onTouchEnd, { passive: true });
     el.addEventListener("gesturestart", onGestureStart as EventListener);
@@ -662,6 +674,13 @@ export default function DashboardPage() {
             overflowX: "clip",
             touchAction: "pan-y",
             overscrollBehavior: "contain",
+            // iOS momentum scrolling + GPU composition for butter-smooth
+            // 120 Hz scrolling. transform forces a dedicated layer so the
+            // compositor can scroll without touching the main thread.
+            WebkitOverflowScrolling: "touch",
+            transform: "translateZ(0)",
+            willChange: "scroll-position",
+            contain: "paint",
           }}
         >
           <TimeColumn />
