@@ -42,6 +42,10 @@ export interface Client {
   full_name: string;
   phone: string;
   sms_name: string;
+  // Messenger handles — optional, used to build WhatsApp/Telegram/Instagram
+  // deep links from the appointment form and client card.
+  telegram_username: string; // without the "@"
+  instagram_username: string; // without the "@"
   balance: number; // positive = prepayment, negative = debt
   discount: number; // percent 0-100
   comment: string;
@@ -71,6 +75,8 @@ function mockToClient(m: MockClient): Client {
     full_name: m.full_name,
     phone: m.phone,
     sms_name: m.sms_name,
+    telegram_username: "",
+    instagram_username: "",
     balance: m.balance,
     discount: m.discount,
     comment: m.comment,
@@ -90,9 +96,15 @@ export function loadClients(): Client[] {
     const raw = window.localStorage.getItem(CLIENTS_KEY);
     if (!raw) return MOCK_CLIENTS.map(mockToClient);
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0
-      ? parsed
-      : MOCK_CLIENTS.map(mockToClient);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return MOCK_CLIENTS.map(mockToClient);
+    }
+    // Lightweight migration for fields added after records were stored
+    return parsed.map((c: Partial<Client>) => ({
+      ...c,
+      telegram_username: c.telegram_username ?? "",
+      instagram_username: c.instagram_username ?? "",
+    })) as Client[];
   } catch {
     return MOCK_CLIENTS.map(mockToClient);
   }
@@ -134,6 +146,8 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     full_name: "",
     phone: "",
     sms_name: "",
+    telegram_username: "",
+    instagram_username: "",
     balance: 0,
     discount: 0,
     comment: "",

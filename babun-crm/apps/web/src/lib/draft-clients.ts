@@ -9,6 +9,9 @@ export interface DraftClient {
   id: string;
   full_name: string;
   phone: string;
+  telegram_username?: string;
+  instagram_username?: string;
+  city?: string;
 }
 
 export function loadDraftClients(): DraftClient[] {

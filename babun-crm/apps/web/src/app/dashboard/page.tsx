@@ -12,7 +12,6 @@ import { useRouter } from "next/navigation";
 import {
   DndContext,
   MouseSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -64,7 +63,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v49-finances-merged";
+const BUILD_TAG = "v50-messengers-fix-longpress";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -552,14 +551,13 @@ export default function DashboardPage() {
     setCurrentMonday(monday);
   }, []);
 
-  // ─── dnd-kit sensors: mouse for desktop, touch with delay for mobile ───
-  // TouchSensor delay is set longer than the appointment block's 550 ms
-  // long-press timer so the context menu wins over drag activation.
+  // ─── dnd-kit sensors: mouse for desktop only ───────────────────────────
+  // Touch drag is intentionally disabled — on iPhone holding an
+  // appointment must open the context menu, not start a drag. Users can
+  // still reorder records via the menu's "Перенести запись". Mouse drag
+  // stays enabled for desktop dispatchers.
   const dndSensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 700, tolerance: 8 },
-    })
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } })
   );
 
   const handleDragEnd = useCallback(

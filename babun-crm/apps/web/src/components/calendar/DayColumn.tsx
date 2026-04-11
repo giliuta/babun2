@@ -185,12 +185,15 @@ function DayColumnInner({
           the day separator. */}
       <div
         ref={setDroppableRef}
-        className={`relative cursor-pointer border-r border-gray-300 ${isToday ? "bg-green-50/30" : "bg-white"} ${
+        className={`relative cursor-pointer border-r border-gray-300 select-none ${isToday ? "bg-green-50/30" : "bg-white"} ${
           isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
         }`}
         onClick={handleColumnClick}
+        onContextMenu={(e) => e.preventDefault()}
         style={{
           height: "calc(var(--hh) * 24)",
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
           // Hourly grid — a solid 1 px line in gray-200, with a subtle
           // dashed 0.5 h line at the mid-mark in gray-100 for rhythm.
           backgroundImage: [

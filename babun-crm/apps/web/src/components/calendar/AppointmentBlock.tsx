@@ -143,6 +143,8 @@ function AppointmentBlockInner({
         transform: CSS.Translate.toString(transform),
         transition: isDragging ? "none" : undefined,
         contain: "layout paint",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
       }}
     >
       <div className="px-1 lg:px-2 py-0.5 lg:py-1 h-full overflow-hidden relative">
