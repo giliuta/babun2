@@ -22,6 +22,17 @@ export function getMonthNameGenitive(monthIndex: number): string {
   return MONTH_NAMES_GENITIVE[monthIndex];
 }
 
+// Formats "2026-04-12" as "12 апреля 2026 г."
+export function formatDateLongRu(dateKey: string): string {
+  const d = new Date(dateKey + "T00:00:00");
+  if (isNaN(d.getTime())) return dateKey;
+  const months = [
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+  ];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г.`;
+}
+
 export function getMonday(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();

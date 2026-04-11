@@ -10,7 +10,7 @@ import {
 } from "@/lib/date-utils";
 import {
   timeToMinutes,
-  getDaySchedule,
+  getDayScheduleForDate,
   type TeamSchedule,
   DEFAULT_SCHEDULE,
 } from "@/lib/schedule";
@@ -81,7 +81,7 @@ function DayColumnInner({
   const dayName = getDayNameShort(date);
   const monthName = getMonthNameGenitive(date.getMonth());
 
-  const daySched = getDaySchedule(schedule, date.getDay());
+  const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
   const workEnd = timeToMinutes(daySched.is_working ? daySched.end : "00:00");
 

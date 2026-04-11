@@ -22,6 +22,10 @@ export interface TeamSchedule {
   // Per-weekday overrides. Keys: "mon","tue","wed","thu","fri","sat","sun".
   // If a key is missing, the general schedule applies.
   overrides?: Partial<Record<WeekdayKey, DaySchedule>>;
+  // Date-specific overrides (YYYY-MM-DD → DaySchedule). Take precedence
+  // over weekday overrides. Used for vacations, special events, day-off
+  // swaps — Bumpix's "Режим особого расписания".
+  date_overrides?: Record<string, DaySchedule>;
 }
 
 export type WeekdayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -104,6 +108,39 @@ export function getDaySchedule(
     end: schedule.end,
     breaks: schedule.breaks ?? [],
   };
+}
+
+/**
+ * Date-aware resolver. Date-level overrides beat weekday overrides.
+ * Use this when the caller knows the exact calendar date — the plain
+ * getDaySchedule(schedule, jsDay) kept as-is for callers that only
+ * know the weekday.
+ */
+export function getDayScheduleForDate(
+  schedule: TeamSchedule,
+  date: Date
+): DaySchedule {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const dateKey = `${yyyy}-${mm}-${dd}`;
+  const dayOverride = schedule.date_overrides?.[dateKey];
+  if (dayOverride) return dayOverride;
+  return getDaySchedule(schedule, date.getDay());
+}
+
+export function setDateOverride(
+  schedule: TeamSchedule,
+  dateKey: string,
+  override: DaySchedule | null
+): TeamSchedule {
+  const next: Record<string, DaySchedule> = { ...(schedule.date_overrides ?? {}) };
+  if (override === null) {
+    delete next[dateKey];
+  } else {
+    next[dateKey] = override;
+  }
+  return { ...schedule, date_overrides: next };
 }
 
 export function timeToMinutes(time: string): number {

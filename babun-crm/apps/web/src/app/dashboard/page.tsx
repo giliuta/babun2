@@ -17,10 +17,10 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
+import { getMonday, addWeeks, addDays, formatDateLongRu } from "@/lib/date-utils";
 import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@/lib/mock-data";
 import type { Client } from "@/lib/clients";
-import { getTeamSchedule, timeToMinutes } from "@/lib/schedule";
+import { getTeamSchedule, timeToMinutes, type TeamSchedule } from "@/lib/schedule";
 import {
   type Appointment,
   validateAppointment,
@@ -34,6 +34,8 @@ import TimeColumn from "@/components/calendar/TimeColumn";
 import MonthView from "@/components/calendar/MonthView";
 import CityPickerModal from "@/components/calendar/CityPickerModal";
 import DayFinanceModal from "@/components/calendar/DayFinanceModal";
+import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
+import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
@@ -55,16 +57,6 @@ import {
 } from "./layout";
 import { sumExtras } from "@/lib/day-extras";
 
-// Formats "2026-04-12" as "12 апреля 2026 г."
-function formatDateLongRu(dateKey: string): string {
-  const d = new Date(dateKey + "T00:00:00");
-  if (isNaN(d.getTime())) return dateKey;
-  const months = [
-    "января", "февраля", "марта", "апреля", "мая", "июня",
-    "июля", "августа", "сентября", "октября", "ноября", "декабря",
-  ];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г.`;
-}
 
 const HOUR_HEIGHT_MIN = 24;
 const HOUR_HEIGHT_MAX = 480;
@@ -72,7 +64,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v47-bumpix-parity";
+const BUILD_TAG = "v48-special-schedule";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -92,7 +84,7 @@ const SEED_KEY = "babun-seeded";
 export default function DashboardPage() {
   const router = useRouter();
   const sidebar = useSidebar();
-  const { schedules } = useSchedules();
+  const { schedules, setSchedules } = useSchedules();
   const { teams, setTeams } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
@@ -295,6 +287,22 @@ export default function DashboardPage() {
 
   // Day finance modal state
   const [financeDateKey, setFinanceDateKey] = useState<string | null>(null);
+
+  // Special-schedule modal — override working hours for a single date
+  const [specialScheduleDate, setSpecialScheduleDate] = useState<string | null>(
+    null
+  );
+
+  // Repeat-copy modal — duplicate an appointment N times at a cadence
+  const [repeatSource, setRepeatSource] = useState<Appointment | null>(null);
+
+  const handleSpecialScheduleSave = useCallback(
+    (next: TeamSchedule) => {
+      if (!activeTeamId) return;
+      setSchedules({ ...schedules, [activeTeamId]: next });
+    },
+    [activeTeamId, schedules, setSchedules]
+  );
 
   const handleFooterTap = useCallback((dateKey: string) => {
     setFinanceDateKey(dateKey);
@@ -691,6 +699,11 @@ export default function DashboardPage() {
           onSelect: () =>
             openNewAppointmentInline(slotMenu.date, slotMenu.time, "event"),
         },
+        {
+          label: "Особый режим дня",
+          subtitle: "Изменить рабочие часы только для этой даты",
+          onSelect: () => setSpecialScheduleDate(slotMenu.date),
+        },
       ]
     : [];
 
@@ -712,9 +725,8 @@ export default function DashboardPage() {
         },
         {
           label: "Копировать многократно",
-          subtitle: "Скоро",
-          disabled: true,
-          onSelect: () => {},
+          subtitle: "Периодическое дублирование",
+          onSelect: () => setRepeatSource(longPressApt),
         },
         {
           label: "Перенести запись",
@@ -839,6 +851,25 @@ export default function DashboardPage() {
         onClose={() => setLongPressApt(null)}
         title="Выберите действие"
         options={longPressOptions}
+      />
+
+      {/* Special-schedule override modal */}
+      <SpecialScheduleModal
+        open={specialScheduleDate !== null}
+        dateKey={specialScheduleDate}
+        schedule={activeSchedule}
+        onClose={() => setSpecialScheduleDate(null)}
+        onSave={handleSpecialScheduleSave}
+      />
+
+      {/* Repeat-copy modal */}
+      <RepeatCopyModal
+        open={repeatSource !== null}
+        source={repeatSource}
+        onClose={() => setRepeatSource(null)}
+        onConfirm={(copies) => {
+          copies.forEach((c) => upsertAppointment(c));
+        }}
       />
 
       {/* Day finance modal */}
