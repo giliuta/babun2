@@ -267,8 +267,16 @@ export default function NewAppointmentSheet({
     return out;
   }, [appointments]);
 
-  const canSave = Boolean(clientId && serviceIds.length > 0);
+  // Event mode (kind === "event") replaces the work-appointment form
+  // with a much simpler "personal event" screen — just master/date/time
+  // and an event title stored in the comment field.
+  const isEvent = initial.kind === "event";
+  const canSave = isEvent
+    ? comment.trim().length > 0
+    : Boolean(clientId && serviceIds.length > 0);
   const currentTeam = teams.find((t) => t.id === teamId);
+  const headerBg = isEvent ? "bg-orange-600" : "bg-indigo-600";
+  const headerTitle = isEvent ? "Событие" : "Запись клиента";
 
   const handleSave = () => {
     if (!canSave) {
@@ -344,9 +352,9 @@ export default function NewAppointmentSheet({
 
   return (
     <>
-      {/* Purple header */}
+      {/* Header — purple for appointments, orange for personal events */}
       <div
-        className="flex-shrink-0 flex items-center gap-2 px-3 bg-indigo-600 text-white"
+        className={`flex-shrink-0 flex items-center gap-2 px-3 text-white ${headerBg}`}
         style={{
           paddingTop: "calc(env(safe-area-inset-top) + 0.55rem)",
           paddingBottom: "0.55rem",
@@ -362,7 +370,7 @@ export default function NewAppointmentSheet({
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h1 className="text-[14px] font-medium flex-1 truncate">Запись клиента</h1>
+        <h1 className="text-[14px] font-medium flex-1 truncate">{headerTitle}</h1>
         {currentTeam && (
           <button
             type="button"
@@ -438,6 +446,31 @@ export default function NewAppointmentSheet({
         </button>
         <Divider />
 
+        {isEvent && (
+          <>
+            <Label>Название события</Label>
+            <div className="px-4 py-2">
+              <input
+                type="text"
+                autoFocus
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Название события"
+                className="w-full h-10 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+              />
+            </div>
+            <Divider />
+
+            <Label>Напоминания</Label>
+            <div className="px-4 py-2 text-[12px] text-gray-400">
+              Скоро
+            </div>
+            <Divider />
+          </>
+        )}
+
+        {!isEvent && (
+          <>
         {/* Клиент */}
         <Label>Клиент</Label>
         <div
@@ -719,6 +752,8 @@ export default function NewAppointmentSheet({
           </div>
         </div>
         <Divider />
+          </>
+        )}
 
         {/* Отмена (edit only) */}
         {mode === "edit" && (
@@ -731,11 +766,15 @@ export default function NewAppointmentSheet({
               </svg>
             </IconSquare>
             <span className="flex-1 text-[13px] text-gray-900">
-              Запись отменена
+              {isEvent ? "Событие отменено" : "Запись отменена"}
             </span>
             <span
               className={`relative inline-block w-9 h-5 rounded-full transition ${
-                cancelled ? "bg-indigo-600" : "bg-gray-300"
+                cancelled
+                  ? isEvent
+                    ? "bg-orange-600"
+                    : "bg-indigo-600"
+                  : "bg-gray-300"
               }`}
             >
               <input
@@ -761,7 +800,9 @@ export default function NewAppointmentSheet({
         aria-label="Сохранить"
         className={`fixed right-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition z-40 ${
           canSave
-            ? "bg-indigo-600 text-white"
+            ? isEvent
+              ? "bg-orange-600 text-white"
+              : "bg-indigo-600 text-white"
             : "bg-gray-300 text-gray-500"
         }`}
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
