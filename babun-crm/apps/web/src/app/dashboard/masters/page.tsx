@@ -145,7 +145,22 @@ export default function MastersPage() {
 
   return (
     <>
-      <PageHeader title="Мастера" />
+      <PageHeader
+        title="Мастера"
+        rightContent={
+          <button
+            type="button"
+            onClick={openNew}
+            aria-label="Добавить мастера"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto bg-gray-50 relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
@@ -182,14 +197,6 @@ export default function MastersPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={openNew}
-          aria-label="Добавить мастера"
-          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-indigo-700 transition-colors z-20"
-        >
-          +
-        </button>
       </div>
 
       {showForm && (
