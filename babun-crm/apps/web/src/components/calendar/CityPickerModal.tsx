@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DialogModal from "@/components/appointments/sheet/DialogModal";
-import { CITY_PRESETS } from "@/lib/day-cities";
+import { CITY_PRESETS, getCityColor } from "@/lib/day-cities";
 
 interface CityPickerModalProps {
   open: boolean;
@@ -51,17 +51,23 @@ export default function CityPickerModal({
         <div className="grid grid-cols-2 gap-2">
           {CITY_PRESETS.map((city) => {
             const selected = city === current;
+            const color = getCityColor(city);
             return (
               <button
                 key={city}
                 type="button"
                 onClick={() => handlePick(city)}
-                className={`h-11 rounded-lg border-2 text-[13px] font-medium active:scale-[0.98] transition ${
-                  selected
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                    : "border-gray-200 bg-white text-gray-700"
-                }`}
+                className="h-11 rounded-lg border-2 text-[13px] font-semibold active:scale-[0.98] transition flex items-center justify-center gap-2"
+                style={{
+                  borderColor: selected ? color : "#e5e7eb",
+                  backgroundColor: selected ? `${color}15` : "#ffffff",
+                  color: selected ? color : "#374151",
+                }}
               >
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: color }}
+                />
                 {city}
               </button>
             );

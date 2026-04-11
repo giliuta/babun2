@@ -68,5 +68,18 @@ export const CITY_PRESETS: string[] = [
   "Ларнака",
   "Никосия",
   "Айя-Напа",
-  "Протарас",
 ];
+
+// A stable color per city — used to tint day-headers and picker buttons.
+// Custom cities fall back to the neutral gray returned by getCityColor.
+export const CITY_COLORS: Record<string, string> = {
+  "Пафос": "#3b82f6", // blue
+  "Лимассол": "#8b5cf6", // purple
+  "Ларнака": "#10b981", // emerald
+  "Никосия": "#f59e0b", // amber
+  "Айя-Напа": "#ec4899", // pink
+};
+
+export function getCityColor(city: string): string {
+  return CITY_COLORS[city] ?? "#6b7280"; // gray-500 fallback
+}

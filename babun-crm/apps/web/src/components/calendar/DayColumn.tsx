@@ -20,6 +20,7 @@ import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
+import { getCityColor } from "@/lib/day-cities";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -149,7 +150,11 @@ function DayColumnInner({
               e.stopPropagation();
               onCityTap?.(dateKey);
             }}
-            className="mt-0.5 block w-full text-[8px] lg:text-[10px] font-semibold text-indigo-600 truncate active:text-indigo-800"
+            className="mt-0.5 mx-auto block max-w-full text-[8px] lg:text-[10px] font-semibold truncate px-1.5 py-0.5 rounded"
+            style={{
+              backgroundColor: `${getCityColor(cityLabel)}20`,
+              color: getCityColor(cityLabel),
+            }}
           >
             {cityLabel}
           </button>
