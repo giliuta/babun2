@@ -19,7 +19,7 @@ import {
   loadDraftClients,
 } from "@/lib/draft-clients";
 import { generateId } from "@/lib/masters";
-import { buildMapUrl } from "@/lib/map-links";
+import { buildMapUrl, parseAddress, resolveMapLink } from "@/lib/map-links";
 import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
 import DateWheelModal from "./DateWheelModal";
@@ -111,6 +111,9 @@ export default function NewAppointmentSheet({
   const [serviceIds, setServiceIds] = useState<string[]>(initial.service_ids);
   const [comment, setComment] = useState(initial.comment);
   const [address, setAddress] = useState(initial.address);
+  const [addressLat, setAddressLat] = useState<number | null>(initial.address_lat);
+  const [addressLng, setAddressLng] = useState<number | null>(initial.address_lng);
+  const [resolving, setResolving] = useState(false);
   const [cancelled, setCancelled] = useState(initial.status === "cancelled");
   const [photos, setPhotos] = useState<AppointmentPhoto[]>(initial.photos ?? []);
   const [discount, setDiscount] = useState(initial.discount_amount ?? 0);
@@ -205,6 +208,44 @@ export default function NewAppointmentSheet({
     }
   }, [teamId, teams]);
 
+  // Resolve map links to coordinates whenever the address changes. Parses
+  // inline coordinates synchronously; URLs that need server resolution
+  // kick off a debounced fetch to /api/resolve-map-link.
+  useEffect(() => {
+    const parsed = parseAddress(address);
+    if (parsed.coords) {
+      setAddressLat(parsed.coords.lat);
+      setAddressLng(parsed.coords.lng);
+      setResolving(false);
+      return;
+    }
+    if (!parsed.isUrl) {
+      setAddressLat(null);
+      setAddressLng(null);
+      setResolving(false);
+      return;
+    }
+    // It's a URL without inline coords — ask the server to resolve it.
+    setResolving(true);
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const coords = await resolveMapLink(parsed.raw);
+      if (cancelled) return;
+      if (coords) {
+        setAddressLat(coords.lat);
+        setAddressLng(coords.lng);
+      } else {
+        setAddressLat(null);
+        setAddressLng(null);
+      }
+      setResolving(false);
+    }, 500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [address]);
+
   const recentClientIds = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
@@ -251,6 +292,8 @@ export default function NewAppointmentSheet({
       service_price_overrides: priceOverrides,
       comment,
       address,
+      address_lat: addressLat,
+      address_lng: addressLng,
       photos,
       status: cancelled
         ? "cancelled"
@@ -459,8 +502,22 @@ export default function NewAppointmentSheet({
           />
           {address.trim() && (
             <div className="flex items-center gap-1 flex-shrink-0">
+              {resolving && (
+                <div
+                  className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-1"
+                  aria-label="Resolving..."
+                />
+              )}
               <a
-                href={buildMapUrl("google", address) ?? "#"}
+                href={
+                  buildMapUrl(
+                    "google",
+                    address,
+                    addressLat !== null && addressLng !== null
+                      ? { lat: addressLat, lng: addressLng }
+                      : null
+                  ) ?? "#"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Google Maps"
@@ -470,7 +527,15 @@ export default function NewAppointmentSheet({
                 G
               </a>
               <a
-                href={buildMapUrl("apple", address) ?? "#"}
+                href={
+                  buildMapUrl(
+                    "apple",
+                    address,
+                    addressLat !== null && addressLng !== null
+                      ? { lat: addressLat, lng: addressLng }
+                      : null
+                  ) ?? "#"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Apple Maps"
@@ -480,7 +545,15 @@ export default function NewAppointmentSheet({
                 A
               </a>
               <a
-                href={buildMapUrl("waze", address) ?? "#"}
+                href={
+                  buildMapUrl(
+                    "waze",
+                    address,
+                    addressLat !== null && addressLng !== null
+                      ? { lat: addressLat, lng: addressLng }
+                      : null
+                  ) ?? "#"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Waze"

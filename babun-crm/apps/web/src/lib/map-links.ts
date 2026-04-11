@@ -52,20 +52,20 @@ function encode(input: string): string {
   return encodeURIComponent(input);
 }
 
-// Build a deep link URL for the given service. Works for both plain
-// addresses and URLs with embedded coordinates. Short URLs that we
-// cannot parse fall back to opening the raw URL directly when the
-// requested service is Google; Apple and Waze fall back to text
-// search, which is a best-effort.
+// Build a deep link URL for the given service. If `overrideCoords` is
+// supplied (e.g. resolved via the /api/resolve-map-link endpoint) it
+// takes precedence over whatever could be parsed from the input text.
 export function buildMapUrl(
   service: MapService,
-  input: string
+  input: string,
+  overrideCoords?: { lat: number; lng: number } | null
 ): string | null {
-  if (!input) return null;
-  const parsed = parseAddress(input);
+  if (!input && !overrideCoords) return null;
+  const parsed = input ? parseAddress(input) : null;
+  const coords = overrideCoords ?? parsed?.coords ?? null;
 
-  if (parsed.coords) {
-    const { lat, lng } = parsed.coords;
+  if (coords) {
+    const { lat, lng } = coords;
     if (service === "google") {
       return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     }
@@ -75,15 +75,14 @@ export function buildMapUrl(
     return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
   }
 
-  // No coordinates — if it's a URL the Google button just opens the
-  // link as-is (the Google apps resolve short URLs themselves). Apple
-  // and Waze fall back to a text query, which works for regular
-  // addresses and degrades gracefully for short URLs.
-  if (parsed.isUrl && service === "google") {
+  // No coordinates — if it's a URL the Google button opens the link
+  // as-is (Google's apps resolve short URLs themselves). Apple and
+  // Waze fall back to a text query.
+  if (parsed?.isUrl && service === "google") {
     return parsed.raw.startsWith("http") ? parsed.raw : `https://${parsed.raw}`;
   }
 
-  const q = encode(parsed.raw);
+  const q = encode(parsed?.raw ?? "");
   if (service === "google") {
     return `https://www.google.com/maps/search/?api=1&query=${q}`;
   }
@@ -91,4 +90,23 @@ export function buildMapUrl(
     return `https://maps.apple.com/?q=${q}`;
   }
   return `https://waze.com/ul?q=${q}&navigate=yes`;
+}
+
+// Client-side helper that calls our /api/resolve-map-link endpoint to
+// follow short URLs and extract coordinates server-side.
+export async function resolveMapLink(
+  url: string
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const res = await fetch(
+      `/api/resolve-map-link?url=${encodeURIComponent(url)}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      coords: { lat: number; lng: number } | null;
+    };
+    return data.coords;
+  } catch {
+    return null;
+  }
 }
