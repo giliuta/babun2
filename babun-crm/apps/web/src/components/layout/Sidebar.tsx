@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { loadWaitlist } from "@/lib/waitlist";
 
 export type DialogType =
   | "clients"
@@ -44,6 +46,24 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
 export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+
+  const [waitlistPending, setWaitlistPending] = useState(0);
+  useEffect(() => {
+    const refresh = () => {
+      setWaitlistPending(
+        loadWaitlist().filter((i) => i.status === "pending").length
+      );
+    };
+    refresh();
+    // Re-read when the drawer is reopened or the user navigates — cheap
+    // enough to avoid a store abstraction for now.
+    window.addEventListener("storage", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [open, pathname]);
 
   const handleNav = (dialog: DialogType) => {
     if (dialog) {
@@ -203,7 +223,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
               </svg>
             }
             label="Лист ожидания"
-            badge={3}
+            badge={waitlistPending > 0 ? waitlistPending : undefined}
             active={isActive("waitlist")}
             onClick={() => handleNav("waitlist")}
           />

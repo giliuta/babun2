@@ -66,7 +66,9 @@ export interface Appointment {
   kind: AppointmentKind; // 'event' / 'personal' = не услуга, а личное событие
   photos: AppointmentPhoto[]; // фото до/после работы
 
-  reminder_enabled: boolean; // (TODO позже)
+  reminder_enabled: boolean; // клиенту отправляется SMS-напоминание
+  reminder_offsets: number[]; // смещения в минутах ДО начала (например [1440, 60])
+  reminder_template: string; // шаблон SMS, поддерживает {name} {date} {time} {address}
 
   status: AppointmentStatus;
   created_at: string;
@@ -104,6 +106,11 @@ export function loadAppointments(): Appointment[] {
       expenses: p.expenses ?? [],
       service_price_overrides: p.service_price_overrides ?? {},
       color_override: p.color_override ?? null,
+      reminder_enabled: p.reminder_enabled ?? false,
+      reminder_offsets: p.reminder_offsets ?? [1440, 60],
+      reminder_template:
+        p.reminder_template ??
+        "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
     })) as Appointment[];
   } catch {
     return [];
@@ -344,6 +351,32 @@ export const COLOR_KIND_TAILWIND: Record<
   },
 };
 
+// ─── SMS reminder helpers ──────────────────────────────────────────────
+
+export const REMINDER_OFFSET_OPTIONS: { label: string; value: number }[] = [
+  { label: "за 24ч", value: 1440 },
+  { label: "за 12ч", value: 720 },
+  { label: "за 6ч", value: 360 },
+  { label: "за 3ч", value: 180 },
+  { label: "за 1ч", value: 60 },
+  { label: "за 30мин", value: 30 },
+  { label: "за 15мин", value: 15 },
+];
+
+// Render SMS preview text by substituting {name}, {date}, {time}, {address}.
+// Safe to call with partial context — missing placeholders stay as-is so the
+// user sees which variables are unresolved.
+export function renderReminderPreview(
+  template: string,
+  ctx: { name?: string; date?: string; time?: string; address?: string }
+): string {
+  return template
+    .replace(/\{name\}/g, ctx.name || "{name}")
+    .replace(/\{date\}/g, ctx.date || "{date}")
+    .replace(/\{time\}/g, ctx.time || "{time}")
+    .replace(/\{address\}/g, ctx.address || "{address}");
+}
+
 // ─── Factory ───────────────────────────────────────────────────────────
 
 export function createBlankAppointment(overrides: Partial<Appointment> = {}): Appointment {
@@ -373,6 +406,9 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     kind: "work",
     photos: [],
     reminder_enabled: false,
+    reminder_offsets: [1440, 60],
+    reminder_template:
+      "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
     status: "scheduled",
     created_at: now,
     updated_at: now,

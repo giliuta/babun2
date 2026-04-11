@@ -12,6 +12,8 @@ import {
   type Appointment,
   type AppointmentPhoto,
   type AppointmentExpense,
+  REMINDER_OFFSET_OPTIONS,
+  renderReminderPreview,
 } from "@/lib/appointments";
 import type { Client } from "@/lib/clients";
 import {
@@ -135,6 +137,17 @@ export default function NewAppointmentSheet({
     initial.color_override ?? null
   );
   const [colorModal, setColorModal] = useState(false);
+
+  const [reminderEnabled, setReminderEnabled] = useState<boolean>(
+    initial.reminder_enabled ?? false
+  );
+  const [reminderOffsets, setReminderOffsets] = useState<number[]>(
+    initial.reminder_offsets ?? [1440, 60]
+  );
+  const [reminderTemplate, setReminderTemplate] = useState<string>(
+    initial.reminder_template ??
+      "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM"
+  );
 
   const [dateModal, setDateModal] = useState(false);
   const [timeModal, setTimeModal] = useState(false);
@@ -337,6 +350,9 @@ export default function NewAppointmentSheet({
       address_lat: addressLat,
       address_lng: addressLng,
       photos,
+      reminder_enabled: reminderEnabled,
+      reminder_offsets: reminderOffsets,
+      reminder_template: reminderTemplate,
       status: cancelled
         ? "cancelled"
         : initial.status === "cancelled"
@@ -514,9 +530,20 @@ export default function NewAppointmentSheet({
             <Divider />
 
             <Label>Напоминания</Label>
-            <div className="px-4 py-2 text-[12px] text-gray-400">
-              Скоро
-            </div>
+            <ReminderBlock
+              enabled={reminderEnabled}
+              offsets={reminderOffsets}
+              template={reminderTemplate}
+              onEnabledChange={setReminderEnabled}
+              onOffsetsChange={setReminderOffsets}
+              onTemplateChange={setReminderTemplate}
+              previewCtx={{
+                name: selectedClient?.full_name,
+                date,
+                time: timeStart,
+                address,
+              }}
+            />
             <Divider />
           </>
         )}
@@ -757,6 +784,24 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
+        {/* SMS-напоминания */}
+        <Label>SMS-напоминание</Label>
+        <ReminderBlock
+          enabled={reminderEnabled}
+          offsets={reminderOffsets}
+          template={reminderTemplate}
+          onEnabledChange={setReminderEnabled}
+          onOffsetsChange={setReminderOffsets}
+          onTemplateChange={setReminderTemplate}
+          previewCtx={{
+            name: selectedClient?.full_name,
+            date,
+            time: timeStart,
+            address,
+          }}
+        />
+        <Divider />
+
         {/* Фото */}
         <Label>Фото {photos.length > 0 && `(${photos.length})`}</Label>
         <div className="px-4 py-1.5">
@@ -935,5 +980,111 @@ export default function NewAppointmentSheet({
         onPick={(c) => setColorOverride(c)}
       />
     </>
+  );
+}
+
+// ─── ReminderBlock ─────────────────────────────────────────────────────
+// Toggleable SMS-reminder editor with offset chips, a template textarea,
+// and a live preview of the exact message the client will receive.
+
+interface ReminderBlockProps {
+  enabled: boolean;
+  offsets: number[];
+  template: string;
+  onEnabledChange: (v: boolean) => void;
+  onOffsetsChange: (v: number[]) => void;
+  onTemplateChange: (v: string) => void;
+  previewCtx: {
+    name?: string;
+    date?: string;
+    time?: string;
+    address?: string;
+  };
+}
+
+function ReminderBlock({
+  enabled,
+  offsets,
+  template,
+  onEnabledChange,
+  onOffsetsChange,
+  onTemplateChange,
+  previewCtx,
+}: ReminderBlockProps) {
+  const toggleOffset = (v: number) => {
+    onOffsetsChange(
+      offsets.includes(v) ? offsets.filter((x) => x !== v) : [...offsets, v].sort((a, b) => b - a)
+    );
+  };
+
+  const preview = renderReminderPreview(template, previewCtx);
+
+  return (
+    <div className="px-4 py-2 space-y-2">
+      <label className="flex items-center gap-3 cursor-pointer">
+        <span
+          className={`relative inline-block w-9 h-5 rounded-full transition ${
+            enabled ? "bg-emerald-600" : "bg-gray-300"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onEnabledChange(e.target.checked)}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+          <span
+            className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
+              enabled ? "left-[1.1rem]" : "left-0.5"
+            }`}
+          />
+        </span>
+        <span className="text-[13px] text-gray-900">
+          Отправить SMS клиенту перед визитом
+        </span>
+      </label>
+
+      {enabled && (
+        <>
+          <div className="flex flex-wrap gap-1.5">
+            {REMINDER_OFFSET_OPTIONS.map((opt) => {
+              const active = offsets.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggleOffset(opt.value)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${
+                    active
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-white text-gray-600 border-gray-300"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <textarea
+            value={template}
+            onChange={(e) => onTemplateChange(e.target.value)}
+            rows={2}
+            placeholder="Шаблон: доступны {name} {date} {time} {address}"
+            className="w-full text-[12px] text-gray-900 placeholder-gray-400 bg-gray-50 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            style={{ fieldSizing: "content" } as React.CSSProperties}
+          />
+
+          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+            <div className="text-[9px] uppercase tracking-wider text-emerald-700 font-semibold mb-0.5">
+              Превью SMS
+            </div>
+            <div className="text-[12px] text-emerald-900 whitespace-pre-wrap leading-snug">
+              {preview}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

@@ -72,7 +72,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v46-time-range-teams";
+const BUILD_TAG = "v47-bumpix-parity";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -189,6 +189,9 @@ export default function DashboardPage() {
         kind: isEvent ? "event" : "work",
         photos: [],
         reminder_enabled: false,
+        reminder_offsets: [1440, 60],
+        reminder_template:
+          "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
         status: isEvent ? "scheduled" : "completed",
         created_at: now,
         updated_at: now,
@@ -296,6 +299,26 @@ export default function DashboardPage() {
   const handleFooterTap = useCallback((dateKey: string) => {
     setFinanceDateKey(dateKey);
   }, []);
+
+  // Tap on day header → jump to that date in single-day view. If we're
+  // already in "day" view, toggle back to week. When entering day view we
+  // store the clicked date as the visible range start; when leaving we
+  // re-align to the Monday of that week so the week grid looks correct.
+  const handleDayHeaderTap = useCallback(
+    (dateKey: string) => {
+      const [y, m, d] = dateKey.split("-").map(Number);
+      const target = new Date(y, m - 1, d);
+      setViewMode((prev) => {
+        if (prev === "day") {
+          setCurrentMonday(getMonday(target));
+          return "week";
+        }
+        setCurrentMonday(target);
+        return "day";
+      });
+    },
+    [setCurrentMonday, setViewMode]
+  );
 
   const extrasForDate = useCallback(
     (dateKey: string) => {
@@ -617,6 +640,7 @@ export default function DashboardPage() {
           onAppointmentLongPress={handleAppointmentLongPress}
           onEmptySlotClick={handleEmptySlotClick}
           onFooterTap={handleFooterTap}
+          onDayHeaderTap={handleDayHeaderTap}
           extrasForDate={extrasForDate}
           dragEnabled
         />
@@ -637,6 +661,7 @@ export default function DashboardPage() {
       handleAppointmentLongPress,
       handleEmptySlotClick,
       handleFooterTap,
+      handleDayHeaderTap,
       extrasForDate,
     ]
   );
