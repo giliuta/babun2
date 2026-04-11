@@ -1,5 +1,10 @@
 "use client";
 
+// Force dynamic rendering — this page reads ?edit from the URL via
+// useSearchParams() and touches localStorage, so pre-rendering it at
+// build time makes no sense and trips Next's CSR bailout check.
+export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";

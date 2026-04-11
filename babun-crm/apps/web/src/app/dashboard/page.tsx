@@ -1,5 +1,10 @@
 "use client";
 
+// Force dynamic rendering — the dashboard reads ?new=1 via
+// useSearchParams() and mounts a pile of client-only contexts, so
+// static pre-render would only crash in Next 16.
+export const dynamic = "force-dynamic";
+
 import {
   useState,
   useCallback,
@@ -65,7 +70,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v57-premium-redesign";
+const BUILD_TAG = "v58-force-dynamic";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
