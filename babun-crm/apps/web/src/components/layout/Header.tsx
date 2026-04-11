@@ -8,7 +8,7 @@ interface HeaderAppointment {
   date: string;
 }
 
-export type ViewMode = "day" | "3days" | "week";
+export type ViewMode = "day" | "3days" | "week" | "month";
 
 interface HeaderProps {
   currentDate: Date;
@@ -31,6 +31,7 @@ const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   day: "День",
   "3days": "3 дня",
   week: "Неделя",
+  month: "Месяц",
 };
 
 export default function Header({
@@ -173,11 +174,19 @@ export default function Header({
                 <rect x="10" y="3" width="5" height="18" rx="1" />
                 <rect x="17" y="3" width="5" height="18" rx="1" />
               </svg>
-            ) : (
+            ) : viewMode === "week" ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <line x1="9" y1="3" x2="9" y2="21" />
                 <line x1="15" y1="3" x2="15" y2="21" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="3" y1="14" x2="21" y2="14" />
+                <line x1="9" y1="4" x2="9" y2="20" />
+                <line x1="15" y1="4" x2="15" y2="20" />
               </svg>
             )}
           </button>
@@ -189,7 +198,7 @@ export default function Header({
                 onClick={() => setShowViewDropdown(false)}
               />
               <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[120px]">
-                {(["day", "3days", "week"] as ViewMode[]).map((mode) => (
+                {(["day", "3days", "week", "month"] as ViewMode[]).map((mode) => (
                   <button
                     key={mode}
                     type="button"

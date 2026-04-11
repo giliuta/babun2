@@ -23,6 +23,7 @@ import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
+import MonthView from "@/components/calendar/MonthView";
 import CityPickerModal from "@/components/calendar/CityPickerModal";
 import ActionMenuModal, {
   type ActionMenuOption,
@@ -59,13 +60,15 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v39-smooth-scroll";
+const BUILD_TAG = "v40-month-view";
 
 // How many days to advance per "next" / "prev" depending on view mode.
+// "month" uses a dedicated branch that jumps whole months.
 const STEP_DAYS: Record<ViewMode, number> = {
   day: 1,
   "3days": 3,
   week: 7,
+  month: 0,
 };
 
 function clampHourHeight(h: number): number {
@@ -223,6 +226,13 @@ export default function DashboardPage() {
   const advance = useCallback(
     (direction: -1 | 1) => {
       setCurrentMonday((prev) => {
+        if (viewMode === "month") {
+          // Jump to the Monday of the first week of the prev/next month.
+          const next = new Date(prev);
+          next.setDate(1);
+          next.setMonth(next.getMonth() + direction);
+          return getMonday(next);
+        }
         if (viewMode === "week") return addWeeks(prev, direction);
         return addDays(prev, direction * stepDays);
       });
@@ -666,30 +676,41 @@ export default function DashboardPage() {
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
       <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
-        <div
-          ref={outerScrollerRef}
-          className="flex-1 flex bg-white min-h-0 relative"
-          style={{
-            overflowY: "auto",
-            overflowX: "clip",
-            touchAction: "pan-y",
-            overscrollBehavior: "contain",
-            // iOS momentum scrolling + GPU composition for butter-smooth
-            // 120 Hz scrolling. transform forces a dedicated layer so the
-            // compositor can scroll without touching the main thread.
-            WebkitOverflowScrolling: "touch",
-            transform: "translateZ(0)",
-            willChange: "scroll-position",
-            contain: "paint",
-          }}
-        >
-          <TimeColumn />
-          <SwipeableCalendar
-            renderPage={renderPage}
-            onSwipeLeft={handleNextWeek}
-            onSwipeRight={handlePrevWeek}
+        {viewMode === "month" ? (
+          <MonthView
+            currentDate={currentMonday}
+            appointments={visibleAppointments}
+            onDayClick={(date) => {
+              setCurrentMonday(getMonday(date));
+              setViewMode("day");
+            }}
           />
-        </div>
+        ) : (
+          <div
+            ref={outerScrollerRef}
+            className="flex-1 flex bg-white min-h-0 relative"
+            style={{
+              overflowY: "auto",
+              overflowX: "clip",
+              touchAction: "pan-y",
+              overscrollBehavior: "contain",
+              // iOS momentum scrolling + GPU composition for butter-smooth
+              // 120 Hz scrolling. transform forces a dedicated layer so the
+              // compositor can scroll without touching the main thread.
+              WebkitOverflowScrolling: "touch",
+              transform: "translateZ(0)",
+              willChange: "scroll-position",
+              contain: "paint",
+            }}
+          >
+            <TimeColumn />
+            <SwipeableCalendar
+              renderPage={renderPage}
+              onSwipeLeft={handleNextWeek}
+              onSwipeRight={handlePrevWeek}
+            />
+          </div>
+        )}
       </DndContext>
 
       {/* Build tag — visible proof that latest code is running */}
