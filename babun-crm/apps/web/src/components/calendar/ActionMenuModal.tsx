@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface ActionMenuOption {
   label: string;
@@ -27,8 +27,21 @@ export default function ActionMenuModal({
   title,
   options,
 }: ActionMenuModalProps) {
+  // Armed flag: ignore backdrop dismiss for the first 300 ms after the
+  // menu opens. This prevents the long-press release (pointerup from
+  // the appointment block underneath) from instantly closing the menu
+  // before the user can tap an option.
+  const [armed, setArmed] = useState(false);
+  const openedAt = useRef(0);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setArmed(false);
+      return;
+    }
+    openedAt.current = Date.now();
+    const armTimer = window.setTimeout(() => setArmed(true), 300);
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -36,6 +49,7 @@ export default function ActionMenuModal({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      window.clearTimeout(armTimer);
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
@@ -43,10 +57,16 @@ export default function ActionMenuModal({
 
   if (!open) return null;
 
+  const handleBackdropPointerDown = (e: React.PointerEvent) => {
+    if (!armed) return;
+    if (e.target !== e.currentTarget) return;
+    onClose();
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/40"
-      onClick={onClose}
+      onPointerDown={handleBackdropPointerDown}
     >
       <div
         className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col select-none"
@@ -55,7 +75,7 @@ export default function ActionMenuModal({
           WebkitUserSelect: "none",
           WebkitTouchCallout: "none",
         }}
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Purple header — matches Bumpix */}
         <div className="bg-indigo-600 px-4 py-3 flex-shrink-0">
