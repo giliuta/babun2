@@ -156,7 +156,11 @@ function AppointmentBlockInner({
           {appointment.time_start}-{appointment.time_end}
         </div>
         {clientName && (
-          <div className="text-[10px] lg:text-xs font-semibold truncate leading-tight">
+          <div
+            className={`text-[10px] lg:text-xs font-semibold truncate leading-tight ${
+              isCancelled ? "line-through opacity-80" : ""
+            }`}
+          >
             {clientName}
           </div>
         )}

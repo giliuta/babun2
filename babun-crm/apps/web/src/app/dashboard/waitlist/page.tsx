@@ -213,8 +213,26 @@ export default function WaitlistPage() {
               </div>
             ))}
             {visible.length === 0 && (
-              <div className="text-center text-gray-400 py-10 text-sm">
-                Лист ожидания пуст
+              <div className="flex flex-col items-center gap-2 py-10 px-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+                <div className="text-[14px] font-semibold text-gray-900">
+                  Пока никто не ждёт
+                </div>
+                <div className="text-[12px] text-gray-500 max-w-xs">
+                  Добавьте клиента в лист ожидания, когда нет свободных окон.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditing(createBlankWaitlistItem())}
+                  className="mt-2 h-10 px-4 rounded-lg border border-indigo-600 text-indigo-600 text-[13px] font-semibold active:bg-indigo-50"
+                >
+                  + Добавить
+                </button>
               </div>
             )}
           </div>

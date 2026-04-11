@@ -23,6 +23,7 @@ import {
 import { generateId } from "@/lib/masters";
 import { buildMapUrl, parseAddress, resolveMapLink } from "@/lib/map-links";
 import ColorPickerModal from "@/components/calendar/ColorPickerModal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MessengerButtons from "@/components/clients/MessengerButtons";
 import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
@@ -138,6 +139,14 @@ export default function NewAppointmentSheet({
     initial.color_override ?? null
   );
   const [colorModal, setColorModal] = useState(false);
+
+  // Collapsible "Детали" section — closed by default so the form fits
+  // on one mobile screen before scrolling.
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Destructive-action confirmation dialogs
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(
     initial.reminder_enabled ?? false
@@ -373,7 +382,9 @@ export default function NewAppointmentSheet({
   };
 
   const handleDelete = () => {
-    if (typeof window !== "undefined" && !window.confirm("Удалить запись?")) return;
+    // Confirmation is handled by <ConfirmDialog> rendered at the bottom
+    // of the tree (confirmDelete state). This runs after the user taps
+    // "Удалить" in the dialog.
     deleteAppointment(initial.id);
     if (onClose) onClose();
     else router.push("/dashboard");
@@ -455,7 +466,7 @@ export default function NewAppointmentSheet({
         {mode === "edit" && (
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmDelete(true)}
             aria-label="Удалить"
             className="w-9 h-9 flex items-center justify-center active:scale-95 text-white/85"
           >
@@ -613,6 +624,7 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
+        {showDetails && <>
         {/* Адрес */}
         <Label>Адрес</Label>
         <div className="flex items-center gap-2 px-4 py-1.5">
@@ -695,6 +707,7 @@ export default function NewAppointmentSheet({
           )}
         </div>
         <Divider />
+        </>}
 
         {/* Услуги */}
         <Label>Услуги</Label>
@@ -772,6 +785,33 @@ export default function NewAppointmentSheet({
         </button>
         <Divider />
 
+        {/* Toggle collapsible details */}
+        <button
+          type="button"
+          onClick={() => setShowDetails((s) => !s)}
+          className="w-full flex items-center justify-between px-4 py-3 active:bg-gray-50"
+        >
+          <span className="text-[13px] font-medium text-indigo-600">
+            {showDetails ? "Скрыть детали" : "Показать детали"}
+          </span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            className={`text-indigo-600 transition-transform ${
+              showDetails ? "rotate-180" : ""
+            }`}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <Divider />
+
+        {showDetails && <>
         {/* Комментарий */}
         <Label>Комментарий</Label>
         <div className="flex items-start gap-3 px-4 py-1.5">
@@ -856,65 +896,79 @@ export default function NewAppointmentSheet({
           </div>
         </div>
         <Divider />
+        </>}
           </>
         )}
 
-        {/* Отмена (edit only) */}
-        {mode === "edit" && (
-          <label className="w-full flex items-center gap-3 px-4 py-2 cursor-pointer">
-            <IconSquare color={cancelled ? "#ef4444" : "#9ca3af"}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-            </IconSquare>
-            <span className="flex-1 text-[13px] text-gray-900">
-              {isEvent ? "Событие отменено" : "Запись отменена"}
-            </span>
-            <span
-              className={`relative inline-block w-9 h-5 rounded-full transition ${
-                cancelled
-                  ? isEvent
-                    ? "bg-orange-600"
-                    : "bg-indigo-600"
-                  : "bg-gray-300"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={cancelled}
-                onChange={(e) => setCancelled(e.target.checked)}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <span
-                className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
-                  cancelled ? "left-[1.1rem]" : "left-0.5"
-                }`}
-              />
-            </span>
-          </label>
+        {/* Отменить запись — destructive button (edit only) */}
+        {mode === "edit" && !cancelled && (
+          <button
+            type="button"
+            onClick={() => setConfirmCancel(true)}
+            className="w-full text-left px-4 py-3 text-[13px] font-medium text-red-600 active:bg-red-50"
+          >
+            {isEvent ? "Отменить событие" : "Отменить запись"}
+          </button>
+        )}
+        {mode === "edit" && cancelled && (
+          <button
+            type="button"
+            onClick={() => setCancelled(false)}
+            className="w-full text-left px-4 py-3 text-[13px] font-medium text-indigo-600 active:bg-indigo-50"
+          >
+            Восстановить запись
+          </button>
         )}
       </div>
 
-      {/* Floating save FAB */}
-      <button
-        type="button"
-        onClick={handleSave}
-        aria-label="Сохранить"
-        className={`fixed right-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition z-40 ${
-          canSave
-            ? isEvent
-              ? "bg-orange-600 text-white"
-              : "bg-indigo-600 text-white"
-            : "bg-gray-300 text-gray-500"
-        }`}
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+      {/* Bottom save bar — full width, large tap target */}
+      <div
+        className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t border-gray-200 px-4 pt-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!canSave}
+          className={`w-full h-[52px] rounded-xl text-[15px] font-semibold text-white active:scale-[0.98] transition ${
+            canSave
+              ? isEvent
+                ? "bg-orange-600"
+                : "bg-indigo-600"
+              : "bg-gray-300"
+          }`}
+        >
+          {mode === "edit" ? "Сохранить изменения" : "Создать запись"}
+        </button>
+      </div>
+
+      {/* Confirm: cancel appointment */}
+      {confirmCancel && (
+        <ConfirmDialog
+          title={isEvent ? "Отменить событие?" : "Отменить запись?"}
+          message="Запись будет помечена как отменённая. Это действие можно отменить повторным нажатием."
+          confirmLabel="Отменить запись"
+          onConfirm={() => {
+            setCancelled(true);
+            setConfirmCancel(false);
+          }}
+          onClose={() => setConfirmCancel(false)}
+        />
+      )}
+
+      {/* Confirm: delete appointment (triggered by header trash icon) */}
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Удалить запись?"
+          message="Запись будет удалена безвозвратно."
+          confirmLabel="Удалить"
+          onConfirm={() => {
+            setConfirmDelete(false);
+            handleDelete();
+          }}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
 
       {/* Sheets */}
       <DateWheelModal

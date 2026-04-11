@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
+import BottomTabBar from "@/components/layout/BottomTabBar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import {
   loadSchedules,
@@ -602,11 +603,13 @@ export default function DashboardLayout({
             onClose={() => setSidebarOpen(false)}
           />
 
-          {/* Main content area, offset by sidebar width on lg+ */}
-          <div className="flex-1 lg:ml-[220px] flex flex-col min-h-0 min-w-0">
+          {/* Main content area, offset by sidebar width on lg+. Mobile
+              gets bottom padding for the tab bar. */}
+          <div className="flex-1 lg:ml-[220px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0">
             {children}
           </div>
 
+          <BottomTabBar />
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>

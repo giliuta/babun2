@@ -301,13 +301,15 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
+    // blue — запланирована, ещё не выполнена
     bg: "bg-blue-500",
     border: "border-blue-600",
     text: "text-white",
   },
   completed: {
-    bg: "bg-emerald-500",
-    border: "border-emerald-600",
+    // gray — выполнена и оплачена (приглушённая, чтобы не отвлекала)
+    bg: "bg-gray-400",
+    border: "border-gray-500",
     text: "text-white",
   },
   debt: {
@@ -322,9 +324,10 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-gray-900",
   },
   cancelled: {
-    // red — заказ отменён
-    bg: "bg-red-500",
-    border: "border-red-700",
+    // red — заказ отменён (с прозрачностью и зачёркнутым текстом,
+    // применяется в AppointmentBlock)
+    bg: "bg-red-400/60",
+    border: "border-red-500",
     text: "text-white",
   },
   in_progress: {

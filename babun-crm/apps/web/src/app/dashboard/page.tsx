@@ -8,7 +8,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   MouseSensor,
@@ -36,6 +36,7 @@ import DayFinanceModal from "@/components/calendar/DayFinanceModal";
 import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
 import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
+import TodayCard from "@/components/calendar/TodayCard";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
@@ -64,7 +65,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v52-ux-upgrade";
+const BUILD_TAG = "v53-mobile-first";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -83,6 +84,7 @@ const SEED_KEY = "babun-seeded";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const sidebar = useSidebar();
   const { schedules, setSchedules } = useSchedules();
   const { teams, setTeams } = useTeams();
@@ -112,7 +114,12 @@ export default function DashboardPage() {
     }
   }, [teamTabs, activeTeamId]);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  // Default to "day" on mobile (<1024px) and "week" on desktop so the
+  // calendar lands in the right mode before first paint.
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "week";
+    return window.innerWidth < 1024 ? "day" : "week";
+  });
   // hourHeight is not React state — it lives in a ref and is written as
   // a CSS variable on the outer scroller via writeHourHeight(). This keeps
   // pinch-zoom off the React render path entirely.
@@ -440,6 +447,16 @@ export default function DashboardPage() {
     },
     [activeTeamId]
   );
+
+  // BottomTabBar's centre button navigates here with ?new=1. Consume the
+  // flag once, open the inline sheet, and scrub the URL so a refresh
+  // doesn't re-trigger it.
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      openNewAppointmentInline(null, null, "work");
+      router.replace("/dashboard");
+    }
+  }, [searchParams, openNewAppointmentInline, router]);
 
   // Long-press action menu on an existing appointment.
   const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);
@@ -850,6 +867,16 @@ export default function DashboardPage() {
         onMenuToggle={sidebar.toggle}
       />
 
+      <TodayCard
+        appointments={appointments}
+        clientsById={clientsById}
+        onJumpToAppointment={(apt) => {
+          setCurrentMonday(new Date(`${apt.date}T00:00:00`));
+          setViewMode("day");
+          setInlineSheet({ mode: "edit", initial: apt });
+        }}
+      />
+
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
       <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
         {viewMode === "month" ? (
@@ -952,6 +979,19 @@ export default function DashboardPage() {
         onUndo={() => undoToast?.restore()}
         onClose={() => setUndoToast(null)}
       />
+
+      {/* Desktop-only FAB — mobile uses the centre action in BottomTabBar */}
+      <button
+        type="button"
+        onClick={() => openNewAppointmentInline(null, null, "work")}
+        aria-label="Новая запись"
+        className="hidden lg:flex fixed bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg items-center justify-center active:scale-95 transition z-30"
+      >
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
 
       {/* Day finance modal */}
       {financeDateKey && (

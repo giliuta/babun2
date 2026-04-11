@@ -289,21 +289,21 @@ export default function FinancesPage() {
           <div className="grid grid-cols-3 gap-2">
             <SummaryCard
               label="Доход"
-              value={`+${totalIncome}€`}
+              value={fmtSigned(totalIncome, "+")}
               color="emerald"
               active={mode === "income"}
               onClick={() => setMode("income")}
             />
             <SummaryCard
               label="Расход"
-              value={`−${totalExpense}€`}
+              value={fmtSigned(totalExpense, "−")}
               color="red"
               active={mode === "expenses"}
               onClick={() => setMode("expenses")}
             />
             <SummaryCard
               label="Прибыль"
-              value={`${profit >= 0 ? "+" : ""}${profit}€`}
+              value={profit === 0 ? "0€" : `${profit > 0 ? "+" : "−"}${Math.abs(profit)}€`}
               color={profit >= 0 ? "indigo" : "red"}
               active={mode === "summary"}
               onClick={() => setMode("summary")}
@@ -419,6 +419,13 @@ export default function FinancesPage() {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────
+
+// Format a signed amount in EUR — suppresses the sign when value is 0
+// so UI never renders "−0€".
+function fmtSigned(value: number, sign: "+" | "−"): string {
+  if (value === 0) return "0€";
+  return `${sign}${value}€`;
+}
 
 function toDateKey(d: Date): string {
   const yyyy = d.getFullYear();
@@ -631,12 +638,16 @@ function CombinedSummary({
   return (
     <div>
       <div className="px-4 py-4 space-y-3 border-b border-gray-200">
-        <Row label="Доход" value={`+${totalIncome}€`} color="emerald" />
-        <Row label="Расход" value={`−${totalExpense}€`} color="red" />
+        <Row label="Доход" value={fmtSigned(totalIncome, "+")} color="emerald" />
+        <Row label="Расход" value={fmtSigned(totalExpense, "−")} color="red" />
         <div className="h-px bg-gray-200" />
         <Row
           label="Прибыль"
-          value={`${profit >= 0 ? "+" : ""}${profit}€`}
+          value={
+            profit === 0
+              ? "0€"
+              : `${profit > 0 ? "+" : "−"}${Math.abs(profit)}€`
+          }
           color={profit >= 0 ? "indigo" : "red"}
           bold
         />
@@ -718,8 +729,9 @@ function TotalRow({
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-500">{label}:</span>
         <span className={`text-base font-bold tabular-nums ${colorClass}`}>
-          {value >= 0 ? "+" : ""}
-          {value} €
+          {value === 0
+            ? "0 €"
+            : `${value > 0 ? "+" : "−"}${Math.abs(value)} €`}
         </span>
       </div>
     </div>
