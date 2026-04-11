@@ -1,8 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import AppointmentForm from "@/components/appointments/AppointmentForm";
+import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import { useAppointments } from "@/app/dashboard/layout";
 
 export default function EditAppointmentPage() {
@@ -12,12 +11,6 @@ export default function EditAppointmentPage() {
 
   const id = params?.id;
   const appointment = id ? getAppointment(id) : undefined;
-
-  useEffect(() => {
-    // If we can't find it (likely still loading from localStorage or just invalid id),
-    // we'll keep trying — once the context is loaded the component will re-render.
-    // If still missing after first tick and not found, show fallback.
-  }, [appointment]);
 
   if (!appointment) {
     return (
@@ -34,5 +27,5 @@ export default function EditAppointmentPage() {
     );
   }
 
-  return <AppointmentForm initial={appointment} mode="edit" />;
+  return <NewAppointmentSheet initial={appointment} mode="edit" />;
 }

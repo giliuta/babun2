@@ -9,7 +9,12 @@
       "mcp__supabase__execute_sql",
       "mcp__playwright__browser_console_messages",
       "mcp__memory__read_graph",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_press_key"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Dmitry\\Desktop\\Babun2\\.claude\\commands"
     ]
   }
 }

@@ -25,7 +25,7 @@ import TimeColumn from "@/components/calendar/TimeColumn";
 import {
   loadDraftClients,
   type DraftClient,
-} from "@/components/appointments/AppointmentForm";
+} from "@/lib/draft-clients";
 import {
   useSidebar,
   useSchedules,
@@ -42,7 +42,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v18-smooth-zoom";
+const BUILD_TAG = "v19-new-appt-sheet";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {

@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import AppointmentForm from "@/components/appointments/AppointmentForm";
+import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import { createBlankAppointment } from "@/lib/appointments";
 import { formatDateKey } from "@/lib/date-utils";
 
@@ -33,7 +33,7 @@ function NewAppointmentInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <AppointmentForm initial={initial} mode="new" />;
+  return <NewAppointmentSheet initial={initial} mode="new" />;
 }
 
 function addMinutes(time: string, minutes: number): string {

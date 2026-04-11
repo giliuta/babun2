@@ -19,7 +19,7 @@ import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
-import type { DraftClient } from "@/components/appointments/AppointmentForm";
+import type { DraftClient } from "@/lib/draft-clients";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
