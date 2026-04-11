@@ -72,7 +72,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v45-color-palette";
+const BUILD_TAG = "v46-time-range-teams";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -93,7 +93,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const sidebar = useSidebar();
   const { schedules } = useSchedules();
-  const { teams } = useTeams();
+  const { teams, setTeams } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
@@ -267,6 +267,21 @@ export default function DashboardPage() {
   const handleTeamChange = useCallback((teamId: string) => {
     setActiveTeamId(teamId);
   }, []);
+
+  // Long-press on a team tab swaps its position with the next team
+  // in the list (wraps around). Lets the dispatcher re-order the
+  // brigade tabs from the header.
+  const handleTeamLongPress = useCallback(
+    (teamId: string) => {
+      const idx = teams.findIndex((t) => t.id === teamId);
+      if (idx === -1 || teams.length < 2) return;
+      const nextIdx = (idx + 1) % teams.length;
+      const next = [...teams];
+      [next[idx], next[nextIdx]] = [next[nextIdx], next[idx]];
+      setTeams(next);
+    },
+    [teams, setTeams]
+  );
 
   // Inline sheet state — keeping the calendar mounted means opening and
   // closing an appointment is instant (no route transition, no unmount).
@@ -720,6 +735,7 @@ export default function DashboardPage() {
         onNextWeek={handleNextWeek}
         onToday={handleToday}
         onTeamChange={handleTeamChange}
+        onTeamLongPress={handleTeamLongPress}
         onViewModeChange={handleViewModeChange}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -826,7 +842,15 @@ export default function DashboardPage() {
           <NewAppointmentSheet
             initial={inlineSheet.initial}
             mode={inlineSheet.mode}
-            onClose={() => setInlineSheet(null)}
+            onClose={(savedTeamId) => {
+              // If the record was saved with a different team than the
+              // currently active one, follow it so the user stays on
+              // the team they were just editing.
+              if (savedTeamId && savedTeamId !== activeTeamId) {
+                setActiveTeamId(savedTeamId);
+              }
+              setInlineSheet(null);
+            }}
           />
         </div>
       )}

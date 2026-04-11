@@ -33,8 +33,10 @@ interface NewAppointmentSheetProps {
   mode: "new" | "edit";
   // Optional callback; when provided the sheet uses it instead of routing
   // back to /dashboard. Lets the calendar render the sheet inline as a
-  // modal and keep itself mounted.
-  onClose?: () => void;
+  // modal and keep itself mounted. The optional `savedTeamId` argument
+  // lets the parent switch the active team tab to match the record that
+  // was just saved.
+  onClose?: (savedTeamId?: string | null) => void;
 }
 
 function initials(name: string): string {
@@ -199,7 +201,28 @@ export default function NewAppointmentSheet({
     [groupedServices, priceOverrides]
   );
 
-  const effectiveDuration = totalDurationMinutes > 0 ? totalDurationMinutes : 60;
+  // Derived from initial if editing an existing appointment; otherwise
+  // null so that services drive the duration. When the user manually
+  // picks an end time in the TimeWheelModal we store the explicit
+  // duration here and it overrides the service-derived total.
+  const [manualDuration, setManualDuration] = useState<number | null>(() => {
+    const diff = timeDiffMinutes(initial.time_start, initial.time_end);
+    // Only keep as manual override if the initial duration differs from
+    // what the services would compute, or if there are no services.
+    return diff > 0 && mode === "edit" && initial.service_ids.length === 0
+      ? diff
+      : null;
+  });
+
+  // When services change, drop any manual duration override so the new
+  // services drive the total again.
+  useEffect(() => {
+    setManualDuration(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceIds.join(",")]);
+
+  const effectiveDuration =
+    manualDuration ?? (totalDurationMinutes > 0 ? totalDurationMinutes : 60);
   const timeEnd = addMinutesToTime(timeStart, effectiveDuration);
 
   const clampedDiscount = Math.min(discount, subtotal);
@@ -323,7 +346,7 @@ export default function NewAppointmentSheet({
       created_at: initial.created_at || now,
     };
     upsertAppointment(apt);
-    if (onClose) onClose();
+    if (onClose) onClose(teamId);
     else router.push("/dashboard");
   };
 
@@ -852,8 +875,17 @@ export default function NewAppointmentSheet({
       <TimeWheelModal
         open={timeModal}
         onClose={() => setTimeModal(false)}
-        value={timeStart}
-        onConfirm={(next) => setTimeStart(next)}
+        startValue={timeStart}
+        endValue={timeEnd}
+        onConfirm={(next) => {
+          setTimeStart(next.startValue);
+          // Convert end time → duration so the rest of the form
+          // (appointment footer, timeEnd calc) picks it up.
+          const [sh, sm] = next.startValue.split(":").map(Number);
+          const [eh, em] = next.endValue.split(":").map(Number);
+          const dur = eh * 60 + em - (sh * 60 + sm);
+          if (dur > 0) setManualDuration(dur);
+        }}
       />
 
       <ClientPickerSheet

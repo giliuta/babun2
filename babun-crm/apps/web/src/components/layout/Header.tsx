@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getMonthName } from "@/lib/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 
@@ -20,6 +20,7 @@ interface HeaderProps {
   onNextWeek: () => void;
   onToday: () => void;
   onTeamChange: (teamId: string) => void;
+  onTeamLongPress?: (teamId: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -44,6 +45,7 @@ export default function Header({
   onNextWeek,
   onToday,
   onTeamChange,
+  onTeamLongPress,
   onViewModeChange,
   onZoomIn,
   onZoomOut,
@@ -224,20 +226,77 @@ export default function Header({
       {/* Bottom row: team tabs */}
       <div className="bg-indigo-700 lg:bg-white px-2 lg:px-4 pb-1 lg:pb-3 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide">
         {teams.map((team) => (
-          <button
+          <TeamTab
             key={team.id}
-            type="button"
+            team={team}
+            active={activeTeamId === team.id}
             onClick={() => onTeamChange(team.id)}
-            className={`px-3 lg:px-4 py-1.5 text-[13px] font-medium rounded-md transition-colors whitespace-nowrap ${
-              activeTeamId === team.id
-                ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900 lg:shadow-sm"
-                : "text-indigo-200 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
-            }`}
-          >
-            {team.name}
-          </button>
+            onLongPress={
+              onTeamLongPress ? () => onTeamLongPress(team.id) : undefined
+            }
+          />
         ))}
       </div>
     </header>
+  );
+}
+
+interface TeamTabProps {
+  team: { id: string; name: string };
+  active: boolean;
+  onClick: () => void;
+  onLongPress?: () => void;
+}
+
+// Team tab with its own long-press detector so the parent can swap
+// the tab's position with its neighbor (AirFix style reorder).
+function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
+  const timerRef = useRef<number | null>(null);
+  const firedRef = useRef(false);
+
+  const start = () => {
+    firedRef.current = false;
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      firedRef.current = true;
+      onLongPress?.();
+    }, 550);
+  };
+
+  const cancel = () => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (firedRef.current) {
+          firedRef.current = false;
+          return;
+        }
+        onClick();
+      }}
+      onPointerDown={start}
+      onPointerMove={cancel}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      onPointerLeave={cancel}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onLongPress?.();
+        firedRef.current = true;
+      }}
+      className={`px-3 lg:px-4 py-1.5 text-[13px] font-medium rounded-md transition-colors whitespace-nowrap select-none ${
+        active
+          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900 lg:shadow-sm"
+          : "text-indigo-200 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
+      }`}
+    >
+      {team.name}
+    </button>
   );
 }
