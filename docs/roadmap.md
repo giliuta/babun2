@@ -9,6 +9,9 @@
 
 ## Near-term (1-2 weeks)
 
+### STORY-011 — Calendar v2 (HIGH, can run in parallel)
+Operational polish: overlap column split, conflict highlight, resize duration, Now button, mobile-first month view, tap-day-header, 15/30-min gridlines. Full spec: `docs/stories/STORY-011.md`.
+
 ### STORY-001 — Supabase migration (HIGH)
 Move from localStorage to Postgres + Auth + RLS. Single-tenant for AirFix, but schema is multi-tenant-ready.
 - Wire `@supabase/ssr` client
