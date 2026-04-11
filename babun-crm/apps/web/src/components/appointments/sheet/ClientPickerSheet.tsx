@@ -5,7 +5,7 @@ import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
 import { upsertDraftClient } from "@/lib/draft-clients";
 import { generateId } from "@/lib/masters";
-import BottomSheet from "./BottomSheet";
+import DialogModal from "./DialogModal";
 
 interface ClientPickerSheetProps {
   open: boolean;
@@ -104,8 +104,8 @@ export default function ClientPickerSheet({
   };
 
   return (
-    <BottomSheet open={open} onClose={resetAndClose} title="Выбрать клиента">
-      <div className="p-4 space-y-3">
+    <DialogModal open={open} onClose={resetAndClose} title="Выбрать клиента">
+      <div className="p-3 space-y-2">
         {/* Search */}
         <div className="relative">
           <input
@@ -113,7 +113,7 @@ export default function ClientPickerSheet({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Поиск по имени или телефону"
-            className="w-full h-12 px-4 bg-gray-100 rounded-xl text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full h-11 px-3 bg-gray-100 rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -122,9 +122,9 @@ export default function ClientPickerSheet({
           <button
             type="button"
             onClick={() => setShowNewForm(true)}
-            className="w-full h-14 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 rounded-xl font-semibold active:scale-[0.98] transition"
+            className="w-full h-10 flex items-center justify-center gap-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[13px] font-semibold active:scale-[0.98] transition"
           >
-            <span className="text-xl">+</span>
+            <span className="text-[15px] leading-none">+</span>
             <span>Новый клиент</span>
           </button>
         ) : (
@@ -179,21 +179,21 @@ export default function ClientPickerSheet({
                     key={c.id}
                     type="button"
                     onClick={() => handleSelect(c)}
-                    className="w-full flex items-center gap-3 py-3 active:bg-gray-50"
+                    className="w-full flex items-center gap-2.5 py-2 active:bg-gray-50"
                   >
-                    <div className="w-11 h-11 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-[13px]">
                       {initials(c.full_name)}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-base font-medium text-gray-900 truncate">
+                      <div className="text-[13px] font-medium text-gray-900 truncate">
                         {c.full_name}
                       </div>
                       {c.phone && (
-                        <div className="text-sm text-gray-500 truncate">{c.phone}</div>
+                        <div className="text-[11px] text-gray-500 truncate">{c.phone}</div>
                       )}
                     </div>
                     {isRecent && (
-                      <div className="text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                      <div className="text-[9px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                         недавний
                       </div>
                     )}
@@ -204,6 +204,6 @@ export default function ClientPickerSheet({
           )}
         </div>
       </div>
-    </BottomSheet>
+    </DialogModal>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Team } from "@/lib/masters";
-import BottomSheet from "./BottomSheet";
+import DialogModal from "./DialogModal";
 
 interface TeamPickerSheetProps {
   open: boolean;
@@ -21,8 +21,8 @@ export default function TeamPickerSheet({
   const activeTeams = teams.filter((t) => t.active);
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Выбрать бригаду">
-      <div className="p-4 space-y-2">
+    <DialogModal open={open} onClose={onClose} title="Выбрать бригаду">
+      <div className="p-3 space-y-2">
         {activeTeams.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-400">
             Нет активных бригад
@@ -39,24 +39,24 @@ export default function TeamPickerSheet({
                   onSelect(t.id);
                   onClose();
                 }}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 active:scale-[0.99] transition ${
+                className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border-2 active:scale-[0.99] transition ${
                   selected
                     ? "border-indigo-500 bg-indigo-50"
                     : "border-gray-200 bg-white"
                 }`}
               >
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold text-[15px]"
+                  className="w-9 h-9 rounded-md flex items-center justify-center text-white font-semibold text-[13px]"
                   style={{ backgroundColor: t.color || "#f59e0b" }}
                 >
                   {letter}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[14px] font-medium text-gray-900 truncate">
+                  <div className="text-[13px] font-medium text-gray-900 truncate">
                     {t.name}
                   </div>
                   {t.region && (
-                    <div className="text-[12px] text-gray-500 truncate">
+                    <div className="text-[11px] text-gray-500 truncate">
                       {t.region}
                     </div>
                   )}
@@ -73,6 +73,6 @@ export default function TeamPickerSheet({
           })
         )}
       </div>
-    </BottomSheet>
+    </DialogModal>
   );
 }

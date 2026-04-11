@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BottomSheet from "./BottomSheet";
+import DialogModal from "./DialogModal";
 
 interface TimePickerSheetProps {
   open: boolean;
@@ -59,7 +59,7 @@ export default function TimePickerSheet({
   };
 
   return (
-    <BottomSheet
+    <DialogModal
       open={open}
       onClose={onClose}
       title="Дата и время"
@@ -67,44 +67,44 @@ export default function TimePickerSheet({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-14 bg-indigo-600 text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition"
+          className="w-full h-12 bg-indigo-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
         >
           Готово
         </button>
       }
     >
-      <div className="p-4 space-y-5">
+      <div className="p-3 space-y-3">
         {/* Summary */}
-        <div className="bg-indigo-50 rounded-xl p-4 text-center">
-          <div className="text-[13px] text-indigo-700 font-medium">
+        <div className="bg-indigo-50 rounded-xl p-3 text-center">
+          <div className="text-[12px] text-indigo-700 font-medium">
             {formatDateLabel(localDate)}
           </div>
-          <div className="text-3xl font-bold text-gray-900 mt-1 tracking-tight tabular-nums">
+          <div className="text-2xl font-bold text-gray-900 mt-0.5 tracking-tight tabular-nums">
             {localTime} <span className="text-gray-400">→</span> {endTime}
           </div>
-          <div className="text-[12px] text-gray-500 mt-1">
+          <div className="text-[11px] text-gray-500 mt-0.5">
             {durationMinutes > 0
               ? `${durationMinutes} мин (из услуг)`
-              : "Длительность задаётся выбранными услугами"}
+              : "Длительность задаётся услугами"}
           </div>
         </div>
 
         {/* Date picker (native) */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5 px-1">
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1 px-0.5">
             Дата
           </label>
           <input
             type="date"
             value={localDate}
             onChange={(e) => setLocalDate(e.target.value)}
-            className="w-full h-14 px-4 bg-gray-100 rounded-xl text-[17px] font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full h-12 px-3 bg-gray-100 rounded-lg text-[15px] font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
         {/* Start time (native) */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5 px-1">
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1 px-0.5">
             Начало
           </label>
           <input
@@ -112,10 +112,10 @@ export default function TimePickerSheet({
             value={localTime}
             onChange={(e) => setLocalTime(e.target.value)}
             step={900}
-            className="w-full h-14 px-4 bg-gray-100 rounded-xl text-[17px] font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full h-12 px-3 bg-gray-100 rounded-lg text-[15px] font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       </div>
-    </BottomSheet>
+    </DialogModal>
   );
 }
