@@ -15,7 +15,6 @@ interface HeaderProps {
   activeTeamId: string;
   teams: { id: string; name: string }[];
   viewMode: ViewMode;
-  hourHeight: number;
   allAppointments: HeaderAppointment[];
   onPrevWeek: () => void;
   onNextWeek: () => void;

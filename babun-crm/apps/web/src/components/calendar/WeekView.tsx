@@ -17,7 +17,6 @@ interface WeekViewProps {
   services: Service[];
   validateApt: (apt: Appointment) => ValidationResult;
   viewMode?: ViewMode;
-  hourHeight?: number;
   schedule?: TeamSchedule;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
@@ -31,7 +30,6 @@ export default function WeekView({
   services,
   validateApt,
   viewMode = "week",
-  hourHeight = 60,
   schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
@@ -40,7 +38,6 @@ export default function WeekView({
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
 
-  // Update current time every minute
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(getCurrentCyprusTime());
@@ -50,7 +47,6 @@ export default function WeekView({
 
   const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // Determine which dates to show based on view mode
   let visibleDates: Date[];
   if (viewMode === "day") {
     visibleDates = [weekDates[0]];
@@ -72,7 +68,6 @@ export default function WeekView({
           services={services}
           validateApt={validateApt}
           currentTimeMinutes={currentTimeMinutes}
-          hourHeight={hourHeight}
           schedule={schedule}
           onAppointmentClick={onAppointmentClick}
           onEmptySlotClick={onEmptySlotClick}

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   getDayNameShort,
@@ -20,7 +21,6 @@ import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/components/appointments/AppointmentForm";
 import AppointmentBlock from "./AppointmentBlock";
-import { HOURS } from "./TimeGrid";
 
 interface DayColumnProps {
   date: Date;
@@ -29,15 +29,19 @@ interface DayColumnProps {
   clientsById: Record<string, Client | DraftClient>;
   services: Service[];
   validateApt: (apt: Appointment) => ValidationResult;
-  currentTimeMinutes: number; // minutes since midnight for current time line
-  hourHeight?: number;
+  currentTimeMinutes: number;
   schedule?: TeamSchedule;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   dragEnabled?: boolean;
 }
 
-export default function DayColumn({
+// Expressions used for vertical positioning. They reference the live
+// --hh CSS variable set on the outer scroller during pinch-zoom, so
+// layout updates without any React re-render.
+const mins = (m: number) => `calc(var(--hh) * ${m / 60})`;
+
+function DayColumnInner({
   date,
   today,
   appointments,
@@ -45,7 +49,6 @@ export default function DayColumn({
   services,
   validateApt,
   currentTimeMinutes,
-  hourHeight = 60,
   schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
@@ -63,22 +66,10 @@ export default function DayColumn({
   const dayName = getDayNameShort(date);
   const monthName = getMonthNameGenitive(date.getMonth());
 
-  const pxPerMinute = hourHeight / 60;
-
-  // Current time indicator position (relative to 00:00)
-  const showTimeLine = isToday;
-  const timeLineTop = currentTimeMinutes * pxPerMinute;
-
-  // Per-weekday schedule with breaks overlay
   const daySched = getDaySchedule(schedule, date.getDay());
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
   const workEnd = timeToMinutes(daySched.is_working ? daySched.end : "00:00");
-  const beforeWorkHeight = workStart * pxPerMinute;
-  const afterWorkTop = workEnd * pxPerMinute;
-  const totalHeight = 24 * 60 * pxPerMinute;
-  const afterWorkHeight = totalHeight - afterWorkTop;
 
-  // Day financial totals
   const dayIncome = dayAppointments
     .filter((a) => a.status === "completed" || a.status === "in_progress")
     .reduce((sum, a) => sum + getPaidAmount(a), 0);
@@ -95,27 +86,29 @@ export default function DayColumn({
 
   const handleColumnClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onEmptySlotClick) return;
-    // Only handle clicks on the column background, not on appointment blocks
     if ((e.target as HTMLElement).closest("button")) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickY = e.clientY - rect.top;
+    // Total column height is 24 hours — derive pxPerMinute from the live
+    // rendered height rather than a prop, so it stays accurate during zoom.
+    const totalHeight = rect.height;
+    const pxPerMinute = totalHeight / (24 * 60);
     const totalMinutes = clickY / pxPerMinute;
 
-    // Snap to nearest 15 minutes
     const snapped = Math.round(totalMinutes / 15) * 15;
     const hours = Math.floor(snapped / 60);
-    const mins = snapped % 60;
+    const mm = snapped % 60;
 
     if (hours >= 0 && hours < 24) {
-      const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+      const timeStr = `${String(hours).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
       onEmptySlotClick(dateKey, timeStr);
     }
   };
 
   return (
     <div className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0 overflow-x-clip">
-      {/* Day header — sticks to top while scrolling */}
+      {/* Day header */}
       <div
         className={`sticky top-0 z-20 h-[52px] lg:h-[72px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
           isToday ? "bg-green-50" : "bg-white"
@@ -145,36 +138,38 @@ export default function DayColumn({
         </div>
       </div>
 
-      {/* Time slots */}
+      {/* Time slots — total height is 24×hourHeight via CSS var. Hour grid
+          lines are drawn via a single repeating-linear-gradient instead of
+          24 DOM elements, so pinch-zoom costs nothing. */}
       <div
         ref={setDroppableRef}
         className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"} ${
           isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
         }`}
         onClick={handleColumnClick}
+        style={{
+          height: "calc(var(--hh) * 24)",
+          backgroundImage:
+            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgb(243 244 246) calc(var(--hh) - 1px), rgb(243 244 246) var(--hh))",
+          contain: "layout paint",
+        }}
       >
-        {/* Hour grid lines (24 hours) */}
-        {HOURS.map((hour) => (
-          <div
-            key={hour}
-            className="border-b border-gray-100"
-            style={{ height: `${hourHeight}px` }}
-          />
-        ))}
-
         {/* Out-of-hours overlay: BEFORE work start */}
-        {beforeWorkHeight > 0 && (
+        {workStart > 0 && (
           <div
             className="absolute left-0 right-0 top-0 bg-gray-200/50 pointer-events-none"
-            style={{ height: `${beforeWorkHeight}px` }}
+            style={{ height: mins(workStart) }}
           />
         )}
 
         {/* Out-of-hours overlay: AFTER work end */}
-        {afterWorkHeight > 0 && (
+        {workEnd < 24 * 60 && (
           <div
             className="absolute left-0 right-0 bg-gray-200/50 pointer-events-none"
-            style={{ top: `${afterWorkTop}px`, height: `${afterWorkHeight}px` }}
+            style={{
+              top: mins(workEnd),
+              height: `calc(var(--hh) * ${(24 * 60 - workEnd) / 60})`,
+            }}
           />
         )}
 
@@ -188,7 +183,7 @@ export default function DayColumn({
               <div
                 key={i}
                 className="absolute left-0 right-0 bg-gray-300/60 pointer-events-none border-y border-gray-400/40"
-                style={{ top: `${bs * pxPerMinute}px`, height: `${(be - bs) * pxPerMinute}px` }}
+                style={{ top: mins(bs), height: mins(be - bs) }}
               >
                 <div className="text-[9px] text-gray-600 pl-1">Перерыв</div>
               </div>
@@ -196,10 +191,10 @@ export default function DayColumn({
           })}
 
         {/* Current time indicator */}
-        {showTimeLine && (
+        {isToday && (
           <div
             className="absolute left-0 right-0 z-20 pointer-events-none"
-            style={{ top: `${timeLineTop}px` }}
+            style={{ top: mins(currentTimeMinutes) }}
           >
             <div className="flex items-center">
               <div className="w-2 h-2 bg-red-500 rounded-full -ml-1" />
@@ -219,7 +214,6 @@ export default function DayColumn({
               colorKind={colorKind}
               clientsById={clientsById}
               services={services}
-              hourHeight={hourHeight}
               onClick={onAppointmentClick}
               draggable={dragEnabled}
             />
@@ -247,3 +241,6 @@ export default function DayColumn({
     </div>
   );
 }
+
+const DayColumn = memo(DayColumnInner);
+export default DayColumn;

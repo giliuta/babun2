@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import type { Appointment, AppointmentColorKind } from "@/lib/appointments";
@@ -11,17 +12,15 @@ import type { Client } from "@/lib/clients";
 interface AppointmentBlockProps {
   appointment: Appointment;
   colorKind: AppointmentColorKind;
-  hourHeight?: number;
   clientsById: Record<string, Client | DraftClient>;
   services: Service[];
   onClick: (appointment: Appointment) => void;
   draggable?: boolean;
 }
 
-export default function AppointmentBlock({
+function AppointmentBlockInner({
   appointment,
   colorKind,
-  hourHeight = 60,
   clientsById,
   services,
   onClick,
@@ -36,11 +35,12 @@ export default function AppointmentBlock({
   const endMinutes = endH * 60 + endM;
   const durationMinutes = Math.max(0, endMinutes - startMinutes);
 
-  const pxPerMinute = hourHeight / 60;
-  const topPx = startMinutes * pxPerMinute;
-  const heightPx = Math.max(durationMinutes * pxPerMinute, 18);
+  // Positions are expressed in CSS `calc(var(--hh) * N)` so they follow the
+  // live hour-height variable without triggering any React re-render during
+  // pinch-zoom.
+  const topExpr = `calc(var(--hh) * ${startMinutes / 60})`;
+  const heightExpr = `max(calc(var(--hh) * ${durationMinutes / 60}), 18px)`;
 
-  // dnd-kit draggable
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `apt-${appointment.id}`,
     data: {
@@ -85,15 +85,16 @@ export default function AppointmentBlock({
       }}
       {...listeners}
       {...attributes}
-      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${colors.bg} ${colors.text} rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 shadow-sm touch-none ${
+      className={`absolute left-0.5 right-0.5 lg:left-1 lg:right-1 ${colors.bg} ${colors.text} rounded-sm lg:rounded-md text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-110 shadow-sm touch-none will-change-transform ${
         isDragging ? "opacity-70 z-30" : ""
       }`}
       style={{
-        top: `${topPx}px`,
-        height: `${heightPx}px`,
+        top: topExpr,
+        height: heightExpr,
         borderLeft: serviceAccent ? `3px solid ${serviceAccent}` : undefined,
         transform: CSS.Translate.toString(transform),
         transition: isDragging ? "none" : undefined,
+        contain: "layout paint",
       }}
     >
       <div className="px-1 lg:px-2 py-0.5 lg:py-1 h-full overflow-hidden relative">
@@ -114,7 +115,7 @@ export default function AppointmentBlock({
             {serviceSummary}
           </div>
         )}
-        {heightPx > 60 && appointment.comment && (
+        {appointment.comment && (
           <div className="text-[8px] lg:text-[10px] truncate opacity-70 mt-0.5 leading-tight">
             {appointment.comment}
           </div>
@@ -129,3 +130,6 @@ export default function AppointmentBlock({
     </button>
   );
 }
+
+const AppointmentBlock = memo(AppointmentBlockInner);
+export default AppointmentBlock;

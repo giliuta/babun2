@@ -42,7 +42,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v17-stub-auth";
+const BUILD_TAG = "v18-smooth-zoom";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -87,9 +87,10 @@ export default function DashboardPage() {
   }, [teamTabs, activeTeamId]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("week");
-  const [hourHeight, setHourHeight] = useState(HOUR_HEIGHT_DEFAULT);
-  const hourHeightRef = useRef(hourHeight);
-  hourHeightRef.current = hourHeight;
+  // hourHeight is not React state — it lives in a ref and is written as
+  // a CSS variable on the outer scroller via writeHourHeight(). This keeps
+  // pinch-zoom off the React render path entirely.
+  const hourHeightRef = useRef(HOUR_HEIGHT_DEFAULT);
 
   const stepDays = STEP_DAYS[viewMode];
   const activeSchedule = useMemo(
@@ -99,6 +100,20 @@ export default function DashboardPage() {
 
   // Single shared vertical scroller for time column + day columns
   const outerScrollerRef = useRef<HTMLDivElement>(null);
+
+  // Write --hh on the scroller and update the ref. Does NOT touch React
+  // state — intended for the hot path during pinch-zoom.
+  const writeHourHeight = useCallback((h: number) => {
+    hourHeightRef.current = h;
+    const el = outerScrollerRef.current;
+    if (el) el.style.setProperty("--hh", `${h}px`);
+  }, []);
+
+  // Initialize the CSS variable on mount so the first render already has
+  // the correct layout without going through state.
+  useEffect(() => {
+    writeHourHeight(hourHeightRef.current);
+  }, [writeHourHeight]);
 
   // Seed with mock data on first visit only
   useEffect(() => {
@@ -225,23 +240,31 @@ export default function DashboardPage() {
     setViewMode(mode);
   }, []);
 
-  // Zoom around the vertical center of the viewport so the same time stays visible.
-  const zoomBy = useCallback((nextH: number) => {
-    const el = outerScrollerRef.current;
-    const clamped = clampHourHeight(nextH);
-    setHourHeight((prev) => {
-      if (clamped === prev) return prev;
+  // Zoom around the vertical center of the viewport so the same time stays
+  // visible. Writes directly to the DOM — no React re-render during motion.
+  const zoomBy = useCallback(
+    (nextH: number) => {
+      const el = outerScrollerRef.current;
+      const clamped = clampHourHeight(nextH);
+      const prev = hourHeightRef.current;
+      if (clamped === prev) return;
+      let nextScroll: number | null = null;
       if (el) {
         const focusY = el.clientHeight / 2;
         const anchor = (el.scrollTop + focusY) / prev;
+        nextScroll = anchor * clamped - focusY;
+      }
+      writeHourHeight(clamped);
+      if (el && nextScroll !== null) {
         requestAnimationFrame(() => {
-          if (!outerScrollerRef.current) return;
-          outerScrollerRef.current.scrollTop = anchor * clamped - focusY;
+          if (outerScrollerRef.current) {
+            outerScrollerRef.current.scrollTop = nextScroll!;
+          }
         });
       }
-      return clamped;
-    });
-  }, []);
+    },
+    [writeHourHeight]
+  );
 
   const handleZoomIn = useCallback(() => {
     zoomBy(hourHeightRef.current + HOUR_HEIGHT_STEP);
@@ -274,13 +297,9 @@ export default function DashboardPage() {
 
     const applyZoom = (next: number, focusY: number, anchor: number) => {
       if (Math.abs(next - hourHeightRef.current) < 0.5) return;
-      hourHeightRef.current = next;
-      setHourHeight(next);
-      requestAnimationFrame(() => {
-        const scroller = outerScrollerRef.current;
-        if (!scroller) return;
-        scroller.scrollTop = anchor * next - focusY;
-      });
+      writeHourHeight(next);
+      const scroller = outerScrollerRef.current;
+      if (scroller) scroller.scrollTop = anchor * next - focusY;
     };
 
     // ── Standard multi-touch (Android / Chrome) ──────────────────────
@@ -345,7 +364,6 @@ export default function DashboardPage() {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const delta = -e.deltaY;
-      // Trackpad pinch sends small deltas continuously — scale by deltaY.
       const factor = Math.exp(delta * 0.005);
       const next = clampHourHeight(hourHeightRef.current * factor);
       const rect = el.getBoundingClientRect();
@@ -447,7 +465,6 @@ export default function DashboardPage() {
           services={services}
           validateApt={validateApt}
           viewMode={viewMode}
-          hourHeight={hourHeight}
           schedule={activeSchedule}
           onAppointmentClick={handleAppointmentClick}
           onEmptySlotClick={handleEmptySlotClick}
@@ -463,7 +480,6 @@ export default function DashboardPage() {
       clientsById,
       services,
       validateApt,
-      hourHeight,
       activeSchedule,
       handleAppointmentClick,
       handleEmptySlotClick,
@@ -477,7 +493,6 @@ export default function DashboardPage() {
         activeTeamId={activeTeamId}
         teams={teamTabs}
         viewMode={viewMode}
-        hourHeight={hourHeight}
         allAppointments={appointments}
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
@@ -502,7 +517,7 @@ export default function DashboardPage() {
             overscrollBehavior: "contain",
           }}
         >
-          <TimeColumn hourHeight={hourHeight} />
+          <TimeColumn />
           <SwipeableCalendar
             renderPage={renderPage}
             onSwipeLeft={handleNextWeek}
