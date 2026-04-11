@@ -624,91 +624,6 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
-        {showDetails && <>
-        {/* Адрес */}
-        <Label>Адрес</Label>
-        <div className="flex items-center gap-2 px-4 py-1.5">
-          <IconSquare color="#ef4444">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-          </IconSquare>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Адрес или ссылка"
-            className="flex-1 min-w-0 h-8 text-[13px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
-          />
-          {address.trim() && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {resolving && (
-                <div
-                  className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-1"
-                  aria-label="Resolving..."
-                />
-              )}
-              <a
-                href={
-                  buildMapUrl(
-                    "google",
-                    address,
-                    addressLat !== null && addressLng !== null
-                      ? { lat: addressLat, lng: addressLng }
-                      : null
-                  ) ?? "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Google Maps"
-                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
-                style={{ backgroundColor: "#ea4335" }}
-              >
-                G
-              </a>
-              <a
-                href={
-                  buildMapUrl(
-                    "apple",
-                    address,
-                    addressLat !== null && addressLng !== null
-                      ? { lat: addressLat, lng: addressLng }
-                      : null
-                  ) ?? "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Apple Maps"
-                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
-                style={{ backgroundColor: "#1d1d1f" }}
-              >
-                A
-              </a>
-              <a
-                href={
-                  buildMapUrl(
-                    "waze",
-                    address,
-                    addressLat !== null && addressLng !== null
-                      ? { lat: addressLat, lng: addressLng }
-                      : null
-                  ) ?? "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Waze"
-                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
-                style={{ backgroundColor: "#33ccff" }}
-              >
-                W
-              </a>
-            </div>
-          )}
-        </div>
-        <Divider />
-        </>}
-
         {/* Услуги */}
         <Label>Услуги</Label>
         <button
@@ -828,6 +743,89 @@ export default function NewAppointmentSheet({
             className="flex-1 min-h-[24px] text-[13px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none leading-snug"
             style={{ fieldSizing: "content" } as React.CSSProperties}
           />
+        </div>
+        <Divider />
+
+        {/* Адрес */}
+        <Label>Адрес</Label>
+        <div className="flex items-center gap-2 px-4 py-1.5">
+          <IconSquare color="#ef4444">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </IconSquare>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Адрес или ссылка"
+            className="flex-1 min-w-0 h-8 text-[13px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+          />
+          {address.trim() && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {resolving && (
+                <div
+                  className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-1"
+                  aria-label="Resolving..."
+                />
+              )}
+              <a
+                href={
+                  buildMapUrl(
+                    "google",
+                    address,
+                    addressLat !== null && addressLng !== null
+                      ? { lat: addressLat, lng: addressLng }
+                      : null
+                  ) ?? "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Google Maps"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
+                style={{ backgroundColor: "#ea4335" }}
+              >
+                G
+              </a>
+              <a
+                href={
+                  buildMapUrl(
+                    "apple",
+                    address,
+                    addressLat !== null && addressLng !== null
+                      ? { lat: addressLat, lng: addressLng }
+                      : null
+                  ) ?? "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Apple Maps"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
+                style={{ backgroundColor: "#1d1d1f" }}
+              >
+                A
+              </a>
+              <a
+                href={
+                  buildMapUrl(
+                    "waze",
+                    address,
+                    addressLat !== null && addressLng !== null
+                      ? { lat: addressLat, lng: addressLng }
+                      : null
+                  ) ?? "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Waze"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
+                style={{ backgroundColor: "#33ccff" }}
+              >
+                W
+              </a>
+            </div>
+          )}
         </div>
         <Divider />
 
