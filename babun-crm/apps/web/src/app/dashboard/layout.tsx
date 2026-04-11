@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import {
@@ -400,8 +399,8 @@ export default function DashboardLayout({
     saveRequiredFields(next);
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    // No backend auth yet — just return to the login screen.
     router.push("/login");
   };
 

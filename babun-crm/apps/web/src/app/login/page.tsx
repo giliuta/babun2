@@ -1,39 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Prototype phase: no real auth backend yet. Any submission opens the
+  // dashboard — data is in localStorage and scoped to the device.
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      setError(authError.message === "Invalid login credentials"
-        ? "Неверный email или пароль"
-        : authError.message);
-      setLoading(false);
-      return;
-    }
-
-    // Bootstrap profile if needed
-    await supabase.rpc("bootstrap_profile");
-
     router.push("/dashboard");
   };
+
+  const error = "";
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
