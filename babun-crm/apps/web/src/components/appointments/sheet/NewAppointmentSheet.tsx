@@ -21,7 +21,8 @@ import {
 import { generateId } from "@/lib/masters";
 import ClientPickerSheet from "./ClientPickerSheet";
 import ServicePickerSheet from "./ServicePickerSheet";
-import TimePickerSheet from "./TimePickerSheet";
+import DateWheelModal from "./DateWheelModal";
+import TimeWheelModal from "./TimeWheelModal";
 import TeamPickerSheet from "./TeamPickerSheet";
 import FinanceSheet from "./FinanceSheet";
 
@@ -37,16 +38,16 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function formatWhen(dateStr: string): string {
+function formatDateFull(dateStr: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T00:00:00");
   if (isNaN(d.getTime())) return dateStr;
   const months = [
-    "янв", "фев", "мар", "апр", "май", "июн",
-    "июл", "авг", "сен", "окт", "ноя", "дек",
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
   ];
-  const dow = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
-  return `${dow[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+  const dow = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г. (${dow[d.getDay()]})`;
 }
 
 function timeDiffMinutes(start: string, end: string): number {
@@ -118,7 +119,8 @@ export default function NewAppointmentSheet({
     initial.service_price_overrides ?? {}
   );
 
-  const [timeSheet, setTimeSheet] = useState(false);
+  const [dateModal, setDateModal] = useState(false);
+  const [timeModal, setTimeModal] = useState(false);
   const [clientSheet, setClientSheet] = useState(false);
   const [serviceSheet, setServiceSheet] = useState(false);
   const [teamSheetOpen, setTeamSheetOpen] = useState(false);
@@ -337,11 +339,11 @@ export default function NewAppointmentSheet({
         className="flex-1 overflow-y-auto bg-white"
         style={{ paddingBottom: "5rem" }}
       >
-        {/* Когда */}
-        <Label>Когда</Label>
+        {/* Дата */}
+        <Label>Дата</Label>
         <button
           type="button"
-          onClick={() => setTimeSheet(true)}
+          onClick={() => setDateModal(true)}
           className="w-full flex items-center gap-3 px-4 py-1.5 active:bg-gray-50"
         >
           <IconSquare color="#7c3aed">
@@ -352,12 +354,30 @@ export default function NewAppointmentSheet({
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
           </IconSquare>
+          <div className="flex-1 min-w-0 text-left text-[13px] font-medium text-gray-900 truncate">
+            {formatDateFull(date)}
+          </div>
+        </button>
+        <Divider />
+
+        {/* Время */}
+        <Label>Время</Label>
+        <button
+          type="button"
+          onClick={() => setTimeModal(true)}
+          className="w-full flex items-center gap-3 px-4 py-1.5 active:bg-gray-50"
+        >
+          <IconSquare color="#7c3aed">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </IconSquare>
           <div className="flex-1 min-w-0 text-left text-[13px] text-gray-900">
-            <span className="font-medium">{formatWhen(date)}</span>
-            <span className="text-gray-400"> · </span>
-            <span className="tabular-nums font-medium">{timeStart}</span>
-            <span className="text-gray-400"> → </span>
-            <span className="tabular-nums font-medium">{timeEnd}</span>
+            <span className="text-gray-500">с </span>
+            <span className="font-medium tabular-nums">{timeStart}</span>
+            <span className="text-gray-500"> до </span>
+            <span className="font-medium tabular-nums">{timeEnd}</span>
           </div>
         </button>
         <Divider />
@@ -613,16 +633,18 @@ export default function NewAppointmentSheet({
       </button>
 
       {/* Sheets */}
-      <TimePickerSheet
-        open={timeSheet}
-        onClose={() => setTimeSheet(false)}
-        date={date}
-        timeStart={timeStart}
-        durationMinutes={effectiveDuration}
-        onConfirm={(next) => {
-          setDate(next.date);
-          setTimeStart(next.timeStart);
-        }}
+      <DateWheelModal
+        open={dateModal}
+        onClose={() => setDateModal(false)}
+        value={date}
+        onConfirm={(next) => setDate(next)}
+      />
+
+      <TimeWheelModal
+        open={timeModal}
+        onClose={() => setTimeModal(false)}
+        value={timeStart}
+        onConfirm={(next) => setTimeStart(next)}
       />
 
       <ClientPickerSheet
