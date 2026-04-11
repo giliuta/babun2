@@ -248,10 +248,8 @@ export default function NewAppointmentSheet({
           </button>
 
           {/* CLIENT card */}
-          <button
-            type="button"
-            onClick={() => setClientSheet(true)}
-            className={`w-full bg-white rounded-2xl border p-4 flex items-center gap-3 active:bg-gray-50 transition ${
+          <div
+            className={`w-full bg-white rounded-2xl border flex items-stretch transition ${
               savePulse === "client"
                 ? "border-red-400 animate-pulse"
                 : selectedClient
@@ -259,38 +257,58 @@ export default function NewAppointmentSheet({
                   : "border-dashed border-gray-300"
             }`}
           >
-            {selectedClient ? (
-              <div className="w-11 h-11 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-base">
-                {initials(selectedClient.full_name)}
-              </div>
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center text-xl">
-                👤
-              </div>
-            )}
-            <div className="flex-1 min-w-0 text-left">
-              <div className="text-xs text-gray-500">Клиент</div>
+            <button
+              type="button"
+              onClick={() => setClientSheet(true)}
+              className="flex-1 min-w-0 p-4 flex items-center gap-3 text-left active:bg-gray-50 rounded-l-2xl"
+            >
               {selectedClient ? (
-                <>
-                  <div className="text-base font-semibold text-gray-900 truncate">
-                    {selectedClient.full_name}
-                  </div>
-                  {selectedClient.phone && (
-                    <div className="text-xs text-gray-500 truncate">
-                      {selectedClient.phone}
-                    </div>
-                  )}
-                </>
+                <div className="w-11 h-11 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-base flex-shrink-0">
+                  {initials(selectedClient.full_name)}
+                </div>
               ) : (
-                <div className="text-base font-semibold text-gray-400">
-                  Выбрать клиента
+                <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center text-xl flex-shrink-0">
+                  👤
                 </div>
               )}
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-gray-500">Клиент</div>
+                {selectedClient ? (
+                  <>
+                    <div className="text-base font-semibold text-gray-900 truncate">
+                      {selectedClient.full_name}
+                    </div>
+                    {selectedClient.phone && (
+                      <div className="text-xs text-gray-500 truncate">
+                        {selectedClient.phone}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-base font-semibold text-gray-400">
+                    Выбрать клиента
+                  </div>
+                )}
+              </div>
+              {!selectedClient?.phone && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 flex-shrink-0">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              )}
+            </button>
+            {selectedClient?.phone && (
+              <a
+                href={`tel:${selectedClient.phone.replace(/\s+/g, "")}`}
+                aria-label="Позвонить"
+                className="flex-shrink-0 w-14 flex items-center justify-center border-l border-gray-200 text-emerald-600 active:bg-emerald-50 rounded-r-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+              </a>
+            )}
+          </div>
 
           {/* SERVICE card */}
           <button
