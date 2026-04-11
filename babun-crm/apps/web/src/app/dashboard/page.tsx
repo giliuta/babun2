@@ -22,6 +22,7 @@ import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
+import CityPickerModal from "@/components/calendar/CityPickerModal";
 import {
   loadDraftClients,
   type DraftClient,
@@ -34,6 +35,7 @@ import {
   useFormSettings,
   useServices,
   useClients,
+  useDayCities,
 } from "./layout";
 
 const HOUR_HEIGHT_MIN = 24;
@@ -42,7 +44,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v28-wheels";
+const BUILD_TAG = "v29-day-cities";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -62,6 +64,7 @@ export default function DashboardPage() {
   const sidebar = useSidebar();
   const { schedules } = useSchedules();
   const { teams } = useTeams();
+  const { getCityFor, setCityFor } = useDayCities();
   const { appointments, upsertAppointment } = useAppointments();
   const { requiredFields } = useFormSettings();
   const { services } = useServices();
@@ -453,6 +456,33 @@ export default function DashboardPage() {
     [appointments, upsertAppointment]
   );
 
+  // City picker state for the tapped day
+  const [cityPickerDateKey, setCityPickerDateKey] = useState<string | null>(null);
+  const activeTeam = teams.find((t) => t.id === activeTeamId);
+  const teamDefaultCity = activeTeam?.default_city ?? "";
+
+  const cityForDate = useCallback(
+    (dateKey: string) => getCityFor(activeTeamId || null, dateKey, teamDefaultCity),
+    [getCityFor, activeTeamId, teamDefaultCity]
+  );
+
+  const handleCityTap = useCallback((dateKey: string) => {
+    setCityPickerDateKey(dateKey);
+  }, []);
+
+  const handleCityPick = useCallback(
+    (city: string) => {
+      if (!activeTeamId || !cityPickerDateKey) return;
+      setCityFor(activeTeamId, cityPickerDateKey, city);
+    },
+    [activeTeamId, cityPickerDateKey, setCityFor]
+  );
+
+  const handleCityReset = useCallback(() => {
+    if (!activeTeamId || !cityPickerDateKey) return;
+    setCityFor(activeTeamId, cityPickerDateKey, "");
+  }, [activeTeamId, cityPickerDateKey, setCityFor]);
+
   // Render a calendar page (without TimeGrid — that lives in the shared TimeColumn).
   const renderPage = useCallback(
     (offset: -1 | 0 | 1) => {
@@ -469,6 +499,8 @@ export default function DashboardPage() {
           validateApt={validateApt}
           viewMode={viewMode}
           schedule={activeSchedule}
+          cityForDate={cityForDate}
+          onCityTap={handleCityTap}
           onAppointmentClick={handleAppointmentClick}
           onEmptySlotClick={handleEmptySlotClick}
           dragEnabled
@@ -484,6 +516,8 @@ export default function DashboardPage() {
       services,
       validateApt,
       activeSchedule,
+      cityForDate,
+      handleCityTap,
       handleAppointmentClick,
       handleEmptySlotClick,
     ]
@@ -549,6 +583,16 @@ export default function DashboardPage() {
       >
         +
       </button>
+
+      {/* City picker modal */}
+      <CityPickerModal
+        open={cityPickerDateKey !== null}
+        onClose={() => setCityPickerDateKey(null)}
+        current={cityPickerDateKey ? cityForDate(cityPickerDateKey) : ""}
+        defaultCity={teamDefaultCity}
+        onPick={handleCityPick}
+        onReset={handleCityReset}
+      />
     </>
   );
 }

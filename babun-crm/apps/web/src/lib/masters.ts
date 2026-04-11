@@ -41,6 +41,7 @@ export interface Team {
   name: string;
   region: string;
   color: string; // hex
+  default_city: string; // Базовый город бригады — используется как дефолт для дней
   lead_id: string | null;
   helper_ids: string[];
   active: boolean;
@@ -254,6 +255,7 @@ export const DEFAULT_TEAMS: Team[] = [
     name: "Y&D",
     region: "Пафос, Лимассол",
     color: "#3b82f6",
+    default_city: "Пафос",
     lead_id: "m-yura",
     helper_ids: ["m-danya-yd"],
     active: true,
@@ -264,6 +266,7 @@ export const DEFAULT_TEAMS: Team[] = [
     name: "D&K",
     region: "Ларнака, Никосия",
     color: "#10b981",
+    default_city: "Ларнака",
     lead_id: "m-danya-dk",
     helper_ids: ["m-kolya"],
     active: true,
@@ -303,7 +306,15 @@ export function loadTeams(): Team[] {
     const raw = window.localStorage.getItem(TEAMS_KEY);
     if (!raw) return DEFAULT_TEAMS;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TEAMS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_TEAMS;
+    // Migrate records written before default_city was added: fall back to
+    // the first token of the region string.
+    return parsed.map((t: Partial<Team>) => ({
+      ...t,
+      default_city:
+        t.default_city ??
+        (t.region ? t.region.split(/[,/]/)[0].trim() : ""),
+    })) as Team[];
   } catch {
     return DEFAULT_TEAMS;
   }

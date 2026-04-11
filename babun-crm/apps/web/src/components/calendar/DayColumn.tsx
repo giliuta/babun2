@@ -31,6 +31,8 @@ interface DayColumnProps {
   validateApt: (apt: Appointment) => ValidationResult;
   currentTimeMinutes: number;
   schedule?: TeamSchedule;
+  cityLabel?: string; // "Пафос" | "Лимассол" etc — shown under day header
+  onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   dragEnabled?: boolean;
@@ -50,6 +52,8 @@ function DayColumnInner({
   validateApt,
   currentTimeMinutes,
   schedule = DEFAULT_SCHEDULE,
+  cityLabel,
+  onCityTap,
   onAppointmentClick,
   onEmptySlotClick,
   dragEnabled = false,
@@ -107,10 +111,10 @@ function DayColumnInner({
   };
 
   return (
-    <div className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0 overflow-x-clip">
+    <div className="flex-1 min-w-0 border-r-2 border-gray-200 last:border-r-0 overflow-x-clip">
       {/* Day header */}
       <div
-        className={`sticky top-0 z-20 h-[52px] lg:h-[72px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
+        className={`sticky top-0 z-20 h-[62px] lg:h-[82px] border-b border-gray-200 px-1 lg:px-2 py-1 lg:py-2 text-center ${
           isToday ? "bg-green-50" : "bg-white"
         }`}
       >
@@ -122,7 +126,7 @@ function DayColumnInner({
         >
           {date.getDate()}
         </div>
-        <div className="flex items-center justify-center gap-0.5">
+        <div className="flex items-center justify-center gap-0.5 leading-none">
           <span
             className={`text-[10px] lg:text-xs font-medium ${
               isToday ? "text-green-600" : "text-gray-500"
@@ -136,6 +140,18 @@ function DayColumnInner({
             </span>
           )}
         </div>
+        {cityLabel && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCityTap?.(dateKey);
+            }}
+            className="mt-0.5 block w-full text-[8px] lg:text-[10px] font-semibold text-indigo-600 truncate active:text-indigo-800"
+          >
+            {cityLabel}
+          </button>
+        )}
       </div>
 
       {/* Time slots — total height is 24×hourHeight via CSS var. Hour grid

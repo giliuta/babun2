@@ -54,6 +54,13 @@ import {
   saveExpenseCategories,
   type ExpenseCategory,
 } from "@/lib/expense-categories";
+import {
+  loadDayCities,
+  saveDayCities,
+  setDayCity,
+  getDayCity,
+  type DayCityMap,
+} from "@/lib/day-cities";
 
 interface SidebarContextValue {
   open: () => void;
@@ -203,6 +210,20 @@ export function useExpenseCategories() {
   return ctx;
 }
 
+interface DayCitiesContextValue {
+  dayCities: DayCityMap;
+  setCityFor: (teamId: string, dateKey: string, city: string) => void;
+  getCityFor: (teamId: string | null, dateKey: string, teamDefault: string) => string;
+}
+
+const DayCitiesContext = createContext<DayCitiesContextValue | null>(null);
+
+export function useDayCities() {
+  const ctx = useContext(DayCitiesContext);
+  if (!ctx) throw new Error("useDayCities must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -220,6 +241,7 @@ export default function DashboardLayout({
   const [clientTags, setClientTagsState] = useState<ClientTag[]>([]);
   const [smsTemplates, setSmsTemplatesState] = useState<SmsTemplate[]>([]);
   const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
+  const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -248,6 +270,7 @@ export default function DashboardLayout({
     setClientTagsState(loadClientTags());
     setSmsTemplatesState(loadTemplates());
     setExpenseCategoriesState(loadExpenseCategories());
+    setDayCitiesState(loadDayCities());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
   }, []);
@@ -477,6 +500,31 @@ export default function DashboardLayout({
     setCategories: handleExpenseCategoriesChange,
   };
 
+  const handleSetCityFor = useCallback(
+    (teamId: string, dateKey: string, city: string) => {
+      setDayCitiesState((prev) => {
+        const next = setDayCity(prev, teamId, dateKey, city);
+        saveDayCities(next);
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleGetCityFor = useCallback(
+    (teamId: string | null, dateKey: string, teamDefault: string): string => {
+      const assigned = getDayCity(dayCities, teamId, dateKey);
+      return assigned || teamDefault;
+    },
+    [dayCities]
+  );
+
+  const dayCitiesValue: DayCitiesContextValue = {
+    dayCities,
+    setCityFor: handleSetCityFor,
+    getCityFor: handleGetCityFor,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
@@ -487,6 +535,7 @@ export default function DashboardLayout({
       <ClientsContext.Provider value={clientsValue}>
       <SmsTemplatesContext.Provider value={smsTemplatesValue}>
       <ExpenseCategoriesContext.Provider value={expenseCategoriesValue}>
+      <DayCitiesContext.Provider value={dayCitiesValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -512,6 +561,7 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </DayCitiesContext.Provider>
       </ExpenseCategoriesContext.Provider>
       </SmsTemplatesContext.Provider>
       </ClientsContext.Provider>

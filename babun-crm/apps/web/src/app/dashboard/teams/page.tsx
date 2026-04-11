@@ -252,6 +252,7 @@ function TeamFormModal({
 }) {
   const [name, setName] = useState(team?.name ?? "");
   const [region, setRegion] = useState(team?.region ?? "");
+  const [defaultCity, setDefaultCity] = useState(team?.default_city ?? "");
   const [color, setColor] = useState(team?.color ?? TEAM_COLORS[0].value);
   const [leadId, setLeadId] = useState<string | null>(team?.lead_id ?? null);
   const [helperIds, setHelperIds] = useState<string[]>(team?.helper_ids ?? []);
@@ -301,6 +302,7 @@ function TeamFormModal({
       id: team?.id ?? generateId("team"),
       name: name.trim(),
       region: region.trim(),
+      default_city: defaultCity.trim(),
       color,
       lead_id: leadId,
       helper_ids: helperIds,
@@ -351,6 +353,24 @@ function TeamFormModal({
               placeholder="Например: Пафос, Лимассол"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+          </div>
+
+          {/* Default city */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              Базовый город
+            </label>
+            <input
+              type="text"
+              value={defaultCity}
+              onChange={(e) => setDefaultCity(e.target.value)}
+              placeholder="Например: Пафос"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <div className="text-[11px] text-gray-400 mt-1">
+              Ставится дефолтом на каждый день в календаре. Можно переопределить
+              тапом по дню.
+            </div>
           </div>
 
           {/* Color */}

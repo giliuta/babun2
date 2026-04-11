@@ -18,6 +18,8 @@ interface WeekViewProps {
   validateApt: (apt: Appointment) => ValidationResult;
   viewMode?: ViewMode;
   schedule?: TeamSchedule;
+  cityForDate?: (dateKey: string) => string;
+  onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   dragEnabled?: boolean;
@@ -31,6 +33,8 @@ export default function WeekView({
   validateApt,
   viewMode = "week",
   schedule = DEFAULT_SCHEDULE,
+  cityForDate,
+  onCityTap,
   onAppointmentClick,
   onEmptySlotClick,
   dragEnabled = false,
@@ -58,22 +62,27 @@ export default function WeekView({
 
   return (
     <div className="flex w-full">
-      {visibleDates.map((date) => (
-        <DayColumn
-          key={date.toISOString()}
-          date={date}
-          today={now}
-          appointments={appointments}
-          clientsById={clientsById}
-          services={services}
-          validateApt={validateApt}
-          currentTimeMinutes={currentTimeMinutes}
-          schedule={schedule}
-          onAppointmentClick={onAppointmentClick}
-          onEmptySlotClick={onEmptySlotClick}
-          dragEnabled={dragEnabled}
-        />
-      ))}
+      {visibleDates.map((date) => {
+        const dateKey = date.toISOString().slice(0, 10);
+        return (
+          <DayColumn
+            key={date.toISOString()}
+            date={date}
+            today={now}
+            appointments={appointments}
+            clientsById={clientsById}
+            services={services}
+            validateApt={validateApt}
+            currentTimeMinutes={currentTimeMinutes}
+            schedule={schedule}
+            cityLabel={cityForDate?.(dateKey) ?? ""}
+            onCityTap={onCityTap}
+            onAppointmentClick={onAppointmentClick}
+            onEmptySlotClick={onEmptySlotClick}
+            dragEnabled={dragEnabled}
+          />
+        );
+      })}
     </div>
   );
 }
