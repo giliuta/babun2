@@ -7,13 +7,17 @@ import {
   useAppointments,
   useFormSettings,
   useTeams,
+  useServices,
+  useClients,
 } from "@/app/dashboard/layout";
 import {
   type Appointment,
   type AppointmentStatus,
+  type AppointmentPhoto,
   type Payment,
   type PaymentMethod,
   createPayment,
+  duplicateAppointment,
   getPaidAmount,
   getDebtAmount,
   isFullyPaid,
@@ -21,12 +25,8 @@ import {
   PAYMENT_METHOD_LABELS,
   STATUS_LABELS,
 } from "@/lib/appointments";
-import {
-  MOCK_CLIENTS,
-  MOCK_SERVICES,
-  type MockClient,
-  type MockService,
-} from "@/lib/mock-data";
+import type { Service } from "@/lib/services";
+import type { Client } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
 import { getDayNameShort } from "@/lib/date-utils";
 
@@ -98,6 +98,8 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
   const { upsertAppointment, deleteAppointment } = useAppointments();
   const { fieldVisibility, requiredFields } = useFormSettings();
   const { teams } = useTeams();
+  const { services } = useServices();
+  const { clients } = useClients();
 
   // Local form state
   const [date, setDate] = useState(initial.date);
@@ -114,6 +116,7 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
   const [comment, setComment] = useState(initial.comment);
   const [address, setAddress] = useState(initial.address);
   const [status, setStatus] = useState<AppointmentStatus>(initial.status);
+  const [photos, setPhotos] = useState<AppointmentPhoto[]>(initial.photos ?? []);
 
   // Draft clients (loaded from localStorage)
   const [draftClients, setDraftClients] = useState<DraftClient[]>([]);
@@ -129,21 +132,21 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
     }
   }, [teamId, teams]);
 
-  const allClients = useMemo<(MockClient | DraftClient)[]>(() => {
-    return [...MOCK_CLIENTS, ...draftClients];
-  }, [draftClients]);
+  const allClients = useMemo<(Client | DraftClient)[]>(() => {
+    return [...clients, ...draftClients];
+  }, [clients, draftClients]);
 
   const selectedClient = useMemo(
     () => allClients.find((c) => c.id === clientId) ?? null,
     [allClients, clientId]
   );
 
-  const selectedServices = useMemo<MockService[]>(
+  const selectedServices = useMemo<Service[]>(
     () =>
       serviceIds
-        .map((id) => MOCK_SERVICES.find((s) => s.id === id))
-        .filter((s): s is MockService => Boolean(s)),
-    [serviceIds]
+        .map((id) => services.find((s) => s.id === id))
+        .filter((s): s is Service => Boolean(s)),
+    [serviceIds, services]
   );
 
   // Auto calculate end time from start + services duration
@@ -185,6 +188,7 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
       comment,
       address,
       status,
+      photos,
     }),
     [
       initial,
@@ -201,6 +205,7 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
       comment,
       address,
       status,
+      photos,
     ]
   );
 
@@ -238,6 +243,29 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
     };
     upsertAppointment(apt);
     router.push("/dashboard");
+  };
+
+  const handleDuplicate = () => {
+    const copy = duplicateAppointment(liveAppointment);
+    upsertAppointment(copy);
+    router.push(`/dashboard/appointment/${copy.id}`);
+  };
+
+  const handleAddPhoto = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setPhotos((prev) => [
+        ...prev,
+        {
+          id: generateId("ph"),
+          data_url: dataUrl,
+          caption: "",
+          uploaded_at: new Date().toISOString(),
+        },
+      ]);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Void helpers to silence unused-value warnings for getPaidAmount/getDebtAmount/isFullyPaid
@@ -349,6 +377,7 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
               <span>Услуги</span>
             </div>
             <ServicesPicker
+              allServices={services}
               selectedIds={serviceIds}
               onChange={(ids) => {
                 setServiceIds(ids);
@@ -480,6 +509,46 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
             </section>
           )}
 
+          {/* F2. Фото */}
+          <section className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span>📷</span>
+              <span>Фото ({photos.length})</span>
+            </div>
+            <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+              {photos.map((ph) => (
+                <div key={ph.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ph.data_url} alt={ph.caption} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPhotos((prev) => prev.filter((p) => p.id !== ph.id))}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100"
+                    aria-label="Удалить фото"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 text-gray-400 hover:text-indigo-500">
+                <span className="text-2xl">+</span>
+                <span className="text-[10px] mt-0.5">Фото</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    files.forEach(handleAddPhoto);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          </section>
+
           {/* G. Оплата */}
           {(fieldVisibility.show_payments || fieldVisibility.show_prepaid) && (
             <section className="bg-white rounded-xl border border-gray-200 p-4">
@@ -605,9 +674,16 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
             </div>
           </section>
 
-          {/* Delete button (edit mode only) */}
+          {/* Actions (edit mode only) */}
           {mode === "edit" && (
             <div className="flex flex-col gap-2 pt-4">
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                className="w-full min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200"
+              >
+                📋 Дублировать запись
+              </button>
               <button
                 type="button"
                 onClick={handleQuickCancel}
@@ -651,7 +727,7 @@ export default function AppointmentForm({ initial, mode }: AppointmentFormProps)
 // ─── Client picker ──────────────────────────────────────────────────────
 
 interface ClientPickerProps {
-  clients: (MockClient | DraftClient)[];
+  clients: (Client | DraftClient)[];
   selectedClientId: string | null;
   onSelect: (id: string) => void;
   onCreate: (name: string, phone: string) => void;
@@ -810,19 +886,20 @@ function ClientPicker({
 // ─── Services picker ────────────────────────────────────────────────────
 
 interface ServicesPickerProps {
+  allServices: Service[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
 }
 
-function ServicesPicker({ selectedIds, onChange }: ServicesPickerProps) {
+function ServicesPicker({ allServices, selectedIds, onChange }: ServicesPickerProps) {
   const [open, setOpen] = useState(false);
 
-  const selected = useMemo<MockService[]>(
+  const selected = useMemo<Service[]>(
     () =>
       selectedIds
-        .map((id) => MOCK_SERVICES.find((s) => s.id === id))
-        .filter((s): s is MockService => Boolean(s)),
-    [selectedIds]
+        .map((id) => allServices.find((s) => s.id === id))
+        .filter((s): s is Service => Boolean(s)),
+    [selectedIds, allServices]
   );
 
   const total = selected.reduce((sum, s) => sum + s.price, 0);
@@ -871,6 +948,7 @@ function ServicesPicker({ selectedIds, onChange }: ServicesPickerProps) {
 
       {open && (
         <ServicesSheet
+          allServices={allServices}
           selectedIds={selectedIds}
           onClose={() => setOpen(false)}
           onSave={(ids) => {
@@ -884,12 +962,13 @@ function ServicesPicker({ selectedIds, onChange }: ServicesPickerProps) {
 }
 
 interface ServicesSheetProps {
+  allServices: Service[];
   selectedIds: string[];
   onClose: () => void;
   onSave: (ids: string[]) => void;
 }
 
-function ServicesSheet({ selectedIds, onClose, onSave }: ServicesSheetProps) {
+function ServicesSheet({ allServices, selectedIds, onClose, onSave }: ServicesSheetProps) {
   const [local, setLocal] = useState<string[]>(selectedIds);
 
   const toggle = (id: string) => {
@@ -913,7 +992,7 @@ function ServicesSheet({ selectedIds, onClose, onSave }: ServicesSheetProps) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          {MOCK_SERVICES.map((s) => {
+          {allServices.filter((s) => s.is_active).map((s) => {
             const checked = local.includes(s.id);
             return (
               <button

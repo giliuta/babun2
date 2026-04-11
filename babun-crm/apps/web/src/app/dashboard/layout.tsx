@@ -29,6 +29,32 @@ import {
   type FormFieldVisibility,
   type RequiredFields,
 } from "@/lib/appointments";
+import {
+  loadServices,
+  saveServices,
+  loadCategories,
+  saveCategories,
+  type Service,
+  type ServiceCategory,
+} from "@/lib/services";
+import {
+  loadClients,
+  saveClients,
+  loadClientTags,
+  saveClientTags,
+  type Client,
+  type ClientTag,
+} from "@/lib/clients";
+import {
+  loadTemplates,
+  saveTemplates,
+  type SmsTemplate,
+} from "@/lib/sms-templates";
+import {
+  loadExpenseCategories,
+  saveExpenseCategories,
+  type ExpenseCategory,
+} from "@/lib/expense-categories";
 
 interface SidebarContextValue {
   open: () => void;
@@ -117,6 +143,67 @@ export function useFormSettings() {
   return ctx;
 }
 
+interface ServicesContextValue {
+  services: Service[];
+  setServices: (next: Service[]) => void;
+  upsertService: (svc: Service) => void;
+  deleteService: (id: string) => void;
+  categories: ServiceCategory[];
+  setCategories: (next: ServiceCategory[]) => void;
+}
+
+const ServicesContext = createContext<ServicesContextValue | null>(null);
+
+export function useServices() {
+  const ctx = useContext(ServicesContext);
+  if (!ctx) throw new Error("useServices must be used within DashboardLayout");
+  return ctx;
+}
+
+interface ClientsContextValue {
+  clients: Client[];
+  setClients: (next: Client[]) => void;
+  upsertClient: (c: Client) => void;
+  deleteClient: (id: string) => void;
+  tags: ClientTag[];
+  setTags: (next: ClientTag[]) => void;
+}
+
+const ClientsContext = createContext<ClientsContextValue | null>(null);
+
+export function useClients() {
+  const ctx = useContext(ClientsContext);
+  if (!ctx) throw new Error("useClients must be used within DashboardLayout");
+  return ctx;
+}
+
+interface SmsTemplatesContextValue {
+  templates: SmsTemplate[];
+  setTemplates: (next: SmsTemplate[]) => void;
+  upsertTemplate: (tpl: SmsTemplate) => void;
+}
+
+const SmsTemplatesContext = createContext<SmsTemplatesContextValue | null>(null);
+
+export function useSmsTemplates() {
+  const ctx = useContext(SmsTemplatesContext);
+  if (!ctx) throw new Error("useSmsTemplates must be used within DashboardLayout");
+  return ctx;
+}
+
+interface ExpenseCategoriesContextValue {
+  categories: ExpenseCategory[];
+  setCategories: (next: ExpenseCategory[]) => void;
+}
+
+const ExpenseCategoriesContext = createContext<ExpenseCategoriesContextValue | null>(null);
+
+export function useExpenseCategories() {
+  const ctx = useContext(ExpenseCategoriesContext);
+  if (!ctx) throw new Error("useExpenseCategories must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -128,6 +215,12 @@ export default function DashboardLayout({
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);
   const [appointments, setAppointmentsState] = useState<Appointment[]>([]);
+  const [services, setServicesState] = useState<Service[]>([]);
+  const [serviceCategories, setServiceCategoriesState] = useState<ServiceCategory[]>([]);
+  const [clients, setClientsState] = useState<Client[]>([]);
+  const [clientTags, setClientTagsState] = useState<ClientTag[]>([]);
+  const [smsTemplates, setSmsTemplatesState] = useState<SmsTemplate[]>([]);
+  const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -150,6 +243,12 @@ export default function DashboardLayout({
     setMastersState(loadMasters());
     setTeamsState(loadTeams());
     setAppointmentsState(loadAppointments());
+    setServicesState(loadServices());
+    setServiceCategoriesState(loadCategories());
+    setClientsState(loadClients());
+    setClientTagsState(loadClientTags());
+    setSmsTemplatesState(loadTemplates());
+    setExpenseCategoriesState(loadExpenseCategories());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
   }, []);
@@ -225,6 +324,72 @@ export default function DashboardLayout({
     [appointments]
   );
 
+  const handleServicesChange = useCallback((next: Service[]) => {
+    setServicesState(next);
+    saveServices(next);
+  }, []);
+  const upsertService = useCallback((svc: Service) => {
+    setServicesState((prev) => {
+      const idx = prev.findIndex((s) => s.id === svc.id);
+      const next = idx >= 0 ? prev.map((s, i) => (i === idx ? svc : s)) : [...prev, svc];
+      saveServices(next);
+      return next;
+    });
+  }, []);
+  const deleteService = useCallback((id: string) => {
+    setServicesState((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      saveServices(next);
+      return next;
+    });
+  }, []);
+  const handleServiceCategoriesChange = useCallback((next: ServiceCategory[]) => {
+    setServiceCategoriesState(next);
+    saveCategories(next);
+  }, []);
+
+  const handleClientsChange = useCallback((next: Client[]) => {
+    setClientsState(next);
+    saveClients(next);
+  }, []);
+  const upsertClient = useCallback((client: Client) => {
+    setClientsState((prev) => {
+      const idx = prev.findIndex((c) => c.id === client.id);
+      const next = idx >= 0 ? prev.map((c, i) => (i === idx ? client : c)) : [...prev, client];
+      saveClients(next);
+      return next;
+    });
+  }, []);
+  const deleteClient = useCallback((id: string) => {
+    setClientsState((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      saveClients(next);
+      return next;
+    });
+  }, []);
+  const handleClientTagsChange = useCallback((next: ClientTag[]) => {
+    setClientTagsState(next);
+    saveClientTags(next);
+  }, []);
+
+  const handleSmsTemplatesChange = useCallback((next: SmsTemplate[]) => {
+    setSmsTemplatesState(next);
+    saveTemplates(next);
+  }, []);
+  const upsertSmsTemplate = useCallback((tpl: SmsTemplate) => {
+    setSmsTemplatesState((prev) => {
+      const idx = prev.findIndex((t) => t.id === tpl.id);
+      const next = idx >= 0 ? prev.map((t, i) => (i === idx ? tpl : t)) : [...prev, tpl];
+      saveTemplates(next);
+      return next;
+    });
+  }, []);
+
+  const handleExpenseCategoriesChange = useCallback((next: ExpenseCategory[]) => {
+    setExpenseCategoriesState(next);
+    saveExpenseCategories(next);
+  }, []);
+
   const handleFieldVisibilityChange = useCallback((next: FormFieldVisibility) => {
     setFieldVisibilityState(next);
     saveFieldVisibility(next);
@@ -284,12 +449,45 @@ export default function DashboardLayout({
     setRequiredFields: handleRequiredFieldsChange,
   };
 
+  const servicesValue: ServicesContextValue = {
+    services,
+    setServices: handleServicesChange,
+    upsertService,
+    deleteService,
+    categories: serviceCategories,
+    setCategories: handleServiceCategoriesChange,
+  };
+
+  const clientsValue: ClientsContextValue = {
+    clients,
+    setClients: handleClientsChange,
+    upsertClient,
+    deleteClient,
+    tags: clientTags,
+    setTags: handleClientTagsChange,
+  };
+
+  const smsTemplatesValue: SmsTemplatesContextValue = {
+    templates: smsTemplates,
+    setTemplates: handleSmsTemplatesChange,
+    upsertTemplate: upsertSmsTemplate,
+  };
+
+  const expenseCategoriesValue: ExpenseCategoriesContextValue = {
+    categories: expenseCategories,
+    setCategories: handleExpenseCategoriesChange,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
       <TeamsContext.Provider value={teamsValue}>
       <AppointmentsContext.Provider value={appointmentsValue}>
       <FormSettingsContext.Provider value={formSettingsValue}>
+      <ServicesContext.Provider value={servicesValue}>
+      <ClientsContext.Provider value={clientsValue}>
+      <SmsTemplatesContext.Provider value={smsTemplatesValue}>
+      <ExpenseCategoriesContext.Provider value={expenseCategoriesValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -315,6 +513,10 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </ExpenseCategoriesContext.Provider>
+      </SmsTemplatesContext.Provider>
+      </ClientsContext.Provider>
+      </ServicesContext.Provider>
       </FormSettingsContext.Provider>
       </AppointmentsContext.Provider>
       </TeamsContext.Provider>

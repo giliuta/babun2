@@ -20,6 +20,15 @@ export interface Payment {
   paid_at: string; // ISO date
 }
 
+export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
+
+export interface AppointmentPhoto {
+  id: string;
+  data_url: string; // base64 — works without Supabase storage for now
+  caption: string;
+  uploaded_at: string;
+}
+
 export interface Appointment {
   id: string;
   date: string; // YYYY-MM-DD
@@ -42,7 +51,11 @@ export interface Appointment {
   address_lat: number | null;
   address_lng: number | null;
 
-  source: string | null; // 'instagram' | 'whatsapp' | ... (TODO позже)
+  source: string | null; // 'instagram' | 'whatsapp' | 'online' | null
+  is_online_booking: boolean; // true — клиент записался сам через онлайн-форму
+  kind: AppointmentKind; // 'event' / 'personal' = не услуга, а личное событие
+  photos: AppointmentPhoto[]; // фото до/после работы
+
   reminder_enabled: boolean; // (TODO позже)
 
   status: AppointmentStatus;
@@ -215,27 +228,33 @@ export type AppointmentColorKind =
   | "debt" // orange — долг
   | "incomplete" // yellow — не хватает данных
   | "cancelled" // red — отменена
-  | "in_progress"; // purple — в работе
+  | "in_progress" // purple — в работе
+  | "online" // cyan — запись через онлайн-форму
+  | "event" // slate — личное событие / перерыв
+  | "past"; // gray — запись в прошлом без статуса
 
 /**
  * Color is computed from status + payment state + validation.
  *
  * Priority:
  *   1. cancelled → red
- *   2. debt > 0 → orange (debt color overrides everything else when there's an unpaid balance)
- *   3. completed → green
- *   4. in_progress → purple
- *   5. scheduled but missing required fields → yellow
- *   6. scheduled clean → blue
+ *   2. event/personal kind → slate
+ *   3. debt > 0 → orange
+ *   4. completed → green
+ *   5. in_progress → purple
+ *   6. online booking (not yet started) → cyan
+ *   7. past scheduled (date < today, still scheduled) → gray
+ *   8. scheduled + missing required → yellow
+ *   9. scheduled clean → blue
  */
 export function getAppointmentColorKind(
   apt: Appointment,
-  validation: ValidationResult
+  validation: ValidationResult,
+  now: Date = new Date()
 ): AppointmentColorKind {
   if (apt.status === "cancelled") return "cancelled";
+  if (apt.kind === "event" || apt.kind === "personal") return "event";
 
-  // Debt has its own color and beats other states (so even a completed
-  // appointment with leftover debt shows orange).
   if (apt.total_amount > 0 && getDebtAmount(apt) > 0 && apt.status !== "scheduled") {
     return "debt";
   }
@@ -244,6 +263,10 @@ export function getAppointmentColorKind(
   if (apt.status === "in_progress") return "in_progress";
 
   // scheduled
+  const aptDate = new Date(`${apt.date}T${apt.time_end}:00`);
+  if (aptDate.getTime() < now.getTime()) return "past";
+
+  if (apt.is_online_booking) return "online";
   if (validation.level !== "ok") return "incomplete";
   return "scheduled";
 }
@@ -284,6 +307,23 @@ export const COLOR_KIND_TAILWIND: Record<
     border: "border-purple-600",
     text: "text-white",
   },
+  online: {
+    // cyan — запись через онлайн-форму
+    bg: "bg-cyan-500",
+    border: "border-cyan-600",
+    text: "text-white",
+  },
+  event: {
+    // slate — личное событие
+    bg: "bg-slate-500",
+    border: "border-slate-700",
+    text: "text-white",
+  },
+  past: {
+    bg: "bg-gray-400",
+    border: "border-gray-500",
+    text: "text-white",
+  },
 };
 
 // ─── Factory ───────────────────────────────────────────────────────────
@@ -307,11 +347,29 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     address_lat: null,
     address_lng: null,
     source: null,
+    is_online_booking: false,
+    kind: "work",
+    photos: [],
     reminder_enabled: false,
     status: "scheduled",
     created_at: now,
     updated_at: now,
     ...overrides,
+  };
+}
+
+/** Clone an appointment with a fresh ID, blanked-out payments and scheduled status. */
+export function duplicateAppointment(apt: Appointment): Appointment {
+  const now = new Date().toISOString();
+  return {
+    ...apt,
+    id: generateId("apt"),
+    prepaid_amount: 0,
+    payments: [],
+    status: "scheduled",
+    photos: [],
+    created_at: now,
+    updated_at: now,
   };
 }
 

@@ -2,19 +2,46 @@
 
 import { useEffect } from "react";
 
-const UPDATE_CHECK_INTERVAL_MS = 60 * 1000; // check for new SW every 60s
+const UPDATE_CHECK_INTERVAL_MS = 60 * 1000;
+
+// In dev we completely unregister any existing SW and wipe caches so you
+// always see the freshest code. SW only runs in production.
+const IS_DEV =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    /^192\.168\./.test(window.location.hostname) ||
+    /^10\./.test(window.location.hostname));
 
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
+    // ── DEV MODE: kill any SW + nuke all caches, never register ──────
+    if (IS_DEV) {
+      (async () => {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const r of regs) await r.unregister();
+          if ("caches" in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+          }
+          // If a SW was actually unregistered, reload once to get fresh HTML
+          if (regs.length > 0) window.location.reload();
+        } catch {
+          // ignore
+        }
+      })();
+      return;
+    }
+
+    // ── PROD MODE: normal registration with fast updates ────────────
     let registration: ServiceWorkerRegistration | null = null;
     let interval: ReturnType<typeof setInterval> | null = null;
     let reloading = false;
 
-    // When the controller (active SW) changes, the new SW has taken over.
-    // Reload once so the page is served by the new version.
     const handleControllerChange = () => {
       if (reloading) return;
       reloading = true;
@@ -22,16 +49,13 @@ export function ServiceWorkerRegister() {
     };
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
 
-    // Tell a waiting SW to activate immediately
     const promoteWaiting = (waiting: ServiceWorker) => {
       waiting.postMessage({ type: "SKIP_WAITING" });
     };
 
-    // Watch a registration for an installing SW becoming installed (waiting)
     const trackInstalling = (sw: ServiceWorker) => {
       sw.addEventListener("statechange", () => {
         if (sw.state === "installed" && navigator.serviceWorker.controller) {
-          // A new SW is waiting and we already have an active controller — promote it
           promoteWaiting(sw);
         }
       });
@@ -44,25 +68,19 @@ export function ServiceWorkerRegister() {
           updateViaCache: "none",
         });
 
-        // If a waiting worker exists at registration time, promote it now
         if (registration.waiting && navigator.serviceWorker.controller) {
           promoteWaiting(registration.waiting);
         }
 
-        // Track installing worker (first install or update)
-        if (registration.installing) {
-          trackInstalling(registration.installing);
-        }
+        if (registration.installing) trackInstalling(registration.installing);
         registration.addEventListener("updatefound", () => {
           if (registration?.installing) trackInstalling(registration.installing);
         });
 
-        // Periodically check for updates
         interval = setInterval(() => {
           registration?.update().catch(() => {});
         }, UPDATE_CHECK_INTERVAL_MS);
 
-        // Also check when the tab becomes visible again
         const onVisibility = () => {
           if (document.visibilityState === "visible") {
             registration?.update().catch(() => {});

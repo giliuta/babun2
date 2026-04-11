@@ -126,6 +126,46 @@ export const PERMISSION_LABELS: Record<keyof Omit<MasterPermissions, "visible_te
   can_complete_appointments: "Отмечать выполненные",
 };
 
+/** Permission groups matching Bumpix "Права доступа" categories. */
+export type PermissionGroupKey = "data" | "edit" | "sections";
+
+export const PERMISSION_GROUPS: {
+  key: PermissionGroupKey;
+  title: string;
+  description: string;
+  permissions: Array<keyof Omit<MasterPermissions, "visible_team_ids">>;
+}[] = [
+  {
+    key: "data",
+    title: "Доступ к данным",
+    description: "Что мастер может видеть",
+    permissions: [
+      "see_prices",
+      "see_finances",
+      "see_clients_phone",
+      "see_clients_address",
+      "see_clients_balance",
+    ],
+  },
+  {
+    key: "edit",
+    title: "Доступ к редактированию",
+    description: "Что мастер может изменять",
+    permissions: [
+      "can_create_appointments",
+      "can_edit_appointments",
+      "can_delete_appointments",
+      "can_complete_appointments",
+    ],
+  },
+  {
+    key: "sections",
+    title: "Доступ к разделам",
+    description: "Какие разделы видны",
+    permissions: [],
+  },
+];
+
 // ─── Color palette for teams ───────────────────────────────────────────
 
 export const TEAM_COLORS = [

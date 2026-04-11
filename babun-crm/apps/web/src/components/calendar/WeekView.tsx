@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { getWeekDates, getCurrentCyprusTime } from "@/lib/date-utils";
 import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
-import type { MockClient } from "@/lib/mock-data";
+import type { Service } from "@/lib/services";
+import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/components/appointments/AppointmentForm";
 import type { ViewMode } from "@/components/layout/Header";
 import DayColumn from "./DayColumn";
@@ -12,25 +13,29 @@ import DayColumn from "./DayColumn";
 interface WeekViewProps {
   mondayDate: Date;
   appointments: Appointment[];
-  clientsById: Record<string, MockClient | DraftClient>;
+  clientsById: Record<string, Client | DraftClient>;
+  services: Service[];
   validateApt: (apt: Appointment) => ValidationResult;
   viewMode?: ViewMode;
   hourHeight?: number;
   schedule?: TeamSchedule;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
+  onAppointmentDrop?: (appointmentId: string, newDate: string, newTime: string) => void;
 }
 
 export default function WeekView({
   mondayDate,
   appointments,
   clientsById,
+  services,
   validateApt,
   viewMode = "week",
   hourHeight = 60,
   schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
+  onAppointmentDrop,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -64,12 +69,14 @@ export default function WeekView({
           today={now}
           appointments={appointments}
           clientsById={clientsById}
+          services={services}
           validateApt={validateApt}
           currentTimeMinutes={currentTimeMinutes}
           hourHeight={hourHeight}
           schedule={schedule}
           onAppointmentClick={onAppointmentClick}
           onEmptySlotClick={onEmptySlotClick}
+          onAppointmentDrop={onAppointmentDrop}
         />
       ))}
     </div>

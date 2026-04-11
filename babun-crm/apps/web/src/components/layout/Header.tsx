@@ -141,25 +141,28 @@ export default function Header({
           Сегодня
         </button>
 
-        {/* Zoom controls — hidden on mobile */}
-        <div className="hidden lg:flex items-center gap-0.5 border border-gray-200 rounded-lg overflow-hidden">
+        {/* Zoom controls */}
+        <div className="flex items-center gap-0.5 border border-white/30 lg:border-gray-200 rounded-lg overflow-hidden">
           <button
             onClick={onZoomOut}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600 text-sm"
+            className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center hover:bg-indigo-500/50 lg:hover:bg-gray-100 text-white lg:text-gray-600"
             title="Уменьшить"
+            aria-label="Уменьшить"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6 15 12 9 18 15" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
-          <div className="w-px h-5 bg-gray-200" />
+          <div className="w-px h-4 lg:h-5 bg-white/30 lg:bg-gray-200" />
           <button
             onClick={onZoomIn}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600 text-sm"
+            className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center hover:bg-indigo-500/50 lg:hover:bg-gray-100 text-white lg:text-gray-600"
             title="Увеличить"
+            aria-label="Увеличить"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6 9 12 15 18 9" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
         </div>

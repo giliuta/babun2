@@ -100,6 +100,16 @@ export default function SwipeableCalendar({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!draggingRef.current) return;
+    // Second finger landed → pinch-zoom in progress, cancel the swipe
+    if (e.touches.length > 1) {
+      draggingRef.current = false;
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      setTrackOffset(-width, true);
+      return;
+    }
     const t = e.touches[0];
     const dx = t.clientX - startXRef.current;
     const dy = t.clientY - startYRef.current;
@@ -185,11 +195,11 @@ export default function SwipeableCalendar({
   return (
     <div
       ref={containerRef}
-      className="flex-1 touch-pan-y relative"
+      className="flex-1 min-w-0 relative"
       style={{
-        width: 0,
-        minWidth: "100%",
         overflowX: "clip",
+        // pan-y allows vertical scroll AND forwards pinch gestures to JS
+        touchAction: "pan-y",
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

@@ -5,6 +5,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   PERMISSION_LABELS,
+  PERMISSION_GROUPS,
   ROLE_LABELS,
   defaultPermissionsForRole,
   generateId,
@@ -296,9 +297,7 @@ function MasterFormModal({
     onSave(nextMaster);
   };
 
-  const permissionKeys = Object.keys(PERMISSION_LABELS) as Array<
-    keyof typeof PERMISSION_LABELS
-  >;
+  void PERMISSION_LABELS;
 
   return (
     <div
@@ -398,19 +397,29 @@ function MasterFormModal({
               </svg>
             </button>
             {permsOpen && (
-              <div className="px-3 pb-3 space-y-2 border-t border-gray-100 pt-2">
-                {permissionKeys.map((key) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between"
-                  >
-                    <span className="text-sm text-gray-700">
-                      {PERMISSION_LABELS[key]}
-                    </span>
-                    <ToggleSwitch
-                      checked={permissions[key]}
-                      onChange={() => togglePermission(key)}
-                    />
+              <div className="px-3 pb-3 space-y-4 border-t border-gray-100 pt-3">
+                {PERMISSION_GROUPS.filter((g) => g.permissions.length > 0).map((group) => (
+                  <div key={group.key}>
+                    <div className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-1">
+                      {group.title}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mb-2">{group.description}</div>
+                    <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+                      {group.permissions.map((key) => (
+                        <div
+                          key={key}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm text-gray-700">
+                            {PERMISSION_LABELS[key]}
+                          </span>
+                          <ToggleSwitch
+                            checked={permissions[key]}
+                            onChange={() => togglePermission(key)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
 

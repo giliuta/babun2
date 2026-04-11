@@ -6,10 +6,17 @@ import {
   isSameDay,
   formatDateKey,
 } from "@/lib/date-utils";
-import { timeToMinutes, type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
+import {
+  timeToMinutes,
+  getDaySchedule,
+  type TeamSchedule,
+  DEFAULT_SCHEDULE,
+} from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
-import { getAppointmentColorKind } from "@/lib/appointments";
-import type { MockClient } from "@/lib/mock-data";
+import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
+import type { Service } from "@/lib/services";
+import { getServiceMaterialCost } from "@/lib/services";
+import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/components/appointments/AppointmentForm";
 import AppointmentBlock from "./AppointmentBlock";
 import { HOURS } from "./TimeGrid";
@@ -18,13 +25,15 @@ interface DayColumnProps {
   date: Date;
   today: Date;
   appointments: Appointment[];
-  clientsById: Record<string, MockClient | DraftClient>;
+  clientsById: Record<string, Client | DraftClient>;
+  services: Service[];
   validateApt: (apt: Appointment) => ValidationResult;
   currentTimeMinutes: number; // minutes since midnight for current time line
   hourHeight?: number;
   schedule?: TeamSchedule;
   onAppointmentClick: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
+  onAppointmentDrop?: (appointmentId: string, newDate: string, newTime: string) => void;
 }
 
 export default function DayColumn({
@@ -32,12 +41,14 @@ export default function DayColumn({
   today,
   appointments,
   clientsById,
+  services,
   validateApt,
   currentTimeMinutes,
   hourHeight = 60,
   schedule = DEFAULT_SCHEDULE,
   onAppointmentClick,
   onEmptySlotClick,
+  onAppointmentDrop,
 }: DayColumnProps) {
   const isToday = isSameDay(date, today);
   const dateKey = formatDateKey(date);
@@ -51,13 +62,29 @@ export default function DayColumn({
   const showTimeLine = isToday;
   const timeLineTop = currentTimeMinutes * pxPerMinute;
 
-  // Out-of-hours overlay positions (relative to 00:00)
-  const workStart = timeToMinutes(schedule.start);
-  const workEnd = timeToMinutes(schedule.end);
+  // Per-weekday schedule with breaks overlay
+  const daySched = getDaySchedule(schedule, date.getDay());
+  const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
+  const workEnd = timeToMinutes(daySched.is_working ? daySched.end : "00:00");
   const beforeWorkHeight = workStart * pxPerMinute;
   const afterWorkTop = workEnd * pxPerMinute;
   const totalHeight = 24 * 60 * pxPerMinute;
   const afterWorkHeight = totalHeight - afterWorkTop;
+
+  // Day financial totals
+  const dayIncome = dayAppointments
+    .filter((a) => a.status === "completed" || a.status === "in_progress")
+    .reduce((sum, a) => sum + getPaidAmount(a), 0);
+  const dayMaterialCost = dayAppointments
+    .filter((a) => a.status === "completed" || a.status === "in_progress")
+    .reduce((sum, a) => {
+      const cost = a.service_ids.reduce((c, sid) => {
+        const s = services.find((x) => x.id === sid);
+        return c + (s ? getServiceMaterialCost(s) : 0);
+      }, 0);
+      return sum + cost;
+    }, 0);
+  const dayProfit = dayIncome - dayMaterialCost;
 
   const handleColumnClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onEmptySlotClick) return;
@@ -76,6 +103,29 @@ export default function DayColumn({
     if (hours >= 0 && hours < 24) {
       const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
       onEmptySlotClick(dateKey, timeStr);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!onAppointmentDrop) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!onAppointmentDrop) return;
+    e.preventDefault();
+    const aptId = e.dataTransfer.getData("text/appointment-id");
+    if (!aptId) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dropY = e.clientY - rect.top;
+    const totalMinutes = dropY / pxPerMinute;
+    const snapped = Math.max(0, Math.round(totalMinutes / 15) * 15);
+    const hours = Math.floor(snapped / 60);
+    const mins = snapped % 60;
+    if (hours >= 0 && hours < 24) {
+      const timeStr = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+      onAppointmentDrop(aptId, dateKey, timeStr);
     }
   };
 
@@ -115,6 +165,8 @@ export default function DayColumn({
       <div
         className={`relative cursor-pointer ${isToday ? "bg-green-50/30" : "bg-white"}`}
         onClick={handleColumnClick}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         {/* Hour grid lines (24 hours) */}
         {HOURS.map((hour) => (
@@ -141,6 +193,23 @@ export default function DayColumn({
           />
         )}
 
+        {/* Break overlays */}
+        {daySched.is_working &&
+          (daySched.breaks ?? []).map((br, i) => {
+            const bs = timeToMinutes(br.start);
+            const be = timeToMinutes(br.end);
+            if (be <= bs) return null;
+            return (
+              <div
+                key={i}
+                className="absolute left-0 right-0 bg-gray-300/60 pointer-events-none border-y border-gray-400/40"
+                style={{ top: `${bs * pxPerMinute}px`, height: `${(be - bs) * pxPerMinute}px` }}
+              >
+                <div className="text-[9px] text-gray-600 pl-1">Перерыв</div>
+              </div>
+            );
+          })}
+
         {/* Current time indicator */}
         {showTimeLine && (
           <div
@@ -164,11 +233,31 @@ export default function DayColumn({
               appointment={apt}
               colorKind={colorKind}
               clientsById={clientsById}
+              services={services}
               hourHeight={hourHeight}
               onClick={onAppointmentClick}
+              draggable={Boolean(onAppointmentDrop)}
             />
           );
         })}
+      </div>
+
+      {/* Day totals footer */}
+      <div className="sticky bottom-0 z-10 border-t border-gray-200 bg-white/95 backdrop-blur-sm px-1 py-1 text-[9px] lg:text-[10px]">
+        <div className="flex justify-between text-emerald-600">
+          <span>Доход</span>
+          <span className="font-semibold">{dayIncome}€</span>
+        </div>
+        {dayMaterialCost > 0 && (
+          <div className="flex justify-between text-red-600">
+            <span>Расход</span>
+            <span className="font-semibold">{dayMaterialCost}€</span>
+          </div>
+        )}
+        <div className="flex justify-between text-gray-900 font-semibold border-t border-gray-200 pt-0.5 mt-0.5">
+          <span>Прибыль</span>
+          <span>{dayProfit}€</span>
+        </div>
       </div>
     </div>
   );

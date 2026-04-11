@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 
 export type DialogType =
   | "clients"
+  | "analytics"
   | "income"
   | "expenses"
   | "reports"
@@ -12,6 +13,9 @@ export type DialogType =
   | "master-profile"
   | "masters"
   | "teams"
+  | "services"
+  | "sms-templates"
+  | "schedule"
   | null;
 
 interface SidebarProps {
@@ -23,6 +27,7 @@ interface SidebarProps {
 
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   clients: "/dashboard/clients",
+  analytics: "/dashboard/analytics",
   income: "/dashboard/income",
   expenses: "/dashboard/expenses",
   reports: "/dashboard/reports",
@@ -31,6 +36,9 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   "master-profile": "/dashboard/master-profile",
   masters: "/dashboard/masters",
   teams: "/dashboard/teams",
+  services: "/dashboard/services",
+  "sms-templates": "/dashboard/sms-templates",
+  schedule: "/dashboard/schedule",
 };
 
 export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
@@ -115,6 +123,17 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             label="Клиенты"
             active={isActive("clients")}
             onClick={() => handleNav("clients")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 3v18h18" />
+                <path d="M9 17V9M13 17V5M17 17v-4" />
+              </svg>
+            }
+            label="Аналитика клиентов"
+            active={isActive("analytics")}
+            onClick={() => handleNav("analytics")}
           />
           <NavItem
             icon={
@@ -225,6 +244,39 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             label="Мастера"
             active={isActive("masters")}
             onClick={() => handleNav("masters")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+              </svg>
+            }
+            label="Услуги"
+            active={isActive("services")}
+            onClick={() => handleNav("services")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            }
+            label="Расписание"
+            active={isActive("schedule")}
+            onClick={() => handleNav("schedule")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            }
+            label="SMS-шаблоны"
+            active={isActive("sms-templates")}
+            onClick={() => handleNav("sms-templates")}
           />
           <NavItem
             icon={

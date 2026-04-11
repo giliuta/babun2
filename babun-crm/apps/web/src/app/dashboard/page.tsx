@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getMonday, addWeeks, addDays } from "@/lib/date-utils";
-import { MOCK_APPOINTMENTS, MOCK_CLIENTS, type MockClient } from "@/lib/mock-data";
+import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@/lib/mock-data";
+import type { Client } from "@/lib/clients";
 import { getTeamSchedule, timeToMinutes } from "@/lib/schedule";
 import {
   type Appointment,
@@ -23,9 +24,17 @@ import {
   useTeams,
   useAppointments,
   useFormSettings,
+  useServices,
+  useClients,
 } from "./layout";
 
-const ZOOM_LEVELS = [40, 60, 90, 120];
+const HOUR_HEIGHT_MIN = 30;
+const HOUR_HEIGHT_MAX = 240;
+const HOUR_HEIGHT_DEFAULT = 60;
+const HOUR_HEIGHT_STEP = 15;
+
+// Bump this when you want visible confirmation that a new build is live.
+const BUILD_TAG = "v13-zoom+layout";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 const STEP_DAYS: Record<ViewMode, number> = {
@@ -33,6 +42,10 @@ const STEP_DAYS: Record<ViewMode, number> = {
   "3days": 3,
   week: 7,
 };
+
+function clampHourHeight(h: number): number {
+  return Math.max(HOUR_HEIGHT_MIN, Math.min(HOUR_HEIGHT_MAX, h));
+}
 
 const SEED_KEY = "babun-seeded";
 
@@ -43,6 +56,8 @@ export default function DashboardPage() {
   const { teams } = useTeams();
   const { appointments, upsertAppointment } = useAppointments();
   const { requiredFields } = useFormSettings();
+  const { services } = useServices();
+  const { clients } = useClients();
 
   // Header tabs need a stable shape: { id, name }
   const teamTabs = useMemo(
@@ -64,9 +79,10 @@ export default function DashboardPage() {
   }, [teamTabs, activeTeamId]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("week");
-  const [zoomIndex, setZoomIndex] = useState(1); // Default: 60px (index 1)
+  const [hourHeight, setHourHeight] = useState(HOUR_HEIGHT_DEFAULT);
+  const hourHeightRef = useRef(hourHeight);
+  hourHeightRef.current = hourHeight;
 
-  const hourHeight = ZOOM_LEVELS[zoomIndex];
   const stepDays = STEP_DAYS[viewMode];
   const activeSchedule = useMemo(
     () => getTeamSchedule(activeTeamId, schedules),
@@ -84,6 +100,10 @@ export default function DashboardPage() {
 
     const now = new Date().toISOString();
     for (const m of MOCK_APPOINTMENTS) {
+      const isEvent = !m.client_name && m.amount === 0;
+      const guessedServiceId = MOCK_SERVICES.find(
+        (s) => s.name.toLowerCase() === m.service_name.toLowerCase()
+      )?.id;
       const apt: Appointment = {
         id: m.id,
         date: m.date,
@@ -91,18 +111,21 @@ export default function DashboardPage() {
         time_end: m.time_end,
         client_id: null,
         team_id: m.team_id,
-        service_ids: [],
+        service_ids: guessedServiceId ? [guessedServiceId] : [],
         total_amount: m.amount,
         custom_total: true,
-        prepaid_amount: 0,
+        prepaid_amount: m.amount, // seed as fully paid so we don't mark as debt
         payments: [],
         comment: m.client_name ? `${m.client_name} — ${m.comment}` : m.comment,
         address: "",
         address_lat: null,
         address_lng: null,
         source: null,
+        is_online_booking: false,
+        kind: isEvent ? "event" : "work",
+        photos: [],
         reminder_enabled: false,
-        status: "scheduled",
+        status: isEvent ? "scheduled" : "completed",
         created_at: now,
         updated_at: now,
       };
@@ -112,14 +135,17 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll to the team's work-start hour when schedule/team/zoom changes
+  // Auto-scroll to the team's work-start hour when schedule/team changes.
+  // NOTE: hourHeight is intentionally NOT a dependency — zoom handlers manage
+  // their own scroll preservation, so reacting here would fight them.
   useEffect(() => {
     const el = outerScrollerRef.current;
     if (!el) return;
     const startMin = timeToMinutes(activeSchedule.start);
-    const target = Math.max(0, startMin * (hourHeight / 60));
+    const target = Math.max(0, startMin * (hourHeightRef.current / 60));
     el.scrollTo({ top: target, behavior: "auto" });
-  }, [activeTeamId, activeSchedule.start, hourHeight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTeamId, activeSchedule.start]);
 
   // Filter appointments by active team
   const visibleAppointments = useMemo(
@@ -133,12 +159,12 @@ export default function DashboardPage() {
     setDraftClients(loadDraftClients());
   }, [appointments]);
 
-  const clientsById = useMemo<Record<string, MockClient | DraftClient>>(() => {
-    const map: Record<string, MockClient | DraftClient> = {};
-    for (const c of MOCK_CLIENTS) map[c.id] = c;
+  const clientsById = useMemo<Record<string, Client | DraftClient>>(() => {
+    const map: Record<string, Client | DraftClient> = {};
+    for (const c of clients) map[c.id] = c;
     for (const d of draftClients) map[d.id] = d;
     return map;
-  }, [draftClients]);
+  }, [clients, draftClients]);
 
   // Validation closure
   const validateApt = useCallback(
@@ -191,12 +217,153 @@ export default function DashboardPage() {
     setViewMode(mode);
   }, []);
 
-  const handleZoomIn = useCallback(() => {
-    setZoomIndex((prev) => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
+  // Zoom around the vertical center of the viewport so the same time stays visible.
+  const zoomBy = useCallback((nextH: number) => {
+    const el = outerScrollerRef.current;
+    const clamped = clampHourHeight(nextH);
+    setHourHeight((prev) => {
+      if (clamped === prev) return prev;
+      if (el) {
+        const focusY = el.clientHeight / 2;
+        const anchor = (el.scrollTop + focusY) / prev;
+        requestAnimationFrame(() => {
+          if (!outerScrollerRef.current) return;
+          outerScrollerRef.current.scrollTop = anchor * clamped - focusY;
+        });
+      }
+      return clamped;
+    });
   }, []);
 
+  const handleZoomIn = useCallback(() => {
+    zoomBy(hourHeightRef.current + HOUR_HEIGHT_STEP);
+  }, [zoomBy]);
+
   const handleZoomOut = useCallback(() => {
-    setZoomIndex((prev) => Math.max(prev - 1, 0));
+    zoomBy(hourHeightRef.current - HOUR_HEIGHT_STEP);
+  }, [zoomBy]);
+
+  // ─── Pinch-to-zoom (touch) + Ctrl+wheel (desktop) ───────────────────────
+  // Uses THREE input sources for maximum browser coverage:
+  //  1. touchstart/touchmove (Android Chrome)
+  //  2. gesturestart/gesturechange (iOS Safari — non-standard but required)
+  //  3. wheel with ctrl/meta key (desktop trackpad pinch + ctrl+scroll)
+  //
+  // Listeners are attached to the calendar scroller so they work on ANY
+  // point inside the calendar (time column, day columns, appointment blocks).
+  useEffect(() => {
+    const el = outerScrollerRef.current;
+    if (!el) return;
+
+    let pinchStartDist = 0;
+    let pinchStartH = hourHeightRef.current;
+    let pinchMidY = 0;
+    let pinchStartScroll = 0;
+    let pinchActive = false;
+
+    const distance = (a: Touch, b: Touch) =>
+      Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    const applyZoom = (next: number, focusY: number, anchor: number) => {
+      if (Math.abs(next - hourHeightRef.current) < 0.5) return;
+      hourHeightRef.current = next;
+      setHourHeight(next);
+      requestAnimationFrame(() => {
+        const scroller = outerScrollerRef.current;
+        if (!scroller) return;
+        scroller.scrollTop = anchor * next - focusY;
+      });
+    };
+
+    // ── Standard multi-touch (Android / Chrome) ──────────────────────
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        pinchActive = true;
+        pinchStartDist = distance(t0, t1);
+        pinchStartH = hourHeightRef.current;
+        const rect = el.getBoundingClientRect();
+        pinchMidY = (t0.clientY + t1.clientY) / 2 - rect.top;
+        pinchStartScroll = el.scrollTop;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pinchActive || e.touches.length < 2) return;
+      if (e.cancelable) e.preventDefault();
+      const d = distance(e.touches[0], e.touches[1]);
+      if (pinchStartDist <= 0) return;
+      const ratio = d / pinchStartDist;
+      const next = clampHourHeight(pinchStartH * ratio);
+      const anchor = (pinchStartScroll + pinchMidY) / pinchStartH;
+      applyZoom(next, pinchMidY, anchor);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinchActive = false;
+    };
+
+    // ── iOS Safari gesture events (non-standard but only way for pinch) ──
+    let gestureStartH = hourHeightRef.current;
+    let gestureStartScroll = 0;
+    let gestureMidY = 0;
+
+    const onGestureStart = (e: Event) => {
+      const ge = e as Event & { scale?: number; clientY?: number };
+      e.preventDefault();
+      gestureStartH = hourHeightRef.current;
+      gestureStartScroll = el.scrollTop;
+      const rect = el.getBoundingClientRect();
+      // iOS puts touch center roughly at event.clientY, fall back to viewport center
+      gestureMidY = (ge.clientY ?? rect.top + rect.height / 2) - rect.top;
+    };
+
+    const onGestureChange = (e: Event) => {
+      const ge = e as Event & { scale?: number };
+      e.preventDefault();
+      const scale = ge.scale ?? 1;
+      const next = clampHourHeight(gestureStartH * scale);
+      const anchor = (gestureStartScroll + gestureMidY) / gestureStartH;
+      applyZoom(next, gestureMidY, anchor);
+    };
+
+    const onGestureEnd = (e: Event) => {
+      e.preventDefault();
+    };
+
+    // ── Desktop wheel (ctrl/meta modifier for trackpad pinch or ctrl+scroll) ─
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = -e.deltaY;
+      // Trackpad pinch sends small deltas continuously — scale by deltaY.
+      const factor = Math.exp(delta * 0.005);
+      const next = clampHourHeight(hourHeightRef.current * factor);
+      const rect = el.getBoundingClientRect();
+      const focusY = e.clientY - rect.top;
+      const anchor = (el.scrollTop + focusY) / hourHeightRef.current;
+      applyZoom(next, focusY, anchor);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    el.addEventListener("gesturestart", onGestureStart as EventListener);
+    el.addEventListener("gesturechange", onGestureChange as EventListener);
+    el.addEventListener("gestureend", onGestureEnd as EventListener);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("gesturestart", onGestureStart as EventListener);
+      el.removeEventListener("gesturechange", onGestureChange as EventListener);
+      el.removeEventListener("gestureend", onGestureEnd as EventListener);
+      el.removeEventListener("wheel", onWheel);
+    };
   }, []);
 
   const handleSelectDate = useCallback((monday: Date) => {
@@ -210,6 +377,29 @@ export default function DashboardPage() {
     router.push(`/dashboard/appointment/new${qs ? `?${qs}` : ""}`);
   }, [router, activeTeamId]);
 
+  const handleAppointmentDrop = useCallback(
+    (appointmentId: string, newDate: string, newTime: string) => {
+      const apt = appointments.find((a) => a.id === appointmentId);
+      if (!apt) return;
+      const [oldH, oldM] = apt.time_start.split(":").map(Number);
+      const [endH, endM] = apt.time_end.split(":").map(Number);
+      const duration = endH * 60 + endM - (oldH * 60 + oldM);
+      const [newH, newM] = newTime.split(":").map(Number);
+      const newEndTotal = newH * 60 + newM + duration;
+      const newEnd = `${String(Math.floor(newEndTotal / 60)).padStart(2, "0")}:${String(
+        newEndTotal % 60
+      ).padStart(2, "0")}`;
+      upsertAppointment({
+        ...apt,
+        date: newDate,
+        time_start: newTime,
+        time_end: newEnd,
+        updated_at: new Date().toISOString(),
+      });
+    },
+    [appointments, upsertAppointment]
+  );
+
   // Render a calendar page (without TimeGrid — that lives in the shared TimeColumn).
   const renderPage = useCallback(
     (offset: -1 | 0 | 1) => {
@@ -222,12 +412,14 @@ export default function DashboardPage() {
           mondayDate={monday}
           appointments={visibleAppointments}
           clientsById={clientsById}
+          services={services}
           validateApt={validateApt}
           viewMode={viewMode}
           hourHeight={hourHeight}
           schedule={activeSchedule}
           onAppointmentClick={handleAppointmentClick}
           onEmptySlotClick={handleEmptySlotClick}
+          onAppointmentDrop={handleAppointmentDrop}
         />
       );
     },
@@ -237,11 +429,13 @@ export default function DashboardPage() {
       stepDays,
       visibleAppointments,
       clientsById,
+      services,
       validateApt,
       hourHeight,
       activeSchedule,
       handleAppointmentClick,
       handleEmptySlotClick,
+      handleAppointmentDrop,
     ]
   );
 
@@ -269,7 +463,12 @@ export default function DashboardPage() {
       <div
         ref={outerScrollerRef}
         className="flex-1 flex bg-white min-h-0 relative"
-        style={{ overflowY: "auto", overflowX: "clip" }}
+        style={{
+          overflowY: "auto",
+          overflowX: "clip",
+          touchAction: "pan-y",
+          overscrollBehavior: "contain",
+        }}
       >
         <TimeColumn hourHeight={hourHeight} />
         <SwipeableCalendar
@@ -279,12 +478,23 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Build tag — visible proof that latest code is running */}
+      <div
+        className="fixed left-2 z-30 pointer-events-none text-[10px] font-mono bg-black/70 text-white px-1.5 py-0.5 rounded"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 0.25rem)" }}
+      >
+        {BUILD_TAG}
+      </div>
+
       {/* FAB — new appointment */}
       <button
         type="button"
         aria-label="Новая запись"
         onClick={handleNewAppointment}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-indigo-700 transition-colors z-20"
+        className="fixed right-4 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-indigo-700 transition-colors z-20"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom) + 1.25rem)",
+        }}
       >
         +
       </button>

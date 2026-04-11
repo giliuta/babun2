@@ -3,45 +3,63 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
-import { useTeams } from "@/app/dashboard/layout";
+import { useTeams, useClients, useAppointments } from "@/app/dashboard/layout";
 import {
-  MOCK_CLIENTS,
-  MOCK_CLIENT_APPOINTMENTS,
-  type MockClient,
-  type MockClientAppointment,
-} from "@/lib/mock-data";
+  groupClientsByLetter,
+  createBlankClient,
+  type Client,
+} from "@/lib/clients";
+import { MOCK_CLIENT_APPOINTMENTS, type MockClientAppointment } from "@/lib/mock-data";
 
 type Tab = "profile" | "appointments" | "history";
 type AppointmentFilter = "all" | "new" | "completed" | "cancelled" | "online";
 
-interface FormState {
-  full_name: string;
-  phone: string;
-  sms_name: string;
-  comment: string;
-  balance: number;
-  discount: number;
-}
-
 export default function ClientsPage() {
+  const { clients, upsertClient, deleteClient, tags } = useClients();
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<MockClient | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return MOCK_CLIENTS;
+    if (!search.trim()) return clients;
     const q = search.toLowerCase();
-    return MOCK_CLIENTS.filter(
-      (c) =>
-        c.full_name.toLowerCase().includes(q) || c.phone.includes(q),
+    return clients.filter(
+      (c) => c.full_name.toLowerCase().includes(q) || c.phone.includes(q)
     );
-  }, [search]);
+  }, [clients, search]);
+
+  const grouped = useMemo(() => groupClientsByLetter(filtered), [filtered]);
 
   if (selectedClient) {
     return (
       <ClientCardView
+        key={selectedClient.id}
         client={selectedClient}
         onBack={() => setSelectedClient(null)}
+        onSave={(next) => {
+          upsertClient(next);
+          setSelectedClient(next);
+        }}
+        onDelete={(id) => {
+          deleteClient(id);
+          setSelectedClient(null);
+        }}
+      />
+    );
+  }
+
+  if (creating) {
+    return (
+      <ClientCardView
+        client={createBlankClient()}
+        isNew
+        onBack={() => setCreating(false)}
+        onSave={(next) => {
+          upsertClient(next);
+          setCreating(false);
+        }}
+        onDelete={() => setCreating(false)}
       />
     );
   }
@@ -66,7 +84,7 @@ export default function ClientsPage() {
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50 relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4">
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24">
           {showSearch && (
             <div className="mb-3">
               <input
@@ -75,33 +93,75 @@ export default function ClientsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 autoFocus
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {filtered.map((client, index) => (
-              <button
-                key={client.id}
-                type="button"
-                onClick={() => setSelectedClient(client)}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left ${
-                  index < filtered.length - 1 ? "border-b border-gray-100" : ""
-                }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                  {client.full_name.charAt(0).toUpperCase()}
+          <div className="space-y-4">
+            {grouped.map((group) => (
+              <div key={group.letter}>
+                <div className="text-xs font-bold text-gray-500 mb-1 px-1 sticky top-0 bg-gray-50 py-1 z-10">
+                  {group.letter}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900 truncate">
-                    {client.full_name}
-                  </div>
-                  <div className="text-xs text-gray-500">{client.phone}</div>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  {group.clients.map((client, i) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => setSelectedClient(client)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left ${
+                        i < group.clients.length - 1 ? "border-b border-gray-100" : ""
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        {client.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {client.full_name}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">{client.phone}</div>
+                        {(client.tag_ids?.length ?? 0) > 0 && (
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            {client.tag_ids.map((tid) => {
+                              const tag = tags.find((t) => t.id === tid);
+                              if (!tag) return null;
+                              return (
+                                <span
+                                  key={tid}
+                                  className="text-[9px] px-1.5 py-0.5 rounded-full text-white font-medium"
+                                  style={{ backgroundColor: tag.color }}
+                                >
+                                  {tag.name}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      {client.balance !== 0 && (
+                        <div
+                          className={`text-xs font-semibold ${
+                            client.balance < 0 ? "text-red-600" : "text-emerald-600"
+                          }`}
+                        >
+                          {client.balance > 0 ? "+" : ""}
+                          {client.balance}€
+                        </div>
+                      )}
+                      {client.discount > 0 && (
+                        <div className="text-xs text-pink-600 font-semibold ml-2">
+                          −{client.discount}%
+                        </div>
+                      )}
+                    </button>
+                  ))}
                 </div>
-              </button>
+              </div>
             ))}
-            {filtered.length === 0 && (
+
+            {grouped.length === 0 && (
               <div className="text-center text-gray-400 py-10 text-sm">
                 Клиенты не найдены
               </div>
@@ -112,6 +172,7 @@ export default function ClientsPage() {
         {/* FAB */}
         <button
           type="button"
+          onClick={() => setCreating(true)}
           aria-label="Добавить клиента"
           className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-indigo-700 transition-colors z-20"
         >
@@ -122,46 +183,44 @@ export default function ClientsPage() {
   );
 }
 
-// ─── Client Card View (inline, full page) ───────────────────────────────────
+// ─── Client Card View ───────────────────────────────────────────────────────
 
 function ClientCardView({
   client,
+  isNew = false,
   onBack,
+  onSave,
+  onDelete,
 }: {
-  client: MockClient;
+  client: Client;
+  isNew?: boolean;
   onBack: () => void;
+  onSave: (c: Client) => void;
+  onDelete: (id: string) => void;
 }) {
   const router = useRouter();
   const { teams } = useTeams();
+  const { tags } = useClients();
+  const { appointments: allAppointments } = useAppointments();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [draft, setDraft] = useState<Client>(client);
+  const [appointmentFilter, setAppointmentFilter] = useState<AppointmentFilter>("all");
 
   const handleBook = () => {
     const firstTeam = teams.find((t) => t.active);
-    const params = new URLSearchParams({ client_id: client.id });
+    const params = new URLSearchParams({ client_id: draft.id });
     if (firstTeam) params.set("team_id", firstTeam.id);
     router.push(`/dashboard/appointment/new?${params.toString()}`);
   };
-  const [form, setForm] = useState<FormState>({
-    full_name: client.full_name,
-    phone: client.phone,
-    sms_name: client.sms_name,
-    comment: client.comment,
-    balance: client.balance,
-    discount: client.discount,
-  });
-  const [appointmentFilter, setAppointmentFilter] =
-    useState<AppointmentFilter>("all");
 
-  const clientAppointments = MOCK_CLIENT_APPOINTMENTS.filter(
-    (a) => a.client_id === client.id,
+  const clientAppointments = useMemo(
+    () => MOCK_CLIENT_APPOINTMENTS.filter((a) => a.client_id === client.id),
+    [client.id]
   );
+  const realApptCount = allAppointments.filter((a) => a.client_id === client.id).length;
 
-  const completedCount = clientAppointments.filter(
-    (a) => a.status === "completed",
-  ).length;
-  const cancelledCount = clientAppointments.filter(
-    (a) => a.status === "cancelled",
-  ).length;
+  const completedCount = clientAppointments.filter((a) => a.status === "completed").length;
+  const cancelledCount = clientAppointments.filter((a) => a.status === "cancelled").length;
 
   const filteredAppointments =
     appointmentFilter === "all"
@@ -170,41 +229,61 @@ function ClientCardView({
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "profile", label: "Профиль" },
-    { key: "appointments", label: `Записи (${clientAppointments.length})` },
+    { key: "appointments", label: `Записи (${clientAppointments.length + realApptCount})` },
     { key: "history", label: `История (${completedCount})` },
   ];
+
+  const handleSave = () => onSave(draft);
+
+  const toggleTag = (tagId: string) => {
+    setDraft((d) => ({
+      ...d,
+      tag_ids: d.tag_ids.includes(tagId)
+        ? d.tag_ids.filter((t) => t !== tagId)
+        : [...d.tag_ids, tagId],
+    }));
+  };
 
   return (
     <>
       <PageHeader
-        title="Клиент"
+        title={isNew ? "Новый клиент" : "Клиент"}
         showBack={false}
         rightContent={
-          <button
-            type="button"
-            onClick={onBack}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100"
-            aria-label="Назад к списку"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-3 py-1.5 bg-white text-indigo-700 lg:bg-indigo-600 lg:text-white rounded-lg text-sm font-semibold"
+            >
+              Сохранить
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100 ml-1"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          </>
         }
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
-          <button
-            type="button"
-            onClick={handleBook}
-            className="w-full min-h-[44px] px-4 py-3 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm"
-          >
-            + Записать клиента
-          </button>
+          {!isNew && (
+            <button
+              type="button"
+              onClick={handleBook}
+              className="w-full min-h-[44px] px-4 py-3 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+            >
+              + Записать клиента
+            </button>
+          )}
 
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Tabs */}
             <div className="flex border-b border-gray-200">
               {tabs.map((tab) => (
                 <button
@@ -222,8 +301,19 @@ function ClientCardView({
               ))}
             </div>
 
-            {/* Content */}
-            {activeTab === "profile" && <ProfileTab form={form} setForm={setForm} />}
+            {activeTab === "profile" && (
+              <ProfileTab
+                draft={draft}
+                setDraft={setDraft}
+                tags={tags}
+                toggleTag={toggleTag}
+                onDelete={!isNew ? () => {
+                  if (typeof window !== "undefined" && window.confirm("Удалить клиента?")) {
+                    onDelete(client.id);
+                  }
+                } : undefined}
+              />
+            )}
             {activeTab === "appointments" && (
               <AppointmentsTab
                 appointments={filteredAppointments}
@@ -235,9 +325,7 @@ function ClientCardView({
             )}
             {activeTab === "history" && (
               <HistoryTab
-                appointments={clientAppointments.filter(
-                  (a) => a.status === "completed",
-                )}
+                appointments={clientAppointments.filter((a) => a.status === "completed")}
               />
             )}
           </div>
@@ -248,21 +336,23 @@ function ClientCardView({
 }
 
 function ProfileTab({
-  form,
-  setForm,
+  draft,
+  setDraft,
+  tags,
+  toggleTag,
+  onDelete,
 }: {
-  form: FormState;
-  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  draft: Client;
+  setDraft: React.Dispatch<React.SetStateAction<Client>>;
+  tags: { id: string; name: string; color: string }[];
+  toggleTag: (id: string) => void;
+  onDelete?: () => void;
 }) {
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-center">
-        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-            <rect x="2" y="2" width="20" height="20" rx="5" />
-            <circle cx="12" cy="10" r="3" />
-            <path d="M6 20.5c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5" />
-          </svg>
+        <div className="w-20 h-20 rounded-full bg-amber-400 text-white flex items-center justify-center text-3xl font-bold">
+          {draft.full_name.charAt(0).toUpperCase() || "?"}
         </div>
       </div>
 
@@ -270,9 +360,9 @@ function ProfileTab({
         <label className="block text-xs text-gray-500 mb-1">Имя и фамилия</label>
         <input
           type="text"
-          value={form.full_name}
-          onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          value={draft.full_name}
+          onChange={(e) => setDraft((p) => ({ ...p, full_name: e.target.value }))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
@@ -280,76 +370,132 @@ function ProfileTab({
         <label className="block text-xs text-gray-500 mb-1">Телефон</label>
         <input
           type="tel"
-          value={form.phone}
-          onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          value={draft.phone}
+          onChange={(e) => setDraft((p) => ({ ...p, phone: e.target.value }))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
       <div>
-        <label className="block text-xs text-gray-500 mb-1">
-          Обращение в SMS напоминаниях
-        </label>
+        <label className="block text-xs text-gray-500 mb-1">Обращение в SMS</label>
         <input
           type="text"
-          value={form.sms_name}
-          onChange={(e) => setForm((p) => ({ ...p, sms_name: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          value={draft.sms_name}
+          onChange={(e) => setDraft((p) => ({ ...p, sms_name: e.target.value }))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
       <div>
         <label className="block text-xs text-gray-500 mb-1">Комментарий</label>
         <textarea
-          value={form.comment}
-          onChange={(e) => setForm((p) => ({ ...p, comment: e.target.value }))}
+          value={draft.comment}
+          onChange={(e) => setDraft((p) => ({ ...p, comment: e.target.value }))}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
         />
       </div>
 
+      {/* Balance */}
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Баланс</label>
+        <label className="block text-xs text-gray-500 mb-1">
+          Баланс {draft.balance < 0 && <span className="text-red-600">(долг)</span>}
+          {draft.balance > 0 && <span className="text-emerald-600">(предоплата)</span>}
+        </label>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setForm((p) => ({ ...p, balance: p.balance - 10 }))}
-            className="w-9 h-9 border border-gray-300 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 font-bold"
+            onClick={() => setDraft((p) => ({ ...p, balance: p.balance - 10 }))}
+            className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 font-bold text-lg"
+            aria-label="-10€"
           >
-            -
+            −10
           </button>
-          <span className="flex-1 text-center text-sm font-medium">
-            {form.balance} EUR
-          </span>
+          <input
+            type="number"
+            value={draft.balance}
+            onChange={(e) => setDraft((p) => ({ ...p, balance: Number(e.target.value) || 0 }))}
+            className={`flex-1 text-center text-lg font-semibold border rounded-lg px-3 py-2 ${
+              draft.balance < 0
+                ? "border-red-300 text-red-600 bg-red-50"
+                : draft.balance > 0
+                ? "border-emerald-300 text-emerald-600 bg-emerald-50"
+                : "border-gray-300 text-gray-900"
+            }`}
+          />
           <button
             type="button"
-            onClick={() => setForm((p) => ({ ...p, balance: p.balance + 10 }))}
-            className="w-9 h-9 border border-gray-300 rounded-lg flex items-center justify-center text-green-500 hover:bg-green-50 font-bold"
+            onClick={() => setDraft((p) => ({ ...p, balance: p.balance + 10 }))}
+            className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center text-emerald-500 hover:bg-emerald-50 font-bold text-lg"
+            aria-label="+10€"
           >
-            +
+            +10
           </button>
         </div>
       </div>
 
+      {/* Discount */}
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Скидка</label>
+        <label className="block text-xs text-gray-500 mb-1">Персональная скидка</label>
         <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={0}
+            max={50}
+            step={1}
+            value={draft.discount}
+            onChange={(e) => setDraft((p) => ({ ...p, discount: Number(e.target.value) }))}
+            className="flex-1"
+          />
           <input
             type="number"
             min={0}
             max={100}
-            value={form.discount}
+            value={draft.discount}
             onChange={(e) =>
-              setForm((p) => ({
+              setDraft((p) => ({
                 ...p,
                 discount: Math.max(0, Math.min(100, Number(e.target.value))),
               }))
             }
-            className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <span className="text-sm text-gray-500">%</span>
         </div>
       </div>
+
+      {/* Tags */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Группы / теги</label>
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag) => {
+            const active = draft.tag_ids.includes(tag.id);
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggleTag(tag.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  active ? "text-white border-transparent" : "text-gray-600 bg-white border-gray-300"
+                }`}
+                style={active ? { backgroundColor: tag.color } : undefined}
+              >
+                {tag.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="w-full mt-4 min-h-[44px] text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-50"
+        >
+          Удалить клиента
+        </button>
+      )}
     </div>
   );
 }
@@ -396,9 +542,7 @@ function AppointmentsTab({
 
       <div>
         {appointments.length === 0 && (
-          <div className="text-center text-gray-400 py-10 text-sm">
-            Нет записей
-          </div>
+          <div className="text-center text-gray-400 py-10 text-sm">Нет записей</div>
         )}
         {appointments.map((a) => (
           <div key={a.id} className="px-4 py-3 border-b border-gray-100 space-y-1">
@@ -409,15 +553,15 @@ function AppointmentsTab({
                   a.status === "completed"
                     ? "bg-green-100 text-green-700"
                     : a.status === "cancelled"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-blue-100 text-blue-700"
                 }`}
               >
                 {a.status === "completed"
                   ? "Завершена"
                   : a.status === "cancelled"
-                    ? "Отменена"
-                    : "Новая"}
+                  ? "Отменена"
+                  : "Новая"}
               </span>
             </div>
             <div className="text-xs text-gray-500">

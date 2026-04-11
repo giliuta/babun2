@@ -1,0 +1,266 @@
+// Clients data layer — balance, discount, tags, analytics segmentation.
+
+import { generateId } from "./masters";
+import type { Appointment } from "./appointments";
+import { MOCK_CLIENTS, type MockClient } from "./mock-data";
+
+export interface ClientTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface Client {
+  id: string;
+  full_name: string;
+  phone: string;
+  sms_name: string;
+  balance: number; // positive = prepayment, negative = debt
+  discount: number; // percent 0-100
+  comment: string;
+  tag_ids: string[];
+  created_at: string;
+}
+
+export const DEFAULT_TAGS: ClientTag[] = [
+  { id: "tag-vip", name: "VIP", color: "#f59e0b" },
+  { id: "tag-regular", name: "Постоянный", color: "#10b981" },
+  { id: "tag-new", name: "Новый", color: "#3b82f6" },
+  { id: "tag-problem", name: "Проблемный", color: "#ef4444" },
+];
+
+const CLIENTS_KEY = "babun-clients";
+const TAGS_KEY = "babun-client-tags";
+
+function mockToClient(m: MockClient): Client {
+  return {
+    id: m.id,
+    full_name: m.full_name,
+    phone: m.phone,
+    sms_name: m.sms_name,
+    balance: m.balance,
+    discount: m.discount,
+    comment: m.comment,
+    tag_ids: [],
+    created_at: new Date().toISOString(),
+  };
+}
+
+export function loadClients(): Client[] {
+  if (typeof window === "undefined") return MOCK_CLIENTS.map(mockToClient);
+  try {
+    const raw = window.localStorage.getItem(CLIENTS_KEY);
+    if (!raw) return MOCK_CLIENTS.map(mockToClient);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0
+      ? parsed
+      : MOCK_CLIENTS.map(mockToClient);
+  } catch {
+    return MOCK_CLIENTS.map(mockToClient);
+  }
+}
+
+export function saveClients(list: Client[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CLIENTS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadClientTags(): ClientTag[] {
+  if (typeof window === "undefined") return DEFAULT_TAGS;
+  try {
+    const raw = window.localStorage.getItem(TAGS_KEY);
+    if (!raw) return DEFAULT_TAGS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TAGS;
+  } catch {
+    return DEFAULT_TAGS;
+  }
+}
+
+export function saveClientTags(list: ClientTag[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+export function createBlankClient(overrides: Partial<Client> = {}): Client {
+  return {
+    id: generateId("cli"),
+    full_name: "",
+    phone: "",
+    sms_name: "",
+    balance: 0,
+    discount: 0,
+    comment: "",
+    tag_ids: [],
+    created_at: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+// ─── Alphabetical grouping ─────────────────────────────────────────────
+
+export interface ClientGroup {
+  letter: string;
+  clients: Client[];
+}
+
+export function groupClientsByLetter(clients: Client[]): ClientGroup[] {
+  const map = new Map<string, Client[]>();
+  for (const c of clients) {
+    const first = (c.full_name.trim()[0] || "#").toUpperCase();
+    const letter = /[A-ZА-ЯЁ]/.test(first) ? first : "#";
+    if (!map.has(letter)) map.set(letter, []);
+    map.get(letter)!.push(c);
+  }
+  const sorted = Array.from(map.entries()).sort(([a], [b]) => {
+    if (a === "#") return 1;
+    if (b === "#") return -1;
+    return a.localeCompare(b, "ru");
+  });
+  return sorted.map(([letter, clients]) => ({
+    letter,
+    clients: clients.sort((a, b) => a.full_name.localeCompare(b.full_name, "ru")),
+  }));
+}
+
+// ─── Analytics segmentation ────────────────────────────────────────────
+
+export type ClientSegment =
+  | "all"
+  | "active" // has record in future or last 3 months
+  | "sleeping" // had records, none in future or last 3 months
+  | "lost" // no records in last 6 months
+  | "new" // first record in future or last 30 days
+  | "upcoming" // has future records
+  | "single" // only 1 record ever
+  | "none" // never booked (no records) or all cancelled
+  | "debtors" // negative balance
+  | "prepaid" // positive balance
+  | "discounted"; // has discount
+
+export interface SegmentStats {
+  segment: ClientSegment;
+  label: string;
+  count: number;
+  percent: number;
+  clients: Client[];
+}
+
+export const SEGMENT_LABELS: Record<ClientSegment, string> = {
+  all: "Все клиенты",
+  active: "Активные",
+  sleeping: "Спящие",
+  lost: "Потерянные",
+  new: "Новые",
+  upcoming: "С предстоящими записями",
+  single: "С одной записью",
+  none: "Без записей",
+  debtors: "Должники",
+  prepaid: "С предоплатой",
+  discounted: "Со скидкой",
+};
+
+function daysAgoDate(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d;
+}
+
+function dateKeyToDate(key: string): Date {
+  return new Date(`${key}T00:00:00`);
+}
+
+function clientAppointments(
+  client: Client,
+  appointments: Appointment[]
+): Appointment[] {
+  return appointments.filter(
+    (a) => a.client_id === client.id && a.status !== "cancelled"
+  );
+}
+
+export function segmentClient(
+  client: Client,
+  appointments: Appointment[],
+  now: Date = new Date()
+): ClientSegment[] {
+  const segments: ClientSegment[] = ["all"];
+  const apts = clientAppointments(client, appointments);
+  const dates = apts.map((a) => dateKeyToDate(a.date)).sort((a, b) => a.getTime() - b.getTime());
+
+  const threeMonthsAgo = daysAgoDate(90);
+  const sixMonthsAgo = daysAgoDate(180);
+  const thirtyDaysAgo = daysAgoDate(30);
+
+  const hasFuture = dates.some((d) => d.getTime() >= now.getTime());
+  const hasAny = dates.length > 0;
+  const mostRecent = dates[dates.length - 1];
+  const earliest = dates[0];
+
+  if (!hasAny) {
+    segments.push("none");
+  } else {
+    // Active: any future OR any in last 3 months
+    if (hasFuture || (mostRecent && mostRecent >= threeMonthsAgo)) {
+      segments.push("active");
+    }
+    // Sleeping: has records, no future and no last-3-months
+    else if (mostRecent && mostRecent < threeMonthsAgo) {
+      segments.push("sleeping");
+    }
+    // Lost: no records in last 6 months
+    if (mostRecent && mostRecent < sixMonthsAgo && !hasFuture) {
+      segments.push("lost");
+    }
+    // New: earliest in future or last 30 days
+    if (earliest && (earliest >= thirtyDaysAgo || earliest >= now)) {
+      segments.push("new");
+    }
+    if (hasFuture) segments.push("upcoming");
+    if (dates.length === 1) segments.push("single");
+  }
+
+  if (client.balance < 0) segments.push("debtors");
+  if (client.balance > 0) segments.push("prepaid");
+  if (client.discount > 0) segments.push("discounted");
+
+  return segments;
+}
+
+export function computeSegmentStats(
+  clients: Client[],
+  appointments: Appointment[]
+): SegmentStats[] {
+  const now = new Date();
+  const segmentMap = new Map<ClientSegment, Client[]>();
+  for (const seg of Object.keys(SEGMENT_LABELS) as ClientSegment[]) {
+    segmentMap.set(seg, []);
+  }
+
+  for (const client of clients) {
+    const segs = segmentClient(client, appointments, now);
+    for (const seg of segs) {
+      segmentMap.get(seg)!.push(client);
+    }
+  }
+
+  const total = clients.length || 1;
+  return (Object.keys(SEGMENT_LABELS) as ClientSegment[]).map((segment) => {
+    const list = segmentMap.get(segment) ?? [];
+    return {
+      segment,
+      label: SEGMENT_LABELS[segment],
+      count: list.length,
+      percent: Math.round((list.length / total) * 100),
+      clients: list,
+    };
+  });
+}

@@ -7,7 +7,9 @@
       "Read(//c/tmp/**)",
       "mcp__playwright__browser_fill_form",
       "mcp__supabase__execute_sql",
-      "mcp__playwright__browser_console_messages"
+      "mcp__playwright__browser_console_messages",
+      "mcp__memory__read_graph",
+      "mcp__playwright__browser_close"
     ]
   }
 }
