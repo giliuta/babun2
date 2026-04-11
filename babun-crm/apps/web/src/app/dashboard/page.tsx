@@ -17,12 +17,16 @@ import { getTeamSchedule, timeToMinutes } from "@/lib/schedule";
 import {
   type Appointment,
   validateAppointment,
+  duplicateAppointment,
 } from "@/lib/appointments";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import CityPickerModal from "@/components/calendar/CityPickerModal";
+import ActionMenuModal, {
+  type ActionMenuOption,
+} from "@/components/calendar/ActionMenuModal";
 import {
   loadDraftClients,
   type DraftClient,
@@ -37,6 +41,17 @@ import {
   useClients,
   useDayCities,
 } from "./layout";
+
+// Formats "2026-04-12" as "12 апреля 2026 г."
+function formatDateLongRu(dateKey: string): string {
+  const d = new Date(dateKey + "T00:00:00");
+  if (isNaN(d.getTime())) return dateKey;
+  const months = [
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+  ];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г.`;
+}
 
 const HOUR_HEIGHT_MIN = 24;
 const HOUR_HEIGHT_MAX = 480;
@@ -65,7 +80,7 @@ export default function DashboardPage() {
   const { schedules } = useSchedules();
   const { teams } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
-  const { appointments, upsertAppointment } = useAppointments();
+  const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
   const { requiredFields } = useFormSettings();
   const { services } = useServices();
   const { clients } = useClients();
@@ -233,14 +248,32 @@ export default function DashboardPage() {
     [router]
   );
 
-  const handleEmptySlotClick = useCallback(
-    (date: string, time: string) => {
-      const params = new URLSearchParams({ date, time });
+  // Slot action menu — opens when user taps an empty spot on the calendar.
+  const [slotMenu, setSlotMenu] = useState<{ date: string; time: string } | null>(
+    null
+  );
+  const handleEmptySlotClick = useCallback((date: string, time: string) => {
+    setSlotMenu({ date, time });
+  }, []);
+
+  const navigateToNewAppointment = useCallback(
+    (date: string | null, time: string | null, kind: "work" | "event") => {
+      const params = new URLSearchParams();
+      if (date) params.set("date", date);
+      if (time) params.set("time", time);
       if (activeTeamId) params.set("team_id", activeTeamId);
-      router.push(`/dashboard/appointment/new?${params.toString()}`);
+      if (kind === "event") params.set("kind", "event");
+      const qs = params.toString();
+      router.push(`/dashboard/appointment/new${qs ? `?${qs}` : ""}`);
     },
     [router, activeTeamId]
   );
+
+  // Long-press action menu on an existing appointment.
+  const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);
+  const handleAppointmentLongPress = useCallback((apt: Appointment) => {
+    setLongPressApt(apt);
+  }, []);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
@@ -410,12 +443,12 @@ export default function DashboardPage() {
   }, [router, activeTeamId]);
 
   // ─── dnd-kit sensors: mouse for desktop, touch with delay for mobile ───
-  // TouchSensor with delay avoids conflict with SwipeableCalendar: long-press
-  // 200ms is needed before drag starts, regular swipe is unaffected.
+  // TouchSensor delay is set longer than the appointment block's 550 ms
+  // long-press timer so the context menu wins over drag activation.
   const dndSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 8 },
+      activationConstraint: { delay: 700, tolerance: 8 },
     })
   );
 
@@ -502,6 +535,7 @@ export default function DashboardPage() {
           cityForDate={cityForDate}
           onCityTap={handleCityTap}
           onAppointmentClick={handleAppointmentClick}
+          onAppointmentLongPress={handleAppointmentLongPress}
           onEmptySlotClick={handleEmptySlotClick}
           dragEnabled
         />
@@ -519,9 +553,92 @@ export default function DashboardPage() {
       cityForDate,
       handleCityTap,
       handleAppointmentClick,
+      handleAppointmentLongPress,
       handleEmptySlotClick,
     ]
   );
+
+  // ─── Slot & long-press menu option builders ───────────────────────────
+  const slotMenuOptions: ActionMenuOption[] = slotMenu
+    ? [
+        {
+          label: "Записать клиента",
+          subtitle: "с выбором свободного времени",
+          onSelect: () => navigateToNewAppointment(null, null, "work"),
+        },
+        {
+          label: `Записать клиента на ${slotMenu.time}`,
+          subtitle: formatDateLongRu(slotMenu.date),
+          onSelect: () =>
+            navigateToNewAppointment(slotMenu.date, slotMenu.time, "work"),
+        },
+        {
+          label: "Создать личное событие",
+          subtitle: "с выбором свободного времени",
+          onSelect: () => navigateToNewAppointment(null, null, "event"),
+        },
+        {
+          label: `Создать личное событие на ${slotMenu.time}`,
+          subtitle: formatDateLongRu(slotMenu.date),
+          onSelect: () =>
+            navigateToNewAppointment(slotMenu.date, slotMenu.time, "event"),
+        },
+      ]
+    : [];
+
+  const longPressOptions: ActionMenuOption[] = longPressApt
+    ? [
+        {
+          label: "Свободное перемещение",
+          subtitle: "Перетащить запись пальцем",
+          disabled: true,
+          onSelect: () => {},
+        },
+        {
+          label: "Копировать запись",
+          onSelect: () => {
+            const copy = duplicateAppointment(longPressApt);
+            upsertAppointment(copy);
+            router.push(`/dashboard/appointment/${copy.id}`);
+          },
+        },
+        {
+          label: "Копировать многократно",
+          subtitle: "Скоро",
+          disabled: true,
+          onSelect: () => {},
+        },
+        {
+          label: "Перенести запись",
+          subtitle: "Скоро",
+          disabled: true,
+          onSelect: () => {},
+        },
+        {
+          label:
+            longPressApt.status === "cancelled"
+              ? "Восстановить запись"
+              : "Запись отменена",
+          onSelect: () => {
+            upsertAppointment({
+              ...longPressApt,
+              status:
+                longPressApt.status === "cancelled" ? "scheduled" : "cancelled",
+              updated_at: new Date().toISOString(),
+            });
+          },
+        },
+        {
+          label: "Удалить",
+          danger: true,
+          onSelect: () => {
+            if (typeof window !== "undefined" && !window.confirm("Удалить запись?"))
+              return;
+            deleteAppointment(longPressApt.id);
+          },
+        },
+      ]
+    : [];
 
   return (
     <>
@@ -592,6 +709,22 @@ export default function DashboardPage() {
         defaultCity={teamDefaultCity}
         onPick={handleCityPick}
         onReset={handleCityReset}
+      />
+
+      {/* Empty-slot action menu */}
+      <ActionMenuModal
+        open={slotMenu !== null}
+        onClose={() => setSlotMenu(null)}
+        title="Выберите действие"
+        options={slotMenuOptions}
+      />
+
+      {/* Appointment long-press action menu */}
+      <ActionMenuModal
+        open={longPressApt !== null}
+        onClose={() => setLongPressApt(null)}
+        title="Выберите действие"
+        options={longPressOptions}
       />
     </>
   );

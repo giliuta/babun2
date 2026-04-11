@@ -21,6 +21,7 @@ interface WeekViewProps {
   cityForDate?: (dateKey: string) => string;
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
+  onAppointmentLongPress?: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   dragEnabled?: boolean;
 }
@@ -36,6 +37,7 @@ export default function WeekView({
   cityForDate,
   onCityTap,
   onAppointmentClick,
+  onAppointmentLongPress,
   onEmptySlotClick,
   dragEnabled = false,
 }: WeekViewProps) {
@@ -78,6 +80,7 @@ export default function WeekView({
             cityLabel={cityForDate?.(dateKey) ?? ""}
             onCityTap={onCityTap}
             onAppointmentClick={onAppointmentClick}
+            onAppointmentLongPress={onAppointmentLongPress}
             onEmptySlotClick={onEmptySlotClick}
             dragEnabled={dragEnabled}
           />

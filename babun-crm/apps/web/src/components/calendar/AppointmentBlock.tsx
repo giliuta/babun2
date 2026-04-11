@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import type { Appointment, AppointmentColorKind } from "@/lib/appointments";
@@ -15,6 +15,7 @@ interface AppointmentBlockProps {
   clientsById: Record<string, Client | DraftClient>;
   services: Service[];
   onClick: (appointment: Appointment) => void;
+  onLongPress?: (appointment: Appointment) => void;
   draggable?: boolean;
 }
 
@@ -24,8 +25,32 @@ function AppointmentBlockInner({
   clientsById,
   services,
   onClick,
+  onLongPress,
   draggable = false,
 }: AppointmentBlockProps) {
+  // Long-press detection — 550 ms hold without moving fires onLongPress and
+  // suppresses the subsequent click. TouchSensor in dnd-kit uses a longer
+  // delay so the two mechanisms no longer conflict.
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+
+  const startLongPress = () => {
+    longPressFired.current = false;
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+    }
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      onLongPress?.(appointment);
+    }, 550);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
   const colors = COLOR_KIND_TAILWIND[colorKind];
 
   const [startH, startM] = appointment.time_start.split(":").map(Number);
@@ -81,7 +106,21 @@ function AppointmentBlockInner({
       onClick={(e) => {
         e.stopPropagation();
         if (isDragging) return;
+        if (longPressFired.current) {
+          longPressFired.current = false;
+          return;
+        }
         onClick(appointment);
+      }}
+      onPointerDown={startLongPress}
+      onPointerMove={cancelLongPress}
+      onPointerUp={cancelLongPress}
+      onPointerCancel={cancelLongPress}
+      onPointerLeave={cancelLongPress}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onLongPress?.(appointment);
+        longPressFired.current = true;
       }}
       {...listeners}
       {...attributes}

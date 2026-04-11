@@ -34,6 +34,7 @@ interface DayColumnProps {
   cityLabel?: string; // "Пафос" | "Лимассол" etc — shown under day header
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
+  onAppointmentLongPress?: (appointment: Appointment) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   dragEnabled?: boolean;
 }
@@ -55,6 +56,7 @@ function DayColumnInner({
   cityLabel,
   onCityTap,
   onAppointmentClick,
+  onAppointmentLongPress,
   onEmptySlotClick,
   dragEnabled = false,
 }: DayColumnProps) {
@@ -231,6 +233,7 @@ function DayColumnInner({
               clientsById={clientsById}
               services={services}
               onClick={onAppointmentClick}
+              onLongPress={onAppointmentLongPress}
               draggable={dragEnabled}
             />
           );

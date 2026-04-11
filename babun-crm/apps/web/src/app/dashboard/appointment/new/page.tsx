@@ -22,6 +22,9 @@ function NewAppointmentInner() {
     const time = searchParams.get("time") || "10:00";
     const clientId = searchParams.get("client_id");
     const teamId = searchParams.get("team_id");
+    const kindParam = searchParams.get("kind");
+    const kind: "work" | "event" | "personal" =
+      kindParam === "event" || kindParam === "personal" ? kindParam : "work";
 
     return createBlankAppointment({
       date,
@@ -29,6 +32,7 @@ function NewAppointmentInner() {
       time_end: addMinutes(time, 60),
       client_id: clientId,
       team_id: teamId,
+      kind,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
