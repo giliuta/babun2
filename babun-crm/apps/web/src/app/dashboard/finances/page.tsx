@@ -23,7 +23,6 @@ import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
 import { formatDateLongRu } from "@/lib/date-utils";
 import AnimatedNumber from "@/components/ui/AnimatedNumber";
-import AnimatedNumber from "@/components/ui/AnimatedNumber";
 
 // Unified Finance page — pulls numbers from real appointments + day
 // extras, no more MOCK_INCOME/MOCK_EXPENSES. Income is what clients
