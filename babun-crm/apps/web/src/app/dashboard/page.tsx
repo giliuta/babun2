@@ -36,7 +36,6 @@ import DayFinanceModal from "@/components/calendar/DayFinanceModal";
 import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
 import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
-import TodayCard from "@/components/calendar/TodayCard";
 import { haptic } from "@/lib/haptics";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
@@ -66,7 +65,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v62-light-only";
+const BUILD_TAG = "v63-no-today-card";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -893,16 +892,6 @@ export default function DashboardPage() {
         onZoomOut={handleZoomOut}
         onSelectDate={handleSelectDate}
         onMenuToggle={sidebar.toggle}
-      />
-
-      <TodayCard
-        appointments={appointments}
-        clientsById={clientsById}
-        onJumpToAppointment={(apt) => {
-          setCurrentMonday(new Date(`${apt.date}T00:00:00`));
-          setViewMode("day");
-          setInlineSheet({ mode: "edit", initial: apt });
-        }}
       />
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
