@@ -32,6 +32,16 @@ export interface ChatMessage {
   timestamp: string; // ISO
 }
 
+export type ConversationStatus = "new" | "active" | "waiting" | "closed" | "archived";
+
+export const STATUS_LABELS_CHAT: Record<ConversationStatus, string> = {
+  new: "Новый",
+  active: "Активный",
+  waiting: "Ожидает",
+  closed: "Закрыт",
+  archived: "Архив",
+};
+
 export interface Chat {
   id: string;
   channel: ChatChannel;
@@ -43,6 +53,8 @@ export interface Chat {
   unread_count: number;
   last_message_at: string; // ISO
   last_seen?: string; // ISO — when the contact was last online
+  status: ConversationStatus;
+  is_pinned: boolean;
   created_at: string;
 }
 
@@ -85,6 +97,8 @@ export function createBlankChat(channel: ChatChannel): Chat {
     messages: [],
     unread_count: 0,
     last_message_at: now,
+    status: "new",
+    is_pinned: false,
     created_at: now,
   };
 }
@@ -103,12 +117,16 @@ function seedChats(): Chat[] {
       contact_handle: "",
       client_id: null,
       messages: [
-        { id: "m1", direction: "in", text: "Здравствуйте, хочу записаться на чистку кондиционера", timestamp: ago(120) },
-        { id: "m2", direction: "out", text: "Добрый день! Какой адрес? Можем на эту неделю", timestamp: ago(115) },
-        { id: "m3", direction: "in", text: "Лимассол, ул. Макариос 45, квартира 3", timestamp: ago(110) },
+        { id: "m1", direction: "in", text: "Здравствуйте, хочу записаться на чистку кондиционера", timestamp: ago(120), status: "read" },
+        { id: "m2", direction: "out", text: "Добрый день! Какой адрес? Можем на эту неделю", timestamp: ago(115), status: "read" },
+        { id: "m3", direction: "in", text: "Лимассол, ул. Макариос 45, квартира 3", timestamp: ago(110), status: "read" },
+        { id: "m3b", direction: "in", text: "У нас 4 кондиционера, все нужно почистить", timestamp: ago(100), status: "delivered" },
       ],
       unread_count: 1,
-      last_message_at: ago(110),
+      last_message_at: ago(100),
+      last_seen: ago(5),
+      status: "active",
+      is_pinned: true,
       created_at: ago(120),
     },
     {
@@ -119,11 +137,13 @@ function seedChats(): Chat[] {
       contact_handle: "@maria_k_limassol",
       client_id: null,
       messages: [
-        { id: "m4", direction: "in", text: "Hi! Do you service Samsung AC units?", timestamp: ago(300) },
-        { id: "m5", direction: "out", text: "Hello! Yes, we service all brands. Where are you located?", timestamp: ago(290) },
+        { id: "m4", direction: "in", text: "Hi! Do you service Samsung AC units?", timestamp: ago(300), status: "read" },
+        { id: "m5", direction: "out", text: "Hello! Yes, we service all brands. Where are you located?", timestamp: ago(290), status: "delivered" },
       ],
       unread_count: 0,
       last_message_at: ago(290),
+      status: "waiting",
+      is_pinned: false,
       created_at: ago(300),
     },
     {
@@ -134,11 +154,31 @@ function seedChats(): Chat[] {
       contact_handle: "@elena_p",
       client_id: null,
       messages: [
-        { id: "m6", direction: "in", text: "Нужна установка 2 кондиционеров в новый офис", timestamp: ago(45) },
+        { id: "m6", direction: "in", text: "Нужна установка 2 кондиционеров в новый офис. Можете приехать на замер? Адрес: Лимассол, бизнес-центр Олимпия, 5 этаж", timestamp: ago(45), status: "delivered" },
       ],
       unread_count: 1,
       last_message_at: ago(45),
+      last_seen: ago(2),
+      status: "new",
+      is_pinned: false,
       created_at: ago(45),
+    },
+    {
+      id: "chat-4",
+      channel: "sms",
+      contact_name: "Козлов Дмитрий",
+      contact_phone: "+35797889900",
+      contact_handle: "",
+      client_id: null,
+      messages: [
+        { id: "m7", direction: "in", text: "Перезвоните пожалуйста по поводу ремонта", timestamp: ago(1440), status: "read" },
+        { id: "m8", direction: "out", text: "Добрый день! Свяжемся с вами в ближайшее время", timestamp: ago(1400), status: "sent" },
+      ],
+      unread_count: 0,
+      last_message_at: ago(1400),
+      status: "closed",
+      is_pinned: false,
+      created_at: ago(1440),
     },
   ];
 
