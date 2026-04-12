@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@/lib/clients";
 import { createBlankClient, PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
@@ -38,9 +38,10 @@ export default function CreateClientModal({
 }: CreateClientModalProps) {
   const [tab, setTab] = useState<"new" | "existing">(initialTab);
 
-  // New client form
-  const [name, setName] = useState(prefillName);
-  const [phone, setPhone] = useState(prefillPhone);
+  // New client form — reset every time the modal opens so prefills
+  // from the current chat are picked up correctly.
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [showExtra, setShowExtra] = useState(false);
   const [email, setEmail] = useState("");
@@ -48,9 +49,24 @@ export default function CreateClientModal({
   const [propertyType, setPropertyType] = useState<PropertyType | "">("");
   const [acCount, setAcCount] = useState(0);
   const [note, setNote] = useState("");
-
-  // Search for existing
   const [search, setSearch] = useState("");
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (open) {
+      setName(prefillName);
+      setPhone(prefillPhone);
+      setCity("");
+      setShowExtra(false);
+      setEmail("");
+      setAddress("");
+      setPropertyType("");
+      setAcCount(0);
+      setNote("");
+      setSearch("");
+      setTab(initialTab);
+    }
+  }, [open, prefillName, prefillPhone, initialTab]);
 
   const searchResults = useMemo(() => {
     const q = search.toLowerCase().trim();

@@ -19,9 +19,12 @@ import {
 } from "@/lib/chats";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
+import { QUICK_REPLIES } from "@/lib/quick-replies";
+import { pluralizeAC } from "@/lib/pluralize";
+import { PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 
-type FilterChannel = ChatChannel | "all";
+type FilterChannel = ChatChannel | "all" | "unanswered";
 
 export default function ChatsPage() {
   const { clients, upsertClient } = useClients();
@@ -55,8 +58,22 @@ export default function ChatsPage() {
     [chats, activeChatId]
   );
 
+  const isUnanswered = (c: Chat) => {
+    const last = c.messages[c.messages.length - 1];
+    return last?.direction === "in" && c.status !== "closed" && c.status !== "archived";
+  };
+
+  const unansweredCount = chats.filter(isUnanswered).length;
+
   const filtered = useMemo(() => {
-    let list = filter === "all" ? chats : chats.filter((c) => c.channel === filter);
+    let list: Chat[];
+    if (filter === "unanswered") {
+      list = chats.filter(isUnanswered);
+    } else if (filter === "all") {
+      list = chats;
+    } else {
+      list = chats.filter((c) => c.channel === filter);
+    }
     list = list.filter((c) => c.status !== "archived");
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -218,13 +235,18 @@ export default function ChatsPage() {
 
       {/* Filters */}
       <div className="flex-shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b border-gray-100">
-        {(["all", "whatsapp", "instagram", "telegram", "sms"] as FilterChannel[]).map((ch) => {
-          const label = ch === "all" ? "Все" : CHANNEL_LABELS[ch as ChatChannel];
-          const count = ch === "all" ? chats.filter((c) => c.status !== "archived").length : chats.filter((c) => c.channel === ch && c.status !== "archived").length;
+        {(["all", "unanswered", "whatsapp", "instagram", "telegram", "sms"] as FilterChannel[]).map((ch) => {
+          const label = ch === "all" ? "Все" : ch === "unanswered" ? "⏳ Без ответа" : CHANNEL_LABELS[ch as ChatChannel];
+          const count = ch === "all" ? chats.filter((c) => c.status !== "archived").length
+            : ch === "unanswered" ? unansweredCount
+            : chats.filter((c) => c.channel === ch && c.status !== "archived").length;
+          const isOrange = ch === "unanswered" && filter === ch;
           return (
             <button key={ch} type="button" onClick={() => setFilter(ch)}
               className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
-                filter === ch ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-600"
+                filter === ch
+                  ? isOrange ? "bg-orange-500 text-white" : "bg-violet-600 text-white"
+                  : ch === "unanswered" && count > 0 ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
               }`}
             >{label} ({count})</button>
           );
@@ -275,9 +297,12 @@ export default function ChatsPage() {
                         {chat.contact_name || chat.contact_handle || "Без имени"}
                       </span>
                     </div>
-                    <span className={`text-[11px] flex-shrink-0 ${chat.unread_count > 0 ? "text-green-600 font-semibold" : "text-gray-400"}`}>
-                      {formatTimeAgo(chat.last_message_at)}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <WaitingBadge chat={chat} />
+                      <span className={`text-[11px] ${chat.unread_count > 0 ? "text-green-600 font-semibold" : "text-gray-400"}`}>
+                        {formatTimeAgo(chat.last_message_at)}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-500 truncate">
@@ -290,9 +315,17 @@ export default function ChatsPage() {
                       </span>
                     )}
                   </div>
-                  {chat.client_id && (
-                    <div className="text-[10px] text-green-600 font-medium mt-0.5">✓ Клиент привязан</div>
-                  )}
+                  {chat.client_id && (() => {
+                    const cl = clients.find((c) => c.id === chat.client_id);
+                    if (!cl) return <div className="text-[10px] text-green-600 font-medium mt-0.5">✓ Клиент привязан</div>;
+                    const parts = [cl.city, cl.property_type ? PROPERTY_LABELS[cl.property_type as PropertyType] : null];
+                    if (cl.equipment.length > 0) parts.push(pluralizeAC(cl.equipment.length));
+                    return (
+                      <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                        ✓ {parts.filter(Boolean).join(" · ")}
+                      </div>
+                    );
+                  })()}
                 </div>
               </button>
             </SwipeableRow>
@@ -470,6 +503,7 @@ function ChatDetailView({
   onTogglePanel: () => void;
 }) {
   const linkedClient = chat.client_id ? clients.find((c) => c.id === chat.client_id) ?? null : null;
+  const [showQR, setShowQR] = useState(false);
 
   const groupedMessages: { date: string; messages: ChatMessage[] }[] = [];
   for (const msg of chat.messages) {
@@ -598,12 +632,23 @@ function ChatDetailView({
           </div>
         )}
 
+        {/* Quick replies sheet */}
+        {showQR && (
+          <QuickReplySheet
+            onSelect={(text) => { setDraft(text); setShowQR(false); }}
+            onClose={() => setShowQR(false)}
+          />
+        )}
+
         {/* Input */}
         <div className="flex-shrink-0 border-t border-gray-200 bg-white px-2 py-2 flex items-end gap-1.5">
           <button type="button" onClick={onPhotoAttach} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 active:bg-gray-100 flex-shrink-0">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
             </svg>
+          </button>
+          <button type="button" onClick={() => setShowQR(true)} className="w-10 h-10 flex items-center justify-center rounded-full text-amber-500 active:bg-amber-50 flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </button>
           <input
             type="text"
@@ -681,4 +726,91 @@ function formatDateLabel(dateKey: string): string {
   const [, m, d] = dateKey.split("-").map(Number);
   const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
   return `${d} ${months[m - 1]}`;
+}
+
+// ─── WAITING BADGE ────────────────────────────────────────────────
+// Shows elapsed time since the client's last unanswered message.
+// Color escalates: gray < 30m, orange 30m–4h, red > 4h.
+
+function WaitingBadge({ chat }: { chat: Chat }) {
+  const last = chat.messages[chat.messages.length - 1];
+  if (!last || last.direction !== "in" || chat.status === "closed" || chat.status === "archived") return null;
+
+  const diff = Date.now() - new Date(last.timestamp).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 30) return null;
+
+  const label = mins < 60 ? `${mins}м` : mins < 1440 ? `${Math.floor(mins / 60)}ч` : `${Math.floor(mins / 1440)}д`;
+  const color = mins > 240 ? "text-red-500 font-bold" : mins > 60 ? "text-orange-500" : "text-gray-400";
+
+  return (
+    <span className={`text-[10px] tabular-nums ${color}`}>⏱ {label}</span>
+  );
+}
+
+// ─── QUICK REPLY SHEET ────────────────────────────────────────────
+
+function QuickReplySheet({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (text: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(
+    () =>
+      QUICK_REPLIES.filter(
+        (r) =>
+          !search.trim() ||
+          r.title.toLowerCase().includes(search.toLowerCase()) ||
+          r.text.toLowerCase().includes(search.toLowerCase())
+      ),
+    [search]
+  );
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center lg:items-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl max-h-[70vh] flex flex-col overflow-hidden">
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-1 lg:hidden" />
+        <div className="px-4 pt-2 pb-3 border-b border-gray-100">
+          <div className="text-[15px] font-semibold text-gray-900 mb-2">Быстрые ответы</div>
+          <div className="relative">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск шаблона..."
+              className="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-100 text-[14px] placeholder-gray-400 focus:outline-none"
+            />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {filtered.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onSelect(r.text)}
+              className="w-full text-left px-4 py-3 border-b border-gray-100 active:bg-gray-50"
+            >
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[15px]">{r.emoji}</span>
+                <span className="text-[14px] font-medium text-gray-900">{r.title}</span>
+              </div>
+              <div className="text-[13px] text-gray-500 leading-snug line-clamp-2 pl-7">
+                {r.text}
+              </div>
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <div className="text-center text-gray-400 py-8 text-[13px]">Не найдено</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
