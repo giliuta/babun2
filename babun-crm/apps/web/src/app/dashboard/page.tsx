@@ -65,7 +65,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v77-clients-rewrite";
+const BUILD_TAG = "v78-calendar-smart";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -438,13 +438,13 @@ export default function DashboardPage() {
     []
   );
 
-  // Slot action menu — opens when user taps an empty spot on the calendar.
-  const [slotMenu, setSlotMenu] = useState<{ date: string; time: string } | null>(
-    null
-  );
+  // Tap on empty slot = directly open create appointment form.
+  // No menu, no extra taps — Dima is on the phone with a client,
+  // every second counts.
+  const [slotMenu, setSlotMenu] = useState<{ date: string; time: string } | null>(null);
   const handleEmptySlotClick = useCallback((date: string, time: string) => {
-    setSlotMenu({ date, time });
-  }, []);
+    openNewAppointmentInline(date, time, "work");
+  }, [openNewAppointmentInline]);
 
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
@@ -817,57 +817,46 @@ export default function DashboardPage() {
       ]
     : [];
 
+  // Long-press menu — only actions that Dima actually uses.
+  // No disabled stubs, no rarely-used items.
   const longPressOptions: ActionMenuOption[] = longPressApt
     ? [
+        // Quick status changes — the most common action
         ...(longPressApt.status !== "completed"
-          ? [
-              {
-                label: "Отметить выполненной",
-                subtitle: "Статус → Выполнена",
-                onSelect: () => handleQuickStatus(longPressApt, "completed"),
-              },
-            ]
+          ? [{
+              label: "✅ Выполнена",
+              onSelect: () => handleQuickStatus(longPressApt, "completed"),
+            }]
           : []),
         ...(longPressApt.status !== "in_progress"
-          ? [
-              {
-                label: "В работе",
-                subtitle: "Статус → В работе",
-                onSelect: () => handleQuickStatus(longPressApt, "in_progress"),
-              },
-            ]
+          ? [{
+              label: "🔄 В работе",
+              onSelect: () => handleQuickStatus(longPressApt, "in_progress"),
+            }]
           : []),
-        ...(longPressApt.status !== "scheduled"
-          ? [
-              {
-                label: "Вернуть в план",
-                subtitle: "Статус → Запланирована",
-                onSelect: () => handleQuickStatus(longPressApt, "scheduled"),
-              },
-            ]
+        ...(longPressApt.status !== "scheduled" && longPressApt.status !== "cancelled"
+          ? [{
+              label: "📅 Вернуть в план",
+              onSelect: () => handleQuickStatus(longPressApt, "scheduled"),
+            }]
           : []),
+        // Copy — useful for recurring clients
         {
-          label: "Копировать запись",
+          label: "📋 Копировать",
           onSelect: () => {
             const copy = duplicateAppointment(longPressApt);
             upsertAppointment(copy);
-            router.push(`/dashboard/appointment/${copy.id}`);
+            setInlineSheet({ mode: "edit", initial: copy });
           },
         },
+        // Cancel / restore
         {
-          label: "Копировать многократно",
-          subtitle: "Периодическое дублирование",
-          onSelect: () => setRepeatSource(longPressApt),
-        },
-        {
-          label:
-            longPressApt.status === "cancelled"
-              ? "Восстановить запись"
-              : "Отменить запись",
+          label: longPressApt.status === "cancelled" ? "♻️ Восстановить" : "❌ Отменить",
           onSelect: () => handleCancelToggle(longPressApt),
         },
+        // Delete
         {
-          label: "Удалить",
+          label: "🗑 Удалить",
           danger: true,
           onSelect: () => handleDeleteWithUndo(longPressApt),
         },

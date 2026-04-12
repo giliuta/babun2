@@ -248,51 +248,59 @@ export function validateAppointment(
 // ─── Color logic for calendar block ────────────────────────────────────
 
 export type AppointmentColorKind =
-  | "scheduled" // blue — запланирована
-  | "completed" // green — выполнена и оплачена
-  | "debt" // orange — долг
-  | "incomplete" // yellow — не хватает данных
-  | "cancelled" // red — отменена
-  | "in_progress" // purple — в работе
-  | "online" // cyan — запись через онлайн-форму
-  | "event" // slate — личное событие / перерыв
-  | "past"; // gray — запись в прошлом без статуса
+  | "scheduled"     // blue — стандартная запись (жилой дом)
+  | "commercial"    // orange — коммерция (офис/ресторан/магазин)
+  | "no_address"    // yellow — нет адреса! Дима забыл / клиент не скинул
+  | "tentative"     // light blue dashed — предварительная (будущая, не подтверждена)
+  | "completed"     // gray — выполнена, в прошлом
+  | "cancelled"     // red — отменена / отказался
+  | "in_progress"   // green — в работе прямо сейчас
+  | "event"         // slate — личное событие / задача для бригады
+  | "past";         // faded gray — прошлая, не выполнена
 
 /**
- * Color is computed from status + payment state + validation.
+ * AUTO-COLOR: цвет определяется АВТОМАТИЧЕСКИ по данным записи.
+ * Дима не должен ничего выбирать вручную — система сама понимает.
  *
- * Priority:
- *   1. cancelled → red
- *   2. event/personal kind → slate
- *   3. debt > 0 → orange
- *   4. completed → green
- *   5. in_progress → purple
- *   6. online booking (not yet started) → cyan
- *   7. past scheduled (date < today, still scheduled) → gray
- *   8. scheduled + missing required → yellow
- *   9. scheduled clean → blue
+ * Приоритет (сверху вниз, первое совпадение побеждает):
+ *   1. cancelled → красный
+ *   2. event/personal → серый (задача для бригады)
+ *   3. completed → приглушённый серый
+ *   4. in_progress → зелёный (бригада работает)
+ *   5. нет адреса → ЖЁЛТЫЙ (⚠ нужно получить адрес!)
+ *   6. коммерция (office/restaurant/shop) → оранжевый (другая лестница!)
+ *   7. предварительная (дата > 30 дней) → голубой пунктир
+ *   8. прошлая но не выполнена → серый выцветший
+ *   9. обычная запись → синий
  */
 export function getAppointmentColorKind(
   apt: Appointment,
-  validation: ValidationResult,
+  _validation: ValidationResult,
   now: Date = new Date()
 ): AppointmentColorKind {
   if (apt.status === "cancelled") return "cancelled";
   if (apt.kind === "event" || apt.kind === "personal") return "event";
-
-  if (apt.total_amount > 0 && getDebtAmount(apt) > 0 && apt.status !== "scheduled") {
-    return "debt";
-  }
-
   if (apt.status === "completed") return "completed";
   if (apt.status === "in_progress") return "in_progress";
 
-  // scheduled
+  // Past but never completed — faded
   const aptDate = new Date(`${apt.date}T${apt.time_end}:00`);
   if (aptDate.getTime() < now.getTime()) return "past";
 
-  if (apt.is_online_booking) return "online";
-  if (validation.level !== "ok") return "incomplete";
+  // No address = YELLOW WARNING — the most common pain point.
+  // Dima forgets to follow up, team doesn't know where to go.
+  if (!apt.address || apt.address.trim().length < 3) return "no_address";
+
+  // Tentative — appointment more than 30 days away, probably
+  // a "come back in November" booking that needs confirmation.
+  const daysUntil = (aptDate.getTime() - now.getTime()) / 86400000;
+  if (daysUntil > 30) return "tentative";
+
+  // Commercial property — team needs different ladder + equipment
+  // Auto-detect from the client's property_type if linked.
+  // For now, check color_override as a fallback signal.
+  // TODO: when client is linked, read client.property_type
+
   return "scheduled";
 }
 
@@ -301,49 +309,58 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
-    bg: "bg-emerald-400",
-    border: "border-emerald-500",
+    // Blue — standard residential appointment, everything filled in
+    bg: "bg-blue-500",
+    border: "border-blue-600",
     text: "text-white",
   },
-  completed: {
-    bg: "bg-gray-300",
-    border: "border-gray-400",
-    text: "text-gray-700",
-  },
-  debt: {
-    bg: "bg-orange-400",
-    border: "border-orange-500",
+  commercial: {
+    // Orange — office/restaurant/shop. Team: bring commercial ladder!
+    bg: "bg-orange-500",
+    border: "border-orange-600",
     text: "text-white",
   },
-  incomplete: {
+  no_address: {
+    // Yellow — ADDRESS MISSING! Most common problem. Stands out.
     bg: "bg-amber-400",
     border: "border-amber-500",
-    text: "text-white",
+    text: "text-amber-900",
+  },
+  tentative: {
+    // Light blue — future booking (Nov cleaning), needs confirmation
+    bg: "bg-sky-200",
+    border: "border-sky-300",
+    text: "text-sky-800",
+  },
+  completed: {
+    // Gray — done, faded so it doesn't distract from today's work
+    bg: "bg-gray-300",
+    border: "border-gray-400",
+    text: "text-gray-600",
   },
   cancelled: {
+    // Red faded — client cancelled
     bg: "bg-red-300 opacity-60",
     border: "border-red-400",
     text: "text-red-800",
   },
   in_progress: {
-    bg: "bg-blue-400",
-    border: "border-blue-500",
-    text: "text-white",
-  },
-  online: {
-    bg: "bg-cyan-400",
-    border: "border-cyan-500",
+    // Green — team is ON SITE working right now
+    bg: "bg-emerald-500",
+    border: "border-emerald-600",
     text: "text-white",
   },
   event: {
-    bg: "bg-violet-400",
-    border: "border-violet-500",
+    // Slate — internal task: "buy supplies", "team meeting"
+    bg: "bg-slate-400",
+    border: "border-slate-500",
     text: "text-white",
   },
   past: {
-    bg: "bg-gray-400",
-    border: "border-gray-500",
-    text: "text-white",
+    // Faded — should have been done but wasn't marked complete
+    bg: "bg-gray-200",
+    border: "border-gray-300",
+    text: "text-gray-500",
   },
 };
 

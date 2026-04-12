@@ -51,6 +51,50 @@ interface DayColumnProps {
 // layout updates without any React re-render.
 const mins = (m: number) => `calc(var(--hh) * ${m / 60})`;
 
+// Compute side-by-side columns for overlapping appointments.
+// Returns a Map of aptId → { col: 0-based column, total: columns in group }.
+function computeOverlapLayout(apts: Appointment[]): Map<string, { col: number; total: number }> {
+  const result = new Map<string, { col: number; total: number }>();
+  if (apts.length === 0) return result;
+
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const sorted = [...apts].sort((a, b) => toMin(a.time_start) - toMin(b.time_start));
+  const groups: Appointment[][] = [];
+
+  for (const apt of sorted) {
+    const s = toMin(apt.time_start);
+    const e = toMin(apt.time_end);
+    let placed = false;
+
+    for (const group of groups) {
+      const overlaps = group.some((g) => {
+        const gs = toMin(g.time_start);
+        const ge = toMin(g.time_end);
+        return s < ge && e > gs;
+      });
+      if (overlaps) {
+        group.push(apt);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) groups.push([apt]);
+  }
+
+  for (const group of groups) {
+    const total = group.length;
+    group.forEach((apt, col) => {
+      result.set(apt.id, { col, total });
+    });
+  }
+
+  return result;
+}
+
 function DayColumnInner({
   date,
   today,
@@ -255,24 +299,39 @@ function DayColumnInner({
           </div>
         )}
 
-        {/* Appointment blocks */}
-        {dayAppointments.map((apt) => {
-          const validation = validateApt(apt);
-          const colorKind = getAppointmentColorKind(apt, validation);
-          return (
-            <AppointmentBlock
-              key={apt.id}
-              appointment={apt}
-              colorKind={colorKind}
-              clientsById={clientsById}
-              services={services}
-              teamColor={teamColorFor?.(apt) ?? null}
-              onClick={onAppointmentClick}
-              onLongPress={onAppointmentLongPress}
-              draggable={dragEnabled}
-            />
-          );
-        })}
+        {/* Appointment blocks — with overlap detection.
+            When 2+ appointments overlap in time, they display
+            side-by-side (each gets a fraction of the width) so
+            nothing is hidden. */}
+        {(() => {
+          // Compute column layout for overlapping appointments
+          const layout = computeOverlapLayout(dayAppointments);
+          return dayAppointments.map((apt) => {
+            const validation = validateApt(apt);
+            const colorKind = getAppointmentColorKind(apt, validation);
+            const pos = layout.get(apt.id) ?? { col: 0, total: 1 };
+            const widthPct = 100 / pos.total;
+            const leftPct = pos.col * widthPct;
+            return (
+              <AppointmentBlock
+                key={apt.id}
+                appointment={apt}
+                colorKind={colorKind}
+                clientsById={clientsById}
+                services={services}
+                teamColor={teamColorFor?.(apt) ?? null}
+                onClick={onAppointmentClick}
+                onLongPress={onAppointmentLongPress}
+                draggable={dragEnabled}
+                overlapStyle={
+                  pos.total > 1
+                    ? { left: `${leftPct}%`, width: `${widthPct}%` }
+                    : undefined
+                }
+              />
+            );
+          });
+        })()}
       </div>
 
       {/* Day totals footer — tap to open DayFinanceModal */}

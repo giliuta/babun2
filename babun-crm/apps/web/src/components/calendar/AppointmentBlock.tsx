@@ -16,6 +16,8 @@ interface AppointmentBlockProps {
   services: Service[];
   /** Team tint used to paint the left accent stripe. */
   teamColor?: string | null;
+  /** Override left/width for side-by-side overlap display. */
+  overlapStyle?: { left: string; width: string };
   onClick: (appointment: Appointment) => void;
   onLongPress?: (appointment: Appointment) => void;
   draggable?: boolean;
@@ -27,6 +29,7 @@ function AppointmentBlockInner({
   clientsById,
   services,
   teamColor,
+  overlapStyle,
   onClick,
   onLongPress,
   draggable = false,
@@ -132,7 +135,7 @@ function AppointmentBlockInner({
       }}
       {...listeners}
       {...attributes}
-      className={`absolute left-0 right-0 ${
+      className={`absolute ${overlapStyle ? "" : "left-0 right-0"} ${
         appointment.color_override ? "" : `${colors.bg} ${colors.text}`
       } text-left overflow-hidden touch-none will-change-transform ${
         isDragging ? "opacity-70 z-30" : ""
@@ -140,6 +143,7 @@ function AppointmentBlockInner({
       style={{
         top: topExpr,
         height: heightExpr,
+        ...(overlapStyle ?? {}),
         backgroundColor: appointment.color_override ?? undefined,
         borderLeft: `3px solid ${accent || "rgba(0,0,0,0.25)"}`,
         transform: CSS.Translate.toString(transform),
@@ -150,37 +154,40 @@ function AppointmentBlockInner({
       }}
     >
       <div className="px-1.5 py-0.5 h-full overflow-hidden relative">
+        {/* Line 1: time range */}
         <div
-          className={`text-[8px] lg:text-[10px] font-medium opacity-90 leading-tight ${
+          className={`text-[8px] lg:text-[10px] font-medium opacity-80 leading-tight ${
             isCancelled ? "line-through" : ""
           }`}
         >
           {appointment.time_start}-{appointment.time_end}
         </div>
+
+        {/* Line 2: client name + AC count */}
         {clientName && (
           <div
-            className={`text-[10px] lg:text-xs font-semibold truncate leading-tight ${
+            className={`text-[10px] lg:text-xs font-bold truncate leading-tight ${
               isCancelled ? "line-through opacity-80" : ""
             }`}
           >
             {clientName}
-          </div>
-        )}
-        {serviceSummary && (
-          <div className="text-[8px] lg:text-[10px] truncate opacity-90 leading-tight">
-            {serviceSummary}
-          </div>
-        )}
-        {appointment.comment && (
-          <div className="text-[8px] lg:text-[10px] truncate opacity-70 mt-0.5 leading-tight">
-            {appointment.comment}
+            {appointment.service_ids.length > 0 && (
+              <span className="font-normal opacity-80"> · {appointment.service_ids.length > 1 ? `${appointment.service_ids.length} усл.` : ""}</span>
+            )}
           </div>
         )}
 
-        <div className="absolute bottom-0.5 right-1 flex gap-0.5 text-[10px] leading-none">
+        {/* Line 3: service or comment — useful context for the team */}
+        {serviceSummary && (
+          <div className="text-[8px] lg:text-[10px] truncate opacity-80 leading-tight">
+            {serviceSummary}
+          </div>
+        )}
+
+        {/* Warning icons — bottom right */}
+        <div className="absolute bottom-0.5 right-1 flex gap-0.5 text-[9px] leading-none">
+          {!appointment.address && colorKind === "no_address" && <span>⚠️</span>}
           {hasPhotos && <span>📷</span>}
-          {hasDebt && <span>🟧</span>}
-          {!hasDebt && isIncomplete && <span>⚠</span>}
         </div>
       </div>
     </button>
