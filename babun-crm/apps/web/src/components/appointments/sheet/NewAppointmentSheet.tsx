@@ -502,7 +502,7 @@ export default function NewAppointmentSheet({
       {/* Body */}
       <div
         className="flex-1 overflow-y-auto bg-white"
-        style={{ paddingBottom: "5rem" }}
+        style={{ paddingBottom: "7rem" }}
       >
         {/* Дата */}
         <Label>Дата</Label>
@@ -733,8 +733,8 @@ export default function NewAppointmentSheet({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Что нужно сделать"
-            rows={1}
-            className="flex-1 min-h-[24px] text-[13px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none leading-snug"
+            rows={3}
+            className="flex-1 min-h-[72px] text-[13px] text-gray-900 placeholder-gray-400 bg-transparent resize-y focus:outline-none leading-snug"
             style={{ fieldSizing: "content" } as React.CSSProperties}
           />
         </div>
@@ -916,7 +916,7 @@ export default function NewAppointmentSheet({
           keyboardOffset transform keeps the button above the iOS
           soft keyboard when an input is focused. */}
       <div
-        className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t border-gray-200 px-4 pt-3"
+        className="fixed left-0 right-0 bottom-0 z-50 bg-white border-t border-gray-200 px-4 pt-3"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)",
           transform: `translateY(-${keyboardOffset}px)`,
