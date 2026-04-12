@@ -449,29 +449,7 @@ export default function NewAppointmentSheet({
           </svg>
         </button>
         <h1 className="text-[14px] font-medium flex-1 truncate">{headerTitle}</h1>
-        {/* Color palette button — persistent per-appointment color tint */}
-        <button
-          type="button"
-          onClick={() => setColorModal(true)}
-          aria-label="Цвет"
-          className="w-9 h-9 flex items-center justify-center active:scale-95 text-white/85"
-        >
-          {colorOverride ? (
-            <span
-              className="w-5 h-5 rounded-full ring-2 ring-white/60"
-              style={{ backgroundColor: colorOverride }}
-            />
-          ) : (
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" />
-              <circle cx="12" cy="7.5" r="1.2" fill="currentColor" />
-              <circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" />
-              <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" />
-              <path d="M12 22c-1.5-1.5-1.5-3 0-4.5s3.5-2 3-4-2-2.5-3.5-2.5" />
-            </svg>
-          )}
-        </button>
+        {/* Color is now automatic — no palette button needed */}
         {currentTeam && (
           <button
             type="button"
@@ -645,6 +623,33 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
+        {/* Адрес — right after client, because it's the #1 missing field.
+            Yellow background when empty so Dima can't miss it. */}
+        <Label>Адрес</Label>
+        <div className={`flex items-center gap-2 px-4 py-1.5 ${!address.trim() ? "bg-amber-50" : ""}`}>
+          <IconSquare color={address.trim() ? "#ef4444" : "#f59e0b"}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </IconSquare>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder={address.trim() ? "" : "⚠ Нет адреса — запросите у клиента"}
+            className="flex-1 min-w-0 h-8 text-[13px] text-gray-900 placeholder-amber-500 bg-transparent focus:outline-none"
+          />
+          {address.trim() && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {resolving && <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-1" />}
+              <a href={buildMapUrl("google", address, addressLat !== null && addressLng !== null ? { lat: addressLat, lng: addressLng } : null) ?? "#"} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95" style={{ backgroundColor: "#ea4335" }}>G</a>
+              <a href={buildMapUrl("waze", address, addressLat !== null && addressLng !== null ? { lat: addressLat, lng: addressLng } : null) ?? "#"} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95" style={{ backgroundColor: "#33ccff" }}>W</a>
+            </div>
+          )}
+        </div>
+        <Divider />
+
         {/* Услуги */}
         <Label>Услуги</Label>
         <button
@@ -740,89 +745,8 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
-        {/* Адрес */}
-        <Label>Адрес</Label>
-        <div className="flex items-center gap-2 px-4 py-1.5">
-          <IconSquare color="#ef4444">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-          </IconSquare>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Адрес или ссылка"
-            className="flex-1 min-w-0 h-8 text-[13px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
-          />
-          {address.trim() && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {resolving && (
-                <div
-                  className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-1"
-                  aria-label="Resolving..."
-                />
-              )}
-              <a
-                href={
-                  buildMapUrl(
-                    "google",
-                    address,
-                    addressLat !== null && addressLng !== null
-                      ? { lat: addressLat, lng: addressLng }
-                      : null
-                  ) ?? "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Google Maps"
-                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
-                style={{ backgroundColor: "#ea4335" }}
-              >
-                G
-              </a>
-              <a
-                href={
-                  buildMapUrl(
-                    "apple",
-                    address,
-                    addressLat !== null && addressLng !== null
-                      ? { lat: addressLat, lng: addressLng }
-                      : null
-                  ) ?? "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Apple Maps"
-                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
-                style={{ backgroundColor: "#1d1d1f" }}
-              >
-                A
-              </a>
-              <a
-                href={
-                  buildMapUrl(
-                    "waze",
-                    address,
-                    addressLat !== null && addressLng !== null
-                      ? { lat: addressLat, lng: addressLng }
-                      : null
-                  ) ?? "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Waze"
-                className="w-8 h-8 rounded-md flex items-center justify-center text-white text-[11px] font-bold active:scale-95"
-                style={{ backgroundColor: "#33ccff" }}
-              >
-                W
-              </a>
-            </div>
-          )}
-        </div>
-        <Divider />
-
+        {/* SMS + Фото — only show in edit mode, not cluttering creation */}
+        {mode === "edit" && <>
         {/* SMS-напоминания */}
         <Label>SMS-напоминание</Label>
         <ReminderBlock
@@ -888,6 +812,7 @@ export default function NewAppointmentSheet({
           </div>
         </div>
         <Divider />
+        </>}
           </>
         )}
 
