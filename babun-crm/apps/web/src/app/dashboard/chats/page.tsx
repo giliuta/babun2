@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
 import { createBlankClient, type Client } from "@/lib/clients";
 import ClientPanel from "@/components/clients/ClientPanel";
+import CreateClientModal from "@/components/clients/CreateClientModal";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import {
   type Chat,
   type ChatChannel,
@@ -25,6 +27,10 @@ export default function ChatsPage() {
   const { clients, upsertClient } = useClients();
   const { appointments } = useAppointments();
   const [showClientPanel, setShowClientPanel] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalTab, setCreateModalTab] = useState<"new" | "existing">("new");
+  const isXL = useMediaQuery("(min-width: 1280px)");
+  const isLG = useMediaQuery("(min-width: 1024px)");
   const [chats, setChats] = useState<Chat[]>([]);
   const [filter, setFilter] = useState<FilterChannel>("all");
   const [search, setSearch] = useState("");
@@ -141,18 +147,32 @@ export default function ChatsPage() {
     setHeaderMenu(false);
   };
 
-  const createClientFromChat = (chat: Chat) => {
-    haptic("success");
-    const newClient = createBlankClient({
-      full_name: chat.contact_name || "Новый клиент",
-      phone: chat.contact_phone,
-      telegram_username: chat.channel === "telegram" ? chat.contact_handle.replace("@", "") : "",
-      instagram_username: chat.channel === "instagram" ? chat.contact_handle.replace("@", "") : "",
-    });
-    upsertClient(newClient);
-    persist(chats.map((c) => c.id === chat.id ? { ...c, client_id: newClient.id } : c));
-    setHeaderMenu(false);
+  const openCreateModal = (tab: "new" | "existing" = "new") => {
+    setCreateModalTab(tab);
+    setShowCreateModal(true);
   };
+
+  const handleClientCreated = (newClient: Client) => {
+    upsertClient(newClient);
+    if (activeChat) {
+      persist(chats.map((c) => c.id === activeChat.id ? { ...c, client_id: newClient.id } : c));
+      setShowClientPanel(true);
+    }
+  };
+
+  const handleClientLinked = (clientId: string) => {
+    if (activeChat) {
+      persist(chats.map((c) => c.id === activeChat.id ? { ...c, client_id: clientId } : c));
+      setShowClientPanel(true);
+    }
+  };
+
+  // Auto-open client panel on xl+ when chat has linked client
+  useEffect(() => {
+    if (isXL && activeChat?.client_id) {
+      setShowClientPanel(true);
+    }
+  }, [isXL, activeChat?.client_id]);
 
   const handlePhotoAttach = () => {
     const input = document.createElement("input");
@@ -312,7 +332,7 @@ export default function ChatsPage() {
       onTogglePin={() => togglePin(activeChat.id)}
       onArchive={() => archiveChat(activeChat.id)}
       onClose={() => closeChat(activeChat.id)}
-      onCreateClient={() => createClientFromChat(activeChat)}
+      onCreateClient={() => openCreateModal("new")}
       onTogglePanel={() => setShowClientPanel((s) => !s)}
     />
   ) : (
@@ -343,7 +363,7 @@ export default function ChatsPage() {
         {chatViewEl}
       </div>
       {/* Client panel — desktop only, slide-in right */}
-      {showClientPanel && linkedClient && (
+      {showClientPanel && linkedClient && isLG && (
         <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full animate-fade-in-up">
           <ClientPanel
             client={linkedClient}
@@ -353,6 +373,68 @@ export default function ChatsPage() {
           />
         </div>
       )}
+
+      {/* Client panel — mobile bottom sheet */}
+      {showClientPanel && linkedClient && !isLG && (
+        <div className="fixed inset-0 z-[80] lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowClientPanel(false)} />
+          <div className="absolute bottom-0 left-0 right-0 h-[85vh] bg-white rounded-t-2xl overflow-hidden animate-fade-in-up">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-1" />
+            <div className="h-full overflow-y-auto" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
+              <ClientPanel
+                client={linkedClient}
+                appointments={appointments}
+                onUpdate={(updated: Client) => upsertClient(updated)}
+                onClose={() => setShowClientPanel(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state for panel when no client linked — desktop xl+ */}
+      {showClientPanel && !linkedClient && isLG && (
+        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full bg-white border-l border-gray-200 items-center justify-center text-center p-6">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-300 mb-3">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <div className="text-[15px] font-medium text-gray-600 mb-1">Клиент не привязан</div>
+          <div className="text-[12px] text-gray-400 mb-4">Привяжите существующего или создайте нового</div>
+          <div className="flex flex-col gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => openCreateModal("existing")}
+              className="h-10 rounded-lg border border-gray-200 text-[13px] font-medium text-gray-700 active:bg-gray-50"
+            >
+              Найти клиента
+            </button>
+            <button
+              type="button"
+              onClick={() => openCreateModal("new")}
+              className="h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.98]"
+            >
+              + Создать нового
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Create/link client modal */}
+      <CreateClientModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        clients={clients}
+        prefillName={activeChat?.contact_name ?? ""}
+        prefillPhone={
+          activeChat && (activeChat.channel === "whatsapp" || activeChat.channel === "sms")
+            ? activeChat.contact_phone
+            : ""
+        }
+        initialTab={createModalTab}
+        onCreate={handleClientCreated}
+        onLink={handleClientLinked}
+      />
     </div>
   );
 }
