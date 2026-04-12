@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "@/app/dashboard/layout";
 import { loadWaitlist } from "@/lib/waitlist";
+import { loadChats, getTotalUnread } from "@/lib/chats";
 
 // Bottom tab bar — visible on mobile only (lg:hidden). The layout adds
 // padding-bottom so the bar never covers content. The centre "+ Запись"
@@ -17,7 +18,13 @@ export default function BottomTabBar() {
 
   const isCalendar = pathname === "/dashboard";
   const isClients = pathname.startsWith("/dashboard/clients");
+  const isChats = pathname.startsWith("/dashboard/chats");
   const isFinances = pathname.startsWith("/dashboard/finances");
+
+  const [unreadChats, setUnreadChats] = useState(0);
+  useEffect(() => {
+    setUnreadChats(getTotalUnread(loadChats()));
+  }, [pathname]);
 
   // Unread waitlist — shows a red dot on the "Ещё" tab while any
   // entry is still pending, so the dispatcher knows there's something
@@ -40,16 +47,6 @@ export default function BottomTabBar() {
 
   const go = (path: string) => {
     router.push(path);
-  };
-
-  const openNew = () => {
-    // If already on calendar, append the flag so the page effect fires.
-    // Otherwise navigate there.
-    if (pathname === "/dashboard") {
-      router.replace("/dashboard?new=1");
-    } else {
-      router.push("/dashboard?new=1");
-    }
   };
 
   return (
@@ -90,14 +87,13 @@ export default function BottomTabBar() {
         />
 
         <TabButton
-          label="Запись"
-          active={false}
-          onClick={openNew}
+          label="Чаты"
+          active={isChats}
+          dot={unreadChats > 0}
+          onClick={() => go("/dashboard/chats")}
           icon={
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="12" y1="9" x2="12" y2="15" />
-              <line x1="9" y1="12" x2="15" y2="12" />
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
           }
         />
