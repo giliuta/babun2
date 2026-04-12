@@ -89,28 +89,18 @@ export default function BottomTabBar() {
           }
         />
 
-        {/* Centre action — larger, lifted with premium gradient */}
-        <button
-          type="button"
+        <TabButton
+          label="Запись"
+          active={false}
           onClick={openNew}
-          aria-label="Новая запись"
-          className="relative -top-4 flex flex-col items-center gap-1 min-w-[56px]"
-        >
-          <div
-            className="w-[58px] h-[58px] rounded-full flex items-center justify-center text-white active:scale-95 transition"
-            style={{
-              background: "linear-gradient(135deg, #6366f1, #4f46e5 60%, #7c3aed)",
-              boxShadow:
-                "0 1px 0 rgba(255,255,255,0.25) inset, 0 0 0 4px rgba(99,102,241,0.1), 0 8px 24px -6px rgba(79,70,229,0.5)",
-            }}
-          >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="12" y1="9" x2="12" y2="15" />
+              <line x1="9" y1="12" x2="15" y2="12" />
             </svg>
-          </div>
-          <span className="text-[10px] text-indigo-700 font-semibold">Запись</span>
-        </button>
+          }
+        />
 
         <TabButton
           label="Финансы"

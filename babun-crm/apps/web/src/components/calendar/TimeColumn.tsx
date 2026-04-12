@@ -8,7 +8,10 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function TimeColumnInner() {
   return (
-    <div className="w-9 lg:w-14 flex-shrink-0 border-r border-gray-200 bg-gray-50">
+    <div
+      className="w-9 lg:w-14 flex-shrink-0 bg-gray-50"
+      style={{ borderRight: "2px solid #d1d5db" }}
+    >
       {/* Header spacer (sticks while vertically scrolling) */}
       <div className="sticky top-0 z-30 h-[52px] lg:h-[72px] border-b border-gray-200 bg-gray-50" />
 
