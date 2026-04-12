@@ -916,7 +916,7 @@ export default function NewAppointmentSheet({
           keyboardOffset transform keeps the button above the iOS
           soft keyboard when an input is focused. */}
       <div
-        className="fixed left-0 right-0 bottom-0 z-50 bg-white border-t border-gray-200 px-4 pt-3"
+        className="fixed left-0 right-0 bottom-0 z-[60] bg-white border-t border-gray-200 px-4 pt-3"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)",
           transform: `translateY(-${keyboardOffset}px)`,

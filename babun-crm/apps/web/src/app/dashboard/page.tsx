@@ -1037,7 +1037,7 @@ export default function DashboardPage() {
           change. Keeps the calendar fully mounted so opening an
           appointment is instant. */}
       {inlineSheet && (
-        <div className="fixed inset-0 z-40 bg-gray-50 flex flex-col">
+        <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
           <NewAppointmentSheet
             initial={inlineSheet.initial}
             mode={inlineSheet.mode}
