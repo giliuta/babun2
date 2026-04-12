@@ -66,7 +66,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v60-haptics-dark-polish";
+const BUILD_TAG = "v61-persist-view-mode";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -114,12 +114,19 @@ export default function DashboardPage() {
     }
   }, [teamTabs, activeTeamId]);
 
-  // Default to "day" on mobile (<1024px) and "week" on desktop so the
-  // calendar lands in the right mode before first paint.
+  // Restore last-used view mode from localStorage, falling back to
+  // "day" on mobile and "week" on desktop for the very first visit.
+  const VIEW_MODE_KEY = "babun-view-mode";
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window === "undefined") return "week";
+    const saved = window.localStorage.getItem(VIEW_MODE_KEY) as ViewMode | null;
+    if (saved && ["day", "3days", "week", "month"].includes(saved)) return saved;
     return window.innerWidth < 1024 ? "day" : "week";
   });
+  // Persist whenever the user switches
+  useEffect(() => {
+    window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
+  }, [viewMode]);
   // hourHeight is not React state — it lives in a ref and is written as
   // a CSS variable on the outer scroller via writeHourHeight(). This keeps
   // pinch-zoom off the React render path entirely.
