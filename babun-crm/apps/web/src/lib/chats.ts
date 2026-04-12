@@ -20,10 +20,15 @@ export const CHANNEL_COLORS: Record<ChatChannel, string> = {
   sms: "#6b7280",
 };
 
+export type MessageStatus = "sent" | "delivered" | "read";
+
 export interface ChatMessage {
   id: string;
   direction: "in" | "out";
   text: string;
+  photo?: string; // base64 data URL
+  reply_to_id?: string; // id of message being replied to
+  status?: MessageStatus; // only meaningful for outgoing
   timestamp: string; // ISO
 }
 
@@ -37,6 +42,7 @@ export interface Chat {
   messages: ChatMessage[];
   unread_count: number;
   last_message_at: string; // ISO
+  last_seen?: string; // ISO — when the contact was last online
   created_at: string;
 }
 
