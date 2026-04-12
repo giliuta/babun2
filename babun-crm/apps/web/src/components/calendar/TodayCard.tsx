@@ -5,6 +5,7 @@ import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount } from "@/lib/appointments";
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
+import AnimatedNumber from "@/components/ui/AnimatedNumber";
 
 interface TodayCardProps {
   appointments: Appointment[];
@@ -97,7 +98,8 @@ export default function TodayCard({
               border: "1px solid rgba(99, 102, 241, 0.2)",
             }}
           >
-            {todayAppts.length === 0 ? "0 записей" : `${todayAppts.length} записи`}
+            <AnimatedNumber value={todayAppts.length} />{" "}
+            {todayAppts.length === 1 ? "запись" : "записей"}
           </div>
           {income > 0 && (
             <div
@@ -107,7 +109,7 @@ export default function TodayCard({
                 border: "1px solid rgba(16, 185, 129, 0.2)",
               }}
             >
-              +{income}€
+              +<AnimatedNumber value={income} />€
             </div>
           )}
         </div>

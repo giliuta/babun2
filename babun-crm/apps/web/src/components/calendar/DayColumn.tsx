@@ -42,6 +42,8 @@ interface DayColumnProps {
   extraIncome?: number;
   extraExpense?: number;
   dragEnabled?: boolean;
+  /** Resolver returning the team colour for a given appointment. */
+  teamColorFor?: (apt: Appointment) => string | null;
 }
 
 // Expressions used for vertical positioning. They reference the live
@@ -68,6 +70,7 @@ function DayColumnInner({
   extraIncome = 0,
   extraExpense = 0,
   dragEnabled = false,
+  teamColorFor,
 }: DayColumnProps) {
   const dateKeyFromDate = formatDateKey(date);
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -263,6 +266,7 @@ function DayColumnInner({
               colorKind={colorKind}
               clientsById={clientsById}
               services={services}
+              teamColor={teamColorFor?.(apt) ?? null}
               onClick={onAppointmentClick}
               onLongPress={onAppointmentLongPress}
               draggable={dragEnabled}

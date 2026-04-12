@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "@/app/dashboard/layout";
+import { loadWaitlist } from "@/lib/waitlist";
 
 // Bottom tab bar — visible on mobile only (lg:hidden). The layout adds
 // padding-bottom so the bar never covers content. The centre "+ Запись"
@@ -16,6 +18,25 @@ export default function BottomTabBar() {
   const isCalendar = pathname === "/dashboard";
   const isClients = pathname.startsWith("/dashboard/clients");
   const isFinances = pathname.startsWith("/dashboard/finances");
+
+  // Unread waitlist — shows a red dot on the "Ещё" tab while any
+  // entry is still pending, so the dispatcher knows there's something
+  // to deal with without opening the drawer.
+  const [pendingWaitlist, setPendingWaitlist] = useState(0);
+  useEffect(() => {
+    const refresh = () => {
+      setPendingWaitlist(
+        loadWaitlist().filter((i) => i.status === "pending").length
+      );
+    };
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [pathname]);
 
   const go = (path: string) => {
     router.push(path);
@@ -104,6 +125,7 @@ export default function BottomTabBar() {
         <TabButton
           label="Ещё"
           active={false}
+          dot={pendingWaitlist > 0}
           onClick={sidebar.toggle}
           icon={
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -123,21 +145,35 @@ function TabButton({
   active,
   onClick,
   icon,
+  dot = false,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
+  dot?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition ${
+      className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition ${
         active ? "text-indigo-700" : "text-gray-400"
       }`}
     >
-      <span className={active ? "drop-shadow-sm" : ""}>{icon}</span>
+      <span className={`relative ${active ? "drop-shadow-sm" : ""}`}>
+        {icon}
+        {dot && (
+          <span
+            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+            style={{
+              background: "linear-gradient(180deg, #f43f5e, #e11d48)",
+              boxShadow:
+                "0 0 0 2px white, 0 2px 4px rgba(244,63,94,0.4)",
+            }}
+          />
+        )}
+      </span>
       <span
         className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}
       >

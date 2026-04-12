@@ -80,7 +80,7 @@ export default function WaitlistPage() {
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50 relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
           {/* Filter chips */}
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
             {STATUS_FILTER.map((s) => {

@@ -148,6 +148,27 @@ export default function NewAppointmentSheet({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // iOS keyboard awareness — when an input focuses and iOS pushes the
+  // soft keyboard up, the visualViewport shrinks. We translate the
+  // bottom save bar by the difference so it stays above the keyboard.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      const delta = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(delta > 20 ? delta : 0);
+    };
+    vv.addEventListener("resize", handler);
+    vv.addEventListener("scroll", handler);
+    handler();
+    return () => {
+      vv.removeEventListener("resize", handler);
+      vv.removeEventListener("scroll", handler);
+    };
+  }, []);
+
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(
     initial.reminder_enabled ?? false
   );
@@ -919,10 +940,16 @@ export default function NewAppointmentSheet({
         )}
       </div>
 
-      {/* Bottom save bar — full width, large tap target */}
+      {/* Bottom save bar — full width, large tap target. The
+          keyboardOffset transform keeps the button above the iOS
+          soft keyboard when an input is focused. */}
       <div
         className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t border-gray-200 px-4 pt-3"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)",
+          transform: `translateY(-${keyboardOffset}px)`,
+          transition: "transform 180ms var(--ease-premium)",
+        }}
       >
         <button
           type="button"

@@ -22,6 +22,8 @@ import {
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
 import { formatDateLongRu } from "@/lib/date-utils";
+import AnimatedNumber from "@/components/ui/AnimatedNumber";
+import AnimatedNumber from "@/components/ui/AnimatedNumber";
 
 // Unified Finance page — pulls numbers from real appointments + day
 // extras, no more MOCK_INCOME/MOCK_EXPENSES. Income is what clients
@@ -284,26 +286,29 @@ export default function FinancesPage() {
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50 relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-8 space-y-3">
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-8 space-y-3 stagger-children">
           {/* Summary cards double as mode switcher */}
           <div className="grid grid-cols-3 gap-2">
             <SummaryCard
               label="Доход"
-              value={fmtSigned(totalIncome, "+")}
+              amount={totalIncome}
+              sign="+"
               color="emerald"
               active={mode === "income"}
               onClick={() => setMode("income")}
             />
             <SummaryCard
               label="Расход"
-              value={fmtSigned(totalExpense, "−")}
+              amount={totalExpense}
+              sign="−"
               color="red"
               active={mode === "expenses"}
               onClick={() => setMode("expenses")}
             />
             <SummaryCard
               label="Прибыль"
-              value={profit === 0 ? "0€" : `${profit > 0 ? "+" : "−"}${Math.abs(profit)}€`}
+              amount={Math.abs(profit)}
+              sign={profit === 0 ? "" : profit > 0 ? "+" : "−"}
               color={profit >= 0 ? "indigo" : "red"}
               active={mode === "summary"}
               onClick={() => setMode("summary")}
@@ -473,13 +478,14 @@ function datesInRange(
 
 interface SummaryCardProps {
   label: string;
-  value: string;
+  amount: number;
+  sign: "+" | "−" | "";
   color: "emerald" | "red" | "indigo";
   active: boolean;
   onClick: () => void;
 }
 
-function SummaryCard({ label, value, color, active, onClick }: SummaryCardProps) {
+function SummaryCard({ label, amount, sign, color, active, onClick }: SummaryCardProps) {
   const colorClass =
     color === "emerald"
       ? "text-emerald-600"
@@ -500,7 +506,7 @@ function SummaryCard({ label, value, color, active, onClick }: SummaryCardProps)
         {label}
       </div>
       <div className={`text-[15px] font-bold tabular-nums mt-1 ${colorClass}`}>
-        {value}
+        {amount === 0 ? "0€" : <>{sign}<AnimatedNumber value={amount} />€</>}
       </div>
     </button>
   );

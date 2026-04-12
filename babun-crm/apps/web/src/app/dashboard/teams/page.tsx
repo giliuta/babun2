@@ -130,7 +130,7 @@ export default function TeamsPage() {
       />
 
       <div className="flex-1 overflow-y-auto bg-gray-50 relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
           {teams.length === 0 && (
             <div className="text-center text-gray-400 py-10 text-sm">
               Нет бригад. Нажмите «+» чтобы создать.

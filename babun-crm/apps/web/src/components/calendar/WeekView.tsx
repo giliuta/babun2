@@ -27,6 +27,7 @@ interface WeekViewProps {
   onDayHeaderTap?: (dateKey: string) => void;
   extrasForDate?: (dateKey: string) => { income: number; expense: number };
   dragEnabled?: boolean;
+  teamColorFor?: (apt: Appointment) => string | null;
 }
 
 export default function WeekView({
@@ -46,6 +47,7 @@ export default function WeekView({
   onDayHeaderTap,
   extrasForDate,
   dragEnabled = false,
+  teamColorFor,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -93,6 +95,7 @@ export default function WeekView({
             extraIncome={extrasForDate?.(dateKey).income ?? 0}
             extraExpense={extrasForDate?.(dateKey).expense ?? 0}
             dragEnabled={dragEnabled}
+            teamColorFor={teamColorFor}
           />
         );
       })}

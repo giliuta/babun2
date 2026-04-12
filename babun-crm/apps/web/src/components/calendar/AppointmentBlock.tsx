@@ -14,6 +14,8 @@ interface AppointmentBlockProps {
   colorKind: AppointmentColorKind;
   clientsById: Record<string, Client | DraftClient>;
   services: Service[];
+  /** Team tint used to paint the left accent stripe. */
+  teamColor?: string | null;
   onClick: (appointment: Appointment) => void;
   onLongPress?: (appointment: Appointment) => void;
   draggable?: boolean;
@@ -24,6 +26,7 @@ function AppointmentBlockInner({
   colorKind,
   clientsById,
   services,
+  teamColor,
   onClick,
   onLongPress,
   draggable = false,
@@ -92,8 +95,12 @@ function AppointmentBlockInner({
         ? aptServices[0].name
         : `${aptServices[0].name} +${aptServices.length - 1}`;
   }
-  // Priority: per-appointment palette override > first service colour.
-  const accent = appointment.color_override ?? aptServices[0]?.color ?? null;
+  // Priority for the left accent stripe:
+  //   1. per-appointment palette override
+  //   2. team color (useful when viewing many teams at once)
+  //   3. first service colour
+  const accent =
+    appointment.color_override ?? teamColor ?? aptServices[0]?.color ?? null;
 
   const debt = getDebtAmount(appointment);
   const hasDebt = debt > 0 && appointment.status !== "scheduled";

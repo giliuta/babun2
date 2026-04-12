@@ -114,7 +114,7 @@ export default function ClientsPage() {
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-4 stagger-children">
             {grouped.map((group) => (
               <div key={group.letter}>
                 <div className="text-xs font-bold text-gray-500 mb-1 px-1 sticky top-0 bg-gray-50 py-1 z-10">

@@ -37,6 +37,7 @@ import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
 import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
 import TodayCard from "@/components/calendar/TodayCard";
+import { haptic } from "@/lib/haptics";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
@@ -65,7 +66,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v59-drop-useSearchParams";
+const BUILD_TAG = "v60-haptics-dark-polish";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -231,6 +232,18 @@ export default function DashboardPage() {
     return map;
   }, [clients, draftClients]);
 
+  // Team colour resolver for appointment blocks — used to paint the
+  // left accent stripe so "this one's Y&D, this one's D&K" is visible
+  // without reading the team label.
+  const teamColorFor = useCallback(
+    (apt: Appointment) => {
+      if (!apt.team_id) return null;
+      const t = teams.find((t) => t.id === apt.team_id);
+      return t?.color ?? null;
+    },
+    [teams]
+  );
+
   // Validation closure
   const validateApt = useCallback(
     (apt: Appointment) => {
@@ -311,6 +324,7 @@ export default function DashboardPage() {
 
   const handleQuickStatus = useCallback(
     (apt: Appointment, next: Appointment["status"]) => {
+      haptic(next === "completed" ? "success" : "tap");
       const prev = apt.status;
       upsertAppointment({
         ...apt,
@@ -338,6 +352,7 @@ export default function DashboardPage() {
 
   const handleCancelToggle = useCallback(
     (apt: Appointment) => {
+      haptic("warning");
       const prev = apt.status;
       const next = prev === "cancelled" ? "scheduled" : "cancelled";
       upsertAppointment({
@@ -360,6 +375,7 @@ export default function DashboardPage() {
 
   const handleDeleteWithUndo = useCallback(
     (apt: Appointment) => {
+      haptic("error");
       deleteAppointment(apt.id);
       setUndoToast({
         message: "Запись удалена",
@@ -463,6 +479,7 @@ export default function DashboardPage() {
   // Long-press action menu on an existing appointment.
   const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);
   const handleAppointmentLongPress = useCallback((apt: Appointment) => {
+    haptic("select");
     setLongPressApt(apt);
   }, []);
 
@@ -735,6 +752,7 @@ export default function DashboardPage() {
           onFooterTap={handleFooterTap}
           onDayHeaderTap={handleDayHeaderTap}
           extrasForDate={extrasForDate}
+          teamColorFor={teamColorFor}
           dragEnabled
         />
       );
@@ -756,6 +774,7 @@ export default function DashboardPage() {
       handleFooterTap,
       handleDayHeaderTap,
       extrasForDate,
+      teamColorFor,
     ]
   );
 
