@@ -65,7 +65,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v65-minimal-bar";
+const BUILD_TAG = "v66-quiet-luxury";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -1002,7 +1002,12 @@ export default function DashboardPage() {
         type="button"
         onClick={() => openNewAppointmentInline(null, null, "work")}
         aria-label="Новая запись"
-        className="hidden lg:flex fixed bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg items-center justify-center active:scale-95 transition z-30"
+        className="hidden lg:flex fixed bottom-6 right-6 w-12 h-12 rounded-lg items-center justify-center active:scale-95 transition z-30"
+        style={{
+          backgroundColor: "var(--brand-900)",
+          color: "var(--text-on-dark)",
+          boxShadow: "var(--shadow-md)",
+        }
       >
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />

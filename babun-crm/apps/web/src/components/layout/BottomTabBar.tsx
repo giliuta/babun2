@@ -148,18 +148,17 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition ${
-        active ? "text-indigo-700" : "text-gray-400"
+        active ? "text-stone-900" : "text-stone-400"
       }`}
     >
-      <span className={`relative ${active ? "drop-shadow-sm" : ""}`}>
+      <span className="relative">
         {icon}
         {dot && (
           <span
-            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
             style={{
-              background: "linear-gradient(180deg, #f43f5e, #e11d48)",
-              boxShadow:
-                "0 0 0 2px white, 0 2px 4px rgba(244,63,94,0.4)",
+              backgroundColor: "var(--accent)",
+              boxShadow: "0 0 0 2px white",
             }}
           />
         )}

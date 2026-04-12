@@ -64,10 +64,8 @@ export default function Header({
 
   return (
     <header
-      className="flex-shrink-0 lg:bg-white lg:border-b lg:border-gray-200/80 flex flex-col z-30"
-      style={{
-        background: "var(--brand-gradient-mobile)",
-      }}
+      className="flex-shrink-0 lg:bg-white lg:border-b lg:border-stone-200 flex flex-col z-30"
+      style={{ backgroundColor: "var(--brand-900)" }}
     >
       {/* Top row — icon-first, compact */}
       <div className="px-2 lg:px-4 py-2.5 lg:py-3 flex items-center gap-1.5 lg:bg-white">
@@ -298,19 +296,11 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
         onLongPress?.();
         firedRef.current = true;
       }}
-      className={`px-3.5 lg:px-4 py-1.5 text-[12px] font-semibold tracking-tight rounded-full transition-all whitespace-nowrap select-none ${
+      className={`px-3 lg:px-4 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap select-none ${
         active
-          ? "text-white bg-white/15 lg:bg-gray-100 lg:text-gray-900 lg:shadow-sm"
-          : "text-white/70 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
+          ? "text-white bg-white/12 lg:bg-stone-100 lg:text-stone-900"
+          : "text-stone-400 lg:text-stone-500 hover:text-white lg:hover:text-stone-700"
       }`}
-      style={
-        active
-          ? {
-              boxShadow:
-                "inset 0 0 0 1px rgba(255,255,255,0.15), 0 2px 6px -2px rgba(15,23,42,0.2)",
-            }
-          : undefined
-      }
     >
       {team.name}
     </button>

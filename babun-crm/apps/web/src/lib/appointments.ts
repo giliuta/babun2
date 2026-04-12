@@ -301,49 +301,49 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
-    bg: "bg-blue-100",
-    border: "border-blue-400",
-    text: "text-blue-900",
+    bg: "bg-stone-100",
+    border: "border-stone-400",
+    text: "text-stone-800",
   },
   completed: {
-    bg: "bg-emerald-50",
-    border: "border-emerald-400",
-    text: "text-emerald-900",
+    bg: "bg-stone-50",
+    border: "border-stone-300",
+    text: "text-stone-500",
   },
   debt: {
-    bg: "bg-orange-100",
-    border: "border-orange-400",
-    text: "text-orange-900",
-  },
-  incomplete: {
-    bg: "bg-amber-50",
-    border: "border-amber-400",
+    bg: "bg-amber-50/80",
+    border: "border-amber-400/60",
     text: "text-amber-900",
   },
+  incomplete: {
+    bg: "bg-amber-50/60",
+    border: "border-amber-300/60",
+    text: "text-amber-800",
+  },
   cancelled: {
-    bg: "bg-red-50 opacity-70",
-    border: "border-red-300",
-    text: "text-red-400",
+    bg: "bg-stone-50 opacity-60",
+    border: "border-stone-300",
+    text: "text-stone-400",
   },
   in_progress: {
-    bg: "bg-violet-100",
-    border: "border-violet-400",
-    text: "text-violet-900",
+    bg: "bg-stone-200/70",
+    border: "border-stone-500",
+    text: "text-stone-900",
   },
   online: {
-    bg: "bg-cyan-50",
-    border: "border-cyan-400",
-    text: "text-cyan-900",
+    bg: "bg-stone-100",
+    border: "border-stone-400/80",
+    text: "text-stone-700",
   },
   event: {
-    bg: "bg-slate-100",
-    border: "border-slate-400",
-    text: "text-slate-800",
+    bg: "bg-stone-100/80",
+    border: "border-stone-400/60",
+    text: "text-stone-600",
   },
   past: {
-    bg: "bg-gray-100",
-    border: "border-gray-300",
-    text: "text-gray-500",
+    bg: "bg-stone-50",
+    border: "border-stone-200",
+    text: "text-stone-400",
   },
 };
 

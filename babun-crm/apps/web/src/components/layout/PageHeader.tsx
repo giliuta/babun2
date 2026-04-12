@@ -22,8 +22,8 @@ export default function PageHeader({
 
   return (
     <header
-      className="flex-shrink-0 lg:bg-white lg:border-b lg:border-gray-200/80 z-30"
-      style={{ background: "var(--brand-gradient-mobile)" }}
+      className="flex-shrink-0 lg:bg-white lg:border-b lg:border-stone-200 z-30"
+      style={{ backgroundColor: "var(--brand-900)" }}
     >
       <div className="px-2 lg:px-4 py-2.5 lg:py-3.5 flex items-center gap-2 lg:bg-white">
         {showBack ? (

@@ -72,46 +72,46 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay — refined scrim with blur */}
+      {/* Mobile overlay */}
       {open && (
         <div
           className="fixed inset-0 z-30 lg:hidden"
           onClick={onClose}
           style={{
-            backgroundColor: "rgba(15, 23, 42, 0.55)",
+            backgroundColor: "var(--surface-overlay)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
           }}
         />
       )}
 
-      {/* Sidebar — premium dark gradient with hairline right border */}
+      {/* Sidebar — warm charcoal, quiet luxury */}
       <aside
-        className={`fixed top-0 left-0 h-full w-[240px] text-white flex flex-col z-40 transition-transform duration-300 ease-out ${
+        className={`fixed top-0 left-0 h-full w-[240px] flex flex-col z-40 transition-transform duration-300 ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         style={{
-          background: "var(--brand-gradient)",
-          boxShadow: "1px 0 0 0 rgba(255,255,255,0.04) inset, 4px 0 24px -8px rgba(15,23,42,0.24)",
+          background: "var(--sidebar-bg)",
+          borderRight: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        {/* Brand mark */}
-        <div className="px-5 pt-5 pb-4">
-          <div className="flex items-center gap-2.5">
+        {/* Brand */}
+        <div className="px-5 pt-6 pb-5">
+          <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[13px] font-bold"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-bold tracking-tight"
               style={{
-                background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                boxShadow: "0 4px 12px -2px rgba(99,102,241,0.5)",
+                backgroundColor: "var(--accent)",
+                color: "var(--brand-900)",
               }}
             >
               B
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold tracking-tight text-white">
+              <div className="text-[14px] font-semibold tracking-tight text-stone-100">
                 Babun CRM
               </div>
-              <div className="text-[10px] text-indigo-300/80 truncate">
+              <div className="text-[10px] text-stone-500 truncate">
                 airfix.cy@gmail.com
               </div>
             </div>
@@ -120,29 +120,21 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={() => handleNav("master-profile")}
-            className={`mt-4 w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+            className={`mt-4 w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
               isActive("master-profile")
-                ? "bg-white/10 text-white"
-                : "bg-white/5 text-indigo-200/90 hover:bg-white/10 hover:text-white"
+                ? "bg-white/8 text-stone-200"
+                : "text-stone-400 hover:bg-white/5 hover:text-stone-200"
             }`}
-            style={{ border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            <span className="text-[12px] font-medium">Профиль мастера</span>
+            <span className="text-[12px]">Профиль мастера</span>
           </button>
         </div>
         <div className="px-5">
-          <div className="h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+          <div className="h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
         </div>
 
         {/* Navigation — grouped into semantic sections */}
@@ -267,10 +259,10 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
         </nav>
 
         {/* Bottom section */}
-        <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 text-[12px] font-medium text-indigo-300 hover:text-white w-full transition-colors"
+            className="flex items-center gap-2 text-[12px] text-stone-500 hover:text-stone-300 w-full transition-colors"
           >
             <svg
               width="16"
@@ -286,7 +278,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             </svg>
             Выход
           </button>
-          <div className="text-[10px] text-indigo-400/70 mt-2 tracking-wide">
+          <div className="text-[10px] text-stone-600 mt-2 tracking-wide">
             Синхр. {new Date().toLocaleString("ru-RU", { timeZone: "Asia/Nicosia", hour: "2-digit", minute: "2-digit" })}
           </div>
         </div>
@@ -297,7 +289,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-5 pt-4 pb-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-indigo-300/60">
+    <div className="px-5 pt-5 pb-1.5 text-[9px] font-medium uppercase tracking-[0.14em] text-stone-500">
       {children}
     </div>
   );
@@ -322,33 +314,24 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
-      className={`relative w-[calc(100%-16px)] mx-2 flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200 ${
+      className={`relative w-[calc(100%-20px)] mx-2.5 flex items-center gap-3 px-3 py-2 text-[13px] rounded-lg transition-colors duration-200 ${
         active
-          ? "text-white bg-white/10"
-          : "text-indigo-200/80 hover:bg-white/5 hover:text-white"
+          ? "text-stone-100 bg-white/8"
+          : "text-stone-400 hover:bg-white/4 hover:text-stone-200"
       }`}
-      style={
-        active
-          ? {
-              boxShadow:
-                "inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px -4px rgba(0,0,0,0.25)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }
-          : undefined
-      }
     >
       {active && (
         <span
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full"
-          style={{ background: "linear-gradient(180deg, #a855f7, #6366f1)" }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full"
+          style={{ backgroundColor: "var(--accent)" }}
         />
       )}
       <span
-        className={`flex-shrink-0 ${active ? "text-white" : "text-indigo-300/70"}`}
+        className={`flex-shrink-0 ${active ? "text-stone-200" : "text-stone-500"}`}
       >
         {icon}
       </span>
-      <span className="flex-1 truncate text-left font-medium">{label}</span>
+      <span className="flex-1 truncate text-left">{label}</span>
       {hasAction && (
         <span className="w-5 h-5 bg-indigo-700 rounded text-xs flex items-center justify-center text-indigo-200 hover:bg-indigo-600">
           +
@@ -356,10 +339,10 @@ function NavItem({
       )}
       {badge !== undefined && (
         <span
-          className="min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center text-white px-1"
+          className="min-w-[18px] h-[18px] rounded-full text-[10px] font-semibold flex items-center justify-center px-1"
           style={{
-            background: "linear-gradient(180deg, #f43f5e, #e11d48)",
-            boxShadow: "0 0 0 1px rgba(244,63,94,0.3), 0 2px 4px rgba(244,63,94,0.35)",
+            backgroundColor: "var(--accent)",
+            color: "var(--brand-900)",
           }}
         >
           {badge}
