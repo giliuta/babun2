@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { loadWaitlist } from "@/lib/waitlist";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export type DialogType =
   | "calendar"
@@ -269,8 +268,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
         {/* Bottom section */}
         <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <ThemeToggle />
-          <div className="mt-3" />
           <button
             onClick={onLogout}
             className="flex items-center gap-2 text-[12px] font-medium text-indigo-300 hover:text-white w-full transition-colors"
