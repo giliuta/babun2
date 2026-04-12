@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useClients } from "@/app/dashboard/layout";
-import { createBlankClient } from "@/lib/clients";
+import { useClients, useAppointments } from "@/app/dashboard/layout";
+import { createBlankClient, type Client } from "@/lib/clients";
+import ClientPanel from "@/components/clients/ClientPanel";
 import {
   type Chat,
   type ChatChannel,
@@ -22,6 +23,8 @@ type FilterChannel = ChatChannel | "all";
 
 export default function ChatsPage() {
   const { clients, upsertClient } = useClients();
+  const { appointments } = useAppointments();
+  const [showClientPanel, setShowClientPanel] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [filter, setFilter] = useState<FilterChannel>("all");
   const [search, setSearch] = useState("");
@@ -310,6 +313,7 @@ export default function ChatsPage() {
       onArchive={() => archiveChat(activeChat.id)}
       onClose={() => closeChat(activeChat.id)}
       onCreateClient={() => createClientFromChat(activeChat)}
+      onTogglePanel={() => setShowClientPanel((s) => !s)}
     />
   ) : (
     <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
@@ -322,6 +326,11 @@ export default function ChatsPage() {
     </div>
   );
 
+  // Linked client for the active chat
+  const linkedClient = activeChat?.client_id
+    ? clients.find((c) => c.id === activeChat.client_id) ?? null
+    : null;
+
   // Desktop: split view. Mobile: stack.
   return (
     <div className="flex h-full">
@@ -333,6 +342,17 @@ export default function ChatsPage() {
       <div className={`${activeChatId ? "flex" : "hidden lg:flex"} flex-col flex-1 h-full min-w-0`}>
         {chatViewEl}
       </div>
+      {/* Client panel — desktop only, slide-in right */}
+      {showClientPanel && linkedClient && (
+        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full animate-fade-in-up">
+          <ClientPanel
+            client={linkedClient}
+            appointments={appointments}
+            onUpdate={(updated: Client) => upsertClient(updated)}
+            onClose={() => setShowClientPanel(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -343,7 +363,7 @@ function ChatDetailView({
   chat, clients, replyTo, setReplyTo, msgMenu, setMsgMenu,
   headerMenu, setHeaderMenu, draft, setDraft, messagesEndRef,
   onBack, onSend, onPhotoAttach, onDeleteMessage, onCopyMessage,
-  onTogglePin, onArchive, onClose, onCreateClient,
+  onTogglePin, onArchive, onClose, onCreateClient, onTogglePanel,
 }: {
   chat: Chat;
   clients: { id: string; full_name: string }[];
@@ -365,6 +385,7 @@ function ChatDetailView({
   onArchive: () => void;
   onClose: () => void;
   onCreateClient: () => void;
+  onTogglePanel: () => void;
 }) {
   const linkedClient = chat.client_id ? clients.find((c) => c.id === chat.client_id) ?? null : null;
 
@@ -384,16 +405,18 @@ function ChatDetailView({
           <button type="button" onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:hidden">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
           </button>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: CHANNEL_COLORS[chat.channel] }}>
-            {(chat.contact_name || "?").charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-semibold text-white truncate">{chat.contact_name || chat.contact_handle || "Чат"}</div>
-            <div className="text-[11px] text-violet-200 truncate">
-              {chat.last_seen ? `был(а) ${formatTimeAgo(chat.last_seen)}` : CHANNEL_LABELS[chat.channel]}
-              {chat.contact_handle && ` · ${chat.contact_handle}`}
+          <button type="button" onClick={onTogglePanel} className="flex items-center gap-2 flex-1 min-w-0 active:opacity-80">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: CHANNEL_COLORS[chat.channel] }}>
+              {(chat.contact_name || "?").charAt(0).toUpperCase()}
             </div>
-          </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[14px] font-semibold text-white truncate">{chat.contact_name || chat.contact_handle || "Чат"}</div>
+              <div className="text-[11px] text-violet-200 truncate">
+                {chat.last_seen ? `был(а) ${formatTimeAgo(chat.last_seen)}` : CHANNEL_LABELS[chat.channel]}
+                {chat.contact_handle && ` · ${chat.contact_handle}`}
+              </div>
+            </div>
+          </button>
           <button type="button" onClick={() => setHeaderMenu(!headerMenu)} className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
           </button>
@@ -405,8 +428,8 @@ function ChatDetailView({
             <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
             <div className="absolute right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-50 min-w-[200px]">
               <MenuItem label={chat.is_pinned ? "Открепить" : "Закрепить"} onClick={onTogglePin} />
+              {linkedClient && <MenuItem label="Открыть карточку" onClick={() => { onTogglePanel(); setHeaderMenu(false); }} />}
               {!linkedClient && <MenuItem label="Создать клиента" onClick={onCreateClient} />}
-              {linkedClient && <MenuItem label={`Клиент: ${linkedClient.full_name}`} onClick={() => setHeaderMenu(false)} />}
               <MenuItem label="Закрыть чат" onClick={onClose} />
               <MenuItem label="В архив" onClick={onArchive} />
             </div>
@@ -417,10 +440,11 @@ function ChatDetailView({
       {/* Client link banner */}
       <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200" style={{ backgroundColor: linkedClient ? "#f0fdf4" : "#f5f3ff" }}>
         {linkedClient ? (
-          <div className="flex items-center gap-2 text-[12px] text-green-700">
+          <button type="button" onClick={onTogglePanel} className="flex items-center gap-2 text-[12px] text-green-700 active:opacity-80 w-full text-left">
             <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
-            <span>✓ {linkedClient.full_name}</span>
-          </div>
+            <span className="flex-1">✓ {linkedClient.full_name}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-400"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
         ) : (
           <button type="button" onClick={onCreateClient} className="text-[12px] font-semibold text-violet-600">
             + Привязать к клиенту

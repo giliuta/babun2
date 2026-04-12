@@ -37,25 +37,52 @@ export const ACQUISITION_LABELS: Record<AcquisitionSource, string> = {
   unknown: "Неизвестно",
 };
 
+export type PropertyType = "apartment" | "house" | "office" | "restaurant" | "shop" | "other";
+
+export const PROPERTY_LABELS: Record<PropertyType, string> = {
+  apartment: "Квартира",
+  house: "Дом",
+  office: "Офис",
+  restaurant: "Ресторан",
+  shop: "Магазин",
+  other: "Другое",
+};
+
+export interface ACUnit {
+  id: string;
+  room: string;
+  brand?: string;
+  model?: string;
+  has_indoor: boolean;
+  has_outdoor: boolean;
+}
+
+export interface ClientNote {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
 export interface Client {
   id: string;
   full_name: string;
   phone: string;
+  email: string;
   sms_name: string;
-  // Messenger handles — optional, used to build WhatsApp/Telegram/Instagram
-  // deep links from the appointment form and client card.
-  telegram_username: string; // without the "@"
-  instagram_username: string; // without the "@"
-  balance: number; // positive = prepayment, negative = debt
-  discount: number; // percent 0-100
+  telegram_username: string;
+  instagram_username: string;
+  balance: number;
+  discount: number;
   comment: string;
   tag_ids: string[];
-  // Attribution: how did we acquire this client
   acquisition_source: AcquisitionSource;
-  referred_by_client_id: string | null; // if source = "referral" — who referred them
-  first_contact_date: string | null; // ISO date — когда первый раз обратились
-  address: string; // primary address (appointment-level can override)
+  referred_by_client_id: string | null;
+  first_contact_date: string | null;
+  address: string;
   city: string;
+  property_type: PropertyType | "";
+  equipment: ACUnit[];
+  notes: ClientNote[];
   created_at: string;
 }
 
@@ -74,6 +101,7 @@ function mockToClient(m: MockClient): Client {
     id: m.id,
     full_name: m.full_name,
     phone: m.phone,
+    email: "",
     sms_name: m.sms_name,
     telegram_username: "",
     instagram_username: "",
@@ -86,6 +114,9 @@ function mockToClient(m: MockClient): Client {
     first_contact_date: null,
     address: "",
     city: "",
+    property_type: "",
+    equipment: [],
+    notes: [],
     created_at: new Date().toISOString(),
   };
 }
@@ -102,8 +133,12 @@ export function loadClients(): Client[] {
     // Lightweight migration for fields added after records were stored
     return parsed.map((c: Partial<Client>) => ({
       ...c,
+      email: c.email ?? "",
       telegram_username: c.telegram_username ?? "",
       instagram_username: c.instagram_username ?? "",
+      property_type: c.property_type ?? "",
+      equipment: c.equipment ?? [],
+      notes: c.notes ?? [],
     })) as Client[];
   } catch {
     return MOCK_CLIENTS.map(mockToClient);
@@ -145,6 +180,7 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     id: generateId("cli"),
     full_name: "",
     phone: "",
+    email: "",
     sms_name: "",
     telegram_username: "",
     instagram_username: "",
@@ -157,6 +193,9 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     first_contact_date: new Date().toISOString().slice(0, 10),
     address: "",
     city: "",
+    property_type: "",
+    equipment: [],
+    notes: [],
     created_at: new Date().toISOString(),
     ...overrides,
   };
