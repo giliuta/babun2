@@ -138,21 +138,21 @@ function DayColumnInner({
           onDayHeaderTap?.(dateKey);
         }}
         className={`sticky top-0 z-20 h-[62px] lg:h-[82px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 py-1 lg:py-2 text-center cursor-pointer active:bg-indigo-50 ${
-          isToday ? "bg-amber-50/40" : "bg-white"
+          isToday ? "bg-green-50" : "bg-white"
         }`}
       >
-        <div className="text-[8px] lg:text-[10px] text-gray-400 uppercase truncate">{monthName}</div>
+        <div className="text-[9px] lg:text-[10px] text-gray-500 uppercase truncate">{monthName}</div>
         <div
-          className={`text-base lg:text-xl font-bold leading-tight ${
-            isToday ? "text-stone-900" : "text-gray-900"
+          className={`text-[20px] lg:text-[24px] font-bold leading-tight ${
+            isToday ? "text-green-600" : "text-gray-900"
           }`}
         >
           {date.getDate()}
         </div>
         <div className="flex items-center justify-center gap-0.5 leading-none">
           <span
-            className={`text-[10px] lg:text-xs font-medium ${
-              isToday ? "text-stone-900" : "text-gray-500"
+            className={`text-[11px] lg:text-xs font-semibold ${
+              isToday ? "text-green-600" : "text-gray-600"
             }`}
           >
             {dayName}
@@ -188,7 +188,7 @@ function DayColumnInner({
           the day separator. */}
       <div
         ref={setDroppableRef}
-        className={`relative cursor-pointer border-r border-gray-300 select-none ${isToday ? "bg-amber-50/40/30" : "bg-white"} ${
+        className={`relative cursor-pointer border-r border-gray-300 select-none ${isToday ? "bg-green-50/30" : "bg-white"} ${
           isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
         }`}
         onClick={handleColumnClick}
@@ -249,8 +249,8 @@ function DayColumnInner({
             style={{ top: mins(currentTimeMinutes) }}
           >
             <div className="flex items-center">
-              <div className="w-2 h-2 bg-stone-800 rounded-full -ml-1" />
-              <div className="flex-1 h-[2px] bg-stone-800" />
+              <div className="w-2 h-2 bg-red-500 rounded-full -ml-1" />
+              <div className="flex-1 h-[2px] bg-red-500" />
             </div>
           </div>
         )}

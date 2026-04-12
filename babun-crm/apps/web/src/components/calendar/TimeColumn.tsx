@@ -8,34 +8,19 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function TimeColumnInner() {
   return (
-    <div
-      className="w-9 lg:w-14 flex-shrink-0"
-      style={{
-        backgroundColor: "var(--surface-sunken)",
-        borderRight: "1px solid var(--border-default)",
-      }}
-    >
-      {/* Header spacer (sticks while vertically scrolling) */}
-      <div
-        className="sticky top-0 z-30 h-[52px] lg:h-[72px]"
-        style={{
-          backgroundColor: "var(--surface-sunken)",
-          borderBottom: "1px solid var(--border-default)",
-        }}
-      />
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-white border-r border-gray-300">
+      {/* Header spacer */}
+      <div className="sticky top-0 z-30 h-[52px] lg:h-[72px] border-b border-gray-300 bg-white" />
 
       {/* Hour labels — height follows the live --hh variable so zoom does
           not trigger React re-renders. */}
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="flex items-start justify-end pr-1 lg:pr-2"
-          style={{
-            height: "var(--hh)",
-            borderBottom: "1px solid var(--border-subtle)",
-          }}
+          className="border-b border-gray-200 flex items-start justify-end pr-1.5 lg:pr-2"
+          style={{ height: "var(--hh)" }}
         >
-          <span className="text-[9px] lg:text-[11px] text-stone-400 -mt-1.5 select-none">
+          <span className="text-[11px] lg:text-[12px] font-medium text-gray-500 -mt-2 select-none tabular-nums">
             {String(hour).padStart(2, "0")}:00
           </span>
         </div>

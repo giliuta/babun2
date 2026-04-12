@@ -75,66 +75,40 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
           onClick={onClose}
-          style={{
-            backgroundColor: "var(--surface-overlay)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-          }}
         />
       )}
 
-      {/* Sidebar — warm charcoal, quiet luxury */}
+      {/* Sidebar — deep purple */}
       <aside
-        className={`fixed top-0 left-0 h-full w-[240px] flex flex-col z-40 transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-[240px] bg-violet-900 text-white flex flex-col z-40 transition-transform duration-300 ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
-        style={{
-          background: "var(--sidebar-bg)",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
-        }}
       >
         {/* Brand */}
-        <div className="px-5 pt-6 pb-5">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-bold tracking-tight"
-              style={{
-                backgroundColor: "var(--accent)",
-                color: "var(--brand-900)",
-              }}
-            >
+        <div className="px-4 pt-5 pb-4 border-b border-violet-800">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 bg-violet-700 rounded-full flex items-center justify-center text-sm font-bold">
               B
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold tracking-tight text-stone-100">
-                Babun CRM
-              </div>
-              <div className="text-[10px] text-stone-500 truncate">
-                airfix.cy@gmail.com
-              </div>
+            <div className="text-xs text-violet-200 truncate">
+              airfix.cy@gmail.com
             </div>
           </div>
-
           <button
             type="button"
             onClick={() => handleNav("master-profile")}
-            className={`mt-4 w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-              isActive("master-profile")
-                ? "bg-white/8 text-stone-200"
-                : "text-stone-400 hover:bg-white/5 hover:text-stone-200"
+            className={`text-xs flex items-center gap-1 ${
+              isActive("master-profile") ? "text-white" : "text-violet-300 hover:text-white"
             }`}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            <span className="text-[12px]">Профиль мастера</span>
+            Профиль мастера
           </button>
-        </div>
-        <div className="px-5">
-          <div className="h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
         </div>
 
         {/* Navigation — grouped into semantic sections */}
@@ -259,10 +233,10 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
         </nav>
 
         {/* Bottom section */}
-        <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="px-4 py-3 border-t border-violet-800">
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 text-[12px] text-stone-500 hover:text-stone-300 w-full transition-colors"
+            className="flex items-center gap-2 text-sm text-violet-300 hover:text-white w-full"
           >
             <svg
               width="16"
@@ -278,7 +252,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             </svg>
             Выход
           </button>
-          <div className="text-[10px] text-stone-600 mt-2 tracking-wide">
+          <div className="text-[10px] text-violet-400 mt-2">
             Синхр. {new Date().toLocaleString("ru-RU", { timeZone: "Asia/Nicosia", hour: "2-digit", minute: "2-digit" })}
           </div>
         </div>
@@ -289,7 +263,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-5 pt-5 pb-1.5 text-[9px] font-medium uppercase tracking-[0.14em] text-stone-500">
+    <div className="px-4 pt-3 pb-1 text-[9px] font-semibold uppercase tracking-wider text-violet-400">
       {children}
     </div>
   );
@@ -314,23 +288,13 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
-      className={`relative w-[calc(100%-20px)] mx-2.5 flex items-center gap-3 px-3 py-2 text-[13px] rounded-lg transition-colors duration-200 ${
+      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
         active
-          ? "text-stone-100 bg-white/8"
-          : "text-stone-400 hover:bg-white/4 hover:text-stone-200"
+          ? "bg-violet-800 text-white"
+          : "text-violet-200 hover:bg-violet-800 hover:text-white"
       }`}
     >
-      {active && (
-        <span
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full"
-          style={{ backgroundColor: "var(--accent)" }}
-        />
-      )}
-      <span
-        className={`flex-shrink-0 ${active ? "text-stone-200" : "text-stone-500"}`}
-      >
-        {icon}
-      </span>
+      {icon}
       <span className="flex-1 truncate text-left">{label}</span>
       {hasAction && (
         <span className="w-5 h-5 bg-indigo-700 rounded text-xs flex items-center justify-center text-indigo-200 hover:bg-indigo-600">
@@ -338,13 +302,7 @@ function NavItem({
         </span>
       )}
       {badge !== undefined && (
-        <span
-          className="min-w-[18px] h-[18px] rounded-full text-[10px] font-semibold flex items-center justify-center px-1"
-          style={{
-            backgroundColor: "var(--accent)",
-            color: "var(--brand-900)",
-          }}
-        >
+        <span className="min-w-[20px] h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white px-1">
           {badge}
         </span>
       )}

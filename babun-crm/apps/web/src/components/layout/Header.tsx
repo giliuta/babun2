@@ -63,10 +63,7 @@ export default function Header({
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
   return (
-    <header
-      className="flex-shrink-0 lg:bg-white lg:border-b lg:border-stone-200 flex flex-col z-30"
-      style={{ backgroundColor: "var(--brand-900)" }}
-    >
+    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col z-30">
       {/* Top row — icon-first, compact */}
       <div className="px-2 lg:px-4 py-2.5 lg:py-3 flex items-center gap-1.5 lg:bg-white">
         {/* Hamburger */}
@@ -227,10 +224,7 @@ export default function Header({
       </div>
 
       {/* Bottom row: team tabs */}
-      <div
-        className="lg:bg-white px-2 lg:px-4 pb-1.5 lg:pb-3 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide"
-        style={{ background: "transparent" }}
-      >
+      <div className="bg-violet-600 lg:bg-white px-2 lg:px-4 pb-1.5 lg:pb-3 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide">
         {teams.map((team) => (
           <TeamTab
             key={team.id}
@@ -296,10 +290,10 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
         onLongPress?.();
         firedRef.current = true;
       }}
-      className={`px-3 lg:px-4 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap select-none ${
+      className={`px-3 lg:px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap select-none transition ${
         active
-          ? "text-white bg-white/12 lg:bg-stone-100 lg:text-stone-900"
-          : "text-stone-400 lg:text-stone-500 hover:text-white lg:hover:text-stone-700"
+          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900"
+          : "text-violet-200 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
       }`}
     >
       {team.name}

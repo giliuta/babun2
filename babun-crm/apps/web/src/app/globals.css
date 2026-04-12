@@ -1,101 +1,31 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────
-   Quiet Luxury — "Old Money" design tokens
-   Warm neutrals, muted accents, generous whitespace, understated
-   elegance. Think Brunello Cucinelli, not Gucci.
+   Babun CRM — Bright & Clean (Bumpix-style)
    ──────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surface — warm cream / ivory undertone */
-  --surface-base: #f8f7f4;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f1f0ec;
-  --surface-overlay: rgba(28, 25, 23, 0.45);
-
-  /* Text — warm charcoal, not cold gray */
-  --text-primary: #1c1917;
-  --text-secondary: #57534e;
-  --text-tertiary: #a8a29e;
-  --text-on-dark: #fafaf9;
-
-  /* Borders — barely there, warm */
-  --border-subtle: #e7e5e4;
-  --border-default: #d6d3d1;
-
-  /* Brand — deep warm charcoal, not blue/purple */
-  --brand-900: #1c1917;
-  --brand-800: #292524;
-  --brand-700: #44403c;
-  --brand-600: #57534e;
-
-  /* Accent — muted warm gold, understated */
-  --accent: #b59f7b;
-  --accent-light: #d4c5a9;
-  --accent-subtle: rgba(181, 159, 123, 0.12);
-
-  /* Functional — desaturated, quiet versions */
-  --fn-blue: #6b8cae;
-  --fn-green: #7a9e7e;
-  --fn-amber: #c4a35a;
-  --fn-red: #b87070;
-  --fn-violet: #8b7ea6;
-
-  /* Sidebar gradient — warm dark tones */
-  --sidebar-bg: linear-gradient(180deg, #1c1917 0%, #292524 100%);
-
-  /* Shadows — warm-tinted, very soft */
-  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.04);
-  --shadow-sm:
-    0 1px 2px rgba(28, 25, 23, 0.03),
-    0 1px 3px rgba(28, 25, 23, 0.05);
-  --shadow-md:
-    0 2px 4px -1px rgba(28, 25, 23, 0.04),
-    0 4px 6px -1px rgba(28, 25, 23, 0.06);
-
-  /* Glass — warm tint */
-  --glass-bg: rgba(248, 247, 244, 0.85);
-  --glass-border: rgba(28, 25, 23, 0.06);
-  --glass-blur: saturate(180%) blur(20px);
-
-  /* Radii — minimal, understated */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-
-  /* Motion — calm, not bouncy */
-  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --background: #ffffff;
+  --foreground: #111827;
 }
 
 @theme inline {
-  --color-background: var(--surface-base);
-  --color-foreground: var(--text-primary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
 }
 
-html,
-body {
+html, body {
   height: 100%;
   overflow: hidden;
 }
 
 body {
-  background: var(--surface-base);
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #111827;
   overscroll-behavior: none;
-  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  letter-spacing: -0.006em;
 }
-
-h1, h2, h3 {
-  letter-spacing: -0.02em;
-  font-weight: 600;
-}
-
-/* ── Utility classes ─────────────────────────────────────────── */
 
 .scrollbar-hide {
   -ms-overflow-style: none;
@@ -105,34 +35,23 @@ h1, h2, h3 {
   display: none;
 }
 
-/* Glass surface */
-.glass-surface {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-top: 1px solid var(--glass-border);
-}
-
-/* Fade-in */
+/* Stagger entrance */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: none; }
 }
 .animate-fade-in-up {
-  animation: fadeInUp 300ms var(--ease) both;
+  animation: fadeInUp 250ms ease both;
 }
-
 .stagger-children > * {
-  animation: fadeInUp 300ms var(--ease) both;
+  animation: fadeInUp 250ms ease both;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 20ms; }
 .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
 .stagger-children > *:nth-child(3) { animation-delay: 80ms; }
 .stagger-children > *:nth-child(4) { animation-delay: 110ms; }
 .stagger-children > *:nth-child(5) { animation-delay: 140ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 170ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(n+8) { animation-delay: 220ms; }
+.stagger-children > *:nth-child(n+6) { animation-delay: 160ms; }
 
 /* Skeleton */
 @keyframes shimmer {
@@ -140,14 +59,15 @@ h1, h2, h3 {
   100% { background-position:  200% 0; }
 }
 .skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(214, 211, 209, 0.4) 0%,
-    rgba(214, 211, 209, 0.6) 40%,
-    rgba(231, 229, 228, 0.8) 50%,
-    rgba(214, 211, 209, 0.6) 60%,
-    rgba(214, 211, 209, 0.4) 100%
-  );
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 40%, #f9fafb 50%, #e5e7eb 60%, #f3f4f6 100%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
+}
+
+/* Glass for bottom bar */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
