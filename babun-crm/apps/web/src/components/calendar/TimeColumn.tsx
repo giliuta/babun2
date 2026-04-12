@@ -8,7 +8,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function TimeColumnInner() {
   return (
-    <div className="w-12 lg:w-16 flex-shrink-0 bg-white border-r border-gray-300">
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-white" style={{ borderRight: "2px solid #9ca3af" }}>
       {/* Header spacer */}
       <div className="sticky top-0 z-30 h-[52px] lg:h-[72px] border-b border-gray-300 bg-white" />
 
