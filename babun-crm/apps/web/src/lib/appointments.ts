@@ -301,56 +301,49 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
-    // sapphire — запланирована, ещё не выполнена
-    bg: "bg-gradient-to-br from-sky-500 to-blue-600",
-    border: "border-blue-600",
-    text: "text-white",
+    bg: "bg-blue-100",
+    border: "border-blue-400",
+    text: "text-blue-900",
   },
   completed: {
-    // gray — выполнена и оплачена (приглушённая, чтобы не отвлекала)
-    bg: "bg-gray-400",
-    border: "border-gray-500",
-    text: "text-white",
+    bg: "bg-emerald-50",
+    border: "border-emerald-400",
+    text: "text-emerald-900",
   },
   debt: {
-    // amber — есть задолженность
-    bg: "bg-gradient-to-br from-amber-500 to-orange-600",
-    border: "border-orange-600",
-    text: "text-white",
+    bg: "bg-orange-100",
+    border: "border-orange-400",
+    text: "text-orange-900",
   },
   incomplete: {
-    bg: "bg-amber-400",
-    border: "border-amber-600",
-    text: "text-gray-900",
+    bg: "bg-amber-50",
+    border: "border-amber-400",
+    text: "text-amber-900",
   },
   cancelled: {
-    // red — заказ отменён (с прозрачностью и зачёркнутым текстом,
-    // применяется в AppointmentBlock)
-    bg: "bg-red-400/60",
-    border: "border-red-500",
-    text: "text-white",
+    bg: "bg-red-50 opacity-70",
+    border: "border-red-300",
+    text: "text-red-400",
   },
   in_progress: {
-    bg: "bg-gradient-to-br from-violet-500 to-purple-700",
-    border: "border-purple-600",
-    text: "text-white",
+    bg: "bg-violet-100",
+    border: "border-violet-400",
+    text: "text-violet-900",
   },
   online: {
-    // cyan — запись через онлайн-форму
-    bg: "bg-gradient-to-br from-cyan-400 to-teal-600",
-    border: "border-cyan-600",
-    text: "text-white",
+    bg: "bg-cyan-50",
+    border: "border-cyan-400",
+    text: "text-cyan-900",
   },
   event: {
-    // slate — личное событие
-    bg: "bg-gradient-to-br from-slate-500 to-slate-700",
-    border: "border-slate-700",
-    text: "text-white",
+    bg: "bg-slate-100",
+    border: "border-slate-400",
+    text: "text-slate-800",
   },
   past: {
-    bg: "bg-gradient-to-br from-gray-400 to-gray-500",
-    border: "border-gray-500",
-    text: "text-white",
+    bg: "bg-gray-100",
+    border: "border-gray-300",
+    text: "text-gray-500",
   },
 };
 

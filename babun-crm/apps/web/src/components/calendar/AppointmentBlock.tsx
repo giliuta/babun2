@@ -132,23 +132,16 @@ function AppointmentBlockInner({
       }}
       {...listeners}
       {...attributes}
-      className={`absolute left-1 right-1 lg:left-1 lg:right-1 ${
-        // Only fall back to the kind-based color classes when no palette
-        // override is set — with override we paint the background inline.
-        appointment.color_override ? "text-white" : `${colors.bg} ${colors.text}`
-      } rounded-lg text-left overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-105 touch-none will-change-transform ${
+      className={`absolute left-0 right-0 ${
+        appointment.color_override ? "" : `${colors.bg} ${colors.text}`
+      } text-left overflow-hidden touch-none will-change-transform ${
         isDragging ? "opacity-70 z-30" : ""
       }`}
       style={{
         top: topExpr,
         height: heightExpr,
         backgroundColor: appointment.color_override ?? undefined,
-        borderLeft:
-          !appointment.color_override && accent
-            ? `3px solid ${accent}`
-            : undefined,
-        boxShadow:
-          "0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 10px -6px rgba(15,23,42,0.25), 0 1px 2px 0 rgba(15,23,42,0.08)",
+        borderLeft: `3px solid ${accent || "rgba(0,0,0,0.25)"}`,
         transform: CSS.Translate.toString(transform),
         transition: isDragging ? "none" : undefined,
         contain: "layout paint",
@@ -156,7 +149,7 @@ function AppointmentBlockInner({
         WebkitUserSelect: "none",
       }}
     >
-      <div className="px-1 lg:px-2 py-0.5 lg:py-1 h-full overflow-hidden relative">
+      <div className="px-1.5 py-0.5 h-full overflow-hidden relative">
         <div
           className={`text-[8px] lg:text-[10px] font-medium opacity-90 leading-tight ${
             isCancelled ? "line-through" : ""
