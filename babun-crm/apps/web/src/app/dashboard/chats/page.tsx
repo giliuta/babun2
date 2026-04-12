@@ -19,7 +19,7 @@ import {
 } from "@/lib/chats";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
-import { QUICK_REPLIES } from "@/lib/quick-replies";
+import { QUICK_REPLIES, LANG_LABELS, detectLanguage, type Lang } from "@/lib/quick-replies";
 import { pluralizeAC } from "@/lib/pluralize";
 import { PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
 import SwipeableRow from "@/components/ui/SwipeableRow";
@@ -93,12 +93,23 @@ export default function ChatsPage() {
 
   const totalUnread = getTotalUnread(chats);
 
+  // Save draft when leaving a chat
+  const saveDraft = () => {
+    if (activeChatId && draft.trim()) {
+      persist(chats.map((c) => c.id === activeChatId ? { ...c, draft: draft.trim() } : c));
+    } else if (activeChatId) {
+      persist(chats.map((c) => c.id === activeChatId ? { ...c, draft: "" } : c));
+    }
+  };
+
   const openChat = (chat: Chat) => {
     haptic("tap");
+    saveDraft(); // save draft of previously open chat
     if (chat.unread_count > 0) {
       persist(chats.map((c) => c.id === chat.id ? { ...c, unread_count: 0, status: c.status === "new" ? "active" as ConversationStatus : c.status } : c));
     }
     setActiveChatId(chat.id);
+    setDraft(chat.draft || ""); // restore draft
     setReplyTo(null);
     setMsgMenu(null);
     setHeaderMenu(false);
@@ -305,9 +316,18 @@ export default function ChatsPage() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <span className="text-[13px] text-gray-500 truncate">
-                      {lastMsg?.direction === "out" && <span className="text-gray-400">Вы: </span>}
-                      {lastMsg?.photo ? "📷 Фото" : lastMsg?.text || "Нет сообщений"}
+                    <span className="text-[13px] truncate">
+                      {chat.draft ? (
+                        <span className="text-red-500">Черновик: {chat.draft}</span>
+                      ) : (
+                        <span className="text-gray-500">
+                          {lastMsg?.direction === "out" && <span className="text-gray-400">Вы: </span>}
+                          {lastMsg?.content_type === "image" || lastMsg?.photo ? "📷 Фото" :
+                           lastMsg?.content_type === "audio" ? "🎤 Голосовое" :
+                           lastMsg?.content_type === "location" ? "📍 Геолокация" :
+                           lastMsg?.text || "Нет сообщений"}
+                        </span>
+                      )}
                     </span>
                     {chat.unread_count > 0 && (
                       <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-green-500 text-white text-[11px] font-bold flex items-center justify-center px-1">
@@ -367,6 +387,17 @@ export default function ChatsPage() {
       onClose={() => closeChat(activeChat.id)}
       onCreateClient={() => openCreateModal("new")}
       onTogglePanel={() => setShowClientPanel((s) => !s)}
+      onToggleStar={(msgId: string) => {
+        haptic("tap");
+        const updated = {
+          ...activeChat,
+          messages: activeChat.messages.map((m) =>
+            m.id === msgId ? { ...m, is_starred: !m.is_starred } : m
+          ),
+        };
+        persist(chats.map((c) => c.id === updated.id ? updated : c));
+        setMsgMenu(null);
+      }}
     />
   ) : (
     <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
@@ -478,7 +509,7 @@ function ChatDetailView({
   chat, clients, replyTo, setReplyTo, msgMenu, setMsgMenu,
   headerMenu, setHeaderMenu, draft, setDraft, messagesEndRef,
   onBack, onSend, onPhotoAttach, onDeleteMessage, onCopyMessage,
-  onTogglePin, onArchive, onClose, onCreateClient, onTogglePanel,
+  onTogglePin, onArchive, onClose, onCreateClient, onTogglePanel, onToggleStar,
 }: {
   chat: Chat;
   clients: { id: string; full_name: string }[];
@@ -501,6 +532,7 @@ function ChatDetailView({
   onClose: () => void;
   onCreateClient: () => void;
   onTogglePanel: () => void;
+  onToggleStar: (msgId: string) => void;
 }) {
   const linkedClient = chat.client_id ? clients.find((c) => c.id === chat.client_id) ?? null : null;
   const [showQR, setShowQR] = useState(false);
@@ -598,6 +630,7 @@ function ChatDetailView({
                       {msg.photo && <img src={msg.photo} alt="" className="rounded-lg mb-1 max-w-full max-h-[200px] object-cover" />}
                       {msg.text && <span>{msg.text}</span>}
                       <span className={`inline-flex items-center gap-0.5 ml-2 text-[10px] align-bottom float-right mt-1 ${isOut ? "text-violet-200" : "text-gray-400"}`}>
+                        {msg.is_starred && <span className="text-amber-400">⭐</span>}
                         {new Date(msg.timestamp).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                         {isOut && <StatusChecks status={msg.status} />}
                       </span>
@@ -616,6 +649,12 @@ function ChatDetailView({
             <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
               <MenuItem label="Ответить" onClick={() => { setReplyTo(msgMenu); setMsgMenu(null); }} icon="↩" />
               <MenuItem label="Копировать" onClick={() => onCopyMessage(msgMenu.text)} icon="📋" border />
+              <MenuItem
+                label={msgMenu.is_starred ? "Убрать из избранного" : "В избранное"}
+                onClick={() => onToggleStar(msgMenu.id)}
+                icon="⭐"
+                border
+              />
               <MenuItem label="Удалить" onClick={() => onDeleteMessage(msgMenu.id)} icon="🗑" danger border />
             </div>
           </div>
@@ -637,6 +676,7 @@ function ChatDetailView({
           <QuickReplySheet
             onSelect={(text) => { setDraft(text); setShowQR(false); }}
             onClose={() => setShowQR(false)}
+            chatMessages={chat.messages}
           />
         )}
 
@@ -753,18 +793,29 @@ function WaitingBadge({ chat }: { chat: Chat }) {
 function QuickReplySheet({
   onSelect,
   onClose,
+  chatMessages,
 }: {
   onSelect: (text: string) => void;
   onClose: () => void;
+  chatMessages: ChatMessage[];
 }) {
   const [search, setSearch] = useState("");
+
+  // Auto-detect language from last 3 inbound messages
+  const detectedLang = useMemo(() => {
+    const inbound = chatMessages.filter((m) => m.direction === "in").slice(-3);
+    return detectLanguage(inbound.map((m) => m.text));
+  }, [chatMessages]);
+
+  const [lang, setLang] = useState<Lang>(detectedLang);
+
   const filtered = useMemo(
     () =>
       QUICK_REPLIES.filter(
         (r) =>
           !search.trim() ||
           r.title.toLowerCase().includes(search.toLowerCase()) ||
-          r.text.toLowerCase().includes(search.toLowerCase())
+          r.variants.some((v) => v.text.toLowerCase().includes(search.toLowerCase()))
       ),
     [search]
   );
@@ -775,7 +826,23 @@ function QuickReplySheet({
       <div className="relative w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl max-h-[70vh] flex flex-col overflow-hidden">
         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-1 lg:hidden" />
         <div className="px-4 pt-2 pb-3 border-b border-gray-100">
-          <div className="text-[15px] font-semibold text-gray-900 mb-2">Быстрые ответы</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[15px] font-semibold text-gray-900">Быстрые ответы</div>
+            <div className="flex gap-1">
+              {(["ru", "en", "el"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLang(l)}
+                  className={`px-2 py-1 rounded text-[11px] font-bold uppercase transition ${
+                    lang === l ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {LANG_LABELS[l]}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="relative">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -790,22 +857,25 @@ function QuickReplySheet({
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {filtered.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => onSelect(r.text)}
-              className="w-full text-left px-4 py-3 border-b border-gray-100 active:bg-gray-50"
-            >
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[15px]">{r.emoji}</span>
-                <span className="text-[14px] font-medium text-gray-900">{r.title}</span>
-              </div>
-              <div className="text-[13px] text-gray-500 leading-snug line-clamp-2 pl-7">
-                {r.text}
-              </div>
-            </button>
-          ))}
+          {filtered.map((r) => {
+            const variant = r.variants.find((v) => v.lang === lang) ?? r.variants[0];
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onSelect(variant.text)}
+                className="w-full text-left px-4 py-3 border-b border-gray-100 active:bg-gray-50"
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-[15px]">{r.emoji}</span>
+                  <span className="text-[14px] font-medium text-gray-900">{r.title}</span>
+                </div>
+                <div className="text-[13px] text-gray-500 leading-snug line-clamp-2 pl-7">
+                  {variant.text}
+                </div>
+              </button>
+            );
+          })}
           {filtered.length === 0 && (
             <div className="text-center text-gray-400 py-8 text-[13px]">Не найдено</div>
           )}

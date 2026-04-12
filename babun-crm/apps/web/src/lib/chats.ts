@@ -29,6 +29,10 @@ export interface ChatMessage {
   photo?: string; // base64 data URL
   reply_to_id?: string; // id of message being replied to
   status?: MessageStatus; // only meaningful for outgoing
+  is_starred?: boolean;
+  content_type?: "text" | "image" | "audio" | "location";
+  location_lat?: number;
+  location_lng?: number;
   timestamp: string; // ISO
 }
 
@@ -55,6 +59,7 @@ export interface Chat {
   last_seen?: string; // ISO — when the contact was last online
   status: ConversationStatus;
   is_pinned: boolean;
+  draft: string;
   created_at: string;
 }
 
@@ -99,6 +104,7 @@ export function createBlankChat(channel: ChatChannel): Chat {
     last_message_at: now,
     status: "new",
     is_pinned: false,
+    draft: "",
     created_at: now,
   };
 }
@@ -127,6 +133,7 @@ function seedChats(): Chat[] {
       last_seen: ago(5),
       status: "active",
       is_pinned: true,
+      draft: "",
       created_at: ago(120),
     },
     {
@@ -144,6 +151,7 @@ function seedChats(): Chat[] {
       last_message_at: ago(290),
       status: "waiting",
       is_pinned: false,
+      draft: "",
       created_at: ago(300),
     },
     {
@@ -161,6 +169,7 @@ function seedChats(): Chat[] {
       last_seen: ago(2),
       status: "new",
       is_pinned: false,
+      draft: "",
       created_at: ago(45),
     },
     {
@@ -178,6 +187,7 @@ function seedChats(): Chat[] {
       last_message_at: ago(1400),
       status: "closed",
       is_pinned: false,
+      draft: "",
       created_at: ago(1440),
     },
   ];
