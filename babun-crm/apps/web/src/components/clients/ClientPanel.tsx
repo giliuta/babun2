@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Client, ACUnit, ClientNote } from "@/lib/clients";
-import { PROPERTY_LABELS } from "@/lib/clients";
+import type { Client, ACUnit, ClientNote, ACType } from "@/lib/clients";
+import { PROPERTY_LABELS, AC_TYPE_LABELS } from "@/lib/clients";
 import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount } from "@/lib/appointments";
 import { generateId } from "@/lib/masters";
@@ -27,6 +27,7 @@ export default function ClientPanel({
   const [showEquipForm, setShowEquipForm] = useState(false);
   const [equipRoom, setEquipRoom] = useState("");
   const [equipBrand, setEquipBrand] = useState("");
+  const [equipType, setEquipType] = useState<ACType>("split");
 
   const clientApts = appointments.filter(
     (a) => a.client_id === client.id && a.status !== "cancelled"
@@ -62,6 +63,7 @@ export default function ClientPanel({
       id: generateId("unit"),
       room: equipRoom.trim(),
       brand: equipBrand.trim() || undefined,
+      ac_type: equipType,
       has_indoor: true,
       has_outdoor: true,
     };
@@ -167,7 +169,12 @@ export default function ClientPanel({
               {client.equipment.map((unit) => (
                 <div key={unit.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                   <div>
-                    <div className="text-[13px] font-medium text-gray-900">{unit.room}</div>
+                    <div className="text-[13px] font-medium text-gray-900">
+                      {unit.room}
+                      <span className="text-[10px] font-normal text-gray-400 ml-1.5">
+                        {AC_TYPE_LABELS[unit.ac_type || "split"]}
+                      </span>
+                    </div>
                     <div className="text-[11px] text-gray-500">
                       {unit.brand || "Бренд не указан"}
                       {unit.model && ` · ${unit.model}`}
@@ -201,6 +208,20 @@ export default function ClientPanel({
                 placeholder="Бренд (Daikin, Mitsubishi...)"
                 className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[13px] focus:outline-none focus:ring-1 focus:ring-violet-500"
               />
+              <div className="flex gap-1.5">
+                {(Object.entries(AC_TYPE_LABELS) as [ACType, string][]).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEquipType(key)}
+                    className={`flex-1 h-9 rounded-lg text-[12px] font-medium transition ${
+                      equipType === key ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setShowEquipForm(false)} className="flex-1 h-9 text-[13px] text-gray-600">
                   Отмена

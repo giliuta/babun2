@@ -65,7 +65,7 @@ const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
 // Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v79-form-simplify";
+const BUILD_TAG = "v80-ac-types-chat-booking";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -473,14 +473,27 @@ export default function DashboardPage() {
   // flag directly from window.location.search so we don't pull in
   // useSearchParams(), which forces Next 16 to abort static
   // generation on this client-only page.
+  // ?new=1 opens the creation form. ?client_id=X pre-fills the client
+  // (used by "Записать на приём" from chats — Dima doesn't have to
+  // search for the client again).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("new") === "1") {
-      openNewAppointmentInline(null, null, "work");
+      const clientId = params.get("client_id");
+      const today = new Date();
+      const blank = createBlankAppointment({
+        date: today.toISOString().slice(0, 10),
+        time_start: "10:00",
+        time_end: "11:00",
+        team_id: activeTeamId || null,
+        client_id: clientId || null,
+        kind: "work",
+      });
+      setInlineSheet({ mode: "new", initial: blank });
       router.replace("/dashboard");
     }
-  }, [openNewAppointmentInline, router]);
+  }, [activeTeamId, router]);
 
   // Long-press action menu on an existing appointment.
   const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);

@@ -48,11 +48,20 @@ export const PROPERTY_LABELS: Record<PropertyType, string> = {
   other: "Другое",
 };
 
+export type ACType = "split" | "ducted" | "cassette";
+
+export const AC_TYPE_LABELS: Record<ACType, string> = {
+  split: "Сплит",
+  ducted: "Канальный",
+  cassette: "Кассетный",
+};
+
 export interface ACUnit {
   id: string;
   room: string;
   brand?: string;
   model?: string;
+  ac_type: ACType;
   has_indoor: boolean;
   has_outdoor: boolean;
 }
@@ -137,7 +146,10 @@ export function loadClients(): Client[] {
       telegram_username: c.telegram_username ?? "",
       instagram_username: c.instagram_username ?? "",
       property_type: c.property_type ?? "",
-      equipment: c.equipment ?? [],
+      equipment: (c.equipment ?? []).map((u: Partial<ACUnit>) => ({
+        ...u,
+        ac_type: u.ac_type ?? "split",
+      })),
       notes: c.notes ?? [],
     })) as Client[];
   } catch {

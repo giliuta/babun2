@@ -578,7 +578,12 @@ function ChatDetailView({
               <MenuItem label={chat.is_pinned ? "Открепить" : "Закрепить"} onClick={onTogglePin} />
               {linkedClient && <MenuItem label="Открыть карточку" onClick={() => { onTogglePanel(); setHeaderMenu(false); }} />}
               {!linkedClient && <MenuItem label="Создать клиента" onClick={onCreateClient} />}
-              <MenuItem label="📅 Записать на приём" onClick={() => { setHeaderMenu(false); window.location.href = "/dashboard?new=1"; }} />
+              <MenuItem label="📅 Записать на приём" onClick={() => {
+                setHeaderMenu(false);
+                const params = new URLSearchParams({ new: "1" });
+                if (chat.client_id) params.set("client_id", chat.client_id);
+                window.location.href = `/dashboard?${params.toString()}`;
+              }} />
               <MenuItem label="Закрыть чат" onClick={onClose} />
               <MenuItem label="В архив" onClick={onArchive} />
             </div>
