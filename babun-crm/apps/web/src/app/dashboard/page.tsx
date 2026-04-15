@@ -36,6 +36,7 @@ import DayFinanceModal from "@/components/calendar/DayFinanceModal";
 import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
 import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
+import { BUILD_VERSION } from "@/lib/version";
 import { haptic } from "@/lib/haptics";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
 import ActionMenuModal, {
@@ -64,8 +65,8 @@ const HOUR_HEIGHT_MAX = 480;
 const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
-// Bump this when you want visible confirmation that a new build is live.
-const BUILD_TAG = "v80-ac-types-chat-booking";
+// Visible build-tag shown at the bottom of the calendar page.
+// Shared with the sidebar via @/lib/version — import is at top of file.
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -940,7 +941,7 @@ export default function DashboardPage() {
         className="fixed left-2 z-30 pointer-events-none text-[10px] font-mono bg-black/70 text-white px-1.5 py-0.5 rounded"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 0.25rem)" }}
       >
-        {BUILD_TAG}
+        {BUILD_VERSION}
       </div>
 
       {/* City picker modal */}

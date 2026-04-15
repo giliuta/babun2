@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { loadWaitlist } from "@/lib/waitlist";
+import { BUILD_VERSION } from "@/lib/version";
 
 export type DialogType =
   | "calendar"
@@ -254,6 +255,9 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           </button>
           <div className="text-[10px] text-violet-400 mt-2">
             Синхр. {new Date().toLocaleString("ru-RU", { timeZone: "Asia/Nicosia", hour: "2-digit", minute: "2-digit" })}
+          </div>
+          <div className="text-[10px] text-violet-300/70 mt-1 font-mono tracking-wide">
+            {BUILD_VERSION}
           </div>
         </div>
       </aside>
