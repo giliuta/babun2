@@ -107,7 +107,6 @@ function AppointmentBlockInner({
 
   const debt = getDebtAmount(appointment);
   const hasDebt = debt > 0 && appointment.status !== "scheduled";
-  const isIncomplete = colorKind === "incomplete";
   const isCancelled = colorKind === "cancelled";
   const hasPhotos = appointment.photos.length > 0;
 

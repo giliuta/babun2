@@ -89,6 +89,7 @@ export default function CreateClientModal({
     const equipment = Array.from({ length: acCount }, (_, i) => ({
       id: generateId("unit"),
       room: acCount === 1 ? "Основной" : `Кондиционер ${i + 1}`,
+      ac_type: "split" as const,
       has_indoor: true,
       has_outdoor: true,
     }));

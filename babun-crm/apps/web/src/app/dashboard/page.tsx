@@ -439,13 +439,7 @@ export default function DashboardPage() {
     []
   );
 
-  // Tap on empty slot = directly open create appointment form.
-  // No menu, no extra taps — Dima is on the phone with a client,
-  // every second counts.
   const [slotMenu, setSlotMenu] = useState<{ date: string; time: string } | null>(null);
-  const handleEmptySlotClick = useCallback((date: string, time: string) => {
-    openNewAppointmentInline(date, time, "work");
-  }, [openNewAppointmentInline]);
 
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
@@ -469,6 +463,13 @@ export default function DashboardPage() {
     },
     [activeTeamId]
   );
+
+  // Tap on empty slot = directly open create appointment form.
+  // No menu, no extra taps — Dima is on the phone with a client,
+  // every second counts.
+  const handleEmptySlotClick = useCallback((date: string, time: string) => {
+    openNewAppointmentInline(date, time, "work");
+  }, [openNewAppointmentInline]);
 
   // BottomTabBar's centre button navigates here with ?new=1. Read the
   // flag directly from window.location.search so we don't pull in
