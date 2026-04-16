@@ -190,40 +190,65 @@ export default function DashboardPage() {
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
-    if (!el) {
-      if (typeof console !== "undefined") console.warn("[snap] ref is null on mount");
-      return;
-    }
+    if (typeof console !== "undefined")
+      console.info(`[snap] mounted · ref=${el ? "ok" : "NULL"} viewMode=${viewMode}`);
+    if (!el) return;
+
     const hh = hourHeightRef.current;
     suppressRef.current = true;
     floorRef.current = "9";
-
-    // iOS PWA (standalone) quirks defensively addressed here:
-    //  • scrollTo({behavior:"smooth"}) ignored on -webkit-overflow-
-    //    scrolling:touch layers → используем прямое scrollTop=.
-    //  • scrollHeight может быть нулевым когда useLayoutEffect
-    //    стреляет ДО того как child-колонки домонтируются →
-    //    ретраим через rAF до 10 раз (≈160мс) пока scrollHeight
-    //    не станет достаточным.
     const target = 9 * hh;
+
+    // Set scrollTop if and only if DOM can actually accept it.
+    // Browser clamps scrollTop to [0, scrollHeight - clientHeight].
+    // Before the 24-row column bodies mount, scrollHeight is small,
+    // the clamp forces 0, and we look stuck at 00:00.
+    const attempt = () => {
+      if (!el) return false;
+      if (el.scrollHeight < target + el.clientHeight * 0.5) return false;
+      el.scrollTop = target;
+      if (typeof console !== "undefined")
+        console.info(
+          `[snap] set scrollTop=${el.scrollTop} target=${target} hh=${hh} scrollHeight=${el.scrollHeight} clientHeight=${el.clientHeight}`
+        );
+      return el.scrollTop >= target - 2;
+    };
+
+    // Phase 1: fast rAF retries (~500 мс, 30 frames).
     let tries = 0;
     const tryScroll = () => {
       tries++;
-      if (!el) return;
-      if (el.scrollHeight >= target + 50 || tries >= 10) {
-        el.scrollTop = target;
+      if (attempt() || tries >= 30) {
         if (typeof console !== "undefined")
-          console.info(
-            `[snap] initial scrollTop=${el.scrollTop} (target=${target}, hh=${hh}, tries=${tries}, scrollHeight=${el.scrollHeight})`
-          );
-        window.setTimeout(() => {
-          suppressRef.current = false;
-        }, 300);
+          console.info(`[snap] phase 1 done after ${tries} rAF tries`);
         return;
       }
       requestAnimationFrame(tryScroll);
     };
     requestAnimationFrame(tryScroll);
+
+    // Phase 2: safety nets at 500 ms and 1 s — сработает даже если
+    // rAF-ретраи не достали scrollHeight (iOS PWA cold start).
+    const safety1 = window.setTimeout(() => {
+      if (el.scrollTop < target - 10) {
+        attempt();
+        if (typeof console !== "undefined")
+          console.info(`[snap] safety@500ms scrollTop=${el.scrollTop}`);
+      }
+    }, 500);
+    const safety2 = window.setTimeout(() => {
+      if (el.scrollTop < target - 10) {
+        attempt();
+        if (typeof console !== "undefined")
+          console.info(`[snap] safety@1s scrollTop=${el.scrollTop}`);
+      }
+      suppressRef.current = false;
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(safety1);
+      window.clearTimeout(safety2);
+    };
   }, [viewMode]);
 
   useEffect(() => {
