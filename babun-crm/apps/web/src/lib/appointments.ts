@@ -32,6 +32,23 @@ export interface AppointmentPayment {
   paid_at: string;
 }
 
+// MEGA-UPDATE: multi-services + discounts on appointment.
+export interface Discount {
+  type: "fixed" | "percent";
+  value: number;       // EUR for fixed, 0–100 for percent
+  reason?: string;     // "Постоянный", "VIP", "Промо", свободный текст
+}
+
+export interface AppointmentService {
+  serviceId: string;
+  quantity: number;
+  pricePerUnit: number;    // фактическая цена за шт (может отличаться от каталога)
+  originalPrice: number;   // цена из каталога — для зачёркивания
+  totalPrice: number;      // qty × pricePerUnit − discount
+  duration: number;        // qty × baseDuration
+  discount?: Discount;
+}
+
 export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
 
 export interface AppointmentPhoto {
@@ -72,6 +89,14 @@ export interface Appointment {
   /** STORY-002-FINAL: единый объект оплаты. Заполняется при
    *  переводе записи в status=completed через PaymentBlock. */
   payment: AppointmentPayment | null;
+  /** MEGA-UPDATE: список услуг со степпером количества и per-line
+   *  скидкой. Постепенно заменяет service_ids. */
+  services: AppointmentService[];
+  /** Скидка на всю запись (применяется к subtotal). */
+  global_discount: Discount | null;
+  /** Суммарная длительность = sum(qty × baseDuration). Кешируется
+   *  для быстрого отображения. */
+  total_duration: number;
 
   // Доп. поля
   comment: string;
@@ -132,6 +157,9 @@ export function loadAppointments(): Appointment[] {
         p.reminder_template ??
         "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
       location_id: p.location_id ?? null,
+      services: p.services ?? [],
+      global_discount: p.global_discount ?? null,
+      total_duration: p.total_duration ?? 0,
       // Migrate legacy payments[] → payment (single object). Sum up
       // cash / card payments; anything else collapses to invoice.
       payment:
@@ -464,6 +492,9 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     prepaid_amount: 0,
     payments: [],
     payment: null,
+    services: [],
+    global_discount: null,
+    total_duration: 0,
     comment: "",
     address: "",
     address_lat: null,
@@ -492,6 +523,9 @@ export function duplicateAppointment(apt: Appointment): Appointment {
     prepaid_amount: 0,
     payments: [],
     payment: null,
+    services: [],
+    global_discount: null,
+    total_duration: 0,
     status: "scheduled",
     photos: [],
     created_at: now,

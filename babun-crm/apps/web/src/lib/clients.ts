@@ -79,6 +79,11 @@ export interface Location {
   id: string;
   label: string;         // "Дом", "Офис", "Вилла"
   address: string;
+  /** MEGA-UPDATE: ссылка на Google Maps / Apple Maps.
+   *  Когда задана — кнопка «Навигация» ведёт по ссылке (точнее,
+   *  клиент мог прислать нестандартный pin). Без неё —
+   *  google.com/maps/dir по текстовому адресу. */
+  mapUrl?: string;
   acUnits: number;       // количество сплит-систем на этом объекте
   isPrimary: boolean;    // первый объект для автовыбора
 }

@@ -24,6 +24,18 @@ export interface Service {
   material_costs: ServiceMaterialCost[];
   is_active: boolean;
   created_at: string;
+  // MEGA-UPDATE: новые поля единой модели услуг.
+  /** От скольких штук срабатывает bulk_price. 0 = без bulk. */
+  bulk_threshold: number;
+  /** Цена за единицу при bulk. 0 если bulk_threshold = 0. */
+  bulk_price: number;
+  /** Расход материалов на одну штуку (химия, фреон, и т.д.). */
+  cost_per_unit: number;
+  /** true = можно делать N штук одной услугой (чистка × 3); false
+   *  = количество всегда 1 (диагностика, ремонт). */
+  is_countable: boolean;
+  /** Бригады, которые делают эту услугу. Пусто = все бригады. */
+  brigade_ids: string[];
 }
 
 export interface ServiceCategory {
@@ -42,6 +54,14 @@ export const DEFAULT_CATEGORIES: ServiceCategory[] = [
 
 const NOW = new Date().toISOString();
 
+interface SvcOpts {
+  costs?: ServiceMaterialCost[];
+  bulkThreshold?: number;
+  bulkPrice?: number;
+  costPerUnit?: number;
+  isCountable?: boolean;
+}
+
 function svc(
   id: string,
   name: string,
@@ -49,7 +69,7 @@ function svc(
   duration: number,
   price: number,
   color: string,
-  costs: ServiceMaterialCost[] = []
+  opts: SvcOpts = {}
 ): Service {
   return {
     id,
@@ -60,38 +80,52 @@ function svc(
     color,
     available_weekdays: [],
     online_enabled: true,
-    material_costs: costs,
+    material_costs: opts.costs ?? [],
     is_active: true,
     created_at: NOW,
+    bulk_threshold: opts.bulkThreshold ?? 0,
+    bulk_price: opts.bulkPrice ?? 0,
+    cost_per_unit: opts.costPerUnit ?? 0,
+    is_countable: opts.isCountable ?? true,
+    brigade_ids: [], // пусто = все бригады
   };
 }
 
+// MEGA-UPDATE: вместо 10 услуг (x1, x2 ... x6 для чистки) — пять
+// мастер-услуг со степпером количества и bulk-ценой.
 export const DEFAULT_SERVICES: Service[] = [
-  svc("svc-1", "x1 A/C Чистка", "cat-cleaning", 30, 50, "#3b82f6", [
-    { id: "mc-1", name: "Химия", amount: 3 },
-  ]),
-  svc("svc-2", "x2 A/C Чистка", "cat-cleaning", 60, 100, "#3b82f6", [
-    { id: "mc-2", name: "Химия", amount: 6 },
-  ]),
-  svc("svc-3", "x3 A/C Чистка", "cat-cleaning", 90, 135, "#3b82f6", [
-    { id: "mc-3", name: "Химия", amount: 9 },
-  ]),
-  svc("svc-4", "x4 A/C Чистка", "cat-cleaning", 120, 180, "#3b82f6", [
-    { id: "mc-4", name: "Химия", amount: 12 },
-  ]),
-  svc("svc-5", "x5 A/C Чистка", "cat-cleaning", 150, 225, "#3b82f6", [
-    { id: "mc-5", name: "Химия", amount: 15 },
-  ]),
-  svc("svc-6", "x6 A/C Чистка", "cat-cleaning", 180, 270, "#3b82f6", [
-    { id: "mc-6", name: "Химия", amount: 18 },
-  ]),
-  svc("svc-7", "x1 A/C Установка", "cat-installation", 120, 150, "#8b5cf6"),
-  svc("svc-8", "x1 A/C Диагностика", "cat-consultation", 60, 50, "#f59e0b"),
-  svc("svc-9", "x1 A/C Ремонт", "cat-repair", 120, 200, "#ef4444"),
-  svc("svc-10", "Заправка", "cat-maintenance", 30, 80, "#10b981", [
-    { id: "mc-10", name: "Фреон R410A", amount: 25 },
-  ]),
+  svc("svc-clean", "Чистка кондиционера", "cat-cleaning", 45, 50, "#3b82f6", {
+    bulkThreshold: 3,
+    bulkPrice: 45,
+    costPerUnit: 3,
+    isCountable: true,
+  }),
+  svc("svc-install", "Установка A/C", "cat-installation", 120, 150, "#8b5cf6", {
+    isCountable: true,
+  }),
+  svc("svc-diag", "Диагностика A/C", "cat-consultation", 60, 50, "#f59e0b", {
+    isCountable: false,
+  }),
+  svc("svc-repair", "Ремонт A/C", "cat-repair", 120, 200, "#ef4444", {
+    isCountable: false,
+  }),
+  svc("svc-freon", "Заправка фреоном", "cat-maintenance", 30, 80, "#10b981", {
+    costPerUnit: 25,
+    isCountable: true,
+  }),
 ];
+
+// Pricing helper: bulk price срабатывает от threshold штук.
+export function pricePerUnit(service: Service, qty: number): number {
+  if (
+    service.bulk_threshold > 0 &&
+    service.bulk_price > 0 &&
+    qty >= service.bulk_threshold
+  ) {
+    return service.bulk_price;
+  }
+  return service.price;
+}
 
 // ─── Storage ───────────────────────────────────────────────────────────
 
@@ -104,7 +138,16 @@ export function loadServices(): Service[] {
     const raw = window.localStorage.getItem(SERVICES_KEY);
     if (!raw) return DEFAULT_SERVICES;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_SERVICES;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_SERVICES;
+    // MEGA-UPDATE migration: fill in new fields on legacy records.
+    return parsed.map((s: Partial<Service>) => ({
+      ...s,
+      bulk_threshold: s.bulk_threshold ?? 0,
+      bulk_price: s.bulk_price ?? 0,
+      cost_per_unit: s.cost_per_unit ?? 0,
+      is_countable: s.is_countable ?? true,
+      brigade_ids: s.brigade_ids ?? [],
+    })) as Service[];
   } catch {
     return DEFAULT_SERVICES;
   }
@@ -155,6 +198,11 @@ export function createBlankService(overrides: Partial<Service> = {}): Service {
     material_costs: [],
     is_active: true,
     created_at: new Date().toISOString(),
+    bulk_threshold: 0,
+    bulk_price: 0,
+    cost_per_unit: 0,
+    is_countable: true,
+    brigade_ids: [],
     ...overrides,
   };
 }
