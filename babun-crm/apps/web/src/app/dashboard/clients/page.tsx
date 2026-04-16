@@ -103,11 +103,6 @@ export default function ClientsPage() {
 
   // ─── Selected client detail view ───
   if (selectedClient) {
-    const rev = revenueMap.get(selectedClient.id);
-    const clientApts = appointments.filter(
-      (a) => a.client_id === selectedClient.id && a.status !== "cancelled"
-    );
-
     return (
       <>
         <PageHeader
@@ -127,34 +122,8 @@ export default function ClientsPage() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="flex-1 overflow-y-auto bg-white">
           <div className="max-w-3xl mx-auto">
-            {/* Hero */}
-            <div className="bg-white px-4 py-5 text-center border-b border-gray-100">
-              <div
-                className="w-[72px] h-[72px] rounded-full mx-auto mb-2 flex items-center justify-center text-white text-[24px] font-bold"
-                style={{ backgroundColor: getAvatarColor(selectedClient.full_name) }}
-              >
-                {getInitials(selectedClient.full_name)}
-              </div>
-              <div className="text-[20px] font-bold text-gray-900">{selectedClient.full_name}</div>
-              <div className="text-[13px] text-gray-500 mt-0.5">
-                {[selectedClient.city, selectedClient.property_type ? PROPERTY_LABELS[selectedClient.property_type as PropertyType] : null, selectedClient.equipment.length > 0 ? pluralizeAC(selectedClient.equipment.length) : null].filter(Boolean).join(" · ")}
-              </div>
-
-              <div className="flex gap-2 mt-3 justify-center">
-                {selectedClient.phone && (
-                  <a href={`tel:${selectedClient.phone.replace(/\D/g, "")}`} className="h-11 px-4 flex items-center gap-1.5 rounded-lg border border-emerald-500 text-emerald-600 text-[13px] font-semibold active:bg-emerald-50">
-                    📞 Позвонить
-                  </a>
-                )}
-                <button type="button" onClick={() => router.push("/dashboard/chats")} className="h-11 px-4 flex items-center gap-1.5 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.98]">
-                  💬 Чат
-                </button>
-              </div>
-            </div>
-
-            {/* Client panel content inline */}
             <ClientPanel
               client={selectedClient}
               appointments={appointments}
@@ -273,13 +242,22 @@ export default function ClientsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-[12px] text-gray-500 mt-0.5">
-                      {[client.city, client.property_type ? PROPERTY_LABELS[client.property_type as PropertyType] : null].filter(Boolean).join(" · ")}
-                    </div>
-                    <div className="text-[12px] text-gray-500">
-                      {client.equipment.length > 0 && <span>{pluralizeAC(client.equipment.length)}</span>}
-                      {rev && rev.total > 0 && <span className="text-emerald-600 font-medium ml-2">€{rev.total}</span>}
-                    </div>
+                    {client.phone && (
+                      <div className="text-[13px] text-gray-600 mt-0.5 truncate tabular-nums">
+                        {client.phone}
+                      </div>
+                    )}
+                    {(client.city || client.property_type) && (
+                      <div className="text-[12px] text-gray-500 mt-0.5">
+                        {[client.city, client.property_type ? PROPERTY_LABELS[client.property_type as PropertyType] : null].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                    {((client.equipment.length > 0) || (rev && rev.total > 0)) && (
+                      <div className="text-[12px] text-gray-500 mt-0.5">
+                        {client.equipment.length > 0 && <span>{pluralizeAC(client.equipment.length)}</span>}
+                        {rev && rev.total > 0 && <span className="text-emerald-600 font-medium ml-2">€{rev.total}</span>}
+                      </div>
+                    )}
                     {client.tag_ids.length > 0 && (
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {client.tag_ids.map((tid) => {

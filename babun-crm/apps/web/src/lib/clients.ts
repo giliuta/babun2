@@ -92,6 +92,10 @@ export interface Client {
   property_type: PropertyType | "";
   equipment: ACUnit[];
   notes: ClientNote[];
+  /** YYYY-MM-DD, empty = unknown. */
+  birthday: string;
+  /** Блокировка: клиент в чёрном списке. */
+  blacklisted: boolean;
   created_at: string;
 }
 
@@ -126,6 +130,8 @@ function mockToClient(m: MockClient): Client {
     property_type: "",
     equipment: [],
     notes: [],
+    birthday: "",
+    blacklisted: false,
     created_at: new Date().toISOString(),
   };
 }
@@ -151,6 +157,8 @@ export function loadClients(): Client[] {
         ac_type: u.ac_type ?? "split",
       })),
       notes: c.notes ?? [],
+      birthday: c.birthday ?? "",
+      blacklisted: c.blacklisted ?? false,
     })) as Client[];
   } catch {
     return MOCK_CLIENTS.map(mockToClient);
@@ -208,6 +216,8 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     property_type: "",
     equipment: [],
     notes: [],
+    birthday: "",
+    blacklisted: false,
     created_at: new Date().toISOString(),
     ...overrides,
   };
