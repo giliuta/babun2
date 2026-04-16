@@ -51,19 +51,6 @@ interface DayColumnProps {
 // layout updates without any React re-render.
 const mins = (m: number) => `calc(var(--hh) * ${m / 60})`;
 
-// Darken a #rrggbb colour by the given percent. Used for the 180°
-// gradient on the city chip — subtle depth (top lighter, bottom ~8 %
-// darker) makes it look like a crafted chip, not a plain rectangle.
-function darkenHex(hex: string, percent: number): string {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!m) return hex;
-  const factor = 1 - percent / 100;
-  const r = Math.max(0, Math.round(parseInt(m[1], 16) * factor));
-  const g = Math.max(0, Math.round(parseInt(m[2], 16) * factor));
-  const b = Math.max(0, Math.round(parseInt(m[3], 16) * factor));
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-}
-
 // Compute side-by-side columns for overlapping appointments.
 // Returns a Map of aptId → { col: 0-based column, total: columns in group }.
 function computeOverlapLayout(apts: Appointment[]): Map<string, { col: number; total: number }> {
@@ -197,6 +184,11 @@ function DayColumnInner({
                (кроме сегодня — там круглая зелёная pill). Так каждый
                день визуально «принадлежит» своему городу через цвет
                цифры, а не только плашку сверху. */}
+      {/* Classic day header — plain white, flat, minimal.
+          Город тонким текстом в цвете города сверху, ниже
+          weekday/месяц, ниже число (тёмно-серое). Сегодня —
+          простой зелёный круг. Никаких градиентов, теней,
+          color-shifts на цифрах. */}
       <div
         role="button"
         tabIndex={0}
@@ -204,17 +196,10 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[78px] lg:h-[88px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:bg-indigo-50/40 overflow-hidden px-1 lg:px-1.5 pt-1.5 pb-1.5 ${
-          isToday
-            ? "bg-gradient-to-b from-emerald-50 to-white"
-            : isWeekend
-            ? "bg-gradient-to-b from-amber-50/60 to-white"
-            : "bg-[#fafbfc]"
-        }`}
+        className={`relative sticky top-0 z-20 h-[70px] lg:h-[78px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:bg-gray-50 px-1 pt-1.5 pb-1 bg-white`}
       >
-        {/* City chip — inset rounded card with soft inner gradient,
-            subtle drop-shadow so it "sits" on the header instead of
-            looking like a flat ribbon. */}
+        {/* City — мелкий текст цветом города (или "+ город" серым).
+            Обычная кнопка, без фонов. */}
         {cityLabel ? (
           <button
             type="button"
@@ -222,19 +207,10 @@ function DayColumnInner({
               e.stopPropagation();
               onCityTap?.(dateKey);
             }}
-            className="relative w-full h-[20px] lg:h-[22px] rounded-md flex items-center justify-center text-[10px] lg:text-[11px] font-semibold tracking-wide text-white truncate px-1.5 active:opacity-85 shadow-sm"
-            style={{
-              background: cityHex
-                ? `linear-gradient(180deg, ${cityHex} 0%, ${darkenHex(cityHex, 8)} 100%)`
-                : "#9ca3af",
-            }}
+            className="block w-full text-[10px] lg:text-[11px] font-semibold truncate leading-none active:opacity-60"
+            style={{ color: cityHex ?? undefined }}
           >
-            <span className="truncate">{cityLabel}</span>
-            {dayAppointments.length > 0 && (
-              <span className="ml-1 text-white/80 font-medium">
-                · {dayAppointments.length}
-              </span>
-            )}
+            {cityLabel}
           </button>
         ) : (
           <button
@@ -243,57 +219,55 @@ function DayColumnInner({
               e.stopPropagation();
               onCityTap?.(dateKey);
             }}
-            className="w-full h-[20px] lg:h-[22px] rounded-md flex items-center justify-center text-[10px] lg:text-[11px] font-medium text-gray-400 bg-gray-50 border border-dashed border-gray-300 active:bg-gray-100 truncate px-1"
+            className="block w-full text-[10px] lg:text-[11px] font-medium text-gray-400 leading-none active:opacity-60"
           >
             + город
           </button>
         )}
 
-        {/* Weekday + month — wider letter-spacing, lighter weight
-            for typographic rhythm. */}
-        <div
-          className={`mt-1 flex items-center justify-center gap-1 leading-none ${
-            isToday
-              ? "text-emerald-700"
-              : isWeekend
-              ? "text-amber-600"
-              : "text-gray-400"
-          }`}
-        >
-          <span className="text-[9px] lg:text-[10px] font-bold tracking-[0.08em]">
+        {/* Weekday + short month — gray. Сегодня — emerald, выходной
+            — amber для weekday only, месяц остаётся серым. */}
+        <div className="mt-1.5 flex items-center justify-center gap-1 leading-none">
+          <span
+            className={`text-[10px] lg:text-[11px] font-semibold ${
+              isToday
+                ? "text-emerald-600"
+                : isWeekend
+                ? "text-amber-600"
+                : "text-gray-500"
+            }`}
+          >
             {dayName.toUpperCase()}
           </span>
           <span
-            className={`text-[9px] lg:text-[10px] uppercase tracking-[0.08em] ${
-              isFirstOfMonth ? "font-bold" : "opacity-65 font-semibold"
+            className={`text-[9px] lg:text-[10px] uppercase text-gray-400 ${
+              isFirstOfMonth ? "font-bold text-gray-600" : "font-medium"
             }`}
           >
             {monthShort}
           </span>
         </div>
 
-        {/* Day number — tabular-nums + tighter tracking; today gets a
-            soft emerald gradient pill with a glow. */}
-        <div className="mt-0.5 flex items-center justify-center leading-none">
+        {/* Day number — neutral dark gray. Сегодня — ровный emerald
+            круг. Без градиентов, теней. */}
+        <div className="mt-1 flex items-center justify-center leading-none">
           {isToday ? (
-            <span
-              className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-[16px] lg:text-[18px] font-bold tabular-nums"
-              style={{
-                boxShadow:
-                  "0 4px 10px -2px rgba(16,185,129,0.45), 0 0 0 2px rgba(255,255,255,0.9)",
-              }}
-            >
+            <span className="inline-flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-emerald-500 text-white text-[15px] lg:text-[16px] font-bold tabular-nums">
               {date.getDate()}
             </span>
           ) : (
-            <span
-              className="text-[22px] lg:text-[24px] font-semibold tracking-tight tabular-nums"
-              style={{ color: cityHex ?? "#1f2937" }}
-            >
+            <span className="text-[20px] lg:text-[22px] font-bold tabular-nums text-gray-900">
               {date.getDate()}
             </span>
           )}
         </div>
+
+        {/* Right-side booking count pill — ненавязчиво, в углу */}
+        {dayAppointments.length > 0 && (
+          <span className="absolute top-1 right-1 text-[9px] text-gray-400 tabular-nums">
+            {dayAppointments.length}
+          </span>
+        )}
       </div>
 
       {/* Time slots — total height is 24×hourHeight via CSS var. Hour grid
