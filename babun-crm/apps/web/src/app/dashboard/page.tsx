@@ -39,6 +39,7 @@ import UndoToast from "@/components/ui/UndoToast";
 import { BUILD_VERSION } from "@/lib/version";
 import { haptic } from "@/lib/haptics";
 import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
+import BookingSheet from "@/components/booking/BookingSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -440,7 +441,14 @@ export default function DashboardPage() {
     []
   );
 
-  const [slotMenu, setSlotMenu] = useState<{ date: string; time: string } | null>(null);
+  // STORY-002: tap on empty slot opens BookingSheet directly. Old
+  // slotMenu/ActionMenuModal flow removed — 2-step dialog was just
+  // extra friction. BookingSheet itself has Client/Event segment.
+  const [booking, setBooking] = useState<{
+    dateKey: string;
+    timeStart: string;
+    timeEnd: string;
+  } | null>(null);
 
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
@@ -465,12 +473,15 @@ export default function DashboardPage() {
     [activeTeamId]
   );
 
-  // Tap on empty slot = tiny choice menu (2 items):
-  // 1) Записать клиента
-  // 2) Создать личное событие
-  // Both carry the tapped time into the form (которое можно поменять).
+  // Tap on empty slot → BookingSheet (STORY-002). Компонент сам
+  // даёт выбор «Клиент/Событие» в сегмент-контроле.
   const handleEmptySlotClick = useCallback((date: string, time: string) => {
-    setSlotMenu({ date, time });
+    const [h, m] = time.split(":").map(Number);
+    const endMin = h * 60 + m + 60;
+    const endH = Math.floor(endMin / 60) % 24;
+    const endM = endMin % 60;
+    const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+    setBooking({ dateKey: date, timeStart: time, timeEnd });
   }, []);
 
   // BottomTabBar's centre button navigates here with ?new=1. Read the
@@ -803,25 +814,7 @@ export default function DashboardPage() {
     ]
   );
 
-  // ─── Slot & long-press menu option builders ───────────────────────────
-  // Только 2 пункта: записать клиента и личное событие.
-  // Оба стартуют на tapped time (поменять можно в форме).
-  const slotMenuOptions: ActionMenuOption[] = slotMenu
-    ? [
-        {
-          label: "Записать клиента",
-          subtitle: `${slotMenu.time} · ${formatDateLongRu(slotMenu.date)}`,
-          onSelect: () =>
-            openNewAppointmentInline(slotMenu.date, slotMenu.time, "work"),
-        },
-        {
-          label: "Создать личное событие",
-          subtitle: `${slotMenu.time} · ${formatDateLongRu(slotMenu.date)}`,
-          onSelect: () =>
-            openNewAppointmentInline(slotMenu.date, slotMenu.time, "event"),
-        },
-      ]
-    : [];
+  // Slot menu removed — BookingSheet takes over directly (STORY-002).
 
   // Long-press menu — only actions that Dima actually uses.
   // No disabled stubs, no rarely-used items.
@@ -947,13 +940,75 @@ export default function DashboardPage() {
         onReset={handleCityReset}
       />
 
-      {/* Empty-slot action menu */}
-      <ActionMenuModal
-        open={slotMenu !== null}
-        onClose={() => setSlotMenu(null)}
-        title="Выберите действие"
-        options={slotMenuOptions}
-      />
+      {/* Empty-slot BookingSheet (STORY-002). Renders as bottom
+          sheet with Client/Event segment. The onCreate callbacks
+          persist the new appointment via upsertAppointment. */}
+      {booking && activeTeam && (
+        <BookingSheet
+          open={booking !== null}
+          onClose={() => setBooking(null)}
+          dateKey={booking.dateKey}
+          timeStart={booking.timeStart}
+          timeEnd={booking.timeEnd}
+          city={cityForDate(booking.dateKey)}
+          teamId={activeTeamId || null}
+          teamLabel={activeTeam.name}
+          clients={clients}
+          draftClients={[]}
+          recentClientIds={[]}
+          onCreateClient={(payload, ctx) => {
+            const duration = payload.preset.duration;
+            const [h, m] = ctx.timeStart.split(":").map(Number);
+            const endMin = h * 60 + m + duration;
+            const endH = Math.floor(endMin / 60) % 24;
+            const endM = endMin % 60;
+            const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+            const isRealClient = "locations" in payload.client;
+            const apt = createBlankAppointment({
+              date: ctx.dateKey,
+              time_start: ctx.timeStart,
+              time_end: timeEnd,
+              client_id: isRealClient ? payload.client.id : null,
+              location_id: payload.locationId,
+              team_id: ctx.teamId,
+              service_ids: [],
+              total_amount: payload.preset.fixedPrice ?? (payload.preset.units >= 3 ? payload.preset.units * 45 : payload.preset.units * 50),
+              custom_total: true,
+              comment: `${payload.preset.label}${payload.comment ? " — " + payload.comment : ""}`,
+              address: payload.address,
+              reminder_enabled: payload.smsEnabled,
+              kind: "work",
+            });
+            upsertAppointment(apt);
+            setBooking(null);
+          }}
+          onCreateEvent={(label, preset, ctx) => {
+            const [h, m] = ctx.timeStart.split(":").map(Number);
+            const startMin = preset.allDay ? 8 * 60 : h * 60 + m;
+            const endMin = preset.allDay
+              ? 20 * 60
+              : startMin + preset.duration;
+            const sH = Math.floor(startMin / 60) % 24;
+            const sM = startMin % 60;
+            const eH = Math.floor(endMin / 60) % 24;
+            const eM = endMin % 60;
+            const apt = createBlankAppointment({
+              date: ctx.dateKey,
+              time_start: `${String(sH).padStart(2, "0")}:${String(sM).padStart(2, "0")}`,
+              time_end: `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}`,
+              team_id: ctx.teamId,
+              service_ids: [],
+              total_amount: 0,
+              custom_total: true,
+              comment: label,
+              color_override: preset.color,
+              kind: "event",
+            });
+            upsertAppointment(apt);
+            setBooking(null);
+          }}
+        />
+      )}
 
       {/* Appointment long-press action menu */}
       <ActionMenuModal
