@@ -1,29 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
-import { CITY_LIST, getCityConfig } from "@/lib/day-cities";
+import { CITY_LIST } from "@/lib/day-cities";
 
 interface CityPickerModalProps {
   open: boolean;
   onClose: () => void;
   current: string;
-  defaultCity: string;
+  /** kept for API back-compat; no longer rendered */
+  defaultCity?: string;
   /** ISO date key "YYYY-MM-DD" of the day being edited (for the header). */
   dateKey?: string;
   onPick: (city: string) => void;
-  onReset: () => void;
+  /** kept for API back-compat; reset button removed from UI */
+  onReset?: () => void;
 }
 
-// Bottom sheet по спеке: «Куда едет бригада?» + 4 кнопки городов
-// с MapPin иконкой и цветной плашкой, плюс «Сбросить» внизу.
+// Bottom sheet: «Куда едет бригада?» + 4 кнопки городов с MapPin
+// иконкой и цветной плашкой.
 export default function CityPickerModal({
   open,
   onClose,
   current,
-  defaultCity,
   dateKey,
   onPick,
-  onReset,
 }: CityPickerModalProps) {
   // ESC + body-scroll lock
   useEffect(() => {
@@ -44,11 +44,6 @@ export default function CityPickerModal({
 
   const handlePick = (city: string) => {
     onPick(city);
-    onClose();
-  };
-
-  const handleResetClick = () => {
-    onReset();
     onClose();
   };
 
@@ -149,18 +144,6 @@ export default function CityPickerModal({
           })}
         </div>
 
-        {/* Reset to team default */}
-        {defaultCity && current !== defaultCity && (
-          <div className="px-3 mt-3">
-            <button
-              type="button"
-              onClick={handleResetClick}
-              className="w-full h-11 text-[13px] font-medium text-slate-600 bg-slate-100 rounded-xl active:scale-[0.99]"
-            >
-              Сбросить к «{getCityConfig(defaultCity)?.name ?? defaultCity}»
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
