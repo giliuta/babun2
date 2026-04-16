@@ -176,6 +176,7 @@ export default function DashboardPage() {
         time_start: m.time_start,
         time_end: m.time_end,
         client_id: null,
+        location_id: null,
         team_id: m.team_id,
         service_ids: guessedServiceId ? [guessedServiceId] : [],
         total_amount: m.amount,

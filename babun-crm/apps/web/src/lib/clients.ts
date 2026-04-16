@@ -72,6 +72,17 @@ export interface ClientNote {
   created_at: string;
 }
 
+// ─── Client locations (objects) ────────────────────────────────────────
+// Один клиент может иметь несколько объектов — дом, офис, вилла —
+// со своим адресом и своим количеством сплит-систем.
+export interface Location {
+  id: string;
+  label: string;         // "Дом", "Офис", "Вилла"
+  address: string;
+  acUnits: number;       // количество сплит-систем на этом объекте
+  isPrimary: boolean;    // первый объект для автовыбора
+}
+
 export interface PhoneEntry {
   id: string;
   number: string;
@@ -102,6 +113,10 @@ export interface Client {
   city: string;
   property_type: PropertyType | "";
   equipment: ACUnit[];
+  /** Объекты клиента (дом/офис/вилла) — новое поле для STORY-002.
+   *  Если у клиента несколько объектов, при записи явно выбирается
+   *  один. Legacy-поле `address` оставлено для миграции. */
+  locations: Location[];
   notes: ClientNote[];
   /** YYYY-MM-DD, empty = unknown. */
   birthday: string;
@@ -142,6 +157,15 @@ function mockToClient(m: MockClient): Client {
     city: "",
     property_type: "",
     equipment: [],
+    locations: [
+      {
+        id: generateId("loc"),
+        label: "Основной",
+        address: "",
+        acUnits: 0,
+        isPrimary: true,
+      },
+    ],
     notes: [],
     birthday: "",
     blacklisted: false,
@@ -174,6 +198,22 @@ export function loadClients(): Client[] {
       blacklisted: c.blacklisted ?? false,
       phones: c.phones ?? [],
       whatsapp_phone: c.whatsapp_phone ?? "",
+      // STORY-002 migration: legacy single-address clients get a
+      // one-location array inferred from their stored address and
+      // equipment count. Runs once per client; на последующих
+      // загрузках locations уже на месте и не перезаписывается.
+      locations:
+        c.locations && c.locations.length > 0
+          ? c.locations
+          : [
+              {
+                id: generateId("loc"),
+                label: "Основной",
+                address: c.address ?? "",
+                acUnits: (c.equipment ?? []).length,
+                isPrimary: true,
+              },
+            ],
     })) as Client[];
   } catch {
     return MOCK_CLIENTS.map(mockToClient);
@@ -232,6 +272,15 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     city: "",
     property_type: "",
     equipment: [],
+    locations: [
+      {
+        id: generateId("loc"),
+        label: "Основной",
+        address: "",
+        acUnits: 0,
+        isPrimary: true,
+      },
+    ],
     notes: [],
     birthday: "",
     blacklisted: false,

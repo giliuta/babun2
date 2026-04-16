@@ -42,6 +42,9 @@ export interface Appointment {
   time_end: string; // HH:MM
 
   client_id: string | null; // null = quick-anonymous (rare)
+  /** STORY-002: id объекта клиента (из client.locations). null если
+   *  клиент не выбран или у клиента один объект. */
+  location_id: string | null;
   team_id: string | null;
   service_ids: string[];
 
@@ -111,6 +114,7 @@ export function loadAppointments(): Appointment[] {
       reminder_template:
         p.reminder_template ??
         "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
+      location_id: p.location_id ?? null,
     })) as Appointment[];
   } catch {
     return [];
@@ -407,6 +411,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     time_start: "10:00",
     time_end: "11:00",
     client_id: null,
+    location_id: null,
     team_id: null,
     service_ids: [],
     total_amount: 0,
