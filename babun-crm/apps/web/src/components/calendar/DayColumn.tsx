@@ -185,11 +185,19 @@ function DayColumnInner({
       <div
         role="button"
         tabIndex={0}
+        aria-label="Сменить город этого дня"
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
+          // Тап по дню открывает city picker — самое частое действие
+          // дежурного на мобиле. Focused-day view остаётся доступным
+          // через длинный тап на заголовок.
+          onCityTap?.(dateKey);
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
           onDayHeaderTap?.(dateKey);
         }}
-        className="relative sticky top-0 z-20 h-[72px] lg:h-[82px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:brightness-95 transition px-1 pt-1.5 pb-1"
+        className="relative sticky top-0 z-20 h-[72px] lg:h-[82px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:brightness-95 transition px-0.5 pt-1.5 pb-1"
         style={{ background: cityBg ?? (isToday ? "#ecfdf5" : "#ffffff") }}
       >
         {/* Сегодняшний день маркируется тонкой цветной полоской
@@ -201,13 +209,15 @@ function DayColumnInner({
           />
         )}
 
-        {/* City — крупно, bold, цвет города. ChevronDown как affordance. */}
+        {/* City — полное название, без truncate. На мобиле чуть
+            меньший кегль + тигт-tracking чтобы "Лимассол" укладывался
+            в узкую колонку. ChevronDown как affordance. */}
         {cityLabel ? (
           <div
             className="flex items-center justify-center gap-0.5 leading-none"
             style={{ color: cityHex ?? undefined }}
           >
-            <span className="text-[11px] lg:text-[12px] font-bold truncate">
+            <span className="text-[10px] lg:text-[12px] font-bold tracking-tight">
               {cityLabel}
             </span>
             <svg
@@ -223,7 +233,7 @@ function DayColumnInner({
             </svg>
           </div>
         ) : (
-          <div className="text-[11px] lg:text-[12px] font-medium text-gray-400 leading-none flex items-center justify-center gap-0.5">
+          <div className="text-[10px] lg:text-[12px] font-medium text-gray-400 leading-none flex items-center justify-center gap-0.5">
             + город
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-60">
               <polyline points="6 9 12 15 18 9" />
