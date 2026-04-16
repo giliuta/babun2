@@ -20,7 +20,6 @@ import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
-import { getCityColor } from "@/lib/day-cities";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -127,9 +126,12 @@ function DayColumnInner({
   const dayAppointments = appointments.filter((a) => a.date === dateKey);
   const dayName = getDayNameShort(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-  const cityHex = cityLabel ? getCityColor(cityLabel) : null;
   const monthShort = getMonthNameShort(date.getMonth());
   const isFirstOfMonth = date.getDate() === 1;
+  // cityLabel/onCityTap/getCityColor now surface via the WeekView
+  // city ribbon; reference them here to keep props valid.
+  void cityLabel;
+  void onCityTap;
 
   const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
@@ -177,16 +179,10 @@ function DayColumnInner({
           background paints over the parent's border. Tap = focus this day
           (Bumpix-style shortcut to single-day view). Kept as <div> because
           the city label is a nested <button>. */}
-      {/* Day header — redesigned.
-          Старый вариант повторял слово "АПРЕЛЯ" во всех 7 колонках,
-          и крупные жирные числа перегружали первую строку. Новый:
-            • месяц убран (он уже в верхней панели "Апрель 2026")
-            • weekday наверху мелко, число — в центре, сегодняшнее
-              число рендерится в круглой зелёной pill-е
-            • выходные получают тёплый amber-оттенок фона
-            • цвет города тинтит тонкую полоску сверху — колонка сразу
-              считывается как «Пафос / Лимассол»
-            • city-chip внизу остался кликабельным для смены города */}
+      {/* Day header. Город вынесен в единый CityRibbon над неделей
+          (WeekView), здесь остались только weekday/месяц/число.
+          Сидит поверх контента через sticky top-[22px] чтобы
+          попасть под city ribbon (24px). */}
       <div
         role="button"
         tabIndex={0}
@@ -194,7 +190,7 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[62px] lg:h-[74px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 pt-1.5 pb-1 text-center cursor-pointer active:bg-indigo-50 ${
+        className={`relative sticky top-[22px] lg:top-[24px] z-20 h-[58px] lg:h-[68px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 pt-1.5 pb-1 text-center cursor-pointer active:bg-indigo-50 ${
           isToday
             ? "bg-emerald-50"
             : isWeekend
@@ -202,14 +198,6 @@ function DayColumnInner({
             : "bg-white"
         }`}
       >
-        {/* City-color hairline — visually groups consecutive days in
-            the same city. Paints the top edge. */}
-        {cityHex && (
-          <div
-            className="absolute top-0 left-0 right-0 h-[3px]"
-            style={{ background: cityHex }}
-          />
-        )}
 
         {/* Top row: weekday + short month. Month показывается всегда,
             но компактно («апр», а не «АПРЕЛЯ»), так что 7 колонок
@@ -251,32 +239,10 @@ function DayColumnInner({
           </span>
         </div>
 
-        {/* City: minimal text line in the city colour — no pill, no
-            background. The 3-px hairline at the top of the column
-            already carries the colour; the chip below was duplicating
-            it. If there's no city we just show the booking count (if
-            any) to keep the slot useful. */}
-        {cityLabel ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCityTap?.(dateKey);
-            }}
-            className="mt-1 mx-auto block max-w-full text-[10px] lg:text-[11px] font-medium truncate leading-none active:opacity-60"
-            style={{ color: cityHex ?? undefined }}
-          >
-            {cityLabel}
-            {dayAppointments.length > 0 && (
-              <span className="opacity-60 ml-1">· {dayAppointments.length}</span>
-            )}
-          </button>
-        ) : (
-          dayAppointments.length > 0 && (
-            <div className="mt-1 text-[10px] text-gray-400 leading-none">
-              · {dayAppointments.length}
-            </div>
-          )
+        {dayAppointments.length > 0 && (
+          <div className="mt-1 text-[10px] text-gray-400 leading-none">
+            · {dayAppointments.length}
+          </div>
         )}
       </div>
 
