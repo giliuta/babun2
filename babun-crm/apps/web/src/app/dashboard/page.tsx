@@ -178,11 +178,20 @@ export default function DashboardPage() {
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
-    if (!el) return;
+    if (!el) {
+      if (typeof console !== "undefined") console.warn("[snap] ref is null on mount");
+      return;
+    }
     const hh = hourHeightRef.current;
     // Initial scroll — no animation so the very first paint is already
-    // at 09:00.
-    el.scrollTo({ top: 9 * hh, behavior: "auto" });
+    // at 09:00. Ждём кадр: ref есть, но content height может ещё не
+    // досчитаться до 24*hh (layout effect может опередить дом-update).
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.scrollTo({ top: 9 * hh, behavior: "auto" });
+      if (typeof console !== "undefined")
+        console.info(`[snap] initial scrollTop=${el.scrollTop} (target=${9 * hh}, hh=${hh})`);
+    });
   }, [viewMode]);
 
   useEffect(() => {
@@ -197,7 +206,11 @@ export default function DashboardPage() {
       const top = el.scrollTop;
       const workTop = 9 * hh;
       // Нижняя зона (>= 9:00) — свободный скролл, не вмешиваемся.
-      if (top >= workTop - 1) return;
+      if (top >= workTop - 1) {
+        if (typeof console !== "undefined")
+          console.debug(`[snap] below work (top=${top}), skip`);
+        return;
+      }
       const snapPoints = [0, 7 * hh, 9 * hh];
       // Ближайшая snap-точка в верхней зоне.
       let nearest = snapPoints[0];
@@ -209,20 +222,29 @@ export default function DashboardPage() {
           nearestDist = d;
         }
       }
-      // Если уже прилипли (< 2px) — не дёргаем.
-      if (nearestDist < 2) return;
+      // Если уже прилипли (< 4px) — не дёргаем (iOS sometimes
+      // оставляет sub-pixel residue).
+      if (nearestDist < 4) {
+        if (typeof console !== "undefined")
+          console.debug(`[snap] already at ${nearest} (dist=${nearestDist}), skip`);
+        return;
+      }
       snapping = true;
+      if (typeof console !== "undefined")
+        console.info(`[snap] from ${top} → ${nearest}`);
       el.scrollTo({ top: nearest, behavior: "smooth" });
-      // Снять guard через ~350 мс — достаточно для smooth-скролла.
+      // Снять guard через ~500 мс — iOS smooth-scroll затянутее.
       window.setTimeout(() => {
         snapping = false;
-      }, 350);
+      }, 500);
     };
 
     const onScroll = () => {
+      if (snapping) return;
       if (timer) window.clearTimeout(timer);
-      // 150 мс без движения = scroll-end (consistent across iOS/Android).
-      timer = window.setTimeout(doSnap, 150);
+      // 250 мс без движения — iOS inertia-скролл затухает дольше чем
+      // 150 мс, поэтому ждём подольше, иначе ловим "середину".
+      timer = window.setTimeout(doSnap, 250);
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -287,17 +309,10 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll to the team's work-start hour when schedule/team changes.
-  // NOTE: hourHeight is intentionally NOT a dependency — zoom handlers manage
-  // their own scroll preservation, so reacting here would fight them.
-  useEffect(() => {
-    const el = outerScrollerRef.current;
-    if (!el) return;
-    const startMin = timeToMinutes(activeSchedule.start);
-    const target = Math.max(0, startMin * (hourHeightRef.current / 60));
-    el.scrollTo({ top: target, behavior: "auto" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTeamId, activeSchedule.start]);
+  // STORY-122: старый auto-scroll к activeSchedule.start УДАЛЁН —
+  // он перебивал initial snap к 9:00 из smart-scroll useLayoutEffect
+  // выше. Теперь начало дня всегда 09:00 (рабочая зона), а snap
+  // позволяет свайпнуть выше до 07:00 и 00:00.
 
   // Filter appointments by active team
   const visibleAppointments = useMemo(
