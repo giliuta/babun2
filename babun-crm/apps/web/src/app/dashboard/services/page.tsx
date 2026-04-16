@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { useServices } from "@/app/dashboard/layout";
+import { useServices, useTeams } from "@/app/dashboard/layout";
+import type { Team } from "@/lib/masters";
 import {
   createBlankService,
   getServiceMaterialCost,
@@ -29,6 +30,7 @@ const PALETTE = [
 
 export default function ServicesPage() {
   const { services, upsertService, deleteService, categories, setCategories } = useServices();
+  const { teams } = useTeams();
   const [editing, setEditing] = useState<Service | null>(null);
   const [showCategories, setShowCategories] = useState(false);
 
@@ -129,30 +131,66 @@ export default function ServicesPage() {
                           style={{ backgroundColor: s.color }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 truncate">
-                            {s.name || "Без названия"}
+                          <div className="text-sm font-semibold text-gray-900 truncate flex items-center gap-2">
+                            <span className="truncate">{s.name || "Без названия"}</span>
+                            {!s.is_countable && (
+                              <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-medium uppercase tracking-wide flex-shrink-0">
+                                ×1
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-gray-500 flex flex-wrap gap-2">
-                            <span>{s.duration_minutes} мин</span>
+                            <span>{s.duration_minutes} мин/шт</span>
                             <span>•</span>
-                            <span className="text-emerald-600 font-medium">{s.price}€</span>
-                            {matCost > 0 && (
+                            <span className="text-emerald-600 font-medium">{s.price}€/шт</span>
+                            {s.bulk_threshold > 0 && s.bulk_price > 0 && (
                               <>
                                 <span>•</span>
-                                <span className="text-red-500">−{matCost}€ расход</span>
-                              </>
-                            )}
-                            {s.available_weekdays.length > 0 && (
-                              <>
-                                <span>•</span>
-                                <span>
-                                  {s.available_weekdays
-                                    .map((d) => WEEKDAY_LABELS[d])
-                                    .join(",")}
+                                <span className="text-violet-600 font-medium">
+                                  от {s.bulk_threshold}шт → {s.bulk_price}€/шт
                                 </span>
                               </>
                             )}
+                            {s.cost_per_unit > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-rose-500">
+                                  −{s.cost_per_unit}€/шт расход
+                                </span>
+                              </>
+                            )}
+                            {matCost > 0 && s.cost_per_unit === 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-rose-500">−{matCost}€ расход</span>
+                              </>
+                            )}
                           </div>
+                          {s.brigade_ids.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {s.brigade_ids.map((bid) => {
+                                const t = teams.find((tm) => tm.id === bid);
+                                if (!t) return null;
+                                return (
+                                  <span
+                                    key={bid}
+                                    className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                                    style={{
+                                      background: `${t.color}22`,
+                                      color: t.color,
+                                    }}
+                                  >
+                                    {t.name}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {s.available_weekdays.length > 0 && (
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {s.available_weekdays.map((d) => WEEKDAY_LABELS[d]).join(",")}
+                            </div>
+                          )}
                         </div>
                         {!s.is_active && (
                           <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded">
@@ -173,6 +211,7 @@ export default function ServicesPage() {
         <ServiceEditorSheet
           service={editing}
           categories={categories}
+          teams={teams}
           onClose={() => setEditing(null)}
           onSave={handleSave}
           onDelete={handleDelete}
@@ -258,12 +297,14 @@ function CategoriesEditor({
 function ServiceEditorSheet({
   service,
   categories,
+  teams,
   onClose,
   onSave,
   onDelete,
 }: {
   service: Service;
   categories: ServiceCategory[];
+  teams: Team[];
   onClose: () => void;
   onSave: (svc: Service) => void;
   onDelete: (id: string) => void;
@@ -368,6 +409,119 @@ function ServiceEditorSheet({
                 onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
               />
+            </div>
+          </div>
+
+          {/* MEGA-UPDATE — countable toggle */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
+            <div>
+              <div className="text-sm font-semibold text-gray-900">
+                Количество регулируется
+              </div>
+              <div className="text-xs text-gray-500">
+                Степпер [− N +] в записи. Выключите для ремонта / диагностики.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setDraft({ ...draft, is_countable: !draft.is_countable })
+              }
+              className={`w-11 h-6 rounded-full relative transition-colors ${
+                draft.is_countable ? "bg-violet-600" : "bg-gray-300"
+              }`}
+              aria-pressed={draft.is_countable}
+            >
+              <span
+                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                  draft.is_countable ? "translate-x-[22px]" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Bulk pricing */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">
+                От N штук (bulk)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={draft.bulk_threshold}
+                onChange={(e) =>
+                  setDraft({ ...draft, bulk_threshold: Number(e.target.value) || 0 })
+                }
+                placeholder="0 = без bulk"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">
+                Цена bulk, €/шт
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={draft.bulk_price}
+                onChange={(e) =>
+                  setDraft({ ...draft, bulk_price: Number(e.target.value) || 0 })
+                }
+                placeholder="0 = без bulk"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+              />
+            </div>
+          </div>
+
+          {/* Cost per unit */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              Расход на штуку, € (химия, фреон…)
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={draft.cost_per_unit}
+              onChange={(e) =>
+                setDraft({ ...draft, cost_per_unit: Number(e.target.value) || 0 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+            />
+          </div>
+
+          {/* Brigades */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1.5">
+              Бригады, которые делают (пусто = все)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {teams
+                .filter((t) => t.active)
+                .map((t) => {
+                  const active = draft.brigade_ids.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        const next = active
+                          ? draft.brigade_ids.filter((x) => x !== t.id)
+                          : [...draft.brigade_ids, t.id];
+                        setDraft({ ...draft, brigade_ids: next });
+                      }}
+                      className="h-9 px-3 rounded-lg text-[13px] font-semibold border-2 transition"
+                      style={{
+                        borderColor: active ? t.color : "#e5e7eb",
+                        background: active ? `${t.color}14` : "white",
+                        color: active ? t.color : "#475569",
+                      }}
+                    >
+                      {active && "✓ "}
+                      {t.name}
+                    </button>
+                  );
+                })}
             </div>
           </div>
 
