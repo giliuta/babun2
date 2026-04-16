@@ -9,18 +9,21 @@ interface ColorPickerModalProps {
   onPick: (color: string | null) => void;
 }
 
-// Full 48-swatch palette (Bumpix parity): 6 columns × 8 rows spanning
-// the hue wheel with three brightness tiers so any appointment tint is
-// reachable without a color wheel.
+// Десятицветная палитра — специально короткая: автоматика уже
+// раскрашивает статус/адрес/время, а эта палитра для «личной» метки
+// (VIP, срочный, повторный выезд). 6-колоночная сетка,
+// свотчи крупные — палец попадает сразу.
 export const COLOR_PRESETS: string[] = [
-  "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e",
-  "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1",
-  "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#78716c",
-  "#fca5a5", "#fdba74", "#fcd34d", "#fde047", "#bef264", "#86efac",
-  "#6ee7b7", "#5eead4", "#67e8f9", "#7dd3fc", "#93c5fd", "#a5b4fc",
-  "#c4b5fd", "#d8b4fe", "#f0abfc", "#f9a8d4", "#fda4af", "#a8a29e",
-  "#b91c1c", "#c2410c", "#b45309", "#a16207", "#4d7c0f", "#15803d",
-  "#047857", "#0f766e", "#0e7490", "#0369a1", "#1d4ed8", "#4338ca",
+  "#ef4444", // красный — срочно / проблемный
+  "#f97316", // оранжевый — коммерция
+  "#f59e0b", // янтарь — требует внимания
+  "#eab308", // жёлтый
+  "#22c55e", // зелёный — готово / ок
+  "#06b6d4", // бирюзовый
+  "#3b82f6", // синий
+  "#6366f1", // индиго
+  "#a855f7", // фиолетовый — VIP
+  "#ec4899", // розовый
 ];
 
 export default function ColorPickerModal({
@@ -40,9 +43,13 @@ export default function ColorPickerModal({
   };
 
   return (
-    <DialogModal open={open} onClose={onClose} title="Выбрать цвет">
+    <DialogModal open={open} onClose={onClose} title="Свой цвет">
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-6 gap-2">
+        <p className="text-[12px] text-gray-500">
+          Статус, адрес и время уже раскрашиваются автоматически. Эта палитра
+          — личная метка для «своих» целей (VIP, срочно, проблемный).
+        </p>
+        <div className="grid grid-cols-5 gap-3">
           {COLOR_PRESETS.map((color) => {
             const selected = value === color;
             return (
@@ -52,14 +59,14 @@ export default function ColorPickerModal({
                 onClick={() => handleSelect(color)}
                 aria-label={`Цвет ${color}`}
                 className={`aspect-square rounded-full flex items-center justify-center active:scale-95 transition ${
-                  selected ? "ring-2 ring-offset-1 ring-gray-400" : ""
+                  selected ? "ring-2 ring-offset-2 ring-gray-800" : ""
                 }`}
                 style={{ backgroundColor: color }}
               >
                 {selected && (
                   <svg
-                    width="16"
-                    height="16"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="white"
@@ -81,7 +88,7 @@ export default function ColorPickerModal({
             onClick={handleReset}
             className="w-full h-11 text-[13px] font-medium text-gray-700 bg-gray-100 rounded-lg active:scale-[0.98]"
           >
-            Сбросить цвет
+            Сбросить цвет — вернуть автоматику
           </button>
         )}
       </div>

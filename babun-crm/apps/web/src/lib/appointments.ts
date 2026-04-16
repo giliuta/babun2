@@ -309,9 +309,11 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
-    // Blue — standard residential appointment, everything filled in
-    bg: "bg-blue-500",
-    border: "border-blue-600",
+    // Тёмно-синий — клиент записан, адрес известен, всё готово.
+    // Dima специально просил насыщенный тёмный синий для confirmed-like
+    // визуального состояния — он сильно читается на фоне сетки.
+    bg: "bg-blue-700",
+    border: "border-blue-800",
     text: "text-white",
   },
   commercial: {
@@ -327,10 +329,12 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-amber-900",
   },
   tentative: {
-    // Light blue — future booking (Nov cleaning), needs confirmation
-    bg: "bg-sky-200",
-    border: "border-sky-300",
-    text: "text-sky-800",
+    // Бирюзовый — предварительная запись (>30 дней вперёд, требует
+    // подтверждения). Отделён от past (светло-голубой), чтобы не
+    // сливались.
+    bg: "bg-teal-200",
+    border: "border-teal-300",
+    text: "text-teal-800",
   },
   completed: {
     // Gray — done, faded so it doesn't distract from today's work
@@ -339,10 +343,11 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-gray-600",
   },
   cancelled: {
-    // Red faded — client cancelled
-    bg: "bg-red-300 opacity-60",
-    border: "border-red-400",
-    text: "text-red-800",
+    // Красный — отменена. Яркий, чтобы отличать от past/completed,
+    // с line-through применяемым в компоненте блока.
+    bg: "bg-red-500",
+    border: "border-red-600",
+    text: "text-white",
   },
   in_progress: {
     // Green — team is ON SITE working right now
@@ -357,10 +362,12 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-white",
   },
   past: {
-    // Faded — should have been done but wasn't marked complete
-    bg: "bg-gray-200",
-    border: "border-gray-300",
-    text: "text-gray-500",
+    // Светло-голубой — время записи прошло, но бригада ещё не
+    // отметила выполнение. Отдельный цвет от completed (серый) и
+    // scheduled (тёмно-синий): сразу видно «надо добить».
+    bg: "bg-sky-200",
+    border: "border-sky-300",
+    text: "text-sky-900",
   },
 };
 
