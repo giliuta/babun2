@@ -20,6 +20,7 @@ import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
+import { getCityColor } from "@/lib/day-cities";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -128,10 +129,7 @@ function DayColumnInner({
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const monthShort = getMonthNameShort(date.getMonth());
   const isFirstOfMonth = date.getDate() === 1;
-  // cityLabel/onCityTap/getCityColor now surface via the WeekView
-  // city ribbon; reference them here to keep props valid.
-  void cityLabel;
-  void onCityTap;
+  const cityHex = cityLabel ? getCityColor(cityLabel) : null;
 
   const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
@@ -179,10 +177,9 @@ function DayColumnInner({
           background paints over the parent's border. Tap = focus this day
           (Bumpix-style shortcut to single-day view). Kept as <div> because
           the city label is a nested <button>. */}
-      {/* Day header. Город вынесен в единый CityRibbon над неделей
-          (WeekView), здесь остались только weekday/месяц/число.
-          Сидит поверх контента через sticky top-[22px] чтобы
-          попасть под city ribbon (24px). */}
+      {/* Day header. Город выводится в каждом дне отдельно — Дима
+          может менять город по-дневно. Цвет города рендерится как
+          3-px полоска сверху + text-цвет на подписи. */}
       <div
         role="button"
         tabIndex={0}
@@ -190,7 +187,7 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-[22px] lg:top-[24px] z-20 h-[58px] lg:h-[68px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 pt-1.5 pb-1 text-center cursor-pointer active:bg-indigo-50 ${
+        className={`relative sticky top-0 z-20 h-[68px] lg:h-[78px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 pt-1.5 pb-1 text-center cursor-pointer active:bg-indigo-50 ${
           isToday
             ? "bg-emerald-50"
             : isWeekend
@@ -198,6 +195,13 @@ function DayColumnInner({
             : "bg-white"
         }`}
       >
+        {/* 3-px hairline in the city colour — колонка сразу «зона Пафоса» */}
+        {cityHex && (
+          <div
+            className="absolute top-0 left-0 right-0 h-[3px]"
+            style={{ background: cityHex }}
+          />
+        )}
 
         {/* Top row: weekday + short month. Month показывается всегда,
             но компактно («апр», а не «АПРЕЛЯ»), так что 7 колонок
@@ -239,10 +243,30 @@ function DayColumnInner({
           </span>
         </div>
 
-        {dayAppointments.length > 0 && (
-          <div className="mt-1 text-[10px] text-gray-400 leading-none">
-            · {dayAppointments.length}
-          </div>
+        {/* City: per-day, minimal text in the city colour. Тап
+            открывает city picker именно для этого дня. Если города
+            нет — показываем количество записей если они есть. */}
+        {cityLabel ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCityTap?.(dateKey);
+            }}
+            className="mt-1 mx-auto block max-w-full text-[10px] lg:text-[11px] font-medium truncate leading-none active:opacity-60"
+            style={{ color: cityHex ?? undefined }}
+          >
+            {cityLabel}
+            {dayAppointments.length > 0 && (
+              <span className="opacity-60 ml-1">· {dayAppointments.length}</span>
+            )}
+          </button>
+        ) : (
+          dayAppointments.length > 0 && (
+            <div className="mt-1 text-[10px] text-gray-400 leading-none">
+              · {dayAppointments.length}
+            </div>
+          )
         )}
       </div>
 
