@@ -68,12 +68,34 @@ export function ServiceWorkerRegister() {
           updateViaCache: "none",
         });
 
+        // Diagnostic: log the URL of the controlling SW so console
+        // shows WHICH build is actually active. If this URL matches
+        // origin/sw.js with the latest CACHE_VERSION inside, kешь OK.
+        // На iOS PWA standalone controller часто остаётся старым до
+        // полного перезапуска — это маячок.
+        const ctrl = navigator.serviceWorker.controller;
+        // eslint-disable-next-line no-console
+        console.info(
+          `[sw] registered · scope=${registration.scope} controller=${ctrl?.scriptURL ?? "none"} state=${ctrl?.state ?? "none"}`
+        );
+        try {
+          const cacheKeys = await caches.keys();
+          // eslint-disable-next-line no-console
+          console.info(`[sw] active caches: ${cacheKeys.join(", ") || "(empty)"}`);
+        } catch {
+          // ignore
+        }
+
         if (registration.waiting && navigator.serviceWorker.controller) {
+          // eslint-disable-next-line no-console
+          console.info("[sw] waiting SW detected → SKIP_WAITING");
           promoteWaiting(registration.waiting);
         }
 
         if (registration.installing) trackInstalling(registration.installing);
         registration.addEventListener("updatefound", () => {
+          // eslint-disable-next-line no-console
+          console.info("[sw] updatefound — new SW installing");
           if (registration?.installing) trackInstalling(registration.installing);
         });
 
