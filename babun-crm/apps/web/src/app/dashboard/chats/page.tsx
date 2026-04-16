@@ -48,17 +48,21 @@ export default function ChatsPage() {
     setChats(loadChats());
   }, []);
 
-  // Opening /dashboard/chats?client_id=X from the client card's sticky bar
-  // — auto-activate the existing chat for that client if there is one.
-  // If no chat exists yet we silently land on the list (Dima can still
-  // create one manually). Read directly from window.location so Next 16
-  // doesn't trip us into a CSR bailout.
+  // Deep link handling — two forms:
+  //   ?chat_id=X     → open that exact conversation
+  //   ?client_id=X   → open any existing chat for that client
+  // The first wins. If nothing matches we land on the chats list so
+  // Dima can still create / find manually. Read directly from
+  // window.location to avoid Next 16's CSR bailout on useSearchParams.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
+    const chatId = params.get("chat_id");
     const clientId = params.get("client_id");
-    if (!clientId) return;
-    const chat = chats.find((c) => c.client_id === clientId);
+    if (!chatId && !clientId) return;
+    let chat: Chat | undefined;
+    if (chatId) chat = chats.find((c) => c.id === chatId);
+    if (!chat && clientId) chat = chats.find((c) => c.client_id === clientId);
     if (chat) setActiveChatId(chat.id);
     window.history.replaceState({}, "", "/dashboard/chats");
   }, [chats]);

@@ -527,7 +527,11 @@ function ContactSourcesSection({ clientId }: { clientId: string }) {
         {linked.map((chat) => (
           <a
             key={chat.id}
-            href={`/dashboard/chats?client_id=${clientId}`}
+            // Pass the *specific* chat id — the chats page activates
+            // exactly that conversation, not just the first one for this
+            // client. Lets Dima jump from the card straight into the
+            // Instagram / WhatsApp / Telegram thread.
+            href={`/dashboard/chats?chat_id=${chat.id}`}
             className="flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-semibold text-white active:scale-[0.98]"
             style={{ background: CHANNEL_COLORS[chat.channel as ChatChannel] || "#8b5cf6" }}
           >
