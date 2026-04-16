@@ -38,8 +38,7 @@ import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
 import { BUILD_VERSION } from "@/lib/version";
 import { haptic } from "@/lib/haptics";
-import NewAppointmentSheet from "@/components/appointments/sheet/NewAppointmentSheet";
-import BookingSheet from "@/components/booking/BookingSheet";
+import AppointmentSheet from "@/components/appointment/AppointmentSheet";
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -60,7 +59,7 @@ import {
 } from "./layout";
 import { sumExtras } from "@/lib/day-extras";
 import { loadChats } from "@/lib/chats";
-import SuccessOverlay from "@/components/booking/SuccessOverlay";
+import SuccessOverlay from "@/components/appointment/SuccessOverlay";
 import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import TodayChip from "@/components/calendar/TodayChip";
@@ -186,6 +185,7 @@ export default function DashboardPage() {
         location_id: null,
         team_id: m.team_id,
         service_ids: guessedServiceId ? [guessedServiceId] : [],
+        payment: null,
         total_amount: m.amount,
         custom_total: true,
         discount_amount: 0,
@@ -1014,86 +1014,44 @@ export default function DashboardPage() {
         onReset={handleCityReset}
       />
 
-      {/* Empty-slot BookingSheet (STORY-002). Renders as bottom
-          sheet with Client/Event segment. The onCreate callbacks
-          persist the new appointment via upsertAppointment. */}
+      {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
+          (тап по пустому слоту). Внутри sheet — segment Клиент/Событие. */}
       {booking && activeTeam && (
-        <BookingSheet
+        <AppointmentSheet
           open={booking !== null}
           onClose={() => setBooking(null)}
-          dateKey={booking.dateKey}
-          timeStart={booking.timeStart}
-          timeEnd={booking.timeEnd}
-          city={cityForDate(booking.dateKey)}
-          teamId={activeTeamId || null}
-          teamLabel={activeTeam.name}
+          mode="create"
+          appointment={createBlankAppointment({
+            date: booking.dateKey,
+            time_start: booking.timeStart,
+            time_end: booking.timeEnd,
+            team_id: activeTeamId || null,
+            kind: "work",
+          })}
           clients={clients}
           draftClients={[]}
           recentClientIds={recentInChats}
-          onCreateClient={(payload, ctx) => {
-            const duration = payload.preset.duration;
-            const [h, m] = ctx.timeStart.split(":").map(Number);
-            const endMin = h * 60 + m + duration;
-            const endH = Math.floor(endMin / 60) % 24;
-            const endM = endMin % 60;
-            const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
-            const isRealClient = "locations" in payload.client;
-            const apt = createBlankAppointment({
-              date: ctx.dateKey,
-              time_start: ctx.timeStart,
-              time_end: timeEnd,
-              client_id: isRealClient ? payload.client.id : null,
-              location_id: payload.locationId,
-              team_id: ctx.teamId,
-              service_ids: [],
-              total_amount: payload.preset.fixedPrice ?? (payload.preset.units >= 3 ? payload.preset.units * 45 : payload.preset.units * 50),
-              custom_total: true,
-              comment: `${payload.preset.label}${payload.comment ? " — " + payload.comment : ""}`,
-              address: payload.address,
-              reminder_enabled: payload.smsEnabled,
-              kind: "work",
-            });
+          teams={teams}
+          activeTeam={activeTeam}
+          cityForDate={cityForDate}
+          onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
+          onCancelAppointment={() => setBooking(null)}
+          onSave={(apt) => {
             upsertAppointment(apt);
             setBooking(null);
-            // Success overlay with call/chat quick actions. Phone is
-            // lifted from the linked client (DraftClients have no phone
-            // at booking time, so чат-ссылки нет).
-            const c = isRealClient ? payload.client : null;
-            const chatLinkId = c
-              ? loadChats().find((ch) => ch.client_id === c.id)?.id
-              : undefined;
-            setSavedSuccess({
-              name: payload.client.full_name,
-              phone: c?.phone,
-              chatHref: chatLinkId
-                ? `/dashboard/chats?chat_id=${chatLinkId}`
-                : undefined,
-            });
-          }}
-          onCreateEvent={(label, preset, ctx) => {
-            const [h, m] = ctx.timeStart.split(":").map(Number);
-            const startMin = preset.allDay ? 8 * 60 : h * 60 + m;
-            const endMin = preset.allDay
-              ? 20 * 60
-              : startMin + preset.duration;
-            const sH = Math.floor(startMin / 60) % 24;
-            const sM = startMin % 60;
-            const eH = Math.floor(endMin / 60) % 24;
-            const eM = endMin % 60;
-            const apt = createBlankAppointment({
-              date: ctx.dateKey,
-              time_start: `${String(sH).padStart(2, "0")}:${String(sM).padStart(2, "0")}`,
-              time_end: `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}`,
-              team_id: ctx.teamId,
-              service_ids: [],
-              total_amount: 0,
-              custom_total: true,
-              comment: label,
-              color_override: preset.color,
-              kind: "event",
-            });
-            upsertAppointment(apt);
-            setBooking(null);
+            if (apt.kind === "work" && apt.client_id) {
+              const c = clients.find((x) => x.id === apt.client_id);
+              if (c) {
+                const chatLinkId = loadChats().find((ch) => ch.client_id === c.id)?.id;
+                setSavedSuccess({
+                  name: c.full_name,
+                  phone: c.phone,
+                  chatHref: chatLinkId
+                    ? `/dashboard/chats?chat_id=${chatLinkId}`
+                    : undefined,
+                });
+              }
+            }
           }}
         />
       )}
@@ -1242,22 +1200,34 @@ export default function DashboardPage() {
       {/* Inline new/edit sheet — renders on top of the calendar, no route
           change. Keeps the calendar fully mounted so opening an
           appointment is instant. */}
-      {inlineSheet && (
-        <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
-          <NewAppointmentSheet
-            initial={inlineSheet.initial}
-            mode={inlineSheet.mode}
-            onClose={(savedTeamId) => {
-              // If the record was saved with a different team than the
-              // currently active one, follow it so the user stays on
-              // the team they were just editing.
-              if (savedTeamId && savedTeamId !== activeTeamId) {
-                setActiveTeamId(savedTeamId);
-              }
-              setInlineSheet(null);
-            }}
-          />
-        </div>
+      {/* STORY-002-FINAL: view/done режимы единого sheet открываются
+          по тапу на существующую запись (handleAppointmentClick). */}
+      {inlineSheet && activeTeam && (
+        <AppointmentSheet
+          open
+          onClose={() => setInlineSheet(null)}
+          mode={inlineSheet.initial.status === "completed" ? "done" : "view"}
+          appointment={inlineSheet.initial}
+          clients={clients}
+          draftClients={[]}
+          recentClientIds={recentInChats}
+          teams={teams}
+          activeTeam={activeTeam}
+          cityForDate={cityForDate}
+          onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
+          onSave={(apt) => {
+            upsertAppointment(apt);
+            setInlineSheet(null);
+          }}
+          onCancelAppointment={(apt) => {
+            upsertAppointment({
+              ...apt,
+              status: "cancelled",
+              updated_at: new Date().toISOString(),
+            });
+            setInlineSheet(null);
+          }}
+        />
       )}
     </>
   );

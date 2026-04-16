@@ -11,13 +11,25 @@ export type AppointmentStatus =
   | "completed" // выполнена
   | "cancelled"; // отменена
 
-export type PaymentMethod = "cash" | "card" | "transfer";
+export type PaymentMethod = "cash" | "card" | "transfer" | "split" | "invoice";
 
 export interface Payment {
   id: string;
   method: PaymentMethod;
   amount: number;
   paid_at: string; // ISO date
+}
+
+// STORY-002-FINAL: единый объект оплаты вместо массива payments.
+// Описывает как клиент заплатил: полностью наличкой/картой, сплит
+// (часть нал + часть карта), или счёт компании (оплата по инвойсу
+// позже, деньги в кассу не поступили).
+export interface AppointmentPayment {
+  method: "cash" | "card" | "split" | "invoice";
+  cashAmount: number;
+  cardAmount: number;
+  /** ISO timestamp когда провели оплату. */
+  paid_at: string;
 }
 
 export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
@@ -56,7 +68,10 @@ export interface Appointment {
   service_price_overrides: Record<string, number>; // id → per-unit цена, если переопределена
   color_override: string | null; // hex — персональный цвет записи/события (палитра)
   prepaid_amount: number; // аванс / предоплата
-  payments: Payment[]; // массивы платежей (cash/card/transfer)
+  payments: Payment[]; // legacy массив платежей — постепенно вытесняется payment-объектом
+  /** STORY-002-FINAL: единый объект оплаты. Заполняется при
+   *  переводе записи в status=completed через PaymentBlock. */
+  payment: AppointmentPayment | null;
 
   // Доп. поля
   comment: string;
@@ -82,6 +97,8 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: "Наличные",
   card: "Карта",
   transfer: "Перевод",
+  split: "Сплит",
+  invoice: "Счёт",
 };
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -115,6 +132,30 @@ export function loadAppointments(): Appointment[] {
         p.reminder_template ??
         "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
       location_id: p.location_id ?? null,
+      // Migrate legacy payments[] → payment (single object). Sum up
+      // cash / card payments; anything else collapses to invoice.
+      payment:
+        p.payment ??
+        (p.payments && p.payments.length > 0
+          ? (() => {
+              const cash = p.payments
+                .filter((x) => x.method === "cash")
+                .reduce((s, x) => s + x.amount, 0);
+              const card = p.payments
+                .filter((x) => x.method === "card")
+                .reduce((s, x) => s + x.amount, 0);
+              const total = cash + card;
+              if (total === 0) return null;
+              const method: AppointmentPayment["method"] =
+                cash > 0 && card > 0 ? "split" : cash > 0 ? "cash" : "card";
+              return {
+                method,
+                cashAmount: cash,
+                cardAmount: card,
+                paid_at: p.payments[p.payments.length - 1].paid_at,
+              };
+            })()
+          : null),
     })) as Appointment[];
   } catch {
     return [];
@@ -422,6 +463,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     color_override: null,
     prepaid_amount: 0,
     payments: [],
+    payment: null,
     comment: "",
     address: "",
     address_lat: null,
@@ -449,6 +491,7 @@ export function duplicateAppointment(apt: Appointment): Appointment {
     id: generateId("apt"),
     prepaid_amount: 0,
     payments: [],
+    payment: null,
     status: "scheduled",
     photos: [],
     created_at: now,

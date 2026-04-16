@@ -9,9 +9,8 @@ interface SuccessOverlayProps {
   onDone: () => void;
 }
 
-// Полноэкранный success-экран 2 сек после создания записи.
-// Центральная зелёная галочка + 2 quick actions (Позвонить, Написать).
-// Автозакрытие по таймеру, либо по тапу на backdrop.
+// 2-секундный overlay после успешного сохранения. Quick-actions:
+// Позвонить + Написать.
 export default function SuccessOverlay({
   clientName,
   phone,
@@ -27,7 +26,7 @@ export default function SuccessOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={onDone}
     >
       <div

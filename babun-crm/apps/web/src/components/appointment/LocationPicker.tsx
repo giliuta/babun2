@@ -5,16 +5,19 @@ import type { Location } from "@/lib/clients";
 interface LocationPickerProps {
   locations: Location[];
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  readonly: boolean;
+  onSelect?: (id: string) => void;
+  onAdd?: () => void;
 }
 
-// Горизонтальные чипы-объекты клиента. Активный — фиолетовая
-// рамка. Под label мелким — количество блоков. Скрытый если
-// location один (компоновщик не рендерит).
+// Блок 3. Показывается только когда у клиента больше одного объекта.
+// Горизонтальные чипы + «+ Объект» в конце (скрыт в readonly).
 export default function LocationPicker({
   locations,
   selectedId,
+  readonly,
   onSelect,
+  onAdd,
 }: LocationPickerProps) {
   if (locations.length <= 1) return null;
   return (
@@ -29,12 +32,11 @@ export default function LocationPicker({
             <button
               key={loc.id}
               type="button"
-              onClick={() => onSelect(loc.id)}
-              className={`flex-shrink-0 min-w-[86px] px-3 py-2 rounded-xl border-2 text-left transition active:scale-[0.98] ${
-                active
-                  ? "border-violet-600 bg-violet-50"
-                  : "border-slate-200 bg-white"
-              }`}
+              onClick={readonly ? undefined : () => onSelect?.(loc.id)}
+              disabled={readonly}
+              className={`flex-shrink-0 min-w-[86px] px-3 py-2 rounded-xl border-2 text-left transition ${
+                active ? "border-violet-600 bg-violet-50" : "border-slate-200 bg-white"
+              } ${readonly ? "" : "active:scale-[0.98]"}`}
             >
               <div
                 className={`text-[13px] truncate ${
@@ -49,6 +51,15 @@ export default function LocationPicker({
             </button>
           );
         })}
+        {!readonly && onAdd && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="flex-shrink-0 min-w-[86px] px-3 py-2 rounded-xl border-2 border-dashed border-slate-300 text-[12px] font-semibold text-violet-600 active:bg-violet-50"
+          >
+            + Объект
+          </button>
+        )}
       </div>
     </div>
   );
