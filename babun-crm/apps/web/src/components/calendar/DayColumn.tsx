@@ -197,68 +197,49 @@ function DayColumnInner({
           e.preventDefault();
           onDayHeaderTap?.(dateKey);
         }}
-        className="relative sticky top-0 z-20 h-[72px] lg:h-[82px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:brightness-95 transition px-0.5 pt-1.5 pb-1"
-        style={{ background: cityBg ?? (isToday ? "#ecfdf5" : "#ffffff") }}
+        className={`relative sticky top-0 z-20 h-[72px] lg:h-[82px] border-r border-gray-200 text-center cursor-pointer active:brightness-95 transition px-0.5 pt-1.5 pb-1 ${
+          isToday ? "ring-2 ring-white ring-inset" : "border-b border-white/30"
+        }`}
+        // Заголовок — в ЯРКОМ насыщенном цвете города. Текст белый.
+        // Если города нет — нейтральный slate.
+        style={{
+          background: cityHex ?? (isToday ? "#475569" : "#94a3b8"),
+        }}
       >
-        {/* Сегодняшний день маркируется тонкой цветной полоской
-            сверху (2px) в цвет города — по спеке. */}
-        {isToday && cityHex && (
-          <div
-            className="absolute top-0 left-0.5 right-0.5 h-0.5 rounded-b"
-            style={{ background: cityHex }}
-          />
-        )}
-
-        {/* City — полное название в цвете города, без стрелки.
-            На мобиле чуть меньший кегль + tracking-tight, чтобы
-            "Лимассол" укладывался в узкую колонку. */}
+        {/* City — полное название, белым. */}
         {cityLabel ? (
-          <div
-            className="text-[10px] lg:text-[12px] font-bold tracking-tight leading-none"
-            style={{ color: cityHex ?? undefined }}
-          >
+          <div className="text-[10px] lg:text-[12px] font-bold tracking-tight leading-none text-white drop-shadow-sm">
             {cityLabel}
           </div>
         ) : (
-          <div className="text-[10px] lg:text-[12px] font-medium text-gray-400 leading-none">
+          <div className="text-[10px] lg:text-[12px] font-medium leading-none text-white/80">
             + город
           </div>
         )}
 
-        {/* Weekday + month */}
+        {/* Weekday + month — на ярком фоне белым с разной прозрачностью. */}
         <div className="mt-1.5 flex items-center justify-center gap-1 leading-none">
-          <span
-            className={`text-[10px] lg:text-[11px] font-semibold ${
-              isWeekend ? "text-amber-700" : "text-slate-500"
-            }`}
-          >
+          <span className="text-[10px] lg:text-[11px] font-semibold text-white">
             {dayName.toUpperCase()}
           </span>
           <span
-            className={`text-[9px] lg:text-[10px] uppercase text-slate-400 ${
-              isFirstOfMonth ? "font-bold text-slate-600" : "font-medium"
+            className={`text-[9px] lg:text-[10px] uppercase text-white/75 ${
+              isFirstOfMonth ? "font-bold text-white" : "font-medium"
             }`}
           >
             {monthShort}
           </span>
         </div>
 
-        {/* Day number. Для сегодня — в цвете города; в остальные
-            дни — тёмно-графитный. */}
+        {/* Day number — крупно белым. */}
         <div className="mt-1 flex items-center justify-center leading-none">
-          <span
-            className="text-[20px] lg:text-[22px] font-semibold tabular-nums"
-            style={{ color: isToday && cityHex ? cityHex : "#0f172a" }}
-          >
+          <span className="text-[20px] lg:text-[22px] font-bold tabular-nums text-white drop-shadow-sm">
             {date.getDate()}
           </span>
         </div>
 
         {dayAppointments.length > 0 && (
-          <span
-            className="absolute top-1 right-1 text-[9px] tabular-nums"
-            style={{ color: cityHex ? `${cityHex}99` : "#94a3b8" }}
-          >
+          <span className="absolute top-1 right-1 text-[9px] font-semibold tabular-nums text-white/80">
             {dayAppointments.length}
           </span>
         )}
