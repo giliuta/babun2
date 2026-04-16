@@ -386,6 +386,9 @@ function TeamFormModal({
   const [leadId, setLeadId] = useState<string | null>(team?.lead_id ?? null);
   const [helperIds, setHelperIds] = useState<string[]>(team?.helper_ids ?? []);
   const [active, setActive] = useState(team?.active ?? true);
+  const [payoutPercentage, setPayoutPercentage] = useState<number>(
+    team?.payout_percentage ?? 30
+  );
 
   // Close on Escape
   useEffect(() => {
@@ -435,6 +438,7 @@ function TeamFormModal({
       color,
       lead_id: leadId,
       helper_ids: helperIds,
+      payout_percentage: Math.max(0, Math.min(100, payoutPercentage || 0)),
       active,
       created_at: team?.created_at ?? nowIso,
     };
@@ -499,6 +503,28 @@ function TeamFormModal({
             <div className="text-[11px] text-gray-400 mt-1">
               Ставится дефолтом на каждый день в календаре. Можно переопределить
               тапом по дню.
+            </div>
+          </div>
+
+          {/* Payout percentage */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              Зарплата (% от чистого дохода)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={payoutPercentage}
+                onChange={(e) => setPayoutPercentage(Number(e.target.value) || 0)}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
+              />
+              <span className="text-sm text-gray-500">%</span>
+            </div>
+            <div className="text-[11px] text-gray-400 mt-1">
+              Применяется к (доход − расход бригады) за выбранный период.
+              Используется на странице Финансы → Зарплата.
             </div>
           </div>
 

@@ -44,6 +44,9 @@ export interface Team {
   default_city: string; // Базовый город бригады — используется как дефолт для дней
   lead_id: string | null;
   helper_ids: string[];
+  /** Зарплата бригады = этот процент от чистого дохода бригады
+   *  (доходы минус расходы) за период. 0 = не считается. */
+  payout_percentage: number;
   active: boolean;
   created_at: string;
 }
@@ -258,6 +261,7 @@ export const DEFAULT_TEAMS: Team[] = [
     default_city: "Пафос",
     lead_id: "m-yura",
     helper_ids: ["m-danya-yd"],
+    payout_percentage: 30,
     active: true,
     created_at: NOW,
   },
@@ -269,6 +273,7 @@ export const DEFAULT_TEAMS: Team[] = [
     default_city: "Ларнака",
     lead_id: "m-danya-dk",
     helper_ids: ["m-kolya"],
+    payout_percentage: 30,
     active: true,
     created_at: NOW,
   },
@@ -314,6 +319,7 @@ export function loadTeams(): Team[] {
       default_city:
         t.default_city ??
         (t.region ? t.region.split(/[,/]/)[0].trim() : ""),
+      payout_percentage: t.payout_percentage ?? 30,
     })) as Team[];
   } catch {
     return DEFAULT_TEAMS;
