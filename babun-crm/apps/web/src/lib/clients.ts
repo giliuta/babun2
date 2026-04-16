@@ -72,10 +72,21 @@ export interface ClientNote {
   created_at: string;
 }
 
+export interface PhoneEntry {
+  id: string;
+  number: string;
+  /** "Основной", "WhatsApp", "Жена", "Рабочий" etc. */
+  label: string;
+}
+
 export interface Client {
   id: string;
   full_name: string;
   phone: string;
+  /** Дополнительные номера — клиент может дать жены/рабочий/WhatsApp. */
+  phones: PhoneEntry[];
+  /** Если WhatsApp зарегистрирован на другой номер, не основной. */
+  whatsapp_phone: string;
   email: string;
   sms_name: string;
   telegram_username: string;
@@ -114,6 +125,8 @@ function mockToClient(m: MockClient): Client {
     id: m.id,
     full_name: m.full_name,
     phone: m.phone,
+    phones: [],
+    whatsapp_phone: "",
     email: "",
     sms_name: m.sms_name,
     telegram_username: "",
@@ -159,6 +172,8 @@ export function loadClients(): Client[] {
       notes: c.notes ?? [],
       birthday: c.birthday ?? "",
       blacklisted: c.blacklisted ?? false,
+      phones: c.phones ?? [],
+      whatsapp_phone: c.whatsapp_phone ?? "",
     })) as Client[];
   } catch {
     return MOCK_CLIENTS.map(mockToClient);
@@ -200,6 +215,8 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     id: generateId("cli"),
     full_name: "",
     phone: "",
+    phones: [],
+    whatsapp_phone: "",
     email: "",
     sms_name: "",
     telegram_username: "",

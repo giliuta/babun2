@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Client, ACUnit, ACType } from "@/lib/clients";
-import { AC_TYPE_LABELS } from "@/lib/clients";
+import type { Client, PhoneEntry } from "@/lib/clients";
 import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@/lib/appointments";
 import { useServices, useTeams } from "@/app/dashboard/layout";
+import { loadChats, CHANNEL_LABELS, CHANNEL_COLORS, type Chat, type ChatChannel } from "@/lib/chats";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
 
@@ -97,15 +97,7 @@ export default function ClientPanel({
       {/* Content */}
       <div className="flex-1">
         {tab === "profile" && (
-          <>
-            <ProfileForm client={client} update={update} />
-            <div className="border-t border-gray-100 pt-1">
-              <div className="px-4 pt-3 pb-1 text-[11px] text-gray-500 uppercase tracking-wide">
-                Кондиционеры ({client.equipment.length})
-              </div>
-              <EquipmentList client={client} onUpdate={onUpdate} />
-            </div>
-          </>
+          <ProfileForm client={client} update={update} />
         )}
         {tab === "records" && (
           <RecordsTab
@@ -168,8 +160,6 @@ function ProfileForm({
   client: Client;
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
 }) {
-  const phoneDigits = client.phone.replace(/\D/g, "");
-
   return (
     <div className="divide-y divide-gray-100">
       <FieldRow icon={<IconUser />} label="Имя и фамилия">
@@ -181,38 +171,11 @@ function ProfileForm({
         />
       </FieldRow>
 
-      <FieldRow
-        icon={<IconPhone />}
-        label="Телефон"
-        right={
-          phoneDigits ? (
-            <div className="flex items-center gap-1">
-              <a
-                href={`tel:${phoneDigits}`}
-                aria-label="Позвонить"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 active:bg-emerald-100"
-              >
-                <IconPhone />
-              </a>
-              <a
-                href={`sms:${phoneDigits}`}
-                aria-label="Отправить SMS"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-sky-50 text-sky-700 active:bg-sky-100"
-              >
-                <IconChat />
-              </a>
-            </div>
-          ) : null
-        }
-      >
-        <input
-          type="tel"
-          value={client.phone}
-          onChange={(e) => update("phone", e.target.value)}
-          placeholder="+357..."
-          className="w-full bg-transparent text-[16px] text-gray-900 tabular-nums focus:outline-none"
-        />
-      </FieldRow>
+      <PhonesSection client={client} update={update} />
+
+      <MessengersSection client={client} update={update} />
+
+      <ContactSourcesSection clientId={client.id} />
 
       <FieldRow icon={<IconChat />} label="Обращение в SMS напоминаниях">
         <input
@@ -259,6 +222,318 @@ function ProfileForm({
       </FieldRow>
     </div>
   );
+}
+
+// ─── Phones (multiple) ──────────────────────────────────────────────────
+// Primary phone lives at client.phone — search, list display and the
+// sticky action bar all read from it. Additional phones (жены, рабочий,
+// WhatsApp на другой номер) go into client.phones.
+
+const PHONE_LABEL_OPTIONS = [
+  "Основной",
+  "WhatsApp",
+  "Жена",
+  "Рабочий",
+  "Домашний",
+  "Другое",
+];
+
+function PhonesSection({
+  client,
+  update,
+}: {
+  client: Client;
+  update: <K extends keyof Client>(key: K, value: Client[K]) => void;
+}) {
+  const addPhone = () => {
+    haptic("tap");
+    const entry: PhoneEntry = {
+      id: generateId("ph"),
+      number: "",
+      label: "Дополнительный",
+    };
+    update("phones", [...client.phones, entry]);
+  };
+
+  const updatePhone = (id: string, patch: Partial<PhoneEntry>) => {
+    update(
+      "phones",
+      client.phones.map((p) => (p.id === id ? { ...p, ...patch } : p))
+    );
+  };
+
+  const removePhone = (id: string) => {
+    haptic("tap");
+    update("phones", client.phones.filter((p) => p.id !== id));
+  };
+
+  return (
+    <div className="px-4 pt-3 pb-3 space-y-2">
+      <div className="text-[11px] text-gray-500">Телефоны</div>
+      <PhoneRow
+        number={client.phone}
+        label="Основной"
+        onNumberChange={(v) => update("phone", v)}
+        // no label edit / remove on the primary — it's the canonical one
+        primary
+      />
+      {client.phones.map((p) => (
+        <PhoneRow
+          key={p.id}
+          number={p.number}
+          label={p.label}
+          onNumberChange={(v) => updatePhone(p.id, { number: v })}
+          onLabelChange={(v) => updatePhone(p.id, { label: v })}
+          onRemove={() => removePhone(p.id)}
+        />
+      ))}
+      <button
+        type="button"
+        onClick={addPhone}
+        className="w-full h-10 border border-dashed border-gray-300 rounded-xl text-[13px] text-violet-600 font-semibold active:bg-violet-50"
+      >
+        + Добавить номер
+      </button>
+    </div>
+  );
+}
+
+function PhoneRow({
+  number,
+  label,
+  onNumberChange,
+  onLabelChange,
+  onRemove,
+  primary,
+}: {
+  number: string;
+  label: string;
+  onNumberChange: (v: string) => void;
+  onLabelChange?: (v: string) => void;
+  onRemove?: () => void;
+  primary?: boolean;
+}) {
+  const digits = number.replace(/\D/g, "");
+  return (
+    <div className="bg-gray-50 rounded-xl p-2 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <IconPhone />
+        <input
+          type="tel"
+          value={number}
+          onChange={(e) => onNumberChange(e.target.value)}
+          placeholder="+357..."
+          className="flex-1 bg-transparent text-[16px] text-gray-900 tabular-nums focus:outline-none"
+        />
+        {digits && (
+          <>
+            <a
+              href={`tel:${digits}`}
+              aria-label="Позвонить"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 active:bg-emerald-100"
+            >
+              <IconPhone />
+            </a>
+            <a
+              href={`sms:${digits}`}
+              aria-label="Отправить SMS"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-sky-50 text-sky-700 active:bg-sky-100"
+            >
+              <IconChat />
+            </a>
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        {primary ? (
+          <span className="text-[11px] text-gray-500 px-2">{label}</span>
+        ) : (
+          <select
+            value={label}
+            onChange={(e) => onLabelChange?.(e.target.value)}
+            className="flex-1 h-8 bg-white border border-gray-200 rounded-md px-2 text-[12px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-500"
+          >
+            {PHONE_LABEL_OPTIONS.concat(
+              PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
+            ).map((l) => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+        )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Удалить номер"
+            className="w-8 h-8 flex items-center justify-center text-gray-400 active:text-rose-500"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Messenger handles ──────────────────────────────────────────────────
+
+function MessengersSection({
+  client,
+  update,
+}: {
+  client: Client;
+  update: <K extends keyof Client>(key: K, value: Client[K]) => void;
+}) {
+  const tg = client.telegram_username.replace(/^@/, "");
+  const ig = client.instagram_username.replace(/^@/, "");
+  const waDigits = (client.whatsapp_phone || client.phone).replace(/\D/g, "");
+
+  return (
+    <div className="px-4 pt-3 pb-3 space-y-2">
+      <div className="text-[11px] text-gray-500">Мессенджеры</div>
+
+      <MessengerRow
+        icon={<IconTelegram />}
+        color="bg-sky-50 text-sky-600"
+        label="Telegram"
+        value={client.telegram_username}
+        placeholder="@username"
+        onChange={(v) => update("telegram_username", v)}
+        openUrl={tg ? `https://t.me/${tg}` : undefined}
+      />
+
+      <MessengerRow
+        icon={<IconInstagram />}
+        color="bg-pink-50 text-pink-600"
+        label="Instagram"
+        value={client.instagram_username}
+        placeholder="@username"
+        onChange={(v) => update("instagram_username", v)}
+        openUrl={ig ? `https://instagram.com/${ig}` : undefined}
+      />
+
+      <MessengerRow
+        icon={<IconWhatsapp />}
+        color="bg-emerald-50 text-emerald-600"
+        label="WhatsApp"
+        value={client.whatsapp_phone}
+        placeholder={
+          client.phone ? `По умолчанию: ${client.phone}` : "+357..."
+        }
+        onChange={(v) => update("whatsapp_phone", v)}
+        openUrl={waDigits ? `https://wa.me/${waDigits}` : undefined}
+        hint={
+          !client.whatsapp_phone && client.phone
+            ? "Если WhatsApp на том же номере — оставьте пусто"
+            : undefined
+        }
+      />
+    </div>
+  );
+}
+
+function MessengerRow({
+  icon,
+  color,
+  label,
+  value,
+  placeholder,
+  onChange,
+  openUrl,
+  hint,
+}: {
+  icon: React.ReactNode;
+  color: string;
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+  openUrl?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="bg-gray-50 rounded-xl p-2 flex items-center gap-2">
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${color}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] text-gray-500">{label}</div>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
+        />
+        {hint && <div className="text-[10px] text-gray-400 mt-0.5">{hint}</div>}
+      </div>
+      {openUrl && (
+        <a
+          href={openUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="h-9 px-3 rounded-lg bg-white border border-gray-200 text-[12px] font-semibold text-violet-700 active:bg-violet-50 flex items-center"
+        >
+          Открыть
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ─── Where the client contacted us from ─────────────────────────────────
+
+function ContactSourcesSection({ clientId }: { clientId: string }) {
+  // Chats live in localStorage — load on mount, refresh on focus so a
+  // freshly linked chat shows up without reopening the card.
+  const [chats, setChats] = useState<Chat[]>([]);
+  useEffect(() => {
+    const refresh = () => setChats(loadChats());
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  const linked = useMemo(
+    () => chats.filter((c) => c.client_id === clientId),
+    [chats, clientId]
+  );
+
+  if (linked.length === 0) return null;
+
+  return (
+    <div className="px-4 pt-3 pb-3">
+      <div className="text-[11px] text-gray-500 mb-1.5">Где связывался с нами</div>
+      <div className="flex flex-wrap gap-1.5">
+        {linked.map((chat) => (
+          <a
+            key={chat.id}
+            href={`/dashboard/chats?client_id=${clientId}`}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold text-white active:scale-[0.98]"
+            style={{ background: CHANNEL_COLORS[chat.channel as ChatChannel] || "#8b5cf6" }}
+          >
+            <ChannelGlyph channel={chat.channel as ChatChannel} />
+            {CHANNEL_LABELS[chat.channel as ChatChannel]}
+            <span className="ml-1 opacity-80">→</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChannelGlyph({ channel }: { channel: ChatChannel }) {
+  switch (channel) {
+    case "whatsapp":
+      return <IconWhatsapp />;
+    case "instagram":
+      return <IconInstagram />;
+    case "telegram":
+      return <IconTelegram />;
+    case "sms":
+      return <IconChat />;
+    default:
+      return <IconChat />;
+  }
 }
 
 // Grows with its content so мастера-«писатели» не зажаты в 2 строки.
@@ -681,136 +956,6 @@ function renderReminder(
     .replaceAll("{address}", vars.address);
 }
 
-// ─── Equipment tab ───────────────────────────────────────────────────────
-
-function EquipmentList({
-  client,
-  onUpdate,
-}: {
-  client: Client;
-  onUpdate: (c: Client) => void;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [room, setRoom] = useState("");
-  const [brand, setBrand] = useState("");
-  const [type, setType] = useState<ACType>("split");
-
-  const add = () => {
-    if (!room.trim()) return;
-    haptic("tap");
-    const unit: ACUnit = {
-      id: generateId("unit"),
-      room: room.trim(),
-      brand: brand.trim() || undefined,
-      ac_type: type,
-      has_indoor: true,
-      has_outdoor: true,
-    };
-    onUpdate({ ...client, equipment: [...client.equipment, unit] });
-    setRoom("");
-    setBrand("");
-    setType("split");
-    setAdding(false);
-  };
-
-  const remove = (unitId: string) => {
-    onUpdate({ ...client, equipment: client.equipment.filter((u) => u.id !== unitId) });
-  };
-
-  return (
-    <div className="p-4 space-y-2">
-      {client.equipment.length === 0 && !adding && (
-        <div className="text-center text-[13px] text-gray-500 py-6">
-          Кондиционеров пока нет
-        </div>
-      )}
-      {client.equipment.map((unit) => (
-        <div
-          key={unit.id}
-          className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5"
-        >
-          <div>
-            <div className="text-[14px] font-semibold text-gray-900">
-              {unit.room}
-              <span className="text-[11px] font-normal text-gray-500 ml-2">
-                {AC_TYPE_LABELS[unit.ac_type]}
-              </span>
-            </div>
-            <div className="text-[12px] text-gray-500">
-              {unit.brand || "Бренд не указан"}
-              {unit.model && ` · ${unit.model}`}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => remove(unit.id)}
-            className="w-8 h-8 flex items-center justify-center text-gray-400 active:text-red-500"
-            aria-label="Удалить"
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      {adding ? (
-        <div className="space-y-2 bg-violet-50/50 border border-violet-200 rounded-xl p-3">
-          <input
-            value={room}
-            onChange={(e) => setRoom(e.target.value)}
-            placeholder="Комната (Гостиная, Спальня...)"
-            className="w-full h-10 px-3 rounded-lg bg-white border border-gray-200 text-[14px] focus:outline-none focus:ring-1 focus:ring-violet-500"
-            autoFocus
-          />
-          <input
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="Бренд (Daikin, Mitsubishi...)"
-            className="w-full h-10 px-3 rounded-lg bg-white border border-gray-200 text-[14px] focus:outline-none focus:ring-1 focus:ring-violet-500"
-          />
-          <div className="flex gap-1.5">
-            {(Object.entries(AC_TYPE_LABELS) as [ACType, string][]).map(([k, v]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setType(k)}
-                className={`flex-1 h-9 rounded-lg text-[12px] font-medium transition ${
-                  type === k ? "bg-violet-600 text-white" : "bg-white border border-gray-200 text-gray-600"
-                }`}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setAdding(false)}
-              className="flex-1 h-10 text-[13px] text-gray-600"
-            >
-              Отмена
-            </button>
-            <button
-              type="button"
-              onClick={add}
-              disabled={!room.trim()}
-              className="flex-1 h-10 bg-violet-600 text-white rounded-lg text-[13px] font-semibold disabled:bg-gray-300"
-            >
-              Добавить
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="w-full h-11 border border-dashed border-gray-300 rounded-xl text-[13px] text-violet-600 font-semibold active:bg-violet-50"
-        >
-          + Добавить кондиционер
-        </button>
-      )}
-    </div>
-  );
-}
-
 // ─── Field row primitive ─────────────────────────────────────────────────
 
 function FieldRow({
@@ -975,6 +1120,29 @@ function IconBlock() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10" />
       <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+    </svg>
+  );
+}
+function IconTelegram() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+    </svg>
+  );
+}
+function IconInstagram() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+function IconWhatsapp() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20.52 3.48A11.9 11.9 0 0012 0C5.4 0 .05 5.35.05 11.95c0 2.1.55 4.16 1.6 5.98L0 24l6.24-1.63a11.93 11.93 0 005.76 1.47h.01c6.6 0 11.95-5.35 11.95-11.94 0-3.19-1.24-6.18-3.48-8.42zM12 21.8h-.01a9.87 9.87 0 01-5.03-1.37l-.36-.21-3.71.97.99-3.61-.24-.37a9.81 9.81 0 01-1.5-5.25c0-5.44 4.44-9.87 9.88-9.87 2.64 0 5.11 1.03 6.97 2.89a9.77 9.77 0 012.89 6.97c0 5.44-4.44 9.87-9.88 9.87zm5.43-7.4c-.3-.15-1.77-.88-2.04-.98-.27-.1-.47-.15-.67.15s-.77.98-.94 1.18c-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.47.13-.62.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.8.37s-1.05 1.03-1.05 2.5 1.08 2.9 1.23 3.1c.15.2 2.1 3.2 5.07 4.49.71.3 1.26.49 1.69.62.71.22 1.35.19 1.86.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" />
     </svg>
   );
 }

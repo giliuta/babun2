@@ -59,7 +59,12 @@ export default function ClientsPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((c) =>
-        c.full_name.toLowerCase().includes(q) || c.phone.includes(q)
+        c.full_name.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
+        c.phones.some((p) => p.number.includes(q)) ||
+        c.whatsapp_phone.includes(q) ||
+        c.telegram_username.toLowerCase().includes(q) ||
+        c.instagram_username.toLowerCase().includes(q)
       );
     }
 
