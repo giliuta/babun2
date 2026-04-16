@@ -250,7 +250,7 @@ function DayColumnInner({
         {/* Day number — одинаково для всех дней, в т.ч. сегодня.
             Только фон колонки даёт намёк. */}
         <div className="mt-1 flex items-center justify-center leading-none">
-          <span className="text-[20px] lg:text-[22px] font-bold tabular-nums text-gray-900">
+          <span className="text-[20px] lg:text-[22px] font-medium tabular-nums text-gray-900">
             {date.getDate()}
           </span>
         </div>

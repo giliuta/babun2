@@ -41,8 +41,8 @@ export default function Header({
   teams,
   viewMode,
   allAppointments,
-  onPrevWeek,
-  onNextWeek,
+  onPrevWeek: _onPrevWeek,
+  onNextWeek: _onNextWeek,
   onToday,
   onTeamChange,
   onTeamLongPress,
@@ -64,16 +64,17 @@ export default function Header({
 
   return (
     <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col z-30">
-      {/* Top row — icon-first, compact */}
-      <div className="px-2 lg:px-4 py-2.5 lg:py-3 flex items-center gap-1.5 lg:bg-white">
+      {/* Top row — icon-first, compact. Стрелок «вправо-влево» нет:
+          неделя листается свайпом. Меньше кнопок — меньше шума. */}
+      <div className="px-2 lg:px-4 py-1.5 lg:py-2 flex items-center gap-1 lg:bg-white">
         {/* Hamburger */}
         <button
           type="button"
           onClick={onMenuToggle}
           aria-label="Меню"
-          className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 flex-shrink-0 transition-colors"
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 flex-shrink-0 transition-colors"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -85,14 +86,14 @@ export default function Header({
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 active:bg-white/10 lg:hover:bg-gray-50 rounded-xl px-2.5 py-1.5 active:scale-[0.98] transition max-w-full"
+            className="flex items-center gap-1 active:bg-white/10 lg:hover:bg-gray-50 rounded-lg px-2 py-1 active:scale-[0.98] transition max-w-full"
           >
-            <h2 className="text-[15px] lg:text-lg font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap truncate tracking-tight">
+            <h2 className="text-[14px] lg:text-[17px] font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap truncate tracking-tight">
               {monthName} {year}
             </h2>
             <svg
-              width="12"
-              height="12"
+              width="11"
+              height="11"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -116,38 +117,14 @@ export default function Header({
           )}
         </div>
 
-        {/* Prev week */}
-        <button
-          type="button"
-          onClick={onPrevWeek}
-          aria-label="Предыдущая неделя"
-          className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-
-        {/* Next week */}
-        <button
-          type="button"
-          onClick={onNextWeek}
-          aria-label="Следующая неделя"
-          className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-
         {/* Today — calendar icon with current day number inside */}
         <button
           type="button"
           onClick={onToday}
           aria-label="Сегодня"
-          className="relative w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
+          className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
             <line x1="8" y1="2" x2="8" y2="6" />
@@ -164,7 +141,7 @@ export default function Header({
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] transition"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] transition"
           >
             {viewMode === "day" ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -224,7 +201,7 @@ export default function Header({
       </div>
 
       {/* Bottom row: team tabs */}
-      <div className="bg-violet-600 lg:bg-white px-2 lg:px-4 pb-1.5 lg:pb-3 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide">
+      <div className="bg-violet-600 lg:bg-white px-2 lg:px-4 pb-1 lg:pb-2 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide">
         {teams.map((team) => (
           <TeamTab
             key={team.id}
