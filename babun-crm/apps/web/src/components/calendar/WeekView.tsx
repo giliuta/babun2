@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getWeekDates, getCurrentCyprusTime } from "@/lib/date-utils";
+import { getWeekDates, getCurrentCyprusTime, formatDateKey } from "@/lib/date-utils";
 import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
@@ -73,7 +73,10 @@ export default function WeekView({
   return (
     <div className="flex w-full">
       {visibleDates.map((date) => {
-        const dateKey = date.toISOString().slice(0, 10);
+        // Local YYYY-MM-DD — единый формат с DayColumn/page.tsx.
+        // toISOString() converts to UTC and ломает ключ для GMT+2/+3
+        // Cyprus (особенно до 3am когда UTC-сутки ещё не сменились).
+        const dateKey = formatDateKey(date);
         return (
           <DayColumn
             key={date.toISOString()}

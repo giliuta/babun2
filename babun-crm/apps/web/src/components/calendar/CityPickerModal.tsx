@@ -123,14 +123,11 @@ export default function CityPickerModal({
                       <circle cx="12" cy="10" r="3" fill="white" stroke="none" />
                     </svg>
                   </div>
-                  <div className="text-left">
-                    <div
-                      className="font-semibold text-[15px]"
-                      style={{ color: active ? c.color : "#0f172a" }}
-                    >
-                      {c.name}
-                    </div>
-                    <div className="text-[11px] text-slate-500">{c.code}</div>
+                  <div
+                    className="font-semibold text-[15px] text-left"
+                    style={{ color: active ? c.color : "#0f172a" }}
+                  >
+                    {c.name}
                   </div>
                 </div>
                 {active && (
