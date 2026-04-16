@@ -132,6 +132,12 @@ function DayColumnInner({
   const cityCfg = cityLabel ? getCityConfig(cityLabel) : null;
   const cityBg = cityLabel ? getCityBg(cityLabel, isToday) : null;
   const cityHex = cityCfg?.color ?? null;
+  // Короткое имя города для заголовка: длинные обрезаются до 5 букв + точка.
+  const cityShort = cityLabel
+    ? cityLabel.length > 5
+      ? `${cityLabel.slice(0, 5)}.`
+      : cityLabel
+    : "";
 
   const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
@@ -182,64 +188,94 @@ function DayColumnInner({
           Весь столбец (и header и тело) тонируется в bg города
           (bgToday если сегодня). Тап открывает bottom sheet для
           смены города бригады на этот день. */}
+      {/* Day header — edge-to-edge градиентная ячейка.
+          Структура слоёв (z-снизу-вверх):
+            1. Gradient 135° c1 → c2 (насыщенный фон)
+            2. Glass-shine overlay (белый блик сверху, тёмный снизу)
+            3. Текст: город мелко → weekday/месяц мелко → число крупно
+            4. Fade-полоска 8px в самом низу: c2 → light — плавный
+               переход в светлый фон столбца, без видимой границы.
+          Разделители между колонками — 1px semi-white. Внешний border-r
+          заменён на inline style чтобы не конфликтовал с body. */}
       <div
         role="button"
         tabIndex={0}
         aria-label="Сменить город этого дня"
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
-          // Тап по дню открывает city picker — самое частое действие
-          // дежурного на мобиле. Focused-day view остаётся доступным
-          // через длинный тап на заголовок.
           onCityTap?.(dateKey);
         }}
         onContextMenu={(e) => {
           e.preventDefault();
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[72px] lg:h-[82px] border-r border-gray-200 text-center cursor-pointer active:brightness-95 transition px-0.5 pt-1.5 pb-1 ${
-          isToday ? "ring-2 ring-white ring-inset" : "border-b border-white/30"
+        className={`relative sticky top-0 z-20 h-[72px] lg:h-[82px] overflow-hidden text-center cursor-pointer active:brightness-95 transition ${
+          isToday ? "ring-2 ring-white/70 ring-inset" : ""
         }`}
-        // Заголовок — в ЯРКОМ насыщенном цвете города. Текст белый.
-        // Если города нет — нейтральный slate.
         style={{
-          background: cityHex ?? (isToday ? "#475569" : "#94a3b8"),
+          // 1. Gradient 135° от светлого c1 к тёмному c2.
+          backgroundImage: cityCfg
+            ? `linear-gradient(135deg, ${cityCfg.c1} 0%, ${cityCfg.color} 100%)`
+            : "linear-gradient(135deg, #94a3b8 0%, #475569 100%)",
+          borderRight: "1px solid rgba(255,255,255,0.15)",
         }}
       >
-        {/* City — полное название, белым. */}
-        {cityLabel ? (
-          <div className="text-[10px] lg:text-[12px] font-bold tracking-tight leading-none text-white drop-shadow-sm">
-            {cityLabel}
-          </div>
-        ) : (
-          <div className="text-[10px] lg:text-[12px] font-medium leading-none text-white/80">
-            + город
-          </div>
-        )}
+        {/* 2. Glass-shine overlay. Тонкий блик сверху, мягкая тень
+            снизу — создаёт «стеклянную» глубину. */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)",
+          }}
+        />
 
-        {/* Weekday + month — на ярком фоне белым с разной прозрачностью. */}
-        <div className="mt-1.5 flex items-center justify-center gap-1 leading-none">
-          <span className="text-[10px] lg:text-[11px] font-semibold text-white">
-            {dayName.toUpperCase()}
-          </span>
+        {/* 3. Текст — стек центрирован, z > overlay. */}
+        <div className="relative z-10 px-0.5 pt-1.5 pb-2.5 flex flex-col items-center justify-start">
+          {/* Город — 7px uppercase bold, opacity 85. Длинные → slice+. */}
           <span
-            className={`text-[9px] lg:text-[10px] uppercase text-white/75 ${
-              isFirstOfMonth ? "font-bold text-white" : "font-medium"
-            }`}
+            className="text-[7px] lg:text-[9px] font-bold uppercase tracking-wide text-white truncate max-w-full"
+            style={{ opacity: cityLabel ? 0.85 : 0.5 }}
           >
-            {monthShort}
+            {cityShort || "+ город"}
           </span>
-        </div>
 
-        {/* Day number — крупно белым. */}
-        <div className="mt-1 flex items-center justify-center leading-none">
-          <span className="text-[20px] lg:text-[22px] font-bold tabular-nums text-white drop-shadow-sm">
+          {/* Weekday — 7px opacity 45, рядом месяц с меньшей opacity. */}
+          <span
+            className="text-[7px] lg:text-[9px] font-semibold uppercase tracking-wide text-white mt-0.5"
+            style={{ opacity: 0.45 }}
+          >
+            {dayName}
+            {isFirstOfMonth && (
+              <span className="ml-1 opacity-80">{monthShort}</span>
+            )}
+          </span>
+
+          {/* Число — 18px font-black белый, доминанта. */}
+          <span
+            className="text-[18px] lg:text-[22px] font-black tabular-nums text-white leading-none mt-1"
+            style={{
+              textShadow: "0 1px 2px rgba(0,0,0,0.15)",
+            }}
+          >
             {date.getDate()}
           </span>
         </div>
 
+        {/* 4. Fade bottom — 8px переход от тёмной границы к светлому
+            фону тела столбца. Убирает резкую линию. */}
+        <div
+          className="absolute left-0 right-0 bottom-0 pointer-events-none"
+          style={{
+            height: "8px",
+            backgroundImage: cityCfg
+              ? `linear-gradient(to bottom, ${cityCfg.color}00, ${cityCfg.bg})`
+              : "linear-gradient(to bottom, rgba(71,85,105,0), #ffffff)",
+          }}
+        />
+
         {dayAppointments.length > 0 && (
-          <span className="absolute top-1 right-1 text-[9px] font-semibold tabular-nums text-white/80">
+          <span className="absolute top-1 right-1.5 z-10 text-[9px] font-bold tabular-nums text-white/80">
             {dayAppointments.length}
           </span>
         )}

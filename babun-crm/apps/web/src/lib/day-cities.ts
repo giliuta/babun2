@@ -68,16 +68,22 @@ export function setDayCity(
 export interface CityConfig {
   name: string;
   code: string; // двухбуквенный код для компакта
-  color: string; // насыщенный (текст, события)
-  bg: string; // светлый фон столбца
-  bgToday: string; // чуть темнее — для сегодняшнего дня
+  /** Тёмный оттенок = конец градиента заголовка + цвет текста/событий. */
+  color: string;
+  /** Светлый оттенок = начало градиента заголовка (135°). */
+  c1: string;
+  /** Светлый фон столбца = конец fade-перехода под заголовком. */
+  bg: string;
+  /** Чуть темнее для сегодняшнего дня. */
+  bgToday: string;
 }
 
+// Палитра обновлена по спеке. color === c2 (gradient end).
 export const CITIES: Record<string, CityConfig> = {
-  "Пафос":    { name: "Пафос",    code: "ПФ", color: "#2563EB", bg: "#EFF6FF", bgToday: "#DBEAFE" },
-  "Лимассол": { name: "Лимассол", code: "ЛМ", color: "#EA580C", bg: "#FFF7ED", bgToday: "#FFEDD5" },
-  "Ларнака":  { name: "Ларнака",  code: "ЛК", color: "#059669", bg: "#ECFDF5", bgToday: "#D1FAE5" },
-  "Никосия":  { name: "Никосия",  code: "НК", color: "#7C3AED", bg: "#F5F3FF", bgToday: "#EDE9FE" },
+  "Пафос":    { name: "Пафос",    code: "ПФ", c1: "#38BDF8", color: "#0284C7", bg: "#F0F9FF", bgToday: "#E0F2FE" },
+  "Лимассол": { name: "Лимассол", code: "ЛМ", c1: "#FB923C", color: "#EA580C", bg: "#FFF7ED", bgToday: "#FFEDD5" },
+  "Ларнака":  { name: "Ларнака",  code: "ЛК", c1: "#34D399", color: "#059669", bg: "#ECFDF5", bgToday: "#D1FAE5" },
+  "Никосия":  { name: "Никосия",  code: "НК", c1: "#C084FC", color: "#7C3AED", bg: "#FAF5FF", bgToday: "#EDE9FE" },
 };
 
 export const CITY_LIST = Object.values(CITIES);
