@@ -745,9 +745,9 @@ export default function NewAppointmentSheet({
         </div>
         <Divider />
 
-        {/* SMS + Фото — only show in edit mode, not cluttering creation */}
-        {mode === "edit" && <>
-        {/* SMS-напоминания */}
+        {/* SMS-напоминания — доступны и при создании, и при редактировании.
+            Дима часто включает напоминание сразу когда записывает
+            клиента с телефона. */}
         <Label>SMS-напоминание</Label>
         <ReminderBlock
           enabled={reminderEnabled}
@@ -765,7 +765,8 @@ export default function NewAppointmentSheet({
         />
         <Divider />
 
-        {/* Фото */}
+        {/* Фото — тоже доступно на создании, вдруг клиент уже прислал
+            фото кондиционера/адреса прямо при записи. */}
         <Label>Фото {photos.length > 0 && `(${photos.length})`}</Label>
         <div className="px-4 py-1.5">
           <div className="flex items-center gap-2 overflow-x-auto">
@@ -812,7 +813,6 @@ export default function NewAppointmentSheet({
           </div>
         </div>
         <Divider />
-        </>}
           </>
         )}
 
