@@ -60,6 +60,7 @@ import {
 import { sumExtras } from "@/lib/day-extras";
 import { loadChats } from "@/lib/chats";
 import SuccessOverlay from "@/components/appointment/SuccessOverlay";
+import { decideSnap, type SnapFloor } from "@/lib/calendar/snap-scroll";
 import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import TodayChip from "@/components/calendar/TodayChip";
@@ -175,6 +176,17 @@ export default function DashboardPage() {
   //
   // snappingRef guards against re-entry: when we programmatically
   // smooth-scroll, onScroll fires and would otherwise retrigger snap.
+  // Stepped-floor snap state. Values:
+  //   "9"     — потолок 9:00 (рабочий день; open-position)
+  //   "7"     — потолок 7:00 (второй шаг вверх)
+  //   "0"     — потолок 0:00 (максимум наверх)
+  //   "below" — пользователь ниже 9:00 (свободная зона)
+  // Один upward-гест двигает ступень на одну вниз.
+  // Возврат снизу (through 9:00) ВСЕГДА перезагружает на "9".
+  const floorRef = useRef<SnapFloor>("9");
+  const snappingRef = useRef(false);
+  const suppressRef = useRef(false);
+
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
@@ -183,14 +195,20 @@ export default function DashboardPage() {
       return;
     }
     const hh = hourHeightRef.current;
-    // Initial scroll — no animation so the very first paint is already
-    // at 09:00. Ждём кадр: ref есть, но content height может ещё не
-    // досчитаться до 24*hh (layout effect может опередить дом-update).
+    // Initial scroll — programmatic, без snap. suppressRef глушит
+    // scroll-listener на 300 мс чтобы initial onscroll не переключил
+    // floor в "below".
+    suppressRef.current = true;
+    floorRef.current = "9";
     requestAnimationFrame(() => {
-      if (!el) return;
       el.scrollTo({ top: 9 * hh, behavior: "auto" });
       if (typeof console !== "undefined")
-        console.info(`[snap] initial scrollTop=${el.scrollTop} (target=${9 * hh}, hh=${hh})`);
+        console.info(
+          `[snap] initial scrollTop=${el.scrollTop} (target=${9 * hh}, hh=${hh})`
+        );
+      window.setTimeout(() => {
+        suppressRef.current = false;
+      }, 300);
     });
   }, [viewMode]);
 
@@ -198,52 +216,30 @@ export default function DashboardPage() {
     const el = outerScrollerRef.current;
     if (!el) return;
     let timer: number | null = null;
-    let snapping = false;
 
     const doSnap = () => {
-      if (snapping) return;
+      if (suppressRef.current || snappingRef.current) return;
       const hh = hourHeightRef.current;
       const top = el.scrollTop;
-      const workTop = 9 * hh;
-      // Нижняя зона (>= 9:00) — свободный скролл, не вмешиваемся.
-      if (top >= workTop - 1) {
-        if (typeof console !== "undefined")
-          console.debug(`[snap] below work (top=${top}), skip`);
-        return;
-      }
-      const snapPoints = [0, 7 * hh, 9 * hh];
-      // Ближайшая snap-точка в верхней зоне.
-      let nearest = snapPoints[0];
-      let nearestDist = Math.abs(top - nearest);
-      for (const p of snapPoints) {
-        const d = Math.abs(top - p);
-        if (d < nearestDist) {
-          nearest = p;
-          nearestDist = d;
-        }
-      }
-      // Если уже прилипли (< 4px) — не дёргаем (iOS sometimes
-      // оставляет sub-pixel residue).
-      if (nearestDist < 4) {
-        if (typeof console !== "undefined")
-          console.debug(`[snap] already at ${nearest} (dist=${nearestDist}), skip`);
-        return;
-      }
-      snapping = true;
+      // Pure logic — та же, что и в snap-scroll.test.ts (14/14 зелёных).
+      const decision = decideSnap(top, hh, floorRef.current);
       if (typeof console !== "undefined")
-        console.info(`[snap] from ${top} → ${nearest}`);
-      el.scrollTo({ top: nearest, behavior: "smooth" });
-      // Снять guard через ~500 мс — iOS smooth-scroll затянутее.
-      window.setTimeout(() => {
-        snapping = false;
-      }, 500);
+        console.info(
+          `[snap] top=${top} hh=${hh} floor=${floorRef.current} → floor=${decision.nextFloor} snap=${decision.snapTo}`
+        );
+      floorRef.current = decision.nextFloor;
+      if (decision.snapTo !== null) {
+        snappingRef.current = true;
+        el.scrollTo({ top: decision.snapTo, behavior: "smooth" });
+        window.setTimeout(() => {
+          snappingRef.current = false;
+        }, 500);
+      }
     };
 
     const onScroll = () => {
-      if (snapping) return;
+      if (suppressRef.current || snappingRef.current) return;
       if (timer) window.clearTimeout(timer);
-      // 250 мс без движения — iOS inertia-скролл затухает дольше чем
-      // 150 мс, поэтому ждём подольше, иначе ловим "середину".
       timer = window.setTimeout(doSnap, 250);
     };
 
