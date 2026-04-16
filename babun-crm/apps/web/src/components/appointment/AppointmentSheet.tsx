@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Appointment, AppointmentPayment } from "@/lib/appointments";
+import type {
+  Appointment,
+  AppointmentPayment,
+  AppointmentService,
+  Discount,
+} from "@/lib/appointments";
 import type { Client, Location } from "@/lib/clients";
 import type { Team } from "@/lib/masters";
-import type { ServicePreset } from "@/lib/service-presets";
-import {
-  SERVICE_PRESETS,
-  priceForPreset,
-  suggestPreset,
-} from "@/lib/service-presets";
+import type { Service } from "@/lib/services";
+import { pricePerUnit } from "@/lib/services";
 import { EVENT_PRESETS } from "@/lib/event-presets";
 import { getCityColor, CITY_LIST } from "@/lib/day-cities";
 import { formatEUR } from "@/lib/money";
+import {
+  appointmentTotal,
+  totalDuration as calcDuration,
+} from "@/lib/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
 import type { DraftClient } from "@/lib/draft-clients";
 
@@ -22,7 +27,7 @@ import CityPicker from "./CityPicker";
 import ClientBlock from "./ClientBlock";
 import LocationPicker from "./LocationPicker";
 import AddressBlock from "./AddressBlock";
-import ServiceBlock from "./ServiceBlock";
+import ServicesBlock from "./ServicesBlock";
 import CommentBlock from "./CommentBlock";
 import QuickActions from "./QuickActions";
 import PaymentBlock from "./PaymentBlock";
@@ -41,6 +46,8 @@ interface AppointmentSheetProps {
   recentClientIds: string[];
   teams: Team[];
   activeTeam: Team | null;
+  /** Каталог услуг для выбора и сопоставления id → service. */
+  catalog: Service[];
   cityForDate: (dateKey: string) => string;
   onSave: (apt: Appointment) => void;
   onCancelAppointment: (apt: Appointment) => void;
@@ -63,6 +70,7 @@ export default function AppointmentSheet({
   draftClients,
   recentClientIds,
   activeTeam,
+  catalog,
   cityForDate,
   onSave,
   onCancelAppointment,
@@ -84,8 +92,12 @@ export default function AppointmentSheet({
   const [dateKey, setDateKey] = useState(appointment.date);
   const [clientId, setClientId] = useState<string | null>(appointment.client_id);
   const [locationId, setLocationId] = useState<string | null>(appointment.location_id);
-  const [serviceLabel, setServiceLabel] = useState<string>("");
-  const [preset, setPreset] = useState<ServicePreset | null>(null);
+  const [appointmentServices, setAppointmentServices] = useState<AppointmentService[]>(
+    appointment.services ?? []
+  );
+  const [globalDiscount, setGlobalDiscount] = useState<Discount | null>(
+    appointment.global_discount ?? null
+  );
   const [comment, setComment] = useState(appointment.comment);
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
@@ -121,8 +133,8 @@ export default function AppointmentSheet({
     setComment(appointment.comment);
     setEventLabel(appointment.comment || "");
     setSmsEnabled(appointment.reminder_enabled);
-    setServiceLabel(appointment.comment.split(" — ")[0] || "");
-    setPreset(null);
+    setAppointmentServices(appointment.services ?? []);
+    setGlobalDiscount(appointment.global_discount ?? null);
     setKind(
       appointment.kind === "event" || appointment.kind === "personal"
         ? "event"
@@ -160,14 +172,21 @@ export default function AppointmentSheet({
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
 
-  const suggestion = useMemo(
-    () => (preset ? null : suggestPreset(acUnits)),
-    [preset, acUnits]
+  // Smart suggestion: если услуг ещё нет И у объекта есть блоки,
+  // предлагаем «Чистка кондиционера × acUnits» из каталога.
+  const cleaningService = useMemo(
+    () => catalog.find((s) => s.id === "svc-clean") ?? null,
+    [catalog]
   );
+  const suggestion = useMemo(() => {
+    if (appointmentServices.length > 0) return null;
+    if (acUnits <= 0 || !cleaningService) return null;
+    return { service: cleaningService, qty: Math.min(acUnits, 10) };
+  }, [appointmentServices.length, acUnits, cleaningService]);
 
-  const price = preset
-    ? priceForPreset(preset)
-    : appointment.total_amount;
+  // Рассчитанный итог / длительность для sticky-кнопки + time end.
+  const price = appointmentTotal(appointmentServices, globalDiscount);
+  const totalDur = calcDuration(appointmentServices);
 
   const isEditable = liveMode === "create" || liveMode === "edit";
   const readonly = !isEditable;
@@ -179,9 +198,7 @@ export default function AppointmentSheet({
   // нового preset-выбора — меняем только поля что отредактировали.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : liveMode === "edit"
-    ? Boolean(clientId && (preset || appointment.total_amount > 0))
-    : Boolean(clientId && preset);
+    : Boolean(clientId && appointmentServices.length > 0);
 
   if (!open) return null;
 
@@ -209,28 +226,42 @@ export default function AppointmentSheet({
       onSave(base);
       return;
     }
-    if (!client) return;
-    // В edit без нового preset сохраняем существующую услугу/сумму.
-    const keepExistingService = liveMode === "edit" && !preset;
-    const total = preset ? priceForPreset(preset) : appointment.total_amount;
-    const serviceName = preset?.label ?? null;
-    const finalComment = keepExistingService
-      ? comment
-      : serviceName
-      ? comment.trim()
-        ? `${serviceName} — ${comment.trim()}`
-        : serviceName
-      : comment;
+    if (!client || appointmentServices.length === 0) return;
+    const total = appointmentTotal(appointmentServices, globalDiscount);
+    const duration = calcDuration(appointmentServices);
+    const serviceNames = appointmentServices
+      .map((l) => {
+        const svc = catalog.find((s) => s.id === l.serviceId);
+        return svc ? (l.quantity > 1 ? `x${l.quantity} ${svc.name}` : svc.name) : null;
+      })
+      .filter(Boolean)
+      .join(", ");
+    const finalComment = comment.trim()
+      ? `${serviceNames} — ${comment.trim()}`
+      : serviceNames;
     const isReal = "locations" in client;
     const saved: Appointment = {
       ...appointment,
       date: dateKey,
       time_start: timeStart,
-      time_end: timeEnd,
+      // Auto-extend time_end by total duration for новой записи.
+      time_end:
+        liveMode === "create" && duration > 0
+          ? (() => {
+              const [h, m] = timeStart.split(":").map(Number);
+              const endMin = h * 60 + m + duration;
+              const eh = Math.floor(endMin / 60) % 24;
+              const em = endMin % 60;
+              return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+            })()
+          : timeEnd,
       client_id: isReal ? client.id : null,
       location_id: locationId,
       team_id: activeTeam?.id ?? null,
-      service_ids: keepExistingService ? appointment.service_ids : [],
+      service_ids: appointmentServices.map((l) => l.serviceId),
+      services: appointmentServices,
+      global_discount: globalDiscount,
+      total_duration: duration,
       total_amount: total,
       custom_total: true,
       comment: finalComment,
@@ -451,25 +482,36 @@ export default function AppointmentSheet({
 
               <AddressBlock address={address} />
 
-              <ServiceBlock
-                preset={preset}
-                customLabel={
-                  preset
-                    ? undefined
-                    : serviceLabel || (readonly ? appointment.comment : "")
-                }
-                customPrice={price}
-                customDuration={preset?.duration}
+              <ServicesBlock
+                services={appointmentServices}
+                globalDiscount={globalDiscount}
+                catalog={catalog}
                 readonly={readonly}
-                onPick={() => setServicePickerOpen(true)}
+                onServicesChange={setAppointmentServices}
+                onGlobalDiscountChange={setGlobalDiscount}
+                onOpenPicker={() => setServicePickerOpen(true)}
               />
 
-              {/* Smart suggestion только в create */}
+              {/* Smart suggestion — одна кнопка: применить Чистка × acUnits */}
               {isEditable && suggestion && (
                 <div className="px-4 pt-3">
                   <button
                     type="button"
-                    onClick={() => setPreset(suggestion)}
+                    onClick={() => {
+                      const s = suggestion.service;
+                      const qty = suggestion.qty;
+                      const ppu = pricePerUnit(s, qty);
+                      setAppointmentServices([
+                        {
+                          serviceId: s.id,
+                          quantity: qty,
+                          pricePerUnit: ppu,
+                          originalPrice: s.price,
+                          totalPrice: qty * ppu,
+                          duration: qty * s.duration_minutes,
+                        },
+                      ]);
+                    }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left active:scale-[0.99]"
                     style={{
                       background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
@@ -479,11 +521,14 @@ export default function AppointmentSheet({
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] text-white/80">Рекомендуем</div>
                       <div className="text-[13px] font-semibold text-white truncate">
-                        {suggestion.label}
+                        {suggestion.service.name} × {suggestion.qty}
                       </div>
                     </div>
                     <div className="text-[13px] font-bold text-white tabular-nums">
-                      {formatEUR(priceForPreset(suggestion))}
+                      {formatEUR(
+                        suggestion.qty *
+                          pricePerUnit(suggestion.service, suggestion.qty)
+                      )}
                     </div>
                   </button>
                 </div>
@@ -602,18 +647,22 @@ export default function AppointmentSheet({
         recentClientIds={recentClientIds}
       />
 
-      <ServicePickerInline
+      <CatalogPickerInline
         open={servicePickerOpen}
         onClose={() => setServicePickerOpen(false)}
-        recommended={suggestion}
-        onPick={(p) => {
-          setPreset(p);
-          // auto-extend end by duration
-          const [h, m] = timeStart.split(":").map(Number);
-          const endMin = h * 60 + m + p.duration;
-          const eh = Math.floor(endMin / 60) % 24;
-          const em = endMin % 60;
-          setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
+        catalog={catalog}
+        activeTeamId={activeTeam?.id ?? null}
+        alreadyPickedIds={appointmentServices.map((s) => s.serviceId)}
+        onPick={(svc) => {
+          const line: AppointmentService = {
+            serviceId: svc.id,
+            quantity: 1,
+            pricePerUnit: pricePerUnit(svc, 1),
+            originalPrice: svc.price,
+            totalPrice: svc.price,
+            duration: svc.duration_minutes,
+          };
+          setAppointmentServices((prev) => [...prev, line]);
           setServicePickerOpen(false);
         }}
       />
@@ -624,22 +673,31 @@ export default function AppointmentSheet({
   );
 }
 
-// Inline service picker sheet.
-function ServicePickerInline({
+// Catalog-based service picker. Реально фильтрует по бригаде,
+// помечает уже выбранные ✓.
+function CatalogPickerInline({
   open,
   onClose,
   onPick,
-  recommended,
+  catalog,
+  activeTeamId,
+  alreadyPickedIds,
 }: {
   open: boolean;
   onClose: () => void;
-  onPick: (p: ServicePreset) => void;
-  recommended: ServicePreset | null;
+  onPick: (svc: Service) => void;
+  catalog: Service[];
+  activeTeamId: string | null;
+  alreadyPickedIds: string[];
 }) {
   if (!open) return null;
-  const rest = recommended
-    ? SERVICE_PRESETS.filter((p) => p.id !== recommended.id)
-    : SERVICE_PRESETS;
+  const forBrigade = catalog.filter((s) => {
+    if (!s.is_active) return false;
+    if (s.brigade_ids.length === 0) return true; // all brigades
+    if (!activeTeamId) return true;
+    return s.brigade_ids.includes(activeTeamId);
+  });
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40"
@@ -654,56 +712,50 @@ function ServicePickerInline({
           <div className="w-10 h-1 rounded-full bg-slate-300" />
         </div>
         <div className="px-5 pt-3 pb-2 text-[17px] font-semibold text-slate-900">
-          Какая услуга?
+          Каталог услуг
         </div>
         <div className="px-3 space-y-2">
-          {recommended && (
-            <button
-              key={recommended.id}
-              type="button"
-              onClick={() => onPick(recommended)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-violet-500 bg-violet-50 active:scale-[0.99]"
-            >
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-[11px] font-semibold text-violet-600 uppercase tracking-wide">
-                  Рекомендуем
+          {forBrigade.map((s) => {
+            const picked = alreadyPickedIds.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onPick(s)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 active:scale-[0.99] ${
+                  picked ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-white"
+                }`}
+              >
+                <div
+                  className="w-1 h-10 rounded-full flex-shrink-0"
+                  style={{ background: s.color }}
+                />
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-[15px] font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                    {picked && <span className="text-violet-600">✓</span>}
+                    {s.name}
+                  </div>
+                  <div className="text-[11px] text-slate-500 tabular-nums">
+                    {s.duration_minutes} мин/шт
+                    {s.bulk_threshold > 0 &&
+                      s.bulk_price > 0 &&
+                      ` · от ${s.bulk_threshold}шт → ${s.bulk_price}€`}
+                  </div>
                 </div>
-                <div className="text-[15px] font-semibold text-slate-900 truncate">
-                  {recommended.label}
+                <div className="text-right flex-shrink-0">
+                  <div className="text-[15px] font-bold text-slate-800 tabular-nums">
+                    {formatEUR(s.price)}
+                  </div>
+                  <div className="text-[10px] text-slate-500">за шт</div>
                 </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-[15px] font-bold text-violet-700 tabular-nums">
-                  {formatEUR(priceForPreset(recommended))}
-                </div>
-                <div className="text-[10px] text-slate-500 tabular-nums">
-                  {recommended.duration} мин
-                </div>
-              </div>
-            </button>
+              </button>
+            );
+          })}
+          {forBrigade.length === 0 && (
+            <div className="text-center py-6 text-[13px] text-slate-500">
+              У этой бригады нет активных услуг. Добавь их на странице «Услуги».
+            </div>
           )}
-          {rest.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onPick(p)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-slate-200 bg-white active:scale-[0.99]"
-            >
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-[15px] font-semibold text-slate-900 truncate">
-                  {p.label}
-                </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-[14px] font-semibold text-slate-800 tabular-nums">
-                  {formatEUR(priceForPreset(p))}
-                </div>
-                <div className="text-[10px] text-slate-500 tabular-nums">
-                  {p.duration} мин
-                </div>
-              </div>
-            </button>
-          ))}
         </div>
       </div>
     </div>

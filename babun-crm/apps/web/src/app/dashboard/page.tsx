@@ -1036,6 +1036,7 @@ export default function DashboardPage() {
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam}
+          catalog={services}
           cityForDate={cityForDate}
           onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
           onCancelAppointment={() => setBooking(null)}
@@ -1216,6 +1217,7 @@ export default function DashboardPage() {
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam}
+          catalog={services}
           cityForDate={cityForDate}
           onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
           onSave={(apt) => {
