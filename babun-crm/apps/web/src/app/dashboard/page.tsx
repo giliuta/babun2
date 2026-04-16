@@ -195,21 +195,35 @@ export default function DashboardPage() {
       return;
     }
     const hh = hourHeightRef.current;
-    // Initial scroll — programmatic, без snap. suppressRef глушит
-    // scroll-listener на 300 мс чтобы initial onscroll не переключил
-    // floor в "below".
     suppressRef.current = true;
     floorRef.current = "9";
-    requestAnimationFrame(() => {
-      el.scrollTo({ top: 9 * hh, behavior: "auto" });
-      if (typeof console !== "undefined")
-        console.info(
-          `[snap] initial scrollTop=${el.scrollTop} (target=${9 * hh}, hh=${hh})`
-        );
-      window.setTimeout(() => {
-        suppressRef.current = false;
-      }, 300);
-    });
+
+    // iOS PWA (standalone) quirks defensively addressed here:
+    //  • scrollTo({behavior:"smooth"}) ignored on -webkit-overflow-
+    //    scrolling:touch layers → используем прямое scrollTop=.
+    //  • scrollHeight может быть нулевым когда useLayoutEffect
+    //    стреляет ДО того как child-колонки домонтируются →
+    //    ретраим через rAF до 10 раз (≈160мс) пока scrollHeight
+    //    не станет достаточным.
+    const target = 9 * hh;
+    let tries = 0;
+    const tryScroll = () => {
+      tries++;
+      if (!el) return;
+      if (el.scrollHeight >= target + 50 || tries >= 10) {
+        el.scrollTop = target;
+        if (typeof console !== "undefined")
+          console.info(
+            `[snap] initial scrollTop=${el.scrollTop} (target=${target}, hh=${hh}, tries=${tries}, scrollHeight=${el.scrollHeight})`
+          );
+        window.setTimeout(() => {
+          suppressRef.current = false;
+        }, 300);
+        return;
+      }
+      requestAnimationFrame(tryScroll);
+    };
+    requestAnimationFrame(tryScroll);
   }, [viewMode]);
 
   useEffect(() => {
@@ -217,11 +231,31 @@ export default function DashboardPage() {
     if (!el) return;
     let timer: number | null = null;
 
+    // Custom rAF-based smooth scroll: работает одинаково в браузере,
+    // Android Chrome и iOS PWA standalone (где `behavior: "smooth"`
+    // не поддержан на -webkit-overflow-scrolling:touch слоях).
+    const animateScrollTo = (target: number, durationMs = 280) => {
+      const start = el.scrollTop;
+      const distance = target - start;
+      if (Math.abs(distance) < 1) {
+        el.scrollTop = target;
+        return;
+      }
+      const startTime = performance.now();
+      // ease-out-cubic
+      const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+      const step = (now: number) => {
+        const t = Math.min(1, (now - startTime) / durationMs);
+        el.scrollTop = start + distance * ease(t);
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+
     const doSnap = () => {
       if (suppressRef.current || snappingRef.current) return;
       const hh = hourHeightRef.current;
       const top = el.scrollTop;
-      // Pure logic — та же, что и в snap-scroll.test.ts (14/14 зелёных).
       const decision = decideSnap(top, hh, floorRef.current);
       if (typeof console !== "undefined")
         console.info(
@@ -230,7 +264,7 @@ export default function DashboardPage() {
       floorRef.current = decision.nextFloor;
       if (decision.snapTo !== null) {
         snappingRef.current = true;
-        el.scrollTo({ top: decision.snapTo, behavior: "smooth" });
+        animateScrollTo(decision.snapTo, 280);
         window.setTimeout(() => {
           snappingRef.current = false;
         }, 500);
@@ -240,12 +274,24 @@ export default function DashboardPage() {
     const onScroll = () => {
       if (suppressRef.current || snappingRef.current) return;
       if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(doSnap, 250);
+      // 350 мс — достаточно чтобы iOS-momentum затух на PWA.
+      timer = window.setTimeout(doSnap, 350);
+    };
+
+    // Modern scrollend (Chrome 114+, Safari 18+) — более точное
+    // определение конца скролла. Если не поддержан — обходимся
+    // debounced scroll-listener.
+    const onScrollEnd = () => {
+      if (suppressRef.current || snappingRef.current) return;
+      if (timer) window.clearTimeout(timer);
+      doSnap();
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scrollend", onScrollEnd, { passive: true });
     return () => {
       el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", onScrollEnd);
       if (timer) window.clearTimeout(timer);
     };
   }, [viewMode]);
