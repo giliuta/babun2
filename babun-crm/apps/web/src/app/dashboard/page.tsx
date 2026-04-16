@@ -59,6 +59,8 @@ import {
   useDayExtras,
 } from "./layout";
 import { sumExtras } from "@/lib/day-extras";
+import { loadChats } from "@/lib/chats";
+import SuccessOverlay from "@/components/booking/SuccessOverlay";
 
 
 const HOUR_HEIGHT_MIN = 24;
@@ -449,6 +451,32 @@ export default function DashboardPage() {
     timeStart: string;
     timeEnd: string;
   } | null>(null);
+
+  // Success overlay after a booking is saved — 2 sec with Call/Chat
+  // quick actions, then auto-dismiss.
+  const [savedSuccess, setSavedSuccess] = useState<{
+    name: string;
+    phone?: string;
+    chatHref?: string;
+  } | null>(null);
+
+  // Recent-in-chats: client IDs that have a chat with activity in the
+  // last 48h. Surfaced at the top of the ClientPicker for faster access.
+  const recentInChats = useMemo(() => {
+    const chats = loadChats();
+    const cutoff = Date.now() - 48 * 3600 * 1000;
+    const byId = new Map<string, number>();
+    for (const c of chats) {
+      if (!c.client_id) continue;
+      const ts = Date.parse(c.last_message_at || c.created_at);
+      if (!Number.isFinite(ts) || ts < cutoff) continue;
+      const prev = byId.get(c.client_id) ?? 0;
+      if (ts > prev) byId.set(c.client_id, ts);
+    }
+    return Array.from(byId.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => id);
+  }, []);
 
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
@@ -955,7 +983,7 @@ export default function DashboardPage() {
           teamLabel={activeTeam.name}
           clients={clients}
           draftClients={[]}
-          recentClientIds={[]}
+          recentClientIds={recentInChats}
           onCreateClient={(payload, ctx) => {
             const duration = payload.preset.duration;
             const [h, m] = ctx.timeStart.split(":").map(Number);
@@ -981,6 +1009,20 @@ export default function DashboardPage() {
             });
             upsertAppointment(apt);
             setBooking(null);
+            // Success overlay with call/chat quick actions. Phone is
+            // lifted from the linked client (DraftClients have no phone
+            // at booking time, so чат-ссылки нет).
+            const c = isRealClient ? payload.client : null;
+            const chatLinkId = c
+              ? loadChats().find((ch) => ch.client_id === c.id)?.id
+              : undefined;
+            setSavedSuccess({
+              name: payload.client.full_name,
+              phone: c?.phone,
+              chatHref: chatLinkId
+                ? `/dashboard/chats?chat_id=${chatLinkId}`
+                : undefined,
+            });
           }}
           onCreateEvent={(label, preset, ctx) => {
             const [h, m] = ctx.timeStart.split(":").map(Number);
@@ -1007,6 +1049,15 @@ export default function DashboardPage() {
             upsertAppointment(apt);
             setBooking(null);
           }}
+        />
+      )}
+
+      {savedSuccess && (
+        <SuccessOverlay
+          clientName={savedSuccess.name}
+          phone={savedSuccess.phone}
+          chatHref={savedSuccess.chatHref}
+          onDone={() => setSavedSuccess(null)}
         />
       )}
 

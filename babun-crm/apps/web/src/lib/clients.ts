@@ -135,7 +135,54 @@ export const DEFAULT_TAGS: ClientTag[] = [
 const CLIENTS_KEY = "babun-clients";
 const TAGS_KEY = "babun-client-tags";
 
+// STORY-002: демо-набор multi-location клиентов для показа
+// LocationPicker. Keyed by MOCK_CLIENTS id. Сид только для новых
+// установок (когда localStorage пуст) — не навязывает реальным
+// данным.
+const DEMO_LOCATIONS: Record<string, Location[]> = {
+  "5": [
+    {
+      id: "loc-5-home",
+      label: "Дом",
+      address: "Лимассол, Agios Tychonas 21",
+      acUnits: 3,
+      isPrimary: true,
+    },
+    {
+      id: "loc-5-office",
+      label: "Офис",
+      address: "Лимассол, Makarios Ave 134",
+      acUnits: 5,
+      isPrimary: false,
+    },
+  ],
+  "12": [
+    {
+      id: "loc-12-villa",
+      label: "Вилла",
+      address: "Пафос, Coral Bay 8",
+      acUnits: 8,
+      isPrimary: true,
+    },
+    {
+      id: "loc-12-office",
+      label: "Офис",
+      address: "Пафос, Mesogis 45",
+      acUnits: 5,
+      isPrimary: false,
+    },
+    {
+      id: "loc-12-flat",
+      label: "Квартира",
+      address: "Пафос, Posidonos 12",
+      acUnits: 2,
+      isPrimary: false,
+    },
+  ],
+};
+
 function mockToClient(m: MockClient): Client {
+  const demo = DEMO_LOCATIONS[m.id];
   return {
     id: m.id,
     full_name: m.full_name,
@@ -157,7 +204,7 @@ function mockToClient(m: MockClient): Client {
     city: "",
     property_type: "",
     equipment: [],
-    locations: [
+    locations: demo ?? [
       {
         id: generateId("loc"),
         label: "Основной",
