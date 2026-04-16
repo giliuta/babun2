@@ -270,6 +270,57 @@ export default function FinancesPage() {
   const prevExpense = sum(prevFilteredExpenses);
   const prevProfit = prevIncome - prevExpense;
 
+  // ─── STORY-003 cashbox reconciliation ─────────────────────────────
+  // Разбиваем ДОХОД на нал / карта по фактическим payments в
+  // appointments. ZP — расчётный % от дохода бригады (sum per team
+  // если activeTeam === "all"). В кассе должно быть = нал − расход −
+  // ЗП (упрощение: все расходы из нала).
+  const cashbox = useMemo(() => {
+    const inRange = (k: string) =>
+      current.rangeStart === null
+        ? true
+        : k >= current.rangeStart && k <= current.rangeEnd;
+    let cash = 0;
+    let card = 0;
+    for (const apt of appointments) {
+      if (apt.status !== "completed" && apt.status !== "in_progress") continue;
+      if (!inRange(apt.date)) continue;
+      if (activeTeam !== "all" && apt.team_id !== activeTeam) continue;
+      for (const p of apt.payments) {
+        if (p.method === "cash") cash += p.amount;
+        else if (p.method === "card") card += p.amount;
+      }
+      // Prepaid counts as cash — pre-pay обычно передаётся бригаде.
+      if (apt.prepaid_amount > 0) cash += apt.prepaid_amount;
+    }
+
+    // Salary по активной команде или сумма по всем.
+    const relevantTeams =
+      activeTeam === "all" ? teams.filter((t) => t.active) : teams.filter((t) => t.id === activeTeam);
+    let salary = 0;
+    for (const t of relevantTeams) {
+      const inc = curLines.inc
+        .filter((l) => l.teamId === t.id)
+        .reduce((s, l) => s + l.amount, 0);
+      const exp = curLines.exp
+        .filter((l) => l.teamId === t.id)
+        .reduce((s, l) => s + l.amount, 0);
+      const net = inc - exp;
+      const pct = t.payout_percentage ?? 30;
+      salary += Math.max(0, Math.round((net * pct) / 100));
+    }
+
+    const shouldBe = cash - totalExpense - salary;
+    return { cash, card, expense: totalExpense, salary, shouldBe };
+  }, [
+    appointments,
+    activeTeam,
+    current,
+    teams,
+    curLines,
+    totalExpense,
+  ]);
+
   // ─── Debts ──────────────────────────────────────────────────────────
   const debts = useMemo<DebtLine[]>(() => {
     const inRange = (k: string) =>
@@ -527,12 +578,21 @@ export default function FinancesPage() {
             )}
 
             {mode === "summary" && (
-              <CombinedSummary
-                incomeCount={filteredIncome.length}
-                expenseCount={filteredExpenses.length}
-                totalIncome={totalIncome}
-                totalExpense={totalExpense}
-              />
+              <>
+                <CombinedSummary
+                  incomeCount={filteredIncome.length}
+                  expenseCount={filteredExpenses.length}
+                  totalIncome={totalIncome}
+                  totalExpense={totalExpense}
+                />
+                <CashboxBlock
+                  cash={cashbox.cash}
+                  card={cashbox.card}
+                  expense={cashbox.expense}
+                  salary={cashbox.salary}
+                  shouldBe={cashbox.shouldBe}
+                />
+              </>
             )}
 
             {mode === "debts" && (
@@ -868,6 +928,86 @@ function ExpenseGroups({
       })}
       <TotalRow label="Итого расход" value={-total} color="rose" />
     </>
+  );
+}
+
+// STORY-003 cashbox reconciliation. Показывает из чего собрался
+// итог кассы за период: сколько пришло налом/картой, сколько съели
+// расходы, сколько уйдёт на ЗП (расчётная), сколько должно быть в
+// руках. Пока без ручного ввода фактической суммы — это STORY-004.
+function CashboxBlock({
+  cash,
+  card,
+  expense,
+  salary,
+  shouldBe,
+}: {
+  cash: number;
+  card: number;
+  expense: number;
+  salary: number;
+  shouldBe: number;
+}) {
+  return (
+    <div className="px-4 py-4 border-t border-gray-200 bg-white">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
+        Сверка кассы
+      </div>
+      <div className="space-y-1.5">
+        <KV label="Пришло наличкой" value={`+${formatEUR(cash)}`} tone="emerald" />
+        <KV label="Пришло на карту" value={`+${formatEUR(card)}`} tone="sky" />
+        <div className="h-px bg-gray-100 my-1" />
+        <KV label="Расходы (из нала)" value={`−${formatEUR(expense)}`} tone="rose" />
+        <KV
+          label="ЗП бригаде (расчётная)"
+          value={`−${formatEUR(salary)}`}
+          tone="violet"
+        />
+        <div className="h-px bg-gray-200 my-1.5" />
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-semibold text-gray-900">
+            В кассе должно быть
+          </span>
+          <span
+            className={`text-[17px] font-bold tabular-nums ${
+              shouldBe >= 0 ? "text-emerald-700" : "text-rose-700"
+            }`}
+          >
+            {formatEURSigned(shouldBe)}
+          </span>
+        </div>
+      </div>
+      <p className="text-[11px] text-gray-400 mt-2">
+        Реальная сверка с вводом фактической суммы — в следующем обновлении.
+      </p>
+    </div>
+  );
+}
+
+function KV({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "emerald" | "sky" | "rose" | "violet";
+}) {
+  const color =
+    tone === "emerald"
+      ? "text-emerald-600"
+      : tone === "sky"
+      ? "text-sky-600"
+      : tone === "rose"
+      ? "text-rose-600"
+      : "text-violet-600";
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[13px] text-gray-600">{label}</span>
+      <span className={`text-[14px] font-semibold tabular-nums ${color}`}>
+        {value}
+      </span>
+    </div>
   );
 }
 

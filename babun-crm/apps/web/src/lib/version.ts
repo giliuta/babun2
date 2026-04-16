@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v113-finance-payment-expense-sheets";
+export const BUILD_VERSION = "v114-finance-cashbox-reconciliation";
