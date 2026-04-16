@@ -935,12 +935,13 @@ export default function DashboardPage() {
         {BUILD_VERSION}
       </div>
 
-      {/* City picker modal */}
+      {/* City picker bottom sheet */}
       <CityPickerModal
         open={cityPickerDateKey !== null}
         onClose={() => setCityPickerDateKey(null)}
         current={cityPickerDateKey ? cityForDate(cityPickerDateKey) : ""}
         defaultCity={teamDefaultCity}
+        dateKey={cityPickerDateKey ?? undefined}
         onPick={handleCityPick}
         onReset={handleCityReset}
       />

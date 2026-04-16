@@ -61,25 +61,40 @@ export function setDayCity(
   return next;
 }
 
-// Common Cyprus cities used as quick-pick presets in the city picker.
-export const CITY_PRESETS: string[] = [
-  "Пафос",
-  "Лимассол",
-  "Ларнака",
-  "Никосия",
-  "Айя-Напа",
-];
+// ─── Typed city palette (single source of truth) ──────────────────────
+// По спеке: для каждого города — насыщенный цвет + светлый фон столбца
+// + чуть темнее фон сегодня. Используется на календаре и в city-picker.
 
-// A stable color per city — used to tint day-headers and picker buttons.
-// Custom cities fall back to the neutral gray returned by getCityColor.
-export const CITY_COLORS: Record<string, string> = {
-  "Пафос": "#3b82f6", // blue
-  "Лимассол": "#8b5cf6", // purple
-  "Ларнака": "#10b981", // emerald
-  "Никосия": "#f59e0b", // amber
-  "Айя-Напа": "#ec4899", // pink
+export interface CityConfig {
+  name: string;
+  code: string; // двухбуквенный код для компакта
+  color: string; // насыщенный (текст, события)
+  bg: string; // светлый фон столбца
+  bgToday: string; // чуть темнее — для сегодняшнего дня
+}
+
+export const CITIES: Record<string, CityConfig> = {
+  "Пафос":    { name: "Пафос",    code: "ПФ", color: "#2563EB", bg: "#EFF6FF", bgToday: "#DBEAFE" },
+  "Лимассол": { name: "Лимассол", code: "ЛМ", color: "#EA580C", bg: "#FFF7ED", bgToday: "#FFEDD5" },
+  "Ларнака":  { name: "Ларнака",  code: "ЛК", color: "#059669", bg: "#ECFDF5", bgToday: "#D1FAE5" },
+  "Никосия":  { name: "Никосия",  code: "НК", color: "#7C3AED", bg: "#F5F3FF", bgToday: "#EDE9FE" },
 };
 
+export const CITY_LIST = Object.values(CITIES);
+
+// Common Cyprus cities used as quick-pick presets in the city picker.
+export const CITY_PRESETS: string[] = CITY_LIST.map((c) => c.name);
+
+export function getCityConfig(city: string): CityConfig | null {
+  return CITIES[city] ?? null;
+}
+
 export function getCityColor(city: string): string {
-  return CITY_COLORS[city] ?? "#6b7280"; // gray-500 fallback
+  return CITIES[city]?.color ?? "#6b7280";
+}
+
+export function getCityBg(city: string, today: boolean): string | null {
+  const cfg = CITIES[city];
+  if (!cfg) return null;
+  return today ? cfg.bgToday : cfg.bg;
 }

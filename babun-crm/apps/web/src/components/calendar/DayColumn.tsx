@@ -20,7 +20,7 @@ import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
 import type { DraftClient } from "@/lib/draft-clients";
-import { getCityColor } from "@/lib/day-cities";
+import { getCityConfig, getCityBg } from "@/lib/day-cities";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -129,7 +129,9 @@ function DayColumnInner({
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const monthShort = getMonthNameShort(date.getMonth());
   const isFirstOfMonth = date.getDate() === 1;
-  const cityHex = cityLabel ? getCityColor(cityLabel) : null;
+  const cityCfg = cityLabel ? getCityConfig(cityLabel) : null;
+  const cityBg = cityLabel ? getCityBg(cityLabel, isToday) : null;
+  const cityHex = cityCfg?.color ?? null;
 
   const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
@@ -173,22 +175,13 @@ function DayColumnInner({
 
   return (
     <div className="flex-1 min-w-0 border-r border-gray-300 last:border-r-0 overflow-x-clip">
-      {/* Day header.
-          Порядок сверху вниз:
-            1. Город — цветная plashka на всю ширину колонки. Цвет
-               фона = полный цвет города, текст белый, тап открывает
-               city picker для этого дня.
-            2. Weekday + месяц — мелко серым (emerald если сегодня,
-               amber если выходной). На 1-м числе месяц жирный.
-            3. Число дня — крупное, ПОКРАШЕНО В ЦВЕТ ГОРОДА
-               (кроме сегодня — там круглая зелёная pill). Так каждый
-               день визуально «принадлежит» своему городу через цвет
-               цифры, а не только плашку сверху. */}
-      {/* Classic day header — plain white, flat, minimal.
-          Город тонким текстом в цвете города сверху, ниже
-          weekday/месяц, ниже число (тёмно-серое). Сегодня —
-          простой зелёный круг. Никаких градиентов, теней,
-          color-shifts на цифрах. */}
+      {/* Day header — по спеке:
+            1. City name в цвете города (крупно, bold) + ChevronDown
+            2. Weekday (ПН/ВТ...) + короткий месяц
+            3. Число дня
+          Весь столбец (и header и тело) тонируется в bg города
+          (bgToday если сегодня). Тап открывает bottom sheet для
+          смены города бригады на этот день. */}
       <div
         role="button"
         tabIndex={0}
@@ -196,93 +189,102 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[70px] lg:h-[78px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:bg-gray-50 px-1 pt-1.5 pb-1 ${
-          isToday ? "bg-emerald-50/50" : "bg-white"
-        }`}
+        className="relative sticky top-0 z-20 h-[72px] lg:h-[82px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:brightness-95 transition px-1 pt-1.5 pb-1"
+        style={{ background: cityBg ?? (isToday ? "#ecfdf5" : "#ffffff") }}
       >
-        {/* City — мелкий текст цветом города (или "+ город" серым).
-            Обычная кнопка, без фонов. */}
-        {cityLabel ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCityTap?.(dateKey);
-            }}
-            className="block w-full text-[10px] lg:text-[11px] font-semibold truncate leading-none active:opacity-60"
-            style={{ color: cityHex ?? undefined }}
-          >
-            {cityLabel}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCityTap?.(dateKey);
-            }}
-            className="block w-full text-[10px] lg:text-[11px] font-medium text-gray-400 leading-none active:opacity-60"
-          >
-            + город
-          </button>
+        {/* Сегодняшний день маркируется тонкой цветной полоской
+            сверху (2px) в цвет города — по спеке. */}
+        {isToday && cityHex && (
+          <div
+            className="absolute top-0 left-0.5 right-0.5 h-0.5 rounded-b"
+            style={{ background: cityHex }}
+          />
         )}
 
-        {/* Weekday + short month — weekday серый (amber на выходных),
-            месяц всегда тихий серый. Сегодня НЕ подсвечивается — его
-            единственная визуальная метка это зеленоватый фон колонки. */}
+        {/* City — крупно, bold, цвет города. ChevronDown как affordance. */}
+        {cityLabel ? (
+          <div
+            className="flex items-center justify-center gap-0.5 leading-none"
+            style={{ color: cityHex ?? undefined }}
+          >
+            <span className="text-[11px] lg:text-[12px] font-bold truncate">
+              {cityLabel}
+            </span>
+            <svg
+              width="8"
+              height="8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="opacity-60 flex-shrink-0"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        ) : (
+          <div className="text-[11px] lg:text-[12px] font-medium text-gray-400 leading-none flex items-center justify-center gap-0.5">
+            + город
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-60">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        )}
+
+        {/* Weekday + month */}
         <div className="mt-1.5 flex items-center justify-center gap-1 leading-none">
           <span
             className={`text-[10px] lg:text-[11px] font-semibold ${
-              isWeekend ? "text-amber-600" : "text-gray-500"
+              isWeekend ? "text-amber-700" : "text-slate-500"
             }`}
           >
             {dayName.toUpperCase()}
           </span>
           <span
-            className={`text-[9px] lg:text-[10px] uppercase text-gray-400 ${
-              isFirstOfMonth ? "font-bold text-gray-600" : "font-medium"
+            className={`text-[9px] lg:text-[10px] uppercase text-slate-400 ${
+              isFirstOfMonth ? "font-bold text-slate-600" : "font-medium"
             }`}
           >
             {monthShort}
           </span>
         </div>
 
-        {/* Day number — одинаково для всех дней, в т.ч. сегодня.
-            Только фон колонки даёт намёк. */}
+        {/* Day number. Для сегодня — в цвете города; в остальные
+            дни — тёмно-графитный. */}
         <div className="mt-1 flex items-center justify-center leading-none">
-          <span className="text-[20px] lg:text-[22px] font-medium tabular-nums text-gray-900">
+          <span
+            className="text-[20px] lg:text-[22px] font-semibold tabular-nums"
+            style={{ color: isToday && cityHex ? cityHex : "#0f172a" }}
+          >
             {date.getDate()}
           </span>
         </div>
 
-        {/* Right-side booking count pill — ненавязчиво, в углу */}
         {dayAppointments.length > 0 && (
-          <span className="absolute top-1 right-1 text-[9px] text-gray-400 tabular-nums">
+          <span
+            className="absolute top-1 right-1 text-[9px] tabular-nums"
+            style={{ color: cityHex ? `${cityHex}99` : "#94a3b8" }}
+          >
             {dayAppointments.length}
           </span>
         )}
       </div>
 
-      {/* Time slots — total height is 24×hourHeight via CSS var. Hour grid
-          lines are drawn via a single repeating-linear-gradient instead of
-          24 DOM elements, so pinch-zoom costs nothing. border-r echoes the
-          column's outer border so that today's green tint does not hide
-          the day separator. */}
+      {/* Time slots — total height is 24×hourHeight via CSS var. */}
       <div
         ref={setDroppableRef}
         className={`relative cursor-pointer border-r border-gray-300 select-none ${
-          isToday
-            ? "bg-emerald-50/40"
-            : isWeekend
-            ? "bg-amber-50/25"
-            : "bg-white"
-        } ${isOver ? "ring-2 ring-indigo-400 ring-inset" : ""}`}
+          isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
+        }`}
         onClick={handleColumnClick}
         onContextMenu={(e) => e.preventDefault()}
         style={{
           height: "calc(var(--hh) * 24)",
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
+          backgroundColor:
+            cityBg ??
+            (isToday ? "#ecfdf5" : isWeekend ? "#fffbeb" : "#ffffff"),
           // Hourly grid — a solid 1 px line in gray-200, with a subtle
           // dashed 0.5 h line at the mid-mark in gray-100 for rhythm.
           backgroundImage: [
@@ -361,7 +363,10 @@ function DayColumnInner({
                 colorKind={colorKind}
                 clientsById={clientsById}
                 services={services}
-                teamColor={teamColorFor?.(apt) ?? null}
+                // Event card colour по спеке: "насыщенный цвет города
+                // этого дня". Если город известен — он побеждает team-color.
+                // Per-appointment color_override всё ещё выигрывает.
+                teamColor={cityHex ?? teamColorFor?.(apt) ?? null}
                 onClick={onAppointmentClick}
                 onLongPress={onAppointmentLongPress}
                 draggable={dragEnabled}

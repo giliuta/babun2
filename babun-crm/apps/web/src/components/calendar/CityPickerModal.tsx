@@ -1,43 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import DialogModal from "@/components/appointments/sheet/DialogModal";
-import { CITY_PRESETS, getCityColor } from "@/lib/day-cities";
+import { useEffect } from "react";
+import { CITY_LIST, getCityConfig } from "@/lib/day-cities";
 
 interface CityPickerModalProps {
   open: boolean;
   onClose: () => void;
-  current: string; // current city (assigned or default)
-  defaultCity: string; // team's base city — shown as "по умолчанию"
+  current: string;
+  defaultCity: string;
+  /** ISO date key "YYYY-MM-DD" of the day being edited (for the header). */
+  dateKey?: string;
   onPick: (city: string) => void;
-  onReset: () => void; // clear the override, fall back to team default
+  onReset: () => void;
 }
 
-// Small modal to assign a city to a specific calendar day for the active
-// team. Presets come from Cyprus' main cities; a custom value is allowed.
+// Bottom sheet по спеке: «Куда едет бригада?» + 4 кнопки городов
+// с MapPin иконкой и цветной плашкой, плюс «Сбросить» внизу.
 export default function CityPickerModal({
   open,
   onClose,
   current,
   defaultCity,
+  dateKey,
   onPick,
   onReset,
 }: CityPickerModalProps) {
-  const [custom, setCustom] = useState("");
-
+  // ESC + body-scroll lock
   useEffect(() => {
-    if (open) setCustom("");
-  }, [open]);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
 
   const handlePick = (city: string) => {
     onPick(city);
     onClose();
-  };
-
-  const handleCustom = () => {
-    const v = custom.trim();
-    if (!v) return;
-    handlePick(v);
   };
 
   const handleResetClick = () => {
@@ -45,63 +52,119 @@ export default function CityPickerModal({
     onClose();
   };
 
+  const dateLabel = dateKey
+    ? (() => {
+        const [y, m, d] = dateKey.split("-").map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+          weekday: "short",
+          day: "numeric",
+          month: "long",
+        });
+      })()
+    : "";
+
   return (
-    <DialogModal open={open} onClose={onClose} title="Город на день">
-      <div className="p-3 space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          {CITY_PRESETS.map((city) => {
-            const selected = city === current;
-            const color = getCityColor(city);
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 pb-8 shadow-2xl"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 32px)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Grabber */}
+        <div className="flex justify-center pt-2">
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
+
+        {/* Header */}
+        <div className="px-5 pt-3 pb-1">
+          {dateLabel && (
+            <p className="text-[13px] text-slate-500 capitalize">
+              {dateLabel}
+            </p>
+          )}
+          <h2 className="text-[18px] font-semibold text-slate-900 mt-0.5">
+            Куда едет бригада?
+          </h2>
+        </div>
+
+        {/* City list */}
+        <div className="px-3 mt-3 space-y-2">
+          {CITY_LIST.map((c) => {
+            const active = c.name === current;
             return (
               <button
-                key={city}
+                key={c.name}
                 type="button"
-                onClick={() => handlePick(city)}
-                className="h-11 rounded-lg border-2 text-[13px] font-semibold active:scale-[0.98] transition flex items-center justify-center gap-2"
+                onClick={() => handlePick(c.name)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition active:scale-[0.99]"
                 style={{
-                  borderColor: selected ? color : "#e5e7eb",
-                  backgroundColor: selected ? `${color}15` : "#ffffff",
-                  color: selected ? color : "#374151",
+                  borderColor: active ? c.color : "#e2e8f0",
+                  background: active ? c.bg : "white",
                 }}
               >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: color }}
-                />
-                {city}
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: c.bg }}
+                  >
+                    {/* MapPin */}
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill={c.color}
+                      stroke={c.color}
+                      strokeWidth="2"
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                      <circle cx="12" cy="10" r="3" fill="white" stroke="none" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div
+                      className="font-semibold text-[15px]"
+                      style={{ color: active ? c.color : "#0f172a" }}
+                    >
+                      {c.name}
+                    </div>
+                    <div className="text-[11px] text-slate-500">{c.code}</div>
+                  </div>
+                </div>
+                {active && (
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={c.color}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
               </button>
             );
           })}
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            placeholder="Свой город"
-            className="flex-1 h-11 px-3 bg-gray-100 rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <button
-            type="button"
-            onClick={handleCustom}
-            disabled={!custom.trim()}
-            className="h-11 px-4 bg-indigo-600 text-white rounded-lg text-[13px] font-semibold disabled:opacity-40"
-          >
-            OK
-          </button>
-        </div>
-
-        {current !== defaultCity && (
-          <button
-            type="button"
-            onClick={handleResetClick}
-            className="w-full h-10 text-[12px] font-medium text-gray-600 bg-gray-100 rounded-lg active:scale-[0.98]"
-          >
-            Сбросить к «{defaultCity || "—"}»
-          </button>
+        {/* Reset to team default */}
+        {defaultCity && current !== defaultCity && (
+          <div className="px-3 mt-3">
+            <button
+              type="button"
+              onClick={handleResetClick}
+              className="w-full h-11 text-[13px] font-medium text-slate-600 bg-slate-100 rounded-xl active:scale-[0.99]"
+            >
+              Сбросить к «{getCityConfig(defaultCity)?.name ?? defaultCity}»
+            </button>
+          </div>
         )}
       </div>
-    </DialogModal>
+    </div>
   );
 }
