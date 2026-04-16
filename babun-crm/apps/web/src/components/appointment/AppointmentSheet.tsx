@@ -28,7 +28,7 @@ import QuickActions from "./QuickActions";
 import PaymentBlock from "./PaymentBlock";
 import AdminActions from "./AdminActions";
 
-export type AppointmentSheetMode = "create" | "view" | "done";
+export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
 
 interface AppointmentSheetProps {
   open: boolean;
@@ -68,6 +68,12 @@ export default function AppointmentSheet({
   onCancelAppointment,
   onCityChange,
 }: AppointmentSheetProps) {
+  // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
+  // при тапе на «Редактировать» в AdminActions без перекомпоновки
+  // sheet родителем.
+  const [liveMode, setLiveMode] = useState<AppointmentSheetMode>(mode);
+  useEffect(() => setLiveMode(mode), [mode, appointment.id]);
+
   const [kind, setKind] = useState<Kind>(
     appointment.kind === "event" || appointment.kind === "personal"
       ? "event"
@@ -163,12 +169,18 @@ export default function AppointmentSheet({
     ? priceForPreset(preset)
     : appointment.total_amount;
 
-  const readonly = mode !== "create";
+  const isEditable = liveMode === "create" || liveMode === "edit";
+  const readonly = !isEditable;
   const isEventMode = kind === "event";
   const teamLabel = activeTeam?.name ?? "—";
 
+  // В create: обязателен preset + клиент. В edit: если услуга уже
+  // стоит (total_amount > 0 и status), сохранение разрешено и без
+  // нового preset-выбора — меняем только поля что отредактировали.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
+    : liveMode === "edit"
+    ? Boolean(clientId && (preset || appointment.total_amount > 0))
     : Boolean(clientId && preset);
 
   if (!open) return null;
@@ -197,12 +209,18 @@ export default function AppointmentSheet({
       onSave(base);
       return;
     }
-    if (!preset || !client) return;
-    const total = priceForPreset(preset);
-    const serviceName = preset.label;
-    const finalComment = comment.trim()
-      ? `${serviceName} — ${comment.trim()}`
-      : serviceName;
+    if (!client) return;
+    // В edit без нового preset сохраняем существующую услугу/сумму.
+    const keepExistingService = liveMode === "edit" && !preset;
+    const total = preset ? priceForPreset(preset) : appointment.total_amount;
+    const serviceName = preset?.label ?? null;
+    const finalComment = keepExistingService
+      ? comment
+      : serviceName
+      ? comment.trim()
+        ? `${serviceName} — ${comment.trim()}`
+        : serviceName
+      : comment;
     const isReal = "locations" in client;
     const saved: Appointment = {
       ...appointment,
@@ -212,14 +230,16 @@ export default function AppointmentSheet({
       client_id: isReal ? client.id : null,
       location_id: locationId,
       team_id: activeTeam?.id ?? null,
-      service_ids: [],
+      service_ids: keepExistingService ? appointment.service_ids : [],
       total_amount: total,
       custom_total: true,
       comment: finalComment,
       address,
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
       kind: "work",
-      status: "scheduled",
+      // Не сбрасываем completed статус в edit.
+      status:
+        liveMode === "edit" ? appointment.status : "scheduled",
       updated_at: new Date().toISOString(),
     };
     onSave(saved);
@@ -280,7 +300,7 @@ export default function AppointmentSheet({
 
         {/* Header */}
         <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
-          {mode === "create" ? (
+          {liveMode === "create" ? (
             <div className="inline-flex rounded-xl bg-slate-100 p-1 text-[13px] font-semibold">
               {(["work", "event"] as Kind[]).map((k) => (
                 <button
@@ -297,7 +317,11 @@ export default function AppointmentSheet({
                 </button>
               ))}
             </div>
-          ) : mode === "done" ? (
+          ) : liveMode === "edit" ? (
+            <div className="flex-1 text-[14px] font-semibold text-violet-700">
+              Редактирование
+            </div>
+          ) : liveMode === "done" ? (
             <div className="flex-1 text-[13px] font-semibold text-emerald-700 truncate">
               {doneBadge}
             </div>
@@ -340,7 +364,7 @@ export default function AppointmentSheet({
             }}
           />
 
-          {showTimeEditor && mode === "create" && (
+          {showTimeEditor && isEditable && (
             <TimeEditor
               timeStart={timeStart}
               timeEnd={timeEnd}
@@ -351,7 +375,7 @@ export default function AppointmentSheet({
             />
           )}
 
-          {showCityPicker && mode === "create" && (
+          {showCityPicker && isEditable && (
             <CityPicker
               value={city}
               onPick={(c) => {
@@ -362,7 +386,7 @@ export default function AppointmentSheet({
           )}
 
           {/* Event mode body */}
-          {isEventMode && mode === "create" ? (
+          {isEventMode && isEditable ? (
             <div className="px-4 pt-4 space-y-3">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 Тип события
@@ -441,7 +465,7 @@ export default function AppointmentSheet({
               />
 
               {/* Smart suggestion только в create */}
-              {mode === "create" && suggestion && (
+              {isEditable && suggestion && (
                 <div className="px-4 pt-3">
                   <button
                     type="button"
@@ -472,7 +496,7 @@ export default function AppointmentSheet({
               />
 
               {/* SMS toggle только в create */}
-              {mode === "create" && client && "phone" in client && client.phone && (
+              {isEditable && client && "phone" in client && client.phone && (
                 <div className="px-4 pt-4 flex items-center justify-between">
                   <div>
                     <div className="text-[13px] font-semibold text-slate-800">
@@ -501,35 +525,32 @@ export default function AppointmentSheet({
             </>
           )}
 
-          {/* View/Done actions */}
-          {mode !== "create" && (
+          {/* View/Done actions — отображаются только когда не
+              редактируем. В edit всё поведение как в create. */}
+          {(liveMode === "view" || liveMode === "done") && (
             <>
               <QuickActions
                 phone={client && "phone" in client ? client.phone : undefined}
                 address={address}
               />
-              {mode === "view" && (
+              {liveMode === "view" && (
                 <PaymentBlock total={appointment.total_amount} onPay={handlePay} />
               )}
               <AdminActions
-                canReschedule={mode === "view"}
-                onEdit={() => {
-                  // Переключаем режим на create, это сделает поля редактируемыми
-                  // Упрощённо: закрываем и снова открываем через parent. Здесь —
-                  // делаем локально: все поля уже синхронизированы с state, нам
-                  // нужен "write-through". Оставляю простейший вариант через
-                  // window-событие не трогать state; для MVP — warning.
-                  window.alert("Редактирование в отдельной форме — скоро.");
+                canReschedule={liveMode === "view"}
+                onEdit={() => setLiveMode("edit")}
+                onReschedule={() => {
+                  setLiveMode("edit");
+                  setShowTimeEditor(true);
                 }}
-                onReschedule={handleReschedule}
                 onCancel={handleAdminCancel}
               />
             </>
           )}
         </div>
 
-        {/* Sticky save only in create */}
-        {mode === "create" && (
+        {/* Sticky save: в create и в edit */}
+        {isEditable && (
           <div
             className="flex-shrink-0 px-4 pt-2 border-t border-slate-200 flex gap-2"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
@@ -547,13 +568,19 @@ export default function AppointmentSheet({
               disabled={!canSave}
               className="flex-[2] h-12 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] transition disabled:bg-slate-300 disabled:text-slate-500"
             >
-              {canSave
-                ? isEventMode
+              {(() => {
+                if (!canSave) {
+                  return isEventMode
+                    ? "Введите название"
+                    : "Выберите клиента и услугу";
+                }
+                if (liveMode === "edit") {
+                  return `Сохранить · ${formatEUR(price)}`;
+                }
+                return isEventMode
                   ? "Создать событие"
-                  : `Создать запись · ${formatEUR(price)}`
-                : isEventMode
-                ? "Введите название"
-                : "Выберите клиента и услугу"}
+                  : `Создать запись · ${formatEUR(price)}`;
+              })()}
             </button>
           </div>
         )}
