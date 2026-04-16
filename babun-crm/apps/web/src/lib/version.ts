@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v93-calendar-status-colors-palette10";
+export const BUILD_VERSION = "v94-slot-menu-two-choices";

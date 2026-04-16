@@ -464,12 +464,13 @@ export default function DashboardPage() {
     [activeTeamId]
   );
 
-  // Tap on empty slot = directly open create appointment form.
-  // No menu, no extra taps — Dima is on the phone with a client,
-  // every second counts.
+  // Tap on empty slot = tiny choice menu (2 items):
+  // 1) Записать клиента
+  // 2) Создать личное событие
+  // Both carry the tapped time into the form (которое можно поменять).
   const handleEmptySlotClick = useCallback((date: string, time: string) => {
-    openNewAppointmentInline(date, time, "work");
-  }, [openNewAppointmentInline]);
+    setSlotMenu({ date, time });
+  }, []);
 
   // BottomTabBar's centre button navigates here with ?new=1. Read the
   // flag directly from window.location.search so we don't pull in
@@ -802,34 +803,21 @@ export default function DashboardPage() {
   );
 
   // ─── Slot & long-press menu option builders ───────────────────────────
+  // Только 2 пункта: записать клиента и личное событие.
+  // Оба стартуют на tapped time (поменять можно в форме).
   const slotMenuOptions: ActionMenuOption[] = slotMenu
     ? [
         {
           label: "Записать клиента",
-          subtitle: "с выбором свободного времени",
-          onSelect: () => openNewAppointmentInline(null, null, "work"),
-        },
-        {
-          label: `Записать клиента на ${slotMenu.time}`,
-          subtitle: formatDateLongRu(slotMenu.date),
+          subtitle: `${slotMenu.time} · ${formatDateLongRu(slotMenu.date)}`,
           onSelect: () =>
             openNewAppointmentInline(slotMenu.date, slotMenu.time, "work"),
         },
         {
           label: "Создать личное событие",
-          subtitle: "с выбором свободного времени",
-          onSelect: () => openNewAppointmentInline(null, null, "event"),
-        },
-        {
-          label: `Создать личное событие на ${slotMenu.time}`,
-          subtitle: formatDateLongRu(slotMenu.date),
+          subtitle: `${slotMenu.time} · ${formatDateLongRu(slotMenu.date)}`,
           onSelect: () =>
             openNewAppointmentInline(slotMenu.date, slotMenu.time, "event"),
-        },
-        {
-          label: "Особый режим дня",
-          subtitle: "Изменить рабочие часы только для этой даты",
-          onSelect: () => setSpecialScheduleDate(slotMenu.date),
         },
       ]
     : [];
