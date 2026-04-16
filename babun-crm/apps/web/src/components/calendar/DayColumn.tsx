@@ -4,6 +4,7 @@ import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   getDayNameShort,
+  getMonthNameShort,
   isSameDay,
   formatDateKey,
 } from "@/lib/date-utils";
@@ -127,6 +128,8 @@ function DayColumnInner({
   const dayName = getDayNameShort(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const cityHex = cityLabel ? getCityColor(cityLabel) : null;
+  const monthShort = getMonthNameShort(date.getMonth());
+  const isFirstOfMonth = date.getDate() === 1;
 
   const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
@@ -208,8 +211,13 @@ function DayColumnInner({
           />
         )}
 
+        {/* Top row: weekday + short month. Month показывается всегда,
+            но компактно («апр», а не «АПРЕЛЯ»), так что 7 колонок
+            не превращаются в визуальный шум. На 1-м числе месяц
+            сильнее — boundary-marker, чтобы Дима сразу ловил переход
+            апр→май без внимательного вглядывания. */}
         <div
-          className={`text-[10px] lg:text-[11px] font-semibold leading-none ${
+          className={`flex items-center justify-center gap-1 leading-none ${
             isToday
               ? "text-emerald-700"
               : isWeekend
@@ -217,7 +225,18 @@ function DayColumnInner({
               : "text-gray-500"
           }`}
         >
-          {dayName.toUpperCase()}
+          <span className="text-[10px] lg:text-[11px] font-semibold">
+            {dayName.toUpperCase()}
+          </span>
+          <span
+            className={`text-[9px] lg:text-[10px] uppercase tracking-wide ${
+              isFirstOfMonth
+                ? "font-bold"
+                : "opacity-70 font-medium"
+            }`}
+          >
+            {monthShort}
+          </span>
         </div>
 
         <div className="mt-0.5 flex items-center justify-center leading-none">

@@ -9,6 +9,14 @@ const MONTH_NAMES_GENITIVE = [
   "Января", "Февраля", "Марта", "Апреля", "Мая", "Июня",
   "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря",
 ];
+const MONTH_NAMES_SHORT = [
+  "янв", "фев", "мар", "апр", "май", "июн",
+  "июл", "авг", "сен", "окт", "ноя", "дек",
+];
+
+export function getMonthNameShort(monthIndex: number): string {
+  return MONTH_NAMES_SHORT[monthIndex];
+}
 
 export function getDayNameShort(date: Date): string {
   return DAY_NAMES_SHORT[date.getDay()];
