@@ -164,6 +164,74 @@ export default function DashboardPage() {
     writeHourHeight(hourHeightRef.current);
   }, [writeHourHeight, viewMode]);
 
+  // Smart scroll + snap (STORY-002-FINAL feature request).
+  //
+  // 1. On mount: scrollTop = 9 * hh so the 09:00 row sits directly
+  //    under the sticky day-header.
+  // 2. While the user scrolls UP above 09:00: after scroll ends
+  //    (150 ms inactivity), snap to the nearest of {0, 7*hh, 9*hh}.
+  //    Smooth-scroll without breaking pinch-zoom or horizontal swipe.
+  // 3. Scrolling DOWN past 09:00 is free — no snap. Grid ends at 23:00.
+  //
+  // snappingRef guards against re-entry: when we programmatically
+  // smooth-scroll, onScroll fires and would otherwise retrigger snap.
+  useLayoutEffect(() => {
+    if (viewMode === "month") return;
+    const el = outerScrollerRef.current;
+    if (!el) return;
+    const hh = hourHeightRef.current;
+    // Initial scroll — no animation so the very first paint is already
+    // at 09:00.
+    el.scrollTo({ top: 9 * hh, behavior: "auto" });
+  }, [viewMode]);
+
+  useEffect(() => {
+    const el = outerScrollerRef.current;
+    if (!el) return;
+    let timer: number | null = null;
+    let snapping = false;
+
+    const doSnap = () => {
+      if (snapping) return;
+      const hh = hourHeightRef.current;
+      const top = el.scrollTop;
+      const workTop = 9 * hh;
+      // Нижняя зона (>= 9:00) — свободный скролл, не вмешиваемся.
+      if (top >= workTop - 1) return;
+      const snapPoints = [0, 7 * hh, 9 * hh];
+      // Ближайшая snap-точка в верхней зоне.
+      let nearest = snapPoints[0];
+      let nearestDist = Math.abs(top - nearest);
+      for (const p of snapPoints) {
+        const d = Math.abs(top - p);
+        if (d < nearestDist) {
+          nearest = p;
+          nearestDist = d;
+        }
+      }
+      // Если уже прилипли (< 2px) — не дёргаем.
+      if (nearestDist < 2) return;
+      snapping = true;
+      el.scrollTo({ top: nearest, behavior: "smooth" });
+      // Снять guard через ~350 мс — достаточно для smooth-скролла.
+      window.setTimeout(() => {
+        snapping = false;
+      }, 350);
+    };
+
+    const onScroll = () => {
+      if (timer) window.clearTimeout(timer);
+      // 150 мс без движения = scroll-end (consistent across iOS/Android).
+      timer = window.setTimeout(doSnap, 150);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [viewMode]);
+
   // Seed with mock data on first visit only
   useEffect(() => {
     if (typeof window === "undefined") return;
