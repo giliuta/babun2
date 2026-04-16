@@ -173,13 +173,17 @@ function DayColumnInner({
 
   return (
     <div className="flex-1 min-w-0 border-r border-gray-300 last:border-r-0 overflow-x-clip">
-      {/* Day header — duplicates the column's right border because its
-          background paints over the parent's border. Tap = focus this day
-          (Bumpix-style shortcut to single-day view). Kept as <div> because
-          the city label is a nested <button>. */}
-      {/* Day header. Город выводится в каждом дне отдельно — Дима
-          может менять город по-дневно. Цвет города рендерится как
-          3-px полоска сверху + text-цвет на подписи. */}
+      {/* Day header.
+          Порядок сверху вниз:
+            1. Город — цветная plashka на всю ширину колонки. Цвет
+               фона = полный цвет города, текст белый, тап открывает
+               city picker для этого дня.
+            2. Weekday + месяц — мелко серым (emerald если сегодня,
+               amber если выходной). На 1-м числе месяц жирный.
+            3. Число дня — крупное, ПОКРАШЕНО В ЦВЕТ ГОРОДА
+               (кроме сегодня — там круглая зелёная pill). Так каждый
+               день визуально «принадлежит» своему городу через цвет
+               цифры, а не только плашку сверху. */}
       <div
         role="button"
         tabIndex={0}
@@ -187,7 +191,7 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[68px] lg:h-[78px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 pt-1.5 pb-1 text-center cursor-pointer active:bg-indigo-50 ${
+        className={`relative sticky top-0 z-20 h-[72px] lg:h-[84px] border-b border-gray-200 border-r border-gray-300 text-center cursor-pointer active:bg-indigo-50 overflow-hidden ${
           isToday
             ? "bg-emerald-50"
             : isWeekend
@@ -195,21 +199,39 @@ function DayColumnInner({
             : "bg-white"
         }`}
       >
-        {/* 3-px hairline in the city colour — колонка сразу «зона Пафоса» */}
-        {cityHex && (
-          <div
-            className="absolute top-0 left-0 right-0 h-[3px]"
-            style={{ background: cityHex }}
-          />
+        {/* City plate — top band, full width. Tint with city colour
+            if known; neutral gray if not. */}
+        {cityLabel ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCityTap?.(dateKey);
+            }}
+            className="w-full h-[18px] lg:h-[20px] flex items-center justify-center text-[10px] lg:text-[11px] font-semibold uppercase tracking-wide text-white truncate px-1 active:opacity-80"
+            style={{ background: cityHex ?? "#9ca3af" }}
+          >
+            {cityLabel}
+            {dayAppointments.length > 0 && (
+              <span className="ml-1 text-white/75">· {dayAppointments.length}</span>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCityTap?.(dateKey);
+            }}
+            className="w-full h-[18px] lg:h-[20px] flex items-center justify-center text-[10px] lg:text-[11px] font-medium text-gray-400 bg-gray-100 active:bg-gray-200 truncate px-1"
+          >
+            + город
+          </button>
         )}
 
-        {/* Top row: weekday + short month. Month показывается всегда,
-            но компактно («апр», а не «АПРЕЛЯ»), так что 7 колонок
-            не превращаются в визуальный шум. На 1-м числе месяц
-            сильнее — boundary-marker, чтобы Дима сразу ловил переход
-            апр→май без внимательного вглядывания. */}
+        {/* Weekday + short month. */}
         <div
-          className={`flex items-center justify-center gap-1 leading-none ${
+          className={`mt-1 flex items-center justify-center gap-1 leading-none ${
             isToday
               ? "text-emerald-700"
               : isWeekend
@@ -222,52 +244,30 @@ function DayColumnInner({
           </span>
           <span
             className={`text-[9px] lg:text-[10px] uppercase tracking-wide ${
-              isFirstOfMonth
-                ? "font-bold"
-                : "opacity-70 font-medium"
+              isFirstOfMonth ? "font-bold" : "opacity-70 font-medium"
             }`}
           >
             {monthShort}
           </span>
         </div>
 
+        {/* Day number — colored by city (unless today → emerald pill). */}
         <div className="mt-0.5 flex items-center justify-center leading-none">
           <span
             className={`inline-flex items-center justify-center rounded-full transition ${
               isToday
                 ? "w-8 h-8 lg:w-9 lg:h-9 bg-emerald-500 text-white text-[15px] lg:text-[17px] font-bold shadow-sm"
-                : "text-[18px] lg:text-[20px] font-semibold text-gray-900"
+                : "text-[20px] lg:text-[22px] font-bold"
             }`}
+            style={
+              !isToday
+                ? { color: cityHex ?? "#111827" }
+                : undefined
+            }
           >
             {date.getDate()}
           </span>
         </div>
-
-        {/* City: per-day, minimal text in the city colour. Тап
-            открывает city picker именно для этого дня. Если города
-            нет — показываем количество записей если они есть. */}
-        {cityLabel ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCityTap?.(dateKey);
-            }}
-            className="mt-1 mx-auto block max-w-full text-[10px] lg:text-[11px] font-medium truncate leading-none active:opacity-60"
-            style={{ color: cityHex ?? undefined }}
-          >
-            {cityLabel}
-            {dayAppointments.length > 0 && (
-              <span className="opacity-60 ml-1">· {dayAppointments.length}</span>
-            )}
-          </button>
-        ) : (
-          dayAppointments.length > 0 && (
-            <div className="mt-1 text-[10px] text-gray-400 leading-none">
-              · {dayAppointments.length}
-            </div>
-          )
-        )}
       </div>
 
       {/* Time slots — total height is 24×hourHeight via CSS var. Hour grid
