@@ -4,7 +4,6 @@ import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   getDayNameShort,
-  getMonthNameGenitive,
   isSameDay,
   formatDateKey,
 } from "@/lib/date-utils";
@@ -126,7 +125,8 @@ function DayColumnInner({
   const dateKey = formatDateKey(date);
   const dayAppointments = appointments.filter((a) => a.date === dateKey);
   const dayName = getDayNameShort(date);
-  const monthName = getMonthNameGenitive(date.getMonth());
+  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+  const cityHex = cityLabel ? getCityColor(cityLabel) : null;
 
   const daySched = getDayScheduleForDate(schedule, date);
   const workStart = timeToMinutes(daySched.is_working ? daySched.start : "00:00");
@@ -174,6 +174,16 @@ function DayColumnInner({
           background paints over the parent's border. Tap = focus this day
           (Bumpix-style shortcut to single-day view). Kept as <div> because
           the city label is a nested <button>. */}
+      {/* Day header — redesigned.
+          Старый вариант повторял слово "АПРЕЛЯ" во всех 7 колонках,
+          и крупные жирные числа перегружали первую строку. Новый:
+            • месяц убран (он уже в верхней панели "Апрель 2026")
+            • weekday наверху мелко, число — в центре, сегодняшнее
+              число рендерится в круглой зелёной pill-е
+            • выходные получают тёплый amber-оттенок фона
+            • цвет города тинтит тонкую полоску сверху — колонка сразу
+              считывается как «Пафос / Лимассол»
+            • city-chip внизу остался кликабельным для смены города */}
       <div
         role="button"
         tabIndex={0}
@@ -181,32 +191,53 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`sticky top-0 z-20 h-[62px] lg:h-[82px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 py-1 lg:py-2 text-center cursor-pointer active:bg-indigo-50 ${
-          isToday ? "bg-green-50" : "bg-white"
+        className={`relative sticky top-0 z-20 h-[62px] lg:h-[74px] border-b border-gray-200 border-r border-gray-300 px-1 lg:px-2 pt-1.5 pb-1 text-center cursor-pointer active:bg-indigo-50 ${
+          isToday
+            ? "bg-emerald-50"
+            : isWeekend
+            ? "bg-amber-50/50"
+            : "bg-white"
         }`}
       >
-        <div className="text-[9px] lg:text-[10px] text-gray-500 uppercase truncate">{monthName}</div>
+        {/* City-color hairline — visually groups consecutive days in
+            the same city. Paints the top edge. */}
+        {cityHex && (
+          <div
+            className="absolute top-0 left-0 right-0 h-[3px]"
+            style={{ background: cityHex }}
+          />
+        )}
+
         <div
-          className={`text-[20px] lg:text-[24px] font-bold leading-tight ${
-            isToday ? "text-green-600" : "text-gray-900"
+          className={`text-[10px] lg:text-[11px] font-semibold leading-none ${
+            isToday
+              ? "text-emerald-700"
+              : isWeekend
+              ? "text-amber-600"
+              : "text-gray-500"
           }`}
         >
-          {date.getDate()}
+          {dayName.toUpperCase()}
         </div>
-        <div className="flex items-center justify-center gap-0.5 leading-none">
+
+        <div className="mt-0.5 flex items-center justify-center leading-none">
           <span
-            className={`text-[11px] lg:text-xs font-semibold ${
-              isToday ? "text-green-600" : "text-gray-600"
+            className={`inline-flex items-center justify-center rounded-full transition ${
+              isToday
+                ? "w-8 h-8 lg:w-9 lg:h-9 bg-emerald-500 text-white text-[15px] lg:text-[17px] font-bold shadow-sm"
+                : "text-[18px] lg:text-[20px] font-semibold text-gray-900"
             }`}
           >
-            {dayName}
+            {date.getDate()}
           </span>
-          {dayAppointments.length > 0 && (
-            <span className="text-[8px] lg:text-[10px] text-gray-400">
-              ({dayAppointments.length})
-            </span>
-          )}
         </div>
+
+        {dayAppointments.length > 0 && !cityLabel && (
+          <div className="mt-0.5 text-[9px] text-gray-400 leading-none">
+            {dayAppointments.length} зап.
+          </div>
+        )}
+
         {cityLabel && (
           <button
             type="button"
@@ -214,13 +245,16 @@ function DayColumnInner({
               e.stopPropagation();
               onCityTap?.(dateKey);
             }}
-            className="mt-0.5 mx-auto block max-w-full text-[8px] lg:text-[10px] font-semibold truncate px-1.5 py-0.5 rounded"
+            className="mt-1 mx-auto block max-w-full text-[9px] lg:text-[10px] font-semibold truncate px-1.5 py-0.5 rounded-full"
             style={{
-              backgroundColor: `${getCityColor(cityLabel)}20`,
-              color: getCityColor(cityLabel),
+              backgroundColor: cityHex ? `${cityHex}1a` : undefined,
+              color: cityHex ?? undefined,
             }}
           >
             {cityLabel}
+            {dayAppointments.length > 0 && (
+              <span className="opacity-60 ml-1">· {dayAppointments.length}</span>
+            )}
           </button>
         )}
       </div>
@@ -232,9 +266,13 @@ function DayColumnInner({
           the day separator. */}
       <div
         ref={setDroppableRef}
-        className={`relative cursor-pointer border-r border-gray-300 select-none ${isToday ? "bg-green-50/30" : "bg-white"} ${
-          isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
-        }`}
+        className={`relative cursor-pointer border-r border-gray-300 select-none ${
+          isToday
+            ? "bg-emerald-50/40"
+            : isWeekend
+            ? "bg-amber-50/25"
+            : "bg-white"
+        } ${isOver ? "ring-2 ring-indigo-400 ring-inset" : ""}`}
         onClick={handleColumnClick}
         onContextMenu={(e) => e.preventDefault()}
         style={{
