@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Client, ACUnit, ACType } from "@/lib/clients";
 import { AC_TYPE_LABELS, PROPERTY_LABELS } from "@/lib/clients";
 import type { Appointment } from "@/lib/appointments";
@@ -16,15 +16,14 @@ interface ClientPanelProps {
   onClose: () => void;
 }
 
-type TabKey = "profile" | "records" | "history" | "reminders" | "equipment";
+type TabKey = "profile" | "records" | "history" | "reminders";
 
-// Bumpix-style client card.
-// Tabs layout: Профиль / Записи / История / Центр напоминаний /
-// Оборудование. Profile is a clean vertical form; Записи is the full
-// list of client's visits with sub-filter chips; История is the visit
-// log (free-form technician notes); Центр напоминаний is the SMS queue
-// built from appointments with reminders enabled; Оборудование is
-// Babun-specific — A/C units registered for this client.
+// Bumpix-style client card (4 tabs to match the reference exactly).
+// Profile is a clean vertical form with an A/C-unit section at the
+// bottom (Babun-specific domain); Записи is the full list of visits
+// with sub-filter chips; История is the visit log (free-form tech
+// notes); Центр напоминаний is the SMS queue built from appointments
+// with reminders enabled.
 
 export default function ClientPanel({
   client,
@@ -93,17 +92,20 @@ export default function ClientPanel({
           active={tab === "reminders"}
           onClick={() => setTab("reminders")}
         />
-        <TabBtn
-          label={`Оборудование (${client.equipment.length})`}
-          active={tab === "equipment"}
-          onClick={() => setTab("equipment")}
-        />
       </div>
 
       {/* Content */}
       <div className="flex-1">
         {tab === "profile" && (
-          <ProfileForm client={client} onUpdate={onUpdate} update={update} />
+          <>
+            <ProfileForm client={client} onUpdate={onUpdate} update={update} />
+            <div className="border-t border-gray-100 pt-1">
+              <div className="px-4 pt-3 pb-1 text-[11px] text-gray-500 uppercase tracking-wide">
+                Кондиционеры ({client.equipment.length})
+              </div>
+              <EquipmentList client={client} onUpdate={onUpdate} />
+            </div>
+          </>
         )}
         {tab === "records" && (
           <RecordsTab
@@ -121,9 +123,6 @@ export default function ClientPanel({
             items={clientApts}
             teamsById={teamsById}
           />
-        )}
-        {tab === "equipment" && (
-          <EquipmentList client={client} onUpdate={onUpdate} />
         )}
       </div>
     </div>
@@ -220,12 +219,10 @@ function ProfileForm({
       </FieldRow>
 
       <FieldRow icon={<IconComment />} label="Комментарий">
-        <textarea
+        <AutoGrowTextarea
           value={client.comment}
-          onChange={(e) => update("comment", e.target.value)}
-          rows={2}
+          onChange={(v) => update("comment", v)}
           placeholder="Добавить комментарий"
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none resize-none"
         />
       </FieldRow>
 
@@ -346,12 +343,51 @@ function ProfileForm({
           />
         }
       >
-        <div className="text-[13px] text-gray-500">
-          {client.blacklisted ? "Клиент в чёрном списке" : "Клиент не заблокирован"}
-        </div>
+        {client.blacklisted ? (
+          <div className="text-[13px] text-rose-600 font-semibold">
+            Клиент в чёрном списке
+          </div>
+        ) : (
+          <div className="text-[13px] text-gray-400">Не заблокирован</div>
+        )}
       </FieldRow>
     </div>
   );
+}
+
+// Grows with its content so мастера-«писатели» не зажаты в 2 строки.
+// Uses ref-based height sync; onInput updates as the user types.
+function AutoGrowTextarea({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+}) {
+  const ref = useAutoGrow(value);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={1}
+      className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none resize-none leading-snug"
+    />
+  );
+}
+
+function useAutoGrow(value: string) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
+  }, [value]);
+  return ref;
 }
 
 // ─── Records tab ────────────────────────────────────────────────────────

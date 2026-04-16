@@ -30,6 +30,13 @@ const TAG_CHIPS = [
 
 type SortKey = "recent" | "name" | "revenue" | "equipment";
 
+const SORT_LABELS: Record<SortKey, string> = {
+  recent: "Недавние",
+  name: "Имя",
+  revenue: "Доход",
+  equipment: "A/C",
+};
+
 export default function ClientsPage() {
   const router = useRouter();
   const { clients, upsertClient, deleteClient, tags } = useClients();
@@ -103,6 +110,7 @@ export default function ClientsPage() {
 
   // ─── Selected client detail view ───
   if (selectedClient) {
+    const phoneDigits = selectedClient.phone.replace(/\D/g, "");
     return (
       <>
         <PageHeader
@@ -122,8 +130,20 @@ export default function ClientsPage() {
           }
         />
 
+        {/* Blacklist banner — a blacklisted client should be visible the
+            moment Dima opens the card, not 15 fields down on the profile. */}
+        {selectedClient.blacklisted && (
+          <div className="bg-rose-50 border-b border-rose-200 px-4 py-2.5 flex items-center gap-2 text-rose-700 text-[13px] font-semibold">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+            </svg>
+            Клиент в чёрном списке
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto bg-white">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto" style={{ paddingBottom: "5.5rem" }}>
             <ClientPanel
               client={selectedClient}
               appointments={appointments}
@@ -131,6 +151,68 @@ export default function ClientsPage() {
               onClose={() => setSelectedId(null)}
             />
           </div>
+        </div>
+
+        {/* Sticky action bar — always accessible regardless of active tab.
+            Most common flows from a client record: call → SMS → book →
+            open chat. Must never require scrolling. */}
+        <div
+          className="fixed left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 grid grid-cols-4 gap-1 lg:left-[240px]"
+          style={{
+            bottom: "var(--bottom-nav-height, 0px)",
+            paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
+            zIndex: 35,
+          }}
+        >
+          <a
+            href={phoneDigits ? `tel:${phoneDigits}` : undefined}
+            onClick={(e) => { if (!phoneDigits) e.preventDefault(); }}
+            className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold ${
+              phoneDigits ? "text-emerald-700 active:bg-emerald-50" : "text-gray-300"
+            }`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.37 1.9.72 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0122 16.92z" />
+            </svg>
+            Позвонить
+          </a>
+          <a
+            href={phoneDigits ? `sms:${phoneDigits}` : undefined}
+            onClick={(e) => { if (!phoneDigits) e.preventDefault(); }}
+            className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold ${
+              phoneDigits ? "text-sky-700 active:bg-sky-50" : "text-gray-300"
+            }`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            SMS
+          </a>
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard?new=1&client_id=${selectedClient.id}`)}
+            className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold text-violet-700 active:bg-violet-50"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+              <line x1="12" y1="13" x2="12" y2="19" />
+              <line x1="9" y1="16" x2="15" y2="16" />
+            </svg>
+            Записать
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/chats?client_id=${selectedClient.id}`)}
+            className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold text-gray-700 active:bg-gray-50"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+            </svg>
+            Чат
+          </button>
         </div>
 
         {confirmDelete && (
@@ -156,9 +238,28 @@ export default function ClientsPage() {
       <PageHeader
         title={`Клиенты (${filtered.length})`}
         rightContent={
-          <button type="button" onClick={() => setCreating(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-500 lg:hover:bg-gray-100">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                const order: SortKey[] = ["recent", "name", "revenue", "equipment"];
+                const next = order[(order.indexOf(sort) + 1) % order.length];
+                setSort(next);
+              }}
+              title={`Сортировка: ${SORT_LABELS[sort]}`}
+              className="h-9 px-2.5 flex items-center gap-1 rounded-lg text-white lg:text-gray-700 hover:bg-violet-500 lg:hover:bg-gray-100 text-[12px] font-medium"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="15" y2="12" />
+                <line x1="3" y1="18" x2="9" y2="18" />
+              </svg>
+              {SORT_LABELS[sort]}
+            </button>
+            <button type="button" onClick={() => setCreating(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-500 lg:hover:bg-gray-100">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            </button>
+          </>
         }
       />
 
@@ -252,10 +353,24 @@ export default function ClientsPage() {
                         {[client.city, client.property_type ? PROPERTY_LABELS[client.property_type as PropertyType] : null].filter(Boolean).join(" · ")}
                       </div>
                     )}
-                    {((client.equipment.length > 0) || (rev && rev.total > 0)) && (
-                      <div className="text-[12px] text-gray-500 mt-0.5">
-                        {client.equipment.length > 0 && <span>{pluralizeAC(client.equipment.length)}</span>}
-                        {rev && rev.total > 0 && <span className="text-emerald-600 font-medium ml-2">€{rev.total}</span>}
+                    {((client.equipment.length > 0) || (rev && rev.total > 0) || client.balance < 0 || client.blacklisted) && (
+                      <div className="flex items-center gap-2 flex-wrap text-[12px] mt-0.5">
+                        {client.blacklisted && (
+                          <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold text-[10px]">
+                            Чёрный список
+                          </span>
+                        )}
+                        {client.balance < 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold tabular-nums">
+                            Долг €{Math.abs(client.balance)}
+                          </span>
+                        )}
+                        {client.equipment.length > 0 && (
+                          <span className="text-gray-500">{pluralizeAC(client.equipment.length)}</span>
+                        )}
+                        {rev && rev.total > 0 && (
+                          <span className="text-emerald-600 font-medium tabular-nums">€{rev.total}</span>
+                        )}
                       </div>
                     )}
                     {client.tag_ids.length > 0 && (

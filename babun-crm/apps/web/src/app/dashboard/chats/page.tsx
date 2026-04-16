@@ -48,6 +48,21 @@ export default function ChatsPage() {
     setChats(loadChats());
   }, []);
 
+  // Opening /dashboard/chats?client_id=X from the client card's sticky bar
+  // — auto-activate the existing chat for that client if there is one.
+  // If no chat exists yet we silently land on the list (Dima can still
+  // create one manually). Read directly from window.location so Next 16
+  // doesn't trip us into a CSR bailout.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const clientId = params.get("client_id");
+    if (!clientId) return;
+    const chat = chats.find((c) => c.client_id === clientId);
+    if (chat) setActiveChatId(chat.id);
+    window.history.replaceState({}, "", "/dashboard/chats");
+  }, [chats]);
+
   const persist = (next: Chat[]) => {
     setChats(next);
     saveChats(next);
