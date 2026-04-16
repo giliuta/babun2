@@ -196,7 +196,9 @@ function DayColumnInner({
           if ((e.target as HTMLElement).closest("button")) return;
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[70px] lg:h-[78px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:bg-gray-50 px-1 pt-1.5 pb-1 bg-white`}
+        className={`relative sticky top-0 z-20 h-[70px] lg:h-[78px] border-b border-gray-200 border-r border-gray-200 text-center cursor-pointer active:bg-gray-50 px-1 pt-1.5 pb-1 ${
+          isToday ? "bg-emerald-50/50" : "bg-white"
+        }`}
       >
         {/* City — мелкий текст цветом города (или "+ город" серым).
             Обычная кнопка, без фонов. */}
@@ -225,16 +227,13 @@ function DayColumnInner({
           </button>
         )}
 
-        {/* Weekday + short month — gray. Сегодня — emerald, выходной
-            — amber для weekday only, месяц остаётся серым. */}
+        {/* Weekday + short month — weekday серый (amber на выходных),
+            месяц всегда тихий серый. Сегодня НЕ подсвечивается — его
+            единственная визуальная метка это зеленоватый фон колонки. */}
         <div className="mt-1.5 flex items-center justify-center gap-1 leading-none">
           <span
             className={`text-[10px] lg:text-[11px] font-semibold ${
-              isToday
-                ? "text-emerald-600"
-                : isWeekend
-                ? "text-amber-600"
-                : "text-gray-500"
+              isWeekend ? "text-amber-600" : "text-gray-500"
             }`}
           >
             {dayName.toUpperCase()}
@@ -248,18 +247,12 @@ function DayColumnInner({
           </span>
         </div>
 
-        {/* Day number — neutral dark gray. Сегодня — ровный emerald
-            круг. Без градиентов, теней. */}
+        {/* Day number — одинаково для всех дней, в т.ч. сегодня.
+            Только фон колонки даёт намёк. */}
         <div className="mt-1 flex items-center justify-center leading-none">
-          {isToday ? (
-            <span className="inline-flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-emerald-500 text-white text-[15px] lg:text-[16px] font-bold tabular-nums">
-              {date.getDate()}
-            </span>
-          ) : (
-            <span className="text-[20px] lg:text-[22px] font-bold tabular-nums text-gray-900">
-              {date.getDate()}
-            </span>
-          )}
+          <span className="text-[20px] lg:text-[22px] font-bold tabular-nums text-gray-900">
+            {date.getDate()}
+          </span>
         </div>
 
         {/* Right-side booking count pill — ненавязчиво, в углу */}
