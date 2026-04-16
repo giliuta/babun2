@@ -483,6 +483,7 @@ export default function DashboardPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("new") === "1") {
       const clientId = params.get("client_id");
+      const client = clientId ? clients.find((c) => c.id === clientId) : null;
       const today = new Date();
       const blank = createBlankAppointment({
         date: today.toISOString().slice(0, 10),
@@ -490,12 +491,13 @@ export default function DashboardPage() {
         time_end: "11:00",
         team_id: activeTeamId || null,
         client_id: clientId || null,
+        address: client?.address ?? "",
         kind: "work",
       });
       setInlineSheet({ mode: "new", initial: blank });
       router.replace("/dashboard");
     }
-  }, [activeTeamId, router]);
+  }, [activeTeamId, router, clients]);
 
   // Long-press action menu on an existing appointment.
   const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);

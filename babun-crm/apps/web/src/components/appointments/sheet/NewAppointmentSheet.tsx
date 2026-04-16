@@ -919,7 +919,17 @@ export default function NewAppointmentSheet({
       <ClientPickerSheet
         open={clientSheet}
         onClose={() => setClientSheet(false)}
-        onSelect={(c) => setClientId(c.id)}
+        onSelect={(c) => {
+          setClientId(c.id);
+          // Auto-fill address from client's profile only when empty —
+          // don't trample what the dispatcher just typed. "address" in c
+          // because DraftClient has no address field.
+          if ("address" in c && !address.trim() && c.address) {
+            setAddress(c.address);
+            setAddressLat(null);
+            setAddressLng(null);
+          }
+        }}
         clients={clients}
         draftClients={draftClients}
         recentClientIds={recentClientIds}

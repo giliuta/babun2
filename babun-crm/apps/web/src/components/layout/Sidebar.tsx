@@ -17,6 +17,7 @@ export type DialogType =
   | "services"
   | "sms-templates"
   | "schedule"
+  | "route"
   | null;
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   services: "/dashboard/services",
   "sms-templates": "/dashboard/sms-templates",
   schedule: "/dashboard/schedule",
+  route: "/dashboard/route",
 };
 
 export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
@@ -140,6 +142,16 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             label="Клиенты"
             active={isActive("clients")}
             onClick={() => handleNav("clients")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="3 11 22 2 13 21 11 13 3 11" />
+              </svg>
+            }
+            label="Маршрут дня"
+            active={isActive("route")}
+            onClick={() => handleNav("route")}
           />
           <NavItem
             icon={
