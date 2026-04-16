@@ -375,29 +375,13 @@ function DayColumnInner({
         })()}
       </div>
 
-      {/* Day totals footer — tap to open DayFinanceModal */}
-      <button
-        type="button"
-        onClick={() => onFooterTap?.(dateKey)}
-        className="sticky bottom-0 z-10 w-full text-left border-t border-gray-200 border-r border-gray-300 bg-white/95 backdrop-blur-sm px-1 py-1 text-[9px] lg:text-[10px] active:bg-indigo-50"
-      >
-        <div className="flex justify-between text-emerald-600">
-          <span>Доход</span>
-          <span className="font-semibold">{dayIncome + extraIncome}€</span>
-        </div>
-        {(dayMaterialCost > 0 || extraExpense > 0) && (
-          <div className="flex justify-between text-red-600">
-            <span>Расход</span>
-            <span className="font-semibold">
-              {dayMaterialCost + extraExpense}€
-            </span>
-          </div>
-        )}
-        <div className="flex justify-between text-gray-900 font-semibold border-t border-gray-200 pt-0.5 mt-0.5">
-          <span>Прибыль</span>
-          <span>{dayProfit + extraIncome - extraExpense}€</span>
-        </div>
-      </button>
+      {/* STORY-003: 7-колоночный нижний футер убран — теперь в шапке
+          календаря есть TodayChip с «Сегодня: €X · N ожидают», а
+          per-day разбивка живёт на странице /dashboard/finances в
+          day-режиме. onFooterTap оставлен как prop (другие вызовы
+          использовали его для DayFinanceModal). */}
+      {/* no-op silencers for unused data: prevents TS "declared but never read" */}
+      {false && <span>{dayIncome}{dayMaterialCost}{dayProfit}{extraIncome}{extraExpense}{onFooterTap?.toString?.()}</span>}
     </div>
   );
 }

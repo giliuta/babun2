@@ -188,9 +188,42 @@ function AppointmentBlockInner({
           {!appointment.address && colorKind === "no_address" && <span>⚠️</span>}
           {hasPhotos && <span>📷</span>}
         </div>
+
+        {/* STORY-003 status badge — top right corner.
+            completed → ✓ (зелёный круг)
+            scheduled + время прошло → ⏱ (янтарный круг, ждёт оплаты)
+            in_progress / cancelled / scheduled в будущем — нет. */}
+        <StatusBadge appointment={appointment} />
       </div>
     </button>
   );
+}
+
+function StatusBadge({ appointment }: { appointment: Appointment }) {
+  const { status, date, time_end } = appointment;
+  if (status === "completed") {
+    return (
+      <div className="absolute top-0.5 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+    );
+  }
+  if (status === "scheduled") {
+    const end = new Date(`${date}T${time_end}:00`);
+    if (end.getTime() < Date.now()) {
+      return (
+        <div className="absolute top-0.5 right-1 w-3.5 h-3.5 rounded-full bg-amber-500 flex items-center justify-center">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+      );
+    }
+  }
+  return null;
 }
 
 const AppointmentBlock = memo(AppointmentBlockInner);

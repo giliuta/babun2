@@ -61,6 +61,10 @@ import {
 import { sumExtras } from "@/lib/day-extras";
 import { loadChats } from "@/lib/chats";
 import SuccessOverlay from "@/components/booking/SuccessOverlay";
+import PaymentSheet from "@/components/finance/PaymentSheet";
+import ExpenseSheet from "@/components/finance/ExpenseSheet";
+import TodayChip from "@/components/calendar/TodayChip";
+import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
 
 
 const HOUR_HEIGHT_MIN = 24;
@@ -460,6 +464,13 @@ export default function DashboardPage() {
     chatHref?: string;
   } | null>(null);
 
+  // STORY-003: payment + expense sheet state.
+  const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
+  const [expenseFor, setExpenseFor] = useState<{
+    dateKey: string;
+    dayLabel: string;
+  } | null>(null);
+
   // Recent-in-chats: client IDs that have a chat with activity in the
   // last 48h. Surfaced at the top of the ClientPicker for faster access.
   const recentInChats = useMemo(() => {
@@ -848,6 +859,14 @@ export default function DashboardPage() {
   // No disabled stubs, no rarely-used items.
   const longPressOptions: ActionMenuOption[] = longPressApt
     ? [
+        // STORY-003: "Отметить оплату" for scheduled appointments
+        // opens the PaymentSheet (cash / card / cancel).
+        ...(longPressApt.status === "scheduled" && longPressApt.kind === "work"
+          ? [{
+              label: "💵 Отметить оплату",
+              onSelect: () => setPaymentApt(longPressApt),
+            }]
+          : []),
         // Quick status changes — the most common action
         ...(longPressApt.status !== "completed"
           ? [{
@@ -909,6 +928,33 @@ export default function DashboardPage() {
         onSelectDate={handleSelectDate}
         onMenuToggle={sidebar.toggle}
       />
+
+      {/* STORY-003: thin action bar under the header.
+          Single TodayChip replaces the 7-column per-day income footer. */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-1 flex items-center gap-2">
+        <TodayChip
+          appointments={visibleAppointments}
+          teamId={activeTeamId}
+          onOpen={() => router.push("/dashboard/finances")}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, "0");
+            const d = String(today.getDate()).padStart(2, "0");
+            setExpenseFor({
+              dateKey: `${y}-${m}-${d}`,
+              dayLabel: "Сегодня",
+            });
+          }}
+          className="flex items-center gap-1 h-7 px-2.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-semibold active:bg-rose-100"
+        >
+          <span>+</span> Расход
+        </button>
+        {Object.keys(EXPENSE_CATEGORIES).length > 0 && null}
+      </div>
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
       <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
@@ -1060,6 +1106,69 @@ export default function DashboardPage() {
           onDone={() => setSavedSuccess(null)}
         />
       )}
+
+      {/* STORY-003 — PaymentSheet. Долгий тап по scheduled-записи →
+          «Отметить оплату» → этот sheet. Создаёт Payment и меняет
+          status на completed. */}
+      <PaymentSheet
+        open={paymentApt !== null}
+        onClose={() => setPaymentApt(null)}
+        appointment={paymentApt}
+        clientName={
+          paymentApt?.client_id
+            ? clients.find((c) => c.id === paymentApt.client_id)?.full_name ?? paymentApt.comment ?? ""
+            : paymentApt?.comment ?? ""
+        }
+        onPay={(method) => {
+          if (!paymentApt) return;
+          const payment = {
+            id: `pay-${Date.now()}`,
+            method,
+            amount: paymentApt.total_amount,
+            paid_at: new Date().toISOString(),
+          };
+          upsertAppointment({
+            ...paymentApt,
+            status: "completed",
+            payments: [...paymentApt.payments, payment],
+            updated_at: new Date().toISOString(),
+          });
+          setPaymentApt(null);
+          setLongPressApt(null);
+        }}
+        onCancel={() => {
+          if (!paymentApt) return;
+          upsertAppointment({
+            ...paymentApt,
+            status: "cancelled",
+            updated_at: new Date().toISOString(),
+          });
+          setPaymentApt(null);
+          setLongPressApt(null);
+        }}
+      />
+
+      {/* STORY-003 — ExpenseSheet. Интегрируется с существующим
+          day-extras механизмом. Добавляет category на DayExtra. */}
+      <ExpenseSheet
+        open={expenseFor !== null}
+        onClose={() => setExpenseFor(null)}
+        dayLabel={expenseFor?.dayLabel}
+        teamLabel={activeTeam?.name}
+        onSave={({ category, amount, name }) => {
+          if (!expenseFor || !activeTeamId) return;
+          const current = getExtrasFor(activeTeamId, expenseFor.dateKey);
+          const entry = {
+            id: `ex-${Date.now()}`,
+            name,
+            amount,
+            kind: "expense" as const,
+            category,
+          };
+          setExtrasFor(activeTeamId, expenseFor.dateKey, [...current, entry]);
+          setExpenseFor(null);
+        }}
+      />
 
       {/* Appointment long-press action menu */}
       <ActionMenuModal

@@ -7,11 +7,17 @@ const STORAGE_KEY = "babun-day-extras";
 
 export type DayExtraKind = "income" | "expense";
 
+/** STORY-003: quick-pick категория расхода. Совпадает с ключами
+ *  EXPENSE_CATEGORIES в lib/finance/expense-categories.ts. */
+export type ExpenseCategoryKey = "fuel" | "food" | "supplies" | "other";
+
 export interface DayExtra {
   id: string;
   name: string;
   amount: number; // positive; sign is implied by kind
   kind: DayExtraKind;
+  /** Категория — только для расходов. Income-extras её не используют. */
+  category?: ExpenseCategoryKey;
 }
 
 export type DayExtrasMap = Record<string, DayExtra[]>; // key = "teamId:date"
