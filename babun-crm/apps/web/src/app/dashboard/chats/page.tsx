@@ -591,7 +591,15 @@ function ChatDetailView({
             <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
             <div className="absolute right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-50 min-w-[200px]">
               <MenuItem label={chat.is_pinned ? "Открепить" : "Закрепить"} onClick={onTogglePin} />
-              {linkedClient && <MenuItem label="Открыть карточку" onClick={() => { onTogglePanel(); setHeaderMenu(false); }} />}
+              {linkedClient && (
+                <MenuItem
+                  label="Открыть карточку клиента"
+                  onClick={() => {
+                    setHeaderMenu(false);
+                    window.location.href = `/dashboard/clients?id=${linkedClient.id}`;
+                  }}
+                />
+              )}
               {!linkedClient && <MenuItem label="Создать клиента" onClick={onCreateClient} />}
               <MenuItem label="📅 Записать на приём" onClick={() => {
                 setHeaderMenu(false);
@@ -609,11 +617,15 @@ function ChatDetailView({
       {/* Client link banner */}
       <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200" style={{ backgroundColor: linkedClient ? "#f0fdf4" : "#f5f3ff" }}>
         {linkedClient ? (
-          <button type="button" onClick={onTogglePanel} className="flex items-center gap-2 text-[12px] text-green-700 active:opacity-80 w-full text-left">
+          <a
+            href={`/dashboard/clients?id=${linkedClient.id}`}
+            className="flex items-center gap-2 text-[12px] text-green-700 active:opacity-80 w-full text-left"
+          >
             <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
             <span className="flex-1">✓ {linkedClient.full_name}</span>
+            <span className="text-[10px] uppercase tracking-wide text-green-600 font-semibold">Карточка</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-400"><polyline points="9 18 15 12 9 6" /></svg>
-          </button>
+          </a>
         ) : (
           <button type="button" onClick={onCreateClient} className="text-[12px] font-semibold text-violet-600">
             + Привязать к клиенту

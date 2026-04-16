@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -38,6 +38,20 @@ export default function ClientsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
+
+  // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
+  // Dima taps "Открыть карточку" in a chat and lands directly on the
+  // full client detail view. URL is tidied up after consumption.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    if (id && !selectedId) {
+      setSelectedId(id);
+      window.history.replaceState({}, "", "/dashboard/clients");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Compute revenue per client
   const revenueMap = useMemo(() => {

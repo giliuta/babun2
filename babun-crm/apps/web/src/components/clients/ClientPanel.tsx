@@ -60,6 +60,37 @@ export default function ClientPanel({
     onUpdate({ ...client, [key]: value });
   };
 
+  // Chats linked to this client are the canonical source for messenger
+  // handles — if Dima already chats with them on Telegram, there's no
+  // reason to re-type the @username. On mount and whenever chats change
+  // we fill in empty fields from the chat metadata. Non-empty fields
+  // are never overwritten (user typing wins).
+  useEffect(() => {
+    const chats = loadChats().filter((c) => c.client_id === client.id);
+    if (chats.length === 0) return;
+    const patch: Partial<Client> = {};
+    for (const chat of chats) {
+      if (chat.channel === "telegram" && !client.telegram_username && chat.contact_handle) {
+        patch.telegram_username = chat.contact_handle;
+      }
+      if (chat.channel === "instagram" && !client.instagram_username && chat.contact_handle) {
+        patch.instagram_username = chat.contact_handle;
+      }
+      if (chat.channel === "whatsapp" && !client.whatsapp_phone && chat.contact_phone && chat.contact_phone !== client.phone) {
+        patch.whatsapp_phone = chat.contact_phone;
+      }
+      if (!client.phone && chat.contact_phone) {
+        patch.phone = chat.contact_phone;
+      }
+    }
+    if (Object.keys(patch).length > 0) {
+      onUpdate({ ...client, ...patch });
+    }
+    // Intentionally depend only on client.id — we want this to run once
+    // per client selection, not on every tick as other fields change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.id]);
+
   const servicesById = useMemo(() => {
     const map = new Map<string, string>();
     for (const s of services) map.set(s.id, s.name);
@@ -167,7 +198,7 @@ function ProfileForm({
           type="text"
           value={client.full_name}
           onChange={(e) => update("full_name", e.target.value)}
-          className="w-full bg-transparent text-[16px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
         />
       </FieldRow>
 
@@ -183,7 +214,7 @@ function ProfileForm({
           value={client.sms_name}
           onChange={(e) => update("sms_name", e.target.value)}
           placeholder={client.full_name.split(" ")[0] || "Имя"}
-          className="w-full bg-transparent text-[16px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
         />
       </FieldRow>
 
@@ -269,13 +300,12 @@ function PhonesSection({
   };
 
   return (
-    <div className="px-4 pt-3 pb-3 space-y-2">
+    <div className="px-4 pt-2 pb-2 space-y-1.5">
       <div className="text-[11px] text-gray-500">Телефоны</div>
       <PhoneRow
         number={client.phone}
         label="Основной"
         onNumberChange={(v) => update("phone", v)}
-        // no label edit / remove on the primary — it's the canonical one
         primary
       />
       {client.phones.map((p) => (
@@ -291,7 +321,7 @@ function PhonesSection({
       <button
         type="button"
         onClick={addPhone}
-        className="w-full h-10 border border-dashed border-gray-300 rounded-xl text-[13px] text-violet-600 font-semibold active:bg-violet-50"
+        className="w-full h-8 border border-dashed border-gray-300 rounded-lg text-[12px] text-violet-600 font-semibold active:bg-violet-50"
       >
         + Добавить номер
       </button>
@@ -316,62 +346,60 @@ function PhoneRow({
 }) {
   const digits = number.replace(/\D/g, "");
   return (
-    <div className="bg-gray-50 rounded-xl p-2 space-y-1.5">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1.5">
+      <div className="text-violet-500 shrink-0">
         <IconPhone />
-        <input
-          type="tel"
-          value={number}
-          onChange={(e) => onNumberChange(e.target.value)}
-          placeholder="+357..."
-          className="flex-1 bg-transparent text-[16px] text-gray-900 tabular-nums focus:outline-none"
-        />
-        {digits && (
-          <>
-            <a
-              href={`tel:${digits}`}
-              aria-label="Позвонить"
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 active:bg-emerald-100"
-            >
-              <IconPhone />
-            </a>
-            <a
-              href={`sms:${digits}`}
-              aria-label="Отправить SMS"
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-sky-50 text-sky-700 active:bg-sky-100"
-            >
-              <IconChat />
-            </a>
-          </>
-        )}
       </div>
-      <div className="flex items-center gap-2">
-        {primary ? (
-          <span className="text-[11px] text-gray-500 px-2">{label}</span>
-        ) : (
-          <select
-            value={label}
-            onChange={(e) => onLabelChange?.(e.target.value)}
-            className="flex-1 h-8 bg-white border border-gray-200 rounded-md px-2 text-[12px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-500"
+      <input
+        type="tel"
+        value={number}
+        onChange={(e) => onNumberChange(e.target.value)}
+        placeholder="+357..."
+        className="w-[38%] min-w-0 bg-transparent text-[14px] text-gray-900 tabular-nums focus:outline-none"
+      />
+      {primary ? (
+        <span className="text-[11px] text-gray-500 px-1 shrink-0">{label}</span>
+      ) : (
+        <select
+          value={label}
+          onChange={(e) => onLabelChange?.(e.target.value)}
+          className="min-w-0 flex-1 h-7 bg-white border border-gray-200 rounded text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-500 px-1"
+        >
+          {PHONE_LABEL_OPTIONS.concat(
+            PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
+          ).map((l) => (
+            <option key={l} value={l}>{l}</option>
+          ))}
+        </select>
+      )}
+      {digits && (
+        <>
+          <a
+            href={`tel:${digits}`}
+            aria-label="Позвонить"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700 active:bg-emerald-200 shrink-0"
           >
-            {PHONE_LABEL_OPTIONS.concat(
-              PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
-            ).map((l) => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </select>
-        )}
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            aria-label="Удалить номер"
-            className="w-8 h-8 flex items-center justify-center text-gray-400 active:text-rose-500"
+            <IconPhone />
+          </a>
+          <a
+            href={`sms:${digits}`}
+            aria-label="Отправить SMS"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-sky-100 text-sky-700 active:bg-sky-200 shrink-0"
           >
-            ✕
-          </button>
-        )}
-      </div>
+            <IconChat />
+          </a>
+        </>
+      )}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Удалить номер"
+          className="w-7 h-7 flex items-center justify-center text-gray-400 active:text-rose-500 shrink-0"
+        >
+          ✕
+        </button>
+      )}
     </div>
   );
 }
@@ -390,44 +418,39 @@ function MessengersSection({
   const waDigits = (client.whatsapp_phone || client.phone).replace(/\D/g, "");
 
   return (
-    <div className="px-4 pt-3 pb-3 space-y-2">
+    <div className="px-4 pt-2 pb-2 space-y-1.5">
       <div className="text-[11px] text-gray-500">Мессенджеры</div>
 
       <MessengerRow
         icon={<IconTelegram />}
-        color="bg-sky-50 text-sky-600"
+        color="bg-sky-100 text-sky-600"
         label="Telegram"
         value={client.telegram_username}
-        placeholder="@username"
+        placeholder="Telegram @username"
         onChange={(v) => update("telegram_username", v)}
         openUrl={tg ? `https://t.me/${tg}` : undefined}
       />
 
       <MessengerRow
         icon={<IconInstagram />}
-        color="bg-pink-50 text-pink-600"
+        color="bg-pink-100 text-pink-600"
         label="Instagram"
         value={client.instagram_username}
-        placeholder="@username"
+        placeholder="Instagram @username"
         onChange={(v) => update("instagram_username", v)}
         openUrl={ig ? `https://instagram.com/${ig}` : undefined}
       />
 
       <MessengerRow
         icon={<IconWhatsapp />}
-        color="bg-emerald-50 text-emerald-600"
+        color="bg-emerald-100 text-emerald-600"
         label="WhatsApp"
         value={client.whatsapp_phone}
         placeholder={
-          client.phone ? `По умолчанию: ${client.phone}` : "+357..."
+          client.phone ? `WhatsApp (по умолчанию ${client.phone})` : "WhatsApp номер"
         }
         onChange={(v) => update("whatsapp_phone", v)}
         openUrl={waDigits ? `https://wa.me/${waDigits}` : undefined}
-        hint={
-          !client.whatsapp_phone && client.phone
-            ? "Если WhatsApp на том же номере — оставьте пусто"
-            : undefined
-        }
       />
     </div>
   );
@@ -441,7 +464,6 @@ function MessengerRow({
   placeholder,
   onChange,
   openUrl,
-  hint,
 }: {
   icon: React.ReactNode;
   color: string;
@@ -450,29 +472,26 @@ function MessengerRow({
   placeholder?: string;
   onChange: (v: string) => void;
   openUrl?: string;
+  /** legacy, kept for call-site compat */
   hint?: string;
 }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-2 flex items-center gap-2">
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${color}`}>
+    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${color}`} aria-label={label}>
         {icon}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[10px] text-gray-500">{label}</div>
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
-        />
-        {hint && <div className="text-[10px] text-gray-400 mt-0.5">{hint}</div>}
-      </div>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 min-w-0 bg-transparent text-[14px] text-gray-900 focus:outline-none"
+      />
       {openUrl && (
         <a
           href={openUrl}
           target="_blank"
           rel="noreferrer"
-          className="h-9 px-3 rounded-lg bg-white border border-gray-200 text-[12px] font-semibold text-violet-700 active:bg-violet-50 flex items-center"
+          className="h-7 px-2.5 rounded-md bg-white border border-gray-200 text-[11px] font-semibold text-violet-700 active:bg-violet-50 flex items-center shrink-0"
         >
           Открыть
         </a>
@@ -502,19 +521,18 @@ function ContactSourcesSection({ clientId }: { clientId: string }) {
   if (linked.length === 0) return null;
 
   return (
-    <div className="px-4 pt-3 pb-3">
-      <div className="text-[11px] text-gray-500 mb-1.5">Где связывался с нами</div>
-      <div className="flex flex-wrap gap-1.5">
+    <div className="px-4 pt-2 pb-2">
+      <div className="text-[11px] text-gray-500 mb-1">Где связывался</div>
+      <div className="flex flex-wrap gap-1">
         {linked.map((chat) => (
           <a
             key={chat.id}
             href={`/dashboard/chats?client_id=${clientId}`}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold text-white active:scale-[0.98]"
+            className="flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-semibold text-white active:scale-[0.98]"
             style={{ background: CHANNEL_COLORS[chat.channel as ChatChannel] || "#8b5cf6" }}
           >
             <ChannelGlyph channel={chat.channel as ChatChannel} />
             {CHANNEL_LABELS[chat.channel as ChatChannel]}
-            <span className="ml-1 opacity-80">→</span>
           </a>
         ))}
       </div>
@@ -971,10 +989,10 @@ function FieldRow({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="px-4 pt-3 pb-3">
-      <div className="text-[11px] text-gray-500 mb-1">{label}</div>
-      <div className="flex items-center gap-3">
-        <div className="w-6 h-6 flex items-center justify-center text-violet-500 shrink-0">
+    <div className="px-4 pt-2 pb-2">
+      <div className="text-[11px] text-gray-500 mb-0.5">{label}</div>
+      <div className="flex items-center gap-2">
+        <div className="w-5 h-5 flex items-center justify-center text-violet-500 shrink-0">
           {icon}
         </div>
         <div className="flex-1 min-w-0">{children}</div>
