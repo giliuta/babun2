@@ -232,30 +232,32 @@ function DayColumnInner({
           </span>
         </div>
 
-        {dayAppointments.length > 0 && !cityLabel && (
-          <div className="mt-0.5 text-[9px] text-gray-400 leading-none">
-            {dayAppointments.length} зап.
-          </div>
-        )}
-
-        {cityLabel && (
+        {/* City: minimal text line in the city colour — no pill, no
+            background. The 3-px hairline at the top of the column
+            already carries the colour; the chip below was duplicating
+            it. If there's no city we just show the booking count (if
+            any) to keep the slot useful. */}
+        {cityLabel ? (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onCityTap?.(dateKey);
             }}
-            className="mt-1 mx-auto block max-w-full text-[9px] lg:text-[10px] font-semibold truncate px-1.5 py-0.5 rounded-full"
-            style={{
-              backgroundColor: cityHex ? `${cityHex}1a` : undefined,
-              color: cityHex ?? undefined,
-            }}
+            className="mt-1 mx-auto block max-w-full text-[10px] lg:text-[11px] font-medium truncate leading-none active:opacity-60"
+            style={{ color: cityHex ?? undefined }}
           >
             {cityLabel}
             {dayAppointments.length > 0 && (
               <span className="opacity-60 ml-1">· {dayAppointments.length}</span>
             )}
           </button>
+        ) : (
+          dayAppointments.length > 0 && (
+            <div className="mt-1 text-[10px] text-gray-400 leading-none">
+              · {dayAppointments.length}
+            </div>
+          )
         )}
       </div>
 
