@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@/lib/clients";
-import { createBlankClient, PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+import { createBlankClient } from "@/lib/clients";
 import { haptic } from "@/lib/haptics";
-import { pluralizeAC } from "@/lib/pluralize";
 
 interface CreateClientModalProps {
   open: boolean;
@@ -24,7 +22,10 @@ interface CreateClientModalProps {
   initialTab?: "new" | "existing";
 }
 
-const CITIES = ["Лимассол", "Пафос", "Ларнака", "Никосия"];
+// Minimal quick-create modal. A client is just a person — name, phone,
+// optional comment. Addresses, cities, property types and equipment all
+// live on each appointment (a client may have multiple objects, and the
+// dispatcher types those details in the record anyway).
 
 export default function CreateClientModal({
   open,
@@ -38,30 +39,15 @@ export default function CreateClientModal({
 }: CreateClientModalProps) {
   const [tab, setTab] = useState<"new" | "existing">(initialTab);
 
-  // New client form — reset every time the modal opens so prefills
-  // from the current chat are picked up correctly.
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [showExtra, setShowExtra] = useState(false);
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [propertyType, setPropertyType] = useState<PropertyType | "">("");
-  const [acCount, setAcCount] = useState(0);
   const [note, setNote] = useState("");
   const [search, setSearch] = useState("");
 
-  // Reset form when modal opens
   useEffect(() => {
     if (open) {
       setName(prefillName);
       setPhone(prefillPhone);
-      setCity("");
-      setShowExtra(false);
-      setEmail("");
-      setAddress("");
-      setPropertyType("");
-      setAcCount(0);
       setNote("");
       setSearch("");
       setTab(initialTab);
@@ -85,28 +71,11 @@ export default function CreateClientModal({
   const handleCreate = () => {
     if (!name.trim()) return;
     haptic("success");
-
-    const equipment = Array.from({ length: acCount }, (_, i) => ({
-      id: generateId("unit"),
-      room: acCount === 1 ? "Основной" : `Кондиционер ${i + 1}`,
-      ac_type: "split" as const,
-      has_indoor: true,
-      has_outdoor: true,
-    }));
-
     const client = createBlankClient({
       full_name: name.trim(),
       phone: phone.trim(),
-      email: email.trim(),
-      address: address.trim(),
-      city: city,
-      property_type: propertyType || "",
-      equipment,
-      notes: note.trim()
-        ? [{ id: generateId("note"), text: note.trim(), created_at: new Date().toISOString() }]
-        : [],
+      comment: note.trim(),
     });
-
     onCreate(client);
     onClose();
   };
@@ -121,7 +90,6 @@ export default function CreateClientModal({
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-white lg:items-center lg:justify-center lg:bg-black/40">
-      {/* Desktop: centered card. Mobile: full screen */}
       <div className="flex flex-col h-full lg:h-auto lg:max-h-[85vh] lg:w-[480px] lg:rounded-2xl lg:bg-white lg:shadow-2xl lg:overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-200">
@@ -151,95 +119,20 @@ export default function CreateClientModal({
             <div className="p-4 space-y-4 pb-28">
               <Field label="Имя *" value={name} onChange={setName} placeholder="Имя клиента" autoFocus />
               <Field label="Телефон" value={phone} onChange={setPhone} placeholder="+357 99 ..." type="tel" />
-
               <div>
-                <div className="text-[12px] font-medium text-gray-500 mb-1">Город</div>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                >
-                  <option value="">Выберите город</option>
-                  {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <div className="text-[12px] font-medium text-gray-500 mb-1">Комментарий</div>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Язык, предпочтения, особенности..."
+                  rows={3}
+                  className="w-full px-3 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
               </div>
-
-              {/* Collapsible extra */}
-              <button
-                type="button"
-                onClick={() => setShowExtra(!showExtra)}
-                className="flex items-center gap-2 text-[14px] font-medium text-violet-600 active:text-violet-700 py-1"
-              >
-                <svg
-                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                  className={`transition-transform ${showExtra ? "rotate-180" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-                Дополнительно
-              </button>
-
-              {showExtra && (
-                <div className="space-y-4 animate-fade-in-up">
-                  <Field label="Email" value={email} onChange={setEmail} placeholder="email@example.com" type="email" />
-                  <Field label="Адрес" value={address} onChange={setAddress} placeholder="Полный адрес" />
-
-                  <div>
-                    <div className="text-[12px] font-medium text-gray-500 mb-1">Тип недвижимости</div>
-                    <select
-                      value={propertyType}
-                      onChange={(e) => setPropertyType(e.target.value as PropertyType)}
-                      className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    >
-                      <option value="">Не указан</option>
-                      {(Object.entries(PROPERTY_LABELS) as [PropertyType, string][]).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* AC stepper */}
-                  <div>
-                    <div className="text-[12px] font-medium text-gray-500 mb-2">Кондиционеров</div>
-                    <div className="flex items-center gap-4 justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setAcCount(Math.max(0, acCount - 1))}
-                        disabled={acCount === 0}
-                        className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center text-[18px] text-gray-700 active:bg-gray-100 disabled:opacity-30"
-                      >
-                        −
-                      </button>
-                      <span className="text-[20px] font-bold text-gray-900 w-8 text-center tabular-nums">
-                        {acCount}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setAcCount(Math.min(50, acCount + 1))}
-                        className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center text-[18px] text-gray-700 active:bg-gray-100"
-                      >
-                        +
-                      </button>
-                    </div>
-                    {acCount > 0 && (
-                      <div className="text-[12px] text-gray-400 text-center mt-1">
-                        {pluralizeAC(acCount)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="text-[12px] font-medium text-gray-500 mb-1">Заметка</div>
-                    <textarea
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="Любая полезная информация о клиенте"
-                      rows={2}
-                      className="w-full px-3 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
-                  </div>
-                </div>
-              )}
+              <p className="text-[12px] text-gray-400">
+                Адрес и оборудование привяжутся при создании записи — у
+                клиента может быть несколько объектов.
+              </p>
             </div>
           ) : (
             <div className="pb-20">
@@ -275,12 +168,8 @@ export default function CreateClientModal({
                         {c.full_name}
                       </div>
                       {c.phone && (
-                        <div className="text-[12px] text-gray-500">{c.phone}</div>
+                        <div className="text-[12px] text-gray-500 tabular-nums">{c.phone}</div>
                       )}
-                      <div className="text-[11px] text-gray-400">
-                        {[c.city, c.property_type ? PROPERTY_LABELS[c.property_type] : null].filter(Boolean).join(" · ")}
-                        {c.equipment.length > 0 && ` · ${pluralizeAC(c.equipment.length)}`}
-                      </div>
                     </div>
                     <button
                       type="button"

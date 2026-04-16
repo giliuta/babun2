@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Client, ACUnit, ACType } from "@/lib/clients";
-import { AC_TYPE_LABELS, PROPERTY_LABELS } from "@/lib/clients";
+import { AC_TYPE_LABELS } from "@/lib/clients";
 import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@/lib/appointments";
 import { useServices, useTeams } from "@/app/dashboard/layout";
@@ -98,7 +98,7 @@ export default function ClientPanel({
       <div className="flex-1">
         {tab === "profile" && (
           <>
-            <ProfileForm client={client} onUpdate={onUpdate} update={update} />
+            <ProfileForm client={client} update={update} />
             <div className="border-t border-gray-100 pt-1">
               <div className="px-4 pt-3 pb-1 text-[11px] text-gray-500 uppercase tracking-wide">
                 Кондиционеры ({client.equipment.length})
@@ -154,16 +154,22 @@ function TabBtn({
 }
 
 // ─── Profile form ────────────────────────────────────────────────────────
+//
+// Минималистичная карточка клиента. Всё, что относится к конкретному
+// визиту — адрес, тип объекта, город, сумма, скидка — живёт в записи,
+// а не в профиле. У одного клиента может быть несколько объектов, и
+// хранить «единый адрес» у клиента было бы ложью. На профиле остаётся
+// только то, что описывает САМОГО человека.
 
 function ProfileForm({
   client,
-  onUpdate,
   update,
 }: {
   client: Client;
-  onUpdate: (c: Client) => void;
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
 }) {
+  const phoneDigits = client.phone.replace(/\D/g, "");
+
   return (
     <div className="divide-y divide-gray-100">
       <FieldRow icon={<IconUser />} label="Имя и фамилия">
@@ -171,7 +177,7 @@ function ProfileForm({
           type="text"
           value={client.full_name}
           onChange={(e) => update("full_name", e.target.value)}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[16px] text-gray-900 focus:outline-none"
         />
       </FieldRow>
 
@@ -179,19 +185,19 @@ function ProfileForm({
         icon={<IconPhone />}
         label="Телефон"
         right={
-          client.phone ? (
-            <div className="flex items-center gap-0.5">
+          phoneDigits ? (
+            <div className="flex items-center gap-1">
               <a
-                href={`tel:${client.phone.replace(/\D/g, "")}`}
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-violet-700 active:bg-violet-50"
+                href={`tel:${phoneDigits}`}
                 aria-label="Позвонить"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 active:bg-emerald-100"
               >
                 <IconPhone />
               </a>
               <a
-                href={`sms:${client.phone.replace(/\D/g, "")}`}
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-violet-700 active:bg-violet-50"
+                href={`sms:${phoneDigits}`}
                 aria-label="Отправить SMS"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-sky-50 text-sky-700 active:bg-sky-100"
               >
                 <IconChat />
               </a>
@@ -204,7 +210,7 @@ function ProfileForm({
           value={client.phone}
           onChange={(e) => update("phone", e.target.value)}
           placeholder="+357..."
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[16px] text-gray-900 tabular-nums focus:outline-none"
         />
       </FieldRow>
 
@@ -214,7 +220,7 @@ function ProfileForm({
           value={client.sms_name}
           onChange={(e) => update("sms_name", e.target.value)}
           placeholder={client.full_name.split(" ")[0] || "Имя"}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[16px] text-gray-900 focus:outline-none"
         />
       </FieldRow>
 
@@ -222,35 +228,8 @@ function ProfileForm({
         <AutoGrowTextarea
           value={client.comment}
           onChange={(v) => update("comment", v)}
-          placeholder="Добавить комментарий"
+          placeholder="Заметки о клиенте: язык, предпочтения, особенности..."
         />
-      </FieldRow>
-
-      <FieldRow
-        icon={<IconMoney />}
-        label="Баланс"
-        right={
-          <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              onClick={() => update("balance", client.balance + 10)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-700 text-[16px] active:bg-gray-300"
-              aria-label="Увеличить"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              onClick={() => update("balance", client.balance - 10)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-700 text-[16px] active:bg-gray-300"
-              aria-label="Уменьшить"
-            >
-              −
-            </button>
-          </div>
-        }
-      >
-        <div className="text-[15px] text-gray-900">{client.balance} EUR</div>
       </FieldRow>
 
       <FieldRow icon={<IconClipboard />} label="Группы">
@@ -260,82 +239,9 @@ function ProfileForm({
         />
       </FieldRow>
 
-      <FieldRow icon={<IconPercent />} label="Скидка">
-        <div className="flex items-center gap-1.5">
-          <input
-            type="number"
-            value={client.discount || ""}
-            onChange={(e) => update("discount", Number(e.target.value) || 0)}
-            className="w-16 bg-gray-50 border border-gray-200 rounded-md px-2 h-8 text-[15px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
-            min={0}
-            max={100}
-          />
-          <span className="text-[13px] text-gray-400">%</span>
-        </div>
-      </FieldRow>
-
-      <FieldRow icon={<IconCake />} label="Дата рождения">
-        <input
-          type="date"
-          value={client.birthday}
-          onChange={(e) => update("birthday", e.target.value)}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
-        />
-      </FieldRow>
-
-      <FieldRow icon={<IconMail />} label="E-mail">
-        <input
-          type="email"
-          value={client.email}
-          onChange={(e) => update("email", e.target.value)}
-          placeholder="Введите E-mail"
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
-        />
-      </FieldRow>
-
-      <FieldRow icon={<IconPin />} label="Адрес">
-        <input
-          type="text"
-          value={client.address}
-          onChange={(e) => update("address", e.target.value)}
-          placeholder="Введите адрес"
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
-        />
-      </FieldRow>
-
-      <FieldRow icon={<IconCity />} label="Город">
-        <select
-          value={client.city}
-          onChange={(e) => update("city", e.target.value)}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
-        >
-          <option value="">Выберите город</option>
-          {["Лимассол", "Пафос", "Ларнака", "Никосия"].map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </FieldRow>
-
-      <FieldRow icon={<IconHouse />} label="Тип объекта">
-        <select
-          value={client.property_type}
-          onChange={(e) =>
-            update("property_type", e.target.value as Client["property_type"])
-          }
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
-        >
-          <option value="">Не указан</option>
-          {(Object.entries(PROPERTY_LABELS) as [Client["property_type"], string][]).map(
-            ([k, v]) => (k ? <option key={k} value={k}>{v}</option> : null)
-          )}
-        </select>
-      </FieldRow>
-
       <FieldRow
         icon={<IconBlock />}
-        label="Черный список"
+        label="Чёрный список"
         right={
           <Toggle
             on={client.blacklisted}
@@ -345,10 +251,10 @@ function ProfileForm({
       >
         {client.blacklisted ? (
           <div className="text-[13px] text-rose-600 font-semibold">
-            Клиент в чёрном списке
+            Клиент заблокирован
           </div>
         ) : (
-          <div className="text-[13px] text-gray-400">Не заблокирован</div>
+          <div className="text-[13px] text-gray-400">—</div>
         )}
       </FieldRow>
     </div>
@@ -1056,68 +962,11 @@ function IconComment() {
     </svg>
   );
 }
-function IconMoney() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v12M15 9a3 3 0 00-3-3H11a3 3 0 000 6h2a3 3 0 010 6H9" />
-    </svg>
-  );
-}
 function IconClipboard() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="8" y="2" width="8" height="4" rx="1" />
       <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
-    </svg>
-  );
-}
-function IconPercent() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="19" y1="5" x2="5" y2="19" />
-      <circle cx="6.5" cy="6.5" r="2.5" />
-      <circle cx="17.5" cy="17.5" r="2.5" />
-    </svg>
-  );
-}
-function IconCake() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M20 21V10a2 2 0 00-2-2H6a2 2 0 00-2 2v11" />
-      <path d="M4 16c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1" />
-      <path d="M12 6V2M10 4l2-2 2 2" />
-    </svg>
-  );
-}
-function IconMail() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-      <polyline points="22,6 12,13 2,6" />
-    </svg>
-  );
-}
-function IconPin() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-function IconCity() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" />
-    </svg>
-  );
-}
-function IconHouse() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 12l9-9 9 9" />
-      <path d="M5 10v10h14V10" />
     </svg>
   );
 }

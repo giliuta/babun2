@@ -5,20 +5,11 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
-import {
-  type Client,
-  type PropertyType,
-  PROPERTY_LABELS,
-  createBlankClient,
-} from "@/lib/clients";
+import { type Client, createBlankClient } from "@/lib/clients";
 import { getPaidAmount } from "@/lib/appointments";
 import { getAvatarColor, getInitials } from "@/lib/avatar-color";
 import { pluralizeAC } from "@/lib/pluralize";
-import MessengerButtons from "@/components/clients/MessengerButtons";
 import ClientPanel from "@/components/clients/ClientPanel";
-import { generateId } from "@/lib/masters";
-
-const CITIES = ["Все", "Лимассол", "Пафос", "Ларнака", "Никосия"];
 
 const TAG_CHIPS = [
   { id: "tag-vip", label: "VIP", active: "bg-amber-100 text-amber-700" },
@@ -42,9 +33,7 @@ export default function ClientsPage() {
   const { clients, upsertClient, deleteClient, tags } = useClients();
   const { appointments } = useAppointments();
   const [search, setSearch] = useState("");
-  const [city, setCity] = useState("Все");
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [showTags, setShowTags] = useState(false);
   const [sort, setSort] = useState<SortKey>("recent");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -74,10 +63,6 @@ export default function ClientsPage() {
       );
     }
 
-    if (city !== "Все") {
-      list = list.filter((c) => c.city === city);
-    }
-
     if (activeTags.length > 0) {
       list = list.filter((c) =>
         activeTags.every((t) => c.tag_ids.includes(t))
@@ -98,7 +83,7 @@ export default function ClientsPage() {
     });
 
     return list;
-  }, [clients, search, city, activeTags, sort, revenueMap]);
+  }, [clients, search, activeTags, sort, revenueMap]);
 
   const toggleTag = (tagId: string) => {
     setActiveTags((prev) =>
@@ -279,37 +264,39 @@ export default function ClientsPage() {
             />
           </div>
 
-          {/* City filter */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-            {CITIES.map((c) => (
-              <button key={c} type="button" onClick={() => setCity(c)}
-                className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
-                  city === c ? "bg-violet-600 text-white" : "bg-white border border-gray-200 text-gray-600"
-                }`}
-              >{c}</button>
-            ))}
-            <button type="button" onClick={() => setShowTags(!showTags)}
-              className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
-                showTags || activeTags.length > 0 ? "bg-violet-100 text-violet-700" : "bg-white border border-gray-200 text-gray-600"
+          {/* Group filter — in-place row of chips, always visible.
+              Tapping a chip toggles; selected chips use their brand colors.
+              No more popover / hidden UI — Dima sees at a glance what's
+              filtered. */}
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+            <button
+              type="button"
+              onClick={() => setActiveTags([])}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition ${
+                activeTags.length === 0
+                  ? "bg-violet-600 text-white"
+                  : "bg-white border border-gray-200 text-gray-600"
               }`}
-            >🏷 {activeTags.length > 0 && `(${activeTags.length})`}</button>
+            >
+              Все
+            </button>
+            {TAG_CHIPS.map((t) => {
+              const on = activeTags.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => toggleTag(t.id)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition ${
+                    on ? t.active : "bg-white border border-gray-200 text-gray-600"
+                  }`}
+                >
+                  {on && "✓ "}
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
-
-          {/* Tag filter */}
-          {showTags && (
-            <div className="flex gap-1.5 flex-wrap animate-fade-in-up">
-              {TAG_CHIPS.map((t) => {
-                const on = activeTags.includes(t.id);
-                return (
-                  <button key={t.id} type="button" onClick={() => toggleTag(t.id)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${
-                      on ? t.active : "bg-gray-100 text-gray-500"
-                    }`}
-                  >{t.label}</button>
-                );
-              })}
-            </div>
-          )}
 
           {/* List */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -346,11 +333,6 @@ export default function ClientsPage() {
                     {client.phone && (
                       <div className="text-[13px] text-gray-600 mt-0.5 truncate tabular-nums">
                         {client.phone}
-                      </div>
-                    )}
-                    {(client.city || client.property_type) && (
-                      <div className="text-[12px] text-gray-500 mt-0.5">
-                        {[client.city, client.property_type ? PROPERTY_LABELS[client.property_type as PropertyType] : null].filter(Boolean).join(" · ")}
                       </div>
                     )}
                     {((client.equipment.length > 0) || (rev && rev.total > 0) || client.balance < 0 || client.blacklisted) && (
@@ -418,31 +400,14 @@ export default function ClientsPage() {
 function CreateClientPage({ onSave, onBack }: { onSave: (c: Client) => void; onBack: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [cityVal, setCityVal] = useState("");
-  const [address, setAddress] = useState("");
-  const [propertyType, setPropertyType] = useState("");
-  const [acCount, setAcCount] = useState(0);
   const [comment, setComment] = useState("");
 
   const handleSave = () => {
     if (!name.trim()) return;
-    const equipment = Array.from({ length: acCount }, (_, i) => ({
-      id: generateId("unit"),
-      room: acCount === 1 ? "Основной" : `Кондиционер ${i + 1}`,
-      ac_type: "split" as const,
-      has_indoor: true,
-      has_outdoor: true,
-    }));
     const client = createBlankClient({
       full_name: name.trim(),
       phone: phone.trim(),
-      email: email.trim(),
-      city: cityVal,
-      address: address.trim(),
-      property_type: propertyType as PropertyType || "",
-      equipment,
-      notes: comment.trim() ? [{ id: generateId("note"), text: comment.trim(), created_at: new Date().toISOString() }] : [],
+      comment: comment.trim(),
     });
     onSave(client);
   };
@@ -454,38 +419,33 @@ function CreateClientPage({ onSave, onBack }: { onSave: (c: Client) => void; onB
         <div className="max-w-lg mx-auto p-4 space-y-4">
           <FormField label="Имя *" value={name} onChange={setName} autoFocus />
           <FormField label="Телефон" value={phone} onChange={setPhone} type="tel" />
-          <FormField label="Email" value={email} onChange={setEmail} type="email" />
-          <div>
-            <div className="text-[12px] font-medium text-gray-500 mb-1">Город</div>
-            <select value={cityVal} onChange={(e) => setCityVal(e.target.value)} className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-violet-500">
-              <option value="">Выберите город</option>
-              {["Лимассол", "Пафос", "Ларнака", "Никосия"].map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <FormField label="Адрес" value={address} onChange={setAddress} />
-          <div>
-            <div className="text-[12px] font-medium text-gray-500 mb-1">Тип</div>
-            <select value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-violet-500">
-              <option value="">Не указан</option>
-              {(Object.entries(PROPERTY_LABELS) as [string, string][]).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div>
-            <div className="text-[12px] font-medium text-gray-500 mb-2">Кондиционеров</div>
-            <div className="flex items-center gap-4 justify-center">
-              <button type="button" onClick={() => setAcCount(Math.max(0, acCount - 1))} disabled={acCount === 0} className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center text-[18px] active:bg-gray-100 disabled:opacity-30">−</button>
-              <span className="text-[20px] font-bold w-8 text-center tabular-nums">{acCount}</span>
-              <button type="button" onClick={() => setAcCount(acCount + 1)} className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center text-[18px] active:bg-gray-100">+</button>
-            </div>
-          </div>
           <div>
             <div className="text-[12px] font-medium text-gray-500 mb-1">Комментарий</div>
-            <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="Любая полезная информация" className="w-full px-3 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              placeholder="Язык, предпочтения, особенности..."
+              className="w-full px-3 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
+          <p className="text-[12px] text-gray-400 pt-1">
+            Адрес, кондиционеры и остальное добавите в первой записи — у
+            одного клиента может быть несколько объектов, поэтому всё это
+            живёт в заказе.
+          </p>
         </div>
       </div>
-      <div className="fixed left-0 right-0 bottom-0 z-[60] bg-white border-t border-gray-200 px-4 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 12px) + 12px)" }}>
-        <button type="button" onClick={handleSave} disabled={!name.trim()} className="w-full h-12 rounded-xl bg-violet-600 text-white text-[15px] font-semibold active:scale-[0.98] disabled:opacity-50">
+      <div
+        className="fixed left-0 right-0 bottom-0 z-[60] bg-white border-t border-gray-200 px-4 pt-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 12px) + 12px)" }}
+      >
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!name.trim()}
+          className="w-full h-12 rounded-xl bg-violet-600 text-white text-[15px] font-semibold active:scale-[0.98] disabled:opacity-50"
+        >
           Создать клиента
         </button>
       </div>
