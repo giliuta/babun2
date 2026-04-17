@@ -363,7 +363,13 @@ function DayColumnInner({
           const layout = computeOverlapLayout(dayAppointments);
           return dayAppointments.map((apt) => {
             const validation = validateApt(apt);
-            const colorKind = getAppointmentColorKind(apt, validation);
+            const client = apt.client_id ? clientsById[apt.client_id] : null;
+            const colorKind = getAppointmentColorKind(
+              apt,
+              validation,
+              undefined,
+              client?.property_type ?? null
+            );
             const pos = layout.get(apt.id) ?? { col: 0, total: 1 };
             const widthPct = 100 / pos.total;
             const leftPct = pos.col * widthPct;

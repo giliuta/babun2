@@ -346,10 +346,17 @@ export type AppointmentColorKind =
  *   8. прошлая но не выполнена → серый выцветший
  *   9. обычная запись → синий
  */
+// Commercial property types — team needs a different ladder + other
+// gear than a residential visit. Kept as strings to avoid a cyclic
+// import of PropertyType from clients.ts (clients imports appointments
+// for its Appointment type).
+const COMMERCIAL_PROPERTY_TYPES = ["office", "restaurant", "shop"] as const;
+
 export function getAppointmentColorKind(
   apt: Appointment,
   _validation: ValidationResult,
-  now: Date = new Date()
+  now: Date = new Date(),
+  clientPropertyType?: string | null
 ): AppointmentColorKind {
   if (apt.status === "cancelled") return "cancelled";
   if (apt.kind === "event" || apt.kind === "personal") return "event";
@@ -364,15 +371,20 @@ export function getAppointmentColorKind(
   // Dima forgets to follow up, team doesn't know where to go.
   if (!apt.address || apt.address.trim().length < 3) return "no_address";
 
+  // Commercial property — team needs different ladder + equipment.
+  // Checked before `tentative` so a far-out office visit still gets
+  // the orange warning (equipment matters more than tentative-ness).
+  if (
+    clientPropertyType &&
+    (COMMERCIAL_PROPERTY_TYPES as readonly string[]).includes(clientPropertyType)
+  ) {
+    return "commercial";
+  }
+
   // Tentative — appointment more than 30 days away, probably
   // a "come back in November" booking that needs confirmation.
   const daysUntil = (aptDate.getTime() - now.getTime()) / 86400000;
   if (daysUntil > 30) return "tentative";
-
-  // Commercial property — team needs different ladder + equipment
-  // Auto-detect from the client's property_type if linked.
-  // For now, check color_override as a fallback signal.
-  // TODO: when client is linked, read client.property_type
 
   return "scheduled";
 }
