@@ -99,6 +99,12 @@ export default function WheelColumn({
         style={{
           WebkitOverflowScrolling: "touch",
           scrollSnapType: "y mandatory",
+          // Shift the "snap origin" down by the top pad rows so
+          // `scroll-snap-align: start` lines each item up with the
+          // selection bar, not with the viewport top. Without this
+          // the browser snaps scrollTop to itemHeight on mount and
+          // the first visible item in the bar becomes index 1.
+          scrollPaddingTop: itemHeight * pad,
           scrollbarWidth: "none",
         }}
       >

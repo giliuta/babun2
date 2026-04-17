@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v132-wheel-picker-accordion";
+export const BUILD_VERSION = "v133-wheel-picker-fixes";

@@ -13,7 +13,7 @@ interface CompactWheelPickerProps {
 const DAYS_BACK = 7;
 const DAYS_FWD = 30;
 const HOUR_MIN = 7;
-const HOUR_MAX = 21;
+const HOUR_MAX = 23;
 const MIN_STEP = 5;
 const MIN_DURATION = 15;
 
@@ -94,7 +94,9 @@ export default function CompactWheelPicker({
   const [sh, sm] = parseTime(timeStart);
   const clampedHour = Math.max(HOUR_MIN, Math.min(HOUR_MAX, sh));
   const hourIdx = clampedHour - HOUR_MIN;
-  const roundedMin = (Math.round(sm / MIN_STEP) * MIN_STEP) % 60;
+  // Floor to the nearest 5 minutes so tapping a slot at :07 lands on
+  // :05 (the earlier tick) rather than :10.
+  const roundedMin = (Math.floor(sm / MIN_STEP) * MIN_STEP) % 60;
   const minIdx = roundedMin / MIN_STEP;
 
   const [eh, em] = parseTime(timeEnd);
@@ -144,28 +146,30 @@ export default function CompactWheelPicker({
           identical rules, so having it per picker is fine. */}
       <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
 
-      <div className="px-3 pt-3 pb-3 flex items-center justify-center gap-2">
+      <div className="px-3 pt-3 pb-3 flex items-center justify-between">
         <WheelColumn
           items={dateLabels}
           selectedIndex={dateIdx}
           onChange={handleDate}
           width={110}
         />
-        <WheelColumn
-          items={hourLabels}
-          selectedIndex={hourIdx}
-          onChange={handleHour}
-          width={44}
-        />
-        <div className="h-[108px] flex items-center text-lg font-bold text-slate-300 select-none">
-          :
+        <div className="flex items-center gap-1">
+          <WheelColumn
+            items={hourLabels}
+            selectedIndex={hourIdx}
+            onChange={handleHour}
+            width={44}
+          />
+          <div className="h-[108px] flex items-center text-lg font-bold text-slate-300 select-none">
+            :
+          </div>
+          <WheelColumn
+            items={minLabels}
+            selectedIndex={minIdx}
+            onChange={handleMin}
+            width={44}
+          />
         </div>
-        <WheelColumn
-          items={minLabels}
-          selectedIndex={minIdx}
-          onChange={handleMin}
-          width={44}
-        />
       </div>
       <div className="px-3 py-2 bg-white border-t border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
