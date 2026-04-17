@@ -71,17 +71,6 @@ const HOUR_HEIGHT_MAX = 480;
 const HOUR_HEIGHT_DEFAULT = 60;
 const HOUR_HEIGHT_STEP = 20;
 
-// STORY-004 — three-level overscroll protection at the top of the day.
-// Calendar opens at INIT_HOUR. Pulling past the current level's minimum
-// scrollTop rubber-bands; releasing past BUMP_THRESHOLD_PX advances to
-// the next level (09 → 07 → 00). Once the user scrolls past RESET_HOUR
-// the protection silently resets to L0 so the walls reappear on the
-// next return to the top.
-const INIT_HOUR = 9;
-const BUMP_THRESHOLD_PX = 60;
-const RESET_HOUR = 11;
-const LEVEL_MIN_HOURS: readonly [number, number, number] = [9, 7, 0];
-
 // Visible build-tag shown at the bottom of the calendar page.
 // Shared with the sidebar via @/lib/version — import is at top of file.
 
@@ -158,18 +147,6 @@ export default function DashboardPage() {
   // Single shared vertical scroller for time column + day columns
   const outerScrollerRef = useRef<HTMLDivElement>(null);
 
-  // STORY-004 overscroll refs — kept outside React state so the hot
-  // touchmove path never triggers a re-render.
-  const currentLevelRef = useRef<0 | 1 | 2>(0);
-  const maxOverscrollRef = useRef(0);
-  const bumpedThisGestureRef = useRef(false);
-  const touchStartYRef = useRef(0);
-  const touchStartScrollRef = useRef(0);
-  // Multi-touch transitions (e.g. a pinch starting from a 1-finger
-  // drag) poison the current gesture — we never want an accidental
-  // bump when the user actually meant to pinch-zoom.
-  const gestureInvalidRef = useRef(false);
-
   // Write --hh on the scroller and update the ref. Does NOT touch React
   // state — intended for the hot path during pinch-zoom.
   const writeHourHeight = useCallback((h: number) => {
@@ -183,36 +160,8 @@ export default function DashboardPage() {
   // whenever the outer scroller is remounted (e.g. after switching from
   // month view back to week) so the freshly-mounted DOM picks up --hh
   // before the user sees a blank "0 px" grid.
-  //
-  // STORY-004: same effect sets the initial scrollTop to INIT_HOUR * hh
-  // so the user lands on 09:00 on a fresh /dashboard load. Direct
-  // assignment — scrollTo({behavior:"smooth"}) is ignored on iOS PWA
-  // -webkit-overflow-scrolling:touch layers. On cold start scrollHeight
-  // can briefly be 0 (day columns not measured yet), in which case the
-  // browser clamps scrollTop to 0. A single rAF retry plus a 400 ms
-  // safety net cover both the layout race and the "restore from
-  // background" case where the first scroll gets eaten.
   useLayoutEffect(() => {
     writeHourHeight(hourHeightRef.current);
-    if (viewMode === "month") return;
-    const el = outerScrollerRef.current;
-    if (!el) return;
-    currentLevelRef.current = 0;
-    const target = INIT_HOUR * hourHeightRef.current;
-    const tryLand = () => {
-      if (!outerScrollerRef.current) return false;
-      const s = outerScrollerRef.current;
-      if (s.scrollHeight < target + 1) return false;
-      s.scrollTop = target;
-      return s.scrollTop >= target - 1;
-    };
-    if (!tryLand()) {
-      requestAnimationFrame(() => {
-        if (!tryLand()) {
-          window.setTimeout(tryLand, 400);
-        }
-      });
-    }
   }, [writeHourHeight, viewMode]);
 
   // Seed with mock data on first visit only
@@ -637,130 +586,6 @@ export default function DashboardPage() {
   const handleZoomOut = useCallback(() => {
     zoomBy(hourHeightRef.current - HOUR_HEIGHT_STEP);
   }, [zoomBy]);
-
-  // ─── STORY-004 three-level overscroll protection ────────────────────────
-  // Single-finger upward drag past the current level's minScrollTop
-  // rubber-bands the inner wrapper via translateY. On release, if the
-  // drag exceeded BUMP_THRESHOLD_PX, we advance the level (09 → 07 →
-  // 00) with a haptic tick and a custom RAF smooth-scroll. Scrolling
-  // past RESET_HOUR silently rearms the protection back to L0.
-  //
-  // Co-exists with pinch-zoom: both effects attach to outerScrollerRef
-  // but handle different gestures (1 finger vs 2 fingers). If a gesture
-  // ever sees touches.length !== 1 we poison it via gestureInvalidRef
-  // so we never bump-through while the user is actually pinching.
-  useEffect(() => {
-    if (viewMode === "month") return;
-    const el = outerScrollerRef.current;
-    if (!el) return;
-
-    const getMinScrollTop = () =>
-      LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current;
-
-    const smoothScrollTo = (target: number, duration = 260) => {
-      const start = el.scrollTop;
-      const delta = target - start;
-      if (Math.abs(delta) < 0.5) {
-        el.scrollTop = target;
-        return;
-      }
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const p = Math.min(1, (now - t0) / duration);
-        // ease-out-cubic
-        const ease = 1 - Math.pow(1 - p, 3);
-        el.scrollTop = start + delta * ease;
-        if (p < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    };
-
-    // Zero-transform implementation: just a hard wall via
-    // preventDefault + scrollTop clamp. We can't rubber-band the
-    // content because `transform` on any ancestor of sticky day
-    // headers creates a new containing block and the headers detach
-    // from the scroll container. The walls still bump through cleanly
-    // on release past BUMP_THRESHOLD_PX — which is the load-bearing UX.
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) {
-        gestureInvalidRef.current = true;
-        return;
-      }
-      gestureInvalidRef.current = false;
-      touchStartYRef.current = e.touches[0].clientY;
-      touchStartScrollRef.current = el.scrollTop;
-      maxOverscrollRef.current = 0;
-      bumpedThisGestureRef.current = false;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (gestureInvalidRef.current) return;
-      if (e.touches.length !== 1) {
-        gestureInvalidRef.current = true;
-        return;
-      }
-      const delta = touchStartYRef.current - e.touches[0].clientY;
-      const newScroll = touchStartScrollRef.current + delta;
-      const minY = getMinScrollTop();
-      if (newScroll < minY) {
-        // Hard wall at the current level. preventDefault only in this
-        // branch — horizontal swipe and normal scroll stay native.
-        e.preventDefault();
-        const overscrollAmount = minY - newScroll;
-        if (el.scrollTop !== minY) el.scrollTop = minY;
-        if (overscrollAmount > maxOverscrollRef.current) {
-          maxOverscrollRef.current = overscrollAmount;
-        }
-      }
-    };
-
-    const onTouchEnd = () => {
-      if (
-        !gestureInvalidRef.current &&
-        !bumpedThisGestureRef.current &&
-        maxOverscrollRef.current > BUMP_THRESHOLD_PX &&
-        currentLevelRef.current < 2
-      ) {
-        bumpedThisGestureRef.current = true;
-        currentLevelRef.current = (currentLevelRef.current + 1) as 0 | 1 | 2;
-        try {
-          navigator.vibrate?.(12);
-        } catch {
-          // vibrate unsupported — silently skip
-        }
-        smoothScrollTo(
-          LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current
-        );
-      }
-      maxOverscrollRef.current = 0;
-    };
-
-    const onScroll = () => {
-      // Quiet auto-reset — once the user is deep into the day, the
-      // walls rearm. No animation, no haptic, just a ref flip.
-      if (
-        currentLevelRef.current > 0 &&
-        el.scrollTop > RESET_HOUR * hourHeightRef.current
-      ) {
-        currentLevelRef.current = 0;
-      }
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    el.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
-      el.removeEventListener("scroll", onScroll);
-    };
-  }, [viewMode]);
 
   // ─── Pinch-to-zoom (touch) + Ctrl+wheel (desktop) ───────────────────────
   // Uses THREE input sources for maximum browser coverage:
