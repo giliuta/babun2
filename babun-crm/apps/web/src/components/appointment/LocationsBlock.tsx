@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Client, Location } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
@@ -10,45 +10,85 @@ interface LocationsBlockProps {
   selectedLocationId: string | null;
   readOnly?: boolean;
   onSelectLocation: (id: string) => void;
-  /** Parent persists the new location on the Client and re-selects it
-   *  atomically (upsertClient + setLocationId in one tick). */
-  onAddLocation: (loc: Location) => void;
+  /** Parent persists the upsert on the Client and re-selects the
+   *  location atomically (upsertClient + setLocationId in one tick).
+   *  New locations have a fresh id; edits reuse the existing id. */
+  onSaveLocation: (loc: Location) => void;
 }
 
-const LABEL_PRESETS = ["Дом", "Офис", "Квартира", "Вилла"];
+const LABEL_PRESETS = ["Дом", "Квартира", "Офис", "Вилла"];
 
-// STORY-011 unified locations + address card. Shown right below the
-// client header. Three states:
-//   • no locations yet → inline "add first object" form
-//   • locations present, picker idle → chip row + selected address +
-//     Maps / Copy actions
-//   • locations present, "+ Объект" tapped → chip row stays, address
-//     panel replaced by the add form
+type FormMode = "hidden" | "add" | "edit";
+
+// STORY-011 revised: the locations card now treats the seeded/primary
+// location as something the dispatcher can fill in directly, without
+// creating a second object. Behaviours:
+//   • No locations OR selected location has no address → the inline
+//     form auto-opens in `edit` mode, pre-filled with whatever the
+//     existing location has (label, map url, A/C count). Save rewrites
+//     the SAME id so address + type land on the client's record.
+//   • Filled location → address strip with Maps / Copy / ✎ Изменить.
+//     Tapping ✎ drops the form open for the selected loc.
+//   • + Объект → `add` mode with a blank form, save creates a new
+//     Location with a fresh id.
 export default function LocationsBlock({
   client,
   selectedLocationId,
   readOnly,
   onSelectLocation,
-  onAddLocation,
+  onSaveLocation,
 }: LocationsBlockProps) {
   const locations = client.locations;
   const hasLocations = locations.length > 0;
-
-  const [showAdd, setShowAdd] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
-  const [newAddress, setNewAddress] = useState("");
-  const [newMapUrl, setNewMapUrl] = useState("");
-  const [newAcUnits, setNewAcUnits] = useState("");
-  const [copied, setCopied] = useState(false);
-
-  // Empty state auto-shows the form; user-triggered add also shows it.
-  const formVisible = !hasLocations || showAdd;
 
   const selectedLocation =
     locations.find((l) => l.id === selectedLocationId) ??
     locations.find((l) => l.isPrimary) ??
     locations[0] ??
     null;
+
+  const emptyAddressSelected = !!selectedLocation && !selectedLocation.address;
+  // Auto-edit whenever the client has no real address yet. User actions
+  // (tap + Объект, tap cancel, save) override this via userMode.
+  const autoMode: FormMode =
+    !hasLocations || emptyAddressSelected ? "edit" : "hidden";
+  const [userMode, setUserMode] = useState<FormMode | null>(null);
+  const mode: FormMode = userMode ?? autoMode;
+
+  const [editingTargetId, setEditingTargetId] = useState<string | null>(
+    selectedLocation?.id ?? null
+  );
+  const [newLabel, setNewLabel] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [newMapUrl, setNewMapUrl] = useState("");
+  const [newAcUnits, setNewAcUnits] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Keep the form fields synced with whichever location the block
+  // decides to edit. Rule: when entering edit mode, prefill from the
+  // target location; when entering add mode, blank it out.
+  useEffect(() => {
+    if (mode === "edit") {
+      const target =
+        locations.find((l) => l.id === editingTargetId) ?? selectedLocation;
+      if (target && editingTargetId !== target.id) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setEditingTargetId(target.id);
+      }
+      if (target) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setNewLabel(target.label ?? "");
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setNewAddress(target.address ?? "");
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setNewMapUrl(target.mapUrl ?? "");
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setNewAcUnits(target.acUnits > 0 ? String(target.acUnits) : "");
+      }
+    }
+    // Intentionally do NOT prefill from target when mode === "add" —
+    // the +Объект handler already resets the fields.
+  }, [mode, editingTargetId, selectedLocation, locations]);
 
   const resetForm = () => {
     setNewLabel("");
@@ -57,23 +97,58 @@ export default function LocationsBlock({
     setNewAcUnits("");
   };
 
-  const saveNew = () => {
+  const openAdd = () => {
+    resetForm();
+    setEditingTargetId(null);
+    setUserMode("add");
+  };
+
+  const openEdit = () => {
+    setEditingTargetId(selectedLocation?.id ?? null);
+    setUserMode("edit");
+    // Effect above will prefill the form from selectedLocation.
+  };
+
+  const cancelForm = () => {
+    resetForm();
+    setEditingTargetId(null);
+    setUserMode("hidden");
+  };
+
+  const saveForm = () => {
     const addr = newAddress.trim();
     const lbl = newLabel.trim();
     if (!addr && !lbl) return;
     const acUnits = Number.parseInt(newAcUnits.trim(), 10);
-    const loc: Location = {
-      id: generateId("loc"),
-      label: lbl || "Объект",
-      address: addr,
-      mapUrl: newMapUrl.trim() || undefined,
-      acUnits: Number.isFinite(acUnits) && acUnits > 0 ? acUnits : 0,
-      // First object becomes primary; later ones don't steal that flag.
-      isPrimary: !hasLocations,
-    };
-    onAddLocation(loc);
+    const acUnitsClean =
+      Number.isFinite(acUnits) && acUnits > 0 ? acUnits : 0;
+
+    if (mode === "edit" && editingTargetId) {
+      const existing = locations.find((l) => l.id === editingTargetId);
+      if (existing) {
+        onSaveLocation({
+          ...existing,
+          label: lbl || existing.label || "Объект",
+          address: addr,
+          mapUrl: newMapUrl.trim() || undefined,
+          acUnits: acUnitsClean,
+        });
+      }
+    } else {
+      // Add new (including the first-ever location for a fresh client).
+      const loc: Location = {
+        id: generateId("loc"),
+        label: lbl || "Объект",
+        address: addr,
+        mapUrl: newMapUrl.trim() || undefined,
+        acUnits: acUnitsClean,
+        isPrimary: !hasLocations, // first ever object takes primary
+      };
+      onSaveLocation(loc);
+    }
     resetForm();
-    setShowAdd(false);
+    setEditingTargetId(null);
+    setUserMode("hidden");
   };
 
   const openMaps = () => {
@@ -94,9 +169,16 @@ export default function LocationsBlock({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard unavailable (http, denied) — swallow silently
+      // clipboard unavailable — swallow silently
     }
   };
+
+  // Cancel button is only helpful when cancelling would actually take
+  // the user somewhere useful. Auto-edit (no filled address yet) has
+  // nothing to fall back to — hide it.
+  const cancellable = userMode !== null;
+  const formVisible = mode !== "hidden";
+  const formIsEdit = mode === "edit";
 
   return (
     <div className="px-4 pt-3">
@@ -119,7 +201,13 @@ export default function LocationsBlock({
                     key={loc.id}
                     type="button"
                     disabled={readOnly}
-                    onClick={() => onSelectLocation(loc.id)}
+                    onClick={() => {
+                      onSelectLocation(loc.id);
+                      // Switching selection exits any in-progress form;
+                      // autoMode will re-open edit if the new one has no
+                      // address.
+                      if (userMode !== null) setUserMode(null);
+                    }}
                     className={`flex-shrink-0 min-w-[74px] px-3 py-2 rounded-xl text-left transition ${
                       active
                         ? "bg-violet-50 border-[1.5px] border-violet-600"
@@ -142,7 +230,7 @@ export default function LocationsBlock({
               {!readOnly && (
                 <button
                   type="button"
-                  onClick={() => setShowAdd(true)}
+                  onClick={openAdd}
                   className="flex-shrink-0 min-w-[88px] px-3 py-2 rounded-xl border-[1.5px] border-dashed border-violet-300 text-[13px] font-semibold text-violet-600 active:bg-violet-50"
                 >
                   + Объект
@@ -152,8 +240,9 @@ export default function LocationsBlock({
           </>
         )}
 
-        {/* Selected-address panel — hidden while the add form is up. */}
-        {hasLocations && !formVisible && selectedLocation && (
+        {/* Selected-address panel — shown only when no form is up and
+            the selected location has an address to display. */}
+        {hasLocations && !formVisible && selectedLocation?.address && (
           <>
             <div className="h-px bg-slate-100 mx-3" />
             <div className="px-3 py-3">
@@ -162,42 +251,49 @@ export default function LocationsBlock({
                   <PinIcon />
                 </span>
                 <span className="flex-1 leading-snug">
-                  {selectedLocation.address ? (
-                    selectedLocation.address
-                  ) : (
-                    <span className="text-slate-400 italic">адрес не указан</span>
-                  )}
+                  {selectedLocation.address}
                 </span>
               </div>
-              {selectedLocation.address && (
-                <div className="mt-2 ml-6 flex items-center gap-4 text-[13px] font-semibold">
+              <div className="mt-2 ml-6 flex items-center gap-4 text-[13px] font-semibold">
+                <button
+                  type="button"
+                  onClick={openMaps}
+                  className="inline-flex items-center gap-1 text-sky-700 active:opacity-60"
+                >
+                  <MapIcon /> Карты
+                </button>
+                <button
+                  type="button"
+                  onClick={copyAddress}
+                  className="inline-flex items-center gap-1 text-slate-600 active:opacity-60"
+                >
+                  <CopyIcon /> {copied ? "Скопировано" : "Копировать"}
+                </button>
+                {!readOnly && (
                   <button
                     type="button"
-                    onClick={openMaps}
-                    className="inline-flex items-center gap-1 text-sky-700 active:opacity-60"
+                    onClick={openEdit}
+                    className="ml-auto inline-flex items-center gap-1 text-slate-500 active:opacity-60"
                   >
-                    <MapIcon /> Карты
+                    <PencilIcon /> Изменить
                   </button>
-                  <button
-                    type="button"
-                    onClick={copyAddress}
-                    className="inline-flex items-center gap-1 text-slate-600 active:opacity-60"
-                  >
-                    <CopyIcon /> {copied ? "Скопировано" : "Копировать"}
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </>
         )}
 
-        {/* Inline add form. */}
+        {/* Form — edit existing selected loc or add a new one. */}
         {formVisible && !readOnly && (
           <>
             {hasLocations && <div className="h-px bg-slate-100 mx-3" />}
             <div className="px-3 py-3 space-y-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                {hasLocations ? "Новый объект" : "Адрес объекта"}
+                {formIsEdit
+                  ? hasLocations
+                    ? "Редактирование объекта"
+                    : "Адрес объекта"
+                  : "Новый объект"}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {LABEL_PRESETS.map((lbl) => {
@@ -250,13 +346,10 @@ export default function LocationsBlock({
                 className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 tabular-nums"
               />
               <div className="flex gap-2 pt-1">
-                {hasLocations && (
+                {cancellable && (
                   <button
                     type="button"
-                    onClick={() => {
-                      resetForm();
-                      setShowAdd(false);
-                    }}
+                    onClick={cancelForm}
                     className="flex-1 h-10 rounded-lg text-slate-600 font-medium"
                   >
                     Отмена
@@ -264,11 +357,11 @@ export default function LocationsBlock({
                 )}
                 <button
                   type="button"
-                  onClick={saveNew}
+                  onClick={saveForm}
                   disabled={!newAddress.trim() && !newLabel.trim()}
                   className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] disabled:opacity-40"
                 >
-                  {hasLocations ? "Сохранить" : "Сохранить адрес"}
+                  Сохранить
                 </button>
               </div>
             </div>
@@ -300,6 +393,14 @@ function CopyIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+function PencilIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   );
 }

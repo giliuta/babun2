@@ -483,15 +483,23 @@ export default function AppointmentSheet({
                   selectedLocationId={locationId}
                   readOnly={readonly}
                   onSelectLocation={setLocationId}
-                  onAddLocation={(loc) => {
-                    // Atomic: persist client with the new location in
-                    // storage (fires babun:clients-changed → layout
-                    // reloads the context) AND re-select locally, both
-                    // in one event-loop tick so the next render is
-                    // consistent.
+                  onSaveLocation={(loc) => {
+                    // Upsert-by-id: if the id already lives on the
+                    // client the entry gets replaced (edit flow),
+                    // otherwise it's appended (add flow). Both paths
+                    // persist via upsertClient → babun:clients-changed
+                    // so the client's record page sees the same data.
+                    const existing = client.locations.some(
+                      (l) => l.id === loc.id
+                    );
+                    const nextLocations = existing
+                      ? client.locations.map((l) =>
+                          l.id === loc.id ? loc : l
+                        )
+                      : [...client.locations, loc];
                     const nextClient: Client = {
                       ...client,
-                      locations: [...client.locations, loc],
+                      locations: nextLocations,
                     };
                     upsertClient(nextClient);
                     setLocationId(loc.id);
