@@ -20,10 +20,8 @@ import {
   totalDuration as calcDuration,
 } from "@/lib/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
-import type { DraftClient } from "@/lib/draft-clients";
 
 import TimeBlock from "./TimeBlock";
-import CompactWheelPicker from "./CompactWheelPicker";
 import CityPicker from "./CityPicker";
 import ClientBlock from "./ClientBlock";
 import LocationPicker from "./LocationPicker";
@@ -43,7 +41,6 @@ interface AppointmentSheetProps {
   /** Для create: seed из тапа по слоту. Для view/done — полная запись. */
   appointment: Appointment;
   clients: Client[];
-  draftClients: DraftClient[];
   recentClientIds: string[];
   teams: Team[];
   activeTeam: Team | null;
@@ -68,7 +65,6 @@ export default function AppointmentSheet({
   mode,
   appointment,
   clients,
-  draftClients,
   recentClientIds,
   activeTeam,
   catalog,
@@ -102,11 +98,7 @@ export default function AppointmentSheet({
   const [comment, setComment] = useState(appointment.comment);
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
-  const [showTimeEditor, setShowTimeEditor] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
-  // Wrapper around TimeBlock + inline pickers — pointerdown outside
-  // this region collapses the time picker, mimicking an accordion.
-  const timeAreaRef = useRef<HTMLDivElement>(null);
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
@@ -167,22 +159,16 @@ export default function AppointmentSheet({
         ? "event"
         : "work"
     );
-    setShowTimeEditor(false);
     setShowCityPicker(false);
   }, [open, appointment]);
 
-  const client = useMemo(
-    () =>
-      clientId
-        ? clients.find((c) => c.id === clientId) ??
-          draftClients.find((c) => c.id === clientId) ??
-          null
-        : null,
-    [clientId, clients, draftClients]
+  const client = useMemo<Client | null>(
+    () => (clientId ? clients.find((c) => c.id === clientId) ?? null : null),
+    [clientId, clients]
   );
 
   const clientLocations = useMemo<Location[]>(
-    () => (client && "locations" in client ? (client as Client).locations : []),
+    () => client?.locations ?? [],
     [client]
   );
 
@@ -193,12 +179,8 @@ export default function AppointmentSheet({
     return clientLocations.find((l) => l.isPrimary) ?? clientLocations[0];
   }, [clientLocations, locationId]);
 
-  // Draft clients store address/acUnits inline (no Location[] yet) — fall
-  // back to those so the one-visit A/C count suggestion still works.
-  const draftClient = client && !("locations" in client) ? (client as DraftClient) : null;
-  const address =
-    selectedLocation?.address ?? draftClient?.address ?? appointment.address ?? "";
-  const acUnits = selectedLocation?.acUnits ?? draftClient?.ac_units ?? 0;
+  const address = selectedLocation?.address ?? appointment.address ?? "";
+  const acUnits = selectedLocation?.acUnits ?? 0;
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
@@ -270,7 +252,6 @@ export default function AppointmentSheet({
     const finalComment = comment.trim()
       ? `${serviceNames} — ${comment.trim()}`
       : serviceNames;
-    const isReal = "locations" in client;
     const saved: Appointment = {
       ...appointment,
       date: dateKey,
@@ -286,7 +267,7 @@ export default function AppointmentSheet({
               return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
             })()
           : timeEnd,
-      client_id: isReal ? client.id : null,
+      client_id: client.id,
       location_id: locationId,
       team_id: activeTeam?.id ?? null,
       service_ids: appointmentServices.map((l) => l.serviceId),
@@ -397,65 +378,47 @@ export default function AppointmentSheet({
         </div>
 
         {/* Scroll body */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto pb-4"
-          onPointerDownCapture={(e) => {
-            // Accordion behaviour: any tap outside the time row +
-            // picker collapses it. Capture phase so we react even when
-            // the inner element stops propagation.
-            if (!showTimeEditor && !showCityPicker) return;
-            const area = timeAreaRef.current;
-            if (area && !area.contains(e.target as Node)) {
-              setShowTimeEditor(false);
-              setShowCityPicker(false);
-            }
-          }}
-        >
-          <div ref={timeAreaRef}>
-            <TimeBlock
-              appointment={{
-                ...appointment,
-                time_start: timeStart,
-                time_end: timeEnd,
-                date: dateKey,
-              }}
-              cityLabel={city}
-              cityColor={cityColor}
-              teamLabel={teamLabel}
-              readonly={readonly}
-              onOpenTimeEditor={() => {
-                setShowTimeEditor((v) => !v);
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          {/* City/team row — city is tappable in edit mode to open the
+              city picker below; team is read-only in this sheet. */}
+          <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2 text-[13px]">
+            {city && (
+              <button
+                type="button"
+                onClick={readonly ? undefined : () => setShowCityPicker((v) => !v)}
+                disabled={readonly}
+                className="font-semibold flex-shrink-0 active:opacity-60"
+                style={{ color: cityColor }}
+              >
+                {city}
+                {!readonly && <span className="text-slate-400 ml-0.5">▾</span>}
+              </button>
+            )}
+            {city && <span className="text-slate-400">·</span>}
+            <span className="text-slate-700 flex-shrink-0">{teamLabel}</span>
+          </div>
+
+          <TimeBlock
+            date={dateKey}
+            timeStart={timeStart}
+            timeEnd={timeEnd}
+            readOnly={readonly}
+            onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+              setDateKey(d);
+              setTimeStart(s);
+              setTimeEnd(e);
+            }}
+          />
+
+          {showCityPicker && isEditable && (
+            <CityPicker
+              value={city}
+              onPick={(c) => {
+                onCityChange(dateKey, c);
                 setShowCityPicker(false);
               }}
-              onOpenCityPicker={() => {
-                setShowCityPicker((v) => !v);
-                setShowTimeEditor(false);
-              }}
             />
-
-            {showTimeEditor && isEditable && (
-              <CompactWheelPicker
-                date={dateKey}
-                timeStart={timeStart}
-                timeEnd={timeEnd}
-                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                  setDateKey(d);
-                  setTimeStart(s);
-                  setTimeEnd(e);
-                }}
-              />
-            )}
-
-            {showCityPicker && isEditable && (
-              <CityPicker
-                value={city}
-                onPick={(c) => {
-                  onCityChange(dateKey, c);
-                  setShowCityPicker(false);
-                }}
-              />
-            )}
-          </div>
+          )}
 
           {/* Event mode body */}
           {isEventMode && isEditable ? (
@@ -582,7 +545,7 @@ export default function AppointmentSheet({
               />
 
               {/* SMS toggle только в create */}
-              {isEditable && client && "phone" in client && client.phone && (
+              {isEditable && client && client.phone && (
                 <div className="px-4 pt-4 flex items-center justify-between">
                   <div>
                     <div className="text-[13px] font-semibold text-slate-800">
@@ -616,7 +579,7 @@ export default function AppointmentSheet({
           {(liveMode === "view" || liveMode === "done") && (
             <>
               <QuickActions
-                phone={client && "phone" in client ? client.phone : undefined}
+                phone={client?.phone}
                 address={address}
               />
               {liveMode === "view" && (
@@ -625,10 +588,7 @@ export default function AppointmentSheet({
               <AdminActions
                 canReschedule={liveMode === "view"}
                 onEdit={() => setLiveMode("edit")}
-                onReschedule={() => {
-                  setLiveMode("edit");
-                  setShowTimeEditor(true);
-                }}
+                onReschedule={() => setLiveMode("edit")}
                 onCancel={handleAdminCancel}
               />
             </>
@@ -678,13 +638,12 @@ export default function AppointmentSheet({
         onClose={() => setClientSheet(false)}
         onSelect={(c) => {
           setClientId(c.id);
-          const locs = "locations" in c ? c.locations : [];
+          const locs = c.locations;
           const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
           setLocationId(primary?.id ?? null);
           setClientSheet(false);
         }}
         clients={clients}
-        draftClients={draftClients}
         recentClientIds={recentClientIds}
       />
 

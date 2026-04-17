@@ -298,6 +298,23 @@ export default function DashboardLayout({
     setDayExtrasState(loadDayExtras());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
+    // STORY-007: legacy key cleanup. Drafts are gone — any leftover
+    // records would never surface in the UI again, so drop them so
+    // storage stays tidy.
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("babun-draft-clients");
+    }
+  }, []);
+
+  // STORY-007: external `upsertClient` in lib/clients.ts dispatches
+  // babun:clients-changed after writing localStorage. Reload the
+  // context state when that fires so ClientPickerSheet's new clients
+  // reach consumers (AppointmentSheet, clients list) immediately.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reload = () => setClientsState(loadClients());
+    window.addEventListener("babun:clients-changed", reload);
+    return () => window.removeEventListener("babun:clients-changed", reload);
   }, []);
 
   const handleSchedulesChange = useCallback((next: ScheduleMap) => {

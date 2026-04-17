@@ -6,14 +6,13 @@ import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
 import type { Client } from "@/lib/clients";
-import type { DraftClient } from "@/lib/draft-clients";
 import type { ViewMode } from "@/components/layout/Header";
 import DayColumn from "./DayColumn";
 
 interface WeekViewProps {
   mondayDate: Date;
   appointments: Appointment[];
-  clientsById: Record<string, Client | DraftClient>;
+  clientsById: Record<string, Client>;
   services: Service[];
   validateApt: (apt: Appointment) => ValidationResult;
   viewMode?: ViewMode;

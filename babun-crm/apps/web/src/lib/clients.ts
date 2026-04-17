@@ -281,6 +281,20 @@ export function saveClients(list: Client[]): void {
   }
 }
 
+// STORY-007: single-write helper callable from outside the dashboard
+// context (e.g. ClientPickerSheet) that also dispatches
+// babun:clients-changed so the layout's reactive clients state picks
+// up the new record without waiting for the next [appointments] tick.
+export function upsertClient(client: Client): void {
+  const existing = loadClients();
+  const next = existing.filter((c) => c.id !== client.id);
+  next.push(client);
+  saveClients(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("babun:clients-changed"));
+  }
+}
+
 export function loadClientTags(): ClientTag[] {
   if (typeof window === "undefined") return DEFAULT_TAGS;
   try {
@@ -324,15 +338,9 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     city: "",
     property_type: "",
     equipment: [],
-    locations: [
-      {
-        id: generateId("loc"),
-        label: "Основной",
-        address: "",
-        acUnits: 0,
-        isPrimary: true,
-      },
-    ],
+    // STORY-007: no seed location. Addresses live on each appointment's
+    // location and are captured when the dispatcher actually has them.
+    locations: [],
     notes: [],
     birthday: "",
     blacklisted: false,

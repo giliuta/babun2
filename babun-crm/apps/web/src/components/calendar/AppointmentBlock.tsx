@@ -6,13 +6,12 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Appointment, AppointmentColorKind } from "@/lib/appointments";
 import { COLOR_KIND_TAILWIND, getDebtAmount } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
-import type { DraftClient } from "@/lib/draft-clients";
 import type { Client } from "@/lib/clients";
 
 interface AppointmentBlockProps {
   appointment: Appointment;
   colorKind: AppointmentColorKind;
-  clientsById: Record<string, Client | DraftClient>;
+  clientsById: Record<string, Client>;
   services: Service[];
   /** Team tint used to paint the left accent stripe. */
   teamColor?: string | null;

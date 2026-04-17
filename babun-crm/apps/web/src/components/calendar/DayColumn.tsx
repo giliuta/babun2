@@ -19,7 +19,6 @@ import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
-import type { DraftClient } from "@/lib/draft-clients";
 import { getCityConfig, getCityBg } from "@/lib/day-cities";
 import AppointmentBlock from "./AppointmentBlock";
 
@@ -27,7 +26,7 @@ interface DayColumnProps {
   date: Date;
   today: Date;
   appointments: Appointment[];
-  clientsById: Record<string, Client | DraftClient>;
+  clientsById: Record<string, Client>;
   services: Service[];
   validateApt: (apt: Appointment) => ValidationResult;
   currentTimeMinutes: number;

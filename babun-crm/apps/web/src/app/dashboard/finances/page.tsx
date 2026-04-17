@@ -22,7 +22,6 @@ import {
   type ExpenseCategory,
 } from "@/lib/expense-categories";
 import type { Client } from "@/lib/clients";
-import type { DraftClient } from "@/lib/draft-clients";
 import { formatDateLongRu } from "@/lib/date-utils";
 import {
   formatEUR,
@@ -119,7 +118,7 @@ export default function FinancesPage() {
   }, [teams]);
 
   const clientsById = useMemo(() => {
-    const map = new Map<string, Client | DraftClient>();
+    const map = new Map<string, Client>();
     for (const c of clients) map.set(c.id, c);
     return map;
   }, [clients]);
@@ -1080,7 +1079,7 @@ function DebtsTab({
   groups: { clientId: string | null; name: string; total: number; items: DebtLine[] }[];
   total: number;
   onOpenClient: (clientId: string | null) => void;
-  clientsById: Map<string, Client | DraftClient>;
+  clientsById: Map<string, Client>;
 }) {
   if (groups.length === 0) {
     return (

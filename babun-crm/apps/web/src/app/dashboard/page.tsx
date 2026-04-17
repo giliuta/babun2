@@ -43,10 +43,6 @@ import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
 import {
-  loadDraftClients,
-  type DraftClient,
-} from "@/lib/draft-clients";
-import {
   useSidebar,
   useSchedules,
   useTeams,
@@ -225,24 +221,14 @@ export default function DashboardPage() {
     [appointments, activeTeamId]
   );
 
-  // Build clientsById map
-  const [draftClients, setDraftClients] = useState<DraftClient[]>([]);
-  useEffect(() => {
-    const reload = () => setDraftClients(loadDraftClients());
-    reload();
-    // STORY-006: re-read the draft list on every upsert, not just on
-    // appointments churn. Otherwise a draft created mid-sheet never
-    // reaches AppointmentSheet until the record is saved.
-    window.addEventListener("babun:drafts-changed", reload);
-    return () => window.removeEventListener("babun:drafts-changed", reload);
-  }, [appointments]);
-
-  const clientsById = useMemo<Record<string, Client | DraftClient>>(() => {
-    const map: Record<string, Client | DraftClient> = {};
+  // Build clientsById map. STORY-007: Draft clients removed —
+  // layout.tsx keeps `clients` fresh via the babun:clients-changed
+  // event so we read it directly.
+  const clientsById = useMemo<Record<string, Client>>(() => {
+    const map: Record<string, Client> = {};
     for (const c of clients) map[c.id] = c;
-    for (const d of draftClients) map[d.id] = d;
     return map;
-  }, [clients, draftClients]);
+  }, [clients]);
 
   // Team colour resolver for appointment blocks — used to paint the
   // left accent stripe so "this one's Y&D, this one's D&K" is visible
@@ -1026,7 +1012,6 @@ export default function DashboardPage() {
             kind: "work",
           })}
           clients={clients}
-          draftClients={[]}
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam}
@@ -1207,7 +1192,6 @@ export default function DashboardPage() {
           mode={inlineSheet.initial.status === "completed" ? "done" : "view"}
           appointment={inlineSheet.initial}
           clients={clients}
-          draftClients={[]}
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam}

@@ -1,10 +1,9 @@
 "use client";
 
 import type { Client } from "@/lib/clients";
-import type { DraftClient } from "@/lib/draft-clients";
 
 interface ClientBlockProps {
-  client: Client | DraftClient | null;
+  client: Client | null;
   readonly: boolean;
   onPick?: () => void;
   onCreate?: () => void;
@@ -60,7 +59,7 @@ export default function ClientBlock({
     );
   }
 
-  const phone = (client as Client).phone;
+  const phone = client.phone;
   const phoneDigits = phone?.replace(/\D/g, "") ?? "";
 
   return (
