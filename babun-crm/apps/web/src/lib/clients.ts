@@ -84,7 +84,6 @@ export interface Location {
    *  клиент мог прислать нестандартный pin). Без неё —
    *  google.com/maps/dir по текстовому адресу. */
   mapUrl?: string;
-  acUnits: number;       // количество сплит-систем на этом объекте
   isPrimary: boolean;    // первый объект для автовыбора
 }
 
@@ -150,14 +149,12 @@ const DEMO_LOCATIONS: Record<string, Location[]> = {
       id: "loc-5-home",
       label: "Дом",
       address: "Лимассол, Agios Tychonas 21",
-      acUnits: 3,
       isPrimary: true,
     },
     {
       id: "loc-5-office",
       label: "Офис",
       address: "Лимассол, Makarios Ave 134",
-      acUnits: 5,
       isPrimary: false,
     },
   ],
@@ -166,21 +163,18 @@ const DEMO_LOCATIONS: Record<string, Location[]> = {
       id: "loc-12-villa",
       label: "Вилла",
       address: "Пафос, Coral Bay 8",
-      acUnits: 8,
       isPrimary: true,
     },
     {
       id: "loc-12-office",
       label: "Офис",
       address: "Пафос, Mesogis 45",
-      acUnits: 5,
       isPrimary: false,
     },
     {
       id: "loc-12-flat",
       label: "Квартира",
       address: "Пафос, Posidonos 12",
-      acUnits: 2,
       isPrimary: false,
     },
   ],
@@ -214,7 +208,6 @@ function mockToClient(m: MockClient): Client {
         id: generateId("loc"),
         label: "Основной",
         address: "",
-        acUnits: 0,
         isPrimary: true,
       },
     ],
@@ -251,18 +244,24 @@ export function loadClients(): Client[] {
       phones: c.phones ?? [],
       whatsapp_phone: c.whatsapp_phone ?? "",
       // STORY-002 migration: legacy single-address clients get a
-      // one-location array inferred from their stored address and
-      // equipment count. Runs once per client; на последующих
-      // загрузках locations уже на месте и не перезаписывается.
+      // one-location array inferred from their stored address.
+      // Runs once per client; на последующих загрузках locations уже
+      // на месте и не перезаписывается. Stale acUnits на записанных
+      // locations игнорируется — TS отбрасывает лишние поля.
       locations:
         c.locations && c.locations.length > 0
-          ? c.locations
+          ? c.locations.map((l) => ({
+              id: l.id,
+              label: l.label,
+              address: l.address,
+              mapUrl: l.mapUrl,
+              isPrimary: l.isPrimary,
+            }))
           : [
               {
                 id: generateId("loc"),
                 label: "Основной",
                 address: c.address ?? "",
-                acUnits: (c.equipment ?? []).length,
                 isPrimary: true,
               },
             ],

@@ -135,7 +135,6 @@ export default function LocationsBlock({
           label: lbl || existing.label || "Объект",
           address: addr,
           mapUrl: mapUrl || undefined,
-          // Preserve legacy acUnits silently; form no longer edits it.
         });
       }
     } else {
@@ -144,7 +143,6 @@ export default function LocationsBlock({
         label: lbl || "Объект",
         address: addr,
         mapUrl: mapUrl || undefined,
-        acUnits: 0,
         isPrimary: !hasLocations,
       };
       onSaveLocation(loc);

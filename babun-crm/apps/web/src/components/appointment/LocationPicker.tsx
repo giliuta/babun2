@@ -45,9 +45,6 @@ export default function LocationPicker({
               >
                 {loc.label || "Без названия"}
               </div>
-              <div className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
-                {loc.acUnits > 0 ? `${loc.acUnits} бл.` : "—"}
-              </div>
             </button>
           );
         })}

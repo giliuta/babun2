@@ -186,7 +186,6 @@ export default function AppointmentSheet({
   }, [clientLocations, locationId]);
 
   const address = selectedLocation?.address ?? appointment.address ?? "";
-  const acUnits = selectedLocation?.acUnits ?? 0;
 
   // Auto-chain ServicePicker: once the dispatcher has picked the client
   // and at least a map-link or address is set on the location, open the
@@ -217,18 +216,6 @@ export default function AppointmentSheet({
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
-
-  // Smart suggestion: если услуг ещё нет И у объекта есть блоки,
-  // предлагаем «Чистка кондиционера × acUnits» из каталога.
-  const cleaningService = useMemo(
-    () => catalog.find((s) => s.id === "svc-clean") ?? null,
-    [catalog]
-  );
-  const suggestion = useMemo(() => {
-    if (appointmentServices.length > 0) return null;
-    if (acUnits <= 0 || !cleaningService) return null;
-    return { service: cleaningService, qty: Math.min(acUnits, 10) };
-  }, [appointmentServices.length, acUnits, cleaningService]);
 
   // Рассчитанный итог / длительность для sticky-кнопки + time end.
   const price = appointmentTotal(appointmentServices, globalDiscount);
@@ -549,48 +536,6 @@ export default function AppointmentSheet({
                 onGlobalDiscountChange={setGlobalDiscount}
                 onOpenPicker={() => setServicePickerOpen(true)}
               />
-
-              {/* Smart suggestion — одна кнопка: применить Чистка × acUnits */}
-              {isEditable && suggestion && (
-                <div className="px-4 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const s = suggestion.service;
-                      const qty = suggestion.qty;
-                      const ppu = pricePerUnit(s, qty);
-                      setAppointmentServices([
-                        {
-                          serviceId: s.id,
-                          quantity: qty,
-                          pricePerUnit: ppu,
-                          originalPrice: s.price,
-                          totalPrice: qty * ppu,
-                          duration: qty * s.duration_minutes,
-                        },
-                      ]);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left active:scale-[0.99]"
-                    style={{
-                      background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-                    }}
-                  >
-                    <span className="text-white text-[16px]">✨</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] text-white/80">Рекомендуем</div>
-                      <div className="text-[13px] font-semibold text-white truncate">
-                        {suggestion.service.name} × {suggestion.qty}
-                      </div>
-                    </div>
-                    <div className="text-[13px] font-bold text-white tabular-nums">
-                      {formatEUR(
-                        suggestion.qty *
-                          pricePerUnit(suggestion.service, suggestion.qty)
-                      )}
-                    </div>
-                  </button>
-                </div>
-              )}
 
               <CommentBlock
                 value={comment}
