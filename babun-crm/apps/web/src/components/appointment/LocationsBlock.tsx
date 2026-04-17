@@ -47,11 +47,14 @@ export default function LocationsBlock({
     locations[0] ??
     null;
 
-  const emptyAddressSelected = !!selectedLocation && !selectedLocation.address;
-  // Auto-edit whenever the client has no real address yet. User actions
-  // (tap + Объект, tap cancel, save) override this via userMode.
+  // Selected is "empty" only when BOTH address and map URL are blank —
+  // a Maps-link-only location is still a valid filled location.
+  const emptySelected =
+    !!selectedLocation &&
+    !selectedLocation.address &&
+    !selectedLocation.mapUrl;
   const autoMode: FormMode =
-    !hasLocations || emptyAddressSelected ? "edit" : "hidden";
+    !hasLocations || emptySelected ? "edit" : "hidden";
   const [userMode, setUserMode] = useState<FormMode | null>(null);
   const mode: FormMode = userMode ?? autoMode;
 
@@ -61,7 +64,6 @@ export default function LocationsBlock({
   const [newLabel, setNewLabel] = useState("");
   const [newAddress, setNewAddress] = useState("");
   const [newMapUrl, setNewMapUrl] = useState("");
-  const [newAcUnits, setNewAcUnits] = useState("");
   const [copied, setCopied] = useState(false);
 
   // Keep the form fields synced with whichever location the block
@@ -76,14 +78,17 @@ export default function LocationsBlock({
         setEditingTargetId(target.id);
       }
       if (target) {
+        // Legacy seed label "Основной" is the system's placeholder —
+        // blank it on entry so the preset chips read as the default
+        // choice and the user can pick Дом / Квартира etc. without
+        // having to clear first.
+        const seedLabel = target.label === "Основной" && !target.address;
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setNewLabel(target.label ?? "");
+        setNewLabel(seedLabel ? "" : target.label ?? "");
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setNewAddress(target.address ?? "");
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setNewMapUrl(target.mapUrl ?? "");
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setNewAcUnits(target.acUnits > 0 ? String(target.acUnits) : "");
       }
     }
     // Intentionally do NOT prefill from target when mode === "add" —
@@ -94,7 +99,6 @@ export default function LocationsBlock({
     setNewLabel("");
     setNewAddress("");
     setNewMapUrl("");
-    setNewAcUnits("");
   };
 
   const openAdd = () => {
@@ -117,11 +121,10 @@ export default function LocationsBlock({
 
   const saveForm = () => {
     const addr = newAddress.trim();
+    const mapUrl = newMapUrl.trim();
     const lbl = newLabel.trim();
-    if (!addr && !lbl) return;
-    const acUnits = Number.parseInt(newAcUnits.trim(), 10);
-    const acUnitsClean =
-      Number.isFinite(acUnits) && acUnits > 0 ? acUnits : 0;
+    // Нужен хотя бы один из: адрес, Maps URL, или осмысленный label.
+    if (!addr && !mapUrl && !lbl) return;
 
     if (mode === "edit" && editingTargetId) {
       const existing = locations.find((l) => l.id === editingTargetId);
@@ -130,19 +133,18 @@ export default function LocationsBlock({
           ...existing,
           label: lbl || existing.label || "Объект",
           address: addr,
-          mapUrl: newMapUrl.trim() || undefined,
-          acUnits: acUnitsClean,
+          mapUrl: mapUrl || undefined,
+          // Preserve legacy acUnits silently; form no longer edits it.
         });
       }
     } else {
-      // Add new (including the first-ever location for a fresh client).
       const loc: Location = {
         id: generateId("loc"),
         label: lbl || "Объект",
         address: addr,
-        mapUrl: newMapUrl.trim() || undefined,
-        acUnits: acUnitsClean,
-        isPrimary: !hasLocations, // first ever object takes primary
+        mapUrl: mapUrl || undefined,
+        acUnits: 0,
+        isPrimary: !hasLocations,
       };
       onSaveLocation(loc);
     }
@@ -196,6 +198,14 @@ export default function LocationsBlock({
             >
               {locations.map((loc) => {
                 const active = loc.id === selectedLocation?.id;
+                // Live preview while the user is editing this exact
+                // location — chip label follows the form input so
+                // switching a preset chip feels instant.
+                const livePreview =
+                  mode === "edit" && editingTargetId === loc.id;
+                const shown = livePreview
+                  ? newLabel.trim() || loc.label || "Объект"
+                  : loc.label || "Объект";
                 return (
                   <button
                     key={loc.id}
@@ -203,9 +213,6 @@ export default function LocationsBlock({
                     disabled={readOnly}
                     onClick={() => {
                       onSelectLocation(loc.id);
-                      // Switching selection exits any in-progress form;
-                      // autoMode will re-open edit if the new one has no
-                      // address.
                       if (userMode !== null) setUserMode(null);
                     }}
                     className={`flex-shrink-0 min-w-[74px] px-3 py-2 rounded-xl text-left transition ${
@@ -219,10 +226,7 @@ export default function LocationsBlock({
                         active ? "text-violet-700" : "text-slate-900"
                       }`}
                     >
-                      {loc.label || "Объект"}
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-medium mt-0.5 tabular-nums">
-                      {loc.acUnits > 0 ? `${loc.acUnits} бл.` : "—"}
+                      {shown}
                     </div>
                   </button>
                 );
@@ -240,48 +244,54 @@ export default function LocationsBlock({
           </>
         )}
 
-        {/* Selected-address panel — shown only when no form is up and
-            the selected location has an address to display. */}
-        {hasLocations && !formVisible && selectedLocation?.address && (
-          <>
-            <div className="h-px bg-slate-100 mx-3" />
-            <div className="px-3 py-3">
-              <div className="flex items-start gap-2 text-[14px] text-slate-900">
-                <span className="flex-shrink-0 mt-0.5 text-rose-500">
-                  <PinIcon />
-                </span>
-                <span className="flex-1 leading-snug">
-                  {selectedLocation.address}
-                </span>
-              </div>
-              <div className="mt-2 ml-6 flex items-center gap-4 text-[13px] font-semibold">
-                <button
-                  type="button"
-                  onClick={openMaps}
-                  className="inline-flex items-center gap-1 text-sky-700 active:opacity-60"
-                >
-                  <MapIcon /> Карты
-                </button>
-                <button
-                  type="button"
-                  onClick={copyAddress}
-                  className="inline-flex items-center gap-1 text-slate-600 active:opacity-60"
-                >
-                  <CopyIcon /> {copied ? "Скопировано" : "Копировать"}
-                </button>
-                {!readOnly && (
+        {/* Display panel — shown once the selected location has
+            either a street address OR a Maps URL. */}
+        {hasLocations &&
+          !formVisible &&
+          selectedLocation &&
+          (selectedLocation.address || selectedLocation.mapUrl) && (
+            <>
+              <div className="h-px bg-slate-100 mx-3" />
+              <div className="px-3 py-3">
+                <div className="flex items-start gap-2 text-[14px] text-slate-900">
+                  <span className="flex-shrink-0 mt-0.5 text-rose-500">
+                    <PinIcon />
+                  </span>
+                  <span className="flex-1 leading-snug truncate">
+                    {selectedLocation.address ||
+                      (selectedLocation.mapUrl ? "Google Maps ссылка" : "")}
+                  </span>
+                </div>
+                <div className="mt-2 ml-6 flex items-center gap-4 text-[13px] font-semibold">
                   <button
                     type="button"
-                    onClick={openEdit}
-                    className="ml-auto inline-flex items-center gap-1 text-slate-500 active:opacity-60"
+                    onClick={openMaps}
+                    className="inline-flex items-center gap-1 text-sky-700 active:opacity-60"
                   >
-                    <PencilIcon /> Изменить
+                    <MapIcon /> Карты
                   </button>
-                )}
+                  {selectedLocation.address && (
+                    <button
+                      type="button"
+                      onClick={copyAddress}
+                      className="inline-flex items-center gap-1 text-slate-600 active:opacity-60"
+                    >
+                      <CopyIcon /> {copied ? "Скопировано" : "Копировать"}
+                    </button>
+                  )}
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={openEdit}
+                      className="ml-auto inline-flex items-center gap-1 text-slate-500 active:opacity-60"
+                    >
+                      <PencilIcon /> Изменить
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
         {/* Form — edit existing selected loc or add a new one. */}
         {formVisible && !readOnly && (
@@ -318,32 +328,24 @@ export default function LocationsBlock({
                 type="text"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="Название (или своё)"
+                placeholder="Своё название (необязательно)"
                 className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
-              <textarea
-                value={newAddress}
-                onChange={(e) => setNewAddress(e.target.value)}
-                placeholder="Адрес (улица, дом, кв.)"
-                rows={2}
-                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
-              />
+              {/* Google Maps URL is the primary input — диспетчеру
+                  обычно кидают ссылку, а не улицу. */}
               <input
                 type="url"
                 value={newMapUrl}
                 onChange={(e) => setNewMapUrl(e.target.value)}
-                placeholder="Google Maps URL (необязательно)"
+                placeholder="Google Maps ссылка"
                 className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={99}
-                value={newAcUnits}
-                onChange={(e) => setNewAcUnits(e.target.value)}
-                placeholder="Блоков A/C (необязательно)"
-                className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 tabular-nums"
+                type="text"
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                placeholder="Улица, дом (необязательно)"
+                className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <div className="flex gap-2 pt-1">
                 {cancellable && (
@@ -358,7 +360,9 @@ export default function LocationsBlock({
                 <button
                   type="button"
                   onClick={saveForm}
-                  disabled={!newAddress.trim() && !newLabel.trim()}
+                  disabled={
+                    !newAddress.trim() && !newLabel.trim() && !newMapUrl.trim()
+                  }
                   className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] disabled:opacity-40"
                 >
                   Сохранить
