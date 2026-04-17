@@ -1,11 +1,12 @@
 # STORY-011 — Calendar v2: доработка до операционной полноты
 
-**Status:** proposed
+**Status:** proposed (не начата; коммиты с тегом STORY-011 от 17.04.2026 фактически относятся к STORY-012)
 **Priority:** HIGH (блокирует комфортное ежедневное использование)
 **Estimated scope:** ~10-14 файлов, 1.5-2 дня
 **Depends on:** —
 **Blocks:** ничего (STORY-001 можно начинать параллельно, модели данных совместимы)
 **Date:** 2026-04-11
+**Last reviewed:** 2026-04-17
 
 ---
 
@@ -158,4 +159,22 @@
 ---
 
 ## Notes
-_(заполняется при реализации)_
+
+### 2026-04-17 — Аудит перед реализацией
+
+**Что НЕ сделано (все 7 acceptance criteria):**
+- [ ] Overlapping appointments (column split) — в `DayColumn.tsx` нет `computeOverlapColumns`
+- [ ] Conflict highlight — нет `ring-2 ring-red-400` логики ни в блоке, ни в форме
+- [ ] Resize duration — нет resize-handle внизу `AppointmentBlock`
+- [ ] NOW button — нет компонента `NowButton.tsx`
+- [ ] Month view — нет `MonthView.tsx`
+- [ ] Tap day header → day view — header в `DayColumn` не кликабелен
+- [ ] 15/30-min gridlines — `TimeGrid.tsx` рисует только часовые линии
+
+**Путаница с коммитами:** коммиты от 15-17.04.2026 с тегом "STORY-011" и "STORY-010"
+в описаниях (`comment always visible`, `locations card`, `compact TimeBlock`)
+относятся к STORY-012 (phone-first appointment sheet) — это UI-улучшения
+AppointmentSheet, TimeBlock и LocationsBlock, а не Calendar v2.
+STORY-011 как таковая ещё не начата.
+
+**Готово к старту:** зависимостей нет, можно начинать после чистки технического долга.
