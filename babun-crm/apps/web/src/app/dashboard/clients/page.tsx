@@ -46,11 +46,10 @@ export default function ClientsPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
-    if (id && !selectedId) {
-      setSelectedId(id);
+    if (id) {
+      setSelectedId((prev) => prev ?? id);
       window.history.replaceState({}, "", "/dashboard/clients");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Compute revenue per client

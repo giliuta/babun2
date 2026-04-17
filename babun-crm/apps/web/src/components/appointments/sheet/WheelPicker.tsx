@@ -38,8 +38,7 @@ export default function WheelPicker({
     if (Math.abs(el.scrollTop - target) > 1) {
       el.scrollTo({ top: target, behavior: "auto" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIndex]);
+  }, [selectedIndex, itemHeight]);
 
   const handleScroll = () => {
     if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);

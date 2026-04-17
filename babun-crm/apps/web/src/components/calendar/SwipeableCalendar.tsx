@@ -75,8 +75,12 @@ export default function SwipeableCalendar({
 
   // Whenever width changes (or after first measure), center the track
   useEffect(() => {
-    if (width > 0) recenter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const track = trackRef.current;
+    if (width > 0 && track) {
+      track.style.transition = "none";
+      track.style.transform = `translate3d(${-width}px, 0, 0)`;
+      void track.offsetHeight;
+    }
   }, [width]);
 
   // Cancel any pending RAF on unmount

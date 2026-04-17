@@ -48,23 +48,27 @@ export default function WheelColumn({
   const viewportH = visibleRows * itemHeight;
   const renderList = loop ? [...items, ...items, ...items] : items;
 
-  // scrollTop that centres `idx` in the viewport. For loop mode we
-  // always anchor in the middle copy so the user has a full N items
-  // of travel in either direction before we need to wrap.
-  const targetScrollTopFor = (idx: number) =>
-    (loop ? N + idx : idx) * itemHeight;
+  // Refs to read current prop values inside the mount-only effect below
+  // without listing them as deps (which would defeat the "run once" intent).
+  const loopRef = useRef(loop);
+  loopRef.current = loop;
+  const NRef = useRef(N);
+  NRef.current = N;
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const itemHeightRef = useRef(itemHeight);
+  itemHeightRef.current = itemHeight;
 
   // Initial placement on mount.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
     ignoreScrollRef.current = true;
-    el.scrollTop = targetScrollTopFor(selectedIndex);
-    lastReportedRef.current = selectedIndex;
+    el.scrollTop = (loopRef.current ? NRef.current + selectedIndexRef.current : selectedIndexRef.current) * itemHeightRef.current;
+    lastReportedRef.current = selectedIndexRef.current;
     requestAnimationFrame(() => {
       ignoreScrollRef.current = false;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // External sync: when the parent changes selectedIndex for a reason
@@ -75,13 +79,12 @@ export default function WheelColumn({
     if (!el) return;
     if (lastReportedRef.current === selectedIndex) return;
     ignoreScrollRef.current = true;
-    el.scrollTop = targetScrollTopFor(selectedIndex);
+    el.scrollTop = (loop ? N + selectedIndex : selectedIndex) * itemHeight;
     lastReportedRef.current = selectedIndex;
     requestAnimationFrame(() => {
       ignoreScrollRef.current = false;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIndex, itemHeight, N]);
+  }, [selectedIndex, itemHeight, N, loop]);
 
   const handleScroll = () => {
     if (ignoreScrollRef.current) return;

@@ -93,6 +93,12 @@ export default function DashboardPage() {
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
+  // Refs for the mount-only seed effect — lets the effect read current values
+  // without listing them as deps, which would re-trigger on every render.
+  const appointmentsRef = useRef(appointments);
+  appointmentsRef.current = appointments;
+  const upsertRef = useRef(upsertAppointment);
+  upsertRef.current = upsertAppointment;
   const { requiredFields } = useFormSettings();
   const { services } = useServices();
   const { clients } = useClients();
@@ -163,7 +169,7 @@ export default function DashboardPage() {
   // Seed with mock data on first visit only
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (appointments.length > 0) return;
+    if (appointmentsRef.current.length > 0) return;
     if (window.localStorage.getItem(SEED_KEY)) return;
 
     const now = new Date().toISOString();
@@ -209,10 +215,9 @@ export default function DashboardPage() {
         created_at: now,
         updated_at: now,
       };
-      upsertAppointment(apt);
+      upsertRef.current(apt);
     }
     window.localStorage.setItem(SEED_KEY, "1");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filter appointments by active team

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Service, ServiceCategory } from "@/lib/services";
 import DialogModal from "./DialogModal";
 
@@ -53,13 +53,15 @@ export default function ServicePickerSheet({
   );
   const [query, setQuery] = useState("");
 
+  const initialIdsRef = useRef(initialSelectedIds);
+  initialIdsRef.current = initialSelectedIds;
+
   // Re-seed when the sheet opens with a fresh appointment.
   useEffect(() => {
     if (open) {
-      setQuantities(toQuantities(initialSelectedIds));
+      setQuantities(toQuantities(initialIdsRef.current));
       setQuery("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const filteredServices = useMemo(() => {

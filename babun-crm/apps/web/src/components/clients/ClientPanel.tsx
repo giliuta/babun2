@@ -60,36 +60,40 @@ export default function ClientPanel({
     onUpdate({ ...client, [key]: value });
   };
 
+  // Refs hold the latest client/onUpdate so the effect below can read
+  // current values without being triggered by every field change.
+  const clientRef = useRef(client);
+  clientRef.current = client;
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   // Chats linked to this client are the canonical source for messenger
   // handles — if Dima already chats with them on Telegram, there's no
-  // reason to re-type the @username. On mount and whenever chats change
-  // we fill in empty fields from the chat metadata. Non-empty fields
-  // are never overwritten (user typing wins).
+  // reason to re-type the @username. Runs once per client selection;
+  // non-empty fields are never overwritten (user typing wins).
   useEffect(() => {
-    const chats = loadChats().filter((c) => c.client_id === client.id);
+    const currentClient = clientRef.current;
+    const chats = loadChats().filter((c) => c.client_id === currentClient.id);
     if (chats.length === 0) return;
     const patch: Partial<Client> = {};
     for (const chat of chats) {
-      if (chat.channel === "telegram" && !client.telegram_username && chat.contact_handle) {
+      if (chat.channel === "telegram" && !currentClient.telegram_username && chat.contact_handle) {
         patch.telegram_username = chat.contact_handle;
       }
-      if (chat.channel === "instagram" && !client.instagram_username && chat.contact_handle) {
+      if (chat.channel === "instagram" && !currentClient.instagram_username && chat.contact_handle) {
         patch.instagram_username = chat.contact_handle;
       }
-      if (chat.channel === "whatsapp" && !client.whatsapp_phone && chat.contact_phone && chat.contact_phone !== client.phone) {
+      if (chat.channel === "whatsapp" && !currentClient.whatsapp_phone && chat.contact_phone && chat.contact_phone !== currentClient.phone) {
         patch.whatsapp_phone = chat.contact_phone;
       }
-      if (!client.phone && chat.contact_phone) {
+      if (!currentClient.phone && chat.contact_phone) {
         patch.phone = chat.contact_phone;
       }
     }
     if (Object.keys(patch).length > 0) {
-      onUpdate({ ...client, ...patch });
+      onUpdateRef.current({ ...currentClient, ...patch });
     }
-    // Intentionally depend only on client.id — we want this to run once
-    // per client selection, not on every tick as other fields change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client.id]);
+  }, [client.id]); // triggers once per client selection; reads latest values from refs
 
   const servicesById = useMemo(() => {
     const map = new Map<string, string>();
