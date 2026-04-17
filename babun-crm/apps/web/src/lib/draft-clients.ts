@@ -12,6 +12,12 @@ export interface DraftClient {
   telegram_username?: string;
   instagram_username?: string;
   city?: string;
+  // When a dispatcher creates a draft from the appointment sheet, they
+  // usually already know the visit address and roughly how many A/C
+  // units are on-site. Storing these here saves re-asking later when
+  // the draft is promoted to a full Client record.
+  address?: string;
+  ac_units?: number;
 }
 
 export function loadDraftClients(): DraftClient[] {

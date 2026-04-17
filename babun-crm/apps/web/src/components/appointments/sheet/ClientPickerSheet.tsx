@@ -43,6 +43,8 @@ export default function ClientPickerSheet({
   const [newTelegram, setNewTelegram] = useState("");
   const [newInstagram, setNewInstagram] = useState("");
   const [newCity, setNewCity] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [newAcUnits, setNewAcUnits] = useState("");
 
   const all = useMemo<(Client | DraftClient)[]>(() => {
     const map = new Map<string, Client | DraftClient>();
@@ -85,6 +87,7 @@ export default function ClientPickerSheet({
   const handleCreateNew = () => {
     const name = newName.trim();
     if (!name) return;
+    const acUnitsParsed = Number.parseInt(newAcUnits.trim(), 10);
     const draft: DraftClient = {
       id: generateId("draft"),
       full_name: name,
@@ -92,6 +95,8 @@ export default function ClientPickerSheet({
       telegram_username: newTelegram.trim().replace(/^@+/, ""),
       instagram_username: newInstagram.trim().replace(/^@+/, ""),
       city: newCity.trim(),
+      address: newAddress.trim() || undefined,
+      ac_units: Number.isFinite(acUnitsParsed) && acUnitsParsed > 0 ? acUnitsParsed : undefined,
     };
     upsertDraftClient(draft);
     onSelect(draft);
@@ -106,6 +111,8 @@ export default function ClientPickerSheet({
     setNewTelegram("");
     setNewInstagram("");
     setNewCity("");
+    setNewAddress("");
+    setNewAcUnits("");
   };
 
   const resetAndClose = () => {
@@ -218,6 +225,40 @@ export default function ClientPickerSheet({
               placeholder="Город (Пафос, Лимассол…)"
               className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+            <div className="flex items-start gap-2 bg-white rounded-lg px-3 py-2">
+              <span className="text-rose-500 flex-shrink-0 mt-2" aria-hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </span>
+              <textarea
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                placeholder="Адрес (улица, дом, кв. / Google Maps)"
+                rows={2}
+                className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none resize-none leading-[1.35]"
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-white rounded-lg px-3 h-11">
+              <span className="text-sky-500 flex-shrink-0" aria-hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12h20" />
+                  <path d="M5 8h14" />
+                  <path d="M5 16h14" />
+                </svg>
+              </span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={99}
+                value={newAcUnits}
+                onChange={(e) => setNewAcUnits(e.target.value)}
+                placeholder="Кол-во кондиционеров"
+                className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none tabular-nums"
+              />
+            </div>
             <div className="flex gap-2 pt-1">
               <button
                 type="button"

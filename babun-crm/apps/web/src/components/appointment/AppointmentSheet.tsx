@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type {
   Appointment,
@@ -19,10 +20,10 @@ import {
   totalDuration as calcDuration,
 } from "@/lib/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
+import TimeWheelModal from "@/components/appointments/sheet/TimeWheelModal";
 import type { DraftClient } from "@/lib/draft-clients";
 
 import TimeBlock from "./TimeBlock";
-import TimeEditor from "./TimeEditor";
 import CityPicker from "./CityPicker";
 import ClientBlock from "./ClientBlock";
 import LocationPicker from "./LocationPicker";
@@ -166,8 +167,12 @@ export default function AppointmentSheet({
     return clientLocations.find((l) => l.isPrimary) ?? clientLocations[0];
   }, [clientLocations, locationId]);
 
-  const address = selectedLocation?.address ?? appointment.address ?? "";
-  const acUnits = selectedLocation?.acUnits ?? 0;
+  // Draft clients store address/acUnits inline (no Location[] yet) — fall
+  // back to those so the one-visit A/C count suggestion still works.
+  const draftClient = client && !("locations" in client) ? (client as DraftClient) : null;
+  const address =
+    selectedLocation?.address ?? draftClient?.address ?? appointment.address ?? "";
+  const acUnits = selectedLocation?.acUnits ?? draftClient?.ac_units ?? 0;
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
@@ -292,13 +297,6 @@ export default function AppointmentSheet({
     onClose();
   };
 
-  const handleReschedule = () => {
-    // Возврат к create-режиму с теми же полями — пользователь меняет время
-    // и подтверждает. Простейшая реализация: переводим на create.
-    // eslint-disable-next-line no-alert
-    window.alert("Используйте кнопку +15 / −15 в поле времени. Сохраните изменения.");
-  };
-
   const doneBadge = (() => {
     if (mode !== "done" || !appointment.payment) return null;
     const p = appointment.payment;
@@ -394,17 +392,6 @@ export default function AppointmentSheet({
               setShowTimeEditor(false);
             }}
           />
-
-          {showTimeEditor && isEditable && (
-            <TimeEditor
-              timeStart={timeStart}
-              timeEnd={timeEnd}
-              onChange={(s, e) => {
-                setTimeStart(s);
-                setTimeEnd(e);
-              }}
-            />
-          )}
 
           {showCityPicker && isEditable && (
             <CityPicker
@@ -632,6 +619,17 @@ export default function AppointmentSheet({
       </div>
 
       {/* Sub-sheets */}
+      <TimeWheelModal
+        open={showTimeEditor && isEditable}
+        onClose={() => setShowTimeEditor(false)}
+        startValue={timeStart}
+        endValue={timeEnd}
+        onConfirm={({ startValue, endValue }) => {
+          setTimeStart(startValue);
+          setTimeEnd(endValue);
+        }}
+      />
+
       <ClientPickerSheet
         open={clientSheet}
         onClose={() => setClientSheet(false)}
@@ -673,8 +671,9 @@ export default function AppointmentSheet({
   );
 }
 
-// Catalog-based service picker. Реально фильтрует по бригаде,
-// помечает уже выбранные ✓.
+// Catalog-based service picker. Filtered by brigade and by a search
+// query (name/category). Already-picked rows show a ✓ mark so the
+// dispatcher sees what's in the appointment at a glance.
 function CatalogPickerInline({
   open,
   onClose,
@@ -690,13 +689,32 @@ function CatalogPickerInline({
   activeTeamId: string | null;
   alreadyPickedIds: string[];
 }) {
+  const [query, setQuery] = useState("");
+
+  // Reset search every time the picker opens so a stale query from the
+  // previous use doesn't hide every item on the second visit.
+  useEffect(() => {
+    if (open) setQuery("");
+  }, [open]);
+
+  const forBrigade = useMemo(
+    () =>
+      catalog.filter((s) => {
+        if (!s.is_active) return false;
+        if (s.brigade_ids.length === 0) return true;
+        if (!activeTeamId) return true;
+        return s.brigade_ids.includes(activeTeamId);
+      }),
+    [catalog, activeTeamId]
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return forBrigade;
+    return forBrigade.filter((s) => s.name.toLowerCase().includes(q));
+  }, [forBrigade, query]);
+
   if (!open) return null;
-  const forBrigade = catalog.filter((s) => {
-    if (!s.is_active) return false;
-    if (s.brigade_ids.length === 0) return true; // all brigades
-    if (!activeTeamId) return true;
-    return s.brigade_ids.includes(activeTeamId);
-  });
 
   return (
     <div
@@ -704,18 +722,32 @@ function CatalogPickerInline({
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl pb-6 max-h-[75vh] overflow-y-auto"
+        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl pb-6 max-h-[85vh] flex flex-col"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 24px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-center pt-2">
+        <div className="flex-shrink-0 flex justify-center pt-2">
           <div className="w-10 h-1 rounded-full bg-slate-300" />
         </div>
-        <div className="px-5 pt-3 pb-2 text-[17px] font-semibold text-slate-900">
-          Каталог услуг
+        <div className="flex-shrink-0 px-5 pt-3 pb-1 flex items-baseline justify-between gap-2">
+          <div className="text-[17px] font-semibold text-slate-900">
+            Выбрать услугу
+          </div>
+          <div className="text-[11px] text-slate-400 tabular-nums">
+            {filtered.length} из {forBrigade.length}
+          </div>
         </div>
-        <div className="px-3 space-y-2">
-          {forBrigade.map((s) => {
+        <div className="flex-shrink-0 px-3 pt-2 pb-1">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск: чистка, установка, ремонт…"
+            className="w-full h-11 px-3 rounded-xl bg-slate-100 text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pt-1 space-y-2">
+          {filtered.map((s) => {
             const picked = alreadyPickedIds.includes(s.id);
             return (
               <button
@@ -751,9 +783,22 @@ function CatalogPickerInline({
               </button>
             );
           })}
+          {filtered.length === 0 && forBrigade.length > 0 && (
+            <div className="text-center py-6 text-[13px] text-slate-500">
+              По запросу «{query}» ничего не нашли.
+            </div>
+          )}
           {forBrigade.length === 0 && (
             <div className="text-center py-6 text-[13px] text-slate-500">
-              У этой бригады нет активных услуг. Добавь их на странице «Услуги».
+              У этой бригады нет активных услуг.
+              <br />
+              <Link
+                href="/dashboard/services"
+                onClick={onClose}
+                className="text-violet-600 font-semibold"
+              >
+                Открыть «Услуги» →
+              </Link>
             </div>
           )}
         </div>
