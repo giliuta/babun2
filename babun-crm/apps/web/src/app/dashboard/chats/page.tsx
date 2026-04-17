@@ -531,7 +531,7 @@ function ChatDetailView({
   onTogglePin, onArchive, onClose, onCreateClient, onTogglePanel, onToggleStar,
 }: {
   chat: Chat;
-  clients: { id: string; full_name: string }[];
+  clients: Client[];
   replyTo: ChatMessage | null;
   setReplyTo: (m: ChatMessage | null) => void;
   msgMenu: ChatMessage | null;
