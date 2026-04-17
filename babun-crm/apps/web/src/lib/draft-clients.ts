@@ -47,4 +47,11 @@ export function upsertDraftClient(draft: DraftClient): void {
   const next = existing.filter((d) => d.id !== draft.id);
   next.push(draft);
   saveDraftClients(next);
+  // STORY-006: notify subscribers that the draft list changed so
+  // callers don't have to wait for an appointments-level refresh to
+  // re-read localStorage. Without this, a freshly-created draft
+  // reaches the sheet only after the first save.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("babun:drafts-changed"));
+  }
 }

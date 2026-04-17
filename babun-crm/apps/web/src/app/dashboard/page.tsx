@@ -228,7 +228,13 @@ export default function DashboardPage() {
   // Build clientsById map
   const [draftClients, setDraftClients] = useState<DraftClient[]>([]);
   useEffect(() => {
-    setDraftClients(loadDraftClients());
+    const reload = () => setDraftClients(loadDraftClients());
+    reload();
+    // STORY-006: re-read the draft list on every upsert, not just on
+    // appointments churn. Otherwise a draft created mid-sheet never
+    // reaches AppointmentSheet until the record is saved.
+    window.addEventListener("babun:drafts-changed", reload);
+    return () => window.removeEventListener("babun:drafts-changed", reload);
   }, [appointments]);
 
   const clientsById = useMemo<Record<string, Client | DraftClient>>(() => {
