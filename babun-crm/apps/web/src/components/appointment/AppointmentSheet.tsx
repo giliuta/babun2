@@ -20,10 +20,10 @@ import {
   totalDuration as calcDuration,
 } from "@/lib/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
-import TimeWheelModal from "@/components/appointments/sheet/TimeWheelModal";
 import type { DraftClient } from "@/lib/draft-clients";
 
 import TimeBlock from "./TimeBlock";
+import CompactWheelPicker from "./CompactWheelPicker";
 import CityPicker from "./CityPicker";
 import ClientBlock from "./ClientBlock";
 import LocationPicker from "./LocationPicker";
@@ -393,6 +393,19 @@ export default function AppointmentSheet({
             }}
           />
 
+          {showTimeEditor && isEditable && (
+            <CompactWheelPicker
+              date={dateKey}
+              timeStart={timeStart}
+              timeEnd={timeEnd}
+              onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+                setDateKey(d);
+                setTimeStart(s);
+                setTimeEnd(e);
+              }}
+            />
+          )}
+
           {showCityPicker && isEditable && (
             <CityPicker
               value={city}
@@ -619,17 +632,6 @@ export default function AppointmentSheet({
       </div>
 
       {/* Sub-sheets */}
-      <TimeWheelModal
-        open={showTimeEditor && isEditable}
-        onClose={() => setShowTimeEditor(false)}
-        startValue={timeStart}
-        endValue={timeEnd}
-        onConfirm={({ startValue, endValue }) => {
-          setTimeStart(startValue);
-          setTimeEnd(endValue);
-        }}
-      />
-
       <ClientPickerSheet
         open={clientSheet}
         onClose={() => setClientSheet(false)}
