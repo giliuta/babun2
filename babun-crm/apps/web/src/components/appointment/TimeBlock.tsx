@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import WheelColumn from "./WheelColumn";
 
 interface TimeBlockProps {
@@ -15,11 +15,12 @@ const WEEKDAYS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 const MIN_STEP = 5;
 const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i));
 const MINUTES = Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP));
-// Scroll-snap: the column is 78px tall with 26px per row → 3 visible
-// rows, the middle one lives in the selection bar. Matching the
-// WheelColumn defaults keeps the scroll maths consistent.
 const ITEM_HEIGHT = 26;
 const VISIBLE_COUNT = 3;
+// Don't let the dispatcher scroll into 2050 by accident; ±6 months
+// covers every realistic service-business horizon.
+const WEEK_OFFSET_MIN = -24;
+const WEEK_OFFSET_MAX = 24;
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -51,11 +52,32 @@ function sameYMD(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
   );
 }
+function stripDot(s: string): string {
+  return s.replace(/\.$/, "");
+}
+function formatDateRu(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return stripDot(
+    dt.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+  );
+}
+function formatWeekRange(monday: Date): string {
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const monthShort = (d: Date) =>
+    stripDot(d.toLocaleDateString("ru-RU", { month: "short" }));
+  if (monday.getMonth() === sunday.getMonth()) {
+    return `${monday.getDate()}–${sunday.getDate()} ${monthShort(sunday)}`;
+  }
+  return `${monday.getDate()} ${monthShort(monday)} – ${sunday.getDate()} ${monthShort(sunday)}`;
+}
 
-// STORY-007 inline time block: 7-cube week strip on top, two pairs of
-// wheel columns (start / end) side by side with an arrow separator,
-// and a centred duration pill underneath. Designed for the
-// appointment sheet — always visible, never modal.
+// STORY-008 inline time block — collapsed by default, tap to expand.
+// Expanded view: 7 centred day cubes with ◀ ▶ week nav, two wheel
+// pairs for start/end, and a read-only duration pill. Week nav
+// shifts only the VIEWED week; the appointment's date updates only
+// when the dispatcher taps a specific cube.
 export default function TimeBlock({
   date,
   timeStart,
@@ -63,31 +85,42 @@ export default function TimeBlock({
   readOnly,
   onChange,
 }: TimeBlockProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // Re-anchor the visible week to the appointment's date whenever the
+  // parent hands us a date that sits outside the currently-displayed
+  // week (e.g. sheet reopened on a different record). Tapping a cube
+  // inside the current view is a no-op here because mondayOf(newDate)
+  // already equals the current anchor → React bails on same-state.
+  useEffect(() => {
+    setWeekOffset(0);
+  }, [date]);
+
   const [sh, sm] = parseTime(timeStart);
   const [eh, em] = parseTime(timeEnd);
-
-  // Roll minutes to the nearest tick so the wheels can show a valid
-  // index even if the appointment was stored with a custom value
-  // (e.g. 16:17). onChange still emits a clean HH:MM.
   const startMinRounded = Math.floor(sm / MIN_STEP) * MIN_STEP;
   const endMinRounded = Math.floor(em / MIN_STEP) * MIN_STEP;
-
   const startHourIdx = Math.max(0, Math.min(23, sh));
   const startMinIdx = startMinRounded / MIN_STEP;
   const endHourIdx = Math.max(0, Math.min(23, eh));
   const endMinIdx = endMinRounded / MIN_STEP;
-
   const startTotal = sh * 60 + sm;
   const endTotal = eh * 60 + em;
   const duration = Math.max(0, endTotal - startTotal);
 
+  const viewMonday = useMemo(() => {
+    const base = mondayOf(date);
+    base.setDate(base.getDate() + weekOffset * 7);
+    return base;
+  }, [date, weekOffset]);
+
   const week = useMemo(() => {
-    const monday = mondayOf(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(viewMonday);
+      d.setDate(viewMonday.getDate() + i);
       return {
         key: dateToKey(d),
         weekday: WEEKDAYS[i],
@@ -95,16 +128,34 @@ export default function TimeBlock({
         isToday: sameYMD(d, today),
       };
     });
-  }, [date]);
+  }, [viewMonday]);
+
+  const weekRangeLabel = useMemo(() => formatWeekRange(viewMonday), [viewMonday]);
 
   if (readOnly) {
-    const active = week.find((d) => d.key === date);
-    const label = active ? `${active.weekday} ${active.day}` : date;
     return (
       <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-[13px] text-slate-800 tabular-nums">
-        {label} · {timeStart}–{timeEnd}
+        {formatDateRu(date)} · {timeStart}–{timeEnd}
         {duration > 0 && <span className="text-slate-500 ml-1">· {duration}м</span>}
       </div>
+    );
+  }
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="w-full px-4 py-2 text-left flex items-center gap-2 text-[13px] text-slate-700 bg-slate-50 border-b border-slate-100 active:bg-slate-100"
+      >
+        <span className="text-slate-400">🕐</span>
+        <span className="tabular-nums">
+          {formatDateRu(date)} · {timeStart}–{timeEnd}
+        </span>
+        <span className="text-slate-400">·</span>
+        <span className="text-slate-500 tabular-nums">{duration}м</span>
+        <span className="ml-auto text-slate-400">▾</span>
+      </button>
     );
   }
 
@@ -120,39 +171,72 @@ export default function TimeBlock({
 
   const commitEnd = (hour: number, min: number) => {
     const nextEndTotal = hour * 60 + min;
-    // Illegal — end must strictly follow start. Ignore; WheelColumn's
-    // selectedIndex sync will snap the wheel back on the next render.
     if (nextEndTotal <= startTotal) return;
     const nextEnd = `${pad2(hour)}:${pad2(min)}`;
     onChange({ date, timeStart, timeEnd: nextEnd });
   };
 
+  const canPrev = weekOffset > WEEK_OFFSET_MIN;
+  const canNext = weekOffset < WEEK_OFFSET_MAX;
+
   return (
-    <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-      {/* Week strip */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-        {week.map((d) => {
-          const active = d.key === date;
-          return (
-            <button
-              key={d.key}
-              type="button"
-              onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
-              className={`flex-shrink-0 w-11 h-12 rounded-xl flex flex-col items-center justify-center text-[11px] font-semibold transition ${
-                active
-                  ? "bg-violet-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200"
-              } ${d.isToday && !active ? "border-violet-400 text-violet-700" : ""}`}
-            >
-              <span className="opacity-75 leading-none">{d.weekday}</span>
-              <span className="text-[15px] font-bold leading-tight">{d.day}</span>
-            </button>
-          );
-        })}
+    <div className="bg-slate-50 border-b border-slate-100">
+      {/* Header row: title + collapse button */}
+      <div className="flex items-center justify-between px-4 pt-2">
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          Время записи
+        </span>
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-600"
+          aria-label="Свернуть"
+        >
+          ▴
+        </button>
+      </div>
+
+      {/* Week nav row: ◀ cubes ▶ */}
+      <div className="flex items-center gap-1 px-2 pt-1">
+        <WeekNavBtn
+          direction="prev"
+          disabled={!canPrev}
+          onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))}
+        />
+        <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
+          {week.map((d) => {
+            const active = d.key === date;
+            return (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
+                className={`flex-shrink-0 w-10 h-12 rounded-xl flex flex-col items-center justify-center text-[11px] font-semibold transition ${
+                  active
+                    ? "bg-violet-600 text-white"
+                    : "bg-white text-slate-600 border border-slate-200"
+                } ${d.isToday && !active ? "border-violet-400 text-violet-700" : ""}`}
+              >
+                <span className="opacity-75 leading-none">{d.weekday}</span>
+                <span className="text-[15px] font-bold leading-tight">{d.day}</span>
+              </button>
+            );
+          })}
+        </div>
+        <WeekNavBtn
+          direction="next"
+          disabled={!canNext}
+          onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))}
+        />
+      </div>
+
+      {/* Week range label */}
+      <div className="text-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">
+        {weekRangeLabel}
       </div>
 
       {/* Wheels */}
-      <div className="mt-2 flex items-center justify-center gap-1">
+      <div className="mt-2 flex items-center justify-center gap-1 px-4">
         <WheelGroup
           hourIdx={startHourIdx}
           minIdx={startMinIdx}
@@ -171,15 +255,36 @@ export default function TimeBlock({
       </div>
 
       {/* Duration pill — display only */}
-      <div className="mt-2 flex justify-center">
+      <div className="mt-2 pb-3 flex justify-center">
         <div className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums">
           {duration}м
         </div>
       </div>
 
-      {/* One-off webkit scrollbar hide for the wheel scrollers. */}
       <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
     </div>
+  );
+}
+
+function WeekNavBtn({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: "prev" | "next";
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex-shrink-0 w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[11px] text-slate-500 active:bg-slate-100 disabled:opacity-30"
+      aria-label={direction === "prev" ? "Предыдущая неделя" : "Следующая неделя"}
+    >
+      {direction === "prev" ? "◀" : "▶"}
+    </button>
   );
 }
 
