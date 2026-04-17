@@ -15,10 +15,11 @@ const WEEKDAYS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 const MIN_STEP = 5;
 const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i));
 const MINUTES = Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP));
-const ITEM_HEIGHT = 26;
-const VISIBLE_COUNT = 3;
-// Don't let the dispatcher scroll into 2050 by accident; ±6 months
-// covers every realistic service-business horizon.
+const ITEM_HEIGHT = 38;
+const VISIBLE_ROWS = 5;
+const COLUMN_WIDTH = 56;
+const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS; // 190
+const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;    // 76
 const WEEK_OFFSET_MIN = -24;
 const WEEK_OFFSET_MAX = 24;
 
@@ -73,11 +74,12 @@ function formatWeekRange(monday: Date): string {
   return `${monday.getDate()} ${monthShort(monday)} – ${sunday.getDate()} ${monthShort(sunday)}`;
 }
 
-// STORY-008 inline time block — collapsed by default, tap to expand.
-// Expanded view: 7 centred day cubes with ◀ ▶ week nav, two wheel
-// pairs for start/end, and a read-only duration pill. Week nav
-// shifts only the VIEWED week; the appointment's date updates only
-// when the dispatcher taps a specific cube.
+// STORY-009 premium time block. Collapsed by default as a clean white
+// summary row; expanded shows a centred week strip with chevron nav,
+// two iOS-style wheel pairs (hour : minute → hour : minute) and a
+// pill-styled duration readout. The wheel pairs are infinite-loop,
+// so the user can scroll from 00 minutes upward to 55 and beyond
+// without hitting a wall.
 export default function TimeBlock({
   date,
   timeStart,
@@ -88,12 +90,12 @@ export default function TimeBlock({
   const [expanded, setExpanded] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Re-anchor the visible week to the appointment's date whenever the
-  // parent hands us a date that sits outside the currently-displayed
-  // week (e.g. sheet reopened on a different record). Tapping a cube
-  // inside the current view is a no-op here because mondayOf(newDate)
-  // already equals the current anchor → React bails on same-state.
   useEffect(() => {
+    // Resync the viewed week to the appointment's date. When the
+    // selected date lands inside the current view the setState is a
+    // React-level no-op; only an out-of-view date (e.g. sheet reused
+    // for a different record) actually triggers a re-render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWeekOffset(0);
   }, [date]);
 
@@ -134,9 +136,9 @@ export default function TimeBlock({
 
   if (readOnly) {
     return (
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-[13px] text-slate-800 tabular-nums">
+      <div className="px-4 py-3 bg-white border-b border-slate-100 text-[13px] text-slate-800 tabular-nums">
         {formatDateRu(date)} · {timeStart}–{timeEnd}
-        {duration > 0 && <span className="text-slate-500 ml-1">· {duration}м</span>}
+        {duration > 0 && <span className="text-slate-500 ml-1">· {duration} мин</span>}
       </div>
     );
   }
@@ -146,15 +148,22 @@ export default function TimeBlock({
       <button
         type="button"
         onClick={() => setExpanded(true)}
-        className="w-full px-4 py-2 text-left flex items-center gap-2 text-[13px] text-slate-700 bg-slate-50 border-b border-slate-100 active:bg-slate-100"
+        className="w-full flex items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 text-[13px] text-slate-600 active:bg-slate-50"
       >
-        <span className="text-slate-400">🕐</span>
-        <span className="tabular-nums">
-          {formatDateRu(date)} · {timeStart}–{timeEnd}
+        <span className="flex-shrink-0 text-slate-400">
+          <ClockIcon />
         </span>
-        <span className="text-slate-400">·</span>
-        <span className="text-slate-500 tabular-nums">{duration}м</span>
-        <span className="ml-auto text-slate-400">▾</span>
+        <span className="font-semibold text-slate-900">{formatDateRu(date)}</span>
+        <span className="text-slate-300">·</span>
+        <span className="tabular-nums font-medium">
+          {timeStart}–{timeEnd}
+        </span>
+        <span className="ml-auto px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 tabular-nums">
+          {duration} мин
+        </span>
+        <span className="flex-shrink-0 text-slate-400">
+          <ChevronDownIcon />
+        </span>
       </button>
     );
   }
@@ -180,30 +189,29 @@ export default function TimeBlock({
   const canNext = weekOffset < WEEK_OFFSET_MAX;
 
   return (
-    <div className="bg-slate-50 border-b border-slate-100">
-      {/* Header row: title + collapse button */}
-      <div className="flex items-center justify-between px-4 pt-2">
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+    <div
+      className="border-b border-slate-100"
+      style={{ background: "linear-gradient(180deg, #fafafa, #f5f3ff)" }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-3">
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.06em]">
           Время записи
         </span>
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-600"
+          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-700"
           aria-label="Свернуть"
         >
-          ▴
+          <ChevronUpIcon />
         </button>
       </div>
 
-      {/* Week nav row: ◀ cubes ▶ */}
-      <div className="flex items-center gap-1 px-2 pt-1">
-        <WeekNavBtn
-          direction="prev"
-          disabled={!canPrev}
-          onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))}
-        />
-        <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto">
+      {/* Week nav */}
+      <div className="flex items-center gap-2 px-3 pt-2">
+        <WeekArrow direction="prev" disabled={!canPrev} onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))} />
+        <div className="flex-1 flex items-center justify-center gap-1.5 overflow-x-auto">
           {week.map((d) => {
             const active = d.key === date;
             return (
@@ -211,41 +219,79 @@ export default function TimeBlock({
                 key={d.key}
                 type="button"
                 onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
-                className={`flex-shrink-0 w-10 h-12 rounded-xl flex flex-col items-center justify-center text-[11px] font-semibold transition ${
-                  active
-                    ? "bg-violet-600 text-white"
-                    : "bg-white text-slate-600 border border-slate-200"
-                } ${d.isToday && !active ? "border-violet-400 text-violet-700" : ""}`}
+                className="flex-shrink-0 flex flex-col items-center justify-center transition-transform active:scale-95"
+                style={{
+                  width: 48,
+                  height: 60,
+                  borderRadius: 14,
+                  color: active ? "white" : d.isToday ? "rgb(124 58 237)" : "rgb(71 85 105)",
+                  background: active
+                    ? "linear-gradient(180deg, #8b5cf6, #7c3aed)"
+                    : "white",
+                  border: active
+                    ? "1px solid transparent"
+                    : d.isToday
+                    ? "1.5px solid rgb(167 139 250)"
+                    : "1px solid rgb(226 232 240)",
+                  boxShadow: active
+                    ? "0 4px 12px rgba(124, 58, 237, 0.28)"
+                    : "0 1px 2px rgba(15, 23, 42, 0.04)",
+                  transform: active ? "scale(1.02)" : "scale(1)",
+                }}
               >
-                <span className="opacity-75 leading-none">{d.weekday}</span>
-                <span className="text-[15px] font-bold leading-tight">{d.day}</span>
+                <span
+                  className="leading-none"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    opacity: active ? 0.88 : 1,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {d.weekday}
+                </span>
+                <span
+                  className="leading-tight"
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    marginTop: 2,
+                  }}
+                >
+                  {d.day}
+                </span>
               </button>
             );
           })}
         </div>
-        <WeekNavBtn
-          direction="next"
-          disabled={!canNext}
-          onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))}
-        />
+        <WeekArrow direction="next" disabled={!canNext} onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))} />
       </div>
 
       {/* Week range label */}
-      <div className="text-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">
+      <div
+        className="text-center mt-1.5"
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.08em",
+          color: "rgb(148 163 184)",
+          textTransform: "uppercase",
+        }}
+      >
         {weekRangeLabel}
       </div>
 
       {/* Wheels */}
-      <div className="mt-2 flex items-center justify-center gap-1 px-4">
+      <div className="mt-3 flex items-center justify-center gap-2 px-3">
         <WheelGroup
           hourIdx={startHourIdx}
           minIdx={startMinIdx}
           onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
           onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
         />
-        <div className="w-6 text-center text-[16px] font-bold text-slate-400 select-none">
-          →
-        </div>
+        <span className="flex-shrink-0 text-slate-400">
+          <ArrowRightIcon />
+        </span>
         <WheelGroup
           hourIdx={endHourIdx}
           minIdx={endMinIdx}
@@ -254,10 +300,26 @@ export default function TimeBlock({
         />
       </div>
 
-      {/* Duration pill — display only */}
-      <div className="mt-2 pb-3 flex justify-center">
-        <div className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums">
-          {duration}м
+      {/* Duration pill */}
+      <div className="mt-3 pb-4 flex justify-center">
+        <div
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full tabular-nums"
+          style={{
+            background: "rgb(241 245 249)",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "rgb(71 85 105)",
+          }}
+        >
+          <span
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: 999,
+              background: "rgb(148 163 184)",
+            }}
+          />
+          {duration} минут
         </div>
       </div>
 
@@ -266,7 +328,7 @@ export default function TimeBlock({
   );
 }
 
-function WeekNavBtn({
+function WeekArrow({
   direction,
   disabled,
   onClick,
@@ -280,10 +342,19 @@ function WeekNavBtn({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex-shrink-0 w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[11px] text-slate-500 active:bg-slate-100 disabled:opacity-30"
+      className="flex-shrink-0 flex items-center justify-center transition active:scale-95 disabled:opacity-30"
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        background: "white",
+        border: "1px solid rgb(226 232 240)",
+        color: "rgb(71 85 105)",
+        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.06)",
+      }}
       aria-label={direction === "prev" ? "Предыдущая неделя" : "Следующая неделя"}
     >
-      {direction === "prev" ? "◀" : "▶"}
+      {direction === "prev" ? <ChevronLeftIcon /> : <ChevronRightIcon />}
     </button>
   );
 }
@@ -301,25 +372,116 @@ function WheelGroup({
 }) {
   return (
     <div className="flex items-center gap-0.5">
-      <WheelColumn
-        items={HOURS}
-        selectedIndex={hourIdx}
-        onChange={onHour}
-        width={44}
-        itemHeight={ITEM_HEIGHT}
-        visibleCount={VISIBLE_COUNT}
-      />
-      <div className="h-[78px] flex items-center text-sm font-bold text-slate-300 select-none">
+      <WheelWithLines>
+        <WheelColumn
+          items={HOURS}
+          selectedIndex={hourIdx}
+          onChange={onHour}
+          width={COLUMN_WIDTH}
+          itemHeight={ITEM_HEIGHT}
+          visibleRows={VISIBLE_ROWS}
+          loop
+        />
+      </WheelWithLines>
+      <span
+        className="select-none"
+        style={{
+          fontSize: 24,
+          fontWeight: 300,
+          color: "rgb(203 213 225)",
+          padding: "0 2px",
+          lineHeight: `${WHEEL_H}px`,
+        }}
+      >
         :
-      </div>
-      <WheelColumn
-        items={MINUTES}
-        selectedIndex={minIdx}
-        onChange={onMin}
-        width={44}
-        itemHeight={ITEM_HEIGHT}
-        visibleCount={VISIBLE_COUNT}
+      </span>
+      <WheelWithLines>
+        <WheelColumn
+          items={MINUTES}
+          selectedIndex={minIdx}
+          onChange={onMin}
+          width={COLUMN_WIDTH}
+          itemHeight={ITEM_HEIGHT}
+          visibleRows={VISIBLE_ROWS}
+          loop
+        />
+      </WheelWithLines>
+    </div>
+  );
+}
+
+function WheelWithLines({ children }: { children: React.ReactNode }) {
+  // Two 1px slate lines at the top and bottom of the centre row —
+  // iOS-style selection markers. No violet bar; the text inside the
+  // centre row does the heavy lifting.
+  return (
+    <div className="relative">
+      {children}
+      <div
+        className="pointer-events-none absolute z-10"
+        style={{
+          left: 4,
+          right: 4,
+          top: PAD,
+          height: 1,
+          background: "rgba(15, 23, 42, 0.12)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute z-10"
+        style={{
+          left: 4,
+          right: 4,
+          top: PAD + ITEM_HEIGHT - 1,
+          height: 1,
+          background: "rgba(15, 23, 42, 0.12)",
+        }}
       />
     </div>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+function ChevronDownIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+function ChevronUpIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+function ChevronLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+function ChevronRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+function ArrowRightIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="13 6 19 12 13 18" />
+    </svg>
   );
 }
