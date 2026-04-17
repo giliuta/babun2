@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Client, Location } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
+import { extractAddressFromMapUrl } from "@/lib/map-links";
 
 interface LocationsBlockProps {
   client: Client;
@@ -337,6 +338,16 @@ export default function LocationsBlock({
                 type="url"
                 value={newMapUrl}
                 onChange={(e) => setNewMapUrl(e.target.value)}
+                onBlur={() => {
+                  // Convenience: if dispatcher pasted a Maps URL and
+                  // the street field is still empty, lift the address
+                  // out of /place/<...>/ or ?q=<...>. Never overwrites
+                  // what the user already typed.
+                  if (!newAddress.trim() && newMapUrl.trim()) {
+                    const extracted = extractAddressFromMapUrl(newMapUrl);
+                    if (extracted) setNewAddress(extracted);
+                  }
+                }}
                 placeholder="Google Maps ссылка"
                 className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />

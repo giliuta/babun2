@@ -129,6 +129,44 @@ export function buildMapUrl(
   return `https://waze.com/ul?q=${q}&navigate=yes`;
 }
 
+// Pulls a human-readable address out of a Google Maps URL.
+// Handles:
+//   https://www.google.com/maps/place/Agios+Tychonas+21,+Limassol/@34.706,33.089,...
+//   https://maps.google.com/?q=Agios+Tychonas+21,+Limassol
+//   https://maps.app.goo.gl/xxxx (short URL — nothing to extract, returns null)
+// Used by LocationsBlock to autofill the address field when the
+// dispatcher pastes a link. Does NOT touch fields that already have
+// content — caller checks first.
+export function extractAddressFromMapUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  // /place/<Address>/@... or /place/<Address>/ or /place/<Address>?...
+  const placeMatch = trimmed.match(/\/place\/([^/@?#]+)/);
+  if (placeMatch) {
+    try {
+      const decoded = decodeURIComponent(placeMatch[1]).replace(/\+/g, " ").trim();
+      if (decoded.length > 1) return decoded;
+    } catch {
+      // malformed URI sequence — fall through
+    }
+  }
+
+  // ?q=<Address> / ?query=<Address> — but only if it's not already a
+  // coordinate pair (those are handled by extractCoords).
+  try {
+    const u = new URL(trimmed);
+    const q = u.searchParams.get("q") ?? u.searchParams.get("query");
+    if (q && !/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(q.trim())) {
+      return q.replace(/\+/g, " ").trim();
+    }
+  } catch {
+    // not a parseable URL — that's OK, caller stays with the map URL only
+  }
+
+  return null;
+}
+
 // Client-side helper that calls our /api/resolve-map-link endpoint to
 // follow short URLs and extract coordinates server-side.
 export async function resolveMapLink(
