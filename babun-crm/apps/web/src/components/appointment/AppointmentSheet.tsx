@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Appointment,
   AppointmentPayment,
@@ -104,6 +104,9 @@ export default function AppointmentSheet({
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [showTimeEditor, setShowTimeEditor] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
+  // Wrapper around TimeBlock + inline pickers — pointerdown outside
+  // this region collapses the time picker, mimicking an accordion.
+  const timeAreaRef = useRef<HTMLDivElement>(null);
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
@@ -371,50 +374,65 @@ export default function AppointmentSheet({
         </div>
 
         {/* Scroll body */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <TimeBlock
-            appointment={{
-              ...appointment,
-              time_start: timeStart,
-              time_end: timeEnd,
-              date: dateKey,
-            }}
-            cityLabel={city}
-            cityColor={cityColor}
-            teamLabel={teamLabel}
-            readonly={readonly}
-            onOpenTimeEditor={() => {
-              setShowTimeEditor((v) => !v);
-              setShowCityPicker(false);
-            }}
-            onOpenCityPicker={() => {
-              setShowCityPicker((v) => !v);
+        <div
+          className="flex-1 min-h-0 overflow-y-auto pb-4"
+          onPointerDownCapture={(e) => {
+            // Accordion behaviour: any tap outside the time row +
+            // picker collapses it. Capture phase so we react even when
+            // the inner element stops propagation.
+            if (!showTimeEditor && !showCityPicker) return;
+            const area = timeAreaRef.current;
+            if (area && !area.contains(e.target as Node)) {
               setShowTimeEditor(false);
-            }}
-          />
-
-          {showTimeEditor && isEditable && (
-            <CompactWheelPicker
-              date={dateKey}
-              timeStart={timeStart}
-              timeEnd={timeEnd}
-              onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                setDateKey(d);
-                setTimeStart(s);
-                setTimeEnd(e);
+              setShowCityPicker(false);
+            }
+          }}
+        >
+          <div ref={timeAreaRef}>
+            <TimeBlock
+              appointment={{
+                ...appointment,
+                time_start: timeStart,
+                time_end: timeEnd,
+                date: dateKey,
               }}
-            />
-          )}
-
-          {showCityPicker && isEditable && (
-            <CityPicker
-              value={city}
-              onPick={(c) => {
-                onCityChange(dateKey, c);
+              cityLabel={city}
+              cityColor={cityColor}
+              teamLabel={teamLabel}
+              readonly={readonly}
+              onOpenTimeEditor={() => {
+                setShowTimeEditor((v) => !v);
                 setShowCityPicker(false);
               }}
+              onOpenCityPicker={() => {
+                setShowCityPicker((v) => !v);
+                setShowTimeEditor(false);
+              }}
             />
-          )}
+
+            {showTimeEditor && isEditable && (
+              <CompactWheelPicker
+                date={dateKey}
+                timeStart={timeStart}
+                timeEnd={timeEnd}
+                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+                  setDateKey(d);
+                  setTimeStart(s);
+                  setTimeEnd(e);
+                }}
+              />
+            )}
+
+            {showCityPicker && isEditable && (
+              <CityPicker
+                value={city}
+                onPick={(c) => {
+                  onCityChange(dateKey, c);
+                  setShowCityPicker(false);
+                }}
+              />
+            )}
+          </div>
 
           {/* Event mode body */}
           {isEventMode && isEditable ? (
