@@ -9,6 +9,7 @@ import type {
   Discount,
 } from "@/lib/appointments";
 import type { Client, Location } from "@/lib/clients";
+import { upsertClient } from "@/lib/clients";
 import type { Team } from "@/lib/masters";
 import type { Service } from "@/lib/services";
 import { pricePerUnit } from "@/lib/services";
@@ -24,8 +25,7 @@ import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet
 import TimeBlock from "./TimeBlock";
 import CityPicker from "./CityPicker";
 import ClientBlock from "./ClientBlock";
-import LocationPicker from "./LocationPicker";
-import AddressBlock from "./AddressBlock";
+import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
 import CommentBlock from "./CommentBlock";
 import QuickActions from "./QuickActions";
@@ -477,14 +477,27 @@ export default function AppointmentSheet({
                 onChange={() => setClientId(null)}
               />
 
-              <LocationPicker
-                locations={clientLocations}
-                selectedId={locationId}
-                readonly={readonly}
-                onSelect={setLocationId}
-              />
-
-              <AddressBlock address={address} />
+              {client && (
+                <LocationsBlock
+                  client={client}
+                  selectedLocationId={locationId}
+                  readOnly={readonly}
+                  onSelectLocation={setLocationId}
+                  onAddLocation={(loc) => {
+                    // Atomic: persist client with the new location in
+                    // storage (fires babun:clients-changed → layout
+                    // reloads the context) AND re-select locally, both
+                    // in one event-loop tick so the next render is
+                    // consistent.
+                    const nextClient: Client = {
+                      ...client,
+                      locations: [...client.locations, loc],
+                    };
+                    upsertClient(nextClient);
+                    setLocationId(loc.id);
+                  }}
+                />
+              )}
 
               <ServicesBlock
                 services={appointmentServices}

@@ -36,14 +36,14 @@ export default function ClientPickerSheet({
   const [query, setQuery] = useState("");
   const [showNewForm, setShowNewForm] = useState(false);
 
-  // STORY-007 new-client form. Required fields: name + first phone.
-  // Everything else is hidden behind "+ …" chips and can be added
-  // one at a time; each added field gets a ✕ to remove it again.
+  // STORY-011: comment is now always visible alongside name and
+  // phone. Only Telegram / Instagram / extra phones stay behind "+ …"
+  // chips with removable ✕.
   const [newName, setNewName] = useState("");
   const [newPhones, setNewPhones] = useState<string[]>([""]);
+  const [newComment, setNewComment] = useState("");
   const [newTelegram, setNewTelegram] = useState<string | null>(null);
   const [newInstagram, setNewInstagram] = useState<string | null>(null);
-  const [newComment, setNewComment] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = normalize(query);
@@ -90,7 +90,7 @@ export default function ClientPickerSheet({
       })),
       telegram_username: (newTelegram ?? "").trim().replace(/^@+/, ""),
       instagram_username: (newInstagram ?? "").trim().replace(/^@+/, ""),
-      comment: (newComment ?? "").trim(),
+      comment: newComment.trim(),
     });
     upsertClient(client);
     onSelect(client);
@@ -102,9 +102,9 @@ export default function ClientPickerSheet({
   const resetForm = () => {
     setNewName("");
     setNewPhones([""]);
+    setNewComment("");
     setNewTelegram(null);
     setNewInstagram(null);
-    setNewComment(null);
   };
 
   const resetAndClose = () => {
@@ -165,23 +165,52 @@ export default function ClientPickerSheet({
               className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
-            {/* Phone list — first row has no remove button, rest do. */}
-            {newPhones.map((phone, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 bg-white rounded-lg px-3 h-11"
-              >
-                <span className="text-emerald-600 flex-shrink-0" aria-hidden>
-                  <PhoneIcon />
-                </span>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => updatePhone(idx, e.target.value)}
-                  placeholder={idx === 0 ? "+357 99 …" : "Доп. номер"}
-                  className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
-                />
-                {idx > 0 && (
+            {/* First phone — always visible, no remove. */}
+            <div className="flex items-center gap-2 bg-white rounded-lg px-3 h-11">
+              <span className="text-emerald-600 flex-shrink-0" aria-hidden>
+                <PhoneIcon />
+              </span>
+              <input
+                type="tel"
+                value={newPhones[0] ?? ""}
+                onChange={(e) => updatePhone(0, e.target.value)}
+                placeholder="+357 99 …"
+                className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+              />
+            </div>
+
+            {/* Comment — always visible per STORY-011, no ✕. */}
+            <div className="flex items-start gap-2 bg-white rounded-lg px-3 py-2">
+              <span className="text-gray-400 flex-shrink-0 mt-2" aria-hidden>
+                <CommentIcon />
+              </span>
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Комментарий (язык, особенности)"
+                rows={2}
+                className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none resize-none leading-[1.35]"
+              />
+            </div>
+
+            {/* Extra phones — with ✕ to remove. */}
+            {newPhones.slice(1).map((phone, sliceIdx) => {
+              const idx = sliceIdx + 1;
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 bg-white rounded-lg px-3 h-11"
+                >
+                  <span className="text-emerald-600 flex-shrink-0" aria-hidden>
+                    <PhoneIcon />
+                  </span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => updatePhone(idx, e.target.value)}
+                    placeholder="Доп. номер"
+                    className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+                  />
                   <button
                     type="button"
                     onClick={() => removePhone(idx)}
@@ -190,9 +219,9 @@ export default function ClientPickerSheet({
                   >
                     <CloseIcon />
                   </button>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
 
             {newTelegram !== null && (
               <FieldRow
@@ -212,30 +241,8 @@ export default function ClientPickerSheet({
                 placeholder="Instagram @username"
               />
             )}
-            {newComment !== null && (
-              <div className="flex items-start gap-2 bg-white rounded-lg px-3 py-2">
-                <span className="text-gray-400 flex-shrink-0 mt-2" aria-hidden>
-                  <CommentIcon />
-                </span>
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Комментарий (язык, особенности)"
-                  rows={2}
-                  className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none resize-none leading-[1.35]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setNewComment(null)}
-                  className="w-7 h-7 flex items-center justify-center text-gray-400 active:text-gray-700 mt-1"
-                  aria-label="Убрать комментарий"
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-            )}
 
-            {/* Add-chips */}
+            {/* Add-chips — Comment chip is gone since comment is now always visible. */}
             <div className="pt-1">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
                 Добавить (необязательно)
@@ -250,9 +257,6 @@ export default function ClientPickerSheet({
                 )}
                 {newInstagram === null && (
                   <AddChip label="+ Instagram" onClick={() => setNewInstagram("")} />
-                )}
-                {newComment === null && (
-                  <AddChip label="+ Комментарий" onClick={() => setNewComment("")} />
                 )}
               </div>
             </div>
