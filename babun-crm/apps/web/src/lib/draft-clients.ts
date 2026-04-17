@@ -11,11 +11,12 @@ export interface DraftClient {
   phone: string;
   telegram_username?: string;
   instagram_username?: string;
+  // STORY-005: free-form dispatcher note (language, preferences).
+  comment?: string;
+  // Legacy fields — kept optional so draft records written before
+  // STORY-005 still load cleanly. The UI no longer collects them;
+  // address and A/C unit count live on each appointment's location.
   city?: string;
-  // When a dispatcher creates a draft from the appointment sheet, they
-  // usually already know the visit address and roughly how many A/C
-  // units are on-site. Storing these here saves re-asking later when
-  // the draft is promoted to a full Client record.
   address?: string;
   ac_units?: number;
 }

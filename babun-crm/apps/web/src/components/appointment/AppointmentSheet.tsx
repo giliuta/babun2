@@ -110,6 +110,29 @@ export default function AppointmentSheet({
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
+  // STORY-005: auto-open ClientPicker once per create-session so the
+  // dispatcher lands straight in the picker. Guarded by a ref so
+  // closing the picker via X doesn't reopen it; the ref is cleared
+  // whenever the sheet is reused for a different appointment.
+  const clientPickerAutoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (
+      liveMode === "create" &&
+      kind === "work" &&
+      !clientId &&
+      !clientPickerAutoOpenedRef.current
+    ) {
+      clientPickerAutoOpenedRef.current = true;
+      // Whole point of this effect is to reactively open the picker on
+      // entering create+work; ref guard prevents cascading renders.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setClientSheet(true);
+    }
+  }, [liveMode, kind, clientId]);
+  useEffect(() => {
+    clientPickerAutoOpenedRef.current = false;
+  }, [appointment.id]);
+
   // body scroll lock + ESC close
   useEffect(() => {
     if (!open) return;

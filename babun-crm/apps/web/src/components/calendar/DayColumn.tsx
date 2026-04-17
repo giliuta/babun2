@@ -168,10 +168,11 @@ function DayColumnInner({
     const totalHeight = rect.height;
     const pxPerMinute = totalHeight / (24 * 60);
     const totalMinutes = clickY / pxPerMinute;
-
-    const snapped = Math.round(totalMinutes / 15) * 15;
-    const hours = Math.floor(snapped / 60);
-    const mm = snapped % 60;
+    // STORY-005: тап по ячейке всегда даёт начало часа — диспетчер не
+    // попадает в 16:15 случайно. Длительность рассчитывается отдельно
+    // из выбранных услуг.
+    const hours = Math.floor(totalMinutes / 60);
+    const mm = 0;
 
     if (hours >= 0 && hours < 24) {
       const timeStr = `${String(hours).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
