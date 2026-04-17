@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Appointment,
@@ -11,7 +10,7 @@ import type {
 import type { Client, Location } from "@/lib/clients";
 import { upsertClient } from "@/lib/clients";
 import type { Team } from "@/lib/masters";
-import type { Service } from "@/lib/services";
+import type { Service, ServiceCategory } from "@/lib/services";
 import { pricePerUnit } from "@/lib/services";
 import { EVENT_PRESETS } from "@/lib/event-presets";
 import { getCityColor, CITY_LIST } from "@/lib/day-cities";
@@ -21,6 +20,7 @@ import {
   totalDuration as calcDuration,
 } from "@/lib/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
+import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
 
 import TimeBlock from "./TimeBlock";
 import CityPicker from "./CityPicker";
@@ -46,6 +46,8 @@ interface AppointmentSheetProps {
   activeTeam: Team | null;
   /** Каталог услуг для выбора и сопоставления id → service. */
   catalog: Service[];
+  /** Категории услуг для группировки в пикере. */
+  categories: ServiceCategory[];
   cityForDate: (dateKey: string) => string;
   onSave: (apt: Appointment) => void;
   onCancelAppointment: (apt: Appointment) => void;
@@ -68,6 +70,7 @@ export default function AppointmentSheet({
   recentClientIds,
   activeTeam,
   catalog,
+  categories,
   cityForDate,
   onSave,
   onCancelAppointment,
@@ -668,23 +671,17 @@ export default function AppointmentSheet({
         recentClientIds={recentClientIds}
       />
 
-      <CatalogPickerInline
+      <ServicePickerSheet
         open={servicePickerOpen}
         onClose={() => setServicePickerOpen(false)}
-        catalog={catalog}
-        activeTeamId={activeTeam?.id ?? null}
-        alreadyPickedIds={appointmentServices.map((s) => s.serviceId)}
-        onPick={(svc) => {
-          const line: AppointmentService = {
-            serviceId: svc.id,
-            quantity: 1,
-            pricePerUnit: pricePerUnit(svc, 1),
-            originalPrice: svc.price,
-            totalPrice: svc.price,
-            duration: svc.duration_minutes,
-          };
-          setAppointmentServices((prev) => [...prev, line]);
-          setServicePickerOpen(false);
+        services={catalog}
+        categories={categories}
+        brigadeId={activeTeam?.id ?? null}
+        initialSelectedIds={servicesToIds(appointmentServices)}
+        onConfirm={(ids) => {
+          setAppointmentServices(
+            idsToServices(ids, catalog, appointmentServices)
+          );
         }}
       />
 
@@ -694,139 +691,70 @@ export default function AppointmentSheet({
   );
 }
 
-// Catalog-based service picker. Filtered by brigade and by a search
-// query (name/category). Already-picked rows show a ✓ mark so the
-// dispatcher sees what's in the appointment at a glance.
-function CatalogPickerInline({
-  open,
-  onClose,
-  onPick,
-  catalog,
-  activeTeamId,
-  alreadyPickedIds,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onPick: (svc: Service) => void;
-  catalog: Service[];
-  activeTeamId: string | null;
-  alreadyPickedIds: string[];
-}) {
-  const [query, setQuery] = useState("");
+// ─── id ↔ AppointmentService helpers ────────────────────────────────────
+// ServicePickerSheet оперирует `string[]` с дубликатами (quantity = кол-во
+// повторов id). AppointmentService[] нужен для корректного расчёта bulk
+// price и per-line пользовательских переопределений цены. Эти две
+// функции мостят два представления, сохраняя overrides из prev.
 
-  // Reset search every time the picker opens so a stale query from the
-  // previous use doesn't hide every item on the second visit.
-  useEffect(() => {
-    if (open) setQuery("");
-  }, [open]);
+function servicesToIds(list: AppointmentService[]): string[] {
+  const out: string[] = [];
+  for (const s of list) {
+    for (let i = 0; i < s.quantity; i++) out.push(s.serviceId);
+  }
+  return out;
+}
 
-  const forBrigade = useMemo(
-    () =>
-      catalog.filter((s) => {
-        if (!s.is_active) return false;
-        if (s.brigade_ids.length === 0) return true;
-        if (!activeTeamId) return true;
-        return s.brigade_ids.includes(activeTeamId);
-      }),
-    [catalog, activeTeamId]
-  );
+function idsToServices(
+  ids: string[],
+  catalog: Service[],
+  prev: AppointmentService[]
+): AppointmentService[] {
+  const byId = new Map<string, Service>();
+  for (const svc of catalog) byId.set(svc.id, svc);
+  const prevById = new Map<string, AppointmentService>();
+  for (const line of prev) prevById.set(line.serviceId, line);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return forBrigade;
-    return forBrigade.filter((s) => s.name.toLowerCase().includes(q));
-  }, [forBrigade, query]);
+  const qty = new Map<string, number>();
+  for (const id of ids) qty.set(id, (qty.get(id) ?? 0) + 1);
 
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl pb-6 max-h-[85vh] flex flex-col"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 24px)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex-shrink-0 flex justify-center pt-2">
-          <div className="w-10 h-1 rounded-full bg-slate-300" />
-        </div>
-        <div className="flex-shrink-0 px-5 pt-3 pb-1 flex items-baseline justify-between gap-2">
-          <div className="text-[17px] font-semibold text-slate-900">
-            Выбрать услугу
-          </div>
-          <div className="text-[11px] text-slate-400 tabular-nums">
-            {filtered.length} из {forBrigade.length}
-          </div>
-        </div>
-        <div className="flex-shrink-0 px-3 pt-2 pb-1">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск: чистка, установка, ремонт…"
-            className="w-full h-11 px-3 rounded-xl bg-slate-100 text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-          />
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pt-1 space-y-2">
-          {filtered.map((s) => {
-            const picked = alreadyPickedIds.includes(s.id);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => onPick(s)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 active:scale-[0.99] ${
-                  picked ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-white"
-                }`}
-              >
-                <div
-                  className="w-1 h-10 rounded-full flex-shrink-0"
-                  style={{ background: s.color }}
-                />
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[15px] font-semibold text-slate-900 truncate flex items-center gap-1.5">
-                    {picked && <span className="text-violet-600">✓</span>}
-                    {s.name}
-                  </div>
-                  <div className="text-[11px] text-slate-500 tabular-nums">
-                    {s.duration_minutes} мин/шт
-                    {s.bulk_threshold > 0 &&
-                      s.bulk_price > 0 &&
-                      ` · от ${s.bulk_threshold}шт → ${s.bulk_price}€`}
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-[15px] font-bold text-slate-800 tabular-nums">
-                    {formatEUR(s.price)}
-                  </div>
-                  <div className="text-[10px] text-slate-500">за шт</div>
-                </div>
-              </button>
-            );
-          })}
-          {filtered.length === 0 && forBrigade.length > 0 && (
-            <div className="text-center py-6 text-[13px] text-slate-500">
-              По запросу «{query}» ничего не нашли.
-            </div>
-          )}
-          {forBrigade.length === 0 && (
-            <div className="text-center py-6 text-[13px] text-slate-500">
-              У этой бригады нет активных услуг.
-              <br />
-              <Link
-                href="/dashboard/services"
-                onClick={onClose}
-                className="text-violet-600 font-semibold"
-              >
-                Открыть «Услуги» →
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const out: AppointmentService[] = [];
+  // Сохраняем исходный порядок: сначала строки, которые уже были в prev
+  // (это сохраняет ручные перестановки в UI), потом новые.
+  const seen = new Set<string>();
+  for (const line of prev) {
+    const q = qty.get(line.serviceId);
+    if (!q) continue;
+    seen.add(line.serviceId);
+    const svc = byId.get(line.serviceId);
+    if (!svc) continue;
+    // Если бригада не трогала цену (pricePerUnit === originalPrice),
+    // пересчитываем с учётом bulk. Если трогала — сохраняем override.
+    const userOverride = line.pricePerUnit !== line.originalPrice;
+    const ppu = userOverride ? line.pricePerUnit : pricePerUnit(svc, q);
+    out.push({
+      ...line,
+      quantity: q,
+      pricePerUnit: ppu,
+      originalPrice: svc.price,
+      totalPrice: q * ppu,
+      duration: q * svc.duration_minutes,
+    });
+  }
+  for (const [id, q] of qty) {
+    if (seen.has(id)) continue;
+    const svc = byId.get(id);
+    if (!svc) continue;
+    const ppu = pricePerUnit(svc, q);
+    out.push({
+      serviceId: id,
+      quantity: q,
+      pricePerUnit: ppu,
+      originalPrice: svc.price,
+      totalPrice: q * ppu,
+      duration: q * svc.duration_minutes,
+    });
+  }
+  return out;
 }
 

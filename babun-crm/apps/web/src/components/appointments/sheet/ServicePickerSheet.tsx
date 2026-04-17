@@ -9,6 +9,9 @@ interface ServicePickerSheetProps {
   onClose: () => void;
   services: Service[];
   categories: ServiceCategory[];
+  /** Фильтр по бригаде: если задан, показываем только услуги где
+   *  brigade_ids пуст (доступна всем) или содержит brigadeId. */
+  brigadeId?: string | null;
   // Incoming selection — duplicates encode quantity (e.g. [id, id] = x2).
   initialSelectedIds: string[];
   onConfirm: (selectedIds: string[]) => void;
@@ -45,9 +48,20 @@ export default function ServicePickerSheet({
   onClose,
   services,
   categories,
+  brigadeId,
   initialSelectedIds,
   onConfirm,
 }: ServicePickerSheetProps) {
+  const visibleServices = useMemo(
+    () =>
+      services.filter((s) => {
+        if (!s.is_active) return false;
+        if (s.brigade_ids.length === 0) return true;
+        if (!brigadeId) return true;
+        return s.brigade_ids.includes(brigadeId);
+      }),
+    [services, brigadeId]
+  );
   const [quantities, setQuantities] = useState<Record<string, number>>(() =>
     toQuantities(initialSelectedIds)
   );
@@ -66,9 +80,9 @@ export default function ServicePickerSheet({
 
   const filteredServices = useMemo(() => {
     const q = normalize(query);
-    if (!q) return services;
-    return services.filter((s) => normalize(s.name).includes(q));
-  }, [services, query]);
+    if (!q) return visibleServices;
+    return visibleServices.filter((s) => normalize(s.name).includes(q));
+  }, [visibleServices, query]);
 
   const grouped = useMemo(() => {
     const byCat = new Map<string | null, Service[]>();
@@ -107,17 +121,17 @@ export default function ServicePickerSheet({
     let sum = 0;
     let duration = 0;
     for (const [id, qty] of Object.entries(quantities)) {
-      const s = services.find((x) => x.id === id);
+      const s = visibleServices.find((x) => x.id === id);
       if (!s) continue;
       count += qty;
       sum += s.price * qty;
       duration += s.duration_minutes * qty;
     }
     return { count, sum, duration };
-  }, [quantities, services]);
+  }, [quantities, visibleServices]);
 
   const handleConfirm = () => {
-    onConfirm(fromQuantities(quantities, services));
+    onConfirm(fromQuantities(quantities, visibleServices));
     onClose();
   };
 

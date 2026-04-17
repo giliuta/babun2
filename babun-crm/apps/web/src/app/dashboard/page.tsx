@@ -95,7 +95,7 @@ export default function DashboardPage() {
   const upsertRef = useRef(upsertAppointment);
   upsertRef.current = upsertAppointment;
   const { requiredFields } = useFormSettings();
-  const { services } = useServices();
+  const { services, categories: serviceCategories } = useServices();
   const { clients } = useClients();
 
   // Header tabs need a stable shape: { id, name }
@@ -859,6 +859,7 @@ export default function DashboardPage() {
           teams={teams}
           activeTeam={activeTeam}
           catalog={services}
+          categories={serviceCategories}
           cityForDate={cityForDate}
           onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
           onCancelAppointment={() => setBooking(null)}
@@ -1039,6 +1040,7 @@ export default function DashboardPage() {
           teams={teams}
           activeTeam={activeTeam}
           catalog={services}
+          categories={serviceCategories}
           cityForDate={cityForDate}
           onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
           onSave={(apt) => {
