@@ -157,9 +157,6 @@ export default function DashboardPage() {
 
   // Single shared vertical scroller for time column + day columns
   const outerScrollerRef = useRef<HTMLDivElement>(null);
-  // Inner wrapper gets the rubber-band translateY during overscroll —
-  // transforming the scroller itself would fight with scrollTop writes.
-  const innerWrapperRef = useRef<HTMLDivElement>(null);
 
   // STORY-004 overscroll refs — kept outside React state so the hot
   // touchmove path never triggers a re-render.
@@ -655,22 +652,12 @@ export default function DashboardPage() {
   useEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
-    const inner = innerWrapperRef.current;
-    if (!el || !inner) return;
+    if (!el) return;
 
     const getMinScrollTop = () =>
       LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current;
 
-    // iOS-style rubber-band curve. Linear `overscroll * 0.35` felt
-    // stiff — this asymptotes so the further you pull the harder it
-    // resists, matching the native UIScrollView feel. Formula from
-    // Apple's WebKit source; dim is the scroller height.
-    const resist = (overscroll: number, dim: number) => {
-      if (overscroll <= 0 || dim <= 0) return 0;
-      return (overscroll * dim) / (overscroll * 0.55 + dim);
-    };
-
-    const smoothScrollTo = (target: number, duration = 240) => {
+    const smoothScrollTo = (target: number, duration = 260) => {
       const start = el.scrollTop;
       const delta = target - start;
       if (Math.abs(delta) < 0.5) {
@@ -688,45 +675,16 @@ export default function DashboardPage() {
       requestAnimationFrame(tick);
     };
 
-    const springBack = () => {
-      inner.style.transition =
-        "transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1)";
-      inner.style.transform = "translate3d(0,0,0)";
-      window.setTimeout(() => {
-        inner.style.transition = "";
-      }, 280);
-    };
-
-    // rAF-batch the transform write: touchmove fires at 120 Hz on
-    // recent iPhones, but the compositor only needs one transform per
-    // frame. Batching kills duplicate paints and keeps the drag
-    // buttery during fast pulls.
-    let rafPending = false;
-    let pendingTranslate = 0;
-    const flushTranslate = () => {
-      rafPending = false;
-      inner.style.transform = `translate3d(0, ${pendingTranslate}px, 0)`;
-    };
-    const queueTranslate = (y: number) => {
-      pendingTranslate = y;
-      if (!rafPending) {
-        rafPending = true;
-        requestAnimationFrame(flushTranslate);
-      }
-    };
-
-    // Cache the viewport height at gesture start — reading offsetHeight
-    // inside touchmove forces layout every frame.
-    let gestureDim = 0;
+    // Zero-transform implementation: just a hard wall via
+    // preventDefault + scrollTop clamp. We can't rubber-band the
+    // content because `transform` on any ancestor of sticky day
+    // headers creates a new containing block and the headers detach
+    // from the scroll container. The walls still bump through cleanly
+    // on release past BUMP_THRESHOLD_PX — which is the load-bearing UX.
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) {
         gestureInvalidRef.current = true;
-        // A pinch started mid-drag: drop any lingering rubber-band so
-        // the pinch-zoom sees a clean 0-translate baseline.
-        if (inner.style.transform && inner.style.transform !== "translate3d(0px, 0px, 0px)") {
-          springBack();
-        }
         return;
       }
       gestureInvalidRef.current = false;
@@ -734,7 +692,6 @@ export default function DashboardPage() {
       touchStartScrollRef.current = el.scrollTop;
       maxOverscrollRef.current = 0;
       bumpedThisGestureRef.current = false;
-      gestureDim = el.clientHeight || 600;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -747,32 +704,18 @@ export default function DashboardPage() {
       const newScroll = touchStartScrollRef.current + delta;
       const minY = getMinScrollTop();
       if (newScroll < minY) {
-        // Swallow native scroll so we can rubber-band instead.
-        // preventDefault lives only in this branch so horizontal
-        // week-swipe and normal scroll stay native.
+        // Hard wall at the current level. preventDefault only in this
+        // branch — horizontal swipe and normal scroll stay native.
         e.preventDefault();
         const overscrollAmount = minY - newScroll;
-        if (inner.style.transition) inner.style.transition = "";
-        queueTranslate(resist(overscrollAmount, gestureDim));
-        // Only write scrollTop when it's actually drifted — every
-        // write triggers a scroll event and can jitter the WebKit
-        // momentum tracker.
         if (el.scrollTop !== minY) el.scrollTop = minY;
         if (overscrollAmount > maxOverscrollRef.current) {
           maxOverscrollRef.current = overscrollAmount;
         }
-      } else if (pendingTranslate !== 0) {
-        // User pulled back into the normal scroll zone — release the
-        // rubber-band live instead of waiting for touchend.
-        queueTranslate(0);
       }
     };
 
     const onTouchEnd = () => {
-      if (pendingTranslate !== 0) {
-        pendingTranslate = 0;
-        springBack();
-      }
       if (
         !gestureInvalidRef.current &&
         !bumpedThisGestureRef.current &&
@@ -787,8 +730,7 @@ export default function DashboardPage() {
           // vibrate unsupported — silently skip
         }
         smoothScrollTo(
-          LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current,
-          260
+          LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current
         );
       }
       maxOverscrollRef.current = 0;
@@ -1194,7 +1136,7 @@ export default function DashboardPage() {
         ) : (
           <div
             ref={outerScrollerRef}
-            className="flex-1 bg-white min-h-0 relative"
+            className="flex-1 flex bg-white min-h-0 relative"
             style={{
               overflowY: "auto",
               overflowX: "clip",
@@ -1209,24 +1151,12 @@ export default function DashboardPage() {
               contain: "paint",
             }}
           >
-            <div
-              ref={innerWrapperRef}
-              className="flex w-full min-h-full"
-              style={{
-                // Dedicated composite layer so rubber-band translate is
-                // GPU-only — no main-thread paint during the drag.
-                willChange: "transform",
-                transform: "translate3d(0,0,0)",
-                backfaceVisibility: "hidden",
-              }}
-            >
-              <TimeColumn />
-              <SwipeableCalendar
-                renderPage={renderPage}
-                onSwipeLeft={handleNextWeek}
-                onSwipeRight={handlePrevWeek}
-              />
-            </div>
+            <TimeColumn />
+            <SwipeableCalendar
+              renderPage={renderPage}
+              onSwipeLeft={handleNextWeek}
+              onSwipeRight={handlePrevWeek}
+            />
           </div>
         )}
       </DndContext>
