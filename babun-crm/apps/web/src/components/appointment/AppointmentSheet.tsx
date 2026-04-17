@@ -61,6 +61,11 @@ type Kind = "work" | "event";
 //  - create: segment [Клиент / Событие] + sticky footer «Создать»
 //  - view:   PaymentBlock + QuickActions + AdminActions
 //  - done:   зелёный бейдж статуса + QuickActions + AdminActions
+//
+// TODO(STORY-013): файл 730+ строк — больше golden-rule 400. На этап
+// декомпозиции планируется вынести: event-mode ветку (EVENT_PRESETS
+// grid + название), SMS-toggle-секцию, handleCreate в отдельный
+// builder, id↔AppointmentService helpers в @/lib/appointment-services.
 export default function AppointmentSheet({
   open,
   onClose,
