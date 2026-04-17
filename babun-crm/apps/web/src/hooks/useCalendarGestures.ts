@@ -16,7 +16,7 @@ export function clampHourHeight(h: number): number {
 // ─── Hook ─────────────────────────────────────────────────────────────────
 
 interface UseCalendarGesturesParams {
-  outerScrollerRef: React.RefObject<HTMLDivElement>;
+  outerScrollerRef: React.RefObject<HTMLDivElement | null>;
   hourHeightRef: React.MutableRefObject<number>;
   writeHourHeight: (h: number) => void;
 }

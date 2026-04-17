@@ -120,7 +120,7 @@ export default function WheelColumn({
       const normalized = loop
         ? ((raw % N) + N) % N
         : Math.max(0, Math.min(N - 1, raw));
-      const target = targetScrollTopFor(normalized);
+      const target = (loop ? N + normalized : normalized) * itemHeight;
       if (Math.abs(el2.scrollTop - target) > 0.5) {
         ignoreScrollRef.current = true;
         el2.scrollTop = target;
