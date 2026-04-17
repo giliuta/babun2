@@ -128,6 +128,9 @@ export default function AppointmentSheet({
     clientPickerAutoOpenedRef.current = false;
   }, [appointment.id]);
 
+  // Auto-chain ServicePicker: see block below selectedLocation definition.
+  const servicePickerAutoOpenedRef = useRef(false);
+
   // body scroll lock + ESC close
   useEffect(() => {
     if (!open) return;
@@ -184,6 +187,33 @@ export default function AppointmentSheet({
 
   const address = selectedLocation?.address ?? appointment.address ?? "";
   const acUnits = selectedLocation?.acUnits ?? 0;
+
+  // Auto-chain ServicePicker: once the dispatcher has picked the client
+  // and at least a map-link or address is set on the location, open the
+  // service picker once so the "quick booking" flow finishes in a single
+  // pass (client → address → services → Save). Edit mode intentionally
+  // does NOT auto-open — when the crew re-opens an existing record in
+  // the field to add upsells, the sheet stays calm and they tap to open.
+  useEffect(() => {
+    if (
+      liveMode === "create" &&
+      kind === "work" &&
+      clientId &&
+      appointmentServices.length === 0 &&
+      selectedLocation &&
+      (selectedLocation.address || selectedLocation.mapUrl) &&
+      !servicePickerAutoOpenedRef.current
+    ) {
+      servicePickerAutoOpenedRef.current = true;
+      // Pattern mirrors clientPickerAutoOpenedRef above — ref guard
+      // prevents cascading renders.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setServicePickerOpen(true);
+    }
+  }, [liveMode, kind, clientId, appointmentServices.length, selectedLocation]);
+  useEffect(() => {
+    servicePickerAutoOpenedRef.current = false;
+  }, [appointment.id]);
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
