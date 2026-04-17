@@ -15,11 +15,13 @@ const WEEKDAYS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 const MIN_STEP = 5;
 const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i));
 const MINUTES = Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP));
-const ITEM_HEIGHT = 38;
-const VISIBLE_ROWS = 5;
-const COLUMN_WIDTH = 56;
-const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS; // 190
-const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;    // 76
+// STORY-010 compact dimensions. Item 30 × 3 rows = 90 px wheel height,
+// about half what STORY-009 shipped.
+const ITEM_HEIGHT = 30;
+const VISIBLE_ROWS = 3;
+const COLUMN_WIDTH = 44;
+const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS;
+const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;
 const WEEK_OFFSET_MIN = -24;
 const WEEK_OFFSET_MAX = 24;
 
@@ -74,12 +76,11 @@ function formatWeekRange(monday: Date): string {
   return `${monday.getDate()} ${monthShort(monday)} – ${sunday.getDate()} ${monthShort(sunday)}`;
 }
 
-// STORY-009 premium time block. Collapsed by default as a clean white
-// summary row; expanded shows a centred week strip with chevron nav,
-// two iOS-style wheel pairs (hour : minute → hour : minute) and a
-// pill-styled duration readout. The wheel pairs are infinite-loop,
-// so the user can scroll from 00 minutes upward to 55 and beyond
-// without hitting a wall.
+// STORY-010 compact TimeBlock. All seven day cubes share the row via
+// flex-1 (no overflow, no horizontal scroll, cubes resize to the
+// available width). The week-range label and duration share one thin
+// uppercase row — the duration pill from STORY-009 went away. Wheels
+// shrank to 3 visible rows. Expanded height now lands around ~180 px.
 export default function TimeBlock({
   date,
   timeStart,
@@ -92,9 +93,8 @@ export default function TimeBlock({
 
   useEffect(() => {
     // Resync the viewed week to the appointment's date. When the
-    // selected date lands inside the current view the setState is a
-    // React-level no-op; only an out-of-view date (e.g. sheet reused
-    // for a different record) actually triggers a re-render.
+    // date lands inside the current view the setState is a no-op;
+    // only an out-of-view date triggers a real re-render.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWeekOffset(0);
   }, [date]);
@@ -191,27 +191,42 @@ export default function TimeBlock({
   return (
     <div
       className="border-b border-slate-100"
-      style={{ background: "linear-gradient(180deg, #fafafa, #f5f3ff)" }}
+      style={{
+        padding: "10px 10px 12px",
+        background: "linear-gradient(180deg, #fafafa, #f5f3ff)",
+      }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-3">
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.06em]">
+      {/* Тонкий заголовок — "Время записи" + стрелка свернуть. */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.06em",
+            color: "rgb(148 163 184)",
+            textTransform: "uppercase",
+          }}
+        >
           Время записи
         </span>
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-700"
+          className="text-slate-400 p-1 -mr-1 active:text-slate-700"
           aria-label="Свернуть"
         >
-          <ChevronUpIcon />
+          <ChevronUpIcon size={14} />
         </button>
       </div>
 
-      {/* Week nav */}
-      <div className="flex items-center gap-2 px-3 pt-2">
-        <WeekArrow direction="prev" disabled={!canPrev} onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))} />
-        <div className="flex-1 flex items-center justify-center gap-1.5 overflow-x-auto">
+      {/* Стрелки ◀ / кубики / ▶ — кубики растягиваются flex:1 */}
+      <div className="flex items-center gap-2">
+        <WeekArrow
+          direction="prev"
+          disabled={!canPrev}
+          onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))}
+        />
+        <div className="flex-1 flex items-stretch gap-1 min-w-0">
           {week.map((d) => {
             const active = d.key === date;
             return (
@@ -219,43 +234,52 @@ export default function TimeBlock({
                 key={d.key}
                 type="button"
                 onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
-                className="flex-shrink-0 flex flex-col items-center justify-center transition-transform active:scale-95"
+                className="flex flex-col items-center justify-center transition active:scale-[0.97]"
                 style={{
-                  width: 48,
-                  height: 60,
-                  borderRadius: 14,
-                  color: active ? "white" : d.isToday ? "rgb(124 58 237)" : "rgb(71 85 105)",
+                  flex: "1 1 0",
+                  minWidth: 0,
+                  height: 48,
+                  borderRadius: 10,
+                  gap: 1,
                   background: active
                     ? "linear-gradient(180deg, #8b5cf6, #7c3aed)"
                     : "white",
                   border: active
                     ? "1px solid transparent"
                     : d.isToday
-                    ? "1.5px solid rgb(167 139 250)"
+                    ? "1px solid rgb(167 139 250)"
                     : "1px solid rgb(226 232 240)",
+                  color: active
+                    ? "white"
+                    : d.isToday
+                    ? "rgb(124 58 237)"
+                    : "rgb(15 23 42)",
                   boxShadow: active
-                    ? "0 4px 12px rgba(124, 58, 237, 0.28)"
+                    ? "0 3px 10px rgba(124, 58, 237, 0.28)"
                     : "0 1px 2px rgba(15, 23, 42, 0.04)",
-                  transform: active ? "scale(1.02)" : "scale(1)",
                 }}
               >
                 <span
-                  className="leading-none"
                   style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    opacity: active ? 0.88 : 1,
+                    fontSize: 9,
+                    fontWeight: 700,
                     letterSpacing: "0.04em",
+                    color: active
+                      ? "rgba(255,255,255,0.82)"
+                      : d.isToday
+                      ? "rgb(124 58 237)"
+                      : "rgb(100 116 139)",
+                    lineHeight: 1,
                   }}
                 >
                   {d.weekday}
                 </span>
                 <span
-                  className="leading-tight"
+                  className="tabular-nums"
                   style={{
-                    fontSize: 17,
+                    fontSize: 15,
                     fontWeight: 700,
-                    marginTop: 2,
+                    lineHeight: 1,
                   }}
                 >
                   {d.day}
@@ -264,32 +288,44 @@ export default function TimeBlock({
             );
           })}
         </div>
-        <WeekArrow direction="next" disabled={!canNext} onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))} />
+        <WeekArrow
+          direction="next"
+          disabled={!canNext}
+          onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))}
+        />
       </div>
 
-      {/* Week range label */}
+      {/* Подпись недели + длительность одной тонкой строкой */}
       <div
-        className="text-center mt-1.5"
+        className="flex items-center justify-center"
         style={{
-          fontSize: 11,
+          marginTop: 6,
+          marginBottom: 4,
+          gap: 8,
+          fontSize: 10,
           fontWeight: 600,
-          letterSpacing: "0.08em",
-          color: "rgb(148 163 184)",
+          letterSpacing: "0.05em",
           textTransform: "uppercase",
+          color: "rgb(148 163 184)",
         }}
       >
-        {weekRangeLabel}
+        <span>{weekRangeLabel}</span>
+        <span style={{ color: "rgb(203 213 225)" }}>·</span>
+        <span className="tabular-nums">{duration} мин</span>
       </div>
 
-      {/* Wheels */}
-      <div className="mt-3 flex items-center justify-center gap-2 px-3">
+      {/* Wheels в одну плоскую строку: hh:mm → hh:mm */}
+      <div className="flex items-center justify-center mt-1">
         <WheelGroup
           hourIdx={startHourIdx}
           minIdx={startMinIdx}
           onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
           onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
         />
-        <span className="flex-shrink-0 text-slate-400">
+        <span
+          className="flex-shrink-0 text-slate-400 select-none"
+          style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
+        >
           <ArrowRightIcon />
         </span>
         <WheelGroup
@@ -298,29 +334,6 @@ export default function TimeBlock({
           onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
           onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
         />
-      </div>
-
-      {/* Duration pill */}
-      <div className="mt-3 pb-4 flex justify-center">
-        <div
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full tabular-nums"
-          style={{
-            background: "rgb(241 245 249)",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "rgb(71 85 105)",
-          }}
-        >
-          <span
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: 999,
-              background: "rgb(148 163 184)",
-            }}
-          />
-          {duration} минут
-        </div>
       </div>
 
       <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
@@ -342,19 +355,19 @@ function WeekArrow({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex-shrink-0 flex items-center justify-center transition active:scale-95 disabled:opacity-30"
+      className="flex-shrink-0 flex items-center justify-center transition active:scale-[0.92] disabled:opacity-30"
       style={{
-        width: 36,
-        height: 36,
+        width: 30,
+        height: 30,
         borderRadius: 999,
         background: "white",
         border: "1px solid rgb(226 232 240)",
         color: "rgb(71 85 105)",
-        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.06)",
+        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
       }}
       aria-label={direction === "prev" ? "Предыдущая неделя" : "Следующая неделя"}
     >
-      {direction === "prev" ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+      {direction === "prev" ? <ChevronLeftIcon size={14} /> : <ChevronRightIcon size={14} />}
     </button>
   );
 }
@@ -371,7 +384,7 @@ function WheelGroup({
   onMin: (idx: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center">
       <WheelWithLines>
         <WheelColumn
           items={HOURS}
@@ -386,7 +399,7 @@ function WheelGroup({
       <span
         className="select-none"
         style={{
-          fontSize: 24,
+          fontSize: 18,
           fontWeight: 300,
           color: "rgb(203 213 225)",
           padding: "0 2px",
@@ -411,17 +424,14 @@ function WheelGroup({
 }
 
 function WheelWithLines({ children }: { children: React.ReactNode }) {
-  // Two 1px slate lines at the top and bottom of the centre row —
-  // iOS-style selection markers. No violet bar; the text inside the
-  // centre row does the heavy lifting.
   return (
     <div className="relative">
       {children}
       <div
         className="pointer-events-none absolute z-10"
         style={{
-          left: 4,
-          right: 4,
+          left: 3,
+          right: 3,
           top: PAD,
           height: 1,
           background: "rgba(15, 23, 42, 0.12)",
@@ -430,8 +440,8 @@ function WheelWithLines({ children }: { children: React.ReactNode }) {
       <div
         className="pointer-events-none absolute z-10"
         style={{
-          left: 4,
-          right: 4,
+          left: 3,
+          right: 3,
           top: PAD + ITEM_HEIGHT - 1,
           height: 1,
           background: "rgba(15, 23, 42, 0.12)",
@@ -456,30 +466,30 @@ function ChevronDownIcon() {
     </svg>
   );
 }
-function ChevronUpIcon() {
+function ChevronUpIcon({ size = 16 }: { size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="18 15 12 9 6 15" />
     </svg>
   );
 }
-function ChevronLeftIcon() {
+function ChevronLeftIcon({ size = 16 }: { size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="15 18 9 12 15 6" />
     </svg>
   );
 }
-function ChevronRightIcon() {
+function ChevronRightIcon({ size = 16 }: { size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="9 18 15 12 9 6" />
     </svg>
   );
 }
 function ArrowRightIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="5" y1="12" x2="19" y2="12" />
       <polyline points="13 6 19 12 13 18" />
     </svg>
