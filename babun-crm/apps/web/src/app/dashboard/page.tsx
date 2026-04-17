@@ -60,7 +60,6 @@ import {
 import { sumExtras } from "@/lib/day-extras";
 import { loadChats } from "@/lib/chats";
 import SuccessOverlay from "@/components/appointment/SuccessOverlay";
-import { decideSnap, type SnapFloor } from "@/lib/calendar/snap-scroll";
 import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import TodayChip from "@/components/calendar/TodayChip";
@@ -165,162 +164,6 @@ export default function DashboardPage() {
     writeHourHeight(hourHeightRef.current);
   }, [writeHourHeight, viewMode]);
 
-  // Smart scroll + snap (STORY-002-FINAL feature request).
-  //
-  // 1. On mount: scrollTop = 9 * hh so the 09:00 row sits directly
-  //    under the sticky day-header.
-  // 2. While the user scrolls UP above 09:00: after scroll ends
-  //    (150 ms inactivity), snap to the nearest of {0, 7*hh, 9*hh}.
-  //    Smooth-scroll without breaking pinch-zoom or horizontal swipe.
-  // 3. Scrolling DOWN past 09:00 is free — no snap. Grid ends at 23:00.
-  //
-  // snappingRef guards against re-entry: when we programmatically
-  // smooth-scroll, onScroll fires and would otherwise retrigger snap.
-  // Stepped-floor snap state. Values:
-  //   "9"     — потолок 9:00 (рабочий день; open-position)
-  //   "7"     — потолок 7:00 (второй шаг вверх)
-  //   "0"     — потолок 0:00 (максимум наверх)
-  //   "below" — пользователь ниже 9:00 (свободная зона)
-  // Один upward-гест двигает ступень на одну вниз.
-  // Возврат снизу (through 9:00) ВСЕГДА перезагружает на "9".
-  const floorRef = useRef<SnapFloor>("9");
-  const snappingRef = useRef(false);
-  const suppressRef = useRef(false);
-
-  useLayoutEffect(() => {
-    if (viewMode === "month") return;
-    const el = outerScrollerRef.current;
-    if (typeof console !== "undefined")
-      console.info(`[snap] mounted · ref=${el ? "ok" : "NULL"} viewMode=${viewMode}`);
-    if (!el) return;
-
-    const hh = hourHeightRef.current;
-    suppressRef.current = true;
-    floorRef.current = "9";
-    const target = 9 * hh;
-
-    // Set scrollTop if and only if DOM can actually accept it.
-    // Browser clamps scrollTop to [0, scrollHeight - clientHeight].
-    // Before the 24-row column bodies mount, scrollHeight is small,
-    // the clamp forces 0, and we look stuck at 00:00.
-    const attempt = () => {
-      if (!el) return false;
-      if (el.scrollHeight < target + el.clientHeight * 0.5) return false;
-      el.scrollTop = target;
-      if (typeof console !== "undefined")
-        console.info(
-          `[snap] set scrollTop=${el.scrollTop} target=${target} hh=${hh} scrollHeight=${el.scrollHeight} clientHeight=${el.clientHeight}`
-        );
-      return el.scrollTop >= target - 2;
-    };
-
-    // Phase 1: fast rAF retries (~500 мс, 30 frames).
-    let tries = 0;
-    const tryScroll = () => {
-      tries++;
-      if (attempt() || tries >= 30) {
-        if (typeof console !== "undefined")
-          console.info(`[snap] phase 1 done after ${tries} rAF tries`);
-        return;
-      }
-      requestAnimationFrame(tryScroll);
-    };
-    requestAnimationFrame(tryScroll);
-
-    // Phase 2: safety nets at 500 ms and 1 s — сработает даже если
-    // rAF-ретраи не достали scrollHeight (iOS PWA cold start).
-    const safety1 = window.setTimeout(() => {
-      if (el.scrollTop < target - 10) {
-        attempt();
-        if (typeof console !== "undefined")
-          console.info(`[snap] safety@500ms scrollTop=${el.scrollTop}`);
-      }
-    }, 500);
-    const safety2 = window.setTimeout(() => {
-      if (el.scrollTop < target - 10) {
-        attempt();
-        if (typeof console !== "undefined")
-          console.info(`[snap] safety@1s scrollTop=${el.scrollTop}`);
-      }
-      suppressRef.current = false;
-    }, 1000);
-
-    return () => {
-      window.clearTimeout(safety1);
-      window.clearTimeout(safety2);
-    };
-  }, [viewMode]);
-
-  useEffect(() => {
-    const el = outerScrollerRef.current;
-    if (!el) return;
-    let timer: number | null = null;
-
-    // Custom rAF-based smooth scroll: работает одинаково в браузере,
-    // Android Chrome и iOS PWA standalone (где `behavior: "smooth"`
-    // не поддержан на -webkit-overflow-scrolling:touch слоях).
-    const animateScrollTo = (target: number, durationMs = 280) => {
-      const start = el.scrollTop;
-      const distance = target - start;
-      if (Math.abs(distance) < 1) {
-        el.scrollTop = target;
-        return;
-      }
-      const startTime = performance.now();
-      // ease-out-cubic
-      const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-      const step = (now: number) => {
-        const t = Math.min(1, (now - startTime) / durationMs);
-        el.scrollTop = start + distance * ease(t);
-        if (t < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    };
-
-    const doSnap = () => {
-      if (suppressRef.current || snappingRef.current) return;
-      const hh = hourHeightRef.current;
-      const top = el.scrollTop;
-      const decision = decideSnap(top, hh, floorRef.current);
-      if (typeof console !== "undefined")
-        console.info(
-          `[snap] top=${top} hh=${hh} floor=${floorRef.current} → floor=${decision.nextFloor} snap=${decision.snapTo}`
-        );
-      floorRef.current = decision.nextFloor;
-      if (decision.snapTo !== null) {
-        snappingRef.current = true;
-        animateScrollTo(decision.snapTo, 280);
-        window.setTimeout(() => {
-          snappingRef.current = false;
-        }, 500);
-      }
-    };
-
-    const onScroll = () => {
-      if (suppressRef.current || snappingRef.current) return;
-      if (timer) window.clearTimeout(timer);
-      // 350 мс — достаточно чтобы iOS-momentum затух на PWA.
-      timer = window.setTimeout(doSnap, 350);
-    };
-
-    // Modern scrollend (Chrome 114+, Safari 18+) — более точное
-    // определение конца скролла. Если не поддержан — обходимся
-    // debounced scroll-listener.
-    const onScrollEnd = () => {
-      if (suppressRef.current || snappingRef.current) return;
-      if (timer) window.clearTimeout(timer);
-      doSnap();
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    el.addEventListener("scrollend", onScrollEnd, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      el.removeEventListener("scrollend", onScrollEnd);
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [viewMode]);
-
   // Seed with mock data on first visit only
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -375,11 +218,6 @@ export default function DashboardPage() {
     window.localStorage.setItem(SEED_KEY, "1");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // STORY-122: старый auto-scroll к activeSchedule.start УДАЛЁН —
-  // он перебивал initial snap к 9:00 из smart-scroll useLayoutEffect
-  // выше. Теперь начало дня всегда 09:00 (рабочая зона), а snap
-  // позволяет свайпнуть выше до 07:00 и 00:00.
 
   // Filter appointments by active team
   const visibleAppointments = useMemo(
