@@ -9,6 +9,9 @@ interface GlobalDiscountFormProps {
 }
 
 const REASONS = ["Постоянный", "VIP", "Промо"];
+// Ручной ввод % остаётся через переключатель €/% — но типичный кейс
+// в сервисе (клиент просит «сделай скидку 10 евро») — это fixed €.
+const FIXED_AMOUNT_PRESETS = [5, 10, 15, 20];
 
 // Блок 8: «Скидка на всё». В свёрнутом виде — кнопка
 // «🏷 Добавить скидку на всё» / бейдж «🏷 −10%».
@@ -106,6 +109,30 @@ export default function GlobalDiscountForm({
           >
             % Процент
           </button>
+        </div>
+        {/* Quick chips — самые частые суммы в сервисе на Кипре. Тап
+            чипса ставит fixed-€ режим и значение одним движением. */}
+        <div className="flex gap-1.5 flex-wrap">
+          {FIXED_AMOUNT_PRESETS.map((n) => {
+            const active = type === "fixed" && Number(value) === n;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => {
+                  setType("fixed");
+                  setValue(String(n));
+                }}
+                className={`h-8 px-3 rounded-lg text-[13px] font-semibold tabular-nums transition ${
+                  active
+                    ? "bg-rose-500 text-white"
+                    : "bg-slate-100 text-slate-700 active:bg-slate-200"
+                }`}
+              >
+                −€{n}
+              </button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 h-11 border border-slate-200">
           <span className="text-[14px] text-slate-400">
