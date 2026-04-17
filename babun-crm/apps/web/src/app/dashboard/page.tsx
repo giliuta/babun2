@@ -187,17 +187,35 @@ export default function DashboardPage() {
   // month view back to week) so the freshly-mounted DOM picks up --hh
   // before the user sees a blank "0 px" grid.
   //
-  // STORY-004: same effect also sets the initial scrollTop to
-  // INIT_HOUR * hh so the user lands on 09:00 on a fresh /dashboard
-  // load. Direct assignment — scrollTo({behavior:"smooth"}) is ignored
-  // on iOS PWA -webkit-overflow-scrolling:touch layers. Protection
-  // level is reset to L0 so the three walls are armed again.
+  // STORY-004: same effect sets the initial scrollTop to INIT_HOUR * hh
+  // so the user lands on 09:00 on a fresh /dashboard load. Direct
+  // assignment — scrollTo({behavior:"smooth"}) is ignored on iOS PWA
+  // -webkit-overflow-scrolling:touch layers. On cold start scrollHeight
+  // can briefly be 0 (day columns not measured yet), in which case the
+  // browser clamps scrollTop to 0. A single rAF retry plus a 400 ms
+  // safety net cover both the layout race and the "restore from
+  // background" case where the first scroll gets eaten.
   useLayoutEffect(() => {
     writeHourHeight(hourHeightRef.current);
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
-    if (el) el.scrollTop = INIT_HOUR * hourHeightRef.current;
+    if (!el) return;
     currentLevelRef.current = 0;
+    const target = INIT_HOUR * hourHeightRef.current;
+    const tryLand = () => {
+      if (!outerScrollerRef.current) return false;
+      const s = outerScrollerRef.current;
+      if (s.scrollHeight < target + 1) return false;
+      s.scrollTop = target;
+      return s.scrollTop >= target - 1;
+    };
+    if (!tryLand()) {
+      requestAnimationFrame(() => {
+        if (!tryLand()) {
+          window.setTimeout(tryLand, 400);
+        }
+      });
+    }
   }, [writeHourHeight, viewMode]);
 
   // Seed with mock data on first visit only
@@ -643,6 +661,15 @@ export default function DashboardPage() {
     const getMinScrollTop = () =>
       LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current;
 
+    // iOS-style rubber-band curve. Linear `overscroll * 0.35` felt
+    // stiff — this asymptotes so the further you pull the harder it
+    // resists, matching the native UIScrollView feel. Formula from
+    // Apple's WebKit source; dim is the scroller height.
+    const resist = (overscroll: number, dim: number) => {
+      if (overscroll <= 0 || dim <= 0) return 0;
+      return (overscroll * dim) / (overscroll * 0.55 + dim);
+    };
+
     const smoothScrollTo = (target: number, duration = 240) => {
       const start = el.scrollTop;
       const delta = target - start;
@@ -663,18 +690,43 @@ export default function DashboardPage() {
 
     const springBack = () => {
       inner.style.transition =
-        "transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)";
-      inner.style.transform = "translateY(0)";
-      // Drop the transition after the animation so subsequent rubber
-      // band drags respond instantly instead of easing through 220 ms.
+        "transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1)";
+      inner.style.transform = "translate3d(0,0,0)";
       window.setTimeout(() => {
         inner.style.transition = "";
-      }, 260);
+      }, 280);
     };
+
+    // rAF-batch the transform write: touchmove fires at 120 Hz on
+    // recent iPhones, but the compositor only needs one transform per
+    // frame. Batching kills duplicate paints and keeps the drag
+    // buttery during fast pulls.
+    let rafPending = false;
+    let pendingTranslate = 0;
+    const flushTranslate = () => {
+      rafPending = false;
+      inner.style.transform = `translate3d(0, ${pendingTranslate}px, 0)`;
+    };
+    const queueTranslate = (y: number) => {
+      pendingTranslate = y;
+      if (!rafPending) {
+        rafPending = true;
+        requestAnimationFrame(flushTranslate);
+      }
+    };
+
+    // Cache the viewport height at gesture start — reading offsetHeight
+    // inside touchmove forces layout every frame.
+    let gestureDim = 0;
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) {
         gestureInvalidRef.current = true;
+        // A pinch started mid-drag: drop any lingering rubber-band so
+        // the pinch-zoom sees a clean 0-translate baseline.
+        if (inner.style.transform && inner.style.transform !== "translate3d(0px, 0px, 0px)") {
+          springBack();
+        }
         return;
       }
       gestureInvalidRef.current = false;
@@ -682,6 +734,7 @@ export default function DashboardPage() {
       touchStartScrollRef.current = el.scrollTop;
       maxOverscrollRef.current = 0;
       bumpedThisGestureRef.current = false;
+      gestureDim = el.clientHeight || 600;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -694,22 +747,30 @@ export default function DashboardPage() {
       const newScroll = touchStartScrollRef.current + delta;
       const minY = getMinScrollTop();
       if (newScroll < minY) {
-        // Swallow the native scroll so we can rubber-band instead.
-        // preventDefault only fires in this branch so horizontal
-        // week-swipe in the normal scroll zone isn't blocked.
+        // Swallow native scroll so we can rubber-band instead.
+        // preventDefault lives only in this branch so horizontal
+        // week-swipe and normal scroll stay native.
         e.preventDefault();
         const overscrollAmount = minY - newScroll;
-        inner.style.transition = "";
-        inner.style.transform = `translateY(${overscrollAmount * 0.35}px)`;
-        el.scrollTop = minY;
+        if (inner.style.transition) inner.style.transition = "";
+        queueTranslate(resist(overscrollAmount, gestureDim));
+        // Only write scrollTop when it's actually drifted — every
+        // write triggers a scroll event and can jitter the WebKit
+        // momentum tracker.
+        if (el.scrollTop !== minY) el.scrollTop = minY;
         if (overscrollAmount > maxOverscrollRef.current) {
           maxOverscrollRef.current = overscrollAmount;
         }
+      } else if (pendingTranslate !== 0) {
+        // User pulled back into the normal scroll zone — release the
+        // rubber-band live instead of waiting for touchend.
+        queueTranslate(0);
       }
     };
 
     const onTouchEnd = () => {
-      if (inner.style.transform && inner.style.transform !== "translateY(0px)") {
+      if (pendingTranslate !== 0) {
+        pendingTranslate = 0;
         springBack();
       }
       if (
@@ -721,12 +782,13 @@ export default function DashboardPage() {
         bumpedThisGestureRef.current = true;
         currentLevelRef.current = (currentLevelRef.current + 1) as 0 | 1 | 2;
         try {
-          navigator.vibrate?.(20);
+          navigator.vibrate?.(12);
         } catch {
           // vibrate unsupported — silently skip
         }
         smoothScrollTo(
-          LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current
+          LEVEL_MIN_HOURS[currentLevelRef.current] * hourHeightRef.current,
+          260
         );
       }
       maxOverscrollRef.current = 0;
@@ -1150,7 +1212,13 @@ export default function DashboardPage() {
             <div
               ref={innerWrapperRef}
               className="flex w-full min-h-full"
-              style={{ willChange: "transform" }}
+              style={{
+                // Dedicated composite layer so rubber-band translate is
+                // GPU-only — no main-thread paint during the drag.
+                willChange: "transform",
+                transform: "translate3d(0,0,0)",
+                backfaceVisibility: "hidden",
+              }}
             >
               <TimeColumn />
               <SwipeableCalendar
