@@ -11,10 +11,12 @@
       "mcp__memory__read_graph",
       "mcp__playwright__browser_close",
       "mcp__playwright__browser_type",
-      "mcp__playwright__browser_press_key"
+      "mcp__playwright__browser_press_key",
+      "WebFetch(domain:docs.stagewise.io)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\Dmitry\\Desktop\\Babun2\\.claude\\commands"
+      "c:\\Users\\Dmitry\\Desktop\\Babun2\\.claude\\commands",
+      "C:\\Users\\Dmitry\\Desktop\\Babun2"
     ]
   }
 }
