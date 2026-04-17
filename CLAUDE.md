@@ -108,6 +108,12 @@ Babun2/
 - **tester** (sonnet) — напишет тесты (когда добавим test runner)
 - **reviewer** (opus) — code review через git diff
 
+## Dev Workflow Tools
+- `npm run dev` (из apps/web) → localhost:3001
+- `npm run dev:lan` → http://192.168.X.X:3001 (проверь LAN IP через ipconfig на ноуте)
+- Stagewise toolbar активен в dev — кликай по элементам чтобы получить контекст
+- Chrome DevTools MCP добавлен — используй mcp__chrome-devtools__* tools когда нужно проинспектировать рантайм
+
 ## Quick Reference
 ```bash
 # Dev
