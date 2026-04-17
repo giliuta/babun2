@@ -14,3 +14,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .reference/
+
+# IDE
+.vscode/
+
+# AI worktrees (git worktrees created by Claude)
+.claude/worktrees/
+
+# Reference screenshots (Bumpix analysis, one-off captures)
+bumpix-*.png
+*.screenshot.png
