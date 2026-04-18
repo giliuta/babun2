@@ -7,7 +7,9 @@
     "dev:lan": "next dev --turbopack --hostname 0.0.0.0 --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -23,9 +25,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^2.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "jsdom": "^25.0.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.0.0"
   }
 }
