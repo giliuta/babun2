@@ -19,7 +19,11 @@ export default function BottomTabBar() {
   const isCalendar = pathname === "/dashboard";
   const isClients = pathname.startsWith("/dashboard/clients");
   const isChats = pathname.startsWith("/dashboard/chats");
-  const isFinances = pathname.startsWith("/dashboard/finances");
+  const isFinances =
+    pathname.startsWith("/dashboard/finances") ||
+    pathname.startsWith("/dashboard/expenses") ||
+    pathname.startsWith("/dashboard/payroll") ||
+    pathname.startsWith("/dashboard/reports");
 
   const [unreadChats, setUnreadChats] = useState(0);
   useEffect(() => {
