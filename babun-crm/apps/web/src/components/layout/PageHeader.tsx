@@ -8,6 +8,8 @@ interface PageHeaderProps {
   subtitle?: string;
   /** Show back arrow that navigates to /dashboard */
   showBack?: boolean;
+  /** Custom left slot — replaces the default back/menu button */
+  leftContent?: React.ReactNode;
   rightContent?: React.ReactNode;
 }
 
@@ -15,6 +17,7 @@ export default function PageHeader({
   title,
   subtitle,
   showBack = true,
+  leftContent,
   rightContent,
 }: PageHeaderProps) {
   const router = useRouter();
@@ -23,7 +26,9 @@ export default function PageHeader({
   return (
     <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-gray-200 z-30">
       <div className="px-2 lg:px-4 py-2.5 lg:py-3.5 flex items-center gap-2 lg:bg-white">
-        {showBack ? (
+        {leftContent ? (
+          <div className="shrink-0">{leftContent}</div>
+        ) : showBack ? (
           <button
             type="button"
             onClick={() => router.push("/dashboard")}

@@ -74,6 +74,8 @@ export interface Brigade {
   /** euro-cents — fixed cost per job for outsource brigades. */
   perJobCostCents: number;
   isActive: boolean;
+  /** Hex color shown on the calendar column header. */
+  color?: string;
   createdAt: string;
 }
 

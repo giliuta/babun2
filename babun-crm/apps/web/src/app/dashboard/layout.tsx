@@ -70,6 +70,12 @@ import {
   type DayExtrasMap,
   type DayExtra,
 } from "@/lib/day-extras";
+import {
+  loadCalendarSettings,
+  saveCalendarSettings,
+  type CalendarSettings,
+} from "@/lib/calendar-settings";
+import { loadCities, saveCities, type City } from "@/lib/cities";
 
 interface SidebarContextValue {
   open: () => void;
@@ -247,6 +253,32 @@ export function useDayExtras() {
   return ctx;
 }
 
+interface CalendarSettingsContextValue {
+  calendarSettings: CalendarSettings;
+  setCalendarSettings: (next: CalendarSettings) => void;
+}
+
+const CalendarSettingsContext = createContext<CalendarSettingsContextValue | null>(null);
+
+export function useCalendarSettings() {
+  const ctx = useContext(CalendarSettingsContext);
+  if (!ctx) throw new Error("useCalendarSettings must be used within DashboardLayout");
+  return ctx;
+}
+
+interface CitiesContextValue {
+  cities: City[];
+  setCities: (next: City[]) => void;
+}
+
+const CitiesContext = createContext<CitiesContextValue | null>(null);
+
+export function useCities() {
+  const ctx = useContext(CitiesContext);
+  if (!ctx) throw new Error("useCities must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -266,6 +298,11 @@ export default function DashboardLayout({
   const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
   const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
   const [dayExtras, setDayExtrasState] = useState<DayExtrasMap>({});
+  const [calendarSettings, setCalendarSettingsState] = useState<CalendarSettings>(() => {
+    if (typeof window === "undefined") return { startHour: 9, endHour: 20, gridStep: 30, weekStart: "monday", timezone: "Europe/Nicosia" };
+    return loadCalendarSettings();
+  });
+  const [cities, setCitiesState] = useState<City[]>([]);
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -296,6 +333,8 @@ export default function DashboardLayout({
     setExpenseCategoriesState(loadExpenseCategories());
     setDayCitiesState(loadDayCities());
     setDayExtrasState(loadDayExtras());
+    setCalendarSettingsState(loadCalendarSettings());
+    setCitiesState(loadCities());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
     // STORY-007: legacy key cleanup. Drafts are gone — any leftover
@@ -591,6 +630,26 @@ export default function DashboardLayout({
     setExtrasFor: handleSetExtrasFor,
   };
 
+  const handleCalendarSettingsChange = useCallback((next: CalendarSettings) => {
+    setCalendarSettingsState(next);
+    saveCalendarSettings(next);
+  }, []);
+
+  const calendarSettingsValue: CalendarSettingsContextValue = {
+    calendarSettings,
+    setCalendarSettings: handleCalendarSettingsChange,
+  };
+
+  const handleCitiesChange = useCallback((next: City[]) => {
+    setCitiesState(next);
+    saveCities(next);
+  }, []);
+
+  const citiesValue: CitiesContextValue = {
+    cities,
+    setCities: handleCitiesChange,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
@@ -603,6 +662,8 @@ export default function DashboardLayout({
       <ExpenseCategoriesContext.Provider value={expenseCategoriesValue}>
       <DayCitiesContext.Provider value={dayCitiesValue}>
       <DayExtrasContext.Provider value={dayExtrasValue}>
+      <CalendarSettingsContext.Provider value={calendarSettingsValue}>
+      <CitiesContext.Provider value={citiesValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -630,6 +691,8 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </CitiesContext.Provider>
+      </CalendarSettingsContext.Provider>
       </DayExtrasContext.Provider>
       </DayCitiesContext.Provider>
       </ExpenseCategoriesContext.Provider>

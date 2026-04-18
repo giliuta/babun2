@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/app/dashboard/layout";
 import type {
@@ -38,6 +39,47 @@ const DISABLED_FIELD_VIS: (keyof FormFieldVisibility)[] = [
   "show_reminder",
 ];
 
+// ─── Nav cards for sub-settings ────────────────────────────────────────────
+
+const NAV_SECTIONS = [
+  {
+    href: "/dashboard/settings/calendar",
+    icon: "🗓",
+    title: "Календарь",
+    desc: "Часы работы, шаг сетки, часовой пояс",
+  },
+  {
+    href: "/dashboard/settings/cities",
+    icon: "📍",
+    title: "Города",
+    desc: "Справочник городов для клиентов и записей",
+  },
+  {
+    href: "/dashboard/brigades",
+    icon: "👥",
+    title: "Финансовые бригады",
+    desc: "Состав, оплата, рабочие часы бригад",
+  },
+  {
+    href: "/dashboard/schedule",
+    icon: "⏰",
+    title: "Расписание команд",
+    desc: "Рабочие часы по дням недели для каждой бригады",
+  },
+  {
+    href: "/dashboard/sms-templates",
+    icon: "💬",
+    title: "Шаблоны SMS",
+    desc: "Тексты напоминаний и подтверждений",
+  },
+  {
+    href: "/dashboard/services",
+    icon: "🔧",
+    title: "Услуги и категории",
+    desc: "Каталог услуг, цены, длительность",
+  },
+];
+
 export default function SettingsPage() {
   const { fieldVisibility, setFieldVisibility, requiredFields, setRequiredFields } =
     useFormSettings();
@@ -62,6 +104,32 @@ export default function SettingsPage() {
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
+
+          {/* Sub-settings navigation */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 pt-3 pb-2 text-xs font-semibold text-gray-400 uppercase">
+              Разделы
+            </div>
+            <div className="divide-y divide-gray-50">
+              {NAV_SECTIONS.map((s) => (
+                <Link
+                  key={s.href}
+                  href={s.href}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  <span className="text-xl w-7 text-center shrink-0">{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">{s.title}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">{s.desc}</div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 shrink-0">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* Display settings */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-5">
             <div>

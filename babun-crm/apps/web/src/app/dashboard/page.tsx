@@ -52,6 +52,7 @@ import {
   useClients,
   useDayCities,
   useDayExtras,
+  useCalendarSettings,
 } from "./layout";
 import { sumExtras } from "@/lib/day-extras";
 import { loadChats } from "@/lib/chats";
@@ -87,6 +88,7 @@ export default function DashboardPage() {
   const { teams, setTeams } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
+  const { calendarSettings } = useCalendarSettings();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
   // Refs for the mount-only seed effect — lets the effect read current values
   // without listing them as deps, which would re-trigger on every render.
@@ -160,6 +162,19 @@ export default function DashboardPage() {
   useLayoutEffect(() => {
     writeHourHeight(hourHeightRef.current);
   }, [writeHourHeight, viewMode]);
+
+  // Scroll to startHour on mount and when view changes from month to day/week.
+  // We wait one frame so the grid is painted before scrolling.
+  useLayoutEffect(() => {
+    if (viewMode === "month") return;
+    const el = outerScrollerRef.current;
+    if (!el) return;
+    const targetTop = calendarSettings.startHour * hourHeightRef.current;
+    requestAnimationFrame(() => {
+      el.scrollTop = targetTop;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   const { zoomBy, handleZoomIn, handleZoomOut } = useCalendarGestures({
     outerScrollerRef,
