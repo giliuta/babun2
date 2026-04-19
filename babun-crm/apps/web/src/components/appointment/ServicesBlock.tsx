@@ -22,6 +22,9 @@ interface ServicesBlockProps {
   globalDiscount: Discount | null;
   catalog: Service[];
   readonly: boolean;
+  /** When true, the "Выбрать услугу" button is disabled and a hint
+   *  explains that the dispatcher needs to pick a client first. */
+  requiresClient?: boolean;
   onServicesChange: (next: AppointmentService[]) => void;
   onGlobalDiscountChange: (next: Discount | null) => void;
   onOpenPicker: () => void;
@@ -34,6 +37,7 @@ export default function ServicesBlock({
   globalDiscount,
   catalog,
   readonly,
+  requiresClient,
   onServicesChange,
   onGlobalDiscountChange,
   onOpenPicker,
@@ -95,13 +99,18 @@ export default function ServicesBlock({
           <button
             type="button"
             onClick={onOpenPicker}
-            className={`w-full h-11 rounded-xl text-[13px] font-semibold active:scale-[0.99] transition ${
-              services.length === 0
-                ? "bg-white border-2 border-dashed border-slate-300 text-slate-500"
-                : "bg-violet-50 text-violet-700 active:bg-violet-100"
+            disabled={requiresClient}
+            className={`w-full h-11 rounded-xl text-[13px] font-semibold transition ${
+              requiresClient
+                ? "bg-slate-50 border-2 border-dashed border-slate-200 text-slate-400 cursor-not-allowed"
+                : services.length === 0
+                ? "bg-white border-2 border-dashed border-slate-300 text-slate-500 active:scale-[0.99]"
+                : "bg-violet-50 text-violet-700 active:bg-violet-100 active:scale-[0.99]"
             }`}
           >
-            {services.length === 0
+            {requiresClient
+              ? "Сначала выберите клиента"
+              : services.length === 0
               ? "Выбрать услугу"
               : "+ Добавить ещё услугу"}
           </button>
