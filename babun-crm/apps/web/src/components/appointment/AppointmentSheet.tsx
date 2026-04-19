@@ -105,6 +105,9 @@ export default function AppointmentSheet({
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
+  const [closeConfirm, setCloseConfirm] = useState<null | {
+    reason: "missing-fields" | "unsaved";
+  }>(null);
 
   // STORY-005: auto-open ClientPicker once per create-session so the
   // dispatcher lands straight in the picker. Guarded by a ref so
@@ -133,7 +136,7 @@ export default function AppointmentSheet({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") attemptClose();
     };
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -203,9 +206,23 @@ export default function AppointmentSheet({
     ? Boolean(eventLabel.trim())
     : Boolean(clientId && appointmentServices.length > 0);
 
+  // Whether the user has entered anything worth protecting on close.
+  // Event mode uses eventLabel; work mode uses client + services + comment.
+  const isDirty = isEditable && (isEventMode
+    ? Boolean(eventLabel.trim())
+    : Boolean(clientId || appointmentServices.length > 0 || comment.trim()));
+
   if (!open) return null;
 
   // ─── Handlers ─────────────────────────────────────────────────────
+
+  const attemptClose = () => {
+    if (!isDirty) {
+      onClose();
+      return;
+    }
+    setCloseConfirm({ reason: canSave ? "unsaved" : "missing-fields" });
+  };
 
   const handleCreate = () => {
     if (isEventMode) {
@@ -312,7 +329,7 @@ export default function AppointmentSheet({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-[2px]"
-      onClick={onClose}
+      onClick={attemptClose}
     >
       <div
         className="w-full lg:max-w-lg bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl flex flex-col"
@@ -356,7 +373,7 @@ export default function AppointmentSheet({
           )}
           <button
             type="button"
-            onClick={onClose}
+            onClick={attemptClose}
             aria-label="Закрыть"
             className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
           >
@@ -559,7 +576,7 @@ export default function AppointmentSheet({
           >
             <button
               type="button"
-              onClick={onClose}
+              onClick={attemptClose}
               className="flex-1 h-12 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700 active:bg-slate-50"
             >
               Отмена
@@ -616,6 +633,74 @@ export default function AppointmentSheet({
           );
         }}
       />
+
+      {/* Close-confirmation overlay — asks to save / discard / stay
+          when the user tries to dismiss a dirty create/edit form. */}
+      {closeConfirm && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center bg-black/50 backdrop-blur-[2px]"
+          onClick={() => setCloseConfirm(null)}
+        >
+          <div
+            className="w-full lg:max-w-sm bg-white rounded-t-2xl lg:rounded-2xl lg:mb-0 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
+          >
+            <div className="flex justify-center pt-2 pb-1 lg:hidden">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            <div className="px-5 pt-3 pb-2">
+              <div className="text-[15px] font-semibold text-slate-900">
+                Сохранить запись?
+              </div>
+              <div className="text-[12px] text-slate-500 mt-1">
+                {closeConfirm.reason === "missing-fields"
+                  ? isEventMode
+                    ? "Введите название события, чтобы сохранить."
+                    : !clientId && appointmentServices.length === 0
+                    ? "Не выбраны ни клиент, ни услуга — сохранить нельзя."
+                    : !clientId
+                    ? "Не выбран клиент — сохранить нельзя."
+                    : "Не выбрана услуга — сохранить нельзя."
+                  : "Есть несохранённые изменения."}
+              </div>
+            </div>
+            <div className="px-4 pt-3 pb-1 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!canSave) return;
+                  handleCreate();
+                  setCloseConfirm(null);
+                }}
+                disabled={!canSave}
+                className="w-full h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                {canSave
+                  ? `Сохранить${isEventMode ? "" : ` · ${formatEUR(price)}`}`
+                  : "Сохранить (нельзя — не хватает данных)"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCloseConfirm(null);
+                  onClose();
+                }}
+                className="w-full h-11 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-rose-600 active:bg-rose-50"
+              >
+                Не сохранять
+              </button>
+              <button
+                type="button"
+                onClick={() => setCloseConfirm(null)}
+                className="w-full h-11 rounded-xl text-[14px] font-medium text-slate-600 active:bg-slate-50"
+              >
+                Продолжить редактирование
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Keep reference list silenced */}
       <div className="hidden">{CITY_LIST.length}</div>
