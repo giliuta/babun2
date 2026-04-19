@@ -15,6 +15,10 @@ interface ServicePickerSheetProps {
   // Incoming selection — duplicates encode quantity (e.g. [id, id] = x2).
   initialSelectedIds: string[];
   onConfirm: (selectedIds: string[]) => void;
+  /** Optional read-only reminder of who the appointment is for.
+   *  Rendered as a sticky strip above the search input. */
+  clientName?: string | null;
+  clientPhone?: string | null;
 }
 
 function normalize(s: string): string {
@@ -43,6 +47,13 @@ function fromQuantities(
   return out;
 }
 
+function clientInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
 export default function ServicePickerSheet({
   open,
   onClose,
@@ -51,6 +62,8 @@ export default function ServicePickerSheet({
   brigadeId,
   initialSelectedIds,
   onConfirm,
+  clientName,
+  clientPhone,
 }: ServicePickerSheetProps) {
   const visibleServices = useMemo(
     () =>
@@ -160,6 +173,26 @@ export default function ServicePickerSheet({
       }
     >
       <div className="p-3 space-y-2">
+        {clientName && (
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-violet-50 border border-violet-200">
+            <div className="w-8 h-8 rounded-full bg-violet-200 text-violet-800 flex items-center justify-center text-[12px] font-bold flex-shrink-0">
+              {clientInitials(clientName)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-600">
+                Клиент
+              </div>
+              <div className="text-[13px] font-semibold text-slate-900 truncate">
+                {clientName}
+                {clientPhone && (
+                  <span className="text-slate-400 font-normal ml-1 tabular-nums">
+                    · {clientPhone}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <input
           type="search"
           value={query}

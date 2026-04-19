@@ -107,6 +107,7 @@ export default function AppointmentSheet({
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
   const [bottomWarning, setBottomWarning] = useState<string | null>(null);
+  const [askClientFirst, setAskClientFirst] = useState(false);
 
   // STORY-005: auto-open ClientPicker once per create-session so the
   // dispatcher lands straight in the picker. Guarded by a ref so
@@ -506,7 +507,13 @@ export default function AppointmentSheet({
                 readonly={readonly}
                 onServicesChange={setAppointmentServices}
                 onGlobalDiscountChange={setGlobalDiscount}
-                onOpenPicker={() => setServicePickerOpen(true)}
+                onOpenPicker={() => {
+                  if (!clientId) {
+                    setAskClientFirst(true);
+                    return;
+                  }
+                  setServicePickerOpen(true);
+                }}
               />
 
               <CommentBlock
@@ -637,6 +644,8 @@ export default function AppointmentSheet({
             idsToServices(ids, catalog, appointmentServices)
           );
         }}
+        clientName={client?.full_name ?? null}
+        clientPhone={client?.phone ?? null}
       />
 
       {/* Close-confirmation modal — centered, minimalist, 2 buttons. */}
@@ -678,6 +687,50 @@ export default function AppointmentSheet({
                 className="w-full h-11 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-rose-600 active:bg-rose-50"
               >
                 Не сохранять
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* "Pick client first?" prompt — fires when the dispatcher taps
+          the service button before a client is set. Mirrors the common
+          two-step flow. "Да" opens ClientPicker; "Нет" goes straight
+          to the services. */}
+      {askClientFirst && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-5"
+          onClick={() => setAskClientFirst(false)}
+        >
+          <div
+            className="w-full max-w-[300px] bg-white rounded-2xl shadow-2xl p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center text-[14px] text-slate-800 py-2 px-1 leading-snug">
+              Клиент для записи ещё не выбран.
+              <br />
+              Выбрать клиента сейчас?
+            </div>
+            <div className="pt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAskClientFirst(false);
+                  setServicePickerOpen(true);
+                }}
+                className="flex-1 h-11 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-slate-600 active:bg-slate-50"
+              >
+                Нет
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAskClientFirst(false);
+                  setClientSheet(true);
+                }}
+                className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+              >
+                Да
               </button>
             </div>
           </div>
