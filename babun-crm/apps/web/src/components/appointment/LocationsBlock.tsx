@@ -54,6 +54,7 @@ export default function LocationsBlock({
   );
   const [newLabel, setNewLabel] = useState("");
   const [newInput, setNewInput] = useState("");
+  const [customMode, setCustomMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Sync form fields when entering edit mode.
@@ -69,8 +70,14 @@ export default function LocationsBlock({
     // Legacy seed label "Основной" on an empty target acts as a
     // placeholder — blank it so preset chips read as the default.
     const seedLabel = target.label === "Основной" && !target.address;
+    const lbl = seedLabel ? "" : target.label ?? "";
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNewLabel(seedLabel ? "" : target.label ?? "");
+    setNewLabel(lbl);
+    // If the existing label isn't one of the presets, open the custom
+    // input automatically so the user sees their text rather than an
+    // empty form.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCustomMode(lbl !== "" && !LABEL_PRESETS.includes(lbl));
     // Prefer address for the combined field; fall back to mapUrl.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNewInput(target.address || target.mapUrl || "");
@@ -79,6 +86,7 @@ export default function LocationsBlock({
   const resetForm = () => {
     setNewLabel("");
     setNewInput("");
+    setCustomMode(false);
   };
 
   const openAdd = () => {
@@ -294,12 +302,15 @@ export default function LocationsBlock({
           <div className={`px-3 ${multipleLocations ? "pt-1" : "pt-3"} pb-3 space-y-2`}>
             <div className="flex flex-wrap gap-1.5">
               {LABEL_PRESETS.map((lbl) => {
-                const active = newLabel === lbl;
+                const active = !customMode && newLabel === lbl;
                 return (
                   <button
                     key={lbl}
                     type="button"
-                    onClick={() => setNewLabel(lbl)}
+                    onClick={() => {
+                      setCustomMode(false);
+                      setNewLabel(lbl);
+                    }}
                     className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
                       active
                         ? "bg-violet-100 text-violet-700 border border-violet-300"
@@ -310,14 +321,43 @@ export default function LocationsBlock({
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => {
+                  if (customMode) {
+                    setCustomMode(false);
+                    if (!LABEL_PRESETS.includes(newLabel)) setNewLabel("");
+                  } else {
+                    setCustomMode(true);
+                    if (LABEL_PRESETS.includes(newLabel)) setNewLabel("");
+                  }
+                }}
+                className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
+                  customMode
+                    ? "bg-violet-100 text-violet-700 border border-violet-300"
+                    : "bg-white text-slate-600 border border-slate-200 border-dashed"
+                }`}
+              >
+                Другое…
+              </button>
             </div>
+            {customMode && (
+              <input
+                type="text"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Своё название (напр. «Склад»)"
+                className="w-full h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                autoFocus
+              />
+            )}
             <input
               type="text"
               value={newInput}
               onChange={(e) => setNewInput(e.target.value)}
               placeholder="Адрес или Google Maps ссылка"
               className="w-full h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              autoFocus
+              autoFocus={!customMode}
             />
             <div className="flex gap-2 pt-1">
               {cancellable && (
