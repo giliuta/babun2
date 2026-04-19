@@ -105,9 +105,8 @@ export default function AppointmentSheet({
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
-  const [closeConfirm, setCloseConfirm] = useState<null | {
-    reason: "missing-fields" | "unsaved";
-  }>(null);
+  const [closeConfirm, setCloseConfirm] = useState(false);
+  const [bottomWarning, setBottomWarning] = useState<string | null>(null);
 
   // STORY-005: auto-open ClientPicker once per create-session so the
   // dispatcher lands straight in the picker. Guarded by a ref so
@@ -221,7 +220,7 @@ export default function AppointmentSheet({
       onClose();
       return;
     }
-    setCloseConfirm({ reason: canSave ? "unsaved" : "missing-fields" });
+    setCloseConfirm(true);
   };
 
   const handleCreate = () => {
@@ -568,37 +567,44 @@ export default function AppointmentSheet({
           )}
         </div>
 
-        {/* Sticky save: в create и в edit */}
+        {/* Sticky save: в create и в edit — single full-width button.
+            Cancel lives as the header ✕; backdrop/Esc also prompt. */}
         {isEditable && (
           <div
-            className="flex-shrink-0 px-4 pt-2 border-t border-slate-200 flex gap-2"
+            className="flex-shrink-0 px-4 pt-2 border-t border-slate-200"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
           >
+            {bottomWarning && (
+              <div className="mb-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-[13px] font-semibold text-rose-700 text-center">
+                {bottomWarning}
+              </div>
+            )}
             <button
               type="button"
-              onClick={attemptClose}
-              className="flex-1 h-12 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700 active:bg-slate-50"
-            >
-              Отмена
-            </button>
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={!canSave}
-              className="flex-[2] h-12 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] transition disabled:bg-slate-300 disabled:text-slate-500"
+              onClick={() => {
+                if (!canSave) {
+                  setBottomWarning("Заполните сначала данные");
+                  window.setTimeout(() => setBottomWarning(null), 4000);
+                  return;
+                }
+                handleCreate();
+              }}
+              className={`w-full h-12 rounded-xl text-[14px] font-semibold transition ${
+                canSave
+                  ? "bg-violet-600 text-white active:scale-[0.99]"
+                  : "bg-slate-300 text-slate-500"
+              }`}
             >
               {(() => {
-                if (!canSave) {
-                  return isEventMode
-                    ? "Введите название"
-                    : "Выберите клиента и услугу";
-                }
                 if (liveMode === "edit") {
-                  return `Сохранить · ${formatEUR(price)}`;
+                  return canSave
+                    ? `Сохранить · ${formatEUR(price)}`
+                    : "Сохранить";
                 }
-                return isEventMode
-                  ? "Создать событие"
-                  : `Создать запись · ${formatEUR(price)}`;
+                if (isEventMode) return "Создать событие";
+                return canSave
+                  ? `Создать запись · ${formatEUR(price)}`
+                  : "Создать запись";
               })()}
             </button>
           </div>
@@ -634,68 +640,45 @@ export default function AppointmentSheet({
         }}
       />
 
-      {/* Close-confirmation overlay — asks to save / discard / stay
-          when the user tries to dismiss a dirty create/edit form. */}
+      {/* Close-confirmation modal — centered, minimalist, 2 buttons. */}
       {closeConfirm && (
         <div
-          className="fixed inset-0 z-[90] flex items-end lg:items-center justify-center bg-black/50 backdrop-blur-[2px]"
-          onClick={() => setCloseConfirm(null)}
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-5"
+          onClick={() => setCloseConfirm(false)}
         >
           <div
-            className="w-full lg:max-w-sm bg-white rounded-t-2xl lg:rounded-2xl lg:mb-0 shadow-2xl"
+            className="w-full max-w-[300px] bg-white rounded-2xl shadow-2xl p-4"
             onClick={(e) => e.stopPropagation()}
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
           >
-            <div className="flex justify-center pt-2 pb-1 lg:hidden">
-              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            <div className="text-center text-[16px] font-semibold text-slate-900 py-2">
+              Сохранить запись?
             </div>
-            <div className="px-5 pt-3 pb-2">
-              <div className="text-[15px] font-semibold text-slate-900">
-                Сохранить запись?
-              </div>
-              <div className="text-[12px] text-slate-500 mt-1">
-                {closeConfirm.reason === "missing-fields"
-                  ? isEventMode
-                    ? "Введите название события, чтобы сохранить."
-                    : !clientId && appointmentServices.length === 0
-                    ? "Не выбраны ни клиент, ни услуга — сохранить нельзя."
-                    : !clientId
-                    ? "Не выбран клиент — сохранить нельзя."
-                    : "Не выбрана услуга — сохранить нельзя."
-                  : "Есть несохранённые изменения."}
-              </div>
-            </div>
-            <div className="px-4 pt-3 pb-1 space-y-2">
+            <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={() => {
-                  if (!canSave) return;
-                  handleCreate();
-                  setCloseConfirm(null);
+                  if (canSave) {
+                    handleCreate();
+                    setCloseConfirm(false);
+                    return;
+                  }
+                  setCloseConfirm(false);
+                  setBottomWarning("Заполните сначала данные");
+                  window.setTimeout(() => setBottomWarning(null), 4000);
                 }}
-                disabled={!canSave}
-                className="w-full h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400"
+                className="w-full h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
               >
-                {canSave
-                  ? `Сохранить${isEventMode ? "" : ` · ${formatEUR(price)}`}`
-                  : "Сохранить (нельзя — не хватает данных)"}
+                Сохранить
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setCloseConfirm(null);
+                  setCloseConfirm(false);
                   onClose();
                 }}
                 className="w-full h-11 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-rose-600 active:bg-rose-50"
               >
                 Не сохранять
-              </button>
-              <button
-                type="button"
-                onClick={() => setCloseConfirm(null)}
-                className="w-full h-11 rounded-xl text-[14px] font-medium text-slate-600 active:bg-slate-50"
-              >
-                Продолжить редактирование
               </button>
             </div>
           </div>
