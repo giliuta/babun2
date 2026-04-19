@@ -847,6 +847,17 @@ export default function DashboardPage() {
               onSwipeLeft={handleNextWeek}
               onSwipeRight={handlePrevWeek}
             />
+            {/* Stable vertical rule separating the time column from the
+                day columns. Positioned absolutely at the scroller's right
+                edge of the time column (48 px mobile / 64 px lg), stretched
+                top→bottom so it always spans the full scrollable content
+                height. Decoupled from var(--hh), so pinch-zoom doesn't
+                make it jitter. pointer-events:none keeps taps passing
+                through to the day grid. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute top-0 bottom-0 left-12 lg:left-16 w-[2px] bg-gray-400 z-10"
+            />
           </div>
         )}
       </DndContext>

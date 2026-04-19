@@ -8,7 +8,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function TimeColumnInner() {
   return (
-    <div className="w-12 lg:w-16 flex-shrink-0 bg-white" style={{ borderRight: "2px solid #9ca3af" }}>
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-white">
       {/* Header spacer — ОБЯЗАН совпадать по высоте с DayColumn header,
           иначе строки часов съезжают относительно лейблов на (diff)px
           и при pinch-zoom зона рассинхрона растёт визуально. */}
