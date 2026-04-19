@@ -27,9 +27,7 @@ import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
 import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
-import QuickActions from "./QuickActions";
 import PaymentBlock from "./PaymentBlock";
-import AdminActions from "./AdminActions";
 
 export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
 
@@ -292,11 +290,6 @@ export default function AppointmentSheet({
     onClose();
   };
 
-  const handleAdminCancel = () => {
-    onCancelAppointment(appointment);
-    onClose();
-  };
-
   const doneBadge = (() => {
     if (mode !== "done" || !appointment.payment) return null;
     const p = appointment.payment;
@@ -450,6 +443,7 @@ export default function AppointmentSheet({
                 readonly={readonly}
                 onPick={() => setClientSheet(true)}
                 onChange={() => setClientId(null)}
+                onMenu={client ? () => setClientSheet(true) : undefined}
               />
 
               <LocationsBlock
@@ -504,36 +498,36 @@ export default function AppointmentSheet({
                 </div>
               )}
 
-              {/* Cancel-appointment toggle for edit mode on an already
-                  scheduled record. Flipping on marks the appointment as
-                  cancelled on save. */}
-              {liveMode === "edit" &&
-                appointment.status !== "completed" && (
-                  <div className="px-4 pt-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-[13px] font-semibold text-slate-800">
-                        Запись отменена
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        Клиент отказался от услуги
-                      </div>
+              {/* Cancel-appointment toggle — always visible when the
+                  appointment isn't already completed. Flipping on
+                  marks status as cancelled on save; flipping off in
+                  edit restores the previous status. */}
+              {appointment.status !== "completed" && isEditable && (
+                <div className="px-4 pt-3 flex items-center justify-between">
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-800">
+                      Запись отменена
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setCancelFlag((v) => !v)}
-                      className={`w-11 h-6 rounded-full relative transition-colors ${
-                        cancelFlag ? "bg-rose-500" : "bg-slate-300"
-                      }`}
-                      aria-pressed={cancelFlag}
-                    >
-                      <span
-                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                          cancelFlag ? "translate-x-[22px]" : "translate-x-0.5"
-                        }`}
-                      />
-                    </button>
+                    <div className="text-[11px] text-slate-500">
+                      Клиент отказался от услуги
+                    </div>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setCancelFlag((v) => !v)}
+                    className={`w-11 h-6 rounded-full relative transition-colors ${
+                      cancelFlag ? "bg-rose-500" : "bg-slate-300"
+                    }`}
+                    aria-pressed={cancelFlag}
+                  >
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                        cancelFlag ? "translate-x-[22px]" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              )}
 
               {/* SMS toggle только в create */}
               {isEditable && client && client.phone && (
@@ -565,24 +559,13 @@ export default function AppointmentSheet({
             </>
           )}
 
-          {/* View/Done actions — отображаются только когда не
-              редактируем. В edit всё поведение как в create. */}
-          {(liveMode === "view" || liveMode === "done") && (
-            <>
-              <QuickActions
-                phone={client?.phone}
-                address={address}
-              />
-              {liveMode === "view" && (
-                <PaymentBlock total={appointment.total_amount} onPay={handlePay} />
-              )}
-              <AdminActions
-                canReschedule={liveMode === "view"}
-                onEdit={() => setLiveMode("edit")}
-                onReschedule={() => setLiveMode("edit")}
-                onCancel={handleAdminCancel}
-              />
-            </>
+          {/* View-mode payment entry (scheduled → completed).
+              QuickActions + AdminActions removed — the ⋯ in the client
+              header carries those actions, and Call lives in-line as
+              the green phone icon. Every block stays visible so the
+              user sees the full record at a glance. */}
+          {liveMode === "view" && (
+            <PaymentBlock total={appointment.total_amount} onPay={handlePay} />
           )}
         </div>
 

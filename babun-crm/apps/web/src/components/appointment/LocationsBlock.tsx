@@ -14,13 +14,10 @@ interface LocationsBlockProps {
   onAddressNoteChange: (note: string) => void;
 }
 
-// Address block with stable height across states:
-//   no client       → header row + greyed sub-row, same total height
-//   client, empty   → header row + "+ Добавить" sub-row
-//   client + addr   → header row (address) + Nav / Note sub-row
-// Pressing "Примечание" flips the sub-row into a 2-line textarea
-// inside the same card, so the card grows only when the user
-// explicitly asks for it.
+// Address block layout (consistent across states):
+//   [📍 адрес клиента                            ▸]
+//   [🧭          Навигация                        ]   ← full-width button
+//   [Примечание: дом, этаж, квартира…             ]   ← small inline text
 export default function LocationsBlock({
   client,
   selectedLocationId,
@@ -31,7 +28,6 @@ export default function LocationsBlock({
 }: LocationsBlockProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [noteOpen, setNoteOpen] = useState(false);
 
   const locations: Location[] = client?.locations ?? [];
   const selected =
@@ -54,8 +50,6 @@ export default function LocationsBlock({
     setPickerOpen(true);
   };
 
-  const rowClass = "h-12 flex items-center gap-2 px-3";
-
   return (
     <div className="px-4 pt-2">
       <div
@@ -63,12 +57,12 @@ export default function LocationsBlock({
           clientLocked ? "opacity-60" : ""
         }`}
       >
-        {/* Row 1: address (or placeholder) */}
+        {/* Address row */}
         <button
           type="button"
           disabled={readOnly || clientLocked}
           onClick={openPicker}
-          className={`w-full ${rowClass} ${
+          className={`w-full h-12 flex items-center gap-2 px-3 ${
             !clientLocked && !readOnly ? "active:bg-slate-50" : ""
           }`}
         >
@@ -102,13 +96,13 @@ export default function LocationsBlock({
 
         <div className="h-px bg-slate-100" />
 
-        {/* Row 2: navigation + note toggle. Disabled chips when no address. */}
-        <div className={`${rowClass} gap-2`}>
+        {/* Full-width Nav button */}
+        <div className="p-2">
           <button
             type="button"
             disabled={!hasAddress}
             onClick={() => setNavOpen(true)}
-            className={`flex-1 h-8 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 border ${
+            className={`w-full h-9 rounded-lg text-[13px] font-semibold flex items-center justify-center gap-1.5 border ${
               hasAddress
                 ? "bg-sky-50 border-sky-200 text-sky-800 active:bg-sky-100"
                 : "bg-slate-50 border-slate-200 text-slate-400"
@@ -116,45 +110,28 @@ export default function LocationsBlock({
           >
             <span>🧭</span> Навигация
           </button>
-          <button
-            type="button"
-            disabled={readOnly || clientLocked}
-            onClick={() => setNoteOpen((v) => !v)}
-            className={`flex-1 h-8 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 border ${
-              addressNote.trim()
-                ? "bg-amber-50 border-amber-200 text-amber-800 active:bg-amber-100"
-                : clientLocked
-                ? "bg-slate-50 border-slate-200 text-slate-400"
-                : noteOpen
-                ? "bg-amber-50 border-amber-200 text-amber-800"
-                : "bg-white border-dashed border-slate-200 text-slate-500 active:bg-slate-50"
-            }`}
-          >
-            <span>📝</span>
-            {addressNote.trim() ? "Примечание" : "+ Примечание"}
-          </button>
         </div>
 
-        {/* Optional: expanded note textarea */}
-        {noteOpen && !readOnly && !clientLocked && (
-          <div className="px-3 pb-3">
-            <textarea
+        <div className="h-px bg-slate-100" />
+
+        {/* Always-visible small note input */}
+        <div className="px-3 py-2">
+          {readOnly ? (
+            <div className="text-[11px] text-slate-500">
+              <span className="text-slate-400">Примечание: </span>
+              {addressNote.trim() || <span className="text-slate-300">—</span>}
+            </div>
+          ) : (
+            <input
+              type="text"
               value={addressNote}
               onChange={(e) => onAddressNoteChange(e.target.value)}
-              placeholder="Зелёная дверь, звонок на 2-й этаж…"
-              rows={2}
-              autoFocus={!addressNote}
-              className="w-full px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[13px] text-amber-900 placeholder-amber-400/70 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+              disabled={clientLocked}
+              placeholder="Примечание: дом, этаж, квартира…"
+              className="w-full h-7 text-[11px] text-slate-700 placeholder-slate-400 bg-transparent border-0 focus:outline-none disabled:opacity-50"
             />
-          </div>
-        )}
-        {noteOpen && readOnly && addressNote.trim() && (
-          <div className="px-3 pb-3">
-            <div className="px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[13px] text-amber-900 whitespace-pre-wrap">
-              {addressNote}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {client && (

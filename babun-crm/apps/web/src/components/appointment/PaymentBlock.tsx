@@ -55,32 +55,30 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
         Оплата · {formatEUR(total)}
       </div>
 
-      {/* Нал + Карта в одну строку */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Compact payment buttons row */}
+      <div className="grid grid-cols-3 gap-1.5">
         <button
           type="button"
           onClick={() => payAll("cash")}
-          className="min-h-[52px] rounded-xl bg-emerald-500 text-white text-[14px] font-semibold active:bg-emerald-600 flex items-center justify-center gap-1.5"
+          className="h-9 rounded-lg bg-emerald-500 text-white text-[12px] font-semibold active:bg-emerald-600 flex items-center justify-center gap-1"
         >
-          💵 Нал · {formatEUR(total)}
+          💵 Нал
         </button>
         <button
           type="button"
           onClick={() => payAll("card")}
-          className="min-h-[52px] rounded-xl bg-sky-500 text-white text-[14px] font-semibold active:bg-sky-600 flex items-center justify-center gap-1.5"
+          className="h-9 rounded-lg bg-sky-500 text-white text-[12px] font-semibold active:bg-sky-600 flex items-center justify-center gap-1"
         >
-          💳 Карта · {formatEUR(total)}
+          💳 Карта
+        </button>
+        <button
+          type="button"
+          onClick={() => setSplitOpen((v) => !v)}
+          className="h-9 rounded-lg bg-white border border-slate-200 text-[12px] font-semibold text-slate-700 active:bg-slate-50 flex items-center justify-center gap-1"
+        >
+          ↕ Сплит
         </button>
       </div>
-
-      {/* Split toggle + form */}
-      <button
-        type="button"
-        onClick={() => setSplitOpen((v) => !v)}
-        className="w-full min-h-[44px] rounded-xl bg-white border border-slate-200 text-[13px] font-semibold text-slate-700 active:bg-slate-50 flex items-center justify-center gap-1"
-      >
-        <span className="text-slate-500">↕</span> Сплит: нал + карта
-      </button>
 
       {splitOpen && (
         <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
