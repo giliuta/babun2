@@ -22,9 +22,6 @@ interface ServicesBlockProps {
   globalDiscount: Discount | null;
   catalog: Service[];
   readonly: boolean;
-  /** When true, the "Выбрать услугу" button is disabled and a hint
-   *  explains that the dispatcher needs to pick a client first. */
-  requiresClient?: boolean;
   onServicesChange: (next: AppointmentService[]) => void;
   onGlobalDiscountChange: (next: Discount | null) => void;
   onOpenPicker: () => void;
@@ -37,7 +34,6 @@ export default function ServicesBlock({
   globalDiscount,
   catalog,
   readonly,
-  requiresClient,
   onServicesChange,
   onGlobalDiscountChange,
   onOpenPicker,
@@ -99,20 +95,13 @@ export default function ServicesBlock({
           <button
             type="button"
             onClick={onOpenPicker}
-            disabled={requiresClient}
-            className={`w-full h-11 rounded-xl text-[13px] font-semibold transition ${
-              requiresClient
-                ? "bg-slate-50 border-2 border-dashed border-slate-200 text-slate-400 cursor-not-allowed"
-                : services.length === 0
-                ? "bg-white border-2 border-dashed border-slate-300 text-slate-500 active:scale-[0.99]"
-                : "bg-violet-50 text-violet-700 active:bg-violet-100 active:scale-[0.99]"
+            className={`w-full h-11 rounded-xl text-[13px] font-semibold transition active:scale-[0.99] ${
+              services.length === 0
+                ? "bg-white border-2 border-dashed border-slate-300 text-slate-500"
+                : "bg-violet-50 text-violet-700 active:bg-violet-100"
             }`}
           >
-            {requiresClient
-              ? "Сначала выберите клиента"
-              : services.length === 0
-              ? "Выбрать услугу"
-              : "+ Добавить ещё услугу"}
+            {services.length === 0 ? "Выбрать услугу" : "+ Добавить ещё услугу"}
           </button>
         </div>
       )}
@@ -125,41 +114,44 @@ export default function ServicesBlock({
         />
       )}
 
-      {/* Totals */}
-      {services.length > 0 && (
-        <div className="px-4 pt-3">
-          <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1.5">
-            {discountAmount > 0 && (
-              <>
-                <div className="flex items-center justify-between text-[12px] text-slate-600">
-                  <span>Подытог ({services.length} усл.)</span>
-                  <span className="tabular-nums">{formatEUR(sub)}</span>
-                </div>
-                <div className="flex items-center justify-between text-[12px] text-rose-600 font-semibold">
-                  <span>
-                    🏷{" "}
-                    {globalDiscount?.type === "percent"
-                      ? `−${globalDiscount.value}%`
-                      : `Скидка`}
-                    {globalDiscount?.reason && ` ${globalDiscount.reason}`}
-                  </span>
-                  <span className="tabular-nums">−{formatEUR(discountAmount)}</span>
-                </div>
-                <div className="h-px bg-slate-200" />
-              </>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-slate-900">ИТОГО</span>
-              <span className="text-[20px] font-bold text-emerald-700 tabular-nums">
-                {formatEUR(total)}
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-500 tabular-nums">
-              {duration} мин общей длительности
-            </div>
+      {/* Totals — always visible so the dispatcher sees доход immediately.
+          Shows €0 / 0 мин when no services are picked yet. */}
+      <div className="px-4 pt-3">
+        <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+          {discountAmount > 0 && (
+            <>
+              <div className="flex items-center justify-between text-[12px] text-slate-600">
+                <span>Подытог ({services.length} усл.)</span>
+                <span className="tabular-nums">{formatEUR(sub)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[12px] text-rose-600 font-semibold">
+                <span>
+                  🏷{" "}
+                  {globalDiscount?.type === "percent"
+                    ? `−${globalDiscount.value}%`
+                    : `Скидка`}
+                  {globalDiscount?.reason && ` ${globalDiscount.reason}`}
+                </span>
+                <span className="tabular-nums">−{formatEUR(discountAmount)}</span>
+              </div>
+              <div className="h-px bg-slate-200" />
+            </>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-semibold text-slate-900">ДОХОД</span>
+            <span
+              className={`text-[20px] font-bold tabular-nums ${
+                total > 0 ? "text-emerald-700" : "text-slate-400"
+              }`}
+            >
+              {formatEUR(total)}
+            </span>
+          </div>
+          <div className="text-[11px] text-slate-500 tabular-nums">
+            {duration} мин общей длительности
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

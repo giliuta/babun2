@@ -504,7 +504,6 @@ export default function AppointmentSheet({
                 globalDiscount={globalDiscount}
                 catalog={catalog}
                 readonly={readonly}
-                requiresClient={!clientId}
                 onServicesChange={setAppointmentServices}
                 onGlobalDiscountChange={setGlobalDiscount}
                 onOpenPicker={() => setServicePickerOpen(true)}
