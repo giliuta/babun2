@@ -885,7 +885,6 @@ export default function DashboardPage() {
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
-          onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
           onCancelAppointment={() => setBooking(null)}
           onSave={(apt) => {
             upsertAppointment(apt);
@@ -1066,7 +1065,6 @@ export default function DashboardPage() {
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
-          onCityChange={(dk, city) => setCityFor(activeTeamId || "", dk, city)}
           onSave={(apt) => {
             upsertAppointment(apt);
             setInlineSheet(null);

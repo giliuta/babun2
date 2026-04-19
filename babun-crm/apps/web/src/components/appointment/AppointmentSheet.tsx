@@ -23,7 +23,6 @@ import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet
 import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
 
 import TimeBlock from "./TimeBlock";
-import CityPicker from "./CityPicker";
 import ClientBlock from "./ClientBlock";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
@@ -51,7 +50,6 @@ interface AppointmentSheetProps {
   cityForDate: (dateKey: string) => string;
   onSave: (apt: Appointment) => void;
   onCancelAppointment: (apt: Appointment) => void;
-  onCityChange: (dateKey: string, city: string) => void;
 }
 
 type Kind = "work" | "event";
@@ -79,7 +77,6 @@ export default function AppointmentSheet({
   cityForDate,
   onSave,
   onCancelAppointment,
-  onCityChange,
 }: AppointmentSheetProps) {
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
@@ -106,7 +103,6 @@ export default function AppointmentSheet({
   const [comment, setComment] = useState(appointment.comment);
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
-  const [showCityPicker, setShowCityPicker] = useState(false);
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
@@ -167,7 +163,6 @@ export default function AppointmentSheet({
         ? "event"
         : "work"
     );
-    setShowCityPicker(false);
   }, [open, appointment]);
 
   const client = useMemo<Client | null>(
@@ -374,20 +369,16 @@ export default function AppointmentSheet({
 
         {/* Scroll body */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          {/* City/team row — city is tappable in edit mode to open the
-              city picker below; team is read-only in this sheet. */}
+          {/* City/team caption — read-only info strip. No dropdown, no
+              click. City is edited from the calendar day header. */}
           <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2 text-[13px]">
             {city && (
-              <button
-                type="button"
-                onClick={readonly ? undefined : () => setShowCityPicker((v) => !v)}
-                disabled={readonly}
-                className="font-semibold flex-shrink-0 active:opacity-60"
+              <span
+                className="font-semibold flex-shrink-0"
                 style={{ color: cityColor }}
               >
                 {city}
-                {!readonly && <span className="text-slate-400 ml-0.5">▾</span>}
-              </button>
+              </span>
             )}
             {city && <span className="text-slate-400">·</span>}
             <span className="text-slate-700 flex-shrink-0">{teamLabel}</span>
@@ -404,16 +395,6 @@ export default function AppointmentSheet({
               setTimeEnd(e);
             }}
           />
-
-          {showCityPicker && isEditable && (
-            <CityPicker
-              value={city}
-              onPick={(c) => {
-                onCityChange(dateKey, c);
-                setShowCityPicker(false);
-              }}
-            />
-          )}
 
           {/* Event mode body */}
           {isEventMode && isEditable ? (

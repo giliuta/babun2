@@ -88,7 +88,9 @@ export default function TimeBlock({
   readOnly,
   onChange,
 }: TimeBlockProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expandedMode, setExpandedMode] = useState<"none" | "date" | "time">(
+    "none"
+  );
   const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
@@ -143,29 +145,48 @@ export default function TimeBlock({
     );
   }
 
-  if (!expanded) {
-    return (
+  const toggle = (mode: "date" | "time") =>
+    setExpandedMode((prev) => (prev === mode ? "none" : mode));
+
+  const headerRow = (
+    <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 text-[13px]">
+      <span className="flex-shrink-0 text-slate-400">
+        <ClockIcon />
+      </span>
       <button
         type="button"
-        onClick={() => setExpanded(true)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 text-[13px] text-slate-600 active:bg-slate-50"
+        onClick={() => toggle("date")}
+        className={`flex items-center gap-1 rounded-lg px-2 py-1 transition active:scale-[0.98] ${
+          expandedMode === "date"
+            ? "bg-violet-50 text-violet-700"
+            : "text-slate-900 active:bg-slate-50"
+        }`}
       >
-        <span className="flex-shrink-0 text-slate-400">
-          <ClockIcon />
-        </span>
-        <span className="font-semibold text-slate-900">{formatDateRu(date)}</span>
-        <span className="text-slate-300">·</span>
-        <span className="tabular-nums font-medium">
+        <span className="font-semibold">{formatDateRu(date)}</span>
+        <ChevronDownIcon />
+      </button>
+      <button
+        type="button"
+        onClick={() => toggle("time")}
+        className={`flex items-center gap-1 rounded-lg px-2 py-1 transition tabular-nums active:scale-[0.98] ${
+          expandedMode === "time"
+            ? "bg-violet-50 text-violet-700"
+            : "text-slate-900 active:bg-slate-50"
+        }`}
+      >
+        <span className="font-medium">
           {timeStart}–{timeEnd}
         </span>
-        <span className="ml-auto px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 tabular-nums">
-          {duration} мин
-        </span>
-        <span className="flex-shrink-0 text-slate-400">
-          <ChevronDownIcon />
-        </span>
+        <ChevronDownIcon />
       </button>
-    );
+      <span className="ml-auto px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 tabular-nums">
+        {duration} мин
+      </span>
+    </div>
+  );
+
+  if (expandedMode === "none") {
+    return headerRow;
   }
 
   const commitStart = (hour: number, min: number) => {
@@ -189,155 +210,136 @@ export default function TimeBlock({
   const canNext = weekOffset < WEEK_OFFSET_MAX;
 
   return (
-    <div
-      className="border-b border-slate-100"
-      style={{
-        padding: "10px 10px 12px",
-        background: "linear-gradient(180deg, #fafafa, #f5f3ff)",
-      }}
-    >
-      {/* Тонкий заголовок — "Время записи" + стрелка свернуть. */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            color: "rgb(148 163 184)",
-            textTransform: "uppercase",
-          }}
-        >
-          Время записи
-        </span>
-        <button
-          type="button"
-          onClick={() => setExpanded(false)}
-          className="text-slate-400 p-1 -mr-1 active:text-slate-700"
-          aria-label="Свернуть"
-        >
-          <ChevronUpIcon size={14} />
-        </button>
-      </div>
-
-      {/* Стрелки ◀ / кубики / ▶ — кубики растягиваются flex:1 */}
-      <div className="flex items-center gap-2">
-        <WeekArrow
-          direction="prev"
-          disabled={!canPrev}
-          onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))}
-        />
-        <div className="flex-1 flex items-stretch gap-1 min-w-0">
-          {week.map((d) => {
-            const active = d.key === date;
-            return (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
-                className="flex flex-col items-center justify-center transition active:scale-[0.97]"
-                style={{
-                  flex: "1 1 0",
-                  minWidth: 0,
-                  height: 48,
-                  borderRadius: 10,
-                  gap: 1,
-                  background: active
-                    ? "linear-gradient(180deg, #8b5cf6, #7c3aed)"
-                    : "white",
-                  border: active
-                    ? "1px solid transparent"
-                    : d.isToday
-                    ? "1px solid rgb(167 139 250)"
-                    : "1px solid rgb(226 232 240)",
-                  color: active
-                    ? "white"
-                    : d.isToday
-                    ? "rgb(124 58 237)"
-                    : "rgb(15 23 42)",
-                  boxShadow: active
-                    ? "0 3px 10px rgba(124, 58, 237, 0.28)"
-                    : "0 1px 2px rgba(15, 23, 42, 0.04)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: "0.04em",
-                    color: active
-                      ? "rgba(255,255,255,0.82)"
-                      : d.isToday
-                      ? "rgb(124 58 237)"
-                      : "rgb(100 116 139)",
-                    lineHeight: 1,
-                  }}
-                >
-                  {d.weekday}
-                </span>
-                <span
-                  className="tabular-nums"
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    lineHeight: 1,
-                  }}
-                >
-                  {d.day}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <WeekArrow
-          direction="next"
-          disabled={!canNext}
-          onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))}
-        />
-      </div>
-
-      {/* Подпись недели + длительность одной тонкой строкой */}
+    <>
+      {headerRow}
       <div
-        className="flex items-center justify-center"
+        className="border-b border-slate-100"
         style={{
-          marginTop: 6,
-          marginBottom: 4,
-          gap: 8,
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-          color: "rgb(148 163 184)",
+          padding: "10px 10px 12px",
+          background: "linear-gradient(180deg, #fafafa, #f5f3ff)",
         }}
       >
-        <span>{weekRangeLabel}</span>
-        <span style={{ color: "rgb(203 213 225)" }}>·</span>
-        <span className="tabular-nums">{duration} мин</span>
-      </div>
+        {expandedMode === "date" && (
+          <>
+            {/* Week picker: prev / 7 cubes / next */}
+            <div className="flex items-center gap-2">
+              <WeekArrow
+                direction="prev"
+                disabled={!canPrev}
+                onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))}
+              />
+              <div className="flex-1 flex items-stretch gap-1 min-w-0">
+                {week.map((d) => {
+                  const active = d.key === date;
+                  return (
+                    <button
+                      key={d.key}
+                      type="button"
+                      onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
+                      className="flex flex-col items-center justify-center transition active:scale-[0.97]"
+                      style={{
+                        flex: "1 1 0",
+                        minWidth: 0,
+                        height: 48,
+                        borderRadius: 10,
+                        gap: 1,
+                        background: active
+                          ? "linear-gradient(180deg, #8b5cf6, #7c3aed)"
+                          : "white",
+                        border: active
+                          ? "1px solid transparent"
+                          : d.isToday
+                          ? "1px solid rgb(167 139 250)"
+                          : "1px solid rgb(226 232 240)",
+                        color: active
+                          ? "white"
+                          : d.isToday
+                          ? "rgb(124 58 237)"
+                          : "rgb(15 23 42)",
+                        boxShadow: active
+                          ? "0 3px 10px rgba(124, 58, 237, 0.28)"
+                          : "0 1px 2px rgba(15, 23, 42, 0.04)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                          color: active
+                            ? "rgba(255,255,255,0.82)"
+                            : d.isToday
+                            ? "rgb(124 58 237)"
+                            : "rgb(100 116 139)",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {d.weekday}
+                      </span>
+                      <span
+                        className="tabular-nums"
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {d.day}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <WeekArrow
+                direction="next"
+                disabled={!canNext}
+                onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))}
+              />
+            </div>
 
-      {/* Wheels в одну плоскую строку: hh:mm → hh:mm */}
-      <div className="flex items-center justify-center mt-1">
-        <WheelGroup
-          hourIdx={startHourIdx}
-          minIdx={startMinIdx}
-          onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
-          onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
-        />
-        <span
-          className="flex-shrink-0 text-slate-400 select-none"
-          style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
-        >
-          <ArrowRightIcon />
-        </span>
-        <WheelGroup
-          hourIdx={endHourIdx}
-          minIdx={endMinIdx}
-          onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
-          onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
-        />
-      </div>
+            <div
+              className="flex items-center justify-center"
+              style={{
+                marginTop: 6,
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                color: "rgb(148 163 184)",
+              }}
+            >
+              <span>{weekRangeLabel}</span>
+            </div>
+          </>
+        )}
 
-      <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
-    </div>
+        {expandedMode === "time" && (
+          <div className="flex items-center justify-center">
+            <WheelGroup
+              hourIdx={startHourIdx}
+              minIdx={startMinIdx}
+              onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
+              onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
+            />
+            <span
+              className="flex-shrink-0 text-slate-400 select-none"
+              style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
+            >
+              <ArrowRightIcon />
+            </span>
+            <WheelGroup
+              hourIdx={endHourIdx}
+              minIdx={endMinIdx}
+              onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
+              onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
+            />
+          </div>
+        )}
+
+        <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
+      </div>
+    </>
   );
 }
 
@@ -463,13 +465,6 @@ function ChevronDownIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-function ChevronUpIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="18 15 12 9 6 15" />
     </svg>
   );
 }
