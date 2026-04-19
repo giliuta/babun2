@@ -25,6 +25,7 @@ import TimeBlock from "./TimeBlock";
 import ClientBlock from "./ClientBlock";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
+import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
 import QuickActions from "./QuickActions";
 import PaymentBlock from "./PaymentBlock";
@@ -101,6 +102,7 @@ export default function AppointmentSheet({
   );
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
+  const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [clientSheet, setClientSheet] = useState(false);
@@ -135,6 +137,7 @@ export default function AppointmentSheet({
     setLocationId(appointment.location_id);
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
+    setCancelFlag(appointment.status === "cancelled");
     setEventLabel(appointment.comment || "");
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
@@ -266,9 +269,13 @@ export default function AppointmentSheet({
       address_note: addressNote.trim(),
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
       kind: "work",
-      // Не сбрасываем completed статус в edit.
-      status:
-        liveMode === "edit" ? appointment.status : "scheduled",
+      // Cancel toggle wins over everything else; otherwise keep the
+      // existing status in edit mode or set scheduled in create.
+      status: cancelFlag
+        ? "cancelled"
+        : liveMode === "edit"
+        ? appointment.status
+        : "scheduled",
       updated_at: new Date().toISOString(),
     };
     onSave(saved);
@@ -464,7 +471,6 @@ export default function AppointmentSheet({
                 catalog={catalog}
                 readonly={readonly}
                 onServicesChange={setAppointmentServices}
-                onGlobalDiscountChange={setGlobalDiscount}
                 onOpenPicker={() => {
                   if (!clientId) {
                     setAskClientFirst(true);
@@ -474,11 +480,64 @@ export default function AppointmentSheet({
                 }}
               />
 
+              <IncomeBlock
+                services={appointmentServices}
+                globalDiscount={globalDiscount}
+                catalog={catalog}
+                readonly={readonly}
+                onServicesChange={setAppointmentServices}
+                onGlobalDiscountChange={setGlobalDiscount}
+              />
+
               <CommentBlock
                 value={comment}
                 readonly={readonly}
                 onChange={setComment}
               />
+
+              {/* Photo placeholder — real upload lands in a follow-up */}
+              {isEditable && (
+                <div className="px-4 pt-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-slate-200 bg-slate-50 text-[13px] font-medium text-slate-400 flex items-center justify-center gap-2"
+                  >
+                    📷 Фото · скоро
+                  </button>
+                </div>
+              )}
+
+              {/* Cancel-appointment toggle for edit mode on an already
+                  scheduled record. Flipping on marks the appointment as
+                  cancelled on save. */}
+              {liveMode === "edit" &&
+                appointment.status !== "completed" && (
+                  <div className="px-4 pt-3 flex items-center justify-between">
+                    <div>
+                      <div className="text-[13px] font-semibold text-slate-800">
+                        Запись отменена
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        Клиент отказался от услуги
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCancelFlag((v) => !v)}
+                      className={`w-11 h-6 rounded-full relative transition-colors ${
+                        cancelFlag ? "bg-rose-500" : "bg-slate-300"
+                      }`}
+                      aria-pressed={cancelFlag}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                          cancelFlag ? "translate-x-[22px]" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
 
               {/* SMS toggle только в create */}
               {isEditable && client && client.phone && (

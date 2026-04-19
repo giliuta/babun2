@@ -6,16 +6,8 @@ import type {
   Discount,
 } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
-import { pricePerUnit } from "@/lib/services";
-import {
-  appointmentTotal,
-  globalDiscountAmount,
-  subtotal,
-  totalDuration,
-} from "@/lib/finance/appointment-calc";
+import { lineTotal } from "@/lib/finance/appointment-calc";
 import { formatEUR } from "@/lib/money";
-import ServiceRow from "./ServiceRow";
-import GlobalDiscountForm from "./GlobalDiscountForm";
 
 interface ServicesBlockProps {
   services: AppointmentService[];
@@ -23,19 +15,24 @@ interface ServicesBlockProps {
   catalog: Service[];
   readonly: boolean;
   onServicesChange: (next: AppointmentService[]) => void;
-  onGlobalDiscountChange: (next: Discount | null) => void;
+  /** Not used by the compact chip layout but kept for API continuity
+   *  with callers that also mount an income popup. */
+  onGlobalDiscountChange?: (next: Discount | null) => void;
   onOpenPicker: () => void;
 }
 
-// Блок 6-9: услуги (строки со степперами), кнопка «+ добавить»,
-// глобальная скидка и итог.
+// Compact services row:
+//  - each picked service is a thin chip: "×1 · Чистка · €50  ✕"
+//  - at the tail end, a small "[+]" round button opens the picker
+//  - empty state shows a full-width "Выбрать услугу" CTA — same
+//    behaviour, just a different resting shape
+//
+// Price / discount editing lives in the ДОХОД popup now, not here.
 export default function ServicesBlock({
   services,
-  globalDiscount,
   catalog,
   readonly,
   onServicesChange,
-  onGlobalDiscountChange,
   onOpenPicker,
 }: ServicesBlockProps) {
   const byId = useMemo(() => {
@@ -44,113 +41,72 @@ export default function ServicesBlock({
     return map;
   }, [catalog]);
 
-  const sub = subtotal(services);
-  const total = appointmentTotal(services, globalDiscount);
-  const discountAmount = globalDiscountAmount(services, globalDiscount);
-  const duration = totalDuration(services);
-
-  const updateLine = (idx: number, next: AppointmentService) => {
-    onServicesChange(services.map((s, i) => (i === idx ? next : s)));
-  };
-
-  const removeLine = (idx: number) => {
+  const removeAt = (idx: number) => {
     onServicesChange(services.filter((_, i) => i !== idx));
   };
 
-  return (
-    <div className="pt-2">
-      {/* Services list */}
-      {services.length > 0 && (
-        <div className="px-4 space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Услуги ({services.length})
-          </div>
-          {services.map((line, idx) => {
-            const svc = byId.get(line.serviceId) ?? null;
-            return (
-              <ServiceRow
-                key={`${line.serviceId}-${idx}`}
-                line={{
-                  ...line,
-                  pricePerUnit:
-                    // пересчитать bulk при каждом рендере (безопасно — при изменении qty setQty
-                    // внутри ServiceRow уже подменит, но для свежего чтения сделаем согласование)
-                    svc && line.pricePerUnit === line.originalPrice
-                      ? pricePerUnit(svc, line.quantity)
-                      : line.pricePerUnit,
-                }}
-                service={svc}
-                readonly={readonly}
-                onUpdate={(n) => updateLine(idx, n)}
-                onRemove={() => removeLine(idx)}
-              />
-            );
-          })}
-        </div>
-      )}
+  // Empty state: single large CTA.
+  if (services.length === 0) {
+    if (readonly) return null;
+    return (
+      <div className="px-4 pt-2">
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className="w-full h-11 rounded-xl text-[13px] font-semibold transition active:scale-[0.99] bg-white border-2 border-dashed border-slate-300 text-slate-500"
+        >
+          Выбрать услугу
+        </button>
+      </div>
+    );
+  }
 
-      {/* + Add service */}
-      {!readonly && (
-        <div className="px-4 pt-2">
+  return (
+    <div className="px-4 pt-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {services.map((line, idx) => {
+          const svc = byId.get(line.serviceId) ?? null;
+          const total = lineTotal(line);
+          return (
+            <div
+              key={`${line.serviceId}-${idx}`}
+              className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full bg-violet-50 border border-violet-200 text-[12px] text-slate-900 max-w-full"
+            >
+              <span className="font-semibold text-violet-700 tabular-nums">
+                ×{line.quantity}
+              </span>
+              <span className="font-medium truncate max-w-[150px]">
+                {svc?.name ?? "Услуга"}
+              </span>
+              <span className="text-emerald-700 font-bold tabular-nums">
+                {formatEUR(total)}
+              </span>
+              {!readonly && (
+                <button
+                  type="button"
+                  onClick={() => removeAt(idx)}
+                  aria-label="Убрать"
+                  className="w-5 h-5 flex items-center justify-center rounded-full text-slate-400 active:bg-white active:text-rose-500"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {!readonly && (
           <button
             type="button"
             onClick={onOpenPicker}
-            className={`w-full h-11 rounded-xl text-[13px] font-semibold transition active:scale-[0.99] ${
-              services.length === 0
-                ? "bg-white border-2 border-dashed border-slate-300 text-slate-500"
-                : "bg-violet-50 text-violet-700 active:bg-violet-100"
-            }`}
+            aria-label="Добавить услугу"
+            className="w-8 h-8 rounded-full bg-white border-2 border-dashed border-violet-300 text-violet-600 text-[16px] font-bold flex items-center justify-center active:bg-violet-50 active:scale-[0.96]"
           >
-            {services.length === 0 ? "Выбрать услугу" : "+ Добавить ещё услугу"}
+            +
           </button>
-        </div>
-      )}
-
-      {/* Global discount */}
-      {!readonly && services.length > 0 && (
-        <GlobalDiscountForm
-          discount={globalDiscount}
-          onChange={onGlobalDiscountChange}
-        />
-      )}
-
-      {/* Totals — always visible so the dispatcher sees доход immediately.
-          Shows €0 / 0 мин when no services are picked yet. */}
-      <div className="px-4 pt-3">
-        <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1.5">
-          {discountAmount > 0 && (
-            <>
-              <div className="flex items-center justify-between text-[12px] text-slate-600">
-                <span>Подытог ({services.length} усл.)</span>
-                <span className="tabular-nums">{formatEUR(sub)}</span>
-              </div>
-              <div className="flex items-center justify-between text-[12px] text-rose-600 font-semibold">
-                <span>
-                  🏷{" "}
-                  {globalDiscount?.type === "percent"
-                    ? `−${globalDiscount.value}%`
-                    : `Скидка`}
-                  {globalDiscount?.reason && ` ${globalDiscount.reason}`}
-                </span>
-                <span className="tabular-nums">−{formatEUR(discountAmount)}</span>
-              </div>
-              <div className="h-px bg-slate-200" />
-            </>
-          )}
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-slate-900">ДОХОД</span>
-            <span
-              className={`text-[20px] font-bold tabular-nums ${
-                total > 0 ? "text-emerald-700" : "text-slate-400"
-              }`}
-            >
-              {formatEUR(total)}
-            </span>
-          </div>
-          <div className="text-[11px] text-slate-500 tabular-nums">
-            {duration} мин общей длительности
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
