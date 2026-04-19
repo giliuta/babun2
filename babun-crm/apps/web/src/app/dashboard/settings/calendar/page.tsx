@@ -186,6 +186,25 @@ export default function CalendarSettingsPage() {
             </button>
           </div>
 
+          {/* Related: booking-form customisation */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <Link
+              href="/dashboard/settings/booking"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            >
+              <span className="text-xl w-7 text-center shrink-0">🏠</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900">Записи — типы объектов</div>
+                <div className="text-[11px] text-gray-400 mt-0.5">
+                  Дом, Квартира, Офис, Вилла — добавь свои
+                </div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 shrink-0">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </Link>
+          </div>
+
         </div>
       </div>
     </>

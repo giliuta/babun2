@@ -76,6 +76,11 @@ import {
   type CalendarSettings,
 } from "@/lib/calendar-settings";
 import { loadCities, saveCities, type City } from "@/lib/cities";
+import {
+  loadLocationLabels,
+  saveLocationLabels,
+  type LocationLabel,
+} from "@/lib/location-labels";
 
 interface SidebarContextValue {
   open: () => void;
@@ -279,6 +284,19 @@ export function useCities() {
   return ctx;
 }
 
+interface LocationLabelsContextValue {
+  locationLabels: LocationLabel[];
+  setLocationLabels: (next: LocationLabel[]) => void;
+}
+
+const LocationLabelsContext = createContext<LocationLabelsContextValue | null>(null);
+
+export function useLocationLabels() {
+  const ctx = useContext(LocationLabelsContext);
+  if (!ctx) throw new Error("useLocationLabels must be used within DashboardLayout");
+  return ctx;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -303,6 +321,7 @@ export default function DashboardLayout({
     return loadCalendarSettings();
   });
   const [cities, setCitiesState] = useState<City[]>([]);
+  const [locationLabels, setLocationLabelsState] = useState<LocationLabel[]>([]);
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -335,6 +354,7 @@ export default function DashboardLayout({
     setDayExtrasState(loadDayExtras());
     setCalendarSettingsState(loadCalendarSettings());
     setCitiesState(loadCities());
+    setLocationLabelsState(loadLocationLabels());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
     // STORY-007: legacy key cleanup. Drafts are gone — any leftover
@@ -650,6 +670,16 @@ export default function DashboardLayout({
     setCities: handleCitiesChange,
   };
 
+  const handleLocationLabelsChange = useCallback((next: LocationLabel[]) => {
+    setLocationLabelsState(next);
+    saveLocationLabels(next);
+  }, []);
+
+  const locationLabelsValue: LocationLabelsContextValue = {
+    locationLabels,
+    setLocationLabels: handleLocationLabelsChange,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
@@ -664,6 +694,7 @@ export default function DashboardLayout({
       <DayExtrasContext.Provider value={dayExtrasValue}>
       <CalendarSettingsContext.Provider value={calendarSettingsValue}>
       <CitiesContext.Provider value={citiesValue}>
+      <LocationLabelsContext.Provider value={locationLabelsValue}>
       <SchedulesContext.Provider value={schedulesValue}>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
@@ -691,6 +722,7 @@ export default function DashboardLayout({
           <InstallPrompt />
         </div>
       </SchedulesContext.Provider>
+      </LocationLabelsContext.Provider>
       </CitiesContext.Provider>
       </CalendarSettingsContext.Provider>
       </DayExtrasContext.Provider>

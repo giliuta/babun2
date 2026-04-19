@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Client, Location } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@/lib/map-links";
+import { useLocationLabels } from "@/app/dashboard/layout";
 
 interface LocationsBlockProps {
   client: Client;
@@ -13,8 +14,6 @@ interface LocationsBlockProps {
   onSelectLocation: (id: string) => void;
   onSaveLocation: (loc: Location) => void;
 }
-
-const LABEL_PRESETS = ["Дом", "Квартира", "Офис", "Вилла"];
 
 type FormMode = "hidden" | "add" | "edit";
 
@@ -30,6 +29,12 @@ export default function LocationsBlock({
   onSelectLocation,
   onSaveLocation,
 }: LocationsBlockProps) {
+  const { locationLabels } = useLocationLabels();
+  const labelPresets = useMemo(
+    () => locationLabels.map((l) => l.name),
+    [locationLabels]
+  );
+
   const locations = client.locations;
   const hasLocations = locations.length > 0;
   const multipleLocations = locations.length > 1;
@@ -77,11 +82,11 @@ export default function LocationsBlock({
     // input automatically so the user sees their text rather than an
     // empty form.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCustomMode(lbl !== "" && !LABEL_PRESETS.includes(lbl));
+    setCustomMode(lbl !== "" && !labelPresets.includes(lbl));
     // Prefer address for the combined field; fall back to mapUrl.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNewInput(target.address || target.mapUrl || "");
-  }, [mode, editingTargetId, selectedLocation, locations]);
+  }, [mode, editingTargetId, selectedLocation, locations, labelPresets]);
 
   const resetForm = () => {
     setNewLabel("");
@@ -301,7 +306,7 @@ export default function LocationsBlock({
         {formVisible && !readOnly && (
           <div className={`px-3 ${multipleLocations ? "pt-1" : "pt-3"} pb-3 space-y-2`}>
             <div className="flex flex-wrap gap-1.5">
-              {LABEL_PRESETS.map((lbl) => {
+              {labelPresets.map((lbl) => {
                 const active = !customMode && newLabel === lbl;
                 return (
                   <button
@@ -326,10 +331,10 @@ export default function LocationsBlock({
                 onClick={() => {
                   if (customMode) {
                     setCustomMode(false);
-                    if (!LABEL_PRESETS.includes(newLabel)) setNewLabel("");
+                    if (!labelPresets.includes(newLabel)) setNewLabel("");
                   } else {
                     setCustomMode(true);
-                    if (LABEL_PRESETS.includes(newLabel)) setNewLabel("");
+                    if (labelPresets.includes(newLabel)) setNewLabel("");
                   }
                 }}
                 className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
