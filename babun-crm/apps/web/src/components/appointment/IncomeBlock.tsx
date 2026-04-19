@@ -181,18 +181,15 @@ function IncomePopup({
 
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-end justify-center bg-black/50 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl lg:mb-8 shadow-2xl flex flex-col"
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col"
         style={{ maxHeight: "85vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-slate-300" />
-        </div>
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <div className="text-[14px] font-semibold text-slate-900">Доход</div>
           <button
             type="button"

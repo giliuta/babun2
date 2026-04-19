@@ -314,18 +314,14 @@ export default function AppointmentSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-2"
       onClick={attemptClose}
     >
       <div
-        className="w-full lg:max-w-lg bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl flex flex-col"
+        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Grabber */}
-        <div className="flex-shrink-0 flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-slate-300" />
-        </div>
 
         {/* Header */}
         <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">

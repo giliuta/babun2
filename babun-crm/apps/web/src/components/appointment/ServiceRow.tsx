@@ -170,18 +170,14 @@ export default function ServiceRow({
 
       {editorOpen && (
         <div
-          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
           onClick={() => setEditorOpen(false)}
         >
           <div
-            className="w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl lg:mb-8 shadow-2xl"
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
           >
-            <div className="flex justify-center pt-2 pb-1">
-              <div className="w-10 h-1 rounded-full bg-slate-300" />
-            </div>
-            <div className="px-3 pb-2 text-[13px] font-semibold text-slate-700 truncate">
+            <div className="px-4 pt-3 pb-2 text-[13px] font-semibold text-slate-700 truncate">
               {service?.name ?? "Цена"}
             </div>
             <PriceEditor
