@@ -8,7 +8,6 @@ import type {
   Discount,
 } from "@/lib/appointments";
 import type { Client, Location } from "@/lib/clients";
-import { upsertClient } from "@/lib/clients";
 import type { Team } from "@/lib/masters";
 import type { Service, ServiceCategory } from "@/lib/services";
 import { pricePerUnit } from "@/lib/services";
@@ -101,6 +100,7 @@ export default function AppointmentSheet({
     appointment.global_discount ?? null
   );
   const [comment, setComment] = useState(appointment.comment);
+  const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [clientSheet, setClientSheet] = useState(false);
@@ -134,6 +134,7 @@ export default function AppointmentSheet({
     setClientId(appointment.client_id);
     setLocationId(appointment.location_id);
     setComment(appointment.comment);
+    setAddressNote(appointment.address_note ?? "");
     setEventLabel(appointment.comment || "");
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
@@ -262,6 +263,7 @@ export default function AppointmentSheet({
       custom_total: true,
       comment: finalComment,
       address,
+      address_note: addressNote.trim(),
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
       kind: "work",
       // Не сбрасываем completed статус в edit.
@@ -447,35 +449,14 @@ export default function AppointmentSheet({
                 onChange={() => setClientId(null)}
               />
 
-              {client && (
-                <LocationsBlock
-                  client={client}
-                  selectedLocationId={locationId}
-                  readOnly={readonly}
-                  onSelectLocation={setLocationId}
-                  onSaveLocation={(loc) => {
-                    // Upsert-by-id: if the id already lives on the
-                    // client the entry gets replaced (edit flow),
-                    // otherwise it's appended (add flow). Both paths
-                    // persist via upsertClient → babun:clients-changed
-                    // so the client's record page sees the same data.
-                    const existing = client.locations.some(
-                      (l) => l.id === loc.id
-                    );
-                    const nextLocations = existing
-                      ? client.locations.map((l) =>
-                          l.id === loc.id ? loc : l
-                        )
-                      : [...client.locations, loc];
-                    const nextClient: Client = {
-                      ...client,
-                      locations: nextLocations,
-                    };
-                    upsertClient(nextClient);
-                    setLocationId(loc.id);
-                  }}
-                />
-              )}
+              <LocationsBlock
+                client={client}
+                selectedLocationId={locationId}
+                readOnly={readonly}
+                addressNote={addressNote}
+                onSelectLocation={setLocationId}
+                onAddressNoteChange={setAddressNote}
+              />
 
               <ServicesBlock
                 services={appointmentServices}

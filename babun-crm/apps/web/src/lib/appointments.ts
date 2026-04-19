@@ -101,6 +101,10 @@ export interface Appointment {
   // Доп. поля
   comment: string;
   address: string; // переопределяет client.address
+  /** Короткая заметка к адресу (например «Зелёная дверь, звонок»).
+   *  Хранится отдельно от общего comment, чтобы бригада видела её
+   *  прямо рядом с навигацией. */
+  address_note: string;
   address_lat: number | null;
   address_lng: number | null;
 
@@ -509,6 +513,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     total_duration: 0,
     comment: "",
     address: "",
+    address_note: "",
     address_lat: null,
     address_lng: null,
     source: null,

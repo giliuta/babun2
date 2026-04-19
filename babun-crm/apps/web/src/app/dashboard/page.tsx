@@ -217,6 +217,7 @@ export default function DashboardPage() {
         payments: [],
         comment: m.client_name ? `${m.client_name} — ${m.comment}` : m.comment,
         address: "",
+        address_note: "",
         address_lat: null,
         address_lng: null,
         source: null,
