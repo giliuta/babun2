@@ -169,13 +169,30 @@ export default function ServiceRow({
       </div>
 
       {editorOpen && (
-        <PriceEditor
-          catalogPrice={catalogPrice}
-          currentPricePerUnit={line.pricePerUnit}
-          currentDiscount={line.discount}
-          onApply={setPriceAndDiscount}
-          onClose={() => setEditorOpen(false)}
-        />
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 backdrop-blur-[2px]"
+          onClick={() => setEditorOpen(false)}
+        >
+          <div
+            className="w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl lg:mb-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
+          >
+            <div className="flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            <div className="px-3 pb-2 text-[13px] font-semibold text-slate-700 truncate">
+              {service?.name ?? "Цена"}
+            </div>
+            <PriceEditor
+              catalogPrice={catalogPrice}
+              currentPricePerUnit={line.pricePerUnit}
+              currentDiscount={line.discount}
+              onApply={setPriceAndDiscount}
+              onClose={() => setEditorOpen(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
