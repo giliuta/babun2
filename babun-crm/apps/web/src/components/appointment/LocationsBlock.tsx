@@ -176,11 +176,11 @@ export default function LocationsBlock({
   if (!hasLocations && readOnly) return null;
   if (!hasLocations && mode === "hidden") {
     return (
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-2">
         <button
           type="button"
           onClick={openAdd}
-          className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-violet-300 text-[14px] font-semibold text-violet-600 active:bg-violet-50 flex items-center justify-center gap-2"
+          className="w-full h-10 rounded-xl border-[1.5px] border-dashed border-violet-300 text-[14px] font-semibold text-violet-600 active:bg-violet-50 flex items-center justify-center gap-2"
         >
           <PinIcon /> Добавить адрес
         </button>
@@ -192,7 +192,7 @@ export default function LocationsBlock({
   const formVisible = mode !== "hidden";
 
   return (
-    <div className="px-4 pt-3">
+    <div className="px-4 pt-2">
       <div className="rounded-xl bg-white border border-slate-200 overflow-hidden">
         {/* Location chips — only when there's actually more than one */}
         {multipleLocations && (

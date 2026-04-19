@@ -33,13 +33,13 @@ export default function ClientBlock({
   if (!client) {
     if (readonly) return null;
     return (
-      <div className="px-4 pt-3 space-y-2">
+      <div className="px-4 pt-2 space-y-2">
         <button
           type="button"
           onClick={onPick}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-white border-2 border-dashed border-slate-300 active:scale-[0.99]"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border-2 border-dashed border-slate-300 active:scale-[0.99]"
         >
-          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 text-[18px] font-bold">
+          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 text-[16px] font-bold">
             +
           </div>
           <span className="text-[14px] font-medium text-slate-500">
@@ -50,7 +50,7 @@ export default function ClientBlock({
           <button
             type="button"
             onClick={onCreate}
-            className="w-full h-10 rounded-xl bg-violet-50 text-violet-700 text-[13px] font-semibold active:bg-violet-100"
+            className="w-full h-9 rounded-xl bg-violet-50 text-violet-700 text-[13px] font-semibold active:bg-violet-100"
           >
             + Создать нового клиента
           </button>
@@ -63,8 +63,8 @@ export default function ClientBlock({
   const phoneDigits = phone?.replace(/\D/g, "") ?? "";
 
   return (
-    <div className="px-4 pt-3">
-      <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white border border-slate-200">
+    <div className="px-4 pt-2">
+      <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white border border-slate-200">
         <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-[13px] flex-shrink-0">
           {initials(client.full_name)}
         </div>

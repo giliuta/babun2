@@ -62,10 +62,10 @@ export default function ServicesBlock({
   };
 
   return (
-    <div className="pt-3">
+    <div className="pt-2">
       {/* Services list */}
       {services.length > 0 && (
-        <div className="px-4 space-y-2">
+        <div className="px-4 space-y-1.5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             Услуги ({services.length})
           </div>
