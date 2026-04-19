@@ -493,6 +493,21 @@ export default function DashboardPage() {
       .map(([id]) => id);
   }, []);
 
+  // Stable appointment seed for the create-mode sheet. Must not be
+  // recreated on every render, otherwise AppointmentSheet's reset effect
+  // keyed on `appointment` re-fires (new id on each tick) and wipes the
+  // client/location state the user just picked.
+  const bookingAppointment = useMemo(() => {
+    if (!booking) return null;
+    return createBlankAppointment({
+      date: booking.dateKey,
+      time_start: booking.timeStart,
+      time_end: booking.timeEnd,
+      team_id: activeTeamId || null,
+      kind: "work",
+    });
+  }, [booking, activeTeamId]);
+
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
       const today = new Date();
@@ -857,18 +872,12 @@ export default function DashboardPage() {
 
       {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
           (тап по пустому слоту). Внутри sheet — segment Клиент/Событие. */}
-      {booking && activeTeam && (
+      {booking && activeTeam && bookingAppointment && (
         <AppointmentSheet
           open={booking !== null}
           onClose={() => setBooking(null)}
           mode="create"
-          appointment={createBlankAppointment({
-            date: booking.dateKey,
-            time_start: booking.timeStart,
-            time_end: booking.timeEnd,
-            team_id: activeTeamId || null,
-            kind: "work",
-          })}
+          appointment={bookingAppointment}
           clients={clients}
           recentClientIds={recentInChats}
           teams={teams}
