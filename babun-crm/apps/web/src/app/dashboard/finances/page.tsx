@@ -429,9 +429,6 @@ function CashboxBlock({
           </span>
         </div>
       </div>
-      <p className="text-[11px] text-gray-400 mt-2">
-        Реальная сверка с вводом фактической суммы — в следующем обновлении.
-      </p>
     </div>
   );
 }

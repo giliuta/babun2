@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { loadBrigades, loadBrigadeMembers, type Brigade, type BrigadeMember } from "@/lib/brigades";
+import { useMasters } from "@/app/dashboard/layout";
 import {
   loadPayrollPeriods,
   generateWeeklyPercent,
@@ -51,6 +52,8 @@ function PeriodDetail({
   members: BrigadeMember[];
   onAction: () => void;
 }) {
+  const { masters } = useMasters();
+  const nameOf = (id: string) => masters.find((m) => m.id === id)?.full_name ?? id;
   const canApprove = period.status === "draft";
   const canPay     = period.status === "approved";
 
@@ -88,7 +91,12 @@ function PeriodDetail({
               <div key={line.id} className={`px-4 py-3 flex items-center gap-3 ${i < period.lines.length - 1 ? "border-b border-gray-100" : ""}`}>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-medium text-gray-900">
-                    {member ? `${member.masterId} (${member.role === "lead" ? "лид" : "помощник"})` : line.masterId}
+                    {nameOf(line.masterId)}
+                    {member && (
+                      <span className="text-[11px] text-gray-500 ml-1">
+                        ({member.role === "lead" ? "лид" : "помощник"})
+                      </span>
+                    )}
                   </div>
                   <div className="text-[11px] text-gray-500 truncate">{line.description}</div>
                 </div>
@@ -148,6 +156,8 @@ function WeekPreview({
   expenses: Expense[];
   onGenerate: () => void;
 }) {
+  const { masters } = useMasters();
+  const nameOf = (id: string) => masters.find((m) => m.id === id)?.full_name ?? id;
   const weekPayments = payments.filter(
     (p) => p.brigadeId === brigade.id && p.paidAt >= range.start && p.paidAt <= range.end + "T23:59:59"
   );
@@ -201,7 +211,7 @@ function WeekPreview({
           {lines.map((l, i) => (
             <div key={l.masterId} className={`px-4 py-2.5 flex items-center gap-2 ${i < lines.length - 1 ? "border-b border-gray-100" : ""}`}>
               <div className="flex-1 text-[13px] text-gray-900">
-                {l.masterId} <span className="text-[11px] text-gray-500">({l.role === "lead" ? "лид" : "помощник"}, {l.percentRate}%)</span>
+                {nameOf(l.masterId)} <span className="text-[11px] text-gray-500">({l.role === "lead" ? "лид" : "помощник"}, {l.percentRate}%)</span>
               </div>
               <span className="text-[14px] font-bold text-violet-700 tabular-nums">{formatEUR(l.amountCents)}</span>
             </div>

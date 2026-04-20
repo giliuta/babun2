@@ -666,20 +666,25 @@ export default function AppointmentSheet({
             <div className="text-center text-[16px] font-semibold text-slate-900 py-2">
               Сохранить запись?
             </div>
+            {!canSave && (
+              <div className="px-1 pt-1 pb-2 text-center text-[11px] text-rose-600">
+                Не хватает данных для сохранения
+              </div>
+            )}
             <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={() => {
-                  if (canSave) {
-                    handleCreate();
-                    setCloseConfirm(false);
-                    return;
-                  }
+                  if (!canSave) return;
+                  handleCreate();
                   setCloseConfirm(false);
-                  setBottomWarning("Заполните сначала данные");
-                  window.setTimeout(() => setBottomWarning(null), 4000);
                 }}
-                className="w-full h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+                disabled={!canSave}
+                className={`w-full h-11 rounded-xl text-[14px] font-semibold transition ${
+                  canSave
+                    ? "bg-violet-600 text-white active:scale-[0.99]"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
               >
                 Сохранить
               </button>

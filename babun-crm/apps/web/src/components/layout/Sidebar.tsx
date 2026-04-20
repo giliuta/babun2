@@ -14,7 +14,6 @@ export type DialogType =
   | "reports"
   | "waitlist"
   | "settings"
-  | "master-profile"
   | "masters"
   | "teams"
   | "brigades"
@@ -40,7 +39,6 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   reports: "/dashboard/reports",
   waitlist: "/dashboard/waitlist",
   settings: "/dashboard/settings",
-  "master-profile": "/dashboard/master-profile",
   masters: "/dashboard/masters",
   teams: "/dashboard/teams",
   brigades: "/dashboard/brigades",
@@ -107,19 +105,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
               airfix.cy@gmail.com
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => handleNav("master-profile")}
-            className={`text-xs flex items-center gap-1 ${
-              isActive("master-profile") ? "text-white" : "text-violet-300 hover:text-white"
-            }`}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            Профиль мастера
-          </button>
         </div>
 
         {/* Navigation — grouped into semantic sections */}

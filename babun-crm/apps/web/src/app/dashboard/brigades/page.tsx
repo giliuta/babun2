@@ -12,6 +12,7 @@ import {
 } from "@/lib/brigades";
 import { useAppointments } from "@/app/dashboard/layout";
 import { generateId } from "@/lib/masters";
+import { useMasters } from "@/app/dashboard/layout";
 import { formatEUR } from "@/lib/money";
 import {
   WEEKDAY_KEYS,
@@ -65,6 +66,11 @@ const COLOR_OPTIONS = [
 
 // ─── Edit / Create modal ──────────────────────────────────────────────────────
 
+function useMasterNameResolver() {
+  const { masters } = useMasters();
+  return (id: string) => masters.find((m) => m.id === id)?.full_name ?? id;
+}
+
 function BrigadeModal({
   brigade,
   members,
@@ -91,6 +97,7 @@ function BrigadeModal({
   const [draftHours, setDraftHours] = useState<BrigadeWorkHours>({ ...workHours });
   const [newMasterId, setNewMasterId] = useState("");
   const [tab, setTab] = useState<"main" | "hours">("main");
+  const nameOf = useMasterNameResolver();
 
   const updateMember = (id: string, patch: Partial<BrigadeMember>) => {
     setDraftMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
@@ -238,7 +245,7 @@ function BrigadeModal({
                   {draftMembers.map((m) => (
                     <div key={m.id} className="bg-gray-50 rounded-lg p-2.5 space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 text-[13px] font-medium text-gray-800">{m.masterId}</div>
+                        <div className="flex-1 text-[13px] font-medium text-gray-800">{nameOf(m.masterId)}</div>
                         <select
                           value={m.role}
                           onChange={(e) => updateMember(m.id, { role: e.target.value as BrigadeMember["role"] })}

@@ -171,7 +171,13 @@ export default function ServiceRow({
       {editorOpen && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
-          onClick={() => setEditorOpen(false)}
+          onClick={() => {
+            // Guard: PriceEditor has its own internal draft — always
+            // confirm before silently losing it on backdrop-tap.
+            if (window.confirm("Закрыть без применения изменений?")) {
+              setEditorOpen(false);
+            }
+          }}
         >
           <div
             className="w-full max-w-md bg-white rounded-2xl shadow-2xl"

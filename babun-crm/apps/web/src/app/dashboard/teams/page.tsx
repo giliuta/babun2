@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
-import { useMasters, useTeams } from "@/app/dashboard/layout";
+import { useAppointments, useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   TEAM_COLORS,
   ROLE_LABELS,
@@ -21,6 +21,7 @@ export default function TeamsPage() {
   const router = useRouter();
   const { teams, upsertTeam, deleteTeam } = useTeams();
   const { masters, setMasters } = useMasters();
+  const { appointments, upsertAppointment } = useAppointments();
 
   const [editing, setEditing] = useState<Team | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -87,13 +88,23 @@ export default function TeamsPage() {
   };
 
   const handleDelete = (team: Team) => {
-    if (!window.confirm(`Удалить бригаду "${team.name}"?`)) return;
+    const orphanCount = appointments.filter((a) => a.team_id === team.id).length;
+    const extra = orphanCount > 0
+      ? `\n\nУ ${orphanCount} записей сбросится привязка к бригаде (записи останутся, team_id будет пустым).`
+      : "";
+    if (!window.confirm(`Удалить бригаду "${team.name}"?${extra}`)) return;
     deleteTeam(team.id);
     // Clear team_id on any master that was in this team
     const updatedMasters = masters.map<Master>((m) =>
       m.team_id === team.id ? { ...m, team_id: null } : m,
     );
     setMasters(updatedMasters);
+    // Cascade to appointments so route/calendar don't show orphans
+    for (const apt of appointments) {
+      if (apt.team_id === team.id) {
+        upsertAppointment({ ...apt, team_id: null, updated_at: new Date().toISOString() });
+      }
+    }
   };
 
   return (

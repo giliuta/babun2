@@ -138,15 +138,28 @@ function IncomePopup({
     globalDiscount ? String(globalDiscount.value) : ""
   );
 
+  const [dirty, setDirty] = useState(false);
+
   const setLinePrice = (idx: number, raw: string) => {
     const normalized = raw.replace(",", ".").replace(/[^\d.]/g, "");
     const val = Number(normalized);
     if (!Number.isFinite(val) || val < 0) return;
+    setDirty(true);
     onServicesChange(
       services.map((s, i) =>
         i === idx ? { ...s, pricePerUnit: val } : s
       )
     );
+  };
+
+  const attemptClose = () => {
+    if (!dirty && discType === (globalDiscount?.type ?? "none") && discValue === (globalDiscount ? String(globalDiscount.value) : "")) {
+      onClose();
+      return;
+    }
+    if (window.confirm("Отменить изменения цены / скидки?")) {
+      onClose();
+    }
   };
 
   const applyDiscount = () => {
@@ -182,7 +195,7 @@ function IncomePopup({
   return (
     <div
       className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
-      onClick={onClose}
+      onClick={attemptClose}
     >
       <div
         className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col"
@@ -193,7 +206,7 @@ function IncomePopup({
           <div className="text-[14px] font-semibold text-slate-900">Доход</div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={attemptClose}
             aria-label="Закрыть"
             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
           >
