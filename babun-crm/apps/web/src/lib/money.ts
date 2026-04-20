@@ -17,6 +17,21 @@ export function formatEUR(amount: number): string {
 }
 
 /**
+ * Format a cents-integer as euros. Use this at every boundary where the
+ * stored value is `amountCents` (FinancePayment, Expense, PayrollLine)
+ * — feeding cents into `formatEUR` directly renders €X 100× too big
+ * and has shipped silently on /expenses, /payroll, /brigades (#B2 of
+ * Sprint 011).
+ */
+export function formatEURFromCents(cents: number): string {
+  return formatEUR(Math.round(cents / 100));
+}
+
+export function formatEURSignedFromCents(cents: number): string {
+  return formatEURSigned(Math.round(cents / 100));
+}
+
+/**
  * Same as formatEUR but with an explicit leading sign. Useful for
  * "delta" displays where we want a + shown even for positive values.
  */

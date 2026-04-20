@@ -13,7 +13,7 @@ import {
 import { useAppointments } from "@/app/dashboard/layout";
 import { generateId } from "@/lib/masters";
 import { useMasters } from "@/app/dashboard/layout";
-import { formatEUR } from "@/lib/money";
+import { formatEURFromCents } from "@/lib/money";
 import {
   WEEKDAY_KEYS,
   WEEKDAY_NAMES,
@@ -399,7 +399,7 @@ function BrigadeCard({
           </div>
           {brigade.type === "outsource" && brigade.perJobCostCents > 0 && (
             <div className="text-[11px] text-gray-500 mt-0.5">
-              {formatEUR(brigade.perJobCostCents)} за выезд
+              {formatEURFromCents(brigade.perJobCostCents)} за выезд
             </div>
           )}
         </div>
@@ -439,7 +439,7 @@ function BrigadeCard({
               {brigade.type === "internal" && (
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-violet-700 font-semibold">{m.percentRate}%</span>
-                  <span className="text-[11px] text-gray-400">{formatEUR(m.baseMonthlySalaryCents)}/мес</span>
+                  <span className="text-[11px] text-gray-400">{formatEURFromCents(m.baseMonthlySalaryCents)}/мес</span>
                 </div>
               )}
             </div>

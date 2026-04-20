@@ -200,7 +200,7 @@ function DayColumnInner({
       <div
         role="button"
         tabIndex={0}
-        aria-label="Сменить город этого дня"
+        aria-label={`${cityShort || "Без города"}, ${dayName} ${date.getDate()} ${monthShort} — сменить город`}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
           onCityTap?.(dateKey);

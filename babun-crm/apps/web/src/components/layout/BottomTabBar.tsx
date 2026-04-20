@@ -131,7 +131,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition active:scale-[0.97] ${
-        active ? "text-violet-600" : "text-gray-400"
+        active ? "text-violet-600" : "text-slate-500"
       }`}
     >
       <span className="relative">

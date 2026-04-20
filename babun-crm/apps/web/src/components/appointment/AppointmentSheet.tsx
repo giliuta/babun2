@@ -292,12 +292,15 @@ export default function AppointmentSheet({
       date: dateKey,
       time_start: timeStart,
       // Auto-extend time_end by total duration for новой записи.
+      // Clamp at 23:59 instead of wrapping: a visit that spans midnight
+      // should be booked as two records (cancellable separately), not
+      // silently end at the same hour on the same day.
       time_end:
         liveMode === "create" && duration > 0
           ? (() => {
               const [h, m] = timeStart.split(":").map(Number);
-              const endMin = h * 60 + m + duration;
-              const eh = Math.floor(endMin / 60) % 24;
+              const endMin = Math.min(23 * 60 + 59, h * 60 + m + duration);
+              const eh = Math.floor(endMin / 60);
               const em = endMin % 60;
               return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
             })()
@@ -469,8 +472,9 @@ export default function AppointmentSheet({
                         setTimeEnd("20:00");
                       } else {
                         const [h, m] = timeStart.split(":").map(Number);
-                        const endMin = h * 60 + m + p.duration;
-                        const eh = Math.floor(endMin / 60) % 24;
+                        // Clamp at 23:59 rather than wrapping past midnight.
+                        const endMin = Math.min(23 * 60 + 59, h * 60 + m + p.duration);
+                        const eh = Math.floor(endMin / 60);
                         const em = endMin % 60;
                         setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
                       }

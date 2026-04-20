@@ -77,7 +77,14 @@ export function InstallPrompt() {
   if (!installEvent && !showIOSHint) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50">
+    <div
+      className="fixed left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50"
+      style={{
+        // Stack above the mobile BottomTabBar (62 px + safe-area)
+        // without bleeding into desktop layouts where the bar is hidden.
+        bottom: "calc(env(safe-area-inset-bottom, 8px) + 78px)",
+      }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 flex items-start gap-3">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-bold text-2xl shrink-0">
           B

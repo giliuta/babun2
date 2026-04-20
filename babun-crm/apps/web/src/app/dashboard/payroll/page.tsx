@@ -15,7 +15,7 @@ import {
 } from "@/lib/payroll";
 import { loadPayments, type FinancePayment } from "@/lib/payments";
 import { loadExpenses, type Expense } from "@/lib/expenses";
-import { formatEUR } from "@/lib/money";
+import { formatEURFromCents } from "@/lib/money";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -101,14 +101,14 @@ function PeriodDetail({
                   <div className="text-[11px] text-gray-500 truncate">{line.description}</div>
                 </div>
                 <span className="text-[15px] font-bold text-violet-700 tabular-nums">
-                  {formatEUR(line.amountCents)}
+                  {formatEURFromCents(line.amountCents)}
                 </span>
               </div>
             );
           })}
           <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
             <span className="text-sm font-semibold text-gray-700">Итого к выплате</span>
-            <span className="text-base font-bold text-violet-700 tabular-nums">{formatEUR(period.totalCents)}</span>
+            <span className="text-base font-bold text-violet-700 tabular-nums">{formatEURFromCents(period.totalCents)}</span>
           </div>
         </div>
       )}
@@ -192,15 +192,15 @@ function WeekPreview({
       <div className="px-4 py-3 space-y-1.5 border-b border-gray-100">
         <div className="flex justify-between text-[13px]">
           <span className="text-gray-600">Выручка недели</span>
-          <span className="font-semibold text-emerald-600 tabular-nums">+{formatEUR(revenueCents)}</span>
+          <span className="font-semibold text-emerald-600 tabular-nums">+{formatEURFromCents(revenueCents)}</span>
         </div>
         <div className="flex justify-between text-[13px]">
           <span className="text-gray-600">Расходы бригады</span>
-          <span className="font-semibold text-rose-600 tabular-nums">−{formatEUR(expenseCents)}</span>
+          <span className="font-semibold text-rose-600 tabular-nums">−{formatEURFromCents(expenseCents)}</span>
         </div>
         <div className="flex justify-between text-[13px] pt-1 border-t border-gray-100">
           <span className="font-medium text-gray-900">Чистый доход</span>
-          <span className="font-bold text-indigo-600 tabular-nums">{formatEUR(netCents)}</span>
+          <span className="font-bold text-indigo-600 tabular-nums">{formatEURFromCents(netCents)}</span>
         </div>
       </div>
 
@@ -213,18 +213,18 @@ function WeekPreview({
               <div className="flex-1 text-[13px] text-gray-900">
                 {nameOf(l.masterId)} <span className="text-[11px] text-gray-500">({l.role === "lead" ? "лид" : "помощник"}, {l.percentRate}%)</span>
               </div>
-              <span className="text-[14px] font-bold text-violet-700 tabular-nums">{formatEUR(l.amountCents)}</span>
+              <span className="text-[14px] font-bold text-violet-700 tabular-nums">{formatEURFromCents(l.amountCents)}</span>
             </div>
           ))}
           <div className="px-4 py-3 bg-violet-50 border-t border-violet-100 space-y-1.5">
             <div className="flex justify-between text-[13px]">
               <span className="font-semibold text-violet-800">Итого выплаты</span>
-              <span className="font-bold text-violet-800 tabular-nums">{formatEUR(totalPayoutCents)}</span>
+              <span className="font-bold text-violet-800 tabular-nums">{formatEURFromCents(totalPayoutCents)}</span>
             </div>
             <div className="flex justify-between text-[12px]">
               <span className="text-gray-500">Остаток компании</span>
               <span className={`font-semibold tabular-nums ${companyShareCents >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                {formatEUR(companyShareCents)}
+                {formatEURFromCents(companyShareCents)}
               </span>
             </div>
           </div>
@@ -389,7 +389,7 @@ export default function PayrollPage() {
                         <div className="text-[13px] font-medium text-gray-900">{weekLabel({ start: p.periodStart, end: p.periodEnd })}</div>
                         <div className="text-[11px] text-gray-500">{STATUS_LABELS[p.status]}</div>
                       </div>
-                      <span className="text-[15px] font-bold text-violet-700 tabular-nums">{formatEUR(p.totalCents)}</span>
+                      <span className="text-[15px] font-bold text-violet-700 tabular-nums">{formatEURFromCents(p.totalCents)}</span>
                     </div>
                   ))}
               </div>

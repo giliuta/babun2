@@ -112,8 +112,16 @@ export default function DashboardPage() {
     () => teams.filter((t) => t.active).map((t) => ({ id: t.id, name: t.name })),
     [teams]
   );
-  const [currentMonday, setCurrentMonday] = useState(() => getMonday(new Date()));
+  // SSR-safe: start on a deterministic epoch Monday, then move to today
+  // in useEffect after mount. Previous `getMonday(new Date())` in the
+  // initializer caused a hydration mismatch (Vercel's build clock vs
+  // the client's clock diverged across Cyprus midnight on a cached HTML).
+  const SSR_SAFE_MONDAY = useMemo(() => new Date(2026, 0, 5), []); // fixed seed
+  const [currentMonday, setCurrentMonday] = useState<Date>(SSR_SAFE_MONDAY);
   const [activeTeamId, setActiveTeamId] = useState<string>("");
+  useEffect(() => {
+    setCurrentMonday(getMonday(new Date()));
+  }, []);
 
   // When teams load (or change), make sure the active team is still valid
   useEffect(() => {
@@ -126,17 +134,23 @@ export default function DashboardPage() {
     }
   }, [teamTabs, activeTeamId]);
 
-  // Restore last-used view mode from localStorage, falling back to
-  // "day" on mobile and "week" on desktop for the very first visit.
+  // Restore last-used view mode from localStorage after mount so server
+  // and client render the same tree. Server always ships "week"; the
+  // phone may then upgrade to "day" based on its own width + saved pref.
   const VIEW_MODE_KEY = "babun-view-mode";
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === "undefined") return "week";
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem(VIEW_MODE_KEY) as ViewMode | null;
-    if (saved && ["day", "3days", "week", "month"].includes(saved)) return saved;
-    return window.innerWidth < 1024 ? "day" : "week";
-  });
+    if (saved && ["day", "3days", "week", "month"].includes(saved)) {
+      setViewMode(saved);
+      return;
+    }
+    if (window.innerWidth < 1024) setViewMode("day");
+  }, []);
   // Persist whenever the user switches
   useEffect(() => {
+    if (typeof window === "undefined") return;
     window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
   }, [viewMode]);
   // hourHeight is not React state — it lives in a ref and is written as

@@ -713,10 +713,12 @@ export default function DashboardLayout({
           />
 
           {/* Main content area, offset by sidebar width on lg+. Mobile
-              gets bottom padding for the tab bar. */}
-          <div className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0">
+              gets bottom padding for the tab bar. `<main>` satisfies
+              Lighthouse's `landmark-one-main` rule without breaking any
+              existing layout. */}
+          <main className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0">
             {children}
-          </div>
+          </main>
 
           <BottomTabBar />
           <InstallPrompt />

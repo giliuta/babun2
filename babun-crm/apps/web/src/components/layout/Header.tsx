@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMonthName } from "@/lib/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 
@@ -58,7 +58,14 @@ export default function Header({
 
   const monthName = getMonthName(currentDate.getMonth());
   const year = currentDate.getFullYear();
-  const todayNumber = new Date().getDate();
+  // `new Date()` in render caused a hydration mismatch when the Vercel
+  // build clock and the client crossed Cyprus midnight. Defer to
+  // useEffect so SSR ships a stable default (1) and the real number
+  // appears on the client only.
+  const [todayNumber, setTodayNumber] = useState<number>(1);
+  useEffect(() => {
+    setTodayNumber(new Date().getDate());
+  }, []);
   const [showMiniCalendar, setShowMiniCalendar] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
@@ -121,7 +128,7 @@ export default function Header({
         <button
           type="button"
           onClick={onToday}
-          aria-label="Сегодня"
+          aria-label={`Сегодня, ${todayNumber}`}
           className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -270,7 +277,7 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
       className={`px-3 lg:px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap select-none transition ${
         active
           ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900"
-          : "text-violet-200 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
+          : "text-white/80 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
       }`}
     >
       {team.name}

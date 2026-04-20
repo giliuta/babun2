@@ -13,7 +13,7 @@ import {
   type Expense,
   type ExpenseCategory,
 } from "@/lib/expenses";
-import { formatEUR } from "@/lib/money";
+import { formatEURFromCents } from "@/lib/money";
 
 // ─── Category config ────────────────────────────────────────────────────────
 
@@ -340,7 +340,7 @@ export default function ExpensesPage() {
             {selectedLabel}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
           </button>
-          <span className="text-sm font-bold text-rose-600 tabular-nums">{total > 0 ? `−${formatEUR(total)}` : "€0"}</span>
+          <span className="text-sm font-bold text-rose-600 tabular-nums">{total > 0 ? `−${formatEURFromCents(total)}` : "€0"}</span>
           {showPeriodMenu && (
             <div className="absolute top-full left-0 mt-0 bg-white shadow-lg rounded-b-xl z-20 w-56 border border-gray-200 border-t-0">
               {PERIODS.map((p) => (
@@ -404,7 +404,7 @@ export default function ExpensesPage() {
                           <div className="flex justify-between items-center">
                             <span className="text-[12px] text-gray-700">{CAT_CONFIG[k].label}</span>
                             <span className="text-[12px] font-semibold text-rose-600 tabular-nums">
-                              {formatEUR(amt)}
+                              {formatEURFromCents(amt)}
                             </span>
                           </div>
                           <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5">
@@ -425,7 +425,7 @@ export default function ExpensesPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
               <div className="text-3xl mb-2">📊</div>
               <div className="text-sm text-gray-500 mb-4">Расходов за этот период нет</div>
-              {expenses.length === 0 && (
+              {expenses.length === 0 && process.env.NODE_ENV === "development" && (
                 <button
                   type="button"
                   onClick={() => { seedDemoExpenses(); reload(); }}
@@ -453,7 +453,7 @@ export default function ExpensesPage() {
                       </div>
                     </div>
                     <span className="text-[14px] font-semibold text-rose-600 tabular-nums shrink-0">
-                      −{formatEUR(e.amountCents)}
+                      −{formatEURFromCents(e.amountCents)}
                     </span>
                     <button
                       type="button"
@@ -471,7 +471,7 @@ export default function ExpensesPage() {
               })}
               <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
                 <span className="text-sm text-gray-500">Итого</span>
-                <span className="text-sm font-bold text-rose-600 tabular-nums">−{formatEUR(total)}</span>
+                <span className="text-sm font-bold text-rose-600 tabular-nums">−{formatEURFromCents(total)}</span>
               </div>
             </div>
           )}
