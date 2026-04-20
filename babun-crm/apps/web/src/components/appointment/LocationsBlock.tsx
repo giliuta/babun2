@@ -154,8 +154,8 @@ export default function LocationsBlock({
           clientLocked ? "opacity-60" : ""
         }`}
       >
-        {/* Multi-address chip switcher */}
-        {!clientLocked && realLocations.length > 1 && (
+        {/* Multi-address chip switcher + [+] at the right edge */}
+        {!clientLocked && realLocations.length >= 1 && mode !== "form" && (
           <div
             className="px-2 pt-2 pb-1 flex items-center gap-1.5 overflow-x-auto"
             style={{ scrollbarWidth: "none" }}
@@ -169,7 +169,6 @@ export default function LocationsBlock({
                   disabled={readOnly}
                   onClick={() => {
                     onSelectLocation(loc.id);
-                    if (mode === "form") cancelForm();
                   }}
                   className={`flex-shrink-0 px-3 h-7 rounded-full text-[12px] font-semibold border ${
                     active
@@ -181,6 +180,16 @@ export default function LocationsBlock({
                 </button>
               );
             })}
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={openNew}
+                aria-label="Добавить адрес"
+                className="flex-shrink-0 ml-auto w-7 h-7 rounded-full border-2 border-dashed border-violet-300 text-violet-600 text-[14px] font-bold flex items-center justify-center active:bg-violet-50"
+              >
+                +
+              </button>
+            )}
           </div>
         )}
 
@@ -366,19 +375,6 @@ export default function LocationsBlock({
           )}
         </div>
 
-        {/* Row 4: small "+ add another address" — only when an address already exists */}
-        {!clientLocked && !readOnly && hasAddress && mode !== "form" && (
-          <>
-            <div className="h-px bg-slate-100" />
-            <button
-              type="button"
-              onClick={openNew}
-              className="w-full h-9 flex items-center justify-center text-[12px] font-semibold text-violet-600 active:bg-violet-50"
-            >
-              + Добавить ещё адрес
-            </button>
-          </>
-        )}
       </div>
 
       <MapNavPopup

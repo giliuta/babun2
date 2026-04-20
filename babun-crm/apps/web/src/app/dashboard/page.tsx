@@ -467,6 +467,7 @@ export default function DashboardPage() {
     name: string;
     phone?: string;
     chatHref?: string;
+    smsText?: string;
   } | null>(null);
 
   // STORY-003: payment + expense sheet state.
@@ -905,12 +906,22 @@ export default function DashboardPage() {
               const c = clients.find((x) => x.id === apt.client_id);
               if (c) {
                 const chatLinkId = loadChats().find((ch) => ch.client_id === c.id)?.id;
+                const dateLabel = (() => {
+                  const [y, m, d] = apt.date.split("-").map(Number);
+                  const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
+                  return Number.isFinite(dt.getTime())
+                    ? dt.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })
+                    : apt.date;
+                })();
+                const greet = c.full_name ? `${c.full_name}, ` : "";
+                const smsText = `${greet}ваша запись назначена на ${dateLabel} в ${apt.time_start}. Babun CRM`;
                 setSavedSuccess({
                   name: c.full_name,
                   phone: c.phone,
                   chatHref: chatLinkId
                     ? `/dashboard/chats?chat_id=${chatLinkId}`
-                    : undefined,
+                    : `/dashboard/chats?client_id=${c.id}`,
+                  smsText,
                 });
               }
             }
@@ -923,6 +934,7 @@ export default function DashboardPage() {
           clientName={savedSuccess.name}
           phone={savedSuccess.phone}
           chatHref={savedSuccess.chatHref}
+          smsText={savedSuccess.smsText}
           onDone={() => setSavedSuccess(null)}
         />
       )}

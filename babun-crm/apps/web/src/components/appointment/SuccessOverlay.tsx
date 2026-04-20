@@ -1,28 +1,50 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SuccessOverlayProps {
   clientName: string;
   phone?: string;
   chatHref?: string;
+  /** Pre-built text to seed the SMS body (e.g. "Запись на 21 апр, 14:00 · чистка A/C"). */
+  smsText?: string;
   onDone: () => void;
 }
 
-// 2-секундный overlay после успешного сохранения. Quick-actions:
-// Позвонить + Написать.
+// 2-second overlay after an appointment is saved. One action:
+// "Сообщение о записи" — opens a tiny chooser: SMS (native) or
+// internal chat. Opening the chooser cancels the auto-dismiss
+// timer so the dispatcher can decide without being rushed.
 export default function SuccessOverlay({
   clientName,
   phone,
   chatHref,
+  smsText,
   onDone,
 }: SuccessOverlayProps) {
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
   useEffect(() => {
-    const t = setTimeout(onDone, 2000);
-    return () => clearTimeout(t);
+    timerRef.current = window.setTimeout(onDone, 2000);
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
   }, [onDone]);
 
+  const cancelAutoDismiss = () => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
   const phoneDigits = phone?.replace(/\D/g, "") ?? "";
+  const messageSeed = smsText?.trim() ? encodeURIComponent(smsText.trim()) : "";
+
+  const smsHref = phoneDigits
+    ? `sms:+${phoneDigits}${messageSeed ? `?body=${messageSeed}` : ""}`
+    : null;
 
   return (
     <div
@@ -46,24 +68,47 @@ export default function SuccessOverlay({
             {clientName}
           </div>
         )}
-        {(phoneDigits || chatHref) && (
-          <div className="flex gap-2 mt-4 w-full">
-            {phoneDigits && (
+
+        {!chooserOpen && (smsHref || chatHref) && (
+          <button
+            type="button"
+            onClick={() => {
+              cancelAutoDismiss();
+              setChooserOpen(true);
+            }}
+            className="mt-4 w-full h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99]"
+          >
+            💬 Отправить сообщение о записи
+          </button>
+        )}
+
+        {chooserOpen && (
+          <div className="mt-4 w-full space-y-2">
+            {smsHref && (
               <a
-                href={`tel:${phoneDigits}`}
-                className="flex-1 h-10 rounded-lg bg-emerald-50 text-emerald-700 text-[13px] font-semibold flex items-center justify-center active:bg-emerald-100"
+                href={smsHref}
+                onClick={onDone}
+                className="w-full h-10 rounded-lg bg-slate-800 text-white text-[13px] font-semibold flex items-center justify-center active:opacity-80"
               >
-                Позвонить
+                📱 По SMS
               </a>
             )}
             {chatHref && (
               <a
                 href={chatHref}
-                className="flex-1 h-10 rounded-lg bg-sky-50 text-sky-700 text-[13px] font-semibold flex items-center justify-center active:bg-sky-100"
+                onClick={onDone}
+                className="w-full h-10 rounded-lg bg-sky-500 text-white text-[13px] font-semibold flex items-center justify-center active:bg-sky-600"
               >
-                Написать
+                💭 Через чат CRM
               </a>
             )}
+            <button
+              type="button"
+              onClick={onDone}
+              className="w-full h-9 text-[12px] font-medium text-slate-500 active:bg-slate-50 rounded-lg"
+            >
+              Не отправлять
+            </button>
           </div>
         )}
       </div>

@@ -119,9 +119,9 @@ export default function ClientProfilePage({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto p-3 space-y-3 pb-24">
-          {/* Header card: avatar / name / phone (+call) + comment */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="max-w-2xl mx-auto p-2 space-y-2 pb-24">
+          {/* Header card: name / phone / comment — tight */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-3">
             <EditableName value={client.full_name} onSave={(v) => update({ full_name: v })} />
             <EditablePhone
               value={client.phone}
@@ -134,11 +134,8 @@ export default function ClientProfilePage({
             />
           </div>
 
-          {/* Tags + discount row */}
+          {/* Tags + discount */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              Теги и скидка
-            </div>
             <div className="flex flex-wrap items-center gap-1.5">
               {tags.map((t) => {
                 const active = client.tag_ids.includes(t.id);
@@ -198,20 +195,17 @@ export default function ClientProfilePage({
             )}
           </div>
 
-          {/* Appointment history grouped by object */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              История записей ({clientAppointments.length})
-            </div>
+          {/* Appointment history grouped by object (collapsed by default) */}
+          <CollapsibleCard title={`История записей · ${clientAppointments.length}`}>
             {clientAppointments.length === 0 ? (
-              <div className="px-4 py-4 text-[12px] text-slate-400">
+              <div className="px-3 py-3 text-[12px] text-slate-400">
                 Записей пока нет.
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {grouped.map((group) => (
-                  <div key={group.key} className="py-2">
-                    <div className="px-4 pb-1 text-[11px] font-semibold text-slate-500">
+                  <div key={group.key} className="py-1">
+                    <div className="px-3 pt-1.5 pb-0.5 text-[11px] font-semibold text-slate-500 truncate">
                       {group.title}
                     </div>
                     <div>
@@ -223,129 +217,105 @@ export default function ClientProfilePage({
                 ))}
               </div>
             )}
-          </div>
+          </CollapsibleCard>
 
-          {/* Notes */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              Заметки ({client.notes.length})
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addNote()}
-                placeholder="Написать заметку…"
-                className="flex-1 h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
-              <button
-                type="button"
-                onClick={addNote}
-                disabled={!newNote.trim()}
-                className="h-9 px-3 rounded-lg bg-violet-600 text-white text-[12px] font-semibold active:scale-[0.98] disabled:opacity-40"
-              >
-                Добавить
-              </button>
-            </div>
-            {client.notes.length === 0 ? (
-              <div className="text-[11px] text-slate-400 italic">Пусто</div>
-            ) : (
-              <div className="space-y-1.5">
-                {client.notes.map((n) => (
-                  <div
-                    key={n.id}
-                    className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200"
-                  >
+          {/* Notes (collapsed by default) */}
+          <CollapsibleCard title={`Заметки · ${client.notes.length}`}>
+            <div className="p-3 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  id="client-note-input"
+                  type="text"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addNote()}
+                  placeholder="Написать заметку…"
+                  className="flex-1 h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+                <button
+                  type="button"
+                  onClick={addNote}
+                  disabled={!newNote.trim()}
+                  className="h-9 px-3 rounded-lg bg-violet-600 text-white text-[12px] font-semibold active:scale-[0.98] disabled:opacity-40"
+                >
+                  Добавить
+                </button>
+              </div>
+              {client.notes.length === 0 ? (
+                <div className="text-[11px] text-slate-400 italic">Пусто</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {client.notes.map((n) => (
+                    <div
+                      key={n.id}
+                      className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200"
+                    >
                     <div className="flex-1 text-[12px] text-amber-900 whitespace-pre-wrap">
                       <span className="text-[10px] text-amber-600 mr-1 tabular-nums">
                         {formatShortDate(n.created_at)}
                       </span>
                       {n.text}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => deleteNote(n.id)}
-                      aria-label="Удалить"
-                      className="w-6 h-6 flex items-center justify-center rounded text-amber-400 active:text-rose-500"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Info: source, birthday, acquisition, created */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-3">
-            <InfoRow label="Источник">
-              <select
-                value={client.acquisition_source}
-                onChange={(e) =>
-                  update({
-                    acquisition_source: e.target.value as typeof client.acquisition_source,
-                  })
-                }
-                className="flex-1 h-8 px-2 text-[12px] text-right bg-transparent focus:outline-none text-slate-900"
-              >
-                {(Object.keys(ACQUISITION_LABELS) as (keyof typeof ACQUISITION_LABELS)[]).map((k) => (
-                  <option key={k} value={k}>
-                    {ACQUISITION_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-            </InfoRow>
-            <InfoRow label="День рождения">
-              <input
-                type="date"
-                value={client.birthday}
-                onChange={(e) => update({ birthday: e.target.value })}
-                className="flex-1 h-8 px-2 text-[12px] text-right bg-transparent focus:outline-none text-slate-900 tabular-nums"
-              />
-            </InfoRow>
-            <InfoRow label="E-mail">
-              <EditableInline
-                value={client.email}
-                placeholder="email@example.com"
-                onSave={(v) => update({ email: v })}
-              />
-            </InfoRow>
-            <InfoRow label="Создан">
-              <span className="text-[12px] text-slate-500 tabular-nums">
-                {formatShortDate(client.created_at)}
-              </span>
-            </InfoRow>
-          </div>
-
-          {/* Blacklist */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center justify-between">
-            <div>
-              <div className="text-[13px] font-semibold text-slate-800">
-                Чёрный список
-              </div>
-              <div className="text-[11px] text-slate-500">
-                Клиент будет скрыт из быстрых списков
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteNote(n.id)}
+                        aria-label="Удалить"
+                        className="w-6 h-6 flex items-center justify-center rounded text-amber-400 active:text-rose-500"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => update({ blacklisted: !client.blacklisted })}
-              className={`w-11 h-6 rounded-full relative transition-colors ${
-                client.blacklisted ? "bg-rose-500" : "bg-slate-300"
-              }`}
-              aria-pressed={client.blacklisted}
-            >
-              <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                  client.blacklisted ? "translate-x-[22px]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-          </div>
+          </CollapsibleCard>
+
+          {/* Info: source, birthday, email, created (collapsed by default) */}
+          <CollapsibleCard title="Инфо">
+            <div className="p-3 space-y-2">
+              <InfoRow label="Источник">
+                <select
+                  value={client.acquisition_source}
+                  onChange={(e) =>
+                    update({
+                      acquisition_source: e.target.value as typeof client.acquisition_source,
+                    })
+                  }
+                  className="flex-1 h-8 px-2 text-[12px] text-right bg-transparent focus:outline-none text-slate-900"
+                >
+                  {(Object.keys(ACQUISITION_LABELS) as (keyof typeof ACQUISITION_LABELS)[]).map((k) => (
+                    <option key={k} value={k}>
+                      {ACQUISITION_LABELS[k]}
+                    </option>
+                  ))}
+                </select>
+              </InfoRow>
+              <InfoRow label="День рождения">
+                <input
+                  type="date"
+                  value={client.birthday}
+                  onChange={(e) => update({ birthday: e.target.value })}
+                  className="flex-1 h-8 px-2 text-[12px] text-right bg-transparent focus:outline-none text-slate-900 tabular-nums"
+                />
+              </InfoRow>
+              <InfoRow label="E-mail">
+                <EditableInline
+                  value={client.email}
+                  placeholder="email@example.com"
+                  onSave={(v) => update({ email: v })}
+                />
+              </InfoRow>
+              <InfoRow label="Создан">
+                <span className="text-[12px] text-slate-500 tabular-nums">
+                  {formatShortDate(client.created_at)}
+                </span>
+              </InfoRow>
+            </div>
+          </CollapsibleCard>
         </div>
       </div>
 
@@ -404,6 +374,12 @@ export default function ClientProfilePage({
                 el?.focus();
               }}
             />
+            <MenuItem
+              icon={client.blacklisted ? "✅" : "🚫"}
+              label={client.blacklisted ? "Убрать из ЧС" : "В чёрный список"}
+              onClick={() => update({ blacklisted: !client.blacklisted })}
+              danger={!client.blacklisted}
+            />
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
@@ -431,10 +407,12 @@ function MenuItem({
   icon,
   label,
   onClick,
+  danger,
 }: {
   icon: string;
   label: string;
   onClick: () => void;
+  danger?: boolean;
 }) {
   return (
     <button
@@ -443,7 +421,11 @@ function MenuItem({
       className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-slate-50 border-b border-slate-50 last:border-0"
     >
       <span className="text-[18px] w-6 text-center">{icon}</span>
-      <span className="text-[14px] font-medium text-slate-900 flex-1">
+      <span
+        className={`text-[14px] font-medium flex-1 ${
+          danger ? "text-rose-600" : "text-slate-900"
+        }`}
+      >
         {label}
       </span>
       <span className="text-slate-300">
@@ -452,6 +434,41 @@ function MenuItem({
         </svg>
       </span>
     </button>
+  );
+}
+
+function CollapsibleCard({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 h-10 active:bg-slate-50"
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          {title}
+        </span>
+        <span
+          className={`text-slate-400 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {open && <div className="border-t border-slate-100">{children}</div>}
+    </div>
   );
 }
 
