@@ -1,12 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
-import { getPaidAmount, getDebtAmount, type Appointment } from "@/lib/appointments";
-import { getServiceMaterialCost, type Service } from "@/lib/services";
+import { useEffect, useMemo, useState } from "react";
+import { getDebtAmount, getPaidAmount, type Appointment } from "@/lib/appointments";
+import { type Service } from "@/lib/services";
 import type { Client } from "@/lib/clients";
 import type { Team } from "@/lib/masters";
 import type { DayExtra } from "@/lib/day-extras";
 import type { ExpenseCategory } from "@/lib/expense-categories";
+import {
+  computeFinancials,
+  type FinanceLine,
+  type FinanceRange,
+} from "@/lib/finance/compute";
+import { loadPayments, type FinancePayment } from "@/lib/payments";
+import { loadExpenses, type Expense } from "@/lib/expenses";
 
 // ─── Public types ──────────────────────────────────────────────────────────
 
@@ -121,6 +128,41 @@ function datesInRange(rangeStart: string | null, rangeEnd: string): string[] {
   return out;
 }
 
+function toIncomeLine(line: FinanceLine, appointments: Appointment[]): IncomeLine {
+  const isAppointmentLike =
+    line.source === "apt-payment" || line.source === "standalone-payment";
+  let serviceIds: string[] = [];
+  if (line.source === "apt-payment") {
+    const apt = appointments.find((a) => a.id === line.refId);
+    serviceIds = apt?.service_ids ?? [];
+  }
+  return {
+    id: line.id,
+    dateKey: line.dateKey,
+    description: line.description,
+    amount: line.amount,
+    teamId: line.teamId,
+    sourceType: isAppointmentLike ? "appointment" : "extra",
+    serviceIds,
+  };
+}
+
+function toExpenseLine(line: FinanceLine): ExpenseLine {
+  let sourceType: ExpenseLine["sourceType"];
+  if (line.source === "apt-material") sourceType = "material";
+  else if (line.source === "extra-expense") sourceType = "extra";
+  else sourceType = "custom";
+  return {
+    id: line.id,
+    dateKey: line.dateKey,
+    description: line.description,
+    amount: line.amount,
+    teamId: line.teamId,
+    category: line.category ?? "Прочее",
+    sourceType,
+  };
+}
+
 // ─── Hook ──────────────────────────────────────────────────────────────────
 
 interface UseFinanceDataParams {
@@ -201,96 +243,56 @@ export function useFinanceData({
   const current = useMemo(() => computeRange(period), [period]);
   const previous = useMemo(() => computePreviousRange(period, current), [period, current]);
 
-  // Build income/expense lines for any date range.
+  // Standalone FinancePayment / Expense tables (new Phase-2 finance stores).
+  // Loaded client-side so both /dashboard/finances and /dashboard/reports
+  // see the exact same superset of money events. Refresh on the same
+  // events that the rest of the app listens to.
+  const [standalonePayments, setStandalonePayments] = useState<FinancePayment[]>([]);
+  const [standaloneExpenses, setStandaloneExpenses] = useState<Expense[]>([]);
+  useEffect(() => {
+    const refresh = () => {
+      setStandalonePayments(loadPayments());
+      setStandaloneExpenses(loadExpenses());
+    };
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
+  const toFinanceRange = (r: { rangeStart: string | null; rangeEnd: string }): FinanceRange => ({
+    from: r.rangeStart,
+    to: r.rangeEnd,
+  });
+
+  // Build income/expense lines via the unified compute function and map
+  // back to the legacy IncomeLine/ExpenseLine shape that FinanceTabs
+  // still expects. The whole app now shares one arithmetic source.
   const buildLines = useMemo(() => {
     return (rangeStart: string | null, rangeEnd: string) => {
-      const inRange = (k: string) =>
-        rangeStart === null ? true : k >= rangeStart && k <= rangeEnd;
-
-      const inc: IncomeLine[] = [];
-      const exp: ExpenseLine[] = [];
-
-      for (const apt of appointments) {
-        if (apt.status !== "completed" && apt.status !== "in_progress") continue;
-        if (!inRange(apt.date)) continue;
-
-        const paid = getPaidAmount(apt);
-        if (paid > 0) {
-          const clientName =
-            (apt.client_id && clientsById.get(apt.client_id)?.full_name) ||
-            apt.comment ||
-            "Запись";
-          const serviceSummary = apt.service_ids
-            .map((sid) => servicesById.get(sid)?.name)
-            .filter(Boolean)
-            .join(", ");
-          inc.push({
-            id: `apt-${apt.id}`,
-            dateKey: apt.date,
-            description: serviceSummary ? `${serviceSummary} — ${clientName}` : clientName,
-            amount: paid,
-            teamId: apt.team_id,
-            sourceType: "appointment",
-            serviceIds: apt.service_ids,
-          });
-        }
-
-        for (const sid of apt.service_ids) {
-          const svc = servicesById.get(sid);
-          if (!svc) continue;
-          const materialCost = getServiceMaterialCost(svc);
-          if (materialCost > 0) {
-            exp.push({
-              id: `mat-${apt.id}-${sid}`,
-              dateKey: apt.date,
-              description: `Материалы: ${svc.name}`,
-              amount: materialCost,
-              teamId: apt.team_id,
-              category: "Материалы",
-              sourceType: "material",
-            });
-          }
-        }
-
-        for (const e of apt.expenses ?? []) {
-          if (e.amount > 0) {
-            exp.push({
-              id: `cex-${apt.id}-${e.id}`,
-              dateKey: apt.date,
-              description: e.name || "Расход",
-              amount: e.amount,
-              teamId: apt.team_id,
-              category: "Прочее",
-              sourceType: "custom",
-            });
-          }
-        }
-      }
-
-      const dateRange = datesInRange(rangeStart, rangeEnd);
-      for (const team of teams) {
-        for (const dateKey of dateRange) {
-          const extras = getExtrasFor(team.id, dateKey);
-          for (const ex of extras) {
-            const base = {
-              id: `ex-${team.id}-${dateKey}-${ex.id}`,
-              dateKey,
-              description: ex.name || (ex.kind === "income" ? "Доход" : "Расход"),
-              amount: ex.amount,
-              teamId: team.id,
-            };
-            if (ex.kind === "income") {
-              inc.push({ ...base, sourceType: "extra", serviceIds: [] });
-            } else {
-              exp.push({ ...base, category: "Прочее", sourceType: "extra" });
-            }
-          }
-        }
-      }
-
+      const res = computeFinancials({
+        appointments,
+        services,
+        teams,
+        dayExtrasOf: getExtrasFor,
+        standalonePayments,
+        standaloneExpenses,
+        clientsById,
+        range: { from: rangeStart, to: rangeEnd },
+        // teamFilter is intentionally "all" here — legacy callers filter
+        // downstream by inspecting teamId on each line.
+        teamFilter: "all",
+      });
+      const inc: IncomeLine[] = res.incomeLines.map((l) =>
+        toIncomeLine(l, appointments)
+      );
+      const exp: ExpenseLine[] = res.expenseLines.map(toExpenseLine);
       return { inc, exp };
     };
-  }, [appointments, clientsById, servicesById, teams, getExtrasFor]);
+  }, [appointments, clientsById, services, teams, getExtrasFor, standalonePayments, standaloneExpenses]);
 
   const curLines = useMemo(() => buildLines(current.rangeStart, current.rangeEnd), [buildLines, current]);
   const prevLines = useMemo(() => buildLines(previous.rangeStart, previous.rangeEnd), [buildLines, previous]);

@@ -3,9 +3,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { loadBrigades, type Brigade } from "@/lib/brigades";
-import { loadExpenses, type Expense } from "@/lib/expenses";
-import { loadPayments, type FinancePayment } from "@/lib/payments";
+import { loadExpenses } from "@/lib/expenses";
+import { loadPayments } from "@/lib/payments";
 import { formatEUR, formatEURSigned } from "@/lib/money";
+import {
+  useAppointments,
+  useDayExtras,
+  useServices,
+  useTeams,
+  useClients,
+} from "@/app/dashboard/layout";
+import { computeFinancials, type FinanceLine } from "@/lib/finance/compute";
 
 // ─── Period helpers ─────────────────────────────────────────────────────────
 
@@ -28,6 +36,7 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
 
 function fmtDate(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function todayKey(): string { return fmtDate(new Date()); }
 
 function getDateRange(period: PeriodKey): { from: string; to: string } | null {
   const today = new Date();
@@ -102,77 +111,77 @@ function SummaryCard({
 
 export default function ReportsPage() {
   const [brigades, setBrigades] = useState<Brigade[]>([]);
-  const [payments, setPayments] = useState<FinancePayment[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [period, setPeriod] = useState<PeriodKey>("this_month");
   const [activeBrigade, setActiveBrigade] = useState<string>("all");
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
+  const { appointments } = useAppointments();
+  const { getExtrasFor } = useDayExtras();
+  const { services } = useServices();
+  const { teams } = useTeams();
+  const { clients } = useClients();
+
   const reload = useCallback(() => {
     setBrigades(loadBrigades());
-    setPayments(loadPayments());
-    setExpenses(loadExpenses());
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
 
   const range = useMemo(() => getDateRange(period), [period]);
 
-  const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
-      const dateStr = p.paidAt.slice(0, 10);
-      if (activeBrigade !== "all" && p.brigadeId !== activeBrigade) return false;
-      if (range) { if (dateStr < range.from || dateStr > range.to) return false; }
-      return true;
-    });
-  }, [payments, activeBrigade, range]);
+  const clientsById = useMemo(() => {
+    const map = new Map<string, { full_name: string }>();
+    for (const c of clients) map.set(c.id, { full_name: c.full_name });
+    return map;
+  }, [clients]);
 
-  const filteredExpenses = useMemo(() => {
-    return expenses.filter((e) => {
-      if (activeBrigade !== "all" && e.brigadeId !== activeBrigade && e.scope === "brigade") return false;
-      if (range) { if (e.date < range.from || e.date > range.to) return false; }
-      return true;
-    });
-  }, [expenses, activeBrigade, range]);
+  // Same compute function used by /dashboard/finances — single source of
+  // truth. Brigades on /reports are actually teams in the data layer;
+  // the standalone-FinancePayment "brigadeId" field plays the same role.
+  const { incomeLines, expenseLines, totalIncome, totalExpense, profit } = useMemo(
+    () =>
+      computeFinancials({
+        appointments,
+        services,
+        teams,
+        dayExtrasOf: getExtrasFor,
+        standalonePayments: loadPayments(),
+        standaloneExpenses: loadExpenses(),
+        clientsById,
+        range: { from: range?.from ?? null, to: range?.to ?? todayKey() },
+        teamFilter: activeBrigade,
+      }),
+    [appointments, services, teams, getExtrasFor, clientsById, range, activeBrigade]
+  );
+  const totalProfit = profit;
 
-  const totalIncome  = useMemo(() => filteredPayments.reduce((s, p) => s + p.amountCents, 0), [filteredPayments]);
-  const totalExpense = useMemo(() => filteredExpenses.reduce((s, e) => s + e.amountCents, 0), [filteredExpenses]);
-  const totalProfit  = totalIncome - totalExpense;
-
-  // Build day-by-day rows
   const dayRows = useMemo<DayRow[]>(() => {
     const map = new Map<string, { income: number; expense: number }>();
-
-    filteredPayments.forEach((p) => {
-      const d = p.paidAt.slice(0, 10);
-      const row = map.get(d) ?? { income: 0, expense: 0 };
-      row.income += p.amountCents;
-      map.set(d, row);
-    });
-
-    filteredExpenses.forEach((e) => {
-      const d = e.date;
-      const row = map.get(d) ?? { income: 0, expense: 0 };
-      row.expense += e.amountCents;
-      map.set(d, row);
-    });
-
+    for (const l of incomeLines) {
+      const row = map.get(l.dateKey) ?? { income: 0, expense: 0 };
+      row.income += l.amount;
+      map.set(l.dateKey, row);
+    }
+    for (const l of expenseLines) {
+      const row = map.get(l.dateKey) ?? { income: 0, expense: 0 };
+      row.expense += l.amount;
+      map.set(l.dateKey, row);
+    }
     return Array.from(map.entries())
       .map(([date, { income, expense }]) => ({ date, income, expense, profit: income - expense }))
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [filteredPayments, filteredExpenses]);
+  }, [incomeLines, expenseLines]);
 
-  // Detail for expanded day
-  const expandedPayments = useMemo(() => {
+  const expandedIncome = useMemo<FinanceLine[]>(() => {
     if (!expandedDay) return [];
-    return filteredPayments.filter((p) => p.paidAt.slice(0, 10) === expandedDay);
-  }, [filteredPayments, expandedDay]);
+    return incomeLines.filter((l) => l.dateKey === expandedDay);
+  }, [incomeLines, expandedDay]);
 
-  const expandedExpenses = useMemo(() => {
+  const expandedExpense = useMemo<FinanceLine[]>(() => {
     if (!expandedDay) return [];
-    return filteredExpenses.filter((e) => e.date === expandedDay);
-  }, [filteredExpenses, expandedDay]);
+    return expenseLines.filter((l) => l.dateKey === expandedDay);
+  }, [expenseLines, expandedDay]);
 
   const selectedLabel = PERIODS.find((p) => p.key === period)?.label ?? "";
 
@@ -284,21 +293,21 @@ export default function ReportsPage() {
                     {/* Expanded day detail */}
                     {isExpanded && (
                       <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-3 space-y-2">
-                        {expandedPayments.map((p) => (
-                          <div key={p.id} className="flex items-center gap-2 text-[12px]">
+                        {expandedIncome.map((l) => (
+                          <div key={l.id} className="flex items-center gap-2 text-[12px]">
                             <span className="text-emerald-600">+</span>
-                            <span className="flex-1 text-gray-700 truncate">{p.note || "Платёж"}</span>
-                            <span className="font-semibold text-emerald-600 tabular-nums">{formatEUR(p.amountCents)}</span>
+                            <span className="flex-1 text-gray-700 truncate">{l.description}</span>
+                            <span className="font-semibold text-emerald-600 tabular-nums">{formatEUR(l.amount)}</span>
                           </div>
                         ))}
-                        {expandedExpenses.map((e) => (
-                          <div key={e.id} className="flex items-center gap-2 text-[12px]">
+                        {expandedExpense.map((l) => (
+                          <div key={l.id} className="flex items-center gap-2 text-[12px]">
                             <span className="text-rose-600">−</span>
-                            <span className="flex-1 text-gray-700 truncate">{e.description}</span>
-                            <span className="font-semibold text-rose-600 tabular-nums">{formatEUR(e.amountCents)}</span>
+                            <span className="flex-1 text-gray-700 truncate">{l.description}</span>
+                            <span className="font-semibold text-rose-600 tabular-nums">{formatEUR(l.amount)}</span>
                           </div>
                         ))}
-                        {expandedPayments.length === 0 && expandedExpenses.length === 0 && (
+                        {expandedIncome.length === 0 && expandedExpense.length === 0 && (
                           <div className="text-[11px] text-gray-400">Нет деталей</div>
                         )}
                       </div>
