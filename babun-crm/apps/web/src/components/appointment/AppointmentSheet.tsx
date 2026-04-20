@@ -196,30 +196,40 @@ export default function AppointmentSheet({
   // storage per change of the time / date / team inputs. Two overlapping
   // records happen by accident in HVAC often (two brigade leads answer
   // the same call independently); the banner catches it before save.
-  const overlapWarning = useMemo<string | null>(() => {
+  // Load the appointment list once when the sheet opens, not on every
+  // input keystroke. `loadAppointments` is a synchronous localStorage
+  // read — cheap but redundant — and with the list pinned to state we
+  // also get the conflict record reference for tap-to-open below.
+  const [otherApts, setOtherApts] = useState<Appointment[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    setOtherApts(loadAppointments().filter((a) => a.id !== appointment.id));
+  }, [open, appointment.id]);
+
+  const overlapConflict = useMemo<Appointment | null>(() => {
     if (!activeTeam || kind === "event") return null;
     if (!timeStart || !timeEnd || timeStart >= timeEnd) return null;
-    const all = loadAppointments();
-    for (const other of all) {
-      if (other.id === appointment.id) continue;
+    for (const other of otherApts) {
       if (other.status === "cancelled") continue;
       if (other.date !== dateKey) continue;
       if (other.team_id !== activeTeam.id) continue;
-      // Overlap if ranges intersect.
-      const a1 = timeStart;
-      const a2 = timeEnd;
-      const b1 = other.time_start;
-      const b2 = other.time_end;
-      if (a1 < b2 && b1 < a2) {
-        const who =
-          other.client_id
-            ? clients.find((c) => c.id === other.client_id)?.full_name ?? "Запись"
-            : other.comment || "Запись";
-        return `${b1}–${b2} · ${who}`;
+      // Overlap if ranges intersect (half-open interval).
+      if (timeStart < other.time_end && other.time_start < timeEnd) {
+        return other;
       }
     }
     return null;
-  }, [appointment.id, activeTeam, clients, dateKey, kind, timeEnd, timeStart]);
+  }, [activeTeam, dateKey, kind, otherApts, timeEnd, timeStart]);
+
+  const overlapWarning = overlapConflict
+    ? (() => {
+        const who = overlapConflict.client_id
+          ? clients.find((c) => c.id === overlapConflict.client_id)?.full_name ??
+            "Запись"
+          : overlapConflict.comment || "Запись";
+        return `${overlapConflict.time_start}–${overlapConflict.time_end} · ${who}`;
+      })()
+    : null;
   const totalDur = calcDuration(appointmentServices);
 
   const isEditable = liveMode === "create" || liveMode === "edit";
@@ -320,13 +330,17 @@ export default function AppointmentSheet({
       photos,
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
       kind: "work",
-      // Cancel toggle wins over everything else; otherwise keep the
-      // existing status in edit mode or set scheduled in create.
+      // Cancel toggle wins over everything else. When the dispatcher
+      // unchecks cancel on an already-cancelled record, restore it to
+      // "scheduled" — otherwise the record stays cancelled silently and
+      // the toggle looks broken (Sprint 017 fix).
       status: cancelFlag
         ? "cancelled"
         : liveMode === "edit"
-        ? appointment.status
-        : "scheduled",
+          ? appointment.status === "cancelled"
+            ? "scheduled"
+            : appointment.status
+          : "scheduled",
       updated_at: new Date().toISOString(),
     };
     onSave(saved);
@@ -441,15 +455,55 @@ export default function AppointmentSheet({
             }}
           />
 
-          {overlapWarning && isEditable && !isEventMode && (
+          {overlapConflict && overlapWarning && isEditable && !isEventMode && (
             <div className="px-4 pt-2">
-              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-[12px] text-amber-800">
-                <span aria-hidden>⚠</span>
-                <div>
-                  <div className="font-semibold">Пересечение с записью</div>
-                  <div className="text-amber-700">{overlapWarning}</div>
+              <details className="group rounded-xl bg-amber-50 border border-amber-200 text-[12px] text-amber-800">
+                <summary className="flex items-start gap-2 px-3 py-2 cursor-pointer list-none">
+                  <span aria-hidden>⚠</span>
+                  <div className="flex-1">
+                    <div className="font-semibold">Пересечение с записью</div>
+                    <div className="text-amber-700">{overlapWarning}</div>
+                  </div>
+                  <span className="text-amber-600 text-[11px] group-open:rotate-180 transition">
+                    ▾
+                  </span>
+                </summary>
+                <div className="px-3 pb-2 pt-0.5 text-amber-800 border-t border-amber-200/60 space-y-0.5">
+                  {(() => {
+                    const cc = overlapConflict;
+                    const serviceNames = cc.service_ids
+                      .map((sid) => catalog.find((s) => s.id === sid)?.name)
+                      .filter(Boolean)
+                      .join(", ");
+                    const phone = cc.client_id
+                      ? clients.find((c) => c.id === cc.client_id)?.phone ?? ""
+                      : "";
+                    const statusLabel =
+                      cc.status === "completed"
+                        ? "выполнена"
+                        : cc.status === "in_progress"
+                          ? "в работе"
+                          : "запланирована";
+                    return (
+                      <>
+                        {serviceNames && (
+                          <div className="truncate">Услуги: {serviceNames}</div>
+                        )}
+                        <div>Статус: {statusLabel}</div>
+                        {phone && (
+                          <a
+                            href={`tel:${phone.replace(/\D/g, "")}`}
+                            className="inline-flex items-center gap-1 font-semibold underline decoration-amber-400/60 underline-offset-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Позвонить {phone}
+                          </a>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
-              </div>
+              </details>
             </div>
           )}
 
