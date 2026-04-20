@@ -430,6 +430,28 @@ function clientAppointments(
   );
 }
 
+/**
+ * Sum of outstanding debts across every completed appointment belonging
+ * to a client. Debts are derived (not stored) — `max(0, total - paid)`
+ * per appointment. A full first-class ClientDebt table lands with the
+ * Supabase migration; this helper is the single source until then.
+ */
+export function getClientDebt(
+  clientId: string,
+  appointments: Appointment[]
+): number {
+  let total = 0;
+  for (const apt of appointments) {
+    if (apt.client_id !== clientId) continue;
+    if (apt.status !== "completed") continue;
+    const paid =
+      (apt.prepaid_amount ?? 0) +
+      (apt.payments ?? []).reduce((s, p) => s + p.amount, 0);
+    total += Math.max(0, apt.total_amount - paid);
+  }
+  return Math.round(total);
+}
+
 export function segmentClient(
   client: Client,
   appointments: Appointment[],

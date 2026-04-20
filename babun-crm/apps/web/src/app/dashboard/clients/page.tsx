@@ -53,13 +53,21 @@ export default function ClientsPage() {
     }
   }, []);
 
-  // Compute revenue per client
+  // Compute revenue + debt per client in a single pass.
+  // Debt = sum over completed appointments of `max(0, total − paid)`.
+  // It's derived from the unified payment model; no ClientDebt table
+  // yet.
   const revenueMap = useMemo(() => {
-    const map = new Map<string, { total: number; count: number; lastDate: string }>();
+    const map = new Map<
+      string,
+      { total: number; count: number; lastDate: string; debt: number }
+    >();
     for (const a of appointments) {
       if (!a.client_id || a.status !== "completed") continue;
-      const prev = map.get(a.client_id) ?? { total: 0, count: 0, lastDate: "" };
-      prev.total += getPaidAmount(a);
+      const prev = map.get(a.client_id) ?? { total: 0, count: 0, lastDate: "", debt: 0 };
+      const paid = getPaidAmount(a);
+      prev.total += paid;
+      prev.debt += Math.max(0, a.total_amount - paid);
       prev.count++;
       if (a.date > prev.lastDate) prev.lastDate = a.date;
       map.set(a.client_id, prev);
@@ -346,18 +354,26 @@ export default function ClientsPage() {
                         {client.phone}
                       </div>
                     )}
-                    {((client.equipment.length > 0) || (rev && rev.total > 0) || client.balance < 0 || client.blacklisted) && (
+                    {((client.equipment.length > 0) || (rev && rev.total > 0) || client.balance < 0 || (rev && rev.debt > 0) || client.blacklisted) && (
                       <div className="flex items-center gap-2 flex-wrap text-[12px] mt-0.5">
                         {client.blacklisted && (
                           <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold text-[10px]">
                             Чёрный список
                           </span>
                         )}
-                        {client.balance < 0 && (
+                        {/* Prefer the derived appointment-debt (explicit
+                            unpaid visits) over the legacy balance field
+                            when both disagree. Falling back to balance
+                            keeps manual adjustments visible. */}
+                        {rev && rev.debt > 0 ? (
+                          <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold tabular-nums">
+                            Должен €{rev.debt}
+                          </span>
+                        ) : client.balance < 0 ? (
                           <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold tabular-nums">
                             Долг €{Math.abs(client.balance)}
                           </span>
-                        )}
+                        ) : null}
                         {client.equipment.length > 0 && (
                           <span className="text-gray-500">{pluralizeAC(client.equipment.length)}</span>
                         )}
