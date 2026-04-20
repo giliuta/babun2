@@ -599,22 +599,28 @@ export default function DashboardPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("new") === "1") {
+      const kindParam = params.get("kind"); // "work" | "event" | "expense"
       const clientId = params.get("client_id");
       const client = clientId ? clients.find((c) => c.id === clientId) : null;
       const dateParam = params.get("date");
       const dateKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
         ? dateParam
         : new Date().toISOString().slice(0, 10);
-      const blank = createBlankAppointment({
-        date: dateKey,
-        time_start: "10:00",
-        time_end: "11:00",
-        team_id: activeTeamId || null,
-        client_id: clientId || null,
-        address: client?.address ?? "",
-        kind: "work",
-      });
-      setInlineSheet({ mode: "new", initial: blank });
+
+      if (kindParam === "expense") {
+        setExpenseFor({ dateKey, dayLabel: "Сегодня" });
+      } else {
+        const blank = createBlankAppointment({
+          date: dateKey,
+          time_start: "10:00",
+          time_end: "11:00",
+          team_id: activeTeamId || null,
+          client_id: clientId || null,
+          address: client?.address ?? "",
+          kind: kindParam === "event" ? "event" : "work",
+        });
+        setInlineSheet({ mode: "new", initial: blank });
+      }
       router.replace("/dashboard");
     }
   }, [activeTeamId, router, clients]);
@@ -869,7 +875,7 @@ export default function DashboardPage() {
               dayLabel: "Сегодня",
             });
           }}
-          className="flex items-center gap-1 h-7 px-2.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-semibold active:bg-rose-100"
+          className="hidden lg:flex items-center gap-1 h-7 px-2.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-semibold active:bg-rose-100"
         >
           <span>+</span> Расход
         </button>

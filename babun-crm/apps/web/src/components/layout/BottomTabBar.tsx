@@ -8,10 +8,12 @@ import {
   MessageSquare,
   Wallet,
   Menu,
+  Plus,
 } from "lucide-react";
 import { useSidebar } from "@/app/dashboard/layout";
 import { loadWaitlist } from "@/lib/waitlist";
 import { loadChats, getTotalUnread } from "@/lib/chats";
+import CreateMenu from "./CreateMenu";
 
 // Bottom tab bar — visible on mobile only (lg:hidden). The layout adds
 // padding-bottom so the bar never covers content. The centre "+ Запись"
@@ -37,6 +39,8 @@ export default function BottomTabBar() {
     setUnreadChats(getTotalUnread(loadChats()));
   }, [pathname]);
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   // Unread waitlist — shows a red dot on the "Ещё" tab while any
   // entry is still pending, so the dispatcher knows there's something
   // to deal with without opening the drawer.
@@ -61,51 +65,74 @@ export default function BottomTabBar() {
   };
 
   return (
-    <nav
-      aria-label="Главная навигация"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-surface"
-      style={{
-        paddingBottom: "env(safe-area-inset-bottom)",
-        boxShadow: "0 -8px 32px -12px rgba(15, 23, 42, 0.12)",
-      }}
-    >
-      <div className="flex items-end justify-around px-1 h-[62px] relative">
-        <TabButton
-          label="Календарь"
-          active={isCalendar}
-          onClick={() => go("/dashboard")}
-          icon={<CalendarIcon size={24} strokeWidth={2} />}
-        />
-        <TabButton
-          label="Клиенты"
-          active={isClients}
-          onClick={() => go("/dashboard/clients")}
-          icon={<UsersIcon size={24} strokeWidth={2} />}
-        />
+    <>
+      <nav
+        aria-label="Главная навигация"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-surface"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom)",
+          boxShadow: "0 -8px 32px -12px rgba(15, 23, 42, 0.12)",
+        }}
+      >
+        <div className="flex items-end justify-around px-1 h-[62px] relative">
+          <TabButton
+            label="Календарь"
+            active={isCalendar}
+            onClick={() => go("/dashboard")}
+            icon={<CalendarIcon size={24} strokeWidth={2} />}
+          />
+          <TabButton
+            label="Клиенты"
+            active={isClients}
+            onClick={() => go("/dashboard/clients")}
+            icon={<UsersIcon size={24} strokeWidth={2} />}
+          />
 
-        <TabButton
-          label="Чаты"
-          active={isChats}
-          count={unreadChats}
-          onClick={() => go("/dashboard/chats")}
-          icon={<MessageSquare size={24} strokeWidth={2} />}
-        />
+          {/* Center FAB "+" — primary write-path. Sits above the tab-bar
+              centerline so the thumb always finds it. Opens CreateMenu
+              below (centred popup, per product rule). */}
+          <button
+            type="button"
+            aria-label="Создать"
+            onClick={() => setCreateOpen(true)}
+            className="relative -top-4 w-14 h-14 rounded-full bg-violet-600 text-white shadow-[0_10px_25px_-10px_rgba(124,58,237,0.6)] flex items-center justify-center active:scale-[0.94] transition"
+          >
+            <Plus size={26} strokeWidth={2.5} />
+          </button>
 
-        <TabButton
-          label="Финансы"
-          active={isFinances}
-          onClick={() => go("/dashboard/finances")}
-          icon={<Wallet size={24} strokeWidth={2} />}
-        />
-        <TabButton
-          label="Ещё"
-          active={false}
-          dot={pendingWaitlist > 0}
-          onClick={sidebar.toggle}
-          icon={<Menu size={24} strokeWidth={2} />}
-        />
-      </div>
-    </nav>
+          <TabButton
+            label="Чаты"
+            active={isChats}
+            count={unreadChats}
+            onClick={() => go("/dashboard/chats")}
+            icon={<MessageSquare size={24} strokeWidth={2} />}
+          />
+
+          <TabButton
+            label="Финансы"
+            active={isFinances}
+            onClick={() => go("/dashboard/finances")}
+            icon={<Wallet size={24} strokeWidth={2} />}
+          />
+          <TabButton
+            label="Ещё"
+            active={false}
+            dot={pendingWaitlist > 0}
+            onClick={sidebar.toggle}
+            icon={<Menu size={24} strokeWidth={2} />}
+          />
+        </div>
+      </nav>
+
+      <CreateMenu
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreateAppointment={() => router.push("/dashboard?new=1&kind=work")}
+        onCreateExpense={() => router.push("/dashboard?new=1&kind=expense")}
+        onCreateEvent={() => router.push("/dashboard?new=1&kind=event")}
+        onCreateLead={() => router.push("/dashboard/chats")}
+      />
+    </>
   );
 }
 
