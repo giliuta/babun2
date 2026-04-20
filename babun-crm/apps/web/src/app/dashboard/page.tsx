@@ -61,6 +61,9 @@ import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import TodayChip from "@/components/calendar/TodayChip";
 import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
+import NowPill from "@/components/layout/NowPill";
+import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
+import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
 
 
 import {
@@ -80,6 +83,10 @@ const STEP_DAYS: Record<ViewMode, number> = {
 };
 
 const SEED_KEY = "babun-seeded";
+
+function toYmd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -813,6 +820,21 @@ export default function DashboardPage() {
         onMenuToggle={sidebar.toggle}
       />
 
+      {/* Now-pill: sticky "Сейчас / Через N мин" hint under the header.
+          Hidden in month view where "today" doesn't exist in the grid. */}
+      {viewMode !== "month" && (
+        <NowPill
+          appointments={visibleAppointments}
+          clients={clients}
+          teamId={activeTeamId}
+          onOpen={() => {
+            // No jump-to-slot yet — the grid auto-scrolls to now-line
+            // anyway (Sprint 005). Opening the sheet for the record
+            // would require propagating the setter; Phase 2.
+          }}
+        />
+      )}
+
       {/* STORY-003: thin action bar under the header.
           Single TodayChip replaces the 7-column per-day income footer. */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-1 flex items-center gap-2">
@@ -839,6 +861,16 @@ export default function DashboardPage() {
         </button>
         {Object.keys(EXPENSE_CATEGORIES).length > 0 && null}
       </div>
+
+      {/* Day view only: one-line summary (records, earnings, unpaid) */}
+      {viewMode === "day" && (
+        <DaySummaryStrip
+          appointments={visibleAppointments}
+          teamId={activeTeamId}
+          dateKey={toYmd(currentMonday)}
+          onUnpaidTap={() => router.push("/dashboard/finances")}
+        />
+      )}
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
       <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
@@ -1129,6 +1161,12 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      <EndOfDayBanner
+        appointments={appointments}
+        teamId={activeTeamId}
+        onOpenUnpaid={() => router.push("/dashboard/finances")}
+      />
     </>
   );
 }
