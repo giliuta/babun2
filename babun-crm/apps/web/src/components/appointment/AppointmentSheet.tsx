@@ -29,6 +29,7 @@ import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
 import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
+import ClientProfileView from "@/components/clients/ClientProfileView";
 import { useRouter } from "next/navigation";
 import { loadChats } from "@/lib/chats";
 import PaymentBlock from "./PaymentBlock";
@@ -115,6 +116,7 @@ export default function AppointmentSheet({
   const [askClientFirst, setAskClientFirst] = useState(false);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
+  const [clientProfileOpen, setClientProfileOpen] = useState(false);
 
   // body scroll lock + ESC close
   useEffect(() => {
@@ -745,9 +747,7 @@ export default function AppointmentSheet({
           open={clientMenuOpen}
           onClose={() => setClientMenuOpen(false)}
           client={client}
-          onProfile={() => {
-            router.push(`/dashboard/clients/${client.id}`);
-          }}
+          onProfile={() => setClientProfileOpen(true)}
           onSendMessage={() => setSendMsgOpen(true)}
           onOpenChat={() => {
             const existing = loadChats().find((ch) => ch.client_id === client.id);
@@ -785,6 +785,27 @@ export default function AppointmentSheet({
           phone={client.phone ?? null}
           clientName={client.full_name}
         />
+      )}
+
+      {/* Client profile overlay — rendered on top of the appointment
+          sheet so picking ⋯ → Профиль doesn't navigate away. Tapping
+          ← inside closes the overlay and leaves the draft intact. */}
+      {clientProfileOpen && client && (
+        <div
+          className="fixed inset-0 z-[95] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-2"
+          onClick={() => setClientProfileOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ height: "92vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ClientProfileView
+              clientId={client.id}
+              onBack={() => setClientProfileOpen(false)}
+            />
+          </div>
+        </div>
       )}
 
       {/* Keep reference list silenced */}
