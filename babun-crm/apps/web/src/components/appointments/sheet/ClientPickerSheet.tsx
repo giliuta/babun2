@@ -174,7 +174,7 @@ export default function ClientPickerSheet({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Поиск по имени или телефону"
-            className="w-full h-11 px-3 bg-gray-100 rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full h-11 px-3 bg-gray-100 rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
 
@@ -185,12 +185,12 @@ export default function ClientPickerSheet({
                 key={c.id}
                 type="button"
                 onClick={() => handleSelect(c)}
-                className="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 active:scale-[0.97]"
+                className="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-violet-50 border border-violet-100 active:scale-[0.97]"
               >
-                <span className="w-7 h-7 rounded-full bg-white text-indigo-700 flex items-center justify-center text-[11px] font-semibold shrink-0">
+                <span className="w-7 h-7 rounded-full bg-white text-violet-700 flex items-center justify-center text-[11px] font-semibold shrink-0">
                   {initials(c.full_name)}
                 </span>
-                <span className="text-[12px] font-medium text-indigo-800 truncate max-w-[120px]">
+                <span className="text-[12px] font-medium text-violet-800 truncate max-w-[120px]">
                   {c.full_name}
                 </span>
               </button>
@@ -210,13 +210,13 @@ export default function ClientPickerSheet({
               }
               setShowNewForm(true);
             }}
-            className="w-full h-10 flex items-center justify-center gap-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[13px] font-semibold active:scale-[0.98] transition"
+            className="w-full h-10 flex items-center justify-center gap-1.5 bg-violet-50 text-violet-700 rounded-lg text-[13px] font-semibold active:scale-[0.98] transition"
           >
             <span className="text-[15px] leading-none">+</span>
             <span>Новый клиент{query.trim() ? ` «${query.trim()}»` : ""}</span>
           </button>
         ) : (
-          <div className="space-y-2 bg-indigo-50 rounded-xl p-3">
+          <div className="space-y-2 bg-violet-50 rounded-xl p-3">
             {clipboardHint && newPhones[0] !== clipboardHint && (
               <button
                 type="button"
@@ -224,12 +224,12 @@ export default function ClientPickerSheet({
                   updatePhone(0, clipboardHint);
                   setClipboardHint(null);
                 }}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white border border-indigo-200 text-[12px] text-indigo-800 active:bg-indigo-50"
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white border border-violet-200 text-[12px] text-violet-800 active:bg-violet-50"
               >
                 <span className="truncate">
                   <span className="font-semibold">В буфере:</span> {clipboardHint}
                 </span>
-                <span className="text-[11px] font-semibold text-indigo-600 shrink-0">
+                <span className="text-[11px] font-semibold text-violet-600 shrink-0">
                   Вставить →
                 </span>
               </button>
@@ -241,7 +241,7 @@ export default function ClientPickerSheet({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Имя клиента *"
-              className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
 
             {duplicates.length > 0 && (
@@ -381,7 +381,7 @@ export default function ClientPickerSheet({
                 type="button"
                 onClick={handleCreateNew}
                 disabled={!newName.trim()}
-                className="flex-1 h-11 bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-40"
+                className="flex-1 h-11 bg-violet-600 text-white rounded-lg font-semibold disabled:opacity-40"
               >
                 Добавить
               </button>
@@ -406,7 +406,7 @@ export default function ClientPickerSheet({
                     onClick={() => handleSelect(c)}
                     className="w-full flex items-center gap-2.5 py-2 active:bg-gray-50"
                   >
-                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-[13px]">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-[13px]">
                       {initials(c.full_name)}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
@@ -418,7 +418,7 @@ export default function ClientPickerSheet({
                       )}
                     </div>
                     {isRecent && (
-                      <div className="text-[9px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                      <div className="text-[9px] text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-full">
                         недавний
                       </div>
                     )}
@@ -438,7 +438,7 @@ function AddChip({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="h-8 px-3 rounded-full bg-white border border-gray-200 text-[12px] font-semibold text-indigo-700 active:bg-indigo-50"
+      className="h-8 px-3 rounded-full bg-white border border-gray-200 text-[12px] font-semibold text-violet-700 active:bg-violet-50"
     >
       {label}
     </button>

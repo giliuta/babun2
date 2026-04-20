@@ -33,7 +33,7 @@ export default function SharePage(props: PageProps) {
         </p>
         <Link
           href="/"
-          className="mt-6 text-sm font-medium text-indigo-600 active:opacity-60"
+          className="mt-6 text-sm font-medium text-violet-600 active:opacity-60"
         >
           На главную
         </Link>
@@ -136,7 +136,7 @@ function AddressRow({ address }: { address: string }) {
           href={mapHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 mt-1 text-[12px] font-medium text-indigo-600 active:opacity-60"
+          className="inline-flex items-center gap-1 mt-1 text-[12px] font-medium text-violet-600 active:opacity-60"
         >
           Открыть на карте →
         </a>

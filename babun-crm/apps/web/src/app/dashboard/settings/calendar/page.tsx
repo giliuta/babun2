@@ -43,7 +43,7 @@ export default function CalendarSettingsPage() {
         leftContent={
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-1 text-white/80 lg:text-indigo-600 text-sm px-1"
+            className="flex items-center gap-1 text-white/80 lg:text-violet-600 text-sm px-1"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M15 18l-6-6 6-6" />
@@ -114,7 +114,7 @@ export default function CalendarSettingsPage() {
                   onClick={() => patch({ gridStep: step })}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
                     draft.gridStep === step
-                      ? "border-indigo-600 bg-indigo-600 text-white"
+                      ? "border-violet-600 bg-violet-600 text-white"
                       : "border-gray-200 text-gray-700 bg-white"
                   }`}
                 >
@@ -135,7 +135,7 @@ export default function CalendarSettingsPage() {
                   onClick={() => patch({ weekStart: day })}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
                     draft.weekStart === day
-                      ? "border-indigo-600 bg-indigo-600 text-white"
+                      ? "border-violet-600 bg-violet-600 text-white"
                       : "border-gray-200 text-gray-700 bg-white"
                   }`}
                 >
@@ -179,7 +179,7 @@ export default function CalendarSettingsPage() {
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : saved
                   ? "bg-green-600 text-white"
-                  : "bg-indigo-600 text-white active:bg-indigo-700"
+                  : "bg-violet-600 text-white active:bg-violet-700"
               }`}
             >
               {saved ? "Сохранено!" : "Сохранить"}

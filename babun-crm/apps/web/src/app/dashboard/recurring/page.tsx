@@ -173,7 +173,7 @@ function RecurringCard({
         <button
           type="button"
           onClick={onBook}
-          className="flex-1 h-10 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold active:scale-[0.99]"
+          className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99]"
         >
           Записать
         </button>

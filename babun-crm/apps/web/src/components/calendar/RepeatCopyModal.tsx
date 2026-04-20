@@ -59,7 +59,7 @@ export default function RepeatCopyModal({
           type="button"
           onClick={handleConfirm}
           disabled={previewDates.length === 0}
-          className="w-full h-11 rounded-lg bg-indigo-600 text-white text-[14px] font-semibold active:scale-[0.98] disabled:bg-gray-300"
+          className="w-full h-11 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] disabled:bg-gray-300"
         >
           Создать {previewDates.length} копи{copyPlural(previewDates.length)}
         </button>
@@ -84,7 +84,7 @@ export default function RepeatCopyModal({
                   onClick={() => setMode(m)}
                   className={`flex-1 h-9 rounded-lg text-[12px] font-medium transition ${
                     active
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-violet-600 text-white"
                       : "bg-gray-100 text-gray-600"
                   }`}
                 >

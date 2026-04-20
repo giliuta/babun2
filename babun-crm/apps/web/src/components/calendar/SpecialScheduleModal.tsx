@@ -87,7 +87,7 @@ export default function SpecialScheduleModal({
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 h-11 rounded-lg bg-indigo-600 text-white text-[14px] font-semibold active:scale-[0.98]"
+            className="flex-1 h-11 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98]"
           >
             Сохранить
           </button>
@@ -154,7 +154,7 @@ function TimeSelect({ label, value, onChange }: TimeSelectProps) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-10 px-2 rounded-lg bg-gray-50 border border-gray-200 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className="w-full h-10 px-2 rounded-lg bg-gray-50 border border-gray-200 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
       >
         {QUARTER_HOUR_OPTIONS.map((t) => (
           <option key={t} value={t}>

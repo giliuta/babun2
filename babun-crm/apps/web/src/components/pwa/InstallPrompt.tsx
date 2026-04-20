@@ -86,7 +86,7 @@ export function InstallPrompt() {
       }}
     >
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-bold text-2xl shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-violet-500 flex items-center justify-center text-white font-bold text-2xl shrink-0">
           B
         </div>
         <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ export function InstallPrompt() {
           {!isIOS && installEvent && (
             <button
               onClick={handleInstall}
-              className="mt-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700"
+              className="mt-2 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700"
             >
               Установить
             </button>

@@ -78,7 +78,7 @@ export default function ActionMenuModal({
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Purple header — matches Bumpix */}
-        <div className="bg-indigo-600 px-4 py-3 flex-shrink-0">
+        <div className="bg-violet-600 px-4 py-3 flex-shrink-0">
           <h2 className="text-[15px] font-semibold text-white">{title}</h2>
         </div>
 
@@ -142,7 +142,7 @@ export default function ActionMenuModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-[13px] font-semibold text-indigo-600 uppercase tracking-wide active:opacity-70"
+            className="px-4 py-2 text-[13px] font-semibold text-violet-600 uppercase tracking-wide active:opacity-70"
           >
             Отмена
           </button>

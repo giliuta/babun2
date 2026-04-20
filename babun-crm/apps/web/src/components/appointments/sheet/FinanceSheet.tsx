@@ -154,7 +154,7 @@ export default function FinanceSheet({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-12 bg-indigo-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
+          className="w-full h-12 bg-violet-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
         >
           Сохранить
         </button>
@@ -167,20 +167,20 @@ export default function FinanceSheet({
             <button
               type="button"
               onClick={() => setShowAddExpense(true)}
-              className="w-full h-9 flex items-center justify-center gap-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[12px] font-semibold active:scale-[0.98]"
+              className="w-full h-9 flex items-center justify-center gap-1.5 bg-violet-50 text-violet-700 rounded-lg text-[12px] font-semibold active:scale-[0.98]"
             >
               <span className="text-[15px] leading-none">+</span>
               Добавить расход
             </button>
           ) : (
-            <div className="bg-indigo-50 rounded-lg p-2 space-y-2">
+            <div className="bg-violet-50 rounded-lg p-2 space-y-2">
               <input
                 type="text"
                 autoFocus
                 value={newExpenseName}
                 onChange={(e) => setNewExpenseName(e.target.value)}
                 placeholder="Название (например, Материалы)"
-                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -192,7 +192,7 @@ export default function FinanceSheet({
                     setNewExpenseAmount(v === "" ? "" : Number(v) || 0);
                   }}
                   placeholder="Сумма"
-                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
                 <span className="text-[13px] text-gray-500">€</span>
               </div>
@@ -216,7 +216,7 @@ export default function FinanceSheet({
                     typeof newExpenseAmount !== "number" ||
                     newExpenseAmount <= 0
                   }
-                  className="flex-1 h-9 bg-indigo-600 text-white rounded-lg text-[12px] font-semibold disabled:opacity-40"
+                  className="flex-1 h-9 bg-violet-600 text-white rounded-lg text-[12px] font-semibold disabled:opacity-40"
                 >
                   Добавить
                 </button>
@@ -324,7 +324,7 @@ export default function FinanceSheet({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 flex-1">
-              <span className="text-[12px] text-indigo-600">Скидка</span>
+              <span className="text-[12px] text-violet-600">Скидка</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -333,7 +333,7 @@ export default function FinanceSheet({
                 onChange={(e) =>
                   setLocalDiscount(Math.max(0, Number(e.target.value) || 0))
                 }
-                className="w-12 h-7 px-1.5 bg-gray-100 rounded text-[12px] text-gray-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500 text-right"
+                className="w-12 h-7 px-1.5 bg-gray-100 rounded text-[12px] text-gray-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500 text-right"
               />
               <div className="flex bg-gray-100 rounded overflow-hidden">
                 <button
@@ -341,7 +341,7 @@ export default function FinanceSheet({
                   onClick={() => handleDiscountMode("amount")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "amount"
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-violet-600 text-white"
                       : "text-gray-500"
                   }`}
                 >
@@ -352,7 +352,7 @@ export default function FinanceSheet({
                   onClick={() => handleDiscountMode("percent")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "percent"
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-violet-600 text-white"
                       : "text-gray-500"
                   }`}
                 >
@@ -360,7 +360,7 @@ export default function FinanceSheet({
                 </button>
               </div>
             </div>
-            <span className="text-[13px] font-semibold text-indigo-600 tabular-nums">
+            <span className="text-[13px] font-semibold text-violet-600 tabular-nums">
               −{clampedDiscount}
             </span>
           </div>

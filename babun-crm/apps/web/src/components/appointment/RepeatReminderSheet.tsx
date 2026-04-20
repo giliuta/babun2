@@ -72,7 +72,7 @@ export default function RepeatReminderSheet({
               onClick={() => setMonths(p.months)}
               className={`w-full flex items-center justify-between px-3 py-3 rounded-xl border transition ${
                 months === p.months
-                  ? "bg-indigo-50 border-indigo-300"
+                  ? "bg-violet-50 border-violet-300"
                   : "bg-white border-slate-200 active:bg-slate-50"
               }`}
             >
@@ -98,7 +98,7 @@ export default function RepeatReminderSheet({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="например: проверить пульт"
-            className="mt-1 w-full h-10 px-3 rounded-lg border border-slate-200 text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400"
+            className="mt-1 w-full h-10 px-3 rounded-lg border border-slate-200 text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-violet-400"
           />
         </div>
 
@@ -120,7 +120,7 @@ export default function RepeatReminderSheet({
               onConfirm(months, note);
               onClose();
             }}
-            className="flex-1 h-11 rounded-xl bg-indigo-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+            className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
           >
             Создать
           </button>

@@ -88,13 +88,13 @@ function MonthViewInner({
               key={i}
               type="button"
               onClick={() => onDayClick(date)}
-              className={`border-r border-b border-gray-100 p-1 text-left flex flex-col items-start active:bg-indigo-50 overflow-hidden ${
+              className={`border-r border-b border-gray-100 p-1 text-left flex flex-col items-start active:bg-violet-50 overflow-hidden ${
                 inCurrentMonth ? "bg-white" : "bg-gray-50/60"
               } ${isWeekend && inCurrentMonth ? "bg-red-50/20" : ""}`}
             >
               <div className="flex items-center justify-between w-full">
                 {isToday ? (
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-[12px] font-bold">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-600 text-white text-[12px] font-bold">
                     {date.getDate()}
                   </span>
                 ) : (
@@ -111,7 +111,7 @@ function MonthViewInner({
                   </span>
                 )}
                 {data && data.count > 0 && (
-                  <span className="text-[9px] font-bold text-indigo-600 bg-indigo-100 rounded-full px-1.5 leading-[14px]">
+                  <span className="text-[9px] font-bold text-violet-600 bg-violet-100 rounded-full px-1.5 leading-[14px]">
                     {data.count}
                   </span>
                 )}

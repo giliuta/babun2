@@ -53,7 +53,7 @@ export default function MapNavPopup({ open, onClose, input }: MapNavPopupProps) 
           <button
             type="button"
             onClick={() => openIn("waze")}
-            className="w-full h-11 rounded-xl bg-indigo-50 border border-indigo-200 text-[14px] font-semibold text-indigo-800 active:bg-indigo-100 flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-xl bg-violet-50 border border-violet-200 text-[14px] font-semibold text-violet-800 active:bg-violet-100 flex items-center justify-center gap-2"
           >
             <span>🚗</span> Waze
           </button>

@@ -66,7 +66,7 @@ type Tone = "slate" | "emerald" | "indigo" | "rose";
 const TONE: Record<Tone, string> = {
   slate: "bg-slate-100 text-slate-700",
   emerald: "bg-emerald-50 text-emerald-700",
-  indigo: "bg-indigo-50 text-indigo-700",
+  indigo: "bg-violet-50 text-violet-700",
   rose: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
 };
 

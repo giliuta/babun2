@@ -156,8 +156,8 @@ function AddExpenseForm({
   };
 
   return (
-    <div className="border-t border-indigo-100 bg-indigo-50/40 px-4 py-4 space-y-3">
-      <div className="text-xs font-semibold text-indigo-700">Новый расход</div>
+    <div className="border-t border-violet-100 bg-violet-50/40 px-4 py-4 space-y-3">
+      <div className="text-xs font-semibold text-violet-700">Новый расход</div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
@@ -248,7 +248,7 @@ function AddExpenseForm({
         <button
           type="button"
           onClick={submit}
-          className="flex-1 h-9 bg-indigo-600 text-white rounded-lg text-sm font-semibold"
+          className="flex-1 h-9 bg-violet-600 text-white rounded-lg text-sm font-semibold"
         >
           Добавить
         </button>
@@ -319,7 +319,7 @@ export default function ExpensesPage() {
           <button
             type="button"
             onClick={() => setShowAddForm((v) => !v)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-indigo-600 lg:text-gray-700 lg:hover:bg-gray-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-violet-600 lg:text-gray-700 lg:hover:bg-gray-100"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -348,7 +348,7 @@ export default function ExpensesPage() {
                   key={p.key}
                   type="button"
                   onClick={() => { setPeriod(p.key); setShowPeriodMenu(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-indigo-600 font-semibold bg-indigo-50" : "text-gray-700 hover:bg-gray-50"}`}
+                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-violet-600 font-semibold bg-violet-50" : "text-gray-700 hover:bg-gray-50"}`}
                 >
                   {p.label}
                 </button>
@@ -366,7 +366,7 @@ export default function ExpensesPage() {
               onClick={() => setActiveBrigade(b.id)}
               className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeBrigade === b.id
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  ? "text-violet-600 border-b-2 border-violet-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -429,7 +429,7 @@ export default function ExpensesPage() {
                 <button
                   type="button"
                   onClick={() => { seedDemoExpenses(); reload(); }}
-                  className="text-sm font-medium text-indigo-600 border border-indigo-300 rounded-lg px-4 py-2"
+                  className="text-sm font-medium text-violet-600 border border-violet-300 rounded-lg px-4 py-2"
                 >
                   Засеять демо-данные
                 </button>

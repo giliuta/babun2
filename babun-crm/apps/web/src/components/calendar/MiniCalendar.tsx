@@ -138,7 +138,7 @@ export default function MiniCalendar({
               onClick={() => handleDayClick(day)}
               className={`h-9 flex flex-col items-center justify-center rounded-lg text-xs relative hover:bg-gray-100 transition-colors ${
                 isToday
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  ? "bg-violet-600 text-white hover:bg-violet-700"
                   : "text-gray-700"
               }`}
             >
@@ -146,7 +146,7 @@ export default function MiniCalendar({
               {aptCount > 0 && (
                 <span
                   className={`text-[8px] leading-none mt-0.5 ${
-                    isToday ? "text-indigo-200" : "text-indigo-500"
+                    isToday ? "text-violet-200" : "text-violet-500"
                   }`}
                 >
                   {aptCount}

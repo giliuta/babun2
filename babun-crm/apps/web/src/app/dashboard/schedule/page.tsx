@@ -119,7 +119,7 @@ export default function SchedulePage() {
                 <button
                   type="button"
                   onClick={addGeneralBreak}
-                  className="text-xs text-indigo-600 font-medium"
+                  className="text-xs text-violet-600 font-medium"
                 >
                   + Добавить перерыв
                 </button>
@@ -202,7 +202,7 @@ function TimeSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
     >
       {QUARTER_HOUR_OPTIONS.map((t) => (
         <option key={t} value={t}>
@@ -282,7 +282,7 @@ function DayOverrideRow({
                   <button
                     type="button"
                     onClick={addBreak}
-                    className="text-xs text-indigo-600 font-medium"
+                    className="text-xs text-violet-600 font-medium"
                   >
                     + Перерыв
                   </button>

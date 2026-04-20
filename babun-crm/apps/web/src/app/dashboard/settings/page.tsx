@@ -156,7 +156,7 @@ export default function SettingsPage() {
                         onClick={() => toggleFieldVis(key)}
                         disabled={disabled}
                         className={`relative w-11 h-6 rounded-full transition-colors ${
-                          fieldVisibility[key] ? "bg-indigo-600" : "bg-gray-300"
+                          fieldVisibility[key] ? "bg-violet-600" : "bg-gray-300"
                         } ${disabled ? "cursor-not-allowed" : ""}`}
                         aria-label={FIELD_VIS_LABELS[key]}
                       >
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => toggleRequired(key)}
                       className={`relative w-11 h-6 rounded-full transition-colors ${
-                        requiredFields[key] ? "bg-indigo-600" : "bg-gray-300"
+                        requiredFields[key] ? "bg-violet-600" : "bg-gray-300"
                       }`}
                       aria-label={REQUIRED_LABELS[key]}
                     >

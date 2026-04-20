@@ -33,22 +33,22 @@ function CityRow({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl">
+      <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 rounded-xl">
         <input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") cancel(); }}
-          className="flex-1 px-2 py-1 border border-indigo-300 rounded-lg text-sm bg-white"
+          className="flex-1 px-2 py-1 border border-violet-300 rounded-lg text-sm bg-white"
           placeholder="Город"
         />
         <input
           value={country}
           onChange={(e) => setCountry(e.target.value)}
-          className="w-24 px-2 py-1 border border-indigo-300 rounded-lg text-sm bg-white"
+          className="w-24 px-2 py-1 border border-violet-300 rounded-lg text-sm bg-white"
           placeholder="Страна"
         />
-        <button type="button" onClick={save} className="text-indigo-700 text-sm font-semibold px-2">✓</button>
+        <button type="button" onClick={save} className="text-violet-700 text-sm font-semibold px-2">✓</button>
         <button type="button" onClick={cancel} className="text-gray-400 text-sm px-1">✕</button>
       </div>
     );
@@ -65,7 +65,7 @@ function CityRow({
       <button
         type="button"
         onClick={() => onUpdate({ ...city, isActive: !city.isActive })}
-        className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${city.isActive ? "bg-indigo-600" : "bg-gray-300"}`}
+        className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${city.isActive ? "bg-violet-600" : "bg-gray-300"}`}
         aria-label="Toggle active"
       >
         <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${city.isActive ? "translate-x-4" : "translate-x-0"}`} />
@@ -127,7 +127,7 @@ export default function CitiesSettingsPage() {
         leftContent={
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-1 text-white/80 lg:text-indigo-600 text-sm px-1"
+            className="flex items-center gap-1 text-white/80 lg:text-violet-600 text-sm px-1"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M15 18l-6-6 6-6" />
@@ -139,7 +139,7 @@ export default function CitiesSettingsPage() {
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="text-white lg:text-indigo-600 text-sm font-semibold px-2"
+            className="text-white lg:text-violet-600 text-sm font-semibold px-2"
           >
             + Добавить
           </button>
@@ -150,21 +150,21 @@ export default function CitiesSettingsPage() {
         <div className="max-w-lg mx-auto p-3 lg:p-4 space-y-2 pb-24">
 
           {addOpen && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-2">
-              <div className="text-xs font-semibold text-indigo-700">Новый город</div>
+            <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 space-y-2">
+              <div className="text-xs font-semibold text-violet-700">Новый город</div>
               <div className="flex gap-2">
                 <input
                   autoFocus
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") addCity(); if (e.key === "Escape") setAddOpen(false); }}
-                  className="flex-1 px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white"
+                  className="flex-1 px-3 py-2 border border-violet-300 rounded-lg text-sm bg-white"
                   placeholder="Название города"
                 />
                 <input
                   value={newCountry}
                   onChange={(e) => setNewCountry(e.target.value)}
-                  className="w-28 px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white"
+                  className="w-28 px-3 py-2 border border-violet-300 rounded-lg text-sm bg-white"
                   placeholder="Страна"
                 />
               </div>
@@ -180,7 +180,7 @@ export default function CitiesSettingsPage() {
                   type="button"
                   onClick={addCity}
                   disabled={!newName.trim()}
-                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50"
+                  className="flex-1 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50"
                 >
                   Добавить
                 </button>

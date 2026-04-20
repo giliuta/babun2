@@ -91,7 +91,7 @@ export default function FinancesPage() {
           <button
             type="button"
             onClick={() => setShowCategories(true)}
-            className="px-2 py-1.5 lg:px-3 text-xs lg:text-sm font-medium text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100 rounded-lg"
+            className="px-2 py-1.5 lg:px-3 text-xs lg:text-sm font-medium text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100 rounded-lg"
           >
             ⚙ Категории
           </button>
@@ -171,7 +171,7 @@ export default function FinancesPage() {
                         setShowPeriodMenu(false);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                        period === p.key ? "text-indigo-600 font-medium" : "text-gray-700"
+                        period === p.key ? "text-violet-600 font-medium" : "text-gray-700"
                       }`}
                     >
                       {p.label}
@@ -189,7 +189,7 @@ export default function FinancesPage() {
                   onClick={() => setActiveTeam(tab.id)}
                   className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                     activeTeam === tab.id
-                      ? "text-indigo-600 border-b-2 border-indigo-600"
+                      ? "text-violet-600 border-b-2 border-violet-600"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -301,7 +301,7 @@ function SummaryCard({
       ? "text-rose-600"
       : color === "amber"
       ? "text-amber-600"
-      : "text-indigo-600";
+      : "text-violet-600";
 
   const body = signed ? formatEURSigned(amount) : formatEUR(amount);
 
@@ -323,7 +323,7 @@ function SummaryCard({
       type="button"
       onClick={onClick}
       className={`rounded-xl border px-2 py-2 text-left transition active:scale-[0.98] ${
-        active ? "bg-white border-indigo-500 ring-1 ring-indigo-500" : "bg-white border-gray-200"
+        active ? "bg-white border-violet-500 ring-1 ring-violet-500" : "bg-white border-gray-200"
       }`}
     >
       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
@@ -475,7 +475,7 @@ function Row({
       : color === "rose"
       ? "text-rose-600"
       : color === "indigo"
-      ? "text-indigo-600"
+      ? "text-violet-600"
       : "text-gray-600";
   return (
     <div className="flex items-center justify-between">

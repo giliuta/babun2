@@ -58,7 +58,7 @@ export default function WheelPicker({
     >
       {/* Center highlight lines */}
       <div
-        className="absolute left-0 right-0 pointer-events-none border-y-2 border-indigo-200"
+        className="absolute left-0 right-0 pointer-events-none border-y-2 border-violet-200"
         style={{ top: itemHeight * halfCount, height: itemHeight }}
       />
       <div

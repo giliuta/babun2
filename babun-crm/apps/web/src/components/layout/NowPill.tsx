@@ -53,7 +53,7 @@ export default function NowPill({
       ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
       : state === "overdue"
         ? "bg-rose-50 text-rose-800 ring-rose-200"
-        : "bg-indigo-50 text-indigo-800 ring-indigo-200";
+        : "bg-violet-50 text-violet-800 ring-violet-200";
 
   const prefix =
     state === "in-progress"

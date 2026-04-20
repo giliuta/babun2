@@ -49,7 +49,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             className={`flex-1 h-12 text-[14px] font-semibold active:scale-[0.98] ${
-              danger ? "text-red-600" : "text-indigo-600"
+              danger ? "text-red-600" : "text-violet-600"
             }`}
           >
             {confirmLabel}

@@ -117,7 +117,7 @@ export default function TeamsPage() {
               type="button"
               onClick={() => router.push("/dashboard/masters")}
               aria-label="Мастера"
-              className="px-2.5 h-9 flex items-center gap-1.5 rounded-lg text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100 text-[12px] font-medium"
+              className="px-2.5 h-9 flex items-center gap-1.5 rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100 text-[12px] font-medium"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -129,7 +129,7 @@ export default function TeamsPage() {
               type="button"
               onClick={openNew}
               aria-label="Добавить бригаду"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -284,7 +284,7 @@ export default function TeamsPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard/masters")}
-              className="text-[11px] font-medium text-indigo-600 active:text-indigo-700"
+              className="text-[11px] font-medium text-violet-600 active:text-violet-700"
             >
               Все мастера →
             </button>
@@ -483,7 +483,7 @@ function TeamFormModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -495,7 +495,7 @@ function TeamFormModal({
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="Например: Пафос, Лимассол"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -509,7 +509,7 @@ function TeamFormModal({
               value={defaultCity}
               onChange={(e) => setDefaultCity(e.target.value)}
               placeholder="Например: Пафос"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
             <div className="text-[11px] text-gray-400 mt-1">
               Ставится дефолтом на каждый день в календаре. Можно переопределить
@@ -529,7 +529,7 @@ function TeamFormModal({
                 max={100}
                 value={payoutPercentage}
                 onChange={(e) => setPayoutPercentage(Number(e.target.value) || 0)}
-                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 tabular-nums"
               />
               <span className="text-sm text-gray-500">%</span>
             </div>
@@ -551,7 +551,7 @@ function TeamFormModal({
                   aria-label={c.name}
                   className={`w-8 h-8 rounded-full transition-all ${
                     color === c.value
-                      ? "ring-2 ring-indigo-600 ring-offset-2"
+                      ? "ring-2 ring-violet-600 ring-offset-2"
                       : ""
                   }`}
                   style={{ backgroundColor: c.value }}
@@ -568,7 +568,7 @@ function TeamFormModal({
             <select
               value={leadId ?? ""}
               onChange={(e) => setLeadId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               <option value="">— Не выбран —</option>
               {activeMasters.map((m) => {
@@ -603,7 +603,7 @@ function TeamFormModal({
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleHelper(m.id)}
-                      className="w-4 h-4 accent-indigo-600"
+                      className="w-4 h-4 accent-violet-600"
                     />
                     <span className="text-sm text-gray-800">{m.full_name}</span>
                   </label>
@@ -630,7 +630,7 @@ function TeamFormModal({
           <button
             type="button"
             onClick={handleSubmit}
-            className="bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-indigo-700"
+            className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700"
           >
             Сохранить
           </button>
@@ -656,7 +656,7 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-9 h-5 rounded-full transition-colors ${
-        checked ? "bg-indigo-600" : "bg-gray-300"
+        checked ? "bg-violet-600" : "bg-gray-300"
       }`}
     >
       <span

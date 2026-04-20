@@ -74,7 +74,7 @@ export default function ServicesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-white text-indigo-700 lg:bg-indigo-600 lg:text-white rounded-lg text-sm font-semibold"
+            className="px-3 py-1.5 bg-white text-violet-700 lg:bg-violet-600 lg:text-white rounded-lg text-sm font-semibold"
           >
             + Новая
           </button>
@@ -285,7 +285,7 @@ function CategoriesEditor({
           type="button"
           onClick={handleAdd}
           disabled={!name.trim()}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold disabled:bg-gray-300"
+          className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:bg-gray-300"
         >
           +
         </button>
@@ -562,7 +562,7 @@ function ServiceEditorSheet({
                     onClick={() => toggleWeekday(day)}
                     className={`flex-1 py-2 text-xs font-semibold rounded-lg border ${
                       on
-                        ? "bg-indigo-600 text-white border-indigo-600"
+                        ? "bg-violet-600 text-white border-violet-600"
                         : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                     }`}
                   >
@@ -603,7 +603,7 @@ function ServiceEditorSheet({
               <button
                 type="button"
                 onClick={addCost}
-                className="text-xs text-indigo-600 font-medium"
+                className="text-xs text-violet-600 font-medium"
               >
                 + Добавить
               </button>
@@ -671,7 +671,7 @@ function ServiceEditorSheet({
             type="button"
             onClick={() => onSave(draft)}
             disabled={!draft.name.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 disabled:bg-gray-300"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 disabled:bg-gray-300"
           >
             Сохранить
           </button>

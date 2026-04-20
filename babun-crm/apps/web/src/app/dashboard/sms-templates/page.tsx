@@ -56,7 +56,7 @@ export default function SmsTemplatesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-white text-indigo-700 lg:bg-indigo-600 lg:text-white rounded-lg text-sm font-semibold"
+            className="px-3 py-1.5 bg-white text-violet-700 lg:bg-violet-600 lg:text-white rounded-lg text-sm font-semibold"
           >
             + Новый
           </button>
@@ -105,7 +105,7 @@ export default function SmsTemplatesPage() {
                 <button
                   type="button"
                   onClick={() => setEditing(tpl)}
-                  className="text-xs text-indigo-600 font-medium"
+                  className="text-xs text-violet-600 font-medium"
                 >
                   Редактировать →
                 </button>
@@ -215,7 +215,7 @@ function TemplateEditor({
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
               rows={5}
               placeholder="Введите текст шаблона..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
             />
           </div>
 
@@ -230,7 +230,7 @@ function TemplateEditor({
                   key={token}
                   type="button"
                   onClick={() => insertToken(token)}
-                  className="px-3 py-1.5 text-xs bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 hover:bg-indigo-100"
+                  className="px-3 py-1.5 text-xs bg-violet-50 text-violet-700 rounded-full border border-violet-200 hover:bg-violet-100"
                   title={label}
                 >
                   {token}
@@ -278,7 +278,7 @@ function TemplateEditor({
             type="button"
             onClick={() => onSave(draft)}
             disabled={!draft.name.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 disabled:bg-gray-300"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 disabled:bg-gray-300"
           >
             Сохранить
           </button>

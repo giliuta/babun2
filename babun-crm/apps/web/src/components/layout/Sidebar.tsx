@@ -291,7 +291,7 @@ function NavItem({
       {icon}
       <span className="flex-1 truncate text-left">{label}</span>
       {hasAction && (
-        <span className="w-5 h-5 bg-indigo-700 rounded text-xs flex items-center justify-center text-indigo-200 hover:bg-indigo-600">
+        <span className="w-5 h-5 bg-violet-700 rounded text-xs flex items-center justify-center text-violet-200 hover:bg-violet-600">
           +
         </span>
       )}

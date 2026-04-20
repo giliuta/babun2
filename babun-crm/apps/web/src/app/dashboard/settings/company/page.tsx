@@ -92,7 +92,7 @@ export default function CompanySettingsPage() {
                   key={mode}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer ${
                     info.vat_mode === mode
-                      ? "bg-indigo-50 border-indigo-300"
+                      ? "bg-violet-50 border-violet-300"
                       : "bg-white border-slate-200"
                   }`}
                 >
@@ -101,7 +101,7 @@ export default function CompanySettingsPage() {
                     name="vat-mode"
                     checked={info.vat_mode === mode}
                     onChange={() => update("vat_mode", mode)}
-                    className="accent-indigo-600"
+                    className="accent-violet-600"
                   />
                   <span className="text-sm text-slate-800">
                     {VAT_MODE_LABEL[mode]}
@@ -162,7 +162,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-10 px-3 rounded-lg border border-slate-200 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400"
+        className="w-full h-10 px-3 rounded-lg border border-slate-200 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-violet-400"
       />
     </label>
   );

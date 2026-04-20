@@ -200,7 +200,7 @@ function WeekPreview({
         </div>
         <div className="flex justify-between text-[13px] pt-1 border-t border-gray-100">
           <span className="font-medium text-gray-900">Чистый доход</span>
-          <span className="font-bold text-indigo-600 tabular-nums">{formatEURFromCents(netCents)}</span>
+          <span className="font-bold text-violet-600 tabular-nums">{formatEURFromCents(netCents)}</span>
         </div>
       </div>
 
@@ -314,7 +314,7 @@ export default function PayrollPage() {
               onClick={() => setActiveBrigadeId(b.id)}
               className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeBrigadeId === b.id
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  ? "text-violet-600 border-b-2 border-violet-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >

@@ -285,7 +285,7 @@ function DayColumnInner({
       <div
         ref={setDroppableRef}
         className={`relative cursor-pointer border-r border-gray-300 select-none ${
-          isOver ? "ring-2 ring-indigo-400 ring-inset" : ""
+          isOver ? "ring-2 ring-violet-400 ring-inset" : ""
         }`}
         onClick={handleColumnClick}
         onContextMenu={(e) => e.preventDefault()}

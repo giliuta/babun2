@@ -171,7 +171,7 @@ export default function MastersPage() {
             type="button"
             onClick={openNew}
             aria-label="Добавить мастера"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-indigo-600 lg:hover:bg-gray-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -348,7 +348,7 @@ function MasterFormModal({
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -359,7 +359,7 @@ function MasterFormModal({
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -369,7 +369,7 @@ function MasterFormModal({
             <select
               value={teamId ?? ""}
               onChange={(e) => setTeamId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               <option value="">— Без бригады —</option>
               {teams.map((t) => (
@@ -386,7 +386,7 @@ function MasterFormModal({
             <select
               value={role}
               onChange={(e) => handleRoleChange(e.target.value as MasterRole)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               {(Object.keys(ROLE_LABELS) as MasterRole[]).map((r) => (
                 <option key={r} value={r}>
@@ -426,7 +426,7 @@ function MasterFormModal({
               <div className="px-3 pb-3 space-y-4 border-t border-gray-100 pt-3">
                 {PERMISSION_GROUPS.filter((g) => g.permissions.length > 0).map((group) => (
                   <div key={group.key}>
-                    <div className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-1">
+                    <div className="text-[11px] font-bold text-violet-700 uppercase tracking-wide mb-1">
                       {group.title}
                     </div>
                     <div className="text-[11px] text-gray-500 mb-2">{group.description}</div>
@@ -460,7 +460,7 @@ function MasterFormModal({
                       onClick={toggleAllTeamsVisible}
                       className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                         allTeamsVisible
-                          ? "bg-indigo-600 text-white border-indigo-600"
+                          ? "bg-violet-600 text-white border-violet-600"
                           : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                       }`}
                     >
@@ -478,7 +478,7 @@ function MasterFormModal({
                             onClick={() => toggleTeamVisible(t.id)}
                             className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap ${
                               selected
-                                ? "bg-indigo-600 text-white border-indigo-600"
+                                ? "bg-violet-600 text-white border-violet-600"
                                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                             }`}
                           >
@@ -516,7 +516,7 @@ function MasterFormModal({
             <button
               type="button"
               onClick={handleSubmit}
-              className="bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-indigo-700"
+              className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700"
             >
               Сохранить
             </button>
@@ -543,7 +543,7 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-9 h-5 rounded-full transition-colors ${
-        checked ? "bg-indigo-600" : "bg-gray-300"
+        checked ? "bg-violet-600" : "bg-gray-300"
       }`}
     >
       <span

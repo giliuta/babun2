@@ -14,7 +14,7 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-indigo-600 text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-violet-600 text-white px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">
             Лист ожидания ({MOCK_WAITLIST.length})
           </h2>
@@ -75,7 +75,7 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
         </div>
 
         {/* FAB */}
-        <button className="absolute bottom-20 right-8 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 transition-colors">
+        <button className="absolute bottom-20 right-8 w-12 h-12 bg-violet-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-violet-700 transition-colors">
           +
         </button>
       </div>

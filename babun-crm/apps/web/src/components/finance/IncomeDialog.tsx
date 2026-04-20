@@ -35,7 +35,7 @@ export default function IncomeDialog({ open, onClose }: IncomeDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-indigo-600 text-white px-4 py-3">
+        <div className="bg-violet-600 text-white px-4 py-3">
           <div className="relative">
             <button
               onClick={() => setShowPeriodMenu(!showPeriodMenu)}
@@ -56,7 +56,7 @@ export default function IncomeDialog({ open, onClose }: IncomeDialogProps) {
                       setShowPeriodMenu(false);
                     }}
                     className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                      period === p ? "text-indigo-600 font-medium" : "text-gray-700"
+                      period === p ? "text-violet-600 font-medium" : "text-gray-700"
                     }`}
                   >
                     {p}
@@ -75,7 +75,7 @@ export default function IncomeDialog({ open, onClose }: IncomeDialogProps) {
               onClick={() => setActiveTeam(tab)}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTeam === tab
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  ? "text-violet-600 border-b-2 border-violet-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -137,7 +137,7 @@ export default function IncomeDialog({ open, onClose }: IncomeDialogProps) {
         </div>
 
         {/* FAB */}
-        <button className="absolute bottom-20 right-8 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 transition-colors">
+        <button className="absolute bottom-20 right-8 w-12 h-12 bg-violet-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-violet-700 transition-colors">
           +
         </button>
       </div>

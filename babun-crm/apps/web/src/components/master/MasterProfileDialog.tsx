@@ -100,12 +100,12 @@ export default function MasterProfileDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-indigo-600 text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-violet-600 text-white px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">Профиль мастера</h2>
           <button
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-8 h-8 flex items-center justify-center rounded hover:bg-indigo-500"
+            className="w-8 h-8 flex items-center justify-center rounded hover:bg-violet-500"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -122,7 +122,7 @@ export default function MasterProfileDialog({
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTab === tab.id
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  ? "text-violet-600 border-b-2 border-violet-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -141,7 +141,7 @@ export default function MasterProfileDialog({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -150,7 +150,7 @@ export default function MasterProfileDialog({
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -192,7 +192,7 @@ export default function MasterProfileDialog({
                         type="text"
                         value={service.name}
                         onChange={(e) => handleServiceChange(service.id, "name", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
                       />
                       <div className="flex gap-2">
                         <input
@@ -201,20 +201,20 @@ export default function MasterProfileDialog({
                           onChange={(e) =>
                             handleServiceChange(service.id, "duration_minutes", Number(e.target.value))
                           }
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
                           placeholder="мин"
                         />
                         <input
                           type="number"
                           value={service.price}
                           onChange={(e) => handleServiceChange(service.id, "price", Number(e.target.value))}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
                           placeholder="EUR"
                         />
                         <button
                           type="button"
                           onClick={() => setEditingServiceId(null)}
-                          className="px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100"
+                          className="px-2 py-1 text-xs font-medium text-violet-600 bg-violet-50 rounded hover:bg-violet-100"
                         >
                           Готово
                         </button>
@@ -259,7 +259,7 @@ export default function MasterProfileDialog({
               <button
                 type="button"
                 onClick={handleAddService}
-                className="w-full py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                className="w-full py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors"
               >
                 + Добавить услугу
               </button>
@@ -279,8 +279,8 @@ export default function MasterProfileDialog({
                       onClick={() => setEditingTeamId(team.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         editingTeamId === team.id
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300"
+                          ? "bg-violet-600 text-white border-violet-600"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-violet-300"
                       }`}
                     >
                       {team.name}
@@ -303,7 +303,7 @@ export default function MasterProfileDialog({
                     type="time"
                     value={currentSchedule.start}
                     onChange={(e) => updateScheduleField("start", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -312,7 +312,7 @@ export default function MasterProfileDialog({
                     type="time"
                     value={currentSchedule.end}
                     onChange={(e) => updateScheduleField("end", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
                 </div>
               </div>

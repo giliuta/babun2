@@ -34,7 +34,7 @@ function LabelRow({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl">
+      <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 rounded-xl">
         <input
           autoFocus
           value={name}
@@ -43,10 +43,10 @@ function LabelRow({
             if (e.key === "Enter") save();
             if (e.key === "Escape") cancel();
           }}
-          className="flex-1 px-2 py-1 border border-indigo-300 rounded-lg text-sm bg-white"
+          className="flex-1 px-2 py-1 border border-violet-300 rounded-lg text-sm bg-white"
           placeholder="Название"
         />
-        <button type="button" onClick={save} className="text-indigo-700 text-sm font-semibold px-2">✓</button>
+        <button type="button" onClick={save} className="text-violet-700 text-sm font-semibold px-2">✓</button>
         <button type="button" onClick={cancel} className="text-gray-400 text-sm px-1">✕</button>
       </div>
     );
@@ -117,7 +117,7 @@ export default function BookingSettingsPage() {
         leftContent={
           <Link
             href="/dashboard/settings/calendar"
-            className="flex items-center gap-1 text-white/80 lg:text-indigo-600 text-sm px-1"
+            className="flex items-center gap-1 text-white/80 lg:text-violet-600 text-sm px-1"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M15 18l-6-6 6-6" />
@@ -129,7 +129,7 @@ export default function BookingSettingsPage() {
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="text-white lg:text-indigo-600 text-sm font-semibold px-2"
+            className="text-white lg:text-violet-600 text-sm font-semibold px-2"
           >
             + Добавить
           </button>
@@ -140,8 +140,8 @@ export default function BookingSettingsPage() {
         <div className="max-w-lg mx-auto p-3 lg:p-4 space-y-2 pb-24">
 
           {addOpen && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-2">
-              <div className="text-xs font-semibold text-indigo-700">Новый тип</div>
+            <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 space-y-2">
+              <div className="text-xs font-semibold text-violet-700">Новый тип</div>
               <input
                 autoFocus
                 value={newName}
@@ -150,7 +150,7 @@ export default function BookingSettingsPage() {
                   if (e.key === "Enter") addLabel();
                   if (e.key === "Escape") setAddOpen(false);
                 }}
-                className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-white"
+                className="w-full px-3 py-2 border border-violet-300 rounded-lg text-sm bg-white"
                 placeholder="Напр. Склад, Магазин, Ресторан"
               />
               <div className="flex gap-2">
@@ -168,7 +168,7 @@ export default function BookingSettingsPage() {
                   type="button"
                   onClick={addLabel}
                   disabled={!newName.trim()}
-                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50"
+                  className="flex-1 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50"
                 >
                   Добавить
                 </button>

@@ -41,7 +41,7 @@ export default function TeamPickerSheet({
                 }}
                 className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border-2 active:scale-[0.99] transition ${
                   selected
-                    ? "border-indigo-500 bg-indigo-50"
+                    ? "border-violet-500 bg-violet-50"
                     : "border-gray-200 bg-white"
                 }`}
               >
@@ -62,7 +62,7 @@ export default function TeamPickerSheet({
                   )}
                 </div>
                 {selected && (
-                  <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>

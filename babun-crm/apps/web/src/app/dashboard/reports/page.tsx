@@ -95,7 +95,7 @@ function SummaryCard({
 }) {
   const colorClass =
     color === "emerald" ? "text-emerald-600" :
-    color === "rose" ? "text-rose-600" : "text-indigo-600";
+    color === "rose" ? "text-rose-600" : "text-violet-600";
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-3 py-3 flex-1 min-w-0">
@@ -209,7 +209,7 @@ export default function ReportsPage() {
                   key={p.key}
                   type="button"
                   onClick={() => { setPeriod(p.key); setShowPeriodMenu(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-indigo-600 font-semibold bg-indigo-50" : "text-gray-700 hover:bg-gray-50"}`}
+                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-violet-600 font-semibold bg-violet-50" : "text-gray-700 hover:bg-gray-50"}`}
                 >
                   {p.label}
                 </button>
@@ -227,7 +227,7 @@ export default function ReportsPage() {
               onClick={() => setActiveBrigade(b.id)}
               className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeBrigade === b.id
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  ? "text-violet-600 border-b-2 border-violet-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -276,7 +276,7 @@ export default function ReportsPage() {
                       onClick={() => setExpandedDay(isExpanded ? null : row.date)}
                       className={`w-full grid grid-cols-4 gap-2 px-4 py-3 text-left ${
                         i < dayRows.length - 1 ? "border-b border-gray-100" : ""
-                      } ${isExpanded ? "bg-indigo-50" : "hover:bg-gray-50"}`}
+                      } ${isExpanded ? "bg-violet-50" : "hover:bg-gray-50"}`}
                     >
                       <span className="text-[12px] text-gray-700">{row.date.slice(5)}</span>
                       <span className="text-[12px] font-medium text-emerald-600 tabular-nums text-right">
@@ -285,14 +285,14 @@ export default function ReportsPage() {
                       <span className="text-[12px] font-medium text-rose-600 tabular-nums text-right">
                         {row.expense > 0 ? `−${formatEUR(row.expense)}` : "—"}
                       </span>
-                      <span className={`text-[12px] font-bold tabular-nums text-right ${row.profit >= 0 ? "text-indigo-600" : "text-rose-600"}`}>
+                      <span className={`text-[12px] font-bold tabular-nums text-right ${row.profit >= 0 ? "text-violet-600" : "text-rose-600"}`}>
                         {formatEURSigned(row.profit)}
                       </span>
                     </button>
 
                     {/* Expanded day detail */}
                     {isExpanded && (
-                      <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-3 space-y-2">
+                      <div className="bg-violet-50/60 border-b border-violet-100 px-4 py-3 space-y-2">
                         {expandedIncome.map((l) => (
                           <div key={l.id} className="flex items-center gap-2 text-[12px]">
                             <span className="text-emerald-600">+</span>
@@ -321,7 +321,7 @@ export default function ReportsPage() {
                 <span className="text-[12px] font-semibold text-gray-700">Итого</span>
                 <span className="text-[12px] font-bold text-emerald-600 tabular-nums text-right">+{formatEUR(totalIncome)}</span>
                 <span className="text-[12px] font-bold text-rose-600 tabular-nums text-right">−{formatEUR(totalExpense)}</span>
-                <span className={`text-[12px] font-bold tabular-nums text-right ${totalProfit >= 0 ? "text-indigo-600" : "text-rose-600"}`}>
+                <span className={`text-[12px] font-bold tabular-nums text-right ${totalProfit >= 0 ? "text-violet-600" : "text-rose-600"}`}>
                   {formatEURSigned(totalProfit)}
                 </span>
               </div>

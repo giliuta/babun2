@@ -194,7 +194,7 @@ export default function Header({
                     }}
                     className={`w-full text-left px-3 py-2 text-[13px] hover:bg-gray-50 transition-colors ${
                       viewMode === mode
-                        ? "text-indigo-600 font-medium bg-indigo-50"
+                        ? "text-violet-600 font-medium bg-violet-50"
                         : "text-gray-700"
                     }`}
                   >

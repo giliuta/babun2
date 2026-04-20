@@ -105,7 +105,7 @@ export default function DayFinanceModal({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-12 bg-indigo-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
+          className="w-full h-12 bg-violet-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
         >
           Сохранить
         </button>
@@ -200,13 +200,13 @@ export default function DayFinanceModal({
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="w-full h-9 flex items-center justify-center gap-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[12px] font-semibold active:scale-[0.98]"
+              className="w-full h-9 flex items-center justify-center gap-1.5 bg-violet-50 text-violet-700 rounded-lg text-[12px] font-semibold active:scale-[0.98]"
             >
               <span className="text-[15px] leading-none">+</span>
               Добавить
             </button>
           ) : (
-            <div className="bg-indigo-50 rounded-lg p-2 space-y-2">
+            <div className="bg-violet-50 rounded-lg p-2 space-y-2">
               <div className="flex gap-1 bg-white rounded-md p-0.5">
                 <button
                   type="button"
@@ -237,7 +237,7 @@ export default function DayFinanceModal({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Название (например, Бензин)"
-                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -249,7 +249,7 @@ export default function DayFinanceModal({
                     setNewAmount(v === "" ? "" : Number(v) || 0);
                   }}
                   placeholder="Сумма"
-                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
                 <span className="text-[13px] text-gray-500">€</span>
               </div>
@@ -273,7 +273,7 @@ export default function DayFinanceModal({
                     typeof newAmount !== "number" ||
                     newAmount <= 0
                   }
-                  className="flex-1 h-9 bg-indigo-600 text-white rounded-lg text-[12px] font-semibold disabled:opacity-40"
+                  className="flex-1 h-9 bg-violet-600 text-white rounded-lg text-[12px] font-semibold disabled:opacity-40"
                 >
                   Добавить
                 </button>

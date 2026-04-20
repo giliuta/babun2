@@ -161,7 +161,7 @@ export default function ServicePickerSheet({
           type="button"
           onClick={handleConfirm}
           disabled={totals.count === 0}
-          className="w-full h-12 bg-indigo-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
+          className="w-full h-12 bg-violet-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
         >
           <span>
             {totals.count > 0
@@ -198,7 +198,7 @@ export default function ServicePickerSheet({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск услуги"
-          className="w-full h-10 px-3 bg-gray-100 rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full h-10 px-3 bg-gray-100 rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
 
         {grouped.length === 0 ? (
@@ -219,7 +219,7 @@ export default function ServicePickerSheet({
                     key={s.id}
                     className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
                       selected
-                        ? "border-indigo-500 bg-indigo-50"
+                        ? "border-violet-500 bg-violet-50"
                         : "border-gray-200 bg-white"
                     }`}
                   >
@@ -249,13 +249,13 @@ export default function ServicePickerSheet({
                         >
                           −
                         </button>
-                        <div className="w-7 text-center text-[13px] font-semibold text-indigo-700 tabular-nums">
+                        <div className="w-7 text-center text-[13px] font-semibold text-violet-700 tabular-nums">
                           {qty}
                         </div>
                         <button
                           type="button"
                           onClick={() => setQty(s.id, qty + 1)}
-                          className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center active:scale-95 text-[15px]"
+                          className="w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center active:scale-95 text-[15px]"
                           aria-label="Увеличить"
                         >
                           +

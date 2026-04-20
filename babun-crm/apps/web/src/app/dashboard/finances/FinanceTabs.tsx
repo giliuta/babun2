@@ -338,7 +338,7 @@ export function ExpenseCategoriesSheet({
           <button
             type="button"
             onClick={add}
-            className="w-full py-2 text-sm font-medium text-indigo-600 border border-dashed border-indigo-300 rounded-lg hover:bg-indigo-50"
+            className="w-full py-2 text-sm font-medium text-violet-600 border border-dashed border-violet-300 rounded-lg hover:bg-violet-50"
           >
             + Новая категория
           </button>
@@ -355,7 +355,7 @@ export function ExpenseCategoriesSheet({
           <button
             type="button"
             onClick={() => onSave(draft)}
-            className="flex-1 min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600"
+            className="flex-1 min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600"
           >
             Сохранить
           </button>
@@ -369,7 +369,7 @@ export function ExpenseCategoriesSheet({
 
 function TotalRow({ label, value, color }: { label: string; value: number; color: "emerald" | "rose" | "indigo" }) {
   const colorClass =
-    color === "emerald" ? "text-emerald-600" : color === "rose" ? "text-rose-600" : "text-indigo-600";
+    color === "emerald" ? "text-emerald-600" : color === "rose" ? "text-rose-600" : "text-violet-600";
   return (
     <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
       <div className="flex items-center justify-between">
@@ -384,7 +384,7 @@ function TotalRow({ label, value, color }: { label: string; value: number; color
 
 function Kv({ label, value, color }: { label: string; value: string; color: "emerald" | "rose" | "indigo" }) {
   const cc =
-    color === "emerald" ? "text-emerald-700" : color === "rose" ? "text-rose-700" : "text-indigo-700";
+    color === "emerald" ? "text-emerald-700" : color === "rose" ? "text-rose-700" : "text-violet-700";
   return (
     <div className="bg-gray-50 rounded-md px-2 py-1">
       <div className="text-[9px] text-gray-500 uppercase tracking-wider">{label}</div>
