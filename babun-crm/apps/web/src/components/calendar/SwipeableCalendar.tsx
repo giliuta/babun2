@@ -18,7 +18,9 @@ const SWIPE_COMMIT_RATIO = 0.25;
 // Below this absolute pixel delta, treat as a tap and ignore.
 const SWIPE_MIN_PX = 30;
 // Direction lock thresholds (px) — decide horizontal vs vertical scroll.
-const DIRECTION_LOCK_PX = 8;
+// 8 px was too twitchy on iPhone 390 (false horizontal triggers during
+// fast vertical grid scrolls). 12 gives room for an unambiguous gesture.
+const DIRECTION_LOCK_PX = 12;
 
 type Direction = "none" | "horizontal" | "vertical";
 

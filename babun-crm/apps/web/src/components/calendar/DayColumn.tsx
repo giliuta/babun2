@@ -209,7 +209,7 @@ function DayColumnInner({
           e.preventDefault();
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[72px] lg:h-[82px] overflow-hidden text-center cursor-pointer active:brightness-95 transition ${
+        className={`relative sticky top-0 z-20 h-[52px] lg:h-[60px] overflow-hidden text-center cursor-pointer active:brightness-95 transition ${
           isToday ? "ring-2 ring-white/70 ring-inset" : ""
         }`}
         style={{
@@ -230,36 +230,36 @@ function DayColumnInner({
           }}
         />
 
-        {/* 3. Текст — стек центрирован, z > overlay. */}
-        <div className="relative z-10 px-0.5 pt-1.5 pb-2.5 flex flex-col items-center justify-start">
-          {/* Город — 7px uppercase bold, opacity 85. Длинные → slice+. */}
+        {/* 3. Текст — компактный стек. Weekday + число на одной строке,
+            город тонкой надписью сверху. Экономит ~20 px вертикального
+            места на iPhone 390, не жертвуя читаемостью. */}
+        <div className="relative z-10 px-0.5 pt-1 pb-1.5 flex flex-col items-center justify-start gap-0.5">
+          {/* Город — 8px uppercase bold. */}
           <span
-            className="text-[7px] lg:text-[9px] font-bold uppercase tracking-wide text-white truncate max-w-full"
-            style={{ opacity: cityLabel ? 0.85 : 0.5 }}
+            className="text-[8px] lg:text-[10px] font-bold uppercase tracking-wide text-white truncate max-w-full leading-none"
+            style={{ opacity: cityLabel ? 0.9 : 0.5 }}
           >
             {cityShort || "+ город"}
           </span>
 
-          {/* Weekday — 7px opacity 45, рядом месяц с меньшей opacity. */}
-          <span
-            className="text-[7px] lg:text-[9px] font-semibold uppercase tracking-wide text-white mt-0.5"
-            style={{ opacity: 0.45 }}
+          {/* Weekday + число в одну строку. */}
+          <div
+            className="flex items-baseline gap-1 text-white leading-none"
+            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
           >
-            {dayName}
-            {isFirstOfMonth && (
-              <span className="ml-1 opacity-80">{monthShort}</span>
-            )}
-          </span>
-
-          {/* Число — 18px font-black белый, доминанта. */}
-          <span
-            className="text-[18px] lg:text-[22px] font-black tabular-nums text-white leading-none mt-1"
-            style={{
-              textShadow: "0 1px 2px rgba(0,0,0,0.15)",
-            }}
-          >
-            {date.getDate()}
-          </span>
+            <span
+              className="text-[9px] lg:text-[10px] font-semibold uppercase tracking-wide"
+              style={{ opacity: 0.7 }}
+            >
+              {dayName}
+              {isFirstOfMonth && (
+                <span className="ml-1 opacity-80">{monthShort}</span>
+              )}
+            </span>
+            <span className="text-[22px] lg:text-[26px] font-black tabular-nums">
+              {date.getDate()}
+            </span>
+          </div>
         </div>
 
         {/* 4. Fade bottom — 8px переход от тёмной границы к светлому
