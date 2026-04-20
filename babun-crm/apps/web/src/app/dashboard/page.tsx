@@ -580,9 +580,12 @@ export default function DashboardPage() {
     if (params.get("new") === "1") {
       const clientId = params.get("client_id");
       const client = clientId ? clients.find((c) => c.id === clientId) : null;
-      const today = new Date();
+      const dateParam = params.get("date");
+      const dateKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+        ? dateParam
+        : new Date().toISOString().slice(0, 10);
       const blank = createBlankAppointment({
-        date: today.toISOString().slice(0, 10),
+        date: dateKey,
         time_start: "10:00",
         time_end: "11:00",
         team_id: activeTeamId || null,

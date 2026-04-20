@@ -36,6 +36,8 @@ import { useRouter } from "next/navigation";
 import { loadChats } from "@/lib/chats";
 import PaymentBlock from "./PaymentBlock";
 import { buildShareUrl } from "@/lib/share-link";
+import { createRecurring } from "@/lib/recurring";
+import RepeatReminderSheet from "./RepeatReminderSheet";
 
 export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
 
@@ -121,6 +123,7 @@ export default function AppointmentSheet({
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
   const [clientProfileOpen, setClientProfileOpen] = useState(false);
+  const [repeatSheetOpen, setRepeatSheetOpen] = useState(false);
 
   // body scroll lock + ESC close
   useEffect(() => {
@@ -780,6 +783,11 @@ export default function AppointmentSheet({
               }
             }
           }}
+          onScheduleRepeat={
+            appointment.status === "completed" && !isEventMode && client
+              ? () => setRepeatSheetOpen(true)
+              : undefined
+          }
           onShareAppointment={
             liveMode === "create" || isEventMode
               ? undefined
@@ -830,6 +838,36 @@ export default function AppointmentSheet({
           onClose={() => setSendMsgOpen(false)}
           phone={client.phone ?? null}
           clientName={client.full_name}
+        />
+      )}
+
+      {client && (
+        <RepeatReminderSheet
+          open={repeatSheetOpen}
+          clientName={client.full_name}
+          serviceSummary={appointmentServices
+            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
+            .filter(Boolean)
+            .join(" · ")}
+          lastDate={appointment.date}
+          onClose={() => setRepeatSheetOpen(false)}
+          onConfirm={(months, note) => {
+            const serviceSummary = appointmentServices
+              .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
+              .filter((n): n is string => Boolean(n))
+              .join(" · ");
+            createRecurring({
+              client_id: client.id,
+              client_name: client.full_name,
+              phone: client.phone ?? "",
+              team_id: activeTeam?.id ?? null,
+              service_ids: appointmentServices.map((l) => l.serviceId),
+              service_summary: serviceSummary,
+              last_date: appointment.date,
+              interval_months: months,
+              note,
+            });
+          }}
         />
       )}
 

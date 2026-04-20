@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { loadWaitlist } from "@/lib/waitlist";
+import { loadRecurring, dueReminders } from "@/lib/recurring";
 import { BUILD_VERSION } from "@/lib/version";
 
 export type DialogType =
@@ -13,6 +14,7 @@ export type DialogType =
   | "payroll"
   | "reports"
   | "waitlist"
+  | "recurring"
   | "settings"
   | "masters"
   | "teams"
@@ -38,6 +40,7 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   payroll: "/dashboard/payroll",
   reports: "/dashboard/reports",
   waitlist: "/dashboard/waitlist",
+  recurring: "/dashboard/recurring",
   settings: "/dashboard/settings",
   masters: "/dashboard/masters",
   teams: "/dashboard/teams",
@@ -53,20 +56,24 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const [waitlistPending, setWaitlistPending] = useState(0);
+  const [recurringDue, setRecurringDue] = useState(0);
   useEffect(() => {
     const refresh = () => {
       setWaitlistPending(
         loadWaitlist().filter((i) => i.status === "pending").length
       );
+      setRecurringDue(dueReminders(loadRecurring()).length);
     };
     refresh();
     // Re-read when the drawer is reopened or the user navigates — cheap
     // enough to avoid a store abstraction for now.
     window.addEventListener("storage", refresh);
     window.addEventListener("focus", refresh);
+    window.addEventListener("babun:recurring-changed", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("babun:recurring-changed", refresh);
     };
   }, [open, pathname]);
 
@@ -157,6 +164,18 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             badge={waitlistPending > 0 ? waitlistPending : undefined}
             active={isActive("waitlist")}
             onClick={() => handleNav("waitlist")}
+          />
+          <NavItem
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.77.95 6.5 2.5" />
+                <polyline points="21 3 21 9 15 9" />
+              </svg>
+            }
+            label="Напоминания"
+            badge={recurringDue > 0 ? recurringDue : undefined}
+            active={isActive("recurring")}
+            onClick={() => handleNav("recurring")}
           />
 
           <SectionLabel>Деньги</SectionLabel>

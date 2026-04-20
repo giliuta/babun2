@@ -12,11 +12,13 @@ interface ClientActionMenuProps {
   onShare: () => void;
   /** Optional — send public /b/[token] link for this appointment. */
   onShareAppointment?: () => void;
+  /** Optional — schedule a follow-up reminder for the same services. */
+  onScheduleRepeat?: () => void;
 }
 
-// Centered popup menu for the client row ⋯ button.
-// Up to five actions: profile / send message / open chat / share contact /
-// share appointment (when the sheet is viewing a persisted record).
+// Centered popup menu for the client row ⋯ button. Up to six actions:
+// profile / send message / open chat / share contact / share appointment /
+// schedule recurring follow-up (only for completed visits).
 export default function ClientActionMenu({
   open,
   onClose,
@@ -26,6 +28,7 @@ export default function ClientActionMenu({
   onOpenChat,
   onShare,
   onShareAppointment,
+  onScheduleRepeat,
 }: ClientActionMenuProps) {
   if (!open) return null;
 
@@ -36,6 +39,9 @@ export default function ClientActionMenu({
     { icon: "🔗", label: "Поделиться контактом", onClick: onShare },
     ...(onShareAppointment
       ? [{ icon: "📆", label: "Поделиться записью", onClick: onShareAppointment }]
+      : []),
+    ...(onScheduleRepeat
+      ? [{ icon: "🔁", label: "Повторить через…", onClick: onScheduleRepeat }]
       : []),
   ];
 
