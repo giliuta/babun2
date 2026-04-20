@@ -14,6 +14,8 @@ import {
   useClients,
 } from "@/app/dashboard/layout";
 import { computeFinancials, type FinanceLine } from "@/lib/finance/compute";
+import { loadCompany } from "@/lib/finance/company";
+import { splitVat } from "@/lib/finance/vat";
 
 // ─── Period helpers ─────────────────────────────────────────────────────────
 
@@ -243,6 +245,34 @@ export default function ReportsPage() {
             <SummaryCard label="Расход" amount={totalExpense} color="rose" />
             <SummaryCard label="Прибыль" amount={totalProfit} color="indigo" signed />
           </div>
+
+          {/* VAT card — shown only when the company has VAT enabled.
+              Splits the income via the same `splitVat` helper that
+              powers the PDF invoice so the numbers never disagree. */}
+          {(() => {
+            const company = loadCompany();
+            if (company.vat_mode === "off" || totalIncome <= 0) return null;
+            const vat = splitVat(totalIncome, company.vat_mode, company.vat_rate_percent);
+            return (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-baseline justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                    VAT · {vat.rate}%{" "}
+                    {vat.mode === "inclusive" ? "(включён)" : "(сверху)"}
+                  </div>
+                  <div className="text-[11px] text-gray-500 mt-0.5 tabular-nums">
+                    Нетто {formatEUR(vat.net)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[15px] font-bold text-violet-700 tabular-nums">
+                    {formatEUR(vat.vat)}
+                  </div>
+                  <div className="text-[10px] text-gray-400">к уплате</div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Empty state */}
           {!hasData && (

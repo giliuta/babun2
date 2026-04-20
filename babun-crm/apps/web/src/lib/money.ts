@@ -43,7 +43,12 @@ export function formatEURSigned(amount: number): string {
 }
 
 export function formatPercentDelta(pct: number): string {
-  if (!Number.isFinite(pct)) return "—";
+  if (Number.isNaN(pct)) return "—";
+  // `percentDelta` returns +Infinity when prev was zero and current > 0 —
+  // i.e. there's no comparable previous period. "нов." is more honest
+  // than "+100 %" (which was the old silent lie).
+  if (pct === Number.POSITIVE_INFINITY) return "нов.";
+  if (pct === Number.NEGATIVE_INFINITY) return "—";
   const r = Math.round(pct);
   if (r === 0) return "0%";
   return r > 0 ? `+${r}%` : `${r}%`;

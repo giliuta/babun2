@@ -68,8 +68,17 @@ export function sum(arr: { amount: number }[]): number {
   return arr.reduce((s, e) => s + e.amount, 0);
 }
 
+/**
+ * Percent-delta between two values. When prev is zero the ratio is
+ * mathematically undefined — previous versions returned 100, which
+ * made every first-in-period number look like a dishonest "+100 %"
+ * win. Now:
+ *   prev=0, current=0  → 0 (no change)
+ *   prev=0, current>0  → +Infinity (render as "нов.")
+ *   prev>0             → usual (current − prev) / |prev| × 100
+ */
 export function percentDelta(current: number, prev: number): number {
-  if (prev === 0) return current === 0 ? 0 : 100;
+  if (prev === 0) return current === 0 ? 0 : Number.POSITIVE_INFINITY;
   return ((current - prev) / Math.abs(prev)) * 100;
 }
 

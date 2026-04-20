@@ -64,6 +64,7 @@ import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
 import NowPill from "@/components/layout/NowPill";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
+import TodayGlance from "@/components/layout/TodayGlance";
 
 
 import {
@@ -839,6 +840,19 @@ export default function DashboardPage() {
         onSelectDate={handleSelectDate}
         onMenuToggle={sidebar.toggle}
       />
+
+      {/* Today glance — "Сегодня +€340 · нал 180 · карта 160". Emerald
+          strip under Header, tap jumps to /finances. Hidden when
+          today has zero income. */}
+      {viewMode !== "month" && (
+        <TodayGlance
+          appointments={appointments}
+          services={services}
+          teams={teams}
+          dayExtrasOf={getExtrasFor}
+          teamId={activeTeamId}
+        />
+      )}
 
       {/* Now-pill: sticky "Сейчас / Через N мин" hint under the header.
           Hidden in month view where "today" doesn't exist in the grid. */}
