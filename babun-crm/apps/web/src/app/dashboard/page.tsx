@@ -224,6 +224,7 @@ export default function DashboardPage() {
         is_online_booking: false,
         kind: isEvent ? "event" : "work",
         photos: [],
+        consent_given: true,
         reminder_enabled: false,
         reminder_offsets: [1440, 60],
         reminder_template:

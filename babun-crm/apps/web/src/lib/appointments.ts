@@ -51,10 +51,18 @@ export interface AppointmentService {
 
 export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
 
+export type PhotoKind = "before" | "after" | "other";
+
 export interface AppointmentPhoto {
   id: string;
   data_url: string; // base64 — works without Supabase storage for now
   caption: string;
+  kind: PhotoKind;
+  /** Which object the photo belongs to (client.locations[].id). */
+  location_id?: string;
+  /** Time the photo was taken. Distinct from uploaded_at when imported
+   *  from gallery long after the shoot. */
+  taken_at?: string;
   uploaded_at: string;
 }
 
@@ -112,6 +120,10 @@ export interface Appointment {
   is_online_booking: boolean; // true — клиент записался сам через онлайн-форму
   kind: AppointmentKind; // 'event' / 'personal' = не услуга, а личное событие
   photos: AppointmentPhoto[]; // фото до/после работы
+  /** Client agreed to photos being taken. Default true for AirFix
+   *  single-tenant; becomes a visible toggle when multi-tenant SaaS
+   *  arrives. */
+  consent_given: boolean;
 
   reminder_enabled: boolean; // клиенту отправляется SMS-напоминание
   reminder_offsets: number[]; // смещения в минутах ДО начала (например [1440, 60])
@@ -161,6 +173,15 @@ export function loadAppointments(): Appointment[] {
         p.reminder_template ??
         "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
       location_id: p.location_id ?? null,
+      address_note: p.address_note ?? "",
+      consent_given: p.consent_given ?? true,
+      // Defensive: normalize each legacy AppointmentPhoto so the viewer
+      // never crashes on undefined kind / taken_at.
+      photos: (p.photos ?? []).map((ph) => ({
+        ...ph,
+        kind: ph.kind ?? "other",
+        taken_at: ph.taken_at ?? ph.uploaded_at,
+      })),
       services: p.services ?? [],
       global_discount: p.global_discount ?? null,
       total_duration: p.total_duration ?? 0,
@@ -520,6 +541,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     is_online_booking: false,
     kind: "work",
     photos: [],
+    consent_given: true,
     reminder_enabled: false,
     reminder_offsets: [1440, 60],
     reminder_template:
