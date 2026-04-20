@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@/lib/clients";
 import { createBlankClient, upsertClient } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
 import DialogModal from "./DialogModal";
+import { matchesClient, findDuplicateCandidates } from "@/lib/client-search";
 
 interface ClientPickerSheetProps {
   open: boolean;
@@ -22,9 +23,6 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/[^a-zа-я0-9]/gi, "");
-}
 
 export default function ClientPickerSheet({
   open,
@@ -44,16 +42,47 @@ export default function ClientPickerSheet({
   const [newComment, setNewComment] = useState("");
   const [newTelegram, setNewTelegram] = useState<string | null>(null);
   const [newInstagram, setNewInstagram] = useState<string | null>(null);
+  const [clipboardHint, setClipboardHint] = useState<string | null>(null);
+
+  // Clipboard-detect: when the dispatcher opens "Новый клиент" we peek
+  // at the clipboard once — if it looks like a phone number, offer to
+  // prefill. No auto-fill (iOS permission prompt is jarring if it fires
+  // without a reason). The dispatcher taps "Вставить" to accept.
+  useEffect(() => {
+    if (!showNewForm) return;
+    if (clipboardHint !== null) return;
+    const ask = async () => {
+      try {
+        if (typeof navigator === "undefined" || !navigator.clipboard) return;
+        const text = await navigator.clipboard.readText();
+        if (!text) return;
+        const digits = text.replace(/\D/g, "");
+        if (digits.length >= 7 && digits.length <= 16) {
+          setClipboardHint(text.trim());
+        }
+      } catch {
+        // Permission denied — fine, the dispatcher can paste manually.
+      }
+    };
+    ask();
+  }, [showNewForm, clipboardHint]);
 
   const filtered = useMemo(() => {
-    const q = normalize(query);
-    if (!q) return clients;
-    return clients.filter((c) => {
-      const name = normalize(c.full_name);
-      const phone = normalize(c.phone ?? "");
-      return name.includes(q) || phone.includes(q);
-    });
+    if (!query.trim()) return clients;
+    return clients.filter((c) => matchesClient(c, query));
   }, [clients, query]);
+
+  // Duplicate candidates — recomputed every keystroke in the new-client
+  // form. Only shown when the draft has enough signal (>=3 letters in
+  // the name OR >=5 digits in the first phone), otherwise too noisy.
+  const duplicates = useMemo(() => {
+    if (!showNewForm) return [] as Client[];
+    const draftName = newName.trim();
+    const draftPhone = newPhones[0] ?? "";
+    const digits = draftPhone.replace(/\D/g, "");
+    if (draftName.length < 3 && digits.length < 5) return [] as Client[];
+    return findDuplicateCandidates(clients, { full_name: draftName, phone: draftPhone });
+  }, [clients, showNewForm, newName, newPhones]);
 
   const sorted = useMemo(() => {
     const recentSet = new Set(recentClientIds);
@@ -188,6 +217,24 @@ export default function ClientPickerSheet({
           </button>
         ) : (
           <div className="space-y-2 bg-indigo-50 rounded-xl p-3">
+            {clipboardHint && newPhones[0] !== clipboardHint && (
+              <button
+                type="button"
+                onClick={() => {
+                  updatePhone(0, clipboardHint);
+                  setClipboardHint(null);
+                }}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white border border-indigo-200 text-[12px] text-indigo-800 active:bg-indigo-50"
+              >
+                <span className="truncate">
+                  <span className="font-semibold">В буфере:</span> {clipboardHint}
+                </span>
+                <span className="text-[11px] font-semibold text-indigo-600 shrink-0">
+                  Вставить →
+                </span>
+              </button>
+            )}
+
             <input
               type="text"
               autoFocus
@@ -196,6 +243,32 @@ export default function ClientPickerSheet({
               placeholder="Имя клиента *"
               className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+
+            {duplicates.length > 0 && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-800">
+                <div className="font-semibold">Уже есть похожие</div>
+                {duplicates.slice(0, 3).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      handleSelect(c);
+                      setShowNewForm(false);
+                      resetForm();
+                    }}
+                    className="w-full flex items-center justify-between gap-2 mt-1 py-1 text-amber-900 active:opacity-70"
+                  >
+                    <span className="truncate">
+                      {c.full_name}
+                      {c.phone ? ` · ${c.phone}` : ""}
+                    </span>
+                    <span className="text-[11px] font-semibold text-amber-700 shrink-0">
+                      Выбрать →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* First phone — always visible, no remove. */}
             <div className="flex items-center gap-2 bg-white rounded-lg px-3 h-11">

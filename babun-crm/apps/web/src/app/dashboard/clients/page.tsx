@@ -10,6 +10,7 @@ import { getPaidAmount } from "@/lib/appointments";
 import { getAvatarColor, getInitials } from "@/lib/avatar-color";
 import { pluralizeAC } from "@/lib/pluralize";
 import ClientPanel from "@/components/clients/ClientPanel";
+import { matchesClient } from "@/lib/client-search";
 
 const TAG_CHIPS = [
   { id: "tag-vip", label: "VIP", active: "bg-amber-100 text-amber-700" },
@@ -70,15 +71,7 @@ export default function ClientsPage() {
     let list = clients;
 
     if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((c) =>
-        c.full_name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        c.phones.some((p) => p.number.includes(q)) ||
-        c.whatsapp_phone.includes(q) ||
-        c.telegram_username.toLowerCase().includes(q) ||
-        c.instagram_username.toLowerCase().includes(q)
-      );
+      list = list.filter((c) => matchesClient(c, search));
     }
 
     if (activeTags.length > 0) {
