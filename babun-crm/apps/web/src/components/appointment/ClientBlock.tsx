@@ -59,28 +59,26 @@ export default function ClientBlock({
   return (
     <div className="px-4 pt-2">
       <div className="h-14 flex items-center gap-3 px-3 rounded-xl bg-white border border-slate-200">
-        <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-[13px] flex-shrink-0">
-          {initials(client.full_name)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[15px] font-semibold text-slate-900 truncate">
-            {client.full_name}
+        <button
+          type="button"
+          onClick={readonly ? undefined : onPick}
+          disabled={readonly}
+          className="flex-1 min-w-0 flex items-center gap-3 h-full text-left active:opacity-70"
+        >
+          <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-[13px] flex-shrink-0">
+            {initials(client.full_name)}
           </div>
-          {phone && (
-            readonly ? (
-              <a
-                href={phoneDigits ? `tel:${phoneDigits}` : undefined}
-                className="text-[13px] text-sky-700 tabular-nums truncate block"
-              >
-                {phone}
-              </a>
-            ) : (
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-semibold text-slate-900 truncate">
+              {client.full_name}
+            </div>
+            {phone && (
               <div className="text-[13px] text-slate-500 tabular-nums truncate">
                 {phone}
               </div>
-            )
-          )}
-        </div>
+            )}
+          </div>
+        </button>
         <div className="flex items-center gap-1 flex-shrink-0">
           {phone && phoneDigits && (
             <a

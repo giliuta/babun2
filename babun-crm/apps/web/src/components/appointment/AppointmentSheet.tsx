@@ -27,6 +27,10 @@ import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
 import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
+import ClientActionMenu from "./ClientActionMenu";
+import SendMessagePopup from "./SendMessagePopup";
+import { useRouter } from "next/navigation";
+import { loadChats } from "@/lib/chats";
 import PaymentBlock from "./PaymentBlock";
 
 export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
@@ -76,6 +80,7 @@ export default function AppointmentSheet({
   onSave,
   onCancelAppointment,
 }: AppointmentSheetProps) {
+  const router = useRouter();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
   // sheet родителем.
@@ -108,6 +113,8 @@ export default function AppointmentSheet({
   const [closeConfirm, setCloseConfirm] = useState(false);
   const [bottomWarning, setBottomWarning] = useState<string | null>(null);
   const [askClientFirst, setAskClientFirst] = useState(false);
+  const [clientMenuOpen, setClientMenuOpen] = useState(false);
+  const [sendMsgOpen, setSendMsgOpen] = useState(false);
 
   // body scroll lock + ESC close
   useEffect(() => {
@@ -443,7 +450,7 @@ export default function AppointmentSheet({
                 readonly={readonly}
                 onPick={() => setClientSheet(true)}
                 onChange={() => setClientId(null)}
-                onMenu={client ? () => setClientSheet(true) : undefined}
+                onMenu={client ? () => setClientMenuOpen(true) : undefined}
               />
 
               <LocationsBlock
@@ -731,6 +738,53 @@ export default function AppointmentSheet({
             </div>
           </div>
         </div>
+      )}
+
+      {client && (
+        <ClientActionMenu
+          open={clientMenuOpen}
+          onClose={() => setClientMenuOpen(false)}
+          client={client}
+          onProfile={() => {
+            router.push(`/dashboard/clients/${client.id}`);
+          }}
+          onSendMessage={() => setSendMsgOpen(true)}
+          onOpenChat={() => {
+            const existing = loadChats().find((ch) => ch.client_id === client.id);
+            if (existing) {
+              router.push(`/dashboard/chats?chat_id=${existing.id}`);
+            } else {
+              router.push(`/dashboard/chats?client_id=${client.id}`);
+            }
+          }}
+          onShare={async () => {
+            const parts = [client.full_name];
+            if (client.phone) parts.push(client.phone);
+            const text = parts.join(" · ");
+            if (typeof navigator !== "undefined" && navigator.share) {
+              try {
+                await navigator.share({ title: client.full_name, text });
+              } catch {
+                // user dismissed
+              }
+            } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+              try {
+                await navigator.clipboard.writeText(text);
+              } catch {
+                // ignore
+              }
+            }
+          }}
+        />
+      )}
+
+      {client && (
+        <SendMessagePopup
+          open={sendMsgOpen}
+          onClose={() => setSendMsgOpen(false)}
+          phone={client.phone ?? null}
+          clientName={client.full_name}
+        />
       )}
 
       {/* Keep reference list silenced */}
