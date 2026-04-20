@@ -35,6 +35,7 @@ import ClientProfileView from "@/components/clients/ClientProfileView";
 import { useRouter } from "next/navigation";
 import { loadChats } from "@/lib/chats";
 import PaymentBlock from "./PaymentBlock";
+import { buildShareUrl } from "@/lib/share-link";
 
 export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
 
@@ -779,6 +780,47 @@ export default function AppointmentSheet({
               }
             }
           }}
+          onShareAppointment={
+            liveMode === "create" || isEventMode
+              ? undefined
+              : async () => {
+                  const serviceNames = appointmentServices
+                    .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
+                    .filter((n): n is string => Boolean(n));
+                  const origin =
+                    typeof window !== "undefined" ? window.location.origin : "";
+                  const url = buildShareUrl(origin, {
+                    d: dateKey,
+                    ts: timeStart,
+                    te: timeEnd,
+                    c: client.full_name,
+                    s: serviceNames,
+                    a: address || undefined,
+                    b: activeTeam?.name,
+                    t: Math.round(price),
+                    st: appointment.status,
+                  });
+                  const title = `Запись ${dateKey} · ${timeStart}`;
+                  if (typeof navigator !== "undefined" && navigator.share) {
+                    try {
+                      await navigator.share({ title, url });
+                      return;
+                    } catch {
+                      // user dismissed — fall through to clipboard.
+                    }
+                  }
+                  if (typeof navigator !== "undefined" && navigator.clipboard) {
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      window.alert("Ссылка скопирована — отправьте клиенту");
+                    } catch {
+                      window.prompt("Ссылка:", url);
+                    }
+                  } else {
+                    window.prompt("Ссылка:", url);
+                  }
+                }
+          }
         />
       )}
 

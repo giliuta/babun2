@@ -8,7 +8,9 @@ import {
 import type { Appointment } from "@/lib/appointments";
 
 // Minimal Appointment factory — keep only what computeFinancials reads.
-// Anything omitted gets a sensible default so the test stays focused.
+// `as Appointment` cast is deliberate: the production type has many
+// fields that don't affect compute.ts, and enumerating all of them here
+// would obscure the test. computeFinancials never touches them.
 function apt(partial: Partial<Appointment> & {
   id: string;
   date: string;
@@ -34,14 +36,16 @@ function apt(partial: Partial<Appointment> & {
     expenses: partial.expenses ?? [],
     service_price_overrides: partial.service_price_overrides ?? {},
     status: partial.status ?? "completed",
-    payments: partial.payments ?? [{ id: "p1", method: "cash", amount: 100, created_at: "" }],
+    payments: partial.payments ?? [
+      { id: "p1", method: "cash", amount: 100, paid_at: "" },
+    ],
     prepaid_amount: partial.prepaid_amount ?? 0,
     photos: partial.photos ?? [],
     comment: partial.comment ?? "",
     consent_given: partial.consent_given ?? false,
     created_at: partial.created_at ?? "",
     updated_at: partial.updated_at ?? "",
-  };
+  } as Appointment;
 }
 
 const noExtras = () => [];
@@ -87,7 +91,7 @@ describe("datesInFinanceRange", () => {
 describe("computeFinancials", () => {
   it("sums appointment payments as income", () => {
     const res = computeFinancials({
-      appointments: [apt({ id: "a1", date: "2026-04-10", team_id: "t1", total_amount: 150, payments: [{ id: "p", method: "cash", amount: 150, created_at: "" }] })],
+      appointments: [apt({ id: "a1", date: "2026-04-10", team_id: "t1", total_amount: 150, payments: [{ id: "p", method: "cash", amount: 150, paid_at: "" }] })],
       services: [],
       teams: [team],
       dayExtrasOf: noExtras,
@@ -111,8 +115,8 @@ describe("computeFinancials", () => {
           team_id: "t1",
           total_amount: 200,
           payments: [
-            { id: "p1", method: "cash", amount: 50, created_at: "" },
-            { id: "p2", method: "card", amount: 150, created_at: "" },
+            { id: "p1", method: "cash", amount: 50, paid_at: "" },
+            { id: "p2", method: "card", amount: 150, paid_at: "" },
           ],
         }),
       ],
@@ -174,11 +178,11 @@ describe("computeFinancials", () => {
   it("respects teamFilter for brigade-scope filtering", () => {
     const res = computeFinancials({
       appointments: [
-        apt({ id: "a1", date: "2026-04-10", team_id: "t1", total_amount: 100, payments: [{ id: "p", method: "cash", amount: 100, created_at: "" }] }),
-        apt({ id: "a2", date: "2026-04-10", team_id: "t2", total_amount: 200, payments: [{ id: "p", method: "cash", amount: 200, created_at: "" }] }),
+        apt({ id: "a1", date: "2026-04-10", team_id: "t1", total_amount: 100, payments: [{ id: "p", method: "cash", amount: 100, paid_at: "" }] }),
+        apt({ id: "a2", date: "2026-04-10", team_id: "t2", total_amount: 200, payments: [{ id: "p", method: "cash", amount: 200, paid_at: "" }] }),
       ],
       services: [],
-      teams: [team, { ...team, id: "t2", name: "D&K" } as never],
+      teams: [team, { id: "t2", name: "D&K" } as never],
       dayExtrasOf: noExtras,
       standalonePayments: [],
       standaloneExpenses: [],
@@ -189,10 +193,10 @@ describe("computeFinancials", () => {
     expect(res.incomeLines).toHaveLength(1);
   });
 
-  it("skips appointments whose status is new or cancelled", () => {
+  it("skips appointments whose status is scheduled or cancelled", () => {
     const res = computeFinancials({
       appointments: [
-        apt({ id: "a1", date: "2026-04-10", team_id: "t1", status: "new" }),
+        apt({ id: "a1", date: "2026-04-10", team_id: "t1", status: "scheduled" }),
         apt({ id: "a2", date: "2026-04-10", team_id: "t1", status: "cancelled" }),
         apt({ id: "a3", date: "2026-04-10", team_id: "t1", status: "completed" }),
       ],

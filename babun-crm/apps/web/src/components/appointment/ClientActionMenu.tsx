@@ -10,10 +10,13 @@ interface ClientActionMenuProps {
   onSendMessage: () => void;
   onOpenChat: () => void;
   onShare: () => void;
+  /** Optional — send public /b/[token] link for this appointment. */
+  onShareAppointment?: () => void;
 }
 
 // Centered popup menu for the client row ⋯ button.
-// Four actions: profile / send message / open chat / share contact.
+// Up to five actions: profile / send message / open chat / share contact /
+// share appointment (when the sheet is viewing a persisted record).
 export default function ClientActionMenu({
   open,
   onClose,
@@ -22,6 +25,7 @@ export default function ClientActionMenu({
   onSendMessage,
   onOpenChat,
   onShare,
+  onShareAppointment,
 }: ClientActionMenuProps) {
   if (!open) return null;
 
@@ -30,6 +34,9 @@ export default function ClientActionMenu({
     { icon: "💬", label: "Отправить сообщение", onClick: onSendMessage },
     { icon: "💭", label: "Перейти в чат", onClick: onOpenChat },
     { icon: "🔗", label: "Поделиться контактом", onClick: onShare },
+    ...(onShareAppointment
+      ? [{ icon: "📆", label: "Поделиться записью", onClick: onShareAppointment }]
+      : []),
   ];
 
   return (
