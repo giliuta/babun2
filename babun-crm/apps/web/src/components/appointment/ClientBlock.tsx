@@ -58,12 +58,12 @@ export default function ClientBlock({
 
   return (
     <div className="px-4 pt-2">
-      <div className="h-14 flex items-center gap-3 px-3 rounded-xl bg-white border border-slate-200">
+      <div className="min-h-14 flex items-center gap-3 px-3 py-2 rounded-xl bg-white border border-slate-200">
         <button
           type="button"
           onClick={readonly ? undefined : onPick}
           disabled={readonly}
-          className="flex-1 min-w-0 flex items-center gap-3 h-full text-left active:opacity-70"
+          className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70"
         >
           <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-[13px] flex-shrink-0">
             {initials(client.full_name)}
@@ -75,6 +75,11 @@ export default function ClientBlock({
             {phone && (
               <div className="text-[13px] text-slate-500 tabular-nums truncate">
                 {phone}
+              </div>
+            )}
+            {client.comment && client.comment.trim() && (
+              <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                {client.comment.trim()}
               </div>
             )}
           </div>
