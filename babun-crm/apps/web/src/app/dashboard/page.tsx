@@ -164,12 +164,34 @@ export default function DashboardPage() {
   }, [writeHourHeight, viewMode]);
 
   // Scroll to startHour on mount and when view changes from month to day/week.
-  // We wait one frame so the grid is painted before scrolling.
+  // When the current day is actually visible in the range, anchor on the
+  // now-line at ~30 % of viewport so the dispatcher sees "2 h ago plus
+  // what's coming" instead of stale morning hours.
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
     if (!el) return;
-    const targetTop = calendarSettings.startHour * hourHeightRef.current;
+    const now = new Date();
+    const stepDays = STEP_DAYS[viewMode];
+    const rangeEnd = new Date(currentMonday);
+    rangeEnd.setDate(rangeEnd.getDate() + stepDays);
+    const todayVisible = now >= currentMonday && now < rangeEnd;
+    const hh = hourHeightRef.current;
+    let targetTop = calendarSettings.startHour * hh;
+    if (todayVisible) {
+      const hoursNow = now.getHours() + now.getMinutes() / 60;
+      const inWorkHours =
+        hoursNow >= calendarSettings.startHour - 0.5 &&
+        hoursNow <= calendarSettings.endHour;
+      if (inWorkHours) {
+        const nowTop = hoursNow * hh;
+        const viewportOffset = el.clientHeight * 0.3;
+        targetTop = Math.max(
+          calendarSettings.startHour * hh,
+          nowTop - viewportOffset
+        );
+      }
+    }
     requestAnimationFrame(() => {
       el.scrollTop = targetTop;
     });

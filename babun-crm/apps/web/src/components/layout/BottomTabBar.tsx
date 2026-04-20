@@ -93,7 +93,7 @@ export default function BottomTabBar() {
         <TabButton
           label="Чаты"
           active={isChats}
-          dot={unreadChats > 0}
+          count={unreadChats}
           onClick={() => go("/dashboard/chats")}
           icon={
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -136,24 +136,33 @@ function TabButton({
   onClick,
   icon,
   dot = false,
+  count,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   dot?: boolean;
+  count?: number;
 }) {
+  const showCount = typeof count === "number" && count > 0;
+  const label9 = showCount && count > 9 ? "9+" : String(count ?? "");
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition ${
+      className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition active:scale-[0.97] ${
         active ? "text-violet-600" : "text-gray-400"
       }`}
     >
       <span className="relative">
         {icon}
-        {dot && (
+        {showCount && (
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-[16px] text-center ring-2 ring-white">
+            {label9}
+          </span>
+        )}
+        {!showCount && dot && (
           <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
         )}
       </span>
