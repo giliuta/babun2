@@ -123,6 +123,18 @@ export default function ClientPickerSheet({
     );
   };
 
+  // Recent chip strip — up to 5 tap targets above the list. Keeps
+  // the dispatcher one tap away from last week's usual suspects, which
+  // is ~80 % of the bookings. Only shown when not searching.
+  const recentChipClients = useMemo(() => {
+    if (query.trim()) return [];
+    const byId = new Map(clients.map((c) => [c.id, c]));
+    return recentClientIds
+      .map((id) => byId.get(id))
+      .filter((c): c is Client => Boolean(c))
+      .slice(0, 5);
+  }, [clients, recentClientIds, query]);
+
   return (
     <DialogModal open={open} onClose={resetAndClose} title="Выбрать клиента">
       <div className="p-3 space-y-2">
@@ -136,6 +148,26 @@ export default function ClientPickerSheet({
             className="w-full h-11 px-3 bg-gray-100 rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+
+        {recentChipClients.length > 0 && !showNewForm && (
+          <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
+            {recentChipClients.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handleSelect(c)}
+                className="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 active:scale-[0.97]"
+              >
+                <span className="w-7 h-7 rounded-full bg-white text-indigo-700 flex items-center justify-center text-[11px] font-semibold shrink-0">
+                  {initials(c.full_name)}
+                </span>
+                <span className="text-[12px] font-medium text-indigo-800 truncate max-w-[120px]">
+                  {c.full_name}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {!showNewForm ? (
           <button

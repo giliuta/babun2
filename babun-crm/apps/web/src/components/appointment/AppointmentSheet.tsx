@@ -8,6 +8,7 @@ import type {
   AppointmentService,
   Discount,
 } from "@/lib/appointments";
+import { loadAppointments } from "@/lib/appointments";
 import type { Client, Location } from "@/lib/clients";
 import type { Team } from "@/lib/masters";
 import type { Service, ServiceCategory } from "@/lib/services";
@@ -190,6 +191,35 @@ export default function AppointmentSheet({
 
   // Рассчитанный итог / длительность для sticky-кнопки + time end.
   const price = appointmentTotal(appointmentServices, globalDiscount);
+
+  // Double-booking detection — only warn; don't block. Reads once from
+  // storage per change of the time / date / team inputs. Two overlapping
+  // records happen by accident in HVAC often (two brigade leads answer
+  // the same call independently); the banner catches it before save.
+  const overlapWarning = useMemo<string | null>(() => {
+    if (!activeTeam || kind === "event") return null;
+    if (!timeStart || !timeEnd || timeStart >= timeEnd) return null;
+    const all = loadAppointments();
+    for (const other of all) {
+      if (other.id === appointment.id) continue;
+      if (other.status === "cancelled") continue;
+      if (other.date !== dateKey) continue;
+      if (other.team_id !== activeTeam.id) continue;
+      // Overlap if ranges intersect.
+      const a1 = timeStart;
+      const a2 = timeEnd;
+      const b1 = other.time_start;
+      const b2 = other.time_end;
+      if (a1 < b2 && b1 < a2) {
+        const who =
+          other.client_id
+            ? clients.find((c) => c.id === other.client_id)?.full_name ?? "Запись"
+            : other.comment || "Запись";
+        return `${b1}–${b2} · ${who}`;
+      }
+    }
+    return null;
+  }, [appointment.id, activeTeam, clients, dateKey, kind, timeEnd, timeStart]);
   const totalDur = calcDuration(appointmentServices);
 
   const isEditable = liveMode === "create" || liveMode === "edit";
@@ -407,6 +437,18 @@ export default function AppointmentSheet({
               setTimeEnd(e);
             }}
           />
+
+          {overlapWarning && isEditable && !isEventMode && (
+            <div className="px-4 pt-2">
+              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-[12px] text-amber-800">
+                <span aria-hidden>⚠</span>
+                <div>
+                  <div className="font-semibold">Пересечение с записью</div>
+                  <div className="text-amber-700">{overlapWarning}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Event mode body */}
           {isEventMode && isEditable ? (
