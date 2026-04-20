@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type {
   Appointment,
   AppointmentPayment,
+  AppointmentPhoto,
   AppointmentService,
   Discount,
 } from "@/lib/appointments";
@@ -27,6 +28,7 @@ import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
 import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
+import PhotoBlock from "./PhotoBlock";
 import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
 import ClientProfileView from "@/components/clients/ClientProfileView";
@@ -107,6 +109,7 @@ export default function AppointmentSheet({
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
+  const [photos, setPhotos] = useState<AppointmentPhoto[]>(appointment.photos ?? []);
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [clientSheet, setClientSheet] = useState(false);
@@ -145,6 +148,7 @@ export default function AppointmentSheet({
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
     setCancelFlag(appointment.status === "cancelled");
+    setPhotos(appointment.photos ?? []);
     setEventLabel(appointment.comment || "");
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
@@ -274,6 +278,7 @@ export default function AppointmentSheet({
       comment: finalComment,
       address,
       address_note: addressNote.trim(),
+      photos,
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
       kind: "work",
       // Cancel toggle wins over everything else; otherwise keep the
@@ -494,18 +499,12 @@ export default function AppointmentSheet({
                 onChange={setComment}
               />
 
-              {/* Photo placeholder — real upload lands in a follow-up */}
-              {isEditable && (
-                <div className="px-4 pt-2">
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-slate-200 bg-slate-50 text-[13px] font-medium text-slate-400 flex items-center justify-center gap-2"
-                  >
-                    📷 Фото · скоро
-                  </button>
-                </div>
-              )}
+              <PhotoBlock
+                photos={photos}
+                readonly={readonly}
+                locationLabel={selectedLocation?.label}
+                onChange={setPhotos}
+              />
 
               {/* Cancel-appointment toggle — always visible when the
                   appointment isn't already completed. Flipping on
