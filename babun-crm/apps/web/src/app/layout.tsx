@@ -3,9 +3,15 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
+// Narrow the Inter weights we actually use in styles (400 body,
+// 500 chip, 600 title, 700 big number, 900 day-header). Next's
+// default ships the entire 100–900 axis, which weighs ~240 kB more
+// than we need.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "600", "700", "900"],
+  display: "swap",
 });
 
 const APP_NAME = "Babun CRM";

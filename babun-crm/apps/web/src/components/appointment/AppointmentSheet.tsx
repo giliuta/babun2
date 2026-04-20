@@ -40,7 +40,9 @@ import { buildShareUrl } from "@/lib/share-link";
 import { createRecurring } from "@/lib/recurring";
 import RepeatReminderSheet from "./RepeatReminderSheet";
 import { loadCompany } from "@/lib/finance/company";
-import { generateInvoicePDF, downloadBlob } from "@/lib/finance/invoice";
+// jspdf + invoice builder are heavy (~350 kB combined). Load them on
+// demand when the dispatcher actually taps "Скачать счёт" instead of
+// shipping the module in the main dashboard bundle.
 
 export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
 
@@ -892,7 +894,13 @@ export default function AppointmentSheet({
           }
           onDownloadInvoice={
             appointment.status === "completed" && !isEventMode && client
-              ? () => {
+              ? async () => {
+                  // Dynamic import keeps jspdf (+ renderer) out of the
+                  // initial bundle. First tap incurs a one-off chunk
+                  // load; subsequent taps are cached.
+                  const { generateInvoicePDF, downloadBlob } = await import(
+                    "@/lib/finance/invoice"
+                  );
                   const { blob, filename } = generateInvoicePDF({
                     appointment,
                     client,
