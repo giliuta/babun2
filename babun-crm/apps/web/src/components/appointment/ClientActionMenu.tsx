@@ -14,6 +14,8 @@ interface ClientActionMenuProps {
   onShareAppointment?: () => void;
   /** Optional — schedule a follow-up reminder for the same services. */
   onScheduleRepeat?: () => void;
+  /** Optional — produce a PDF invoice client-side. */
+  onDownloadInvoice?: () => void;
 }
 
 // Centered popup menu for the client row ⋯ button. Up to six actions:
@@ -29,6 +31,7 @@ export default function ClientActionMenu({
   onShare,
   onShareAppointment,
   onScheduleRepeat,
+  onDownloadInvoice,
 }: ClientActionMenuProps) {
   if (!open) return null;
 
@@ -42,6 +45,9 @@ export default function ClientActionMenu({
       : []),
     ...(onScheduleRepeat
       ? [{ icon: "🔁", label: "Повторить через…", onClick: onScheduleRepeat }]
+      : []),
+    ...(onDownloadInvoice
+      ? [{ icon: "📄", label: "Скачать счёт (PDF)", onClick: onDownloadInvoice }]
       : []),
   ];
 

@@ -69,6 +69,12 @@ const NAV_SECTIONS = [
     title: "Услуги и категории",
     desc: "Каталог услуг, цены, длительность",
   },
+  {
+    href: "/dashboard/settings/company",
+    icon: "🏢",
+    title: "Реквизиты и VAT",
+    desc: "Название, VAT-номер, режим 19% · печатается в счёте",
+  },
 ];
 
 export default function SettingsPage() {

@@ -38,6 +38,8 @@ import PaymentBlock from "./PaymentBlock";
 import { buildShareUrl } from "@/lib/share-link";
 import { createRecurring } from "@/lib/recurring";
 import RepeatReminderSheet from "./RepeatReminderSheet";
+import { loadCompany } from "@/lib/finance/company";
+import { generateInvoicePDF, downloadBlob } from "@/lib/finance/invoice";
 
 export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
 
@@ -786,6 +788,21 @@ export default function AppointmentSheet({
           onScheduleRepeat={
             appointment.status === "completed" && !isEventMode && client
               ? () => setRepeatSheetOpen(true)
+              : undefined
+          }
+          onDownloadInvoice={
+            appointment.status === "completed" && !isEventMode && client
+              ? () => {
+                  const { blob, filename } = generateInvoicePDF({
+                    appointment,
+                    client,
+                    services: catalog,
+                    team: activeTeam,
+                    company: loadCompany(),
+                    includePhotos: (appointment.photos ?? []).length > 0,
+                  });
+                  downloadBlob(blob, filename);
+                }
               : undefined
           }
           onShareAppointment={

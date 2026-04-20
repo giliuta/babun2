@@ -8,3 +8,7 @@ dist
 .turbo
 .env.local
 .env*.local
+# Local lockfile is Windows-specific per commit 3d7a61c — Vercel generates
+# its own on Linux during build. Keep it out of git so cross-platform
+# installs never fight the stored manifest.
+package-lock.json
