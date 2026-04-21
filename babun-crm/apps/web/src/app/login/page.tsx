@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { getSupabase, hasSupabaseEnv } from "@/lib/supabase/client";
 import { isSupabaseEnabled } from "@/lib/supabase/backend-mode";
 
-// Sprint 029 Phase 6: Telegram-style auth card. Big violet bubble
-// with the B mark, tight 28-px title, two iOS-inset fields, 50-px
-// HIG Large primary CTA, and a ghost "Регистрация" toggle on the
-// bottom when Supabase is live. Plays nicely at 375 × 812 (iPhone
-// SE) up to tablet widths.
+// Telegram-style auth card (Sprint 031). Accent-blue Babun bubble
+// at the top, 28-px title, grouped two-field input card, 50-px
+// pill primary CTA, ghost toggle when Supabase is live. Plays
+// nicely from iPhone SE (375 × 812) up to tablet widths.
 
 type Mode = "signin" | "signup";
 
@@ -61,10 +60,10 @@ export default function LoginPage() {
     >
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-10">
-          <div className="w-20 h-20 bg-[var(--accent)] rounded-[22px] flex items-center justify-center shadow-[0_20px_40px_-15px_rgba(124,58,237,0.5)]">
-            <span className="text-white text-[38px] font-bold tracking-tight">B</span>
+          <div className="w-20 h-20 bg-[var(--accent)] rounded-[22px] flex items-center justify-center shadow-[0_20px_40px_-15px_rgba(62,136,247,0.5)]">
+            <span className="text-white text-[38px] font-bold">B</span>
           </div>
-          <h1 className="text-[28px] font-bold text-[var(--label)] mt-5 tracking-tight">
+          <h1 className="text-[28px] font-bold text-[var(--label)] mt-5">
             Babun CRM
           </h1>
           <p className="text-[15px] text-[var(--label-secondary)] mt-1">
@@ -73,7 +72,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
             <input
               id="email"
               type="email"
@@ -82,7 +81,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
               required
-              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
             />
             <input
               id="password"
@@ -93,7 +92,7 @@ export default function LoginPage() {
               placeholder="Пароль"
               required
               minLength={8}
-              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
             />
           </div>
 
@@ -106,7 +105,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-[50px] rounded-[12px] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition mt-4"
+            className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition mt-4"
           >
             {loading
               ? mode === "signin"
