@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ACCOUNT_STATUS_LABELS,
-  ACCOUNT_STATUS_TONE,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
   CONTRACT_LABELS,
   PAYMENT_METHOD_LABELS,
   PERMISSION_GROUPS,
@@ -20,7 +25,6 @@ import {
   generateId,
   generatePassword,
   mergePermissions,
-  type AccountStatus,
   type ContractType,
   type Master,
   type MasterDocument,
@@ -68,9 +72,6 @@ export default function MasterSheet({
   const [showPassword, setShowPassword] = useState(false);
   const [passwordToShowAfterSave, setPasswordToShowAfterSave] = useState<string | null>(
     null
-  );
-  const [accountStatus, setAccountStatus] = useState<AccountStatus>(
-    master?.account_status ?? (master ? "active" : "invited")
   );
 
   // Personal
@@ -244,8 +245,12 @@ export default function MasterSheet({
     const nowIso = new Date().toISOString();
     const hadCredsBefore = master?.credentials_set ?? false;
     const hasNewPassword = password.trim().length > 0;
-    const credentialsSet = hadCredsBefore || hasNewPassword || Boolean(loginEmail && accountStatus === "invited");
+    const credentialsSet = hadCredsBefore || hasNewPassword || Boolean(loginEmail);
 
+    // Sprint 028: `account_status` was deprecated by CEO request; the
+    // `is_active` toggle in "Работа" covers the only distinction that
+    // actually matters for payroll and visibility. We still pass the
+    // field through untouched for backward-compat with older records.
     const next: Master = {
       id: master?.id ?? generateId("m"),
       full_name: fullName.trim(),
@@ -276,11 +281,8 @@ export default function MasterSheet({
         ? nowIso
         : master?.invite_sent_at,
       last_login_at: master?.last_login_at,
-      account_status: accountStatus,
-      terminated_at:
-        accountStatus === "terminated"
-          ? master?.terminated_at ?? nowIso.slice(0, 10)
-          : undefined,
+      account_status: master?.account_status,
+      terminated_at: master?.terminated_at,
 
       notifications,
 
@@ -312,33 +314,21 @@ export default function MasterSheet({
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-shrink-0 px-4 pt-4 pb-2 flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-slate-900 truncate">
-              {titleForHeader}
-            </h2>
-            {isEditing && (
-              <span
-                className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${ACCOUNT_STATUS_TONE[accountStatus]}`}
-              >
-                {ACCOUNT_STATUS_LABELS[accountStatus]}
-              </span>
-            )}
-          </div>
+        <div className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between gap-3 border-b border-slate-100">
+          <h2 className="text-[17px] font-semibold text-slate-900 truncate tracking-tight">
+            {titleForHeader}
+          </h2>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Закрыть"
-            className="w-8 h-8 rounded-lg text-slate-500 active:bg-slate-100 flex items-center justify-center flex-shrink-0"
+            className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 flex items-center justify-center flex-shrink-0 transition"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-3 bg-slate-50">
           <AccordionSection
             title="Аккаунт в Babun"
             subtitle={
@@ -379,32 +369,19 @@ export default function MasterSheet({
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg border border-slate-300 text-slate-500 active:bg-slate-50"
+                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 active:bg-slate-200 transition"
                   aria-label={showPassword ? "Скрыть" : "Показать"}
                 >
-                  {showPassword ? "🙈" : "👁"}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
                 <button
                   type="button"
                   onClick={handleGeneratePassword}
-                  className="h-10 px-3 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-[12px] font-semibold active:bg-violet-100"
+                  className="h-10 px-3.5 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.98] transition"
                 >
                   Создать
                 </button>
               </div>
-            </Field>
-            <Field label="Статус аккаунта">
-              <select
-                value={accountStatus}
-                onChange={(e) => setAccountStatus(e.target.value as AccountStatus)}
-                className={inputCls}
-              >
-                {(Object.keys(ACCOUNT_STATUS_LABELS) as AccountStatus[]).map((s) => (
-                  <option key={s} value={s}>
-                    {ACCOUNT_STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
             </Field>
             {isEditing && master?.last_login_at && (
               <div className="text-[11px] text-slate-500 px-1">
@@ -709,11 +686,16 @@ export default function MasterSheet({
             open={open.permissions}
             onToggle={() => setOpen((p) => ({ ...p, permissions: !p.permissions }))}
           >
-            <div>
-              <div className="text-[11px] font-bold text-violet-700 uppercase tracking-wide mb-2">
-                Видимость бригад
+            <div className="space-y-1.5">
+              <div className="px-1">
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Видимость бригад
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  Что мастер видит в списке команд
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-1.5 mb-2">
+              <div className="inline-flex w-full rounded-xl bg-slate-100 p-1">
                 {(
                   [
                     ["own", "Только своя"],
@@ -725,10 +707,10 @@ export default function MasterSheet({
                     key={k}
                     type="button"
                     onClick={() => setBrigadeVisibility(k)}
-                    className={`h-9 rounded-lg text-[12px] font-semibold ${
+                    className={`flex-1 h-8 rounded-lg text-[12px] font-semibold transition ${
                       brigadeVisibility === k
-                        ? "bg-violet-600 text-white"
-                        : "bg-slate-100 text-slate-600"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500"
                     }`}
                   >
                     {label}
@@ -736,7 +718,7 @@ export default function MasterSheet({
                 ))}
               </div>
               {brigadeVisibility === "picked" && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 pt-2">
                   {teams.map((t) => {
                     const on = permissions.visible_team_ids.includes(t.id);
                     return (
@@ -755,61 +737,49 @@ export default function MasterSheet({
             </div>
 
             {PERMISSION_GROUPS.map((group) => (
-              <div key={group.key} className="space-y-1.5 pt-1">
-                <div>
-                  <div className="text-[11px] font-bold text-violet-700 uppercase tracking-wide">
-                    {group.title}
-                  </div>
-                  <div className="text-[11px] text-slate-500">{group.description}</div>
-                </div>
-                <div className="space-y-2 bg-slate-50 rounded-lg p-3">
-                  {group.permissions.map((key) => (
-                    <div key={key} className="flex items-center justify-between gap-3">
-                      <span className="text-[13px] text-slate-700 flex-1">
-                        {PERMISSION_LABELS[key]}
-                      </span>
-                      <ToggleSwitch
-                        checked={Boolean(permissions[key])}
-                        onChange={() => togglePermission(key)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <PermissionGroup
+                key={group.key}
+                title={group.title}
+                description={group.description}
+              >
+                {group.permissions.map((key) => (
+                  <SettingRow
+                    key={key}
+                    label={PERMISSION_LABELS[key]}
+                    checked={Boolean(permissions[key])}
+                    onChange={() => togglePermission(key)}
+                  />
+                ))}
+              </PermissionGroup>
             ))}
 
-            <div className="pt-1">
-              <div className="text-[11px] font-bold text-violet-700 uppercase tracking-wide mb-2">
-                Push-уведомления
-              </div>
-              <div className="space-y-2 bg-slate-50 rounded-lg p-3">
-                <NotificationRow
-                  label="Новая запись"
-                  checked={notifications.push_new_appointment}
-                  onChange={(v) => setNotifications({ ...notifications, push_new_appointment: v })}
-                />
-                <NotificationRow
-                  label="Перенос записи"
-                  checked={notifications.push_reschedule}
-                  onChange={(v) => setNotifications({ ...notifications, push_reschedule: v })}
-                />
-                <NotificationRow
-                  label="Отмена записи"
-                  checked={notifications.push_cancellation}
-                  onChange={(v) => setNotifications({ ...notifications, push_cancellation: v })}
-                />
-                <NotificationRow
-                  label="Сообщение в чате"
-                  checked={notifications.push_chat_message}
-                  onChange={(v) => setNotifications({ ...notifications, push_chat_message: v })}
-                />
-                <NotificationRow
-                  label="Дневная сводка 9:00"
-                  checked={notifications.push_daily_summary}
-                  onChange={(v) => setNotifications({ ...notifications, push_daily_summary: v })}
-                />
-              </div>
-            </div>
+            <PermissionGroup title="Push-уведомления">
+              <SettingRow
+                label="Новая запись"
+                checked={notifications.push_new_appointment}
+                onChange={(v) => setNotifications({ ...notifications, push_new_appointment: v })}
+              />
+              <SettingRow
+                label="Перенос записи"
+                checked={notifications.push_reschedule}
+                onChange={(v) => setNotifications({ ...notifications, push_reschedule: v })}
+              />
+              <SettingRow
+                label="Отмена записи"
+                checked={notifications.push_cancellation}
+                onChange={(v) => setNotifications({ ...notifications, push_cancellation: v })}
+              />
+              <SettingRow
+                label="Сообщение в чате"
+                checked={notifications.push_chat_message}
+                onChange={(v) => setNotifications({ ...notifications, push_chat_message: v })}
+              />
+              <SettingRow
+                label="Дневная сводка в 9:00"
+                checked={notifications.push_daily_summary}
+                onChange={(v) => setNotifications({ ...notifications, push_daily_summary: v })}
+              />
+            </PermissionGroup>
           </AccordionSection>
 
           <AccordionSection
@@ -893,14 +863,18 @@ export default function MasterSheet({
           </AccordionSection>
         </div>
 
-        <div className="flex-shrink-0 px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+        <div
+          className="flex-shrink-0 px-4 py-3 border-t border-slate-100 bg-white flex items-center justify-between gap-2"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 12px)" }}
+        >
           {isEditing && master ? (
             <button
               type="button"
               onClick={() => onDelete(master)}
-              className="text-[13px] text-rose-600 border border-rose-200 active:bg-rose-50 rounded-lg px-3 py-2 font-medium"
+              aria-label="Удалить"
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-rose-600 active:bg-rose-50 transition"
             >
-              Удалить
+              <Trash2 size={20} strokeWidth={2} />
             </button>
           ) : (
             <span />
@@ -909,14 +883,14 @@ export default function MasterSheet({
             <button
               type="button"
               onClick={onCancel}
-              className="border border-slate-300 text-slate-700 rounded-lg px-4 py-2 text-[13px] font-medium active:bg-slate-50"
+              className="h-11 px-5 rounded-xl text-slate-700 text-[15px] font-medium active:bg-slate-100 transition"
             >
               Отмена
             </button>
             <button
               type="button"
               onClick={handleSubmit}
-              className="bg-violet-600 text-white rounded-lg px-4 py-2 text-[13px] font-semibold active:scale-[0.99]"
+              className="h-11 px-6 bg-violet-600 text-white rounded-xl text-[15px] font-semibold active:scale-[0.98] transition"
             >
               Сохранить
             </button>
@@ -965,37 +939,41 @@ function PasswordShowOnce({
     }
   };
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-3">
-        <div className="text-[15px] font-semibold text-slate-900">
-          Пароль создан
-        </div>
-        <div className="text-[12px] text-slate-600 leading-snug">
-          Покажите сотруднику. Это единственный раз — после закрытия окна
-          пароль восстановить нельзя.
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+        <div>
+          <div className="text-[17px] font-semibold text-slate-900 tracking-tight">
+            Пароль создан
+          </div>
+          <div className="text-[13px] text-slate-500 leading-snug mt-1">
+            Это единственный раз, когда пароль показан. Скопируйте и передайте сотруднику.
+          </div>
         </div>
         {email && (
-          <div className="text-[12px] text-slate-700">
-            Логин: <span className="font-semibold">{email}</span>
+          <div className="flex items-center justify-between px-3 py-2.5 bg-slate-100 rounded-xl">
+            <span className="text-[12px] font-medium text-slate-500">Логин</span>
+            <span className="text-[13px] font-semibold text-slate-900 tabular-nums">
+              {email}
+            </span>
           </div>
         )}
-        <div className="text-[16px] font-mono font-bold text-slate-900 bg-slate-100 rounded-lg px-3 py-3 tracking-wider text-center">
+        <div className="text-[17px] font-mono font-bold text-slate-900 bg-violet-50 rounded-xl px-4 py-4 tracking-[0.08em] text-center">
           {password}
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={copy}
-            className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99]"
+            onClick={onDismiss}
+            className="flex-1 h-11 rounded-xl bg-slate-100 text-slate-700 text-[14px] font-semibold active:bg-slate-200 transition"
           >
-            Скопировать
+            Готово
           </button>
           <button
             type="button"
-            onClick={onDismiss}
-            className="flex-1 h-10 rounded-lg border border-slate-300 text-slate-700 text-[13px] font-semibold active:bg-slate-50"
+            onClick={copy}
+            className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] transition"
           >
-            Готово
+            Скопировать
           </button>
         </div>
       </div>
@@ -1003,14 +981,16 @@ function PasswordShowOnce({
   );
 }
 
+// iOS-style input: no visible border, soft inset background. Looks like
+// the fields in Telegram's settings / iOS' System Settings.
 const inputCls =
-  "w-full px-3 py-2 border border-slate-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-violet-500";
+  "w-full px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-xl text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-violet-500 transition";
 
 const chipCls = (on: boolean) =>
-  `text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+  `text-[12px] px-3 py-1.5 rounded-full transition-colors ${
     on
-      ? "bg-violet-600 text-white border-violet-600"
-      : "bg-white text-slate-700 border-slate-300 active:bg-slate-50"
+      ? "bg-violet-600 text-white"
+      : "bg-white text-slate-700 border border-slate-200 active:bg-slate-50"
   }`;
 
 function Field({
@@ -1026,16 +1006,43 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] text-slate-500 mb-1">
-        {label} {required && <span className="text-rose-500">*</span>}
+      <label className="block text-[12px] font-medium text-slate-500 mb-1.5 tracking-wide">
+        {label}
+        {required && <span className="text-rose-500 ml-0.5">*</span>}
       </label>
       {children}
-      {hint && <div className="text-[11px] text-slate-400 mt-1">{hint}</div>}
+      {hint && <div className="text-[11px] text-slate-400 mt-1.5 leading-snug">{hint}</div>}
     </div>
   );
 }
 
-function NotificationRow({
+// Telegram/iOS grouped-list: a section header in small-caps above a
+// rounded white card containing divided rows.
+function PermissionGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5 pt-2">
+      <div className="px-1">
+        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+          {title}
+        </div>
+        {description && (
+          <div className="text-[11px] text-slate-400 mt-0.5">{description}</div>
+        )}
+      </div>
+      <div className="rounded-xl bg-white divide-y divide-slate-100">{children}</div>
+    </div>
+  );
+}
+
+function SettingRow({
   label,
   checked,
   onChange,
@@ -1045,13 +1052,15 @@ function NotificationRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[13px] text-slate-700 flex-1">{label}</span>
+    <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 min-h-[44px]">
+      <span className="text-[14px] text-slate-900 flex-1 leading-snug">{label}</span>
       <ToggleSwitch checked={checked} onChange={onChange} />
     </div>
   );
 }
 
+// Accordion card: iOS-settings look — white card, rounded, no hard
+// border, soft inset shadow to separate from the slate-50 backdrop.
 function AccordionSection({
   title,
   subtitle,
@@ -1066,37 +1075,39 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 overflow-hidden">
+    <div className="rounded-2xl bg-white shadow-[0_1px_2px_0_rgba(15,23,42,0.04)] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-3 py-2.5 text-left active:bg-slate-50"
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-slate-50 transition"
       >
-        <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-slate-900">{title}</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-semibold text-slate-900 tracking-tight">
+            {title}
+          </div>
           {subtitle && (
-            <div className="text-[11px] text-slate-500 truncate">{subtitle}</div>
+            <div className="text-[13px] text-slate-500 truncate mt-0.5">
+              {subtitle}
+            </div>
           )}
         </div>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          className={`text-slate-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronDown
+          size={18}
+          strokeWidth={2}
+          className={`text-slate-400 flex-shrink-0 ml-3 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && (
-        <div className="px-3 pb-3 pt-1 space-y-3 border-t border-slate-100">{children}</div>
+        <div className="px-4 pb-4 pt-1 space-y-3.5 border-t border-slate-100">
+          {children}
+        </div>
       )}
     </div>
   );
 }
 
+// iOS-style switch — larger thumb, emerald-ish green when on (matches
+// Telegram + system switches). 51×31 pt on iOS; we approximate.
 function ToggleSwitch({
   checked,
   onChange,
@@ -1110,13 +1121,13 @@ function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
-        checked ? "bg-violet-600" : "bg-slate-300"
+      className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
+        checked ? "bg-emerald-500" : "bg-slate-300"
       }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0"
+        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+          checked ? "translate-x-[18px]" : "translate-x-0"
         }`}
       />
     </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Camera } from "lucide-react";
 import type { AppointmentPhoto, PhotoKind } from "@/lib/appointments";
 import { compressImage, generateCaption } from "@/lib/photos";
 import { generateId } from "@/lib/masters";
@@ -114,7 +115,8 @@ export default function PhotoBlock({
           onClick={() => setPickerOpen(true)}
           className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-violet-300 text-[13px] font-semibold text-violet-600 active:bg-violet-50 flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          📷 {busy ? "Сохраняем…" : "Добавить фото"}
+          <Camera size={16} strokeWidth={2} />
+          {busy ? "Сохраняем…" : "Добавить фото"}
         </button>
       ) : (
         <div

@@ -23,6 +23,7 @@ import { QUICK_REPLIES, LANG_LABELS, detectLanguage, type Lang } from "@/lib/qui
 import { pluralizeAC } from "@/lib/pluralize";
 import { PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
 import SwipeableRow from "@/components/ui/SwipeableRow";
+import { Image as ImageIcon, Mic, MapPin, CornerUpLeft, Copy, Star, Trash2 } from "lucide-react";
 
 type FilterChannel = ChatChannel | "all" | "unanswered";
 
@@ -266,7 +267,7 @@ export default function ChatsPage() {
       {/* Filters */}
       <div className="flex-shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b border-slate-100">
         {(["all", "unanswered", "whatsapp", "instagram", "telegram", "sms"] as FilterChannel[]).map((ch) => {
-          const label = ch === "all" ? "Все" : ch === "unanswered" ? "⏳ Без ответа" : CHANNEL_LABELS[ch as ChatChannel];
+          const label = ch === "all" ? "Все" : ch === "unanswered" ? "Без ответа" : CHANNEL_LABELS[ch as ChatChannel];
           const count = ch === "all" ? chats.filter((c) => c.status !== "archived").length
             : ch === "unanswered" ? unansweredCount
             : chats.filter((c) => c.channel === ch && c.status !== "archived").length;
@@ -341,10 +342,15 @@ export default function ChatsPage() {
                       ) : (
                         <span className="text-slate-500">
                           {lastMsg?.direction === "out" && <span className="text-slate-400">Вы: </span>}
-                          {lastMsg?.content_type === "image" || lastMsg?.photo ? "📷 Фото" :
-                           lastMsg?.content_type === "audio" ? "🎤 Голосовое" :
-                           lastMsg?.content_type === "location" ? "📍 Геолокация" :
-                           lastMsg?.text || "Нет сообщений"}
+                          {lastMsg?.content_type === "image" || lastMsg?.photo ? (
+                            <span className="inline-flex items-center gap-1"><ImageIcon size={12} /> Фото</span>
+                          ) : lastMsg?.content_type === "audio" ? (
+                            <span className="inline-flex items-center gap-1"><Mic size={12} /> Голосовое</span>
+                          ) : lastMsg?.content_type === "location" ? (
+                            <span className="inline-flex items-center gap-1"><MapPin size={12} /> Геолокация</span>
+                          ) : (
+                            lastMsg?.text || "Нет сообщений"
+                          )}
                         </span>
                       )}
                     </span>
@@ -605,7 +611,7 @@ function ChatDetailView({
                 />
               )}
               {!linkedClient && <MenuItem label="Создать клиента" onClick={onCreateClient} />}
-              <MenuItem label="📅 Записать на приём" onClick={() => {
+              <MenuItem label="Записать на приём" onClick={() => {
                 setHeaderMenu(false);
                 const params = new URLSearchParams({ new: "1" });
                 if (chat.client_id) params.set("client_id", chat.client_id);
@@ -684,15 +690,15 @@ function ChatDetailView({
         {msgMenu && (
           <div className="fixed inset-0 z-[80]" onClick={() => setMsgMenu(null)}>
             <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
-              <MenuItem label="Ответить" onClick={() => { setReplyTo(msgMenu); setMsgMenu(null); }} icon="↩" />
-              <MenuItem label="Копировать" onClick={() => onCopyMessage(msgMenu.text)} icon="📋" border />
+              <MenuItem label="Ответить" onClick={() => { setReplyTo(msgMenu); setMsgMenu(null); }} icon={<CornerUpLeft size={14} />} />
+              <MenuItem label="Копировать" onClick={() => onCopyMessage(msgMenu.text)} icon={<Copy size={14} />} border />
               <MenuItem
                 label={msgMenu.is_starred ? "Убрать из избранного" : "В избранное"}
                 onClick={() => onToggleStar(msgMenu.id)}
-                icon="⭐"
+                icon={<Star size={14} />}
                 border
               />
-              <MenuItem label="Удалить" onClick={() => onDeleteMessage(msgMenu.id)} icon="🗑" danger border />
+              <MenuItem label="Удалить" onClick={() => onDeleteMessage(msgMenu.id)} icon={<Trash2 size={14} />} danger border />
             </div>
           </div>
         )}
@@ -772,12 +778,12 @@ function ChannelIcon({ channel, size = 10 }: { channel: ChatChannel; size?: numb
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>;
 }
 
-function MenuItem({ label, onClick, icon, danger, border }: { label: string; onClick: () => void; icon?: string; danger?: boolean; border?: boolean }) {
+function MenuItem({ label, onClick, icon, danger, border }: { label: string; onClick: () => void; icon?: React.ReactNode; danger?: boolean; border?: boolean }) {
   return (
     <button type="button" onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] active:bg-slate-50 ${border ? "border-t border-slate-100" : ""} ${danger ? "text-red-600" : "text-slate-900"}`}
     >
-      {icon && <span className="text-[16px]">{icon}</span>}
+      {icon && <span className="flex items-center justify-center w-4 h-4 text-slate-500">{icon}</span>}
       {label}
     </button>
   );

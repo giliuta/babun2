@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Check, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
@@ -90,8 +91,13 @@ export default function ServicesPage() {
             onClick={() => setShowCategories((x) => !x)}
             className="w-full bg-white rounded-lg border border-slate-200 px-4 py-3 text-sm text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between"
           >
-            <span>⚙️ Категории услуг ({categories.length})</span>
-            <span className="text-slate-400">{showCategories ? "▲" : "▼"}</span>
+            <span className="inline-flex items-center gap-2">
+              <Settings size={14} className="text-slate-500" />
+              Категории услуг ({categories.length})
+            </span>
+            <span className="text-slate-400">
+              {showCategories ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
           </button>
 
           {showCategories && (
@@ -512,14 +518,14 @@ function ServiceEditorSheet({
                           : [...draft.brigade_ids, t.id];
                         setDraft({ ...draft, brigade_ids: next });
                       }}
-                      className="h-9 px-3 rounded-lg text-[13px] font-semibold border-2 transition"
+                      className="h-9 px-3 rounded-lg text-[13px] font-semibold border-2 transition inline-flex items-center gap-1.5"
                       style={{
                         borderColor: active ? t.color : "#e5e7eb",
                         background: active ? `${t.color}14` : "white",
                         color: active ? t.color : "#475569",
                       }}
                     >
-                      {active && "✓ "}
+                      {active && <Check size={14} />}
                       {t.name}
                     </button>
                   );

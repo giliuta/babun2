@@ -1,12 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import {
+  CalendarDays,
+  MapPin,
+  Users as UsersIcon,
+  UserCircle2,
+  MessageSquare,
+  Wrench,
+  Building2,
+  ChevronRight,
+} from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/app/dashboard/layout";
 import type {
   FormFieldVisibility,
   RequiredFields,
 } from "@/lib/appointments";
+
+// Sprint 028: redesigned in iOS grouped-list / Telegram settings style.
+// Monochrome lucide icons replace decorative emojis ("🗓📍👥🧑‍🔧💬🔧🏢"),
+// each icon sits in a tinted rounded-square tile. Typography follows
+// system-UI conventions: 17px row label, 13px caption, 12px uppercase
+// section header. The three settings cards below the nav use the same
+// divided rounded-rectangle pattern as the nav card.
 
 const FIELD_VIS_LABELS: Record<keyof FormFieldVisibility, string> = {
   show_address: "Адрес",
@@ -30,50 +47,64 @@ const DISABLED_FIELD_VIS: (keyof FormFieldVisibility)[] = [
   "show_reminder",
 ];
 
-// ─── Nav cards for sub-settings ────────────────────────────────────────────
+interface NavSection {
+  href: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  /** Tailwind bg colour for the icon tile — mirrors iOS Settings. */
+  tone: string;
+  title: string;
+  desc: string;
+}
 
-const NAV_SECTIONS = [
+const NAV_SECTIONS: NavSection[] = [
   {
     href: "/dashboard/settings/calendar",
-    icon: "🗓",
+    icon: CalendarDays,
+    tone: "bg-violet-500",
     title: "Календарь",
     desc: "Часы работы, шаг сетки, часовой пояс",
   },
   {
     href: "/dashboard/settings/cities",
-    icon: "📍",
+    icon: MapPin,
+    tone: "bg-rose-500",
     title: "Города",
     desc: "Справочник городов для клиентов и записей",
   },
   {
     href: "/dashboard/teams",
-    icon: "👥",
+    icon: UsersIcon,
+    tone: "bg-sky-500",
     title: "Бригады",
     desc: "Состав команд, цвета, дефолтный город, % ЗП",
   },
   {
     href: "/dashboard/masters",
-    icon: "🧑‍🔧",
+    icon: UserCircle2,
+    tone: "bg-emerald-500",
     title: "Мастера",
     desc: "Сотрудники, контакты, зарплата, доступы, документы",
   },
   {
     href: "/dashboard/sms-templates",
-    icon: "💬",
+    icon: MessageSquare,
+    tone: "bg-amber-500",
     title: "Шаблоны SMS",
     desc: "Тексты напоминаний и подтверждений",
   },
   {
     href: "/dashboard/services",
-    icon: "🔧",
+    icon: Wrench,
+    tone: "bg-slate-500",
     title: "Услуги и категории",
     desc: "Каталог услуг, цены, длительность",
   },
   {
     href: "/dashboard/settings/company",
-    icon: "🏢",
+    icon: Building2,
+    tone: "bg-indigo-500",
     title: "Реквизиты и VAT",
-    desc: "Название, VAT-номер, режим 19% · печатается в счёте",
+    desc: "Название, VAT-номер, режим 19% для счетов",
   },
 ];
 
@@ -95,117 +126,148 @@ export default function SettingsPage() {
       <PageHeader title="Настройки" />
 
       <div className="flex-1 overflow-y-auto bg-slate-50">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
+        <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
+          <Group title="Разделы">
+            <div className="divide-y divide-slate-100">
+              {NAV_SECTIONS.map((s) => {
+                const Icon = s.icon;
+                return (
+                  <Link
+                    key={s.href}
+                    href={s.href}
+                    className="flex items-center gap-3 px-4 py-3 active:bg-slate-50 transition-colors"
+                  >
+                    <span
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 ${s.tone}`}
+                    >
+                      <Icon size={18} strokeWidth={2} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[15px] font-medium text-slate-900 truncate">
+                        {s.title}
+                      </div>
+                      <div className="text-[12px] text-slate-500 mt-0.5 truncate">
+                        {s.desc}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-300 shrink-0" />
+                  </Link>
+                );
+              })}
+            </div>
+          </Group>
 
-          {/* Sub-settings navigation */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-4 pt-3 pb-2 text-xs font-semibold text-slate-400 uppercase">
-              Разделы
+          <Group title="Учётная запись">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <span className="text-[15px] text-slate-900">Email</span>
+              <span className="text-[13px] text-slate-500 tabular-nums">
+                airfix.cy@gmail.com
+              </span>
             </div>
-            <div className="divide-y divide-slate-50">
-              {NAV_SECTIONS.map((s) => (
-                <Link
-                  key={s.href}
-                  href={s.href}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
-                >
-                  <span className="text-xl w-7 text-center shrink-0">{s.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-900">{s.title}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">{s.desc}</div>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-300 shrink-0">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </Link>
-              ))}
-            </div>
-          </div>
+          </Group>
 
-          {/* Account */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4">
-            <div className="text-xs font-semibold text-slate-400 uppercase mb-2">
-              Учетная запись
-            </div>
-            <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
-              airfix.cy@gmail.com
-            </div>
-          </div>
-
-          {/* Form field visibility */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4">
-            <div className="text-sm font-semibold text-slate-700 mb-3">
-              Поля записи
-            </div>
-            <div className="space-y-3">
+          <Group
+            title="Поля записи"
+            footer="Какие поля показывать в форме создания визита"
+          >
+            <div className="divide-y divide-slate-100">
               {(Object.keys(FIELD_VIS_LABELS) as (keyof FormFieldVisibility)[]).map(
                 (key) => {
                   const disabled = DISABLED_FIELD_VIS.includes(key);
                   return (
-                    <div
+                    <ToggleRow
                       key={key}
-                      className={`flex items-center justify-between ${
-                        disabled ? "opacity-50" : ""
-                      }`}
-                    >
-                      <label className="text-sm font-medium text-slate-700">
-                        {FIELD_VIS_LABELS[key]}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => toggleFieldVis(key)}
-                        disabled={disabled}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${
-                          fieldVisibility[key] ? "bg-violet-600" : "bg-slate-300"
-                        } ${disabled ? "cursor-not-allowed" : ""}`}
-                        aria-label={FIELD_VIS_LABELS[key]}
-                      >
-                        <span
-                          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                            fieldVisibility[key] ? "translate-x-5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
+                      label={FIELD_VIS_LABELS[key]}
+                      checked={fieldVisibility[key]}
+                      onChange={() => toggleFieldVis(key)}
+                      disabled={disabled}
+                    />
                   );
                 }
               )}
             </div>
-          </div>
+          </Group>
 
-          {/* Required fields */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4">
-            <div className="text-sm font-semibold text-slate-700 mb-3">
-              Обязательные поля
+          <Group
+            title="Обязательные поля"
+            footer="Без заполнения этих полей запись нельзя сохранить"
+          >
+            <div className="divide-y divide-slate-100">
+              {(Object.keys(REQUIRED_LABELS) as (keyof RequiredFields)[]).map((key) => (
+                <ToggleRow
+                  key={key}
+                  label={REQUIRED_LABELS[key]}
+                  checked={requiredFields[key]}
+                  onChange={() => toggleRequired(key)}
+                />
+              ))}
             </div>
-            <div className="space-y-3">
-              {(Object.keys(REQUIRED_LABELS) as (keyof RequiredFields)[]).map(
-                (key) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-slate-700">
-                      {REQUIRED_LABELS[key]}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => toggleRequired(key)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${
-                        requiredFields[key] ? "bg-violet-600" : "bg-slate-300"
-                      }`}
-                      aria-label={REQUIRED_LABELS[key]}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                          requiredFields[key] ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
+          </Group>
         </div>
       </div>
     </>
+  );
+}
+
+function Group({
+  title,
+  footer,
+  children,
+}: {
+  title: string;
+  footer?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="px-4 pb-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        {title}
+      </div>
+      <div className="bg-white rounded-2xl overflow-hidden shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]">
+        {children}
+      </div>
+      {footer && (
+        <div className="px-4 pt-2 text-[11px] text-slate-400 leading-snug">
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 px-4 py-3 min-h-[48px] ${
+        disabled ? "opacity-50" : ""
+      }`}
+    >
+      <span className="text-[15px] text-slate-900 flex-1">{label}</span>
+      <button
+        type="button"
+        onClick={onChange}
+        disabled={disabled}
+        aria-label={label}
+        className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
+          checked ? "bg-emerald-500" : "bg-slate-300"
+        } ${disabled ? "cursor-not-allowed" : ""}`}
+      >
+        <span
+          className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+            checked ? "translate-x-[18px]" : "translate-x-0"
+          }`}
+        />
+      </button>
+    </div>
   );
 }

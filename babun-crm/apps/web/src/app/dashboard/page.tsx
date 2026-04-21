@@ -806,59 +806,55 @@ function DashboardPageInner() {
 
   // Long-press menu — only actions that Dima actually uses.
   // No disabled stubs, no rarely-used items.
+  // Sprint 028: strip cartoon emojis from menu labels — cleaner iOS
+  // look. The menu surface already groups these by status so the
+  // leading glyph wasn't carrying semantic weight.
   const longPressOptions: ActionMenuOption[] = longPressApt
     ? [
-        // STORY-003: "Отметить оплату" for scheduled appointments
-        // opens the PaymentSheet (cash / card / cancel).
         ...(longPressApt.status === "scheduled" && longPressApt.kind === "work"
           ? [{
-              label: "💵 Отметить оплату",
+              label: "Отметить оплату",
               onSelect: () => setPaymentApt(longPressApt),
             }]
           : []),
-        // Quick status changes — the most common action
         ...(longPressApt.status !== "completed"
           ? [{
-              label: "✅ Выполнена",
+              label: "Выполнена",
               onSelect: () => handleQuickStatus(longPressApt, "completed"),
             }]
           : []),
         ...(longPressApt.status !== "in_progress"
           ? [{
-              label: "🔄 В работе",
+              label: "В работе",
               onSelect: () => handleQuickStatus(longPressApt, "in_progress"),
             }]
           : []),
         ...(longPressApt.status !== "scheduled" && longPressApt.status !== "cancelled"
           ? [{
-              label: "📅 Вернуть в план",
+              label: "Вернуть в план",
               onSelect: () => handleQuickStatus(longPressApt, "scheduled"),
             }]
           : []),
-        // Reschedule — mobile users have no drag (Sprint 019 U8)
         ...(longPressApt.status !== "cancelled"
           ? [{
-              label: "📅 Перенести",
+              label: "Перенести",
               onSelect: () => setRescheduleApt(longPressApt),
             }]
           : []),
-        // Copy — useful for recurring clients
         {
-          label: "📋 Копировать",
+          label: "Копировать",
           onSelect: () => {
             const copy = duplicateAppointment(longPressApt);
             upsertAppointment(copy);
             setInlineSheet({ mode: "edit", initial: copy });
           },
         },
-        // Cancel / restore
         {
-          label: longPressApt.status === "cancelled" ? "♻️ Восстановить" : "❌ Отменить",
+          label: longPressApt.status === "cancelled" ? "Восстановить" : "Отменить",
           onSelect: () => handleCancelToggle(longPressApt),
         },
-        // Delete
         {
-          label: "🗑 Удалить",
+          label: "Удалить",
           danger: true,
           onSelect: () => handleDeleteWithUndo(longPressApt),
         },

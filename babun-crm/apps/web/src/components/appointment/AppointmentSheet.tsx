@@ -1,7 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Camera, CalendarClock } from "lucide-react";
+import {
+  Check,
+  Camera,
+  CalendarClock,
+  Coffee,
+  Briefcase,
+  Navigation as NavigationIcon,
+  Moon,
+  Plane,
+} from "lucide-react";
+import type { EventPreset } from "@/lib/event-presets";
+
+// Lucide icon components keyed by the preset's `icon` string. Replaces
+// the inline emoji rendering (☕💼🧭🌙✈️) with system-style line icons
+// — cleaner on iOS and respects the user's "no emojis" directive.
+const EVENT_ICONS: Record<EventPreset["icon"], React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
+  coffee: Coffee,
+  briefcase: Briefcase,
+  navigation: NavigationIcon,
+  moon: Moon,
+  plane: Plane,
+};
 import type {
   Appointment,
   AppointmentPayment,
@@ -607,12 +628,18 @@ export default function AppointmentSheet({
                         setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
                       }
                     }}
-                    className="py-3 rounded-xl border-2 border-slate-200 bg-white text-[12px] font-semibold text-slate-800 active:scale-[0.98]"
+                    className="py-3 rounded-xl border-2 border-slate-200 bg-white text-[12px] font-semibold text-slate-800 active:scale-[0.98] flex flex-col items-center gap-1"
                     style={eventLabel === p.label ? { borderColor: p.color, background: `${p.color}14` } : undefined}
                   >
-                    <div className="text-[18px] mb-0.5">
-                      {p.icon === "coffee" ? "☕" : p.icon === "briefcase" ? "💼" : p.icon === "navigation" ? "🧭" : p.icon === "moon" ? "🌙" : "✈️"}
-                    </div>
+                    {(() => {
+                      const Icon = EVENT_ICONS[p.icon];
+                      return (
+                        <Icon
+                          size={20}
+                          strokeWidth={2}
+                        />
+                      );
+                    })()}
                     {p.label}
                   </button>
                 ))}
