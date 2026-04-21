@@ -105,9 +105,18 @@ export default function ClientPickerSheet({
     onClose();
   };
 
+  // Phone validation: at least 7 digits (covers +357 99 XXX XXX as well
+  // as legacy 8-digit local numbers). Sprint 024 STORY-007 / C3 — the
+  // settings flag "Телефон обязателен" was decorative, the form would
+  // happily save a phone-less client and then disable the call button.
+  const phoneDigitsCount = newPhones[0]?.replace(/\D/g, "").length ?? 0;
+  const phoneMissing = phoneDigitsCount < 7;
+  const canCreateClient = newName.trim().length > 0 && !phoneMissing;
+
   const handleCreateNew = () => {
     const name = newName.trim();
     if (!name) return;
+    if (phoneMissing) return; // double-guard
     const phones = newPhones.map((p) => p.trim()).filter(Boolean);
     const client = createBlankClient({
       full_name: name,
@@ -283,6 +292,11 @@ export default function ClientPickerSheet({
                 className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
               />
             </div>
+            {phoneMissing && newName.trim().length > 0 && (
+              <div className="text-[11px] text-rose-600 -mt-1 px-1">
+                Введите телефон, иначе кнопка «Позвонить» не сработает
+              </div>
+            )}
 
             {/* Comment — always visible per STORY-011, no ✕. */}
             <div className="flex items-start gap-2 bg-white rounded-lg px-3 py-2">
@@ -380,8 +394,15 @@ export default function ClientPickerSheet({
               <button
                 type="button"
                 onClick={handleCreateNew}
-                disabled={!newName.trim()}
+                disabled={!canCreateClient}
                 className="flex-1 h-11 bg-violet-600 text-white rounded-lg font-semibold disabled:opacity-40"
+                title={
+                  !newName.trim()
+                    ? "Введите имя"
+                    : phoneMissing
+                      ? "Введите телефон (минимум 7 цифр)"
+                      : ""
+                }
               >
                 Добавить
               </button>

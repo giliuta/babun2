@@ -8,7 +8,7 @@ import { useClients, useAppointments } from "@/app/dashboard/layout";
 import { type Client, createBlankClient } from "@/lib/clients";
 import { getPaidAmount } from "@/lib/appointments";
 import { getAvatarColor, getInitials } from "@/lib/avatar-color";
-import { pluralizeAC } from "@/lib/pluralize";
+import { pluralizeAC, countWordRu } from "@/lib/pluralize";
 import ClientPanel from "@/components/clients/ClientPanel";
 import { matchesClient } from "@/lib/client-search";
 
@@ -32,7 +32,7 @@ const SORT_LABELS: Record<SortKey, string> = {
 export default function ClientsPage() {
   const router = useRouter();
   const { clients, upsertClient, deleteClient, tags } = useClients();
-  const { appointments } = useAppointments();
+  const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>("recent");
@@ -219,14 +219,42 @@ export default function ClientsPage() {
           </button>
         </div>
 
-        {confirmDelete && (
-          <ConfirmDialog
-            title="Удалить клиента?"
-            message={`${confirmDelete.full_name} будет удалён. Это нельзя отменить.`}
-            onConfirm={() => { deleteClient(confirmDelete.id); setConfirmDelete(null); setSelectedId(null); }}
-            onClose={() => setConfirmDelete(null)}
-          />
-        )}
+        {confirmDelete && (() => {
+          // Sprint 024 STORY-003 / C2 — count linked appointments and
+          // offer the dispatcher three explicit choices instead of the
+          // earlier silent delete that orphaned records and broke
+          // finance totals.
+          const linked = appointments.filter(
+            (a) => a.client_id === confirmDelete.id
+          );
+          const linkedCount = linked.length;
+          return (
+            <ConfirmDialog
+              title={`Удалить ${confirmDelete.full_name}?`}
+              message={
+                linkedCount === 0
+                  ? "Связанных записей нет — удаление безопасно."
+                  : `У клиента ${linkedCount} ${countWordRu(linkedCount, "запись", "записи", "записей")}. При удалении мы открепим записи (история сохранится без имени клиента).`
+              }
+              confirmLabel={linkedCount === 0 ? "Удалить" : "Удалить и открепить"}
+              onConfirm={() => {
+                // Detach appointments first so finance/route totals stay intact.
+                for (const apt of linked) {
+                  upsertAppointment({
+                    ...apt,
+                    client_id: null,
+                    comment: apt.comment || confirmDelete.full_name,
+                    updated_at: new Date().toISOString(),
+                  });
+                }
+                deleteClient(confirmDelete.id);
+                setConfirmDelete(null);
+                setSelectedId(null);
+              }}
+              onClose={() => setConfirmDelete(null)}
+            />
+          );
+        })()}
       </>
     );
   }

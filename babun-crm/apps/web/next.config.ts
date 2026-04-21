@@ -59,6 +59,32 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Bookmarks, history search, copy-paste — every short URL the
+  // dispatcher might type or remember points to /dashboard/<x>. Without
+  // these aliases the user lands on a 404 (Sprint 024 STORY-008/C5).
+  async redirects() {
+    return [
+      { source: "/clients", destination: "/dashboard/clients", permanent: false },
+      { source: "/finances", destination: "/dashboard/finances", permanent: false },
+      { source: "/expenses", destination: "/dashboard/expenses", permanent: false },
+      { source: "/payroll", destination: "/dashboard/payroll", permanent: false },
+      { source: "/reports", destination: "/dashboard/reports", permanent: false },
+      { source: "/chats", destination: "/dashboard/chats", permanent: false },
+      { source: "/route", destination: "/dashboard/route", permanent: false },
+      { source: "/waitlist", destination: "/dashboard/waitlist", permanent: false },
+      { source: "/recurring", destination: "/dashboard/recurring", permanent: false },
+      { source: "/reminders", destination: "/dashboard/recurring", permanent: false },
+      { source: "/settings", destination: "/dashboard/settings", permanent: false },
+      { source: "/services", destination: "/dashboard/services", permanent: false },
+      { source: "/teams", destination: "/dashboard/teams", permanent: false },
+      { source: "/masters", destination: "/dashboard/masters", permanent: false },
+      { source: "/brigades", destination: "/dashboard/brigades", permanent: false },
+      { source: "/schedule", destination: "/dashboard/schedule", permanent: false },
+      { source: "/sms", destination: "/dashboard/sms-templates", permanent: false },
+      { source: "/today", destination: "/dashboard", permanent: false },
+      { source: "/calendar", destination: "/dashboard", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { Appointment } from "@/lib/appointments";
 import { getDebtAmount, getPaidAmount } from "@/lib/appointments";
 import { formatEUR } from "@/lib/money";
+import { pluralRecord } from "@/lib/pluralize";
 
 interface DaySummaryStripProps {
   appointments: Appointment[];
@@ -45,7 +46,7 @@ export default function DaySummaryStrip({
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-white border-b border-slate-200 text-[11px] overflow-x-auto">
-      <Chip label={`${stats.count} записей`} />
+      <Chip label={pluralRecord(stats.count)} />
       {stats.income > 0 && <Chip label={formatEUR(stats.income)} tone="emerald" />}
       {stats.inProgress > 0 && (
         <Chip label={`${stats.inProgress} в работе`} tone="indigo" />

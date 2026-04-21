@@ -15,6 +15,7 @@ import type { DayExtra } from "@/lib/day-extras";
 import { computeFinancials } from "@/lib/finance/compute";
 import { loadChats, getTotalUnread } from "@/lib/chats";
 import { formatEUR } from "@/lib/money";
+import { countWordRu } from "@/lib/pluralize";
 
 interface MorningBriefingProps {
   appointments: Appointment[];
@@ -312,11 +313,7 @@ function Stat({
   );
 }
 
-// Russian word agreement: "1 запись / 2 записи / 5 записей".
-function countWord(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-  return many;
-}
+// `countWord` was inlined here in Sprint 020; Sprint 024 promotes it
+// to lib/pluralize.ts as `countWordRu` so other surfaces (clients
+// list, sidebar badges, chat counters) reuse the same agreement.
+const countWord = countWordRu;

@@ -21,11 +21,13 @@ import {
 } from "lucide-react";
 import { loadWaitlist } from "@/lib/waitlist";
 import { loadRecurring, dueReminders } from "@/lib/recurring";
+import { loadChats, getTotalUnread } from "@/lib/chats";
 import { BUILD_VERSION } from "@/lib/version";
 
 export type DialogType =
   | "calendar"
   | "clients"
+  | "chats"
   | "finances"
   | "expenses"
   | "payroll"
@@ -52,6 +54,7 @@ interface SidebarProps {
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   calendar: "/dashboard",
   clients: "/dashboard/clients",
+  chats: "/dashboard/chats",
   finances: "/dashboard/finances",
   expenses: "/dashboard/expenses",
   payroll: "/dashboard/payroll",
@@ -74,12 +77,14 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
   const [waitlistPending, setWaitlistPending] = useState(0);
   const [recurringDue, setRecurringDue] = useState(0);
+  const [unreadChats, setUnreadChats] = useState(0);
   useEffect(() => {
     const refresh = () => {
       setWaitlistPending(
         loadWaitlist().filter((i) => i.status === "pending").length
       );
       setRecurringDue(dueReminders(loadRecurring()).length);
+      setUnreadChats(getTotalUnread(loadChats()));
     };
     refresh();
     // Re-read when the drawer is reopened or the user navigates — cheap
@@ -145,6 +150,13 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             label="Клиенты"
             active={isActive("clients")}
             onClick={() => handleNav("clients")}
+          />
+          <NavItem
+            icon={<MessageSquare size={18} strokeWidth={2} />}
+            label="Чаты"
+            badge={unreadChats > 0 ? unreadChats : undefined}
+            active={isActive("chats")}
+            onClick={() => handleNav("chats")}
           />
           <NavItem
             icon={<Navigation size={18} strokeWidth={2} />}

@@ -7,6 +7,7 @@ import type { Service } from "@/lib/services";
 import type { Team } from "@/lib/masters";
 import type { DayExtra } from "@/lib/day-extras";
 import { computeFinancials } from "@/lib/finance/compute";
+import { pluralRecord } from "@/lib/pluralize";
 import { formatEUR } from "@/lib/money";
 
 interface TodayGlanceProps {
@@ -77,12 +78,7 @@ export default function TodayGlance({
             Сегодня
           </span>
           <span className="text-[14px] font-bold text-violet-800">
-            {plan.count}{" "}
-            {plan.count === 1
-              ? "запись"
-              : plan.count < 5
-                ? "записи"
-                : "записей"}
+            {pluralRecord(plan.count)}
           </span>
           <span className="flex-1 text-[11px] text-violet-800/70">
             первая в{" "}
