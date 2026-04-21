@@ -77,25 +77,25 @@ export default function ServicesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-white text-violet-700 lg:bg-violet-600 lg:text-white rounded-lg text-sm font-semibold"
+            className="px-3 py-1.5 bg-white text-[var(--accent)] lg:bg-[var(--accent)] lg:text-white rounded-lg text-sm font-semibold"
           >
             + Новая
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50">
+      <div className="flex-1 overflow-y-auto bg-[var(--fill-tertiary)]">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24 space-y-4">
           <button
             type="button"
             onClick={() => setShowCategories((x) => !x)}
-            className="w-full bg-white rounded-lg border border-slate-200 px-4 py-3 text-sm text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between"
+            className="w-full bg-white rounded-lg border border-[var(--separator)] px-4 py-3 text-sm text-left font-medium text-[var(--label)] hover:bg-[var(--fill-tertiary)] flex items-center justify-between"
           >
             <span className="inline-flex items-center gap-2">
-              <Settings size={14} className="text-slate-500" />
+              <Settings size={14} className="text-[var(--label-secondary)]" />
               Категории услуг ({categories.length})
             </span>
-            <span className="text-slate-400">
+            <span className="text-[var(--label-tertiary)]">
               {showCategories ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </span>
           </button>
@@ -110,9 +110,9 @@ export default function ServicesPage() {
           {grouped.map(([catKey, svcList]) => {
             const cat = categoryById.get(catKey);
             return (
-              <section key={catKey} className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+              <section key={catKey} className="bg-white rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
                 <div
-                  className="px-4 py-2 text-sm font-semibold border-b border-slate-200 flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-semibold border-b border-[var(--separator)] flex items-center gap-2"
                   style={{ backgroundColor: cat ? `${cat.color}15` : undefined }}
                 >
                   {cat && (
@@ -121,10 +121,10 @@ export default function ServicesPage() {
                       style={{ backgroundColor: cat.color }}
                     />
                   )}
-                  <span className="text-slate-800">{cat?.name ?? "Без категории"}</span>
-                  <span className="text-xs text-slate-400">({svcList.length})</span>
+                  <span className="text-[var(--label)]">{cat?.name ?? "Без категории"}</span>
+                  <span className="text-xs text-[var(--label-tertiary)]">({svcList.length})</span>
                 </div>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[var(--separator)]">
                   {svcList.map((s) => {
                     const matCost = getServiceMaterialCost(s);
                     return (
@@ -132,29 +132,29 @@ export default function ServicesPage() {
                         key={s.id}
                         type="button"
                         onClick={() => setEditing(s)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--fill-tertiary)]"
                       >
                         <div
                           className="w-2 h-10 rounded-full shrink-0"
                           style={{ backgroundColor: s.color }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-slate-900 truncate flex items-center gap-2">
+                          <div className="text-sm font-semibold text-[var(--label)] truncate flex items-center gap-2">
                             <span className="truncate">{s.name || "Без названия"}</span>
                             {!s.is_countable && (
-                              <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-medium uppercase tracking-wide flex-shrink-0">
+                              <span className="text-[9px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide flex-shrink-0">
                                 ×1
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-500 flex flex-wrap gap-2">
+                          <div className="text-xs text-[var(--label-secondary)] flex flex-wrap gap-2">
                             <span>{s.duration_minutes} мин/шт</span>
                             <span>•</span>
-                            <span className="text-emerald-600 font-medium">{s.price}€/шт</span>
+                            <span className="text-[var(--system-green)] font-medium">{s.price}€/шт</span>
                             {s.bulk_threshold > 0 && s.bulk_price > 0 && (
                               <>
                                 <span>•</span>
-                                <span className="text-violet-600 font-medium">
+                                <span className="text-[var(--accent)] font-medium">
                                   от {s.bulk_threshold}шт → {s.bulk_price}€/шт
                                 </span>
                               </>
@@ -162,7 +162,7 @@ export default function ServicesPage() {
                             {s.cost_per_unit > 0 && (
                               <>
                                 <span>•</span>
-                                <span className="text-rose-500">
+                                <span className="text-[var(--system-red)]">
                                   −{s.cost_per_unit}€/шт расход
                                 </span>
                               </>
@@ -170,7 +170,7 @@ export default function ServicesPage() {
                             {matCost > 0 && s.cost_per_unit === 0 && (
                               <>
                                 <span>•</span>
-                                <span className="text-rose-500">−{matCost}€ расход</span>
+                                <span className="text-[var(--system-red)]">−{matCost}€ расход</span>
                               </>
                             )}
                           </div>
@@ -195,13 +195,13 @@ export default function ServicesPage() {
                             </div>
                           )}
                           {s.available_weekdays.length > 0 && (
-                            <div className="text-xs text-slate-400 mt-0.5">
+                            <div className="text-xs text-[var(--label-tertiary)] mt-0.5">
                               {s.available_weekdays.map((d) => WEEKDAY_LABELS[d]).join(",")}
                             </div>
                           )}
                         </div>
                         {!s.is_active && (
-                          <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded">
+                          <span className="text-[10px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-2 py-0.5 rounded">
                             скрыта
                           </span>
                         )}
@@ -248,7 +248,7 @@ function CategoriesEditor({
   };
 
   return (
-    <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-3">
+    <section className="bg-white rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-3">
       {categories.map((c, i) => (
         <div key={c.id} className="flex items-center gap-2">
           <input
@@ -259,7 +259,7 @@ function CategoriesEditor({
               next[i] = { ...c, color: e.target.value };
               onChange(next);
             }}
-            className="w-8 h-8 border border-slate-300 rounded cursor-pointer"
+            className="w-8 h-8 border border-[var(--separator)] rounded cursor-pointer"
           />
           <input
             type="text"
@@ -269,31 +269,31 @@ function CategoriesEditor({
               next[i] = { ...c, name: e.target.value };
               onChange(next);
             }}
-            className="flex-1 px-2 py-1.5 border border-slate-300 rounded text-sm text-slate-900"
+            className="flex-1 px-2 py-1.5 border border-[var(--separator)] rounded text-sm text-[var(--label)]"
           />
           <button
             type="button"
             onClick={() => onChange(categories.filter((x) => x.id !== c.id))}
-            className="w-8 h-8 text-red-500 hover:bg-red-50 rounded"
+            className="w-8 h-8 text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.08)] rounded"
           >
             ×
           </button>
         </div>
       ))}
-      <div className="flex gap-2 pt-2 border-t border-slate-100">
+      <div className="flex gap-2 pt-2 border-t border-[var(--separator)]">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Новая категория..."
-          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+          className="flex-1 px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
         <button
           type="button"
           onClick={handleAdd}
           disabled={!name.trim()}
-          className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:bg-slate-300"
+          className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold disabled:bg-[var(--fill-primary)]"
         >
           +
         </button>
@@ -355,14 +355,14 @@ function ServiceEditorSheet({
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40">
       <div className="w-full lg:max-w-lg bg-white rounded-t-2xl lg:rounded-2xl max-h-[92vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <h2 className="text-base font-semibold text-slate-900">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
+          <h2 className="text-base font-semibold text-[var(--label)]">
             {service.name ? "Редактировать услугу" : "Новая услуга"}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-500 text-xl"
+            className="w-9 h-9 rounded-lg hover:bg-[var(--fill-primary)] text-[var(--label-secondary)] text-xl"
           >
             ×
           </button>
@@ -370,22 +370,22 @@ function ServiceEditorSheet({
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Название</label>
+            <label className="block text-xs text-[var(--label-secondary)] mb-1">Название</label>
             <input
               type="text"
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Категория</label>
+            <label className="block text-xs text-[var(--label-secondary)] mb-1">Категория</label>
             <select
               value={draft.category_id ?? ""}
               onChange={(e) => setDraft({ ...draft, category_id: e.target.value || null })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] bg-white"
             >
               <option value="">— Без категории —</option>
               {categories.map((c) => (
@@ -398,35 +398,35 @@ function ServiceEditorSheet({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Длительность, мин</label>
+              <label className="block text-xs text-[var(--label-secondary)] mb-1">Длительность, мин</label>
               <input
                 type="number"
                 min={5}
                 step={5}
                 value={draft.duration_minutes}
                 onChange={(e) => setDraft({ ...draft, duration_minutes: Number(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+                className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Цена, €</label>
+              <label className="block text-xs text-[var(--label-secondary)] mb-1">Цена, €</label>
               <input
                 type="number"
                 min={0}
                 value={draft.price}
                 onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+                className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
               />
             </div>
           </div>
 
           {/* MEGA-UPDATE — countable toggle */}
-          <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5">
+          <div className="flex items-center justify-between bg-[var(--fill-tertiary)] rounded-lg px-3 py-2.5">
             <div>
-              <div className="text-sm font-semibold text-slate-900">
+              <div className="text-sm font-semibold text-[var(--label)]">
                 Количество регулируется
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-[var(--label-secondary)]">
                 Степпер [− N +] в записи. Выключите для ремонта / диагностики.
               </div>
             </div>
@@ -436,7 +436,7 @@ function ServiceEditorSheet({
                 setDraft({ ...draft, is_countable: !draft.is_countable })
               }
               className={`w-11 h-6 rounded-full relative transition-colors ${
-                draft.is_countable ? "bg-violet-600" : "bg-slate-300"
+                draft.is_countable ? "bg-[var(--accent)]" : "bg-[var(--fill-primary)]"
               }`}
               aria-pressed={draft.is_countable}
             >
@@ -451,7 +451,7 @@ function ServiceEditorSheet({
           {/* Bulk pricing */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">
+              <label className="block text-xs text-[var(--label-secondary)] mb-1">
                 От N штук (bulk)
               </label>
               <input
@@ -462,11 +462,11 @@ function ServiceEditorSheet({
                   setDraft({ ...draft, bulk_threshold: Number(e.target.value) || 0 })
                 }
                 placeholder="0 = без bulk"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+                className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">
+              <label className="block text-xs text-[var(--label-secondary)] mb-1">
                 Цена bulk, €/шт
               </label>
               <input
@@ -477,14 +477,14 @@ function ServiceEditorSheet({
                   setDraft({ ...draft, bulk_price: Number(e.target.value) || 0 })
                 }
                 placeholder="0 = без bulk"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+                className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
               />
             </div>
           </div>
 
           {/* Cost per unit */}
           <div>
-            <label className="block text-xs text-slate-500 mb-1">
+            <label className="block text-xs text-[var(--label-secondary)] mb-1">
               Расход на штуку, € (химия, фреон…)
             </label>
             <input
@@ -494,13 +494,13 @@ function ServiceEditorSheet({
               onChange={(e) =>
                 setDraft({ ...draft, cost_per_unit: Number(e.target.value) || 0 })
               }
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)]"
             />
           </div>
 
           {/* Brigades */}
           <div>
-            <label className="block text-xs text-slate-500 mb-1.5">
+            <label className="block text-xs text-[var(--label-secondary)] mb-1.5">
               Бригады, которые делают (пусто = все)
             </label>
             <div className="flex flex-wrap gap-2">
@@ -534,7 +534,7 @@ function ServiceEditorSheet({
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Цвет на календаре</label>
+            <label className="block text-xs text-[var(--label-secondary)] mb-1">Цвет на календаре</label>
             <div className="flex flex-wrap gap-2">
               {PALETTE.map((c) => (
                 <button
@@ -542,7 +542,7 @@ function ServiceEditorSheet({
                   type="button"
                   onClick={() => setDraft({ ...draft, color: c })}
                   className={`w-8 h-8 rounded-full border-2 ${
-                    draft.color === c ? "border-slate-900 scale-110" : "border-transparent"
+                    draft.color === c ? "border-[var(--label)] scale-110" : "border-transparent"
                   }`}
                   style={{ backgroundColor: c }}
                 />
@@ -551,13 +551,13 @@ function ServiceEditorSheet({
                 type="color"
                 value={draft.color}
                 onChange={(e) => setDraft({ ...draft, color: e.target.value })}
-                className="w-8 h-8 border border-slate-300 rounded cursor-pointer"
+                className="w-8 h-8 border border-[var(--separator)] rounded cursor-pointer"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">
+            <label className="block text-xs text-[var(--label-secondary)] mb-1">
               Доступность по дням недели (пусто = любой день)
             </label>
             <div className="flex gap-1">
@@ -570,8 +570,8 @@ function ServiceEditorSheet({
                     onClick={() => toggleWeekday(day)}
                     className={`flex-1 py-2 text-xs font-semibold rounded-lg border ${
                       on
-                        ? "bg-violet-600 text-white border-violet-600"
-                        : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                        ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                        : "bg-white text-[var(--label-secondary)] border-[var(--separator)] hover:bg-[var(--fill-tertiary)]"
                     }`}
                   >
                     {WEEKDAY_LABELS[day]}
@@ -582,7 +582,7 @@ function ServiceEditorSheet({
           </div>
 
           <div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-[var(--label)]">
               <input
                 type="checkbox"
                 checked={draft.online_enabled}
@@ -594,7 +594,7 @@ function ServiceEditorSheet({
           </div>
 
           <div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-[var(--label)]">
               <input
                 type="checkbox"
                 checked={draft.is_active}
@@ -605,19 +605,19 @@ function ServiceEditorSheet({
             </label>
           </div>
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-[var(--separator)]">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-slate-500">Материальные расходы на услугу</label>
+              <label className="text-xs text-[var(--label-secondary)]">Материальные расходы на услугу</label>
               <button
                 type="button"
                 onClick={addCost}
-                className="text-xs text-violet-600 font-medium"
+                className="text-xs text-[var(--accent)] font-medium"
               >
                 + Добавить
               </button>
             </div>
             {draft.material_costs.length === 0 && (
-              <div className="text-xs text-slate-400">Нет привязанных расходов</div>
+              <div className="text-xs text-[var(--label-tertiary)]">Нет привязанных расходов</div>
             )}
             <div className="space-y-2">
               {draft.material_costs.map((c) => (
@@ -627,20 +627,20 @@ function ServiceEditorSheet({
                     value={c.name}
                     onChange={(e) => updateCost(c.id, { name: e.target.value })}
                     placeholder="Материал"
-                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded text-sm text-slate-900"
+                    className="flex-1 px-3 py-1.5 border border-[var(--separator)] rounded text-sm text-[var(--label)]"
                   />
                   <input
                     type="number"
                     min={0}
                     value={c.amount}
                     onChange={(e) => updateCost(c.id, { amount: Number(e.target.value) || 0 })}
-                    className="w-20 px-2 py-1.5 border border-slate-300 rounded text-sm text-right text-slate-900"
+                    className="w-20 px-2 py-1.5 border border-[var(--separator)] rounded text-sm text-right text-[var(--label)]"
                   />
-                  <span className="text-xs text-slate-500">€</span>
+                  <span className="text-xs text-[var(--label-secondary)]">€</span>
                   <button
                     type="button"
                     onClick={() => removeCost(c.id)}
-                    className="w-7 h-7 text-red-500 hover:bg-red-50 rounded"
+                    className="w-7 h-7 text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.08)] rounded"
                   >
                     ×
                   </button>
@@ -648,8 +648,8 @@ function ServiceEditorSheet({
               ))}
             </div>
             {draft.material_costs.length > 0 && (
-              <div className="text-xs text-right text-slate-600 mt-2">
-                Итого расход: <span className="font-semibold text-red-600">
+              <div className="text-xs text-right text-[var(--label-secondary)] mt-2">
+                Итого расход: <span className="font-semibold text-[var(--system-red)]">
                   −{draft.material_costs.reduce((s, c) => s + c.amount, 0)}€
                 </span>
               </div>
@@ -657,12 +657,12 @@ function ServiceEditorSheet({
           </div>
         </div>
 
-        <div className="border-t border-slate-200 px-4 py-3 flex gap-2">
+        <div className="border-t border-[var(--separator)] px-4 py-3 flex gap-2">
           {service.name && (
             <button
               type="button"
               onClick={() => onDelete(service.id)}
-              className="px-4 py-2 text-red-600 text-sm font-medium hover:bg-red-50 rounded-lg"
+              className="px-4 py-2 text-[var(--system-red)] text-sm font-medium hover:bg-[rgba(255,59,48,0.08)] rounded-lg"
             >
               Удалить
             </button>
@@ -671,7 +671,7 @@ function ServiceEditorSheet({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 border border-slate-300"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--label)] border border-[var(--separator)]"
           >
             Отмена
           </button>
@@ -679,7 +679,7 @@ function ServiceEditorSheet({
             type="button"
             onClick={() => onSave(draft)}
             disabled={!draft.name.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 disabled:bg-slate-300"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--accent)] disabled:bg-[var(--fill-primary)]"
           >
             Сохранить
           </button>

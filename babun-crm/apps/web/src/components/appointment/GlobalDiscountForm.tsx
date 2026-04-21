@@ -31,7 +31,7 @@ export default function GlobalDiscountForm({
     return (
       <div className="px-4 pt-3">
         {discount ? (
-          <div className="flex items-center gap-2 bg-[rgba(255,59,48,0.08)] border border-rose-200 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.25)] rounded-xl px-3 py-2">
             <div className="flex-1 text-[13px] text-[var(--system-red)] font-semibold">
               🏷{" "}
               {discount.type === "percent"
@@ -64,7 +64,7 @@ export default function GlobalDiscountForm({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="w-full h-10 rounded-xl border-2 border-dashed border-slate-300 text-[13px] font-semibold text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)]"
+            className="w-full h-10 rounded-xl border-2 border-dashed border-[var(--separator)] text-[13px] font-semibold text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)]"
           >
             🏷 Добавить скидку на всё
           </button>
@@ -86,7 +86,7 @@ export default function GlobalDiscountForm({
 
   return (
     <div className="px-4 pt-3">
-      <div className="p-3 rounded-xl bg-white border-2 border-rose-300 space-y-2.5">
+      <div className="p-3 rounded-xl bg-[var(--surface-card)] border-2 border-[rgba(255,59,48,0.35)] space-y-2.5">
         <div className="text-[12px] font-semibold text-[var(--label)]">
           Скидка на всю запись
         </div>

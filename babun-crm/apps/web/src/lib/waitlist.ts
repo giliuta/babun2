@@ -1,4 +1,4 @@
-// Waitlist — clients who couldn't get a slot and should be called back.
+﻿// Waitlist — clients who couldn't get a slot and should be called back.
 // Stored in localStorage for the prototype; migrates to Supabase with the
 // rest of the data model.
 
@@ -68,8 +68,8 @@ export const STATUS_LABELS: Record<WaitlistStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<WaitlistStatus, string> = {
-  pending: "text-amber-600 bg-amber-50",
-  contacted: "text-violet-600 bg-violet-50",
-  booked: "text-emerald-600 bg-emerald-50",
-  dropped: "text-slate-500 bg-slate-100",
+  pending: "text-[var(--system-orange)] bg-[rgba(255,149,0,0.08)]",
+  contacted: "text-[var(--accent)] bg-[var(--accent-tint)]",
+  booked: "text-[var(--system-green)] bg-[rgba(52,199,89,0.08)]",
+  dropped: "text-[var(--label-secondary)] bg-[var(--fill-primary)]",
 };

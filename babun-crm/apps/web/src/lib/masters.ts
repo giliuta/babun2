@@ -145,10 +145,10 @@ export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
 };
 
 export const ACCOUNT_STATUS_TONE: Record<AccountStatus, string> = {
-  invited: "bg-sky-50 text-sky-700 border-sky-200",
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  paused: "bg-amber-50 text-amber-700 border-amber-200",
-  terminated: "bg-rose-50 text-rose-700 border-rose-200",
+  invited: "bg-[rgba(62,136,247,0.08)] text-[var(--system-blue)] border-[rgba(62,136,247,0.25)]",
+  active: "bg-[rgba(52,199,89,0.08)] text-[var(--system-green)] border-[rgba(52,199,89,0.25)]",
+  paused: "bg-[rgba(255,149,0,0.08)] text-[var(--system-orange)] border-[rgba(255,149,0,0.25)]",
+  terminated: "bg-[rgba(255,59,48,0.08)] text-[var(--system-red)] border-[rgba(255,59,48,0.25)]",
 };
 
 export interface NotificationPrefs {
