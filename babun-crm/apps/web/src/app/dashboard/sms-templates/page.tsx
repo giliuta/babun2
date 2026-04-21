@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useSmsTemplates } from "@/app/dashboard/layout";
 import {
   KIND_LABELS,
@@ -25,14 +26,15 @@ const SAMPLE_VARS: Record<string, string> = {
 export default function SmsTemplatesPage() {
   const { templates, setTemplates, upsertTemplate } = useSmsTemplates();
   const [editing, setEditing] = useState<SmsTemplate | null>(null);
+  const confirm = useConfirm();
 
   const handleSave = (tpl: SmsTemplate) => {
     upsertTemplate(tpl);
     setEditing(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Удалить шаблон?")) return;
+  const handleDelete = async (id: string) => {
+    if (!(await confirm({ title: "Удалить шаблон?" }))) return;
     setTemplates(templates.filter((t) => t.id !== id));
     setEditing(null);
   };

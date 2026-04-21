@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   PERMISSION_LABELS,
@@ -30,6 +31,7 @@ export default function MastersPage() {
   const router = useRouter();
   const { masters, upsertMaster, deleteMaster } = useMasters();
   const { teams, setTeams } = useTeams();
+  const confirm = useConfirm();
 
   const [editing, setEditing] = useState<Master | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -78,8 +80,12 @@ export default function MastersPage() {
     closeForm();
   };
 
-  const handleDelete = (master: Master) => {
-    if (!window.confirm(`Удалить мастера "${master.full_name}"?`)) return;
+  const handleDelete = async (master: Master) => {
+    const ok = await confirm({
+      title: `Удалить мастера «${master.full_name}»?`,
+      message: "Будет удалён из всех бригад где состоял.",
+    });
+    if (!ok) return;
     deleteMaster(master.id);
 
     // Remove references from teams (lead_id or helper_ids)

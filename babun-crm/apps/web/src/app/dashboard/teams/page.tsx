@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useAppointments, useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   TEAM_COLORS,
@@ -22,6 +23,7 @@ export default function TeamsPage() {
   const { teams, upsertTeam, deleteTeam } = useTeams();
   const { masters, setMasters } = useMasters();
   const { appointments, upsertAppointment } = useAppointments();
+  const confirm = useConfirm();
 
   const [editing, setEditing] = useState<Team | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -87,12 +89,17 @@ export default function TeamsPage() {
     closeForm();
   };
 
-  const handleDelete = (team: Team) => {
+  const handleDelete = async (team: Team) => {
     const orphanCount = appointments.filter((a) => a.team_id === team.id).length;
-    const extra = orphanCount > 0
-      ? `\n\nУ ${orphanCount} записей сбросится привязка к бригаде (записи останутся, team_id будет пустым).`
-      : "";
-    if (!window.confirm(`Удалить бригаду "${team.name}"?${extra}`)) return;
+    const extra =
+      orphanCount > 0
+        ? `У ${orphanCount} записей сбросится привязка к бригаде (записи останутся, team_id будет пустым).`
+        : "Эта бригада нигде не используется.";
+    const ok = await confirm({
+      title: `Удалить бригаду «${team.name}»?`,
+      message: extra,
+    });
+    if (!ok) return;
     deleteTeam(team.id);
     // Clear team_id on any master that was in this team
     const updatedMasters = masters.map<Master>((m) =>

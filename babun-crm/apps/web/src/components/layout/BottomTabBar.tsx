@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Calendar as CalendarIcon,
@@ -10,10 +10,15 @@ import {
   Menu,
   Plus,
 } from "lucide-react";
-import { useSidebar } from "@/app/dashboard/layout";
+import {
+  useSidebar,
+  useAppointments,
+  useClients,
+} from "@/app/dashboard/layout";
 import { loadWaitlist } from "@/lib/waitlist";
 import { loadChats, getTotalUnread } from "@/lib/chats";
 import CreateMenu from "./CreateMenu";
+import GlobalSearch from "./GlobalSearch";
 
 // Bottom tab bar — visible on mobile only (lg:hidden). The layout adds
 // padding-bottom so the bar never covers content. The centre "+ Запись"
@@ -40,6 +45,21 @@ export default function BottomTabBar() {
   }, [pathname]);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { appointments } = useAppointments();
+  const { clients } = useClients();
+
+  // Open GlobalSearch via Cmd+K / Ctrl+K from anywhere in the app.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Unread waitlist — shows a red dot on the "Ещё" tab while any
   // entry is still pending, so the dispatcher knows there's something
@@ -79,6 +99,7 @@ export default function BottomTabBar() {
             label="Календарь"
             active={isCalendar}
             onClick={() => go("/dashboard")}
+            onLongPress={() => setSearchOpen(true)}
             icon={<CalendarIcon size={24} strokeWidth={2} />}
           />
           <TabButton
@@ -132,6 +153,13 @@ export default function BottomTabBar() {
         onCreateEvent={() => router.push("/dashboard?new=1&kind=event")}
         onCreateLead={() => router.push("/dashboard/chats")}
       />
+
+      <GlobalSearch
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        clients={clients}
+        appointments={appointments}
+      />
     </>
   );
 }
@@ -140,6 +168,7 @@ function TabButton({
   label,
   active,
   onClick,
+  onLongPress,
   icon,
   dot = false,
   count,
@@ -147,16 +176,51 @@ function TabButton({
   label: string;
   active: boolean;
   onClick: () => void;
+  onLongPress?: () => void;
   icon: React.ReactNode;
   dot?: boolean;
   count?: number;
 }) {
   const showCount = typeof count === "number" && count > 0;
   const label9 = showCount && count > 9 ? "9+" : String(count ?? "");
+
+  // Long-press handling — 500 ms threshold matches the rest of the
+  // app (calendar long-press, etc.). Suppresses the click if the
+  // long-press fired so we don't navigate AND open search.
+  const longPressFiredRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
+  const startLongPress = () => {
+    if (!onLongPress) return;
+    longPressFiredRef.current = false;
+    timerRef.current = window.setTimeout(() => {
+      longPressFiredRef.current = true;
+      onLongPress();
+    }, 500);
+  };
+  const cancelLongPress = () => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        if (longPressFiredRef.current) return;
+        onClick();
+      }}
+      onPointerDown={startLongPress}
+      onPointerUp={cancelLongPress}
+      onPointerLeave={cancelLongPress}
+      onPointerCancel={cancelLongPress}
+      onContextMenu={(e) => {
+        if (onLongPress) {
+          e.preventDefault();
+          onLongPress();
+        }
+      }}
       className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition active:scale-[0.97] ${
         active ? "text-violet-600" : "text-slate-500"
       }`}

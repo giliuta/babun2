@@ -1220,7 +1220,7 @@ export default function DashboardPage() {
       <EndOfDayBanner
         appointments={appointments}
         teamId={activeTeamId}
-        onOpenUnpaid={() => router.push("/dashboard/finances")}
+        onOpenUnpaid={() => router.push("/dashboard/close-day")}
       />
 
       <RescheduleSheet

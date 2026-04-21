@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
 import type { Team } from "@/lib/masters";
 import {
@@ -30,6 +31,7 @@ const PALETTE = [
 
 export default function ServicesPage() {
   const { services, upsertService, deleteService, categories, setCategories } = useServices();
+  const confirm = useConfirm();
   const { teams } = useTeams();
   const [editing, setEditing] = useState<Service | null>(null);
   const [showCategories, setShowCategories] = useState(false);
@@ -59,8 +61,8 @@ export default function ServicesPage() {
     setEditing(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Удалить услугу?")) return;
+  const handleDelete = async (id: string) => {
+    if (!(await confirm({ title: "Удалить услугу?" }))) return;
     deleteService(id);
     setEditing(null);
   };
