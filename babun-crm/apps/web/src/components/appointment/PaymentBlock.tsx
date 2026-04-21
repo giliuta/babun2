@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Banknote, CreditCard, ArrowLeftRight, FileText } from "lucide-react";
 import type { AppointmentPayment } from "@/lib/appointments";
 import { formatEUR } from "@/lib/money";
 
@@ -51,7 +52,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
 
   return (
     <div className="px-4 pt-3 space-y-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
         Оплата · {formatEUR(total)}
       </div>
 
@@ -60,55 +61,55 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
         <button
           type="button"
           onClick={() => payAll("cash")}
-          className="h-9 rounded-lg bg-emerald-500 text-white text-[12px] font-semibold active:bg-emerald-600 flex items-center justify-center gap-1"
+          className="h-11 rounded-[10px] bg-[var(--system-green)] text-white text-[13px] font-semibold active:opacity-90 flex items-center justify-center gap-1.5"
         >
-          💵 Нал
+          <Banknote size={16} strokeWidth={2} /> Нал
         </button>
         <button
           type="button"
           onClick={() => payAll("card")}
-          className="h-9 rounded-lg bg-sky-500 text-white text-[12px] font-semibold active:bg-sky-600 flex items-center justify-center gap-1"
+          className="h-11 rounded-[10px] bg-[var(--accent)] text-white text-[13px] font-semibold active:bg-[var(--accent-pressed)] flex items-center justify-center gap-1.5"
         >
-          💳 Карта
+          <CreditCard size={16} strokeWidth={2} /> Карта
         </button>
         <button
           type="button"
           onClick={() => setSplitOpen((v) => !v)}
-          className="h-9 rounded-lg bg-white border border-slate-200 text-[12px] font-semibold text-slate-700 active:bg-slate-50 flex items-center justify-center gap-1"
+          className="h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5"
         >
-          ↕ Сплит
+          <ArrowLeftRight size={16} strokeWidth={2} /> Сплит
         </button>
       </div>
 
       {splitOpen && (
-        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+        <div className="p-3 rounded-[14px] bg-[var(--fill-tertiary)] border border-[var(--separator)] space-y-2">
           <div className="flex items-center gap-2">
-            <span className="w-20 text-[12px] text-slate-600">Наличкой</span>
-            <div className="flex-1 flex items-center gap-1 bg-white rounded-lg border border-slate-200 px-2 h-10">
-              <span className="text-[14px] text-slate-400">€</span>
+            <span className="w-20 text-[13px] text-[var(--label-secondary)]">Наличкой</span>
+            <div className="flex-1 flex items-center gap-1 bg-[var(--surface-card)] rounded-[10px] border border-[var(--separator)] px-2 h-11">
+              <span className="text-[15px] text-[var(--label-tertiary)]">€</span>
               <input
                 type="number"
                 inputMode="decimal"
                 value={cashStr}
                 onChange={(e) => setCashStr(e.target.value.replace(/[^\d.]/g, ""))}
                 placeholder="0"
-                className="flex-1 bg-transparent text-[15px] font-bold text-slate-900 tabular-nums focus:outline-none placeholder-slate-300"
+                className="flex-1 bg-transparent text-[15px] font-bold text-[var(--label)] tabular-nums focus:outline-none placeholder:text-[var(--label-tertiary)]"
               />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-20 text-[12px] text-slate-600">Картой</span>
-            <div className="flex-1 flex items-center gap-1 bg-white rounded-lg border border-slate-200 px-2 h-10">
-              <span className="text-[14px] text-slate-400">€</span>
-              <div className="flex-1 text-[15px] font-bold text-slate-900 tabular-nums">
+            <span className="w-20 text-[13px] text-[var(--label-secondary)]">Картой</span>
+            <div className="flex-1 flex items-center gap-1 bg-[var(--surface-card)] rounded-[10px] border border-[var(--separator)] px-2 h-11">
+              <span className="text-[15px] text-[var(--label-tertiary)]">€</span>
+              <div className="flex-1 text-[15px] font-bold text-[var(--label)] tabular-nums">
                 {cardVal}
               </div>
-              <span className="text-[10px] text-slate-400 uppercase">авто</span>
+              <span className="text-[11px] text-[var(--label-tertiary)] uppercase">авто</span>
             </div>
           </div>
-          <div className="flex items-center justify-between pt-1 border-t border-slate-200">
-            <span className="text-[12px] text-slate-600">Итого</span>
-            <span className="text-[14px] font-bold text-slate-900 tabular-nums">
+          <div className="flex items-center justify-between pt-1 border-t border-[var(--separator)]">
+            <span className="text-[13px] text-[var(--label-secondary)]">Итого</span>
+            <span className="text-[15px] font-bold text-[var(--label)] tabular-nums">
               {formatEUR(total)}
             </span>
           </div>
@@ -116,7 +117,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
             type="button"
             onClick={paySplit}
             disabled={!splitValid}
-            className="w-full h-11 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99] disabled:bg-slate-300 disabled:text-slate-500"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
           >
             Подтвердить сплит
           </button>
@@ -127,9 +128,9 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
       <button
         type="button"
         onClick={payInvoice}
-        className="w-full text-[12px] text-slate-500 active:text-slate-700 py-2"
+        className="w-full text-[13px] text-[var(--accent)] active:opacity-70 py-2 inline-flex items-center justify-center gap-1.5"
       >
-        📄 Выставить счёт компании →
+        <FileText size={14} strokeWidth={2} /> Выставить счёт компании →
       </button>
     </div>
   );

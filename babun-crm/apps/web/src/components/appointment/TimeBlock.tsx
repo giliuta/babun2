@@ -138,9 +138,9 @@ export default function TimeBlock({
 
   if (readOnly) {
     return (
-      <div className="px-4 py-3 bg-white border-b border-slate-100 text-[13px] text-slate-800 tabular-nums">
+      <div className="px-4 py-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[13px] text-[var(--label)] tabular-nums">
         {formatDateRu(date)} · {timeStart}–{timeEnd}
-        {duration > 0 && <span className="text-slate-500 ml-1">· {duration} мин</span>}
+        {duration > 0 && <span className="text-[var(--label-secondary)] ml-1">· {duration} мин</span>}
       </div>
     );
   }
@@ -149,8 +149,8 @@ export default function TimeBlock({
     setExpandedMode((prev) => (prev === mode ? "none" : mode));
 
   const headerRow = (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 text-[13px]">
-      <span className="flex-shrink-0 text-slate-400">
+    <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[13px]">
+      <span className="flex-shrink-0 text-[var(--label-tertiary)]">
         <ClockIcon />
       </span>
       <button
@@ -158,8 +158,8 @@ export default function TimeBlock({
         onClick={() => toggle("date")}
         className={`flex items-center gap-1 rounded-lg px-2 py-1 transition active:scale-[0.98] ${
           expandedMode === "date"
-            ? "bg-violet-50 text-violet-700"
-            : "text-slate-900 active:bg-slate-50"
+            ? "bg-[var(--accent-tint)] text-[var(--accent)]"
+            : "text-[var(--label)] active:bg-[var(--fill-quaternary)]"
         }`}
       >
         <span className="font-semibold">{formatDateRu(date)}</span>
@@ -170,8 +170,8 @@ export default function TimeBlock({
         onClick={() => toggle("time")}
         className={`flex items-center gap-1 rounded-lg px-2 py-1 transition tabular-nums active:scale-[0.98] ${
           expandedMode === "time"
-            ? "bg-violet-50 text-violet-700"
-            : "text-slate-900 active:bg-slate-50"
+            ? "bg-[var(--accent-tint)] text-[var(--accent)]"
+            : "text-[var(--label)] active:bg-[var(--fill-quaternary)]"
         }`}
       >
         <span className="font-medium">
@@ -179,7 +179,7 @@ export default function TimeBlock({
         </span>
         <ChevronDownIcon />
       </button>
-      <span className="ml-auto px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 tabular-nums">
+      <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[11px] font-semibold text-[var(--label-secondary)] tabular-nums">
         {duration} мин
       </span>
     </div>
@@ -213,10 +213,10 @@ export default function TimeBlock({
     <>
       {headerRow}
       <div
-        className="border-b border-slate-100"
+        className="border-b border-[var(--separator)]"
         style={{
           padding: "10px 10px 12px",
-          background: "linear-gradient(180deg, #fafafa, #f5f3ff)",
+          background: "var(--surface-grouped)",
         }}
       >
         {expandedMode === "date" && (
@@ -244,18 +244,18 @@ export default function TimeBlock({
                         borderRadius: 10,
                         gap: 1,
                         background: active
-                          ? "linear-gradient(180deg, #8b5cf6, #7c3aed)"
-                          : "white",
+                          ? "var(--accent)"
+                          : "var(--surface-card)",
                         border: active
                           ? "1px solid transparent"
                           : d.isToday
-                          ? "1px solid rgb(167 139 250)"
-                          : "1px solid rgb(226 232 240)",
+                          ? "1px solid var(--accent)"
+                          : "1px solid var(--separator)",
                         color: active
                           ? "white"
                           : d.isToday
-                          ? "rgb(124 58 237)"
-                          : "rgb(15 23 42)",
+                          ? "var(--accent)"
+                          : "var(--label)",
                         boxShadow: active
                           ? "0 3px 10px rgba(124, 58, 237, 0.28)"
                           : "0 1px 2px rgba(15, 23, 42, 0.04)",
@@ -269,8 +269,8 @@ export default function TimeBlock({
                           color: active
                             ? "rgba(255,255,255,0.82)"
                             : d.isToday
-                            ? "rgb(124 58 237)"
-                            : "rgb(100 116 139)",
+                            ? "var(--accent)"
+                            : "var(--label-secondary)",
                           lineHeight: 1,
                         }}
                       >
@@ -302,11 +302,11 @@ export default function TimeBlock({
               style={{
                 marginTop: 6,
                 gap: 8,
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 600,
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                color: "rgb(148 163 184)",
+                color: "var(--label-secondary)",
               }}
             >
               <span>{weekRangeLabel}</span>
@@ -323,7 +323,7 @@ export default function TimeBlock({
               onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
             />
             <span
-              className="flex-shrink-0 text-slate-400 select-none"
+              className="flex-shrink-0 text-[var(--label-tertiary)] select-none"
               style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
             >
               <ArrowRightIcon />
@@ -362,9 +362,9 @@ function WeekArrow({
         width: 30,
         height: 30,
         borderRadius: 999,
-        background: "white",
-        border: "1px solid rgb(226 232 240)",
-        color: "rgb(71 85 105)",
+        background: "var(--surface-card)",
+        border: "1px solid var(--separator)",
+        color: "var(--label-secondary)",
         boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
       }}
       aria-label={direction === "prev" ? "Предыдущая неделя" : "Следующая неделя"}
@@ -403,7 +403,7 @@ function WheelGroup({
         style={{
           fontSize: 18,
           fontWeight: 300,
-          color: "rgb(203 213 225)",
+          color: "var(--label-tertiary)",
           padding: "0 2px",
           lineHeight: `${WHEEL_H}px`,
         }}

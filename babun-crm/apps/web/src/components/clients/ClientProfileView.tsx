@@ -3,6 +3,22 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ChevronLeft,
+  ChevronDown,
+  MoreHorizontal,
+  MapPin,
+  ArrowUpRight,
+  Phone as PhoneIcon,
+  Check,
+  X,
+  MessageSquare,
+  MessageCircle,
+  Share2,
+  StickyNote,
+  Ban,
+  CheckCircle2,
+} from "lucide-react";
 import type { Client, ClientNote, Location } from "@/lib/clients";
 import { upsertClient, ACQUISITION_LABELS } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
@@ -11,6 +27,7 @@ import { formatEUR } from "@/lib/money";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
 import type { Appointment } from "@/lib/appointments";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
+import { Button } from "@/components/ui";
 
 interface ClientProfileViewProps {
   clientId: string;
@@ -38,11 +55,11 @@ export default function ClientProfileView({
 
   if (!client) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-6">
-        <div className="text-[14px] text-slate-500 mb-3">Клиент не найден</div>
+      <div className="flex-1 flex flex-col items-center justify-center bg-[var(--surface-grouped)] p-6">
+        <div className="text-[14px] text-[var(--label-secondary)] mb-3">Клиент не найден</div>
         <Link
           href="/dashboard/clients"
-          className="h-10 px-4 rounded-xl bg-violet-600 text-white text-[13px] font-semibold flex items-center"
+          className="h-10 px-4 rounded-[10px] bg-[var(--accent)] text-white text-[13px] font-semibold flex items-center active:bg-[var(--accent-pressed)]"
         >
           ← К списку клиентов
         </Link>
@@ -93,34 +110,28 @@ export default function ClientProfileView({
   const grouped = groupAppointmentsByLocation(clientAppointments, activeLocations);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 h-full">
+    <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-grouped)] h-full">
       {/* Sticky header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200">
+      <div className="sticky top-0 z-20 bg-[var(--surface-card)] border-b border-[var(--separator)]">
         <div className="flex items-center gap-2 px-3 h-12">
           <button
             type="button"
             onClick={onBack}
             aria-label="Назад"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 active:bg-slate-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <div className="flex-1 text-[14px] font-semibold text-slate-900 truncate">
+          <div className="flex-1 text-[14px] font-semibold text-[var(--label)] truncate">
             Клиент
           </div>
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Меню"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
+            <MoreHorizontal size={18} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -128,7 +139,7 @@ export default function ClientProfileView({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-2 space-y-2 pb-24">
           {/* Header card: name / phone / comment — tight */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-3">
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3">
             <EditableName value={client.full_name} onSave={(v) => update({ full_name: v })} />
             <EditablePhone
               value={client.phone}
@@ -142,7 +153,7 @@ export default function ClientProfileView({
           </div>
 
           {/* Tags + discount */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2">
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
               {tags.map((t) => {
                 const active = client.tag_ids.includes(t.id);
@@ -151,7 +162,7 @@ export default function ClientProfileView({
                     key={t.id}
                     type="button"
                     onClick={() => toggleTag(t.id)}
-                    className="h-7 px-2.5 rounded-full text-[11px] font-semibold border transition"
+                    className="h-7 px-2.5 rounded-full text-[11px] font-semibold border transition inline-flex items-center gap-1"
                     style={
                       active
                         ? {
@@ -160,23 +171,23 @@ export default function ClientProfileView({
                             color: t.color,
                           }
                         : {
-                            backgroundColor: "white",
-                            borderColor: "rgb(226 232 240)",
-                            color: "rgb(100 116 139)",
+                            backgroundColor: "var(--surface-card)",
+                            borderColor: "var(--separator)",
+                            color: "var(--label-secondary)",
                           }
                     }
                   >
-                    {active && "✓ "}
+                    {active && <Check size={11} strokeWidth={2.5} />}
                     {t.name}
                   </button>
                 );
               })}
               {tagObjects.length === 0 && (
-                <span className="text-[11px] text-slate-400">Нет тегов</span>
+                <span className="text-[11px] text-[var(--label-tertiary)]">Нет тегов</span>
               )}
             </div>
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[12px] text-slate-600">Постоянная скидка</span>
+              <span className="text-[13px] text-[var(--label-secondary)]">Постоянная скидка</span>
               <EditableDiscount
                 value={client.discount}
                 onSave={(v) => update({ discount: v })}
@@ -185,16 +196,16 @@ export default function ClientProfileView({
           </div>
 
           {/* Objects */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
               Объекты ({activeLocations.length})
             </div>
             {activeLocations.length === 0 ? (
-              <div className="px-4 py-4 text-[12px] text-slate-400">
+              <div className="px-4 py-4 text-[13px] text-[var(--label-tertiary)]">
                 Нет сохранённых адресов. Будут появляться по мере создания записей.
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-[var(--separator)]">
                 {activeLocations.map((loc) => (
                   <ObjectRow key={loc.id} location={loc} />
                 ))}
@@ -205,14 +216,14 @@ export default function ClientProfileView({
           {/* Appointment history grouped by object (collapsed by default) */}
           <CollapsibleCard title={`История записей · ${clientAppointments.length}`}>
             {clientAppointments.length === 0 ? (
-              <div className="px-3 py-3 text-[12px] text-slate-400">
+              <div className="px-3 py-3 text-[13px] text-[var(--label-tertiary)]">
                 Записей пока нет.
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-[var(--separator)]">
                 {grouped.map((group) => (
                   <div key={group.key} className="py-1">
-                    <div className="px-3 pt-1.5 pb-0.5 text-[11px] font-semibold text-slate-500 truncate">
+                    <div className="px-3 pt-1.5 pb-0.5 text-[11px] font-semibold text-[var(--label-secondary)] truncate">
                       {group.title}
                     </div>
                     <div>
@@ -237,19 +248,19 @@ export default function ClientProfileView({
                   onChange={(e) => setNewNote(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addNote()}
                   placeholder="Написать заметку…"
-                  className="flex-1 h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 h-9 px-3 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={addNote}
                   disabled={!newNote.trim()}
-                  className="h-9 px-3 rounded-lg bg-violet-600 text-white text-[12px] font-semibold active:scale-[0.98] disabled:opacity-40"
                 >
                   Добавить
-                </button>
+                </Button>
               </div>
               {client.notes.length === 0 ? (
-                <div className="text-[11px] text-slate-400 italic">Пусто</div>
+                <div className="text-[11px] text-[var(--label-tertiary)] italic">Пусто</div>
               ) : (
                 <div className="space-y-1.5">
                   {client.notes.map((n) => (
@@ -257,7 +268,7 @@ export default function ClientProfileView({
                       key={n.id}
                       className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200"
                     >
-                      <div className="flex-1 text-[12px] text-amber-900 whitespace-pre-wrap">
+                      <div className="flex-1 text-[13px] text-amber-900 whitespace-pre-wrap">
                         <span className="text-[10px] text-amber-600 mr-1 tabular-nums">
                           {formatShortDate(n.created_at)}
                         </span>
@@ -267,12 +278,9 @@ export default function ClientProfileView({
                         type="button"
                         onClick={() => deleteNote(n.id)}
                         aria-label="Удалить"
-                        className="w-6 h-6 flex items-center justify-center rounded text-amber-400 active:text-rose-500"
+                        className="w-6 h-6 flex items-center justify-center rounded text-amber-400 active:text-[var(--system-red)]"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
+                        <X size={12} strokeWidth={2.5} />
                       </button>
                     </div>
                   ))}
@@ -292,7 +300,7 @@ export default function ClientProfileView({
                       acquisition_source: e.target.value as typeof client.acquisition_source,
                     })
                   }
-                  className="flex-1 h-8 px-2 text-[12px] text-right bg-transparent focus:outline-none text-slate-900"
+                  className="flex-1 h-8 px-2 text-[13px] text-right bg-transparent focus:outline-none text-[var(--label)]"
                 >
                   {(Object.keys(ACQUISITION_LABELS) as (keyof typeof ACQUISITION_LABELS)[]).map((k) => (
                     <option key={k} value={k}>
@@ -306,7 +314,7 @@ export default function ClientProfileView({
                   type="date"
                   value={client.birthday}
                   onChange={(e) => update({ birthday: e.target.value })}
-                  className="flex-1 h-8 px-2 text-[12px] text-right bg-transparent focus:outline-none text-slate-900 tabular-nums"
+                  className="flex-1 h-8 px-2 text-[13px] text-right bg-transparent focus:outline-none text-[var(--label)] tabular-nums"
                 />
               </InfoRow>
               <InfoRow label="E-mail">
@@ -317,7 +325,7 @@ export default function ClientProfileView({
                 />
               </InfoRow>
               <InfoRow label="Создан">
-                <span className="text-[12px] text-slate-500 tabular-nums">
+                <span className="text-[13px] text-[var(--label-secondary)] tabular-nums">
                   {formatShortDate(client.created_at)}
                 </span>
               </InfoRow>
@@ -329,18 +337,18 @@ export default function ClientProfileView({
       {/* ⋯ menu */}
       {menuOpen && (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-5"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
           onClick={() => setMenuOpen(false)}
         >
           <div
-            className="w-full max-w-[320px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+            <div className="px-4 py-3 border-b border-[var(--separator)] text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">
               {client.full_name}
             </div>
             <MenuItem
-              icon="💬"
+              icon={MessageSquare}
               label="Отправить сообщение"
               onClick={() => {
                 setMenuOpen(false);
@@ -348,7 +356,7 @@ export default function ClientProfileView({
               }}
             />
             <MenuItem
-              icon="💭"
+              icon={MessageCircle}
               label="Перейти в чат"
               onClick={() => {
                 setMenuOpen(false);
@@ -356,7 +364,7 @@ export default function ClientProfileView({
               }}
             />
             <MenuItem
-              icon="🔗"
+              icon={Share2}
               label="Поделиться контактом"
               onClick={async () => {
                 setMenuOpen(false);
@@ -373,7 +381,7 @@ export default function ClientProfileView({
               }}
             />
             <MenuItem
-              icon="📝"
+              icon={StickyNote}
               label="Добавить заметку"
               onClick={() => {
                 setMenuOpen(false);
@@ -382,7 +390,7 @@ export default function ClientProfileView({
               }}
             />
             <MenuItem
-              icon={client.blacklisted ? "✅" : "🚫"}
+              icon={client.blacklisted ? CheckCircle2 : Ban}
               label={client.blacklisted ? "Убрать из ЧС" : "В чёрный список"}
               onClick={() => update({ blacklisted: !client.blacklisted })}
               danger={!client.blacklisted}
@@ -390,7 +398,7 @@ export default function ClientProfileView({
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
-              className="w-full h-11 text-[13px] font-medium text-slate-500 border-t border-slate-100 active:bg-slate-50"
+              className="w-full h-11 text-[13px] font-medium text-[var(--label-secondary)] border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
             >
               Отмена
             </button>
@@ -411,12 +419,12 @@ export default function ClientProfileView({
 // ─── Sub-components ───────────────────────────────────────────────────
 
 function MenuItem({
-  icon,
+  icon: Icon,
   label,
   onClick,
   danger,
 }: {
-  icon: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   label: string;
   onClick: () => void;
   danger?: boolean;
@@ -425,20 +433,24 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-slate-50 border-b border-slate-50 last:border-0"
+      className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--fill-quaternary)] border-b border-[var(--separator)] last:border-0"
     >
-      <span className="text-[18px] w-6 text-center">{icon}</span>
       <span
-        className={`text-[14px] font-medium flex-1 ${
-          danger ? "text-rose-600" : "text-slate-900"
+        className={`w-6 flex items-center justify-center ${
+          danger ? "text-[var(--system-red)]" : "text-[var(--label-secondary)]"
+        }`}
+      >
+        <Icon size={18} strokeWidth={2} />
+      </span>
+      <span
+        className={`text-[15px] font-medium flex-1 ${
+          danger ? "text-[var(--system-red)]" : "text-[var(--label)]"
         }`}
       >
         {label}
       </span>
-      <span className="text-slate-300">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
+      <span className="text-[var(--label-tertiary)]">
+        <ChevronLeft size={14} strokeWidth={2.5} className="rotate-180" />
       </span>
     </button>
   );
@@ -455,26 +467,24 @@ function CollapsibleCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-3 h-10 active:bg-slate-50"
+        className="w-full flex items-center justify-between px-3 h-10 active:bg-[var(--fill-quaternary)]"
       >
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
           {title}
         </span>
         <span
-          className={`text-slate-400 transition-transform ${
+          className={`text-[var(--label-tertiary)] transition-transform ${
             open ? "rotate-180" : ""
           }`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          <ChevronDown size={14} strokeWidth={2.5} />
         </span>
       </button>
-      {open && <div className="border-t border-slate-100">{children}</div>}
+      {open && <div className="border-t border-[var(--separator)]">{children}</div>}
     </div>
   );
 }
@@ -506,7 +516,7 @@ function EditableName({
             setEditing(false);
           }
         }}
-        className="w-full h-10 text-[20px] font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        className="w-full h-10 text-[20px] font-bold text-[var(--label)] bg-[var(--fill-tertiary)] border border-transparent rounded-lg px-2 focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
       />
     );
   }
@@ -518,9 +528,9 @@ function EditableName({
         setDraft(value);
         setEditing(true);
       }}
-      className="w-full text-left text-[20px] font-bold text-slate-900 active:opacity-60"
+      className="w-full text-left text-[20px] font-bold text-[var(--label)] active:opacity-60"
     >
-      {value || <span className="text-slate-400">Без имени</span>}
+      {value || <span className="text-[var(--label-tertiary)]">Без имени</span>}
     </button>
   );
 }
@@ -552,7 +562,7 @@ function EditablePhone({
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
-          className="flex-1 h-9 text-[14px] tabular-nums bg-slate-50 border border-slate-200 rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="flex-1 h-9 text-[14px] tabular-nums bg-[var(--fill-tertiary)] border border-transparent rounded-lg px-2 focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
         />
       ) : (
         <button
@@ -561,20 +571,18 @@ function EditablePhone({
             setDraft(value);
             setEditing(true);
           }}
-          className="flex-1 text-left text-[14px] text-slate-600 tabular-nums active:opacity-60"
+          className="flex-1 text-left text-[14px] text-[var(--label-secondary)] tabular-nums active:opacity-60"
         >
-          {value || <span className="text-slate-400">Без телефона</span>}
+          {value || <span className="text-[var(--label-tertiary)]">Без телефона</span>}
         </button>
       )}
       {digits && !editing && (
         <a
           href={`tel:${digits}`}
           aria-label="Позвонить"
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-emerald-600 bg-emerald-50 active:bg-emerald-100"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-green)] bg-[rgba(52,199,89,0.12)] active:bg-[rgba(52,199,89,0.2)]"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-          </svg>
+          <PhoneIcon size={16} strokeWidth={2} />
         </a>
       )}
     </div>
@@ -615,14 +623,15 @@ function EditableComment({
         setDraft(value);
         setEditing(true);
       }}
-      className="mt-2 w-full text-left text-[12px] text-slate-600 active:opacity-60"
+      className="mt-2 w-full text-left text-[13px] text-[var(--label-secondary)] active:opacity-60"
     >
       {value ? (
-        <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 whitespace-pre-wrap">
-          💬 {value}
+        <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 whitespace-pre-wrap flex items-start gap-2">
+          <MessageSquare size={14} strokeWidth={2} className="mt-0.5 shrink-0 text-amber-700" />
+          <span>{value}</span>
         </div>
       ) : (
-        <span className="text-slate-400">+ Комментарий о клиенте</span>
+        <span className="text-[var(--label-tertiary)]">+ Комментарий о клиенте</span>
       )}
     </button>
   );
@@ -652,7 +661,7 @@ function EditableDiscount({
           setEditing(false);
         }}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-        className="w-16 h-8 text-[13px] text-right tabular-nums bg-slate-50 border border-slate-200 rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        className="w-16 h-8 text-[13px] text-right tabular-nums bg-[var(--fill-tertiary)] border border-transparent rounded-lg px-2 focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
       />
     );
   }
@@ -664,7 +673,7 @@ function EditableDiscount({
         setDraft(String(value));
         setEditing(true);
       }}
-      className="text-[13px] font-semibold text-slate-900 tabular-nums active:opacity-60"
+      className="text-[13px] font-semibold text-[var(--label)] tabular-nums active:opacity-60"
     >
       {value}%
     </button>
@@ -695,7 +704,7 @@ function EditableInline({
         }}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
         placeholder={placeholder}
-        className="flex-1 h-8 px-2 text-[12px] text-right bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+        className="flex-1 h-8 px-2 text-[13px] text-right bg-[var(--fill-tertiary)] border border-transparent rounded-lg focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
       />
     );
   }
@@ -707,9 +716,9 @@ function EditableInline({
         setDraft(value);
         setEditing(true);
       }}
-      className="flex-1 h-8 text-right text-[12px] active:opacity-60 text-slate-700 truncate"
+      className="flex-1 h-8 text-right text-[13px] active:opacity-60 text-[var(--label-secondary)] truncate"
     >
-      {value || <span className="text-slate-400">{placeholder || "—"}</span>}
+      {value || <span className="text-[var(--label-tertiary)]">{placeholder || "—"}</span>}
     </button>
   );
 }
@@ -723,7 +732,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[12px] text-slate-500 flex-shrink-0">{label}</span>
+      <span className="text-[13px] text-[var(--label-secondary)] flex-shrink-0">{label}</span>
       <span className="flex-1 flex justify-end">{children}</span>
     </div>
   );
@@ -737,20 +746,17 @@ function ObjectRow({ location }: { location: Location }) {
 
   return (
     <div className="px-4 py-2.5 flex items-center gap-2">
-      <span className="flex-shrink-0 text-rose-500">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
+      <span className="flex-shrink-0 text-[var(--system-red)]">
+        <MapPin size={14} strokeWidth={2} />
       </span>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-semibold text-slate-900 truncate">
+        <div className="text-[14px] font-semibold text-[var(--label)] truncate">
           {location.label || "Объект"}
           {location.isPrimary && (
-            <span className="text-[10px] text-violet-600 ml-1 font-normal">· основной</span>
+            <span className="text-[11px] text-[var(--accent)] ml-1 font-normal">· основной</span>
           )}
         </div>
-        <div className="text-[11px] text-slate-500 truncate">
+        <div className="text-[12px] text-[var(--label-secondary)] truncate">
           {location.address || "Google Maps ссылка"}
         </div>
       </div>
@@ -758,12 +764,9 @@ function ObjectRow({ location }: { location: Location }) {
         type="button"
         onClick={openMaps}
         aria-label="Навигация"
-        className="w-8 h-8 flex items-center justify-center rounded-lg text-sky-600 bg-sky-50 active:bg-sky-100"
+        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-blue)] bg-[rgba(0,122,255,0.12)] active:bg-[rgba(0,122,255,0.2)]"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="7" y1="17" x2="17" y2="7" />
-          <polyline points="7 7 17 7 17 17" />
-        </svg>
+        <ArrowUpRight size={14} strokeWidth={2} />
       </button>
     </div>
   );
@@ -772,21 +775,21 @@ function ObjectRow({ location }: { location: Location }) {
 function AppointmentRow({ apt }: { apt: Appointment }) {
   const statusBadge = (() => {
     if (apt.status === "completed")
-      return { text: "Выполнено", color: "bg-emerald-100 text-emerald-700" };
+      return { text: "Выполнено", color: "bg-[rgba(52,199,89,0.15)] text-[var(--system-green)]" };
     if (apt.status === "cancelled")
-      return { text: "Отменено", color: "bg-slate-100 text-slate-500" };
+      return { text: "Отменено", color: "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]" };
     if (apt.status === "in_progress")
       return { text: "В работе", color: "bg-amber-100 text-amber-700" };
-    return { text: "Запланировано", color: "bg-sky-100 text-sky-700" };
+    return { text: "Запланировано", color: "bg-[rgba(0,122,255,0.12)] text-[var(--system-blue)]" };
   })();
 
   return (
     <div className="px-4 py-2 flex items-center gap-2">
       <div className="flex-1 min-w-0">
-        <div className="text-[12px] text-slate-900 truncate">
+        <div className="text-[13px] text-[var(--label)] truncate">
           {apt.comment || "—"}
         </div>
-        <div className="text-[10px] text-slate-500 tabular-nums">
+        <div className="text-[11px] text-[var(--label-secondary)] tabular-nums">
           {formatAptDate(apt.date)} · {apt.time_start}
         </div>
       </div>
@@ -795,7 +798,7 @@ function AppointmentRow({ apt }: { apt: Appointment }) {
       >
         {statusBadge.text}
       </span>
-      <span className="flex-shrink-0 text-[12px] font-bold text-emerald-700 tabular-nums w-14 text-right">
+      <span className="flex-shrink-0 text-[13px] font-bold text-[var(--system-green)] tabular-nums w-14 text-right">
         {formatEUR(apt.total_amount)}
       </span>
     </div>

@@ -60,14 +60,13 @@ function MonthViewInner({
   }, [appointments]);
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
-      {/* Days-of-week header */}
-      <div className="grid grid-cols-7 border-b border-slate-300 bg-slate-50 flex-shrink-0">
+    <div className="flex-1 flex flex-col bg-[var(--surface-card)] min-h-0 overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-[var(--separator)] bg-[var(--surface-grouped)] flex-shrink-0">
         {DAYS_OF_WEEK.map((dow, i) => (
           <div
             key={dow}
-            className={`py-2 text-center text-[10px] font-semibold uppercase tracking-wide ${
-              i >= 5 ? "text-red-400" : "text-slate-500"
+            className={`py-2 text-center text-[11px] font-semibold uppercase tracking-wider ${
+              i >= 5 ? "text-[var(--system-red)]/60" : "text-[var(--label-secondary)]"
             }`}
           >
             {dow}
@@ -75,7 +74,6 @@ function MonthViewInner({
         ))}
       </div>
 
-      {/* 6 × 7 grid */}
       <div className="flex-1 grid grid-cols-7 grid-rows-6 min-h-0">
         {cells.map((date, i) => {
           const key = formatDateKey(date);
@@ -88,36 +86,36 @@ function MonthViewInner({
               key={i}
               type="button"
               onClick={() => onDayClick(date)}
-              className={`border-r border-b border-slate-100 p-1 text-left flex flex-col items-start active:bg-violet-50 overflow-hidden ${
-                inCurrentMonth ? "bg-white" : "bg-slate-50/60"
-              } ${isWeekend && inCurrentMonth ? "bg-red-50/20" : ""}`}
+              className={`border-r border-b border-[var(--separator)] p-1 text-left flex flex-col items-start active:bg-[var(--accent-tint)] overflow-hidden transition-colors ${
+                inCurrentMonth ? "bg-[var(--surface-card)]" : "bg-[var(--surface-grouped)]"
+              }`}
             >
               <div className="flex items-center justify-between w-full">
                 {isToday ? (
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-600 text-white text-[12px] font-bold">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent)] text-white text-[12px] font-bold">
                     {date.getDate()}
                   </span>
                 ) : (
                   <span
-                    className={`text-[12px] font-semibold ${
+                    className={`text-[13px] font-semibold ${
                       inCurrentMonth
                         ? isWeekend
-                          ? "text-red-500"
-                          : "text-slate-800"
-                        : "text-slate-400"
+                          ? "text-[var(--system-red)]"
+                          : "text-[var(--label)]"
+                        : "text-[var(--label-tertiary)]"
                     }`}
                   >
                     {date.getDate()}
                   </span>
                 )}
                 {data && data.count > 0 && (
-                  <span className="text-[9px] font-bold text-violet-600 bg-violet-100 rounded-full px-1.5 leading-[14px]">
+                  <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent-tint)] rounded-full px-1.5 leading-[16px]">
                     {data.count}
                   </span>
                 )}
               </div>
               {data && data.income > 0 && (
-                <div className="text-[9px] text-emerald-600 font-semibold mt-0.5 tabular-nums truncate w-full">
+                <div className="text-[10px] text-[var(--system-green)] font-semibold mt-0.5 tabular-nums truncate w-full">
                   {data.income}€
                 </div>
               )}

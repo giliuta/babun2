@@ -8,24 +8,18 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function TimeColumnInner() {
   return (
-    <div className="w-12 lg:w-16 flex-shrink-0 bg-white">
-      {/* Header spacer — ОБЯЗАН совпадать по высоте с DayColumn header,
-          иначе строки часов съезжают относительно лейблов на (diff)px
-          и при pinch-zoom зона рассинхрона растёт визуально. */}
-      <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-slate-300 bg-white" />
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)]">
+      {/* Header spacer must match DayColumn header exactly, else hour
+          labels drift vs the grid rows under pinch-zoom. */}
+      <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
 
-      {/* Hour labels — height follows the live --hh variable so zoom does
-          not trigger React re-renders. border-box sizing includes the
-          1-px bottom border, точно как у grid-линий в DayColumn через
-          repeating-linear-gradient: соседние ячейки выровнены pixel-to-pixel.
-          box-sizing явно прописан, чтобы не зависеть от Tailwind preflight. */}
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="border-b border-slate-200 flex items-start justify-end pr-1.5 lg:pr-2"
+          className="border-b border-[var(--separator)] flex items-start justify-end pr-1.5 lg:pr-2"
           style={{ height: "var(--hh)", boxSizing: "border-box" }}
         >
-          <span className="text-[11px] lg:text-[12px] font-medium text-slate-500 -mt-2 select-none tabular-nums">
+          <span className="text-[11px] lg:text-[12px] font-medium text-[var(--label-tertiary)] -mt-2 select-none tabular-nums">
             {String(hour).padStart(2, "0")}:00
           </span>
         </div>

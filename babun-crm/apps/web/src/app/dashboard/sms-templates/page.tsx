@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { X } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { Button, Input } from "@/components/ui";
 import { useSmsTemplates } from "@/app/dashboard/layout";
 import {
   KIND_LABELS,
@@ -58,56 +60,56 @@ export default function SmsTemplatesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-white text-violet-700 lg:bg-violet-600 lg:text-white rounded-lg text-sm font-semibold"
+            className="px-3 py-1.5 bg-white text-[var(--accent)] lg:bg-[var(--accent)] lg:text-white rounded-[10px] text-[13px] font-semibold"
           >
             + Новый
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24 space-y-3">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-3xl mx-auto px-4 py-4 pb-24 space-y-3">
           {templates.map((tpl) => (
             <div
               key={tpl.id}
-              className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden"
+              className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
             >
               <button
                 type="button"
                 onClick={() => setEditing(tpl)}
-                className="w-full px-4 py-3 text-left hover:bg-slate-50"
+                className="w-full px-4 py-3 text-left active:bg-[var(--fill-quaternary)]"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500 uppercase">
+                    <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
                       {KIND_LABELS[tpl.kind]}
                     </span>
                     {!tpl.enabled && (
-                      <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded">
+                      <span className="text-[10px] bg-[var(--fill-tertiary)] text-[var(--label-secondary)] px-2 py-0.5 rounded">
                         выкл.
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="text-sm font-medium text-slate-900">{tpl.name}</div>
-                <div className="text-xs text-slate-600 mt-1 line-clamp-2">
-                  {tpl.body || <span className="italic text-slate-400">Пусто</span>}
+                <div className="text-[15px] font-medium text-[var(--label)]">{tpl.name}</div>
+                <div className="text-[12px] text-[var(--label-secondary)] mt-1 line-clamp-2">
+                  {tpl.body || <span className="italic text-[var(--label-tertiary)]">Пусто</span>}
                 </div>
               </button>
-              <div className="flex items-center justify-between px-4 py-2 border-t border-slate-100 bg-slate-50">
-                <label className="flex items-center gap-2 text-xs text-slate-600">
+              <div className="flex items-center justify-between px-4 py-2 border-t border-[var(--separator)] bg-[var(--surface-grouped)]">
+                <label className="flex items-center gap-2 text-[12px] text-[var(--label-secondary)]">
                   <input
                     type="checkbox"
                     checked={tpl.enabled}
                     onChange={() => toggleEnabled(tpl.id)}
-                    className="w-4 h-4"
+                    className="w-4 h-4 accent-[var(--accent)]"
                   />
                   Отправлять автоматически
                 </label>
                 <button
                   type="button"
                   onClick={() => setEditing(tpl)}
-                  className="text-xs text-violet-600 font-medium"
+                  className="text-[12px] text-[var(--accent)] font-medium"
                 >
                   Редактировать →
                 </button>
@@ -165,36 +167,35 @@ function TemplateEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40">
-      <div className="w-full lg:max-w-2xl bg-white rounded-t-2xl lg:rounded-2xl max-h-[92vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <h2 className="text-base font-semibold text-slate-900">Шаблон</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2">
+      <div className="w-full lg:max-w-2xl bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[var(--separator)]">
+          <h2 className="text-[17px] font-semibold text-[var(--label)] tracking-tight">Шаблон</h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-500 text-xl"
+            aria-label="Закрыть"
+            className="w-8 h-8 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] flex items-center justify-center transition"
           >
-            ×
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Название</label>
-            <input
-              type="text"
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900"
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[var(--surface-grouped)]">
+          <Input
+            label="Название"
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Тип события</label>
+            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+              Тип события
+            </div>
             <select
               value={draft.kind}
               onChange={(e) => setDraft({ ...draft, kind: e.target.value as TemplateKind })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white"
+              className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
             >
               {(Object.keys(KIND_LABELS) as TemplateKind[]).map((k) => (
                 <option key={k} value={k}>
@@ -205,10 +206,12 @@ function TemplateEditor({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-slate-500">Текст сообщения</label>
-              <span className="text-[11px] text-slate-400">
-                {smsLength} знаков • {smsCount} SMS
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[12px] font-medium text-[var(--label-secondary)] tracking-wide">
+                Текст сообщения
+              </label>
+              <span className="text-[11px] text-[var(--label-tertiary)] tabular-nums">
+                {smsLength} знаков · {smsCount} SMS
               </span>
             </div>
             <textarea
@@ -217,13 +220,13 @@ function TemplateEditor({
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
               rows={5}
               placeholder="Введите текст шаблона..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+              className="w-full px-3.5 py-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] resize-none transition"
             />
           </div>
 
           {/* Token palette */}
           <div>
-            <label className="block text-xs text-slate-500 mb-2">
+            <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
               Доступные переменные (тап для вставки)
             </label>
             <div className="flex flex-wrap gap-2">
@@ -232,7 +235,7 @@ function TemplateEditor({
                   key={token}
                   type="button"
                   onClick={() => insertToken(token)}
-                  className="px-3 py-1.5 text-xs bg-violet-50 text-violet-700 rounded-full border border-violet-200 hover:bg-violet-100"
+                  className="px-3 py-1.5 text-[12px] bg-[var(--accent-tint)] text-[var(--accent)] rounded-full font-medium active:opacity-70 transition"
                   title={label}
                 >
                   {token}
@@ -243,47 +246,45 @@ function TemplateEditor({
 
           {/* Preview */}
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Предпросмотр</label>
-            <div className="px-3 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-slate-800 whitespace-pre-wrap">
-              {preview || <span className="italic text-slate-400">— пусто —</span>}
+            <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+              Предпросмотр
+            </label>
+            <div className="px-3 py-3 bg-[rgba(52,199,89,0.08)] border border-[rgba(52,199,89,0.2)] rounded-[10px] text-[15px] text-[var(--label)] whitespace-pre-wrap">
+              {preview || <span className="italic text-[var(--label-tertiary)]">— пусто —</span>}
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-[15px] text-[var(--label)]">
             <input
               type="checkbox"
               checked={draft.enabled}
               onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
-              className="w-4 h-4"
+              className="w-4 h-4 accent-[var(--accent)]"
             />
             Отправлять автоматически
           </label>
         </div>
 
-        <div className="border-t border-slate-200 px-4 py-3 flex gap-2">
-          <button
-            type="button"
+        <div className="border-t border-[var(--separator)] px-4 py-3 flex gap-2 bg-[var(--surface-card)]">
+          <Button
+            variant="destructive"
+            size="md"
             onClick={() => onDelete(template.id)}
-            className="px-4 py-2 text-red-600 text-sm font-medium hover:bg-red-50 rounded-lg"
           >
             Удалить
-          </button>
+          </Button>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 border border-slate-300"
-          >
+          <Button variant="secondary" size="md" onClick={onClose}>
             Отмена
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => onSave(draft)}
             disabled={!draft.name.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600 disabled:bg-slate-300"
           >
             Сохранить
-          </button>
+          </Button>
         </div>
       </div>
     </div>

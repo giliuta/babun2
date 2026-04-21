@@ -45,7 +45,7 @@ export default function DaySummaryStrip({
   if (stats.count === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-white border-b border-slate-200 text-[11px] overflow-x-auto">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[11px] overflow-x-auto">
       <Chip label={pluralRecord(stats.count)} />
       {stats.income > 0 && <Chip label={formatEUR(stats.income)} tone="emerald" />}
       {stats.inProgress > 0 && (
@@ -65,10 +65,10 @@ export default function DaySummaryStrip({
 type Tone = "slate" | "emerald" | "indigo" | "rose";
 
 const TONE: Record<Tone, string> = {
-  slate: "bg-slate-100 text-slate-700",
-  emerald: "bg-emerald-50 text-emerald-700",
-  indigo: "bg-violet-50 text-violet-700",
-  rose: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+  slate: "bg-[var(--fill-tertiary)] text-[var(--label)]",
+  emerald: "bg-[rgba(52,199,89,0.12)] text-[var(--system-green)]",
+  indigo: "bg-[var(--accent-tint)] text-[var(--accent)]",
+  rose: "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)] ring-1 ring-[rgba(255,59,48,0.2)]",
 };
 
 function Chip({

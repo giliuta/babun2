@@ -43,22 +43,22 @@ export default function RepeatReminderSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[360px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-[360px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-5 pt-4 pb-3 border-b border-[var(--separator)]">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Напомнить о повторе
           </div>
-          <div className="mt-1 text-[15px] font-semibold text-slate-900">
+          <div className="mt-1 text-[17px] font-semibold tracking-tight text-[var(--label)]">
             {clientName}
           </div>
           {serviceSummary && (
-            <div className="text-[12px] text-slate-500 truncate mt-0.5">
+            <div className="text-[13px] text-[var(--label-secondary)] truncate mt-0.5">
               {serviceSummary}
             </div>
           )}
@@ -70,19 +70,19 @@ export default function RepeatReminderSheet({
               key={p.months}
               type="button"
               onClick={() => setMonths(p.months)}
-              className={`w-full flex items-center justify-between px-3 py-3 rounded-xl border transition ${
+              className={`w-full flex items-center justify-between px-3 py-3 min-h-[48px] rounded-[14px] border transition ${
                 months === p.months
-                  ? "bg-violet-50 border-violet-300"
-                  : "bg-white border-slate-200 active:bg-slate-50"
+                  ? "bg-[var(--accent-tint)] border-[var(--accent)]"
+                  : "bg-[var(--surface-card)] border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
               }`}
             >
               <div className="text-left">
-                <div className="text-[14px] font-semibold text-slate-900">
+                <div className="text-[15px] font-semibold text-[var(--label)]">
                   {p.label}
                 </div>
-                <div className="text-[11px] text-slate-500">{p.hint}</div>
+                <div className="text-[12px] text-[var(--label-secondary)]">{p.hint}</div>
               </div>
-              <div className="text-[11px] font-medium text-slate-400 tabular-nums">
+              <div className="text-[12px] font-medium text-[var(--label-tertiary)] tabular-nums">
                 {addMonthsYYYYMMDD(lastDate, p.months).slice(5)}
               </div>
             </button>
@@ -90,7 +90,7 @@ export default function RepeatReminderSheet({
         </div>
 
         <div className="px-4 pt-1 pb-2">
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Заметка (необязательно)
           </label>
           <input
@@ -98,19 +98,19 @@ export default function RepeatReminderSheet({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="например: проверить пульт"
-            className="mt-1 w-full h-10 px-3 rounded-lg border border-slate-200 text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-violet-400"
+            className="mt-1 w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
           />
         </div>
 
-        <div className="px-4 pt-1 pb-2 text-[12px] text-slate-500 text-center">
-          Напомним <span className="font-semibold text-slate-700 tabular-nums">{nextDate}</span>
+        <div className="px-4 pt-1 pb-2 text-[13px] text-[var(--label-secondary)] text-center">
+          Напомним <span className="font-semibold text-[var(--label)] tabular-nums">{nextDate}</span>
         </div>
 
         <div className="px-4 pb-4 flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-11 rounded-xl bg-slate-100 text-slate-700 text-[14px] font-medium active:bg-slate-200"
+            className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-medium active:bg-[var(--fill-secondary)]"
           >
             Отмена
           </button>
@@ -120,7 +120,7 @@ export default function RepeatReminderSheet({
               onConfirm(months, note);
               onClose();
             }}
-            className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
           >
             Создать
           </button>

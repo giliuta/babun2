@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 interface DialogModalProps {
   open: boolean;
@@ -38,31 +39,28 @@ export default function DialogModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center p-3 bg-black/40"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-3 bg-[var(--surface-overlay)]"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
         style={{ maxHeight: "min(85vh, 720px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-200 flex-shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--separator)] flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-9 h-9 flex items-center justify-center text-slate-600 active:scale-95"
+            className="w-9 h-9 flex items-center justify-center text-[var(--label-secondary)] active:scale-95 active:bg-[var(--fill-quaternary)] rounded-lg"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={20} strokeWidth={2.5} />
           </button>
-          <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
+          <h2 className="text-[17px] font-semibold tracking-tight text-[var(--label)]">{title}</h2>
         </div>
         <div className="flex-1 overflow-y-auto overscroll-contain">{children}</div>
         {footer && (
-          <div className="flex-shrink-0 border-t border-slate-200 px-3 py-2.5">
+          <div className="flex-shrink-0 border-t border-[var(--separator)] px-3 py-2.5">
             {footer}
           </div>
         )}

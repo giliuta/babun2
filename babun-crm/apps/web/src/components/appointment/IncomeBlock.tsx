@@ -15,6 +15,7 @@ import {
 } from "@/lib/finance/appointment-calc";
 import { formatEUR } from "@/lib/money";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { Tag, X } from "lucide-react";
 
 interface IncomeBlockProps {
   services: AppointmentService[];
@@ -58,17 +59,17 @@ export default function IncomeBlock({
         type="button"
         onClick={() => canEdit && services.length > 0 && setOpen(true)}
         disabled={!canEdit || services.length === 0}
-        className="w-full rounded-xl bg-slate-50 border border-slate-200 p-3 text-left active:bg-slate-100 disabled:active:bg-slate-50 transition"
+        className="w-full rounded-[14px] bg-[var(--fill-tertiary)] border border-[var(--separator)] p-3 text-left active:bg-[var(--fill-secondary)] disabled:active:bg-[var(--fill-tertiary)] transition"
       >
         {discount > 0 && (
           <>
-            <div className="flex items-center justify-between text-[12px] text-slate-600">
+            <div className="flex items-center justify-between text-[12px] text-[var(--label-secondary)]">
               <span>Подытог ({services.length} усл.)</span>
               <span className="tabular-nums">{formatEUR(sub)}</span>
             </div>
-            <div className="flex items-center justify-between text-[12px] text-rose-600 font-semibold">
-              <span>
-                🏷{" "}
+            <div className="flex items-center justify-between text-[12px] text-[var(--system-red)] font-semibold">
+              <span className="inline-flex items-center gap-1">
+                <Tag size={12} strokeWidth={2} />
                 {globalDiscount?.type === "percent"
                   ? `−${globalDiscount.value}%`
                   : `Скидка`}
@@ -76,21 +77,21 @@ export default function IncomeBlock({
               </span>
               <span className="tabular-nums">−{formatEUR(discount)}</span>
             </div>
-            <div className="h-px bg-slate-200 my-1.5" />
+            <div className="h-px bg-[var(--separator)] my-1.5" />
           </>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-slate-900">ДОХОД</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">Доход</span>
           <div className="flex items-center gap-2">
             <span
-              className={`text-[20px] font-bold tabular-nums ${
-                total > 0 ? "text-emerald-700" : "text-slate-400"
+              className={`text-[22px] font-bold tabular-nums ${
+                total > 0 ? "text-[var(--label)]" : "text-[var(--label-tertiary)]"
               }`}
             >
               {formatEUR(total)}
             </span>
             {canEdit && services.length > 0 && (
-              <span className="text-slate-300">
+              <span className="text-[var(--label-quaternary)]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M9 18l6-6-6-6" />
                 </svg>
@@ -98,7 +99,7 @@ export default function IncomeBlock({
             )}
           </div>
         </div>
-        <div className="text-[11px] text-slate-500 tabular-nums">
+        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
           {duration} мин общей длительности
         </div>
       </button>
@@ -196,26 +197,23 @@ function IncomePopup({
 
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={attemptClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col"
         style={{ maxHeight: "85vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-          <div className="text-[14px] font-semibold text-slate-900">Доход</div>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
+          <div className="text-[17px] font-semibold tracking-tight text-[var(--label)]">Доход</div>
           <button
             type="button"
             onClick={attemptClose}
             aria-label="Закрыть"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -223,7 +221,7 @@ function IncomePopup({
           <div className="p-3 space-y-3">
             {/* Line breakdown */}
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                 Разбивка
               </div>
               <div className="space-y-1.5">
@@ -233,31 +231,31 @@ function IncomePopup({
                   return (
                     <div
                       key={`${line.serviceId}-${idx}`}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
+                      className="flex items-center gap-2 p-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-[var(--separator)]"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-slate-900 truncate">
+                        <div className="text-[15px] font-semibold text-[var(--label)] truncate">
                           ×{line.quantity} · {svc?.name ?? "Услуга"}
                         </div>
-                        <div className="text-[11px] text-slate-500 tabular-nums">
+                        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
                           {line.duration} мин · {formatEUR(lt)}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className="text-[11px] text-slate-500">€/шт</span>
+                        <span className="text-[12px] text-[var(--label-secondary)]">€/шт</span>
                         <input
                           type="text"
                           inputMode="decimal"
                           value={line.pricePerUnit}
                           onChange={(e) => setLinePrice(idx, e.target.value)}
-                          className="w-16 h-9 px-2 text-right rounded-lg bg-white border border-slate-300 text-[13px] font-semibold text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          className="w-16 h-9 px-2 text-right rounded-[10px] bg-[var(--surface-card)] border border-[var(--separator)] text-[15px] font-semibold text-[var(--label)] tabular-nums focus:outline-none focus:border-[var(--accent)]"
                         />
                       </div>
                     </div>
                   );
                 })}
                 {services.length === 0 && (
-                  <div className="text-center text-[12px] text-slate-400 py-4">
+                  <div className="text-center text-[12px] text-[var(--label-tertiary)] py-4">
                     Услуг ещё нет
                   </div>
                 )}
@@ -267,7 +265,7 @@ function IncomePopup({
             {/* Global discount */}
             {services.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                   Скидка на всё
                 </div>
                 <div className="flex gap-1.5 mb-2">
@@ -282,10 +280,10 @@ function IncomePopup({
                       key={opt.key}
                       type="button"
                       onClick={() => setDiscType(opt.key)}
-                      className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition ${
+                      className={`flex-1 h-9 rounded-[10px] text-[13px] font-semibold transition ${
                         discType === opt.key
-                          ? "bg-violet-600 text-white"
-                          : "bg-slate-100 text-slate-600"
+                          ? "bg-[var(--accent)] text-white"
+                          : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
                       }`}
                     >
                       {opt.label}
@@ -299,30 +297,30 @@ function IncomePopup({
                     value={discValue}
                     onChange={(e) => setDiscValue(e.target.value)}
                     placeholder={discType === "fixed" ? "10" : "10"}
-                    className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] tabular-nums focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
                   />
                 )}
               </div>
             )}
 
             {/* Preview total */}
-            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
-              <div className="flex items-center justify-between text-[12px] text-slate-600">
+            <div className="rounded-[14px] bg-[var(--fill-tertiary)] border border-[var(--separator)] p-3">
+              <div className="flex items-center justify-between text-[12px] text-[var(--label-secondary)]">
                 <span>Подытог</span>
                 <span className="tabular-nums">{formatEUR(sub)}</span>
               </div>
               {previewDiscount > 0 && (
-                <div className="flex items-center justify-between text-[12px] text-rose-600 font-semibold">
+                <div className="flex items-center justify-between text-[12px] text-[var(--system-red)] font-semibold">
                   <span>Скидка</span>
                   <span className="tabular-nums">−{formatEUR(previewDiscount)}</span>
                 </div>
               )}
-              <div className="h-px bg-emerald-200 my-1.5" />
+              <div className="h-px bg-[var(--separator)] my-1.5" />
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-slate-900">
+                <span className="text-[15px] font-semibold text-[var(--label)]">
                   Итого
                 </span>
-                <span className="text-[20px] font-bold tabular-nums text-emerald-700">
+                <span className="text-[22px] font-bold tabular-nums text-[var(--label)]">
                   {formatEUR(previewTotal)}
                 </span>
               </div>
@@ -331,13 +329,13 @@ function IncomePopup({
         </div>
 
         <div
-          className="flex-shrink-0 px-4 pt-2 border-t border-slate-200"
+          className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
         >
           <button
             type="button"
             onClick={applyDiscount}
-            className="w-full h-12 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
           >
             Применить
           </button>

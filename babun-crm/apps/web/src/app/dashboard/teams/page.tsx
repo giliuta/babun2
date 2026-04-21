@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Pencil, Trash2, ChevronRight, AlertTriangle } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { Button, IOSSwitch, Input } from "@/components/ui";
 import { useAppointments, useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   TEAM_COLORS,
@@ -122,150 +124,127 @@ export default function TeamsPage() {
             type="button"
             onClick={openNew}
             aria-label="Добавить бригаду"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-tertiary)]"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <Plus size={20} strokeWidth={2.5} />
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] relative">
+        <div className="max-w-3xl mx-auto px-4 py-4 space-y-5 stagger-children">
           {teams.length === 0 && (
-            <div className="text-center text-slate-400 py-10 text-sm">
+            <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
               Нет бригад. Нажмите «+» чтобы создать.
             </div>
           )}
 
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1">
+          <div className="px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Бригады
           </div>
-          {teams.map((team) => {
-            const { lead, helpers } = getTeamMembers(team, masters);
-            return (
-              <div
-                key={team.id}
-                className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4"
-              >
-                {/* Top row: color circle + name/region + actions */}
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-                    style={{ backgroundColor: team.color }}
-                  >
-                    {team.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">
-                      {team.name}
-                    </div>
-                    <div className="text-xs text-slate-500 truncate">
-                      {team.region || "—"}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(team)}
-                      aria-label="Редактировать"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+          <div className="space-y-3">
+            {teams.map((team) => {
+              const { lead, helpers } = getTeamMembers(team, masters);
+              return (
+                <div
+                  key={team.id}
+                  className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4"
+                >
+                  {/* Top row: color circle + name/region + actions */}
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                      style={{ backgroundColor: team.color }}
                     >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
+                      {team.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[15px] font-semibold text-[var(--label)] truncate">
+                        {team.name}
+                      </div>
+                      <div className="text-[13px] text-[var(--label-secondary)] truncate">
+                        {team.region || "—"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(team)}
+                        aria-label="Редактировать"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)]"
                       >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(team)}
-                      aria-label="Удалить"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
+                        <Pencil size={16} strokeWidth={2} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(team)}
+                        aria-label="Удалить"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)]"
                       >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                      </svg>
-                    </button>
+                        <Trash2 size={16} strokeWidth={2} />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Lead row */}
-                <div className="mt-3 flex items-center gap-2">
-                  {lead ? (
-                    <>
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
-                        style={{ backgroundColor: team.color }}
-                      >
-                        {getInitials(lead.full_name)}
+                  {/* Lead row */}
+                  <div className="mt-3 flex items-center gap-2">
+                    {lead ? (
+                      <>
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
+                          style={{ backgroundColor: team.color }}
+                        >
+                          {getInitials(lead.full_name)}
+                        </div>
+                        <div className="text-[13px] text-[var(--label-secondary)] whitespace-nowrap">
+                          Бригадир:{" "}
+                          <span className="font-medium text-[var(--label)]">
+                            {lead.full_name}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-[13px] text-[var(--label-tertiary)]">
+                        Бригадир не назначен
                       </div>
-                      <div className="text-xs text-slate-700 whitespace-nowrap">
-                        Бригадир:{" "}
-                        <span className="font-medium text-slate-900">
-                          {lead.full_name}
-                        </span>
+                    )}
+                  </div>
+
+                  {/* Helpers row */}
+                  {helpers.length > 0 && (
+                    <div className="mt-2 flex items-start gap-2">
+                      <div className="text-[13px] text-[var(--label-secondary)] shrink-0 pt-0.5">
+                        Помощники:
                       </div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-slate-400">
-                      Бригадир не назначен
+                      <div className="flex flex-wrap gap-1">
+                        {helpers.map((h) => (
+                          <span
+                            key={h.id}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[11px] whitespace-nowrap"
+                          >
+                            {h.full_name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {/* Helpers row */}
-                {helpers.length > 0 && (
-                  <div className="mt-2 flex items-start gap-2">
-                    <div className="text-xs text-slate-500 shrink-0 pt-0.5">
-                      Помощники:
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {helpers.map((h) => (
-                        <span
-                          key={h.id}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] whitespace-nowrap"
-                        >
-                          {h.full_name}
-                        </span>
-                      ))}
-                    </div>
+                  {/* Status chip */}
+                  <div className="mt-3">
+                    <span
+                      className={`inline-block text-[11px] px-2 py-0.5 rounded-full ${
+                        team.active
+                          ? "bg-[rgba(52,199,89,0.15)] text-[var(--system-green)]"
+                          : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                      }`}
+                    >
+                      {team.active ? "Активна" : "Неактивна"}
+                    </span>
                   </div>
-                )}
-
-                {/* Status chip */}
-                <div className="mt-3">
-                  <span
-                    className={`inline-block text-[11px] px-2 py-0.5 rounded-full ${
-                      team.active
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {team.active ? "Активна" : "Неактивна"}
-                  </span>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
           {/* Sprint 026: Мастера — отдельная страница. Здесь ссылка-
               напоминалка, чтобы не забыть где их заводить и редактировать. */}
@@ -273,29 +252,30 @@ export default function TeamsPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard/masters")}
-              className="w-full flex items-center justify-between bg-white rounded-2xl border border-slate-200 px-4 py-3 active:bg-slate-50 transition"
+              className="w-full flex items-center justify-between bg-[var(--surface-card)] rounded-2xl px-4 py-3 active:bg-[var(--fill-quaternary)] transition shadow-[var(--shadow-card)]"
             >
               <div className="text-left">
-                <div className="text-[13px] font-semibold text-slate-900">
+                <div className="text-[15px] font-semibold text-[var(--label)]">
                   Мастера ({masters.length})
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[12px] text-[var(--label-secondary)]">
                   Добавить сотрудника, ЗП, доступы, документы
                 </div>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-400">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <ChevronRight size={16} className="text-[var(--label-tertiary)]" />
             </button>
           </div>
 
           {unassignedMasters.length > 0 && (
-            <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              {unassignedMasters.length}{" "}
-              {unassignedMasters.length === 1
-                ? "мастер не привязан"
-                : "мастера не привязаны"}{" "}
-              к бригадам. Откройте бригаду и добавьте их в состав.
+            <div className="flex items-start gap-2 text-[12px] text-[var(--system-orange)] bg-[rgba(255,149,0,0.1)] rounded-lg px-3 py-2">
+              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+              <span>
+                {unassignedMasters.length}{" "}
+                {unassignedMasters.length === 1
+                  ? "мастер не привязан"
+                  : "мастера не привязаны"}{" "}
+                к бригадам. Откройте бригаду и добавьте их в состав.
+              </span>
             </div>
           )}
         </div>
@@ -402,64 +382,47 @@ function TeamFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/50 flex items-end lg:items-center justify-center"
+      className="fixed inset-0 z-40 bg-[var(--surface-overlay)] backdrop-blur-[2px] flex items-center justify-center p-2"
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-t-2xl lg:rounded-2xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold text-slate-900 mb-4">
+        <h2 className="text-[17px] font-semibold text-[var(--label)] mb-4 tracking-tight">
           {team ? "Редактировать бригаду" : "Новая бригада"}
         </h2>
 
         <div className="space-y-4">
           {/* Name */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Название</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
-          </div>
+          <Input
+            label="Название"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
           {/* Region */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Регион</label>
-            <input
-              type="text"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              placeholder="Например: Пафос, Лимассол"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
-          </div>
+          <Input
+            label="Регион"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            placeholder="Например: Пафос, Лимассол"
+          />
 
           {/* Default city */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">
-              Базовый город
-            </label>
-            <input
-              type="text"
-              value={defaultCity}
-              onChange={(e) => setDefaultCity(e.target.value)}
-              placeholder="Например: Пафос"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
-            <div className="text-[11px] text-slate-400 mt-1">
-              Ставится дефолтом на каждый день в календаре. Можно переопределить
-              тапом по дню.
-            </div>
-          </div>
+          <Input
+            label="Базовый город"
+            value={defaultCity}
+            onChange={(e) => setDefaultCity(e.target.value)}
+            placeholder="Например: Пафос"
+            hint="Ставится дефолтом на каждый день в календаре. Можно переопределить тапом по дню."
+          />
 
           {/* Payout percentage */}
           <div>
-            <label className="block text-xs text-slate-500 mb-1">
+            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
               Зарплата (% от чистого дохода)
-            </label>
+            </div>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -467,11 +430,11 @@ function TeamFormModal({
                 max={100}
                 value={payoutPercentage}
                 onChange={(e) => setPayoutPercentage(Number(e.target.value) || 0)}
-                className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 tabular-nums"
+                className="w-24 h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition tabular-nums"
               />
-              <span className="text-sm text-slate-500">%</span>
+              <span className="text-[15px] text-[var(--label-secondary)]">%</span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
+            <div className="text-[11px] text-[var(--label-tertiary)] mt-1.5 leading-snug">
               Применяется к (доход − расход бригады) за выбранный период.
               Используется на странице Финансы → Зарплата.
             </div>
@@ -479,7 +442,9 @@ function TeamFormModal({
 
           {/* Color */}
           <div>
-            <label className="block text-xs text-slate-500 mb-2">Цвет</label>
+            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
+              Цвет
+            </div>
             <div className="grid grid-cols-8 gap-2">
               {TEAM_COLORS.map((c) => (
                 <button
@@ -489,7 +454,7 @@ function TeamFormModal({
                   aria-label={c.name}
                   className={`w-8 h-8 rounded-full transition-all ${
                     color === c.value
-                      ? "ring-2 ring-violet-600 ring-offset-2"
+                      ? "ring-2 ring-[var(--accent)] ring-offset-2"
                       : ""
                   }`}
                   style={{ backgroundColor: c.value }}
@@ -500,13 +465,13 @@ function TeamFormModal({
 
           {/* Lead */}
           <div>
-            <label className="block text-xs text-slate-500 mb-1">
+            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
               Бригадир (Лид)
-            </label>
+            </div>
             <select
               value={leadId ?? ""}
               onChange={(e) => setLeadId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
             >
               <option value="">— Не выбран —</option>
               {activeMasters.map((m) => {
@@ -523,10 +488,12 @@ function TeamFormModal({
 
           {/* Helpers */}
           <div>
-            <label className="block text-xs text-slate-500 mb-2">Помощники</label>
-            <div className="space-y-1 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2">
+            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
+              Помощники
+            </div>
+            <div className="space-y-1 max-h-48 overflow-y-auto border border-[var(--separator)] rounded-[10px] p-2">
               {availableHelpers.length === 0 && (
-                <div className="text-xs text-slate-400 px-2 py-1">
+                <div className="text-[13px] text-[var(--label-tertiary)] px-2 py-1">
                   Нет доступных мастеров
                 </div>
               )}
@@ -535,15 +502,15 @@ function TeamFormModal({
                 return (
                   <label
                     key={m.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--fill-quaternary)] cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleHelper(m.id)}
-                      className="w-4 h-4 accent-violet-600"
+                      className="w-4 h-4 accent-[var(--accent)]"
                     />
-                    <span className="text-sm text-slate-800">{m.full_name}</span>
+                    <span className="text-[15px] text-[var(--label)]">{m.full_name}</span>
                   </label>
                 );
               })}
@@ -552,56 +519,20 @@ function TeamFormModal({
 
           {/* Active toggle */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-700">Активна</span>
-            <ToggleSwitch checked={active} onChange={setActive} />
+            <span className="text-[15px] text-[var(--label)]">Активна</span>
+            <IOSSwitch checked={active} onChange={setActive} ariaLabel="Активна" />
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border border-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-50"
-          >
+          <Button variant="secondary" size="md" onClick={onCancel}>
             Отмена
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700"
-          >
+          </Button>
+          <Button variant="primary" size="md" onClick={handleSubmit}>
             Сохранить
-          </button>
+          </Button>
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Toggle Switch ──────────────────────────────────────────────────────
-
-function ToggleSwitch({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative w-9 h-5 rounded-full transition-colors ${
-        checked ? "bg-violet-600" : "bg-slate-300"
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0"
-        }`}
-      />
-    </button>
   );
 }

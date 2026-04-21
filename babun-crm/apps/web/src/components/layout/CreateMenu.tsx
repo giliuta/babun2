@@ -99,19 +99,19 @@ export default function CreateMenu({
 
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-5"
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[340px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-[340px] bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-5 pt-4 pb-3 border-b border-[var(--separator)] text-center">
+          <div className="text-[13px] font-semibold text-[var(--label-secondary)]">
             Создать
           </div>
         </div>
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-[var(--separator)]">
           {ITEMS.map((item) => (
             <button
               key={item.key}
@@ -120,31 +120,37 @@ export default function CreateMenu({
                 handlers[item.key]();
                 onClose();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-slate-50 transition"
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--fill-quaternary)] transition min-h-[56px]"
             >
-              <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.tone}`}>
+              <span className={`w-9 h-9 rounded-[9px] flex items-center justify-center shrink-0 ${item.tone}`}>
                 {item.icon}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-semibold text-slate-900">
+                <div className="text-[15px] font-medium text-[var(--label)]">
                   {item.label}
                 </div>
-                <div className="text-[11px] text-slate-500 truncate">
+                <div className="text-[12px] text-[var(--label-secondary)] truncate">
                   {item.hint}
                 </div>
               </div>
-              <span className="text-slate-300 shrink-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="text-[var(--label-tertiary)] shrink-0"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
             </button>
           ))}
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="w-full h-11 text-[13px] font-medium text-slate-500 border-t border-slate-100 active:bg-slate-50"
+          className="w-full h-11 text-[15px] font-medium text-[var(--accent)] border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)] transition"
         >
           Отмена
         </button>

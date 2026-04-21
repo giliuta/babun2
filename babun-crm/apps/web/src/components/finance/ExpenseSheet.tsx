@@ -70,26 +70,26 @@ export default function ExpenseSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl flex flex-col max-h-[90vh]"
+        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-2xl flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grabber */}
         <div className="flex-shrink-0 flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-slate-300" />
+          <div className="w-10 h-1 rounded-full bg-[var(--label-quaternary)]" />
         </div>
 
         {/* Header */}
         <div className="px-5 pt-1 pb-3 flex-shrink-0">
           {(dayLabel || teamLabel) && (
-            <p className="text-[12px] text-slate-500">
+            <p className="text-[12px] text-[var(--label-secondary)]">
               {[dayLabel, teamLabel].filter(Boolean).join(" · ")}
             </p>
           )}
-          <h2 className="text-[19px] font-semibold text-slate-900 mt-0.5">
+          <h2 className="text-[17px] font-semibold tracking-tight text-[var(--label)] mt-0.5">
             Расход бригады
           </h2>
         </div>
@@ -98,7 +98,7 @@ export default function ExpenseSheet({
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
           {/* Category grid 2×2 */}
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
               Категория
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -110,8 +110,8 @@ export default function ExpenseSheet({
                     key={key}
                     type="button"
                     onClick={() => setCategory(key)}
-                    className={`flex items-center gap-2 px-3 py-3 rounded-xl border-2 transition active:scale-[0.98] ${
-                      active ? "shadow-sm" : "border-slate-200 bg-white"
+                    className={`flex items-center gap-2 px-3 py-3 min-h-[48px] rounded-[14px] border transition active:scale-[0.98] ${
+                      active ? "shadow-sm" : "border-[var(--separator)] bg-[var(--surface-card)]"
                     }`}
                     style={
                       active
@@ -131,8 +131,8 @@ export default function ExpenseSheet({
                       {cfg.emoji}
                     </div>
                     <div
-                      className={`text-[14px] font-semibold text-left ${
-                        active ? "" : "text-slate-800"
+                      className={`text-[15px] font-semibold text-left ${
+                        active ? "" : "text-[var(--label)]"
                       }`}
                       style={active ? { color: cfg.color } : undefined}
                     >
@@ -146,11 +146,11 @@ export default function ExpenseSheet({
 
           {/* Amount input */}
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
               Сумма
             </div>
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 h-14">
-              <span className="text-[22px] font-bold text-slate-400 tabular-nums">€</span>
+            <div className="flex items-center gap-2 bg-[var(--fill-tertiary)] border border-transparent rounded-[14px] px-3 h-14 focus-within:bg-[var(--surface-card)] focus-within:border-[var(--accent)]">
+              <span className="text-[22px] font-bold text-[var(--label-tertiary)] tabular-nums">€</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -158,7 +158,7 @@ export default function ExpenseSheet({
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value.replace(/[^\d]/g, ""))}
                 placeholder="0"
-                className="flex-1 bg-transparent text-[28px] font-bold text-slate-900 tabular-nums focus:outline-none placeholder-slate-300"
+                className="flex-1 bg-transparent text-[28px] font-bold text-[var(--label)] tabular-nums focus:outline-none placeholder:text-[var(--label-tertiary)]"
               />
             </div>
 
@@ -170,7 +170,7 @@ export default function ExpenseSheet({
                     key={q}
                     type="button"
                     onClick={() => setAmountStr(String(q))}
-                    className="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-[13px] font-semibold text-slate-700 active:bg-slate-50 tabular-nums"
+                    className="flex-1 h-10 rounded-[10px] bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] tabular-nums"
                   >
                     €{q}
                   </button>
@@ -181,7 +181,7 @@ export default function ExpenseSheet({
 
           {/* Comment */}
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
               Комментарий
             </div>
             <input
@@ -189,21 +189,21 @@ export default function ExpenseSheet({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Что-то добавить"
-              className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
             />
           </div>
         </div>
 
         {/* Sticky save */}
         <div
-          className="flex-shrink-0 px-4 pt-2 border-t border-slate-200"
+          className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
         >
           <button
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full h-12 rounded-xl bg-rose-500 text-white text-[15px] font-semibold active:scale-[0.99] transition disabled:bg-slate-300 disabled:text-slate-500"
+            className="w-full h-12 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
           >
             {canSave
               ? `Добавить расход · −${formatEUR(amount)}`

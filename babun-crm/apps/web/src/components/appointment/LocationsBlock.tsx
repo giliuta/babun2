@@ -6,6 +6,7 @@ import { upsertClient } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@/lib/map-links";
 import { useLocationLabels } from "@/app/dashboard/layout";
+import { Navigation } from "lucide-react";
 import MapNavPopup from "./MapNavPopup";
 
 interface LocationsBlockProps {
@@ -150,7 +151,7 @@ export default function LocationsBlock({
   return (
     <div className="px-4 pt-2">
       <div
-        className={`rounded-xl bg-white border border-slate-200 overflow-hidden ${
+        className={`rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden ${
           clientLocked ? "opacity-60" : ""
         }`}
       >
@@ -172,8 +173,8 @@ export default function LocationsBlock({
                   }}
                   className={`flex-shrink-0 px-3 h-7 rounded-full text-[12px] font-semibold border ${
                     active
-                      ? "bg-violet-100 text-violet-700 border-violet-300"
-                      : "bg-white text-slate-600 border-slate-200"
+                      ? "bg-[var(--accent-tint)] text-[var(--accent)] border-[var(--accent)]"
+                      : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
                   }`}
                 >
                   {loc.label || "Объект"}
@@ -185,7 +186,7 @@ export default function LocationsBlock({
                 type="button"
                 onClick={openNew}
                 aria-label="Добавить адрес"
-                className="flex-shrink-0 ml-auto w-7 h-7 rounded-full border-2 border-dashed border-violet-300 text-violet-600 text-[14px] font-bold flex items-center justify-center active:bg-violet-50"
+                className="flex-shrink-0 ml-auto w-7 h-7 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] text-[14px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)]"
               >
                 +
               </button>
@@ -196,10 +197,10 @@ export default function LocationsBlock({
         {/* Row 1: address or empty CTA */}
         {clientLocked ? (
           <div className="h-12 flex items-center gap-2 px-3">
-            <span className="flex-shrink-0 text-rose-300">
+            <span className="flex-shrink-0 text-[var(--label-tertiary)]">
               <PinIcon />
             </span>
-            <span className="flex-1 text-[13px] font-medium text-slate-400 truncate">
+            <span className="flex-1 text-[13px] font-medium text-[var(--label-tertiary)] truncate">
               Сначала выберите клиента
             </span>
           </div>
@@ -209,22 +210,22 @@ export default function LocationsBlock({
             disabled={readOnly}
             onClick={() => selected && openEdit(selected)}
             className={`w-full h-12 flex items-center gap-2 px-3 ${
-              !readOnly ? "active:bg-slate-50" : ""
+              !readOnly ? "active:bg-[var(--fill-quaternary)]" : ""
             }`}
           >
-            <span className="flex-shrink-0 text-rose-500">
+            <span className="flex-shrink-0 text-[var(--system-red)]">
               <PinIcon />
             </span>
-            <span className="flex-1 min-w-0 text-left text-[14px] text-slate-900 truncate">
+            <span className="flex-1 min-w-0 text-left text-[15px] text-[var(--label)] truncate">
               {selected?.address || "Google Maps ссылка"}
               {selected?.label && (
-                <span className="text-slate-400 ml-1">
+                <span className="text-[var(--label-tertiary)] ml-1">
                   · {selected.label}
                 </span>
               )}
             </span>
             {!readOnly && (
-              <span className="flex-shrink-0 text-slate-300">
+              <span className="flex-shrink-0 text-[var(--label-quaternary)]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -237,12 +238,12 @@ export default function LocationsBlock({
             type="button"
             disabled={readOnly}
             onClick={openNew}
-            className="w-full h-12 flex items-center gap-2 px-3 text-left active:bg-violet-50"
+            className="w-full h-12 flex items-center gap-2 px-3 text-left active:bg-[var(--accent-tint)]"
           >
-            <span className="flex-shrink-0 text-violet-500">
+            <span className="flex-shrink-0 text-[var(--accent)]">
               <PinIcon />
             </span>
-            <span className="flex-1 text-[14px] font-semibold text-violet-600">
+            <span className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
               + Добавить адрес
             </span>
           </button>
@@ -251,7 +252,7 @@ export default function LocationsBlock({
         {/* Inline form (add or edit) */}
         {mode === "form" && !readOnly && !clientLocked && (
           <>
-            <div className="h-px bg-slate-100" />
+            <div className="h-px bg-[var(--separator)]" />
             <div className="p-3 space-y-2">
               <div className="flex flex-wrap gap-1.5">
                 {presets.map((p) => {
@@ -266,8 +267,8 @@ export default function LocationsBlock({
                       }}
                       className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
                         active
-                          ? "bg-violet-100 text-violet-700 border border-violet-300"
-                          : "bg-white text-slate-600 border border-slate-200"
+                          ? "bg-[var(--accent-tint)] text-[var(--accent)] border border-[var(--accent)]"
+                          : "bg-[var(--surface-card)] text-[var(--label-secondary)] border border-[var(--separator)]"
                       }`}
                     >
                       {p}
@@ -287,8 +288,8 @@ export default function LocationsBlock({
                   }}
                   className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
                     customMode
-                      ? "bg-violet-100 text-violet-700 border border-violet-300"
-                      : "bg-white text-slate-600 border border-slate-200 border-dashed"
+                      ? "bg-[var(--accent-tint)] text-[var(--accent)] border border-[var(--accent)]"
+                      : "bg-[var(--surface-card)] text-[var(--label-secondary)] border border-dashed border-[var(--separator)]"
                   }`}
                 >
                   Другое…
@@ -302,7 +303,7 @@ export default function LocationsBlock({
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="Своё название"
                   autoFocus
-                  className="w-full h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
                 />
               )}
 
@@ -312,14 +313,14 @@ export default function LocationsBlock({
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Адрес или Google Maps ссылка"
                 autoFocus={!customMode}
-                className="w-full h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
 
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
                   onClick={cancelForm}
-                  className="flex-1 h-10 rounded-lg text-slate-600 font-medium"
+                  className="flex-1 h-11 rounded-[10px] text-[var(--accent)] font-medium"
                 >
                   Отмена
                 </button>
@@ -327,7 +328,7 @@ export default function LocationsBlock({
                   type="button"
                   onClick={saveForm}
                   disabled={!input.trim() && !label.trim()}
-                  className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] disabled:opacity-40"
+                  className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:opacity-40"
                 >
                   Сохранить
                 </button>
@@ -336,7 +337,7 @@ export default function LocationsBlock({
           </>
         )}
 
-        <div className="h-px bg-slate-100" />
+        <div className="h-px bg-[var(--separator)]" />
 
         {/* Row 2: Navigation (full width) */}
         <div className="p-2">
@@ -344,24 +345,25 @@ export default function LocationsBlock({
             type="button"
             disabled={!hasAddress}
             onClick={() => setNavOpen(true)}
-            className={`w-full h-9 rounded-lg text-[13px] font-semibold flex items-center justify-center gap-1.5 border ${
+            className={`w-full h-10 rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-1.5 ${
               hasAddress
-                ? "bg-sky-50 border-sky-200 text-sky-800 active:bg-sky-100"
-                : "bg-slate-50 border-slate-200 text-slate-400"
+                ? "bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--accent-tint)]/70"
+                : "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)]"
             }`}
           >
-            <span>🧭</span> Навигация
+            <Navigation size={14} strokeWidth={2} />
+            Навигация
           </button>
         </div>
 
-        <div className="h-px bg-slate-100" />
+        <div className="h-px bg-[var(--separator)]" />
 
         {/* Row 3: inline small note */}
         <div className="px-3 py-2">
           {readOnly ? (
-            <div className="text-[11px] text-slate-500">
-              <span className="text-slate-400">Примечание: </span>
-              {addressNote.trim() || <span className="text-slate-300">—</span>}
+            <div className="text-[12px] text-[var(--label-secondary)]">
+              <span className="text-[var(--label-tertiary)]">Примечание: </span>
+              {addressNote.trim() || <span className="text-[var(--label-quaternary)]">—</span>}
             </div>
           ) : (
             <input
@@ -370,7 +372,7 @@ export default function LocationsBlock({
               onChange={(e) => onAddressNoteChange(e.target.value)}
               disabled={clientLocked}
               placeholder="Примечание: дом, этаж, квартира…"
-              className="w-full h-7 text-[11px] text-slate-700 placeholder-slate-400 bg-transparent border-0 focus:outline-none disabled:opacity-50"
+              className="w-full h-7 text-[12px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none disabled:opacity-50"
             />
           )}
         </div>

@@ -154,7 +154,7 @@ export default function FinanceSheet({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-12 bg-violet-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
+          className="w-full h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           Сохранить
         </button>
@@ -167,20 +167,20 @@ export default function FinanceSheet({
             <button
               type="button"
               onClick={() => setShowAddExpense(true)}
-              className="w-full h-9 flex items-center justify-center gap-1.5 bg-violet-50 text-violet-700 rounded-lg text-[12px] font-semibold active:scale-[0.98]"
+              className="w-full h-11 flex items-center justify-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)] rounded-[10px] text-[15px] font-semibold active:scale-[0.98]"
             >
               <span className="text-[15px] leading-none">+</span>
               Добавить расход
             </button>
           ) : (
-            <div className="bg-violet-50 rounded-lg p-2 space-y-2">
+            <div className="bg-[var(--accent-tint)] rounded-[10px] p-2 space-y-2">
               <input
                 type="text"
                 autoFocus
                 value={newExpenseName}
                 onChange={(e) => setNewExpenseName(e.target.value)}
                 placeholder="Название (например, Материалы)"
-                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full h-11 px-3.5 bg-[var(--surface-card)] rounded-[10px] border border-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:border-[var(--accent)]"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -192,9 +192,9 @@ export default function FinanceSheet({
                     setNewExpenseAmount(v === "" ? "" : Number(v) || 0);
                   }}
                   placeholder="Сумма"
-                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 h-11 px-3.5 bg-[var(--surface-card)] rounded-[10px] border border-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:border-[var(--accent)]"
                 />
-                <span className="text-[13px] text-slate-500">€</span>
+                <span className="text-[13px] text-[var(--label-secondary)]">€</span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -204,7 +204,7 @@ export default function FinanceSheet({
                     setNewExpenseName("");
                     setNewExpenseAmount("");
                   }}
-                  className="flex-1 h-9 text-[12px] text-slate-600 font-medium"
+                  className="flex-1 h-11 text-[13px] text-[var(--accent)] font-medium"
                 >
                   Отмена
                 </button>
@@ -216,7 +216,7 @@ export default function FinanceSheet({
                     typeof newExpenseAmount !== "number" ||
                     newExpenseAmount <= 0
                   }
-                  className="flex-1 h-9 bg-violet-600 text-white rounded-lg text-[12px] font-semibold disabled:opacity-40"
+                  className="flex-1 h-11 bg-[var(--accent)] text-white rounded-[10px] text-[13px] font-semibold active:bg-[var(--accent-pressed)] disabled:opacity-40"
                 >
                   Добавить
                 </button>
@@ -228,7 +228,7 @@ export default function FinanceSheet({
         {/* Services */}
         <div>
           {services.length === 0 ? (
-            <div className="px-3 py-3 text-center text-[12px] text-slate-400">
+            <div className="px-3 py-3 text-center text-[12px] text-[var(--label-tertiary)]">
               Услуги не выбраны
             </div>
           ) : (
@@ -240,13 +240,13 @@ export default function FinanceSheet({
               return (
                 <div
                   key={service.id}
-                  className="flex items-center gap-2 px-3 py-1.5 border-t border-slate-100"
+                  className="flex items-center gap-2 px-3 py-1.5 border-t border-[var(--separator)]"
                 >
                   <div
                     className="w-1 h-5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: service.color }}
                   />
-                  <div className="flex-1 min-w-0 text-[13px] text-slate-900 truncate">
+                  <div className="flex-1 min-w-0 text-[15px] text-[var(--label)] truncate">
                     {qty > 1 ? `${service.name} ×${qty}` : service.name}
                   </div>
                   {isEditing ? (
@@ -261,16 +261,16 @@ export default function FinanceSheet({
                         if (e.key === "Enter") commitEdit();
                         if (e.key === "Escape") cancelEdit();
                       }}
-                      className="w-16 h-7 px-1 text-right text-[13px] font-semibold text-emerald-600 bg-emerald-50 rounded border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums"
+                      className="w-16 h-8 px-1 text-right text-[13px] font-semibold text-[var(--system-green)] bg-[rgba(52,199,89,0.1)] rounded-[6px] border border-[var(--system-green)] focus:outline-none tabular-nums"
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => startEdit(service.id, rowTotal)}
-                      className={`text-[13px] font-semibold tabular-nums px-1.5 py-0.5 rounded active:bg-emerald-50 ${
+                      className={`text-[13px] font-semibold tabular-nums px-1.5 py-0.5 rounded active:bg-[rgba(52,199,89,0.1)] ${
                         isOverridden
-                          ? "text-emerald-600 underline decoration-dotted"
-                          : "text-emerald-600"
+                          ? "text-[var(--system-green)] underline decoration-dotted"
+                          : "text-[var(--system-green)]"
                       }`}
                     >
                       +{rowTotal}
@@ -288,20 +288,20 @@ export default function FinanceSheet({
             {localExpenses.map((e) => (
               <div
                 key={e.id}
-                className="flex items-center gap-2 px-3 py-1.5 border-t border-slate-100"
+                className="flex items-center gap-2 px-3 py-1.5 border-t border-[var(--separator)]"
               >
-                <div className="w-1 h-5 rounded-full bg-red-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0 text-[13px] text-slate-900 truncate">
+                <div className="w-1 h-5 rounded-full bg-[var(--system-red)] flex-shrink-0" />
+                <div className="flex-1 min-w-0 text-[15px] text-[var(--label)] truncate">
                   {e.name}
                 </div>
-                <div className="text-[13px] font-semibold text-red-600 tabular-nums">
+                <div className="text-[13px] font-semibold text-[var(--system-red)] tabular-nums">
                   −{e.amount}
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRemoveExpense(e.id)}
                   aria-label="Удалить"
-                  className="w-6 h-6 flex items-center justify-center text-slate-400 active:text-red-500"
+                  className="w-6 h-6 flex items-center justify-center text-[var(--label-tertiary)] active:text-[var(--system-red)]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -314,17 +314,17 @@ export default function FinanceSheet({
         )}
 
         {/* Summary */}
-        <div className="border-t-2 border-slate-200 mt-1.5 pt-1.5 pb-1 px-3 space-y-0.5">
+        <div className="border-t border-[var(--separator-opaque)] mt-1.5 pt-1.5 pb-1 px-3 space-y-0.5">
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] text-emerald-600">Доход</span>
-            <span className="text-[13px] font-semibold text-emerald-600 tabular-nums">
+            <span className="text-[13px] text-[var(--system-green)]">Доход</span>
+            <span className="text-[15px] font-semibold text-[var(--system-green)] tabular-nums">
               {subtotal}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 flex-1">
-              <span className="text-[12px] text-violet-600">Скидка</span>
+              <span className="text-[13px] text-[var(--accent)]">Скидка</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -333,16 +333,16 @@ export default function FinanceSheet({
                 onChange={(e) =>
                   setLocalDiscount(Math.max(0, Number(e.target.value) || 0))
                 }
-                className="w-12 h-7 px-1.5 bg-slate-100 rounded text-[12px] text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500 text-right"
+                className="w-12 h-7 px-1.5 bg-[var(--fill-tertiary)] rounded-[6px] text-[13px] text-[var(--label)] tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-right"
               />
-              <div className="flex bg-slate-100 rounded overflow-hidden">
+              <div className="flex bg-[var(--fill-tertiary)] rounded-[6px] overflow-hidden">
                 <button
                   type="button"
                   onClick={() => handleDiscountMode("amount")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "amount"
-                      ? "bg-violet-600 text-white"
-                      : "text-slate-500"
+                      ? "bg-[var(--accent)] text-white"
+                      : "text-[var(--label-secondary)]"
                   }`}
                 >
                   €
@@ -352,36 +352,36 @@ export default function FinanceSheet({
                   onClick={() => handleDiscountMode("percent")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "percent"
-                      ? "bg-violet-600 text-white"
-                      : "text-slate-500"
+                      ? "bg-[var(--accent)] text-white"
+                      : "text-[var(--label-secondary)]"
                   }`}
                 >
                   %
                 </button>
               </div>
             </div>
-            <span className="text-[13px] font-semibold text-violet-600 tabular-nums">
+            <span className="text-[15px] font-semibold text-[var(--accent)] tabular-nums">
               −{clampedDiscount}
             </span>
           </div>
 
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] text-emerald-600">Итоговый доход</span>
-            <span className="text-[13px] font-semibold text-emerald-600 tabular-nums">
+            <span className="text-[13px] text-[var(--system-green)]">Итоговый доход</span>
+            <span className="text-[15px] font-semibold text-[var(--system-green)] tabular-nums">
               {finalIncome}
             </span>
           </div>
 
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] text-red-600">Итоговый расход</span>
-            <span className="text-[13px] font-semibold text-red-600 tabular-nums">
+            <span className="text-[13px] text-[var(--system-red)]">Итоговый расход</span>
+            <span className="text-[15px] font-semibold text-[var(--system-red)] tabular-nums">
               {totalExpenses}
             </span>
           </div>
 
-          <div className="flex items-baseline justify-between pt-1 border-t border-slate-100">
-            <span className="text-[13px] font-semibold text-sky-600">Прибыль</span>
-            <span className="text-[17px] font-bold text-sky-600 tabular-nums">
+          <div className="flex items-baseline justify-between pt-1 border-t border-[var(--separator)]">
+            <span className="text-[15px] font-semibold text-[var(--accent)]">Прибыль</span>
+            <span className="text-[17px] font-bold text-[var(--accent)] tabular-nums">
               {profit}
             </span>
           </div>

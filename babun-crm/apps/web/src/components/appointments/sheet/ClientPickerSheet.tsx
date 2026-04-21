@@ -183,7 +183,7 @@ export default function ClientPickerSheet({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Поиск по имени или телефону"
-            className="w-full h-11 px-3 bg-slate-100 rounded-lg text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
           />
         </div>
 
@@ -194,12 +194,12 @@ export default function ClientPickerSheet({
                 key={c.id}
                 type="button"
                 onClick={() => handleSelect(c)}
-                className="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-violet-50 border border-violet-100 active:scale-[0.97]"
+                className="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-[var(--accent-tint)] border border-[var(--accent)] active:scale-[0.97]"
               >
-                <span className="w-7 h-7 rounded-full bg-white text-violet-700 flex items-center justify-center text-[11px] font-semibold shrink-0">
+                <span className="w-7 h-7 rounded-full bg-[var(--surface-card)] text-[var(--accent)] flex items-center justify-center text-[11px] font-semibold shrink-0">
                   {initials(c.full_name)}
                 </span>
-                <span className="text-[12px] font-medium text-violet-800 truncate max-w-[120px]">
+                <span className="text-[12px] font-medium text-[var(--accent)] truncate max-w-[120px]">
                   {c.full_name}
                 </span>
               </button>
@@ -219,13 +219,13 @@ export default function ClientPickerSheet({
               }
               setShowNewForm(true);
             }}
-            className="w-full h-10 flex items-center justify-center gap-1.5 bg-violet-50 text-violet-700 rounded-lg text-[13px] font-semibold active:scale-[0.98] transition"
+            className="w-full h-11 flex items-center justify-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)] rounded-[10px] text-[15px] font-semibold active:scale-[0.98] transition"
           >
             <span className="text-[15px] leading-none">+</span>
             <span>Новый клиент{query.trim() ? ` «${query.trim()}»` : ""}</span>
           </button>
         ) : (
-          <div className="space-y-2 bg-violet-50 rounded-xl p-3">
+          <div className="space-y-2 bg-[var(--accent-tint)] rounded-[14px] p-3">
             {clipboardHint && newPhones[0] !== clipboardHint && (
               <button
                 type="button"
@@ -233,12 +233,12 @@ export default function ClientPickerSheet({
                   updatePhone(0, clipboardHint);
                   setClipboardHint(null);
                 }}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white border border-violet-200 text-[12px] text-violet-800 active:bg-violet-50"
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[10px] bg-[var(--surface-card)] border border-[var(--accent)] text-[12px] text-[var(--accent)] active:bg-[var(--accent-tint)]"
               >
                 <span className="truncate">
                   <span className="font-semibold">В буфере:</span> {clipboardHint}
                 </span>
-                <span className="text-[11px] font-semibold text-violet-600 shrink-0">
+                <span className="text-[11px] font-semibold text-[var(--accent)] shrink-0">
                   Вставить →
                 </span>
               </button>
@@ -250,11 +250,11 @@ export default function ClientPickerSheet({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Имя клиента *"
-              className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full h-11 px-3.5 bg-[var(--surface-card)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:border-[var(--accent)]"
             />
 
             {duplicates.length > 0 && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-800">
+              <div className="rounded-[10px] bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.2)] px-3 py-2 text-[12px] text-[var(--label)]">
                 <div className="font-semibold">Уже есть похожие</div>
                 {duplicates.slice(0, 3).map((c) => (
                   <button
@@ -265,13 +265,13 @@ export default function ClientPickerSheet({
                       setShowNewForm(false);
                       resetForm();
                     }}
-                    className="w-full flex items-center justify-between gap-2 mt-1 py-1 text-amber-900 active:opacity-70"
+                    className="w-full flex items-center justify-between gap-2 mt-1 py-1 text-[var(--label)] active:opacity-70"
                   >
                     <span className="truncate">
                       {c.full_name}
                       {c.phone ? ` · ${c.phone}` : ""}
                     </span>
-                    <span className="text-[11px] font-semibold text-amber-700 shrink-0">
+                    <span className="text-[11px] font-semibold text-[var(--system-orange)] shrink-0">
                       Выбрать →
                     </span>
                   </button>
@@ -280,8 +280,8 @@ export default function ClientPickerSheet({
             )}
 
             {/* First phone — always visible, no remove. */}
-            <div className="flex items-center gap-2 bg-white rounded-lg px-3 h-11">
-              <span className="text-emerald-600 flex-shrink-0" aria-hidden>
+            <div className="flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 h-11">
+              <span className="text-[var(--system-green)] flex-shrink-0" aria-hidden>
                 <PhoneIcon />
               </span>
               <input
@@ -289,18 +289,18 @@ export default function ClientPickerSheet({
                 value={newPhones[0] ?? ""}
                 onChange={(e) => updatePhone(0, e.target.value)}
                 placeholder="+357 99 …"
-                className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
+                className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none"
               />
             </div>
             {phoneMissing && newName.trim().length > 0 && (
-              <div className="text-[11px] text-rose-600 -mt-1 px-1">
+              <div className="text-[11px] text-[var(--system-red)] -mt-1 px-1">
                 Введите телефон, иначе кнопка «Позвонить» не сработает
               </div>
             )}
 
             {/* Comment — always visible per STORY-011, no ✕. */}
-            <div className="flex items-start gap-2 bg-white rounded-lg px-3 py-2">
-              <span className="text-slate-400 flex-shrink-0 mt-2" aria-hidden>
+            <div className="flex items-start gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 py-2">
+              <span className="text-[var(--label-tertiary)] flex-shrink-0 mt-2" aria-hidden>
                 <CommentIcon />
               </span>
               <textarea
@@ -308,7 +308,7 @@ export default function ClientPickerSheet({
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Комментарий (язык, особенности)"
                 rows={2}
-                className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none resize-none leading-[1.35]"
+                className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none resize-none leading-[1.35]"
               />
             </div>
 
@@ -318,9 +318,9 @@ export default function ClientPickerSheet({
               return (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 bg-white rounded-lg px-3 h-11"
+                  className="flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 h-11"
                 >
-                  <span className="text-emerald-600 flex-shrink-0" aria-hidden>
+                  <span className="text-[var(--system-green)] flex-shrink-0" aria-hidden>
                     <PhoneIcon />
                   </span>
                   <input
@@ -328,12 +328,12 @@ export default function ClientPickerSheet({
                     value={phone}
                     onChange={(e) => updatePhone(idx, e.target.value)}
                     placeholder="Доп. номер"
-                    className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
+                    className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => removePhone(idx)}
-                    className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-700"
+                    className="w-7 h-7 flex items-center justify-center text-[var(--label-tertiary)] active:text-[var(--label)]"
                     aria-label="Убрать номер"
                   >
                     <CloseIcon />
@@ -363,7 +363,7 @@ export default function ClientPickerSheet({
 
             {/* Add-chips — Comment chip is gone since comment is now always visible. */}
             <div className="pt-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                 Добавить (необязательно)
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -387,7 +387,7 @@ export default function ClientPickerSheet({
                   setShowNewForm(false);
                   resetForm();
                 }}
-                className="flex-1 h-11 text-slate-700 font-medium"
+                className="flex-1 h-11 text-[var(--accent)] font-medium"
               >
                 Отмена
               </button>
@@ -395,7 +395,7 @@ export default function ClientPickerSheet({
                 type="button"
                 onClick={handleCreateNew}
                 disabled={!canCreateClient}
-                className="flex-1 h-11 bg-violet-600 text-white rounded-lg font-semibold disabled:opacity-40"
+                className="flex-1 h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] disabled:opacity-40"
                 title={
                   !newName.trim()
                     ? "Введите имя"
@@ -413,11 +413,11 @@ export default function ClientPickerSheet({
         {/* Client list */}
         <div>
           {sorted.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">
+            <div className="py-8 text-center text-[13px] text-[var(--label-tertiary)]">
               {query ? "Никого не нашли" : "Клиентов пока нет"}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[var(--separator)]">
               {sorted.map(({ c }) => {
                 const isRecent = recentClientIds.includes(c.id);
                 return (
@@ -425,21 +425,21 @@ export default function ClientPickerSheet({
                     key={c.id}
                     type="button"
                     onClick={() => handleSelect(c)}
-                    className="w-full flex items-center gap-2.5 py-2 active:bg-slate-50"
+                    className="w-full flex items-center gap-2.5 py-2 min-h-[48px] active:bg-[var(--fill-quaternary)]"
                   >
-                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-[13px]">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-semibold text-[13px]">
                       {initials(c.full_name)}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-[13px] font-medium text-slate-900 truncate">
+                      <div className="text-[15px] font-medium text-[var(--label)] truncate">
                         {c.full_name}
                       </div>
                       {c.phone && (
-                        <div className="text-[11px] text-slate-500 truncate">{c.phone}</div>
+                        <div className="text-[12px] text-[var(--label-secondary)] truncate">{c.phone}</div>
                       )}
                     </div>
                     {isRecent && (
-                      <div className="text-[9px] text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-full">
+                      <div className="text-[10px] font-semibold text-[var(--accent)] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded-full">
                         недавний
                       </div>
                     )}
@@ -459,7 +459,7 @@ function AddChip({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="h-8 px-3 rounded-full bg-white border border-slate-200 text-[12px] font-semibold text-violet-700 active:bg-violet-50"
+      className="h-8 px-3 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[12px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)]"
     >
       {label}
     </button>
@@ -480,7 +480,7 @@ function FieldRow({
   placeholder: string;
 }) {
   return (
-    <div className="flex items-center gap-2 bg-white rounded-lg px-3 h-11">
+    <div className="flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 h-11">
       <span className="flex-shrink-0" aria-hidden>
         {icon}
       </span>
@@ -489,12 +489,12 @@ function FieldRow({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
+        className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none"
       />
       <button
         type="button"
         onClick={onRemove}
-        className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-700"
+        className="w-7 h-7 flex items-center justify-center text-[var(--label-tertiary)] active:text-[var(--label)]"
         aria-label="Убрать поле"
       >
         <CloseIcon />

@@ -17,20 +17,18 @@ interface ActionMenuModalProps {
   options: ActionMenuOption[];
 }
 
-// Bumpix-style action menu: purple header bar, vertical list of options
-// with optional subtitles, and a right-aligned "ОТМЕНА" button in the
-// footer. Used for the empty-slot tap menu and the appointment
-// long-press menu.
+// iOS UIAlertController.ActionSheet style — grouped-list of actions
+// with a separate "Отмена" pill below. Each option is a 44-pt row;
+// destructive actions render in system-red; the cancel sheet below
+// is visually detached with a 8-pt gap. Backdrop becomes armed
+// 300 ms after open so the long-press release doesn't instantly
+// dismiss the menu.
 export default function ActionMenuModal({
   open,
   onClose,
   title,
   options,
 }: ActionMenuModalProps) {
-  // Armed flag: ignore backdrop dismiss for the first 300 ms after the
-  // menu opens. This prevents the long-press release (pointerup from
-  // the appointment block underneath) from instantly closing the menu
-  // before the user can tap an option.
   const [armed, setArmed] = useState(false);
   const openedAt = useRef(0);
 
@@ -65,88 +63,74 @@ export default function ActionMenuModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/40"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-[var(--surface-overlay)]"
       onPointerDown={handleBackdropPointerDown}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col select-none"
+        className="w-full max-w-md flex flex-col gap-2 select-none"
         style={{
-          maxHeight: "min(85vh, 720px)",
           WebkitUserSelect: "none",
           WebkitTouchCallout: "none",
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* Purple header — matches Bumpix */}
-        <div className="bg-violet-600 px-4 py-3 flex-shrink-0">
-          <h2 className="text-[15px] font-semibold text-white">{title}</h2>
-        </div>
-
-        {/* Options list — enabled items first, disabled ("Скоро") at the
-            bottom so active actions are always on top */}
         <div
-          className="flex-1 overflow-y-auto select-none"
-          style={{
-            WebkitUserSelect: "none",
-            WebkitTouchCallout: "none",
-          }}
+          className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden flex flex-col shadow-[var(--shadow-sheet)]"
+          style={{ maxHeight: "min(75vh, 640px)" }}
         >
-          {[...options]
-            .sort((a, b) => Number(!!a.disabled) - Number(!!b.disabled))
-            .map((opt, i) => (
-              <button
-                key={i}
-                type="button"
-                disabled={opt.disabled}
-                onClick={() => {
-                  if (opt.disabled) return;
-                  opt.onSelect();
-                  onClose();
-                }}
-                className={`w-full text-left px-4 py-3 border-t border-slate-100 first:border-t-0 select-none ${
-                  opt.disabled
-                    ? "cursor-not-allowed"
-                    : "active:bg-slate-50"
-                }`}
-                style={{
-                  WebkitUserSelect: "none",
-                  WebkitTouchCallout: "none",
-                }}
-              >
-                <div
-                  className={`text-[14px] font-normal ${
+          <div className="px-4 py-3 text-center border-b border-[var(--separator)] flex-shrink-0">
+            <h2 className="text-[13px] font-semibold text-[var(--label-secondary)] tracking-tight">
+              {title}
+            </h2>
+          </div>
+
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--separator)]">
+            {[...options]
+              .sort((a, b) => Number(!!a.disabled) - Number(!!b.disabled))
+              .map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={opt.disabled}
+                  onClick={() => {
+                    if (opt.disabled) return;
+                    opt.onSelect();
+                    onClose();
+                  }}
+                  className={`w-full text-center px-4 py-3 min-h-[48px] select-none transition ${
                     opt.disabled
-                      ? "text-slate-400"
-                      : opt.danger
-                        ? "text-red-600"
-                        : "text-slate-900"
+                      ? "cursor-not-allowed"
+                      : "active:bg-[var(--fill-quaternary)]"
                   }`}
                 >
-                  {opt.label}
-                </div>
-                {opt.subtitle && (
                   <div
-                    className={`text-[11px] mt-0.5 ${
-                      opt.disabled ? "text-slate-300" : "text-slate-500"
+                    className={`text-[16px] ${
+                      opt.disabled
+                        ? "text-[var(--label-tertiary)]"
+                        : opt.danger
+                          ? "text-[var(--system-red)] font-normal"
+                          : "text-[var(--accent)] font-normal"
                     }`}
                   >
-                    {opt.subtitle}
+                    {opt.label}
                   </div>
-                )}
-              </button>
-            ))}
+                  {opt.subtitle && (
+                    <div className="text-[11px] mt-0.5 text-[var(--label-tertiary)]">
+                      {opt.subtitle}
+                    </div>
+                  )}
+                </button>
+              ))}
+          </div>
         </div>
 
-        {/* Footer with ОТМЕНА */}
-        <div className="flex justify-end px-2 py-2 border-t border-slate-100 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-[13px] font-semibold text-violet-600 uppercase tracking-wide active:opacity-70"
-          >
-            Отмена
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full h-[52px] bg-[var(--surface-card)] rounded-[14px] text-[17px] font-semibold text-[var(--accent)] shadow-[var(--shadow-sheet)] active:bg-[var(--fill-quaternary)] transition"
+        >
+          Отмена
+        </button>
       </div>
     </div>
   );

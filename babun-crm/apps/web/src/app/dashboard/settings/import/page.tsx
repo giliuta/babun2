@@ -42,18 +42,18 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-[var(--surface-grouped)]">
       <PageHeader
         title="Импорт в Supabase"
         backHref="/dashboard/settings"
         showBack
       />
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="rounded-2xl bg-white border border-slate-200 p-4 space-y-2">
-          <div className="text-[13px] font-semibold text-slate-900">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="rounded-2xl bg-[var(--surface-card)] shadow-[var(--shadow-card)] p-4 space-y-2">
+          <div className="text-[15px] font-semibold text-[var(--label)]">
             Что произойдёт
           </div>
-          <ol className="text-[12px] text-slate-600 space-y-1 list-decimal pl-4">
+          <ol className="text-[13px] text-[var(--label-secondary)] space-y-1 list-decimal pl-4">
             <li>Мы прочитаем все записи / клиентов / услуг из браузера.</li>
             <li>Создадим точные копии в Supabase под вашим tenant_id.</li>
             <li>localStorage не изменится — можно повторить при ошибке.</li>
@@ -61,9 +61,9 @@ export default function ImportPage() {
         </div>
 
         {!supabaseLive && (
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-800">
+          <div className="rounded-[10px] bg-[rgba(255,149,0,0.1)] px-3 py-2 text-[12px] text-[var(--system-orange)]">
             Supabase ещё не подключён. Установите
-            <code className="mx-1 px-1 rounded bg-amber-100">
+            <code className="mx-1 px-1 rounded bg-[rgba(255,149,0,0.2)]">
               NEXT_PUBLIC_BACKEND_MODE=shadow
             </code>
             и ключи проекта в Vercel, пересоберите и вернитесь сюда.
@@ -71,7 +71,7 @@ export default function ImportPage() {
         )}
 
         {supabaseLive && !session && (
-          <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-slate-700">
+          <div className="rounded-[10px] bg-[var(--fill-tertiary)] px-3 py-2 text-[12px] text-[var(--label-secondary)]">
             Нужно войти в аккаунт прежде, чем запускать импорт.
           </div>
         )}
@@ -80,15 +80,15 @@ export default function ImportPage() {
           type="button"
           disabled={disabled}
           onClick={runImport}
-          className="w-full h-12 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] disabled:bg-slate-300 disabled:text-slate-500"
+          className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:scale-[0.99] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
         >
           {running ? "Импортируем…" : "Запустить импорт"}
         </button>
 
         {progress.length > 0 && (
-          <div className="rounded-2xl bg-white border border-slate-200 p-4 text-[12px] font-mono">
+          <div className="rounded-2xl bg-[var(--surface-card)] shadow-[var(--shadow-card)] p-4 text-[12px] font-mono">
             {progress.map((p, i) => (
-              <div key={i} className="text-slate-600">
+              <div key={i} className="text-[var(--label-secondary)]">
                 {p.stage} — {p.total}
               </div>
             ))}
@@ -97,10 +97,10 @@ export default function ImportPage() {
 
         {result && (
           <div
-            className={`rounded-2xl border p-4 text-[13px] ${
+            className={`rounded-2xl p-4 text-[13px] ${
               result.ok
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-rose-50 border-rose-200 text-rose-800"
+                ? "bg-[rgba(52,199,89,0.1)] text-[var(--system-green)]"
+                : "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)]"
             }`}
           >
             {result.ok ? (

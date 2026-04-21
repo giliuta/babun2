@@ -44,17 +44,17 @@ export default function ServicesBlock({
   };
 
   const rowBase =
-    "w-full flex items-center gap-2 px-3 h-12 text-left active:bg-slate-50 transition";
+    "w-full flex items-center gap-2 px-3 h-12 text-left active:bg-[var(--fill-quaternary)] transition";
 
   return (
     <div className="px-4 pt-2">
-      <div className="rounded-xl bg-white border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+      <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] divide-y divide-[var(--separator)] overflow-hidden">
         {services.length === 0 ? (
           <button
             type="button"
             disabled={readonly}
             onClick={onOpenPicker}
-            className={`${rowBase} justify-center text-[13px] font-semibold text-violet-600 disabled:opacity-50`}
+            className={`${rowBase} justify-center text-[15px] font-semibold text-[var(--accent)] disabled:opacity-50`}
           >
             <span className="text-[16px] leading-none">+</span>
             Выбрать услугу
@@ -83,13 +83,13 @@ export default function ServicesBlock({
                 aria-label={readonly ? undefined : "Изменить услугу"}
                 className={rowBase}
               >
-                <span className="flex-shrink-0 w-7 text-center text-[13px] font-bold text-violet-700 tabular-nums">
+                <span className="flex-shrink-0 w-7 text-center text-[13px] font-bold text-[var(--accent)] tabular-nums">
                   ×{line.quantity}
                 </span>
-                <span className="flex-1 min-w-0 text-[14px] font-medium text-slate-900 truncate">
+                <span className="flex-1 min-w-0 text-[15px] font-medium text-[var(--label)] truncate">
                   {svc?.name ?? "Услуга"}
                 </span>
-                <span className="flex-shrink-0 text-[14px] font-bold text-emerald-700 tabular-nums">
+                <span className="flex-shrink-0 text-[15px] font-bold text-[var(--label)] tabular-nums">
                   {formatEUR(total)}
                 </span>
                 {!readonly && (
@@ -100,7 +100,7 @@ export default function ServicesBlock({
                       removeAt(idx);
                     }}
                     aria-label="Убрать"
-                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 active:text-rose-500 active:bg-rose-50"
+                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--label-tertiary)] active:text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)]"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                       <line x1="18" y1="6" x2="6" y2="18" />

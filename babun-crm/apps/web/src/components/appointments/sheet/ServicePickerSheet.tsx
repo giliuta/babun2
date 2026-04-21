@@ -161,31 +161,31 @@ export default function ServicePickerSheet({
           type="button"
           onClick={handleConfirm}
           disabled={totals.count === 0}
-          className="w-full h-12 bg-violet-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
+          className="w-full h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
         >
           <span>
             {totals.count > 0
               ? `${totals.count} ${countWord(totals.count)} · ${totals.duration} мин`
               : "Ничего не выбрано"}
           </span>
-          <span>{totals.sum > 0 ? `${totals.sum}€` : "Готово"}</span>
+          <span className="tabular-nums">{totals.sum > 0 ? `${totals.sum}€` : "Готово"}</span>
         </button>
       }
     >
       <div className="p-3 space-y-2">
         {clientName && (
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-violet-50 border border-violet-200">
-            <div className="w-8 h-8 rounded-full bg-violet-200 text-violet-800 flex items-center justify-center text-[12px] font-bold flex-shrink-0">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-[14px] bg-[var(--accent-tint)] border border-[var(--accent)]">
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0">
               {clientInitials(clientName)}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-600">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                 Клиент
               </div>
-              <div className="text-[13px] font-semibold text-slate-900 truncate">
+              <div className="text-[15px] font-semibold text-[var(--label)] truncate">
                 {clientName}
                 {clientPhone && (
-                  <span className="text-slate-400 font-normal ml-1 tabular-nums">
+                  <span className="text-[var(--label-tertiary)] font-normal ml-1 tabular-nums">
                     · {clientPhone}
                   </span>
                 )}
@@ -198,17 +198,17 @@ export default function ServicePickerSheet({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск услуги"
-          className="w-full h-10 px-3 bg-slate-100 rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
         />
 
         {grouped.length === 0 ? (
-          <div className="py-8 text-center text-sm text-slate-400">
+          <div className="py-8 text-center text-[13px] text-[var(--label-tertiary)]">
             {query ? "Ничего не нашли" : "Услуг ещё нет"}
           </div>
         ) : (
           grouped.map(({ category, items }) => (
             <div key={category?.id ?? "none"} className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-0.5 pt-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-0.5 pt-1.5">
                 {category?.name ?? "Без категории"}
               </div>
               {items.map((s) => {
@@ -217,10 +217,10 @@ export default function ServicePickerSheet({
                 return (
                   <div
                     key={s.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
+                    className={`flex items-center gap-2 p-2 min-h-[48px] rounded-[10px] border transition ${
                       selected
-                        ? "border-violet-500 bg-violet-50"
-                        : "border-slate-200 bg-white"
+                        ? "border-[var(--accent)] bg-[var(--accent-tint)]"
+                        : "border-[var(--separator)] bg-[var(--surface-card)]"
                     }`}
                   >
                     <div
@@ -232,10 +232,10 @@ export default function ServicePickerSheet({
                       onClick={() => setQty(s.id, qty > 0 ? qty : 1)}
                       className="flex-1 min-w-0 text-left"
                     >
-                      <div className="text-[13px] font-medium text-slate-900 truncate">
+                      <div className="text-[15px] font-medium text-[var(--label)] truncate">
                         {s.name}
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[12px] text-[var(--label-secondary)]">
                         {s.duration_minutes} мин · {s.price}€
                       </div>
                     </button>
@@ -244,18 +244,18 @@ export default function ServicePickerSheet({
                         <button
                           type="button"
                           onClick={() => setQty(s.id, qty - 1)}
-                          className="w-7 h-7 rounded-full bg-white border border-slate-300 text-slate-700 flex items-center justify-center active:scale-95 text-[15px]"
+                          className="w-7 h-7 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label)] flex items-center justify-center active:scale-95 text-[15px]"
                           aria-label="Уменьшить"
                         >
                           −
                         </button>
-                        <div className="w-7 text-center text-[13px] font-semibold text-violet-700 tabular-nums">
+                        <div className="w-7 text-center text-[15px] font-semibold text-[var(--accent)] tabular-nums">
                           {qty}
                         </div>
                         <button
                           type="button"
                           onClick={() => setQty(s.id, qty + 1)}
-                          className="w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center active:scale-95 text-[15px]"
+                          className="w-7 h-7 rounded-full bg-[var(--accent)] text-white flex items-center justify-center active:scale-95 text-[15px]"
                           aria-label="Увеличить"
                         >
                           +
@@ -265,7 +265,7 @@ export default function ServicePickerSheet({
                       <button
                         type="button"
                         onClick={() => setQty(s.id, 1)}
-                        className="w-7 h-7 rounded-full border-2 border-slate-300 text-slate-400 flex items-center justify-center active:scale-95 flex-shrink-0 text-[14px]"
+                        className="w-7 h-7 rounded-full border border-[var(--separator)] text-[var(--label-tertiary)] flex items-center justify-center active:scale-95 flex-shrink-0 text-[14px]"
                         aria-label="Добавить"
                       >
                         +

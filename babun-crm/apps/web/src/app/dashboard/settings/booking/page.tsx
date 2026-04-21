@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ChevronLeft, Check, X, Pencil, Trash2 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui";
 import { useLocationLabels } from "@/app/dashboard/layout";
 import {
   generateLocationLabelId,
@@ -34,7 +36,7 @@ function LabelRow({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 rounded-xl">
+      <div className="flex items-center gap-2 px-3 py-2 bg-[var(--accent-tint)] rounded-[10px]">
         <input
           autoFocus
           value={name}
@@ -43,42 +45,51 @@ function LabelRow({
             if (e.key === "Enter") save();
             if (e.key === "Escape") cancel();
           }}
-          className="flex-1 px-2 py-1 border border-violet-300 rounded-lg text-sm bg-white"
+          className="flex-1 h-9 px-2 bg-white border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
           placeholder="Название"
         />
-        <button type="button" onClick={save} className="text-violet-700 text-sm font-semibold px-2">✓</button>
-        <button type="button" onClick={cancel} className="text-slate-400 text-sm px-1">✕</button>
+        <button
+          type="button"
+          onClick={save}
+          className="w-8 h-8 flex items-center justify-center text-[var(--accent)] rounded-[8px] active:bg-white/50"
+          aria-label="Сохранить"
+        >
+          <Check size={16} strokeWidth={2.5} />
+        </button>
+        <button
+          type="button"
+          onClick={cancel}
+          className="w-8 h-8 flex items-center justify-center text-[var(--label-tertiary)] rounded-[8px] active:bg-white/50"
+          aria-label="Отмена"
+        >
+          <X size={16} strokeWidth={2} />
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white">
+    <div className="flex items-center gap-3 px-3 py-2.5 rounded-[10px]">
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-slate-900 truncate">
+        <div className="text-[15px] font-medium text-[var(--label)] truncate">
           {label.name}
         </div>
       </div>
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-lg"
+        className="w-8 h-8 flex items-center justify-center text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)] rounded-[8px]"
         aria-label="Редактировать"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z" />
-        </svg>
+        <Pencil size={14} strokeWidth={2} />
       </button>
       <button
         type="button"
         onClick={onDelete}
-        className="w-7 h-7 flex items-center justify-center text-rose-400 hover:bg-rose-50 rounded-lg"
+        className="w-8 h-8 flex items-center justify-center text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)] rounded-[8px]"
         aria-label="Удалить"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2" />
-        </svg>
+        <Trash2 size={14} strokeWidth={2} />
       </button>
     </div>
   );
@@ -117,11 +128,9 @@ export default function BookingSettingsPage() {
         leftContent={
           <Link
             href="/dashboard/settings/calendar"
-            className="flex items-center gap-1 text-white/80 lg:text-violet-600 text-sm px-1"
+            className="flex items-center gap-1 text-white/80 lg:text-[var(--accent)] text-[13px] px-1"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <ChevronLeft size={16} strokeWidth={2.5} />
             Календарь
           </Link>
         }
@@ -129,19 +138,21 @@ export default function BookingSettingsPage() {
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="text-white lg:text-violet-600 text-sm font-semibold px-2"
+            className="text-white lg:text-[var(--accent)] text-[13px] font-semibold px-2"
           >
             + Добавить
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50">
-        <div className="max-w-lg mx-auto p-3 lg:p-4 space-y-2 pb-24">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
 
           {addOpen && (
-            <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 space-y-2">
-              <div className="text-xs font-semibold text-violet-700">Новый тип</div>
+            <div className="bg-[var(--accent-tint)] rounded-2xl p-3 space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+                Новый тип
+              </div>
               <input
                 autoFocus
                 value={newName}
@@ -150,35 +161,37 @@ export default function BookingSettingsPage() {
                   if (e.key === "Enter") addLabel();
                   if (e.key === "Escape") setAddOpen(false);
                 }}
-                className="w-full px-3 py-2 border border-violet-300 rounded-lg text-sm bg-white"
+                className="w-full h-10 px-3 bg-white border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
                 placeholder="Напр. Склад, Магазин, Ресторан"
               />
               <div className="flex gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="md"
+                  fullWidth
                   onClick={() => {
                     setAddOpen(false);
                     setNewName("");
                   }}
-                  className="flex-1 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm"
                 >
                   Отмена
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  fullWidth
                   onClick={addLabel}
                   disabled={!newName.trim()}
-                  className="flex-1 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50"
                 >
                   Добавить
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)]">
             {locationLabels.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-slate-400">
+              <div className="px-4 py-8 text-center text-[14px] text-[var(--label-tertiary)]">
                 Нет типов. Нажми «+ Добавить».
               </div>
             ) : (
@@ -195,7 +208,7 @@ export default function BookingSettingsPage() {
             )}
           </div>
 
-          <div className="text-[11px] text-slate-400 px-1">
+          <div className="text-[11px] text-[var(--label-tertiary)] px-4 leading-snug">
             Эти типы появляются как быстрые чипы (Дом, Квартира, Офис, Вилла…) при добавлении адреса в записи.
             Кнопка «Другое…» остаётся всегда — для разового имени без сохранения в список.
           </div>

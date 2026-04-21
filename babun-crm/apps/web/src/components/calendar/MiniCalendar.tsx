@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getDaysInMonth,
   getFirstDayOfMonth,
@@ -83,48 +84,41 @@ export default function MiniCalendar({
   return (
     <div
       ref={ref}
-      className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-xl border border-slate-200 p-3 z-50 w-[280px]"
+      className="absolute top-full left-0 mt-2 bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-sheet)] border border-[var(--separator)] p-3 z-50 w-[288px]"
     >
-      {/* Month navigation */}
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={prevMonth}
-          className="w-7 h-7 flex items-center justify-center rounded hover:bg-slate-100 text-slate-600"
+          aria-label="Предыдущий месяц"
+          className="w-8 h-8 flex items-center justify-center rounded-full active:bg-[var(--fill-quaternary)] text-[var(--label-secondary)] transition"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ChevronLeft size={16} strokeWidth={2.5} />
         </button>
-        <span className="text-sm font-semibold text-slate-900">
+        <span className="text-[15px] font-semibold text-[var(--label)] capitalize tracking-tight">
           {getMonthName(viewMonth)} {viewYear}
         </span>
         <button
           onClick={nextMonth}
-          className="w-7 h-7 flex items-center justify-center rounded hover:bg-slate-100 text-slate-600"
+          aria-label="Следующий месяц"
+          className="w-8 h-8 flex items-center justify-center rounded-full active:bg-[var(--fill-quaternary)] text-[var(--label-secondary)] transition"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRight size={16} strokeWidth={2.5} />
         </button>
       </div>
 
-      {/* Day headers */}
       <div className="grid grid-cols-7 gap-0 mb-1">
         {dayHeaders.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-slate-400 py-1">
+          <div key={d} className="text-center text-[11px] font-semibold uppercase text-[var(--label-tertiary)] tracking-wider py-1">
             {d}
           </div>
         ))}
       </div>
 
-      {/* Day grid */}
       <div className="grid grid-cols-7 gap-0">
-        {/* Empty cells before first day */}
         {Array.from({ length: startOffset }).map((_, i) => (
           <div key={`empty-${i}`} className="h-9" />
         ))}
 
-        {/* Day cells */}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const date = new Date(viewYear, viewMonth, day);
@@ -136,21 +130,19 @@ export default function MiniCalendar({
             <button
               key={day}
               onClick={() => handleDayClick(day)}
-              className={`h-9 flex flex-col items-center justify-center rounded-lg text-xs relative hover:bg-slate-100 transition-colors ${
+              className={`h-9 flex flex-col items-center justify-center rounded-full text-[14px] relative active:bg-[var(--fill-quaternary)] transition-colors ${
                 isToday
-                  ? "bg-violet-600 text-white hover:bg-violet-700"
-                  : "text-slate-700"
+                  ? "bg-[var(--accent)] text-white font-semibold"
+                  : "text-[var(--label)]"
               }`}
             >
               <span className="leading-none">{day}</span>
               {aptCount > 0 && (
                 <span
-                  className={`text-[8px] leading-none mt-0.5 ${
-                    isToday ? "text-violet-200" : "text-violet-500"
+                  className={`w-1 h-1 rounded-full mt-0.5 ${
+                    isToday ? "bg-white/80" : "bg-[var(--accent)]"
                   }`}
-                >
-                  {aptCount}
-                </span>
+                />
               )}
             </button>
           );

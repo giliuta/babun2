@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Phone, MessageSquare, Plus, X, Tag } from "lucide-react";
 import { formatDateLongRu } from "@/lib/date-utils";
 import { formatEUR, formatEURSigned } from "@/lib/money";
 import {
@@ -26,7 +27,7 @@ export function IncomeTab({
 }) {
   if (entries.length === 0) {
     return (
-      <div className="text-center text-slate-400 py-10 text-sm">
+      <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
         Нет доходных записей
       </div>
     );
@@ -34,8 +35,8 @@ export function IncomeTab({
   return (
     <>
       {services.length > 0 && (
-        <div className="px-4 py-3 border-b border-slate-100 bg-emerald-50/40">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+        <div className="px-4 py-3 border-b border-[var(--separator)] bg-[var(--fill-tertiary)]">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
             По типам услуг
           </div>
           <div className="space-y-1">
@@ -46,16 +47,19 @@ export function IncomeTab({
                 <div key={s.name} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] text-slate-900 truncate">{s.name}</span>
-                      <span className="text-[12px] font-semibold text-emerald-700 tabular-nums">
+                      <span className="text-[13px] text-[var(--label)] truncate">{s.name}</span>
+                      <span className="text-[12px] font-semibold text-[var(--system-green)] tabular-nums">
                         {formatEUR(s.revenue)}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-500 tabular-nums">
+                    <div className="text-[11px] text-[var(--label-secondary)] tabular-nums">
                       {s.count} зак. · ср. {formatEUR(avg)} · {Math.round(pct)}%
                     </div>
-                    <div className="h-1 bg-emerald-100 rounded-full overflow-hidden mt-0.5">
-                      <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                    <div className="h-1 bg-[var(--fill-tertiary)] rounded-full overflow-hidden mt-0.5">
+                      <div
+                        className="h-full bg-[var(--system-green)]"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -66,16 +70,19 @@ export function IncomeTab({
       )}
 
       {entries.map((entry) => (
-        <div key={entry.id} className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
+        <div
+          key={entry.id}
+          className="px-4 py-3 border-b border-[var(--separator)] flex items-center gap-3"
+        >
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-slate-900 truncate">{entry.description}</div>
-            <div className="text-xs text-slate-500 truncate">
+            <div className="text-[15px] text-[var(--label)] truncate">{entry.description}</div>
+            <div className="text-[13px] text-[var(--label-secondary)] truncate">
               {formatDateLongRu(entry.dateKey)}
               {entry.teamId && teamById.get(entry.teamId) ? ` • ${teamById.get(entry.teamId)}` : ""}
               {entry.sourceType === "extra" ? " • вручную" : ""}
             </div>
           </div>
-          <div className="text-sm font-semibold text-emerald-600 tabular-nums">
+          <div className="text-[15px] font-semibold text-[var(--system-green)] tabular-nums">
             +{formatEUR(entry.amount)}
           </div>
         </div>
@@ -100,7 +107,7 @@ export function ExpenseGroups({
 }) {
   if (groups.length === 0) {
     return (
-      <div className="text-center text-slate-400 py-10 text-sm">
+      <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
         Нет расходных записей
       </div>
     );
@@ -113,29 +120,36 @@ export function ExpenseGroups({
         return (
           <div key={catName}>
             <div
-              className="px-4 py-2 bg-slate-50 border-y border-slate-200 flex items-center justify-between"
+              className="px-4 py-2 bg-[var(--surface-grouped)] border-y border-[var(--separator)] flex items-center justify-between"
               style={{ backgroundColor: cat ? `${cat.color}12` : undefined }}
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">{cat?.icon ?? "📋"}</span>
-                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                {cat?.icon ? (
+                  <span className="text-lg">{cat.icon}</span>
+                ) : (
+                  <Tag size={16} strokeWidth={2} className="text-[var(--label-secondary)]" />
+                )}
+                <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
                   {catName}
                 </span>
               </div>
-              <span className="text-sm font-bold text-rose-600 tabular-nums">
+              <span className="text-[15px] font-bold text-[var(--system-red)] tabular-nums">
                 −{formatEUR(catTotal)}
               </span>
             </div>
             {entries.map((entry) => (
-              <div key={entry.id} className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
+              <div
+                key={entry.id}
+                className="px-4 py-3 border-b border-[var(--separator)] flex items-center gap-3"
+              >
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-slate-900 truncate">{entry.description}</div>
-                  <div className="text-xs text-slate-500 truncate">
+                  <div className="text-[15px] text-[var(--label)] truncate">{entry.description}</div>
+                  <div className="text-[13px] text-[var(--label-secondary)] truncate">
                     {formatDateLongRu(entry.dateKey)}
                     {entry.teamId && teamById.get(entry.teamId) ? ` • ${teamById.get(entry.teamId)}` : ""}
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-rose-600 tabular-nums">
+                <div className="text-[15px] font-semibold text-[var(--system-red)] tabular-nums">
                   −{formatEUR(entry.amount)}
                 </div>
               </div>
@@ -163,7 +177,7 @@ export function DebtsTab({
 }) {
   if (groups.length === 0) {
     return (
-      <div className="text-center text-slate-400 py-10 text-sm">
+      <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
         Долгов нет — все выплачено.
       </div>
     );
@@ -175,19 +189,19 @@ export function DebtsTab({
         const phone = client?.phone;
         const phoneDigits = phone?.replace(/\D/g, "") ?? "";
         return (
-          <div key={g.clientId ?? g.name} className="border-b border-slate-100">
+          <div key={g.clientId ?? g.name} className="border-b border-[var(--separator)]">
             <button
               type="button"
               onClick={() => onOpenClient(g.clientId)}
-              className="w-full px-4 py-3 flex items-center gap-3 active:bg-slate-50 text-left"
+              className="w-full px-4 py-3 flex items-center gap-3 active:bg-[var(--fill-quaternary)] text-left"
             >
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-semibold text-slate-900 truncate">{g.name}</div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[15px] font-semibold text-[var(--label)] truncate">{g.name}</div>
+                <div className="text-[13px] text-[var(--label-secondary)]">
                   {g.items.length} зак. · последний {formatDateLongRu(g.items[0].dateKey)}
                 </div>
               </div>
-              <div className="text-[15px] font-bold text-rose-600 tabular-nums shrink-0">
+              <div className="text-[15px] font-bold text-[var(--system-red)] tabular-nums shrink-0">
                 −{formatEUR(g.total)}
               </div>
             </button>
@@ -195,14 +209,16 @@ export function DebtsTab({
               <div className="px-4 pb-3 flex gap-2">
                 <a
                   href={`tel:${phoneDigits}`}
-                  className="flex-1 h-9 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-semibold flex items-center justify-center gap-1 active:bg-emerald-100"
+                  className="flex-1 h-9 rounded-lg bg-[var(--fill-tertiary)] text-[var(--system-green)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
                 >
+                  <Phone size={14} strokeWidth={2} />
                   Позвонить
                 </a>
                 <a
                   href={`sms:${phoneDigits}?body=${encodeURIComponent(`Здравствуйте! Напоминаем про оплату €${g.total}. AirFix.`)}`}
-                  className="flex-1 h-9 rounded-lg bg-sky-50 text-sky-700 text-[12px] font-semibold flex items-center justify-center gap-1 active:bg-sky-100"
+                  className="flex-1 h-9 rounded-lg bg-[var(--fill-tertiary)] text-[var(--system-blue)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
                 >
+                  <MessageSquare size={14} strokeWidth={2} />
                   SMS напоминание
                 </a>
               </div>
@@ -233,22 +249,22 @@ export function PayrollTab({
 }) {
   if (entries.length === 0) {
     return (
-      <div className="text-center text-slate-400 py-10 text-sm">
+      <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
         Нет активных бригад.
       </div>
     );
   }
   return (
     <>
-      <div className="px-4 py-2 bg-violet-50/40 border-b border-slate-100 text-[11px] text-slate-600">
+      <div className="px-4 py-2 bg-[var(--accent-tint)] border-b border-[var(--separator)] text-[13px] text-[var(--label-secondary)]">
         Зарплата = (доход − расход бригады) × процент выплаты. Настраивается в профиле бригады.
       </div>
       {entries.map((p) => (
-        <div key={p.team.id} className="px-4 py-3 border-b border-slate-100">
+        <div key={p.team.id} className="px-4 py-3 border-b border-[var(--separator)]">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.team.color }} />
-            <div className="flex-1 text-[14px] font-semibold text-slate-900">{p.team.name}</div>
-            <div className="text-[11px] text-slate-500">
+            <div className="flex-1 text-[15px] font-semibold text-[var(--label)]">{p.team.name}</div>
+            <div className="text-[11px] text-[var(--label-secondary)]">
               {p.percentage}% × {formatEUR(p.net)}
             </div>
           </div>
@@ -257,9 +273,9 @@ export function PayrollTab({
             <Kv label="Расход" value={`−${formatEUR(p.expense)}`} color="rose" />
             <Kv label="Чистый" value={formatEURSigned(p.net)} color="indigo" />
           </div>
-          <div className="mt-2 flex items-center justify-between pt-2 border-t border-slate-100">
-            <span className="text-[12px] text-slate-600">К выплате</span>
-            <span className="text-[16px] font-bold text-violet-700 tabular-nums">
+          <div className="mt-2 flex items-center justify-between pt-2 border-t border-[var(--separator)]">
+            <span className="text-[13px] text-[var(--label-secondary)]">К выплате</span>
+            <span className="text-[16px] font-bold text-[var(--accent)] tabular-nums">
               {formatEUR(p.payable)}
             </span>
           </div>
@@ -290,72 +306,78 @@ export function ExpenseCategoriesSheet({
   const add = () => setDraft((prev) => [...prev, createBlankExpenseCategory()]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40">
-      <div className="w-full lg:max-w-lg bg-white rounded-t-2xl lg:rounded-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <h2 className="text-base font-semibold text-slate-900">Категории расходов</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2">
+      <div className="w-full lg:max-w-lg bg-[var(--surface-card)] rounded-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
+          <h2 className="text-[17px] font-semibold text-[var(--label)]">Категории расходов</h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-500 text-xl"
+            className="w-9 h-9 rounded-lg hover:bg-[var(--fill-tertiary)] text-[var(--label-secondary)] flex items-center justify-center"
+            aria-label="Закрыть"
           >
-            ×
+            <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {draft.map((c) => (
-            <div key={c.id} className="flex items-center gap-2 bg-slate-50 rounded-lg p-2">
+            <div
+              key={c.id}
+              className="flex items-center gap-2 bg-[var(--fill-tertiary)] rounded-lg p-2"
+            >
               <input
                 type="text"
                 value={c.icon}
                 onChange={(e) => update(c.id, { icon: e.target.value.slice(0, 2) })}
-                className="w-10 text-center text-xl bg-white border border-slate-300 rounded"
-                placeholder="📋"
+                className="w-10 text-center text-xl bg-[var(--surface-card)] border border-[var(--separator)] rounded"
+                placeholder=""
               />
               <input
                 type="color"
                 value={c.color}
                 onChange={(e) => update(c.id, { color: e.target.value })}
-                className="w-10 h-10 border border-slate-300 rounded cursor-pointer"
+                className="w-10 h-10 border border-[var(--separator)] rounded cursor-pointer"
               />
               <input
                 type="text"
                 value={c.name}
                 onChange={(e) => update(c.id, { name: e.target.value })}
                 placeholder="Название"
-                className="flex-1 px-3 py-2 border border-slate-300 rounded text-sm text-slate-900"
+                className="flex-1 px-3 py-2 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[15px] text-[var(--label)]"
               />
               <button
                 type="button"
                 onClick={() => remove(c.id)}
-                className="w-8 h-8 text-rose-500 hover:bg-rose-50 rounded"
+                className="w-8 h-8 flex items-center justify-center text-[var(--system-red)] hover:bg-[var(--fill-tertiary)] rounded"
+                aria-label="Удалить"
               >
-                ×
+                <X size={16} strokeWidth={2.5} />
               </button>
             </div>
           ))}
           <button
             type="button"
             onClick={add}
-            className="w-full py-2 text-sm font-medium text-violet-600 border border-dashed border-violet-300 rounded-lg hover:bg-violet-50"
+            className="w-full py-2 text-[13px] font-semibold text-[var(--accent)] border border-dashed border-[var(--accent)] rounded-lg hover:bg-[var(--accent-tint)] inline-flex items-center justify-center gap-1.5"
           >
-            + Новая категория
+            <Plus size={14} strokeWidth={2.5} />
+            Новая категория
           </button>
         </div>
 
-        <div className="border-t border-slate-200 px-4 py-3 flex gap-2">
+        <div className="border-t border-[var(--separator)] px-4 py-3 flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium text-slate-700 border border-slate-300"
+            className="flex-1 min-h-[44px] px-4 py-2 rounded-[10px] text-[15px] font-medium text-[var(--label)] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)]"
           >
             Отмена
           </button>
           <button
             type="button"
             onClick={() => onSave(draft)}
-            className="flex-1 min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold text-white bg-violet-600"
+            className="flex-1 min-h-[44px] px-4 py-2 rounded-[10px] text-[15px] font-semibold text-white bg-[var(--accent)] active:bg-[var(--accent-pressed)]"
           >
             Сохранить
           </button>
@@ -369,12 +391,16 @@ export function ExpenseCategoriesSheet({
 
 function TotalRow({ label, value, color }: { label: string; value: number; color: "emerald" | "rose" | "indigo" }) {
   const colorClass =
-    color === "emerald" ? "text-emerald-600" : color === "rose" ? "text-rose-600" : "text-violet-600";
+    color === "emerald"
+      ? "text-[var(--system-green)]"
+      : color === "rose"
+      ? "text-[var(--system-red)]"
+      : "text-[var(--accent)]";
   return (
-    <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
+    <div className="px-4 py-3 border-t border-[var(--separator)] bg-[var(--surface-grouped)]">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-500">{label}:</span>
-        <span className={`text-base font-bold tabular-nums ${colorClass}`}>
+        <span className="text-[13px] text-[var(--label-secondary)]">{label}:</span>
+        <span className={`text-[17px] font-bold tabular-nums ${colorClass}`}>
           {formatEURSigned(value)}
         </span>
       </div>
@@ -384,10 +410,14 @@ function TotalRow({ label, value, color }: { label: string; value: number; color
 
 function Kv({ label, value, color }: { label: string; value: string; color: "emerald" | "rose" | "indigo" }) {
   const cc =
-    color === "emerald" ? "text-emerald-700" : color === "rose" ? "text-rose-700" : "text-violet-700";
+    color === "emerald"
+      ? "text-[var(--system-green)]"
+      : color === "rose"
+      ? "text-[var(--system-red)]"
+      : "text-[var(--accent)]";
   return (
-    <div className="bg-slate-50 rounded-md px-2 py-1">
-      <div className="text-[9px] text-slate-500 uppercase tracking-wider">{label}</div>
+    <div className="bg-[var(--fill-tertiary)] rounded-md px-2 py-1">
+      <div className="text-[9px] text-[var(--label-secondary)] uppercase tracking-wider">{label}</div>
       <div className={`text-[12px] font-semibold tabular-nums ${cc}`}>{value}</div>
     </div>
   );

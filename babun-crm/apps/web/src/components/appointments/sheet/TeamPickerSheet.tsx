@@ -24,7 +24,7 @@ export default function TeamPickerSheet({
     <DialogModal open={open} onClose={onClose} title="Выбрать бригаду">
       <div className="p-3 space-y-2">
         {activeTeams.length === 0 ? (
-          <div className="py-8 text-center text-sm text-slate-400">
+          <div className="py-8 text-center text-[13px] text-[var(--label-tertiary)]">
             Нет активных бригад
           </div>
         ) : (
@@ -39,10 +39,10 @@ export default function TeamPickerSheet({
                   onSelect(t.id);
                   onClose();
                 }}
-                className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border-2 active:scale-[0.99] transition ${
+                className={`w-full flex items-center gap-2.5 p-2.5 min-h-[48px] rounded-[10px] border active:scale-[0.99] transition ${
                   selected
-                    ? "border-violet-500 bg-violet-50"
-                    : "border-slate-200 bg-white"
+                    ? "border-[var(--accent)] bg-[var(--accent-tint)]"
+                    : "border-[var(--separator)] bg-[var(--surface-card)]"
                 }`}
               >
                 <div
@@ -52,17 +52,17 @@ export default function TeamPickerSheet({
                   {letter}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[13px] font-medium text-slate-900 truncate">
+                  <div className="text-[15px] font-medium text-[var(--label)] truncate">
                     {t.name}
                   </div>
                   {t.region && (
-                    <div className="text-[11px] text-slate-500 truncate">
+                    <div className="text-[12px] text-[var(--label-secondary)] truncate">
                       {t.region}
                     </div>
                   )}
                 </div>
                 {selected && (
-                  <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>

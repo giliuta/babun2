@@ -45,7 +45,7 @@ export default function ColorPickerModal({
   return (
     <DialogModal open={open} onClose={onClose} title="Свой цвет">
       <div className="p-4 space-y-4">
-        <p className="text-[12px] text-slate-500">
+        <p className="text-[12px] text-[var(--label-secondary)]">
           Статус, адрес и время уже раскрашиваются автоматически. Эта палитра
           — личная метка для «своих» целей (VIP, срочно, проблемный).
         </p>
@@ -59,7 +59,7 @@ export default function ColorPickerModal({
                 onClick={() => handleSelect(color)}
                 aria-label={`Цвет ${color}`}
                 className={`aspect-square rounded-full flex items-center justify-center active:scale-95 transition ${
-                  selected ? "ring-2 ring-offset-2 ring-slate-800" : ""
+                  selected ? "ring-2 ring-offset-2 ring-[var(--label)]" : ""
                 }`}
                 style={{ backgroundColor: color }}
               >
@@ -86,7 +86,7 @@ export default function ColorPickerModal({
           <button
             type="button"
             onClick={handleReset}
-            className="w-full h-11 text-[13px] font-medium text-slate-700 bg-slate-100 rounded-lg active:scale-[0.98]"
+            className="w-full h-11 text-[14px] font-medium text-[var(--label)] bg-[var(--fill-tertiary)] rounded-[10px] active:bg-[var(--fill-secondary)] transition"
           >
             Сбросить цвет — вернуть автоматику
           </button>

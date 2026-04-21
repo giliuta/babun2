@@ -89,12 +89,12 @@ export default function GlobalSearch({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-sheet)] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ maxHeight: "75vh" }}
       >
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
-          <span className="text-slate-400 shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--separator)]">
+          <span className="text-[var(--label-tertiary)] shrink-0">
             <Search size={18} strokeWidth={2} />
           </span>
           <input
@@ -103,35 +103,35 @@ export default function GlobalSearch({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Имя, телефон, адрес…"
-            className="flex-1 h-10 text-[15px] text-slate-900 placeholder:text-slate-400 focus:outline-none bg-transparent"
+            className="flex-1 h-10 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
           />
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="shrink-0 w-9 h-9 flex items-center justify-center text-slate-400 active:bg-slate-100 rounded-lg"
+            className="shrink-0 w-8 h-8 flex items-center justify-center text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] rounded-full transition"
           >
-            <X size={18} strokeWidth={2} />
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {!query.trim() && (
-            <div className="px-5 py-10 text-center text-[12px] text-slate-400">
-              Поиск ищет по клиентам и записям. Можно вводить имя, номер,
-              адрес или фрагмент комментария.
+            <div className="px-5 py-10 text-center text-[12px] text-[var(--label-tertiary)]">
+              Поиск по клиентам и записям. Введите имя, номер, адрес или
+              фрагмент комментария.
             </div>
           )}
 
           {empty && (
-            <div className="px-5 py-10 text-center text-[13px] text-slate-500">
+            <div className="px-5 py-10 text-center text-[13px] text-[var(--label-secondary)]">
               Ничего не нашлось по «{query.trim()}»
             </div>
           )}
 
           {clientHits.length > 0 && (
             <div>
-              <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Клиенты ({clientHits.length})
               </div>
               {clientHits.map((c) => (
@@ -142,17 +142,17 @@ export default function GlobalSearch({
                     onClose();
                     router.push(`/dashboard/clients?id=${c.id}`);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-slate-50"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--fill-quaternary)] min-h-[48px] transition"
                 >
-                  <span className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-[12px] font-bold shrink-0">
+                  <span className="w-9 h-9 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
                     <UserIcon size={16} strokeWidth={2} />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-slate-900 truncate">
+                    <div className="text-[15px] font-medium text-[var(--label)] truncate">
                       {c.full_name}
                     </div>
                     {c.phone && (
-                      <div className="text-[11px] text-slate-500 truncate">
+                      <div className="text-[12px] text-[var(--label-secondary)] truncate tabular-nums">
                         {c.phone}
                       </div>
                     )}
@@ -164,7 +164,7 @@ export default function GlobalSearch({
 
           {aptHits.length > 0 && (
             <div>
-              <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Записи ({aptHits.length})
               </div>
               {aptHits.map((a) => (
@@ -175,16 +175,16 @@ export default function GlobalSearch({
                     onClose();
                     router.push(`/dashboard?date=${a.date}`);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-slate-50"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--fill-quaternary)] min-h-[48px] transition"
                 >
-                  <span className="w-9 h-9 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                  <span className="w-9 h-9 rounded-lg bg-[rgba(0,122,255,0.12)] text-[var(--system-blue)] flex items-center justify-center shrink-0">
                     <CalendarClock size={16} strokeWidth={2} />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-slate-900 truncate">
+                    <div className="text-[15px] font-medium text-[var(--label)] truncate">
                       {a.comment || a.address || "Запись"}
                     </div>
-                    <div className="text-[11px] text-slate-500 tabular-nums">
+                    <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
                       {a.date} · {a.time_start}
                     </div>
                   </div>

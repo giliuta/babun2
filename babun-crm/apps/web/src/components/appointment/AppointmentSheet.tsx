@@ -45,6 +45,7 @@ import {
 } from "@/lib/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
 import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
+import { IOSSwitch } from "@/components/ui";
 
 import TimeBlock from "./TimeBlock";
 import ClientBlock from "./ClientBlock";
@@ -428,11 +429,11 @@ export default function AppointmentSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-2"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
       onClick={attemptClose}
     >
       <div
-        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col"
+        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -440,16 +441,16 @@ export default function AppointmentSheet({
         {/* Header */}
         <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
           {liveMode === "create" ? (
-            <div className="inline-flex rounded-xl bg-slate-100 p-1 text-[13px] font-semibold">
+            <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
               {(["work", "event"] as Kind[]).map((k) => (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setKind(k)}
-                  className={`px-4 py-1.5 rounded-lg transition ${
+                  className={`px-4 py-1.5 rounded-[8px] transition ${
                     kind === k
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500"
+                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm"
+                      : "text-[var(--label-secondary)]"
                   }`}
                 >
                   {k === "work" ? "Клиент" : "Событие"}
@@ -457,11 +458,11 @@ export default function AppointmentSheet({
               ))}
             </div>
           ) : liveMode === "edit" ? (
-            <div className="flex-1 text-[14px] font-semibold text-violet-700">
+            <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
               Редактирование
             </div>
           ) : liveMode === "done" ? (
-            <div className="flex-1 text-[13px] font-semibold text-emerald-700 truncate">
+            <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
               {doneBadge}
             </div>
           ) : (
@@ -480,7 +481,7 @@ export default function AppointmentSheet({
                   onClick={() => onCompleteQuick(appointment)}
                   aria-label="Отметить выполненной"
                   title="Выполнено"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg text-emerald-600 active:bg-emerald-50"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
                 >
                   <Check size={20} strokeWidth={2.5} />
                 </button>
@@ -490,7 +491,7 @@ export default function AppointmentSheet({
                 onClick={scrollToPhotos}
                 aria-label="Перейти к фото"
                 title="Фото"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-violet-600 active:bg-violet-50"
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
               >
                 <Camera size={19} strokeWidth={2} />
               </button>
@@ -500,7 +501,7 @@ export default function AppointmentSheet({
                   onClick={() => onReschedule(appointment)}
                   aria-label="Перенести запись"
                   title="Перенести"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg text-amber-600 active:bg-amber-50"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
                 >
                   <CalendarClock size={19} strokeWidth={2} />
                 </button>
@@ -512,7 +513,7 @@ export default function AppointmentSheet({
             type="button"
             onClick={attemptClose}
             aria-label="Закрыть"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -525,7 +526,7 @@ export default function AppointmentSheet({
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
           {/* City/team caption — read-only info strip. No dropdown, no
               click. City is edited from the calendar day header. */}
-          <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2 text-[13px]">
+          <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center gap-2 text-[13px]">
             {city && (
               <span
                 className="font-semibold flex-shrink-0"
@@ -534,8 +535,8 @@ export default function AppointmentSheet({
                 {city}
               </span>
             )}
-            {city && <span className="text-slate-400">·</span>}
-            <span className="text-slate-700 flex-shrink-0">{teamLabel}</span>
+            {city && <span className="text-[var(--label-tertiary)]">·</span>}
+            <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
           </div>
 
           <TimeBlock
@@ -552,18 +553,18 @@ export default function AppointmentSheet({
 
           {overlapConflict && overlapWarning && isEditable && !isEventMode && (
             <div className="px-4 pt-2">
-              <details className="group rounded-xl bg-amber-50 border border-amber-200 text-[12px] text-amber-800">
+              <details className="group rounded-[14px] bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.2)] text-[12px] text-[var(--label)]">
                 <summary className="flex items-start gap-2 px-3 py-2 cursor-pointer list-none">
-                  <span aria-hidden>⚠</span>
+                  <span aria-hidden className="text-[var(--system-orange)]">⚠</span>
                   <div className="flex-1">
                     <div className="font-semibold">Пересечение с записью</div>
-                    <div className="text-amber-700">{overlapWarning}</div>
+                    <div className="text-[var(--label-secondary)]">{overlapWarning}</div>
                   </div>
-                  <span className="text-amber-600 text-[11px] group-open:rotate-180 transition">
+                  <span className="text-[var(--system-orange)] text-[11px] group-open:rotate-180 transition">
                     ▾
                   </span>
                 </summary>
-                <div className="px-3 pb-2 pt-0.5 text-amber-800 border-t border-amber-200/60 space-y-0.5">
+                <div className="px-3 pb-2 pt-0.5 text-[var(--label)] border-t border-[rgba(255,149,0,0.2)] space-y-0.5">
                   {(() => {
                     const cc = overlapConflict;
                     const serviceNames = cc.service_ids
@@ -588,7 +589,7 @@ export default function AppointmentSheet({
                         {phone && (
                           <a
                             href={`tel:${phone.replace(/\D/g, "")}`}
-                            className="inline-flex items-center gap-1 font-semibold underline decoration-amber-400/60 underline-offset-2"
+                            className="inline-flex items-center gap-1 font-semibold underline decoration-[var(--system-orange)] decoration-1 underline-offset-2 text-[var(--system-orange)]"
                             onClick={(e) => e.stopPropagation()}
                           >
                             Позвонить {phone}
@@ -605,7 +606,7 @@ export default function AppointmentSheet({
           {/* Event mode body */}
           {isEventMode && isEditable ? (
             <div className="px-4 pt-4 space-y-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Тип события
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -628,7 +629,7 @@ export default function AppointmentSheet({
                         setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
                       }
                     }}
-                    className="py-3 rounded-xl border-2 border-slate-200 bg-white text-[12px] font-semibold text-slate-800 active:scale-[0.98] flex flex-col items-center gap-1"
+                    className="py-3 rounded-[14px] border border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1"
                     style={eventLabel === p.label ? { borderColor: p.color, background: `${p.color}14` } : undefined}
                   >
                     {(() => {
@@ -645,7 +646,7 @@ export default function AppointmentSheet({
                 ))}
               </div>
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                   Название
                 </div>
                 <input
@@ -653,7 +654,7 @@ export default function AppointmentSheet({
                   value={eventLabel}
                   onChange={(e) => setEventLabel(e.target.value)}
                   placeholder="Событие"
-                  className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
                 />
               </div>
             </div>
@@ -722,27 +723,18 @@ export default function AppointmentSheet({
               {appointment.status !== "completed" && isEditable && (
                 <div className="px-4 pt-3 flex items-center justify-between">
                   <div>
-                    <div className="text-[13px] font-semibold text-slate-800">
+                    <div className="text-[15px] font-semibold text-[var(--label)]">
                       Запись отменена
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-[12px] text-[var(--label-secondary)]">
                       Клиент отказался от услуги
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setCancelFlag((v) => !v)}
-                    className={`w-11 h-6 rounded-full relative transition-colors ${
-                      cancelFlag ? "bg-rose-500" : "bg-slate-300"
-                    }`}
-                    aria-pressed={cancelFlag}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                        cancelFlag ? "translate-x-[22px]" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
+                  <IOSSwitch
+                    checked={cancelFlag}
+                    onChange={setCancelFlag}
+                    ariaLabel="Запись отменена"
+                  />
                 </div>
               )}
 
@@ -750,27 +742,18 @@ export default function AppointmentSheet({
               {isEditable && client && client.phone && (
                 <div className="px-4 pt-4 flex items-center justify-between">
                   <div>
-                    <div className="text-[13px] font-semibold text-slate-800">
+                    <div className="text-[15px] font-semibold text-[var(--label)]">
                       SMS-напоминание
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-[12px] text-[var(--label-secondary)]">
                       за сутки и за час до визита
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSmsEnabled((v) => !v)}
-                    className={`w-11 h-6 rounded-full relative transition-colors ${
-                      smsEnabled ? "bg-violet-600" : "bg-slate-300"
-                    }`}
-                    aria-pressed={smsEnabled}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                        smsEnabled ? "translate-x-[22px]" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
+                  <IOSSwitch
+                    checked={smsEnabled}
+                    onChange={setSmsEnabled}
+                    ariaLabel="SMS-напоминание"
+                  />
                 </div>
               )}
             </>
@@ -790,11 +773,11 @@ export default function AppointmentSheet({
             Cancel lives as the header ✕; backdrop/Esc also prompt. */}
         {isEditable && (
           <div
-            className="flex-shrink-0 px-4 pt-2 border-t border-slate-200"
+            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
           >
             {bottomWarning && (
-              <div className="mb-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-[13px] font-semibold text-rose-700 text-center">
+              <div className="mb-2 px-3 py-2 rounded-[10px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] font-semibold text-[var(--system-red)] text-center">
                 {bottomWarning}
               </div>
             )}
@@ -808,10 +791,10 @@ export default function AppointmentSheet({
                 }
                 handleCreate();
               }}
-              className={`w-full h-12 rounded-xl text-[14px] font-semibold transition ${
+              className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
                 canSave
-                  ? "bg-violet-600 text-white active:scale-[0.99]"
-                  : "bg-slate-300 text-slate-500"
+                  ? "bg-[var(--accent)] text-white active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+                  : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
               }`}
             >
               {(() => {
@@ -864,18 +847,18 @@ export default function AppointmentSheet({
       {/* Close-confirmation modal — centered, minimalist, 2 buttons. */}
       {closeConfirm && (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-5"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
           onClick={() => setCloseConfirm(false)}
         >
           <div
-            className="w-full max-w-[300px] bg-white rounded-2xl shadow-2xl p-4"
+            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-center text-[16px] font-semibold text-slate-900 py-2">
+            <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
               Сохранить запись?
             </div>
             {!canSave && (
-              <div className="px-1 pt-1 pb-2 text-center text-[11px] text-rose-600">
+              <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--system-red)]">
                 Не хватает данных для сохранения
               </div>
             )}
@@ -888,10 +871,10 @@ export default function AppointmentSheet({
                   setCloseConfirm(false);
                 }}
                 disabled={!canSave}
-                className={`w-full h-11 rounded-xl text-[14px] font-semibold transition ${
+                className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
                   canSave
-                    ? "bg-violet-600 text-white active:scale-[0.99]"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    ? "bg-[var(--accent)] text-white active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+                    : "bg-[var(--fill-primary)] text-[var(--label-tertiary)] cursor-not-allowed"
                 }`}
               >
                 Сохранить
@@ -902,7 +885,7 @@ export default function AppointmentSheet({
                   setCloseConfirm(false);
                   onClose();
                 }}
-                className="w-full h-11 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-rose-600 active:bg-rose-50"
+                className="w-full h-11 rounded-[10px] bg-[var(--surface-card)] border border-[var(--separator)] text-[15px] font-semibold text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)]"
               >
                 Не сохранять
               </button>
@@ -917,14 +900,14 @@ export default function AppointmentSheet({
           to the services. */}
       {askClientFirst && (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-5"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
           onClick={() => setAskClientFirst(false)}
         >
           <div
-            className="w-full max-w-[300px] bg-white rounded-2xl shadow-2xl p-4"
+            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-center text-[14px] text-slate-800 py-2 px-1 leading-snug">
+            <div className="text-center text-[15px] text-[var(--label)] py-2 px-1 leading-snug">
               Клиент для записи ещё не выбран.
               <br />
               Выбрать клиента сейчас?
@@ -936,7 +919,7 @@ export default function AppointmentSheet({
                   setAskClientFirst(false);
                   setServicePickerOpen(true);
                 }}
-                className="flex-1 h-11 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-slate-600 active:bg-slate-50"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] active:bg-[var(--fill-secondary)]"
               >
                 Нет
               </button>
@@ -946,7 +929,7 @@ export default function AppointmentSheet({
                   setAskClientFirst(false);
                   setClientSheet(true);
                 }}
-                className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
               >
                 Да
               </button>
@@ -1102,11 +1085,11 @@ export default function AppointmentSheet({
           ← inside closes the overlay and leaves the draft intact. */}
       {clientProfileOpen && client && (
         <div
-          className="fixed inset-0 z-[95] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-2"
+          className="fixed inset-0 z-[95] bg-[var(--surface-overlay)] backdrop-blur-[2px] flex items-center justify-center p-2"
           onClick={() => setClientProfileOpen(false)}
         >
           <div
-            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
             style={{ height: "92vh" }}
             onClick={(e) => e.stopPropagation()}
           >

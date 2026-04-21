@@ -47,28 +47,28 @@ export default function PaymentSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 shadow-2xl pb-4"
+        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-2xl pb-4"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 16px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grabber */}
         <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-slate-300" />
+          <div className="w-10 h-1 rounded-full bg-[var(--label-quaternary)]" />
         </div>
 
         {/* Summary header */}
         <div className="px-5 pt-2 pb-4 text-center">
-          <div className="text-[40px] font-bold text-slate-900 tabular-nums leading-none">
+          <div className="text-[40px] font-bold text-[var(--label)] tabular-nums leading-none tracking-tight">
             {formatEUR(price)}
           </div>
-          <div className="text-[14px] text-slate-600 mt-1.5 truncate">
+          <div className="text-[15px] text-[var(--label-secondary)] mt-1.5 truncate">
             {clientName}
           </div>
-          <div className="text-[12px] text-slate-400 mt-0.5 tabular-nums">
+          <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5 tabular-nums">
             {timeLabel}
           </div>
         </div>
@@ -78,9 +78,9 @@ export default function PaymentSheet({
           <button
             type="button"
             onClick={() => onPay("cash")}
-            className="w-full h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center gap-2 text-[16px] font-semibold active:bg-emerald-600 transition"
+            className="w-full h-12 rounded-[10px] bg-[var(--system-green)] text-white flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-90 transition"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="20" height="12" rx="2" />
               <circle cx="12" cy="12" r="3" />
             </svg>
@@ -89,9 +89,9 @@ export default function PaymentSheet({
           <button
             type="button"
             onClick={() => onPay("card")}
-            className="w-full h-14 rounded-2xl bg-sky-500 text-white flex items-center justify-center gap-2 text-[16px] font-semibold active:bg-sky-600 transition"
+            className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="5" width="20" height="14" rx="2" />
               <line x1="2" y1="10" x2="22" y2="10" />
             </svg>
@@ -104,7 +104,7 @@ export default function PaymentSheet({
           <button
             type="button"
             onClick={onCancel}
-            className="text-[13px] font-medium text-rose-500 active:opacity-60 py-2"
+            className="text-[13px] font-medium text-[var(--system-red)] active:opacity-60 py-2"
           >
             Заказ отменён
           </button>

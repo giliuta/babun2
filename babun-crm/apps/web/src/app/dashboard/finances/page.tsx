@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   useAppointments,
@@ -91,14 +92,15 @@ export default function FinancesPage() {
           <button
             type="button"
             onClick={() => setShowCategories(true)}
-            className="px-2 py-1.5 lg:px-3 text-xs lg:text-sm font-medium text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100 rounded-lg"
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-white lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-tertiary)] rounded-lg"
           >
-            ⚙ Категории
+            <SlidersHorizontal size={14} strokeWidth={2} />
+            Категории
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-8 space-y-3 stagger-children">
           <div className="grid grid-cols-4 gap-1.5">
             <SummaryCard
@@ -137,31 +139,29 @@ export default function FinancesPage() {
             />
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 relative flex items-center justify-between">
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[var(--separator)] relative flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowPeriodMenu((s) => !s)}
-                className="flex items-center gap-1 text-sm font-semibold text-slate-900 hover:opacity-80"
+                className="flex items-center gap-1 text-[15px] font-semibold text-[var(--label)] hover:opacity-80"
               >
                 {selectedPeriodLabel}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                <ChevronDown size={16} strokeWidth={2} className="text-[var(--label-tertiary)]" />
               </button>
               <button
                 type="button"
                 onClick={() => setMode("payroll")}
                 className={`h-8 px-3 rounded-lg text-[12px] font-semibold transition ${
                   mode === "payroll"
-                    ? "bg-violet-600 text-white"
-                    : "bg-violet-50 text-violet-700 active:bg-violet-100"
+                    ? "bg-[var(--accent)] text-white"
+                    : "bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--fill-secondary)]"
                 }`}
               >
                 Зарплата {totalPayroll > 0 && `· ${formatEUR(totalPayroll)}`}
               </button>
               {showPeriodMenu && (
-                <div className="absolute top-full left-4 mt-1 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[200px] border border-slate-200">
+                <div className="absolute top-full left-4 mt-1 bg-[var(--surface-card)] rounded-lg shadow-lg py-1 z-10 min-w-[200px] border border-[var(--separator)]">
                   {PERIODS.map((p) => (
                     <button
                       key={p.key}
@@ -170,8 +170,10 @@ export default function FinancesPage() {
                         setPeriod(p.key);
                         setShowPeriodMenu(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 ${
-                        period === p.key ? "text-violet-600 font-medium" : "text-slate-700"
+                      className={`w-full text-left px-4 py-2 text-[15px] hover:bg-[var(--fill-quaternary)] ${
+                        period === p.key
+                          ? "text-[var(--accent)] font-medium"
+                          : "text-[var(--label)]"
                       }`}
                     >
                       {p.label}
@@ -181,16 +183,16 @@ export default function FinancesPage() {
               )}
             </div>
 
-            <div className="flex border-b border-slate-200 overflow-x-auto">
+            <div className="flex border-b border-[var(--separator)] overflow-x-auto">
               {teamTabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTeam(tab.id)}
-                  className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-4 py-2.5 text-[13px] font-medium transition-colors ${
                     activeTeam === tab.id
-                      ? "text-violet-600 border-b-2 border-violet-600"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
+                      : "text-[var(--label-secondary)] hover:text-[var(--label)]"
                   }`}
                 >
                   {tab.name}
@@ -198,8 +200,8 @@ export default function FinancesPage() {
               ))}
             </div>
 
-            <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+            <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center justify-between">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 {MODE_LABELS[mode]}
               </div>
             </div>
@@ -296,12 +298,12 @@ function SummaryCard({
 }) {
   const amountColor =
     color === "emerald"
-      ? "text-emerald-600"
+      ? "text-[var(--system-green)]"
       : color === "rose"
-      ? "text-rose-600"
+      ? "text-[var(--system-red)]"
       : color === "amber"
-      ? "text-amber-600"
-      : "text-violet-600";
+      ? "text-[var(--system-orange)]"
+      : "text-[var(--accent)]";
 
   const body = signed ? formatEURSigned(amount) : formatEUR(amount);
 
@@ -310,7 +312,11 @@ function SummaryCard({
     const positive = delta > 0;
     const goodDirection = deltaPositiveGood ? positive : !positive;
     const deltaColor =
-      delta === 0 ? "text-slate-400" : goodDirection ? "text-emerald-600" : "text-rose-500";
+      delta === 0
+        ? "text-[var(--label-tertiary)]"
+        : goodDirection
+        ? "text-[var(--system-green)]"
+        : "text-[var(--system-red)]";
     deltaEl = (
       <div className={`text-[10px] font-semibold tabular-nums ${deltaColor}`}>
         {formatPercentDelta(delta)}
@@ -323,10 +329,12 @@ function SummaryCard({
       type="button"
       onClick={onClick}
       className={`rounded-xl border px-2 py-2 text-left transition active:scale-[0.98] ${
-        active ? "bg-white border-violet-500 ring-1 ring-violet-500" : "bg-white border-slate-200"
+        active
+          ? "bg-[var(--surface-card)] border-[var(--accent)] ring-1 ring-[var(--accent)]"
+          : "bg-[var(--surface-card)] border-[var(--separator)]"
       }`}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
         {label}
       </div>
       <div className={`text-[13px] font-bold tabular-nums mt-0.5 ${amountColor}`}>{body}</div>
@@ -351,10 +359,10 @@ function CombinedSummary({
 
   return (
     <div>
-      <div className="px-4 py-4 space-y-3 border-b border-slate-200">
+      <div className="px-4 py-4 space-y-3 border-b border-[var(--separator)]">
         <Row label="Доход" value={`+${formatEUR(totalIncome)}`} color="emerald" />
         <Row label="Расход" value={`−${formatEUR(totalExpense)}`} color="rose" />
-        <div className="h-px bg-slate-200" />
+        <div className="h-px bg-[var(--separator)]" />
         <Row
           label="Прибыль"
           value={formatEURSigned(profit)}
@@ -364,28 +372,28 @@ function CombinedSummary({
         <Row label="Маржа" value={`${margin}%`} color="gray" />
       </div>
 
-      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <div className="px-4 py-3 border-b border-[var(--separator)] bg-[var(--surface-grouped)]">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
           Счёт записей
         </div>
-        <div className="mt-1 grid grid-cols-2 gap-2 text-[12px]">
-          <div className="text-slate-700">
-            Доходных строк: <span className="font-semibold">{incomeCount}</span>
+        <div className="mt-1 grid grid-cols-2 gap-2 text-[13px]">
+          <div className="text-[var(--label-secondary)]">
+            Доходных строк: <span className="font-semibold text-[var(--label)]">{incomeCount}</span>
           </div>
-          <div className="text-slate-700">
-            Расходных строк: <span className="font-semibold">{expenseCount}</span>
+          <div className="text-[var(--label-secondary)]">
+            Расходных строк: <span className="font-semibold text-[var(--label)]">{expenseCount}</span>
           </div>
         </div>
       </div>
 
       {profit < 0 && (
-        <div className="px-4 py-3 text-[12px] text-rose-600 bg-rose-50 border-b border-rose-100">
-          ⚠ За выбранный период расходы превышают доходы.
+        <div className="px-4 py-3 text-[13px] text-[var(--system-red)] bg-[var(--fill-tertiary)] border-b border-[var(--separator)]">
+          За выбранный период расходы превышают доходы.
         </div>
       )}
 
       {incomeCount === 0 && expenseCount === 0 && (
-        <div className="px-4 py-6 text-center text-[12px] text-slate-400">
+        <div className="px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Нет данных за выбранный период.
         </div>
       )}
@@ -407,22 +415,22 @@ function CashboxBlock({
   shouldBe: number;
 }) {
   return (
-    <div className="px-4 py-4 border-t border-slate-200 bg-white">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+    <div className="px-4 py-4 border-t border-[var(--separator)] bg-[var(--surface-card)]">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">
         Сверка кассы
       </div>
       <div className="space-y-1.5">
         <KV label="Пришло наличкой" value={`+${formatEUR(cash)}`} tone="emerald" />
         <KV label="Пришло на карту" value={`+${formatEUR(card)}`} tone="sky" />
-        <div className="h-px bg-slate-100 my-1" />
+        <div className="h-px bg-[var(--separator)] my-1" />
         <KV label="Расходы (из нала)" value={`−${formatEUR(expense)}`} tone="rose" />
         <KV label="ЗП бригаде (расчётная)" value={`−${formatEUR(salary)}`} tone="violet" />
-        <div className="h-px bg-slate-200 my-1.5" />
+        <div className="h-px bg-[var(--separator)] my-1.5" />
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-slate-900">В кассе должно быть</span>
+          <span className="text-[15px] font-semibold text-[var(--label)]">В кассе должно быть</span>
           <span
             className={`text-[17px] font-bold tabular-nums ${
-              shouldBe >= 0 ? "text-emerald-700" : "text-rose-700"
+              shouldBe >= 0 ? "text-[var(--system-green)]" : "text-[var(--system-red)]"
             }`}
           >
             {formatEURSigned(shouldBe)}
@@ -444,15 +452,15 @@ function KV({
 }) {
   const color =
     tone === "emerald"
-      ? "text-emerald-600"
+      ? "text-[var(--system-green)]"
       : tone === "sky"
-      ? "text-sky-600"
+      ? "text-[var(--system-blue)]"
       : tone === "rose"
-      ? "text-rose-600"
-      : "text-violet-600";
+      ? "text-[var(--system-red)]"
+      : "text-[var(--accent)]";
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[13px] text-slate-600">{label}</span>
+      <span className="text-[13px] text-[var(--label-secondary)]">{label}</span>
       <span className={`text-[14px] font-semibold tabular-nums ${color}`}>{value}</span>
     </div>
   );
@@ -471,15 +479,15 @@ function Row({
 }) {
   const colorClass =
     color === "emerald"
-      ? "text-emerald-600"
+      ? "text-[var(--system-green)]"
       : color === "rose"
-      ? "text-rose-600"
+      ? "text-[var(--system-red)]"
       : color === "indigo"
-      ? "text-violet-600"
-      : "text-slate-600";
+      ? "text-[var(--accent)]"
+      : "text-[var(--label-secondary)]";
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[13px] text-slate-600">{label}</span>
+      <span className="text-[15px] text-[var(--label-secondary)]">{label}</span>
       <span
         className={`tabular-nums ${colorClass} ${bold ? "text-[16px] font-bold" : "text-[14px] font-semibold"}`}
       >

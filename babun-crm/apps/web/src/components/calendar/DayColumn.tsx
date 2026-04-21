@@ -180,7 +180,7 @@ function DayColumnInner({
   };
 
   return (
-    <div className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0 overflow-x-clip">
+    <div className="flex-1 min-w-0 border-r border-[var(--separator)] last:border-r-0 overflow-x-clip">
       {/* Day header — по спеке:
             1. City name в цвете города (крупно, bold) + ChevronDown
             2. Weekday (ПН/ВТ...) + короткий месяц
@@ -284,8 +284,8 @@ function DayColumnInner({
       {/* Time slots — total height is 24×hourHeight via CSS var. */}
       <div
         ref={setDroppableRef}
-        className={`relative cursor-pointer border-r border-slate-300 select-none ${
-          isOver ? "ring-2 ring-violet-400 ring-inset" : ""
+        className={`relative cursor-pointer border-r border-[var(--separator)] select-none ${
+          isOver ? "ring-2 ring-[var(--accent)] ring-inset" : ""
         }`}
         onClick={handleColumnClick}
         onContextMenu={(e) => e.preventDefault()}
@@ -308,7 +308,7 @@ function DayColumnInner({
         {/* Out-of-hours overlay: BEFORE work start */}
         {workStart > 0 && (
           <div
-            className="absolute left-0 right-0 top-0 bg-slate-200/50 pointer-events-none"
+            className="absolute left-0 right-0 top-0 bg-[var(--fill-tertiary)] pointer-events-none"
             style={{ height: mins(workStart) }}
           />
         )}
@@ -316,7 +316,7 @@ function DayColumnInner({
         {/* Out-of-hours overlay: AFTER work end */}
         {workEnd < 24 * 60 && (
           <div
-            className="absolute left-0 right-0 bg-slate-200/50 pointer-events-none"
+            className="absolute left-0 right-0 bg-[var(--fill-tertiary)] pointer-events-none"
             style={{
               top: mins(workEnd),
               height: `calc(var(--hh) * ${(24 * 60 - workEnd) / 60})`,
@@ -333,10 +333,10 @@ function DayColumnInner({
             return (
               <div
                 key={i}
-                className="absolute left-0 right-0 bg-slate-300/60 pointer-events-none border-y border-slate-400/40"
+                className="absolute left-0 right-0 bg-[var(--fill-secondary)] pointer-events-none border-y border-[var(--separator)]"
                 style={{ top: mins(bs), height: mins(be - bs) }}
               >
-                <div className="text-[9px] text-slate-600 pl-1">Перерыв</div>
+                <div className="text-[9px] text-[var(--label-secondary)] pl-1">Перерыв</div>
               </div>
             );
           })}

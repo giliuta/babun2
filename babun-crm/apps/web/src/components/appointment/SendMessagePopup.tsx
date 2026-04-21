@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X, MessageSquare, Phone, Send } from "lucide-react";
 
 interface SendMessagePopupProps {
   open: boolean;
@@ -12,11 +13,11 @@ interface SendMessagePopupProps {
 
 type Channel = "sms" | "whatsapp" | "telegram" | "viber";
 
-const CHANNEL_META: Record<Channel, { label: string; emoji: string; color: string }> = {
-  sms: { label: "SMS", emoji: "📱", color: "bg-slate-600" },
-  whatsapp: { label: "WhatsApp", emoji: "🟢", color: "bg-emerald-500" },
-  telegram: { label: "Telegram", emoji: "✈️", color: "bg-sky-500" },
-  viber: { label: "Viber", emoji: "💜", color: "bg-violet-500" },
+const CHANNEL_META: Record<Channel, { label: string; color: string }> = {
+  sms: { label: "SMS", color: "bg-[var(--label)]" },
+  whatsapp: { label: "WhatsApp", color: "bg-[var(--system-green)]" },
+  telegram: { label: "Telegram", color: "bg-[var(--accent)]" },
+  viber: { label: "Viber", color: "bg-[var(--accent)]" },
 };
 
 // Centered popup: textarea + four channel buttons (SMS / WhatsApp /
@@ -51,21 +52,28 @@ export default function SendMessagePopup({
     onClose();
   };
 
+  const CHANNEL_ICONS: Record<Channel, typeof Phone> = {
+    sms: Phone,
+    whatsapp: MessageSquare,
+    telegram: Send,
+    viber: MessageSquare,
+  };
+
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
           <div>
-            <div className="text-[14px] font-semibold text-slate-900">
+            <div className="text-[17px] font-semibold tracking-tight text-[var(--label)]">
               Сообщение клиенту
             </div>
-            <div className="text-[11px] text-slate-500 truncate">
+            <div className="text-[12px] text-[var(--label-secondary)] truncate">
               {clientName}
               {phone && <span className="tabular-nums"> · {phone}</span>}
             </div>
@@ -74,12 +82,9 @@ export default function SendMessagePopup({
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -90,32 +95,33 @@ export default function SendMessagePopup({
             placeholder="Введите текст сообщения…"
             rows={4}
             autoFocus
-            className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[14px] text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full px-3.5 py-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
           />
 
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Отправить через
           </div>
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(CHANNEL_META) as Channel[]).map((ch) => {
               const meta = CHANNEL_META[ch];
+              const Icon = CHANNEL_ICONS[ch];
               return (
                 <button
                   key={ch}
                   type="button"
                   disabled={!digits}
                   onClick={() => send(ch)}
-                  className={`h-11 rounded-xl text-[13px] font-semibold text-white active:scale-[0.98] disabled:bg-slate-300 disabled:text-slate-400 flex items-center justify-center gap-1.5 ${
+                  className={`h-11 rounded-[10px] text-[15px] font-semibold text-white active:scale-[0.98] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)] flex items-center justify-center gap-1.5 ${
                     digits ? meta.color : ""
                   }`}
                 >
-                  <span>{meta.emoji}</span> {meta.label}
+                  <Icon size={16} strokeWidth={2} /> {meta.label}
                 </button>
               );
             })}
           </div>
           {!digits && (
-            <div className="text-[11px] text-rose-600 text-center">
+            <div className="text-[12px] text-[var(--system-red)] text-center">
               У клиента нет телефона — добавьте в профиль
             </div>
           )}

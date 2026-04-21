@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Phone, X, RotateCw, StickyNote } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -55,16 +56,11 @@ export default function RecurringPage() {
         title={`Напоминания${due.length > 0 ? ` (${due.length})` : ""}`}
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
           {totalPending === 0 ? (
             <EmptyState
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.77.95 6.5 2.5" />
-                  <polyline points="21 3 21 9 15 9" />
-                </svg>
-              }
+              icon={<RotateCw size={24} strokeWidth={2} />}
               title="Нет повторных напоминаний"
               description="После выполненной записи ⋯ → «Повторить через…» создаст карточку. Мы сами подскажем, когда звонить."
             />
@@ -96,7 +92,7 @@ export default function RecurringPage() {
                 <button
                   type="button"
                   onClick={() => setShowAll(true)}
-                  className="w-full mt-2 h-11 rounded-xl border border-dashed border-slate-300 text-slate-500 text-[13px] font-medium active:bg-slate-100"
+                  className="w-full mt-2 h-11 rounded-[10px] border border-dashed border-[var(--separator)] text-[var(--label-secondary)] text-[13px] font-medium active:bg-[var(--fill-quaternary)]"
                 >
                   Показать ещё {future.length} на потом
                 </button>
@@ -125,29 +121,29 @@ function RecurringCard({
   const phoneDigits = item.phone.replace(/\D/g, "");
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-slate-200/70 shadow-sm p-4">
+    <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="text-[15px] font-semibold text-slate-900 truncate">
+            <div className="text-[15px] font-semibold text-[var(--label)] truncate">
               {item.client_name}
             </div>
             {overdue ? (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-red)] bg-[rgba(255,59,48,0.1)] px-1.5 py-0.5 rounded">
                 просрочено
               </span>
             ) : daysUntil <= 3 ? (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-orange)] bg-[rgba(255,149,0,0.1)] px-1.5 py-0.5 rounded">
                 скоро
               </span>
             ) : null}
           </div>
           {item.service_summary && (
-            <div className="text-[12px] text-slate-500 truncate mt-0.5">
+            <div className="text-[12px] text-[var(--label-secondary)] truncate mt-0.5">
               {item.service_summary}
             </div>
           )}
-          <div className="text-[11px] text-slate-400 mt-1 tabular-nums">
+          <div className="text-[11px] text-[var(--label-tertiary)] mt-1 tabular-nums">
             {overdue
               ? `${Math.abs(daysUntil)} дн. назад · ${item.next_due_date}`
               : daysUntil === 0
@@ -155,18 +151,19 @@ function RecurringCard({
                 : `Через ${daysUntil} дн. · ${item.next_due_date}`}
           </div>
           {item.note && (
-            <div className="text-[12px] text-slate-500 mt-1">📝 {item.note}</div>
+            <div className="flex items-start gap-1 text-[12px] text-[var(--label-secondary)] mt-1">
+              <StickyNote size={12} className="mt-0.5 shrink-0" strokeWidth={2} />
+              <span>{item.note}</span>
+            </div>
           )}
         </div>
         {phoneDigits && (
           <a
             href={`tel:${phoneDigits}`}
-            className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center active:bg-emerald-100 shrink-0"
+            className="w-10 h-10 rounded-[10px] bg-[rgba(52,199,89,0.12)] text-[var(--system-green)] flex items-center justify-center active:bg-[rgba(52,199,89,0.2)] shrink-0"
             aria-label="Позвонить"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-            </svg>
+            <Phone size={18} strokeWidth={2} />
           </a>
         )}
       </div>
@@ -175,14 +172,14 @@ function RecurringCard({
         <button
           type="button"
           onClick={onBook}
-          className="flex-1 h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99]"
+          className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.99] active:bg-[var(--accent-pressed)] transition"
         >
           Записать
         </button>
         <button
           type="button"
           onClick={onBooked}
-          className="flex-1 h-10 rounded-lg bg-slate-100 text-slate-700 text-[13px] font-medium active:bg-slate-200"
+          className="flex-1 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[13px] font-medium active:bg-[var(--fill-secondary)]"
         >
           Записано
         </button>
@@ -190,12 +187,9 @@ function RecurringCard({
           type="button"
           onClick={onDismiss}
           aria-label="Удалить"
-          className="w-10 h-10 rounded-lg text-slate-400 active:bg-slate-100"
+          className="w-10 h-10 rounded-[10px] text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] flex items-center justify-center"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          <X size={16} strokeWidth={2} />
         </button>
       </div>
     </div>

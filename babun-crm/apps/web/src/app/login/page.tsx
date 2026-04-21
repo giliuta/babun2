@@ -5,16 +5,11 @@ import { useRouter } from "next/navigation";
 import { getSupabase, hasSupabaseEnv } from "@/lib/supabase/client";
 import { isSupabaseEnabled } from "@/lib/supabase/backend-mode";
 
-// Login / signup page.
-//
-// Modes:
-//   * Supabase disabled (default) — stays the prototype stub: any
-//     submit drops onto /dashboard (calendar). Keeps local-device
-//     flow alive during the Supabase cutover.
-//   * Supabase enabled — real email/password auth. A toggle lets
-//     the user switch between "Войти" and "Регистрация"; the signup
-//     trigger creates a tenant + owner row server-side, so no extra
-//     round-trip is needed after signup.
+// Sprint 029 Phase 6: Telegram-style auth card. Big violet bubble
+// with the B mark, tight 28-px title, two iOS-inset fields, 50-px
+// HIG Large primary CTA, and a ghost "Регистрация" toggle on the
+// bottom when Supabase is live. Plays nicely at 375 × 812 (iPhone
+// SE) up to tablet widths.
 
 type Mode = "signin" | "signup";
 
@@ -34,8 +29,6 @@ export default function LoginPage() {
     setError("");
 
     if (!supabaseLive) {
-      // Prototype fallback — keeps localStorage users unblocked until
-      // the backend flips on.
       router.push("/dashboard");
       return;
     }
@@ -45,97 +38,75 @@ export default function LoginPage() {
       if (mode === "signup") {
         const { error: err } = await sb.auth.signUp({ email, password });
         if (err) throw err;
-        // Supabase defaults to email confirmation on. With it off
-        // (see Supabase → Auth → Providers), the session is already
-        // active and we can move straight to the app.
         router.push("/dashboard");
       } else {
-        const { error: err } = await sb.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error: err } = await sb.auth.signInWithPassword({ email, password });
         if (err) throw err;
         router.push("/dashboard");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Не удалось выполнить запрос"
-      );
+      setError(err instanceof Error ? err.message : "Не удалось выполнить запрос");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+    <main
+      className="min-h-screen flex items-start justify-center p-5 pt-16 bg-[var(--surface-grouped)]"
+      style={{
+        paddingTop: "max(env(safe-area-inset-top), 64px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 24px)",
+      }}
+    >
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
-              <span className="text-white text-xl font-bold">B</span>
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">Babun CRM</h1>
+        <div className="flex flex-col items-center text-center mb-10">
+          <div className="w-20 h-20 bg-[var(--accent)] rounded-[22px] flex items-center justify-center shadow-[0_20px_40px_-15px_rgba(124,58,237,0.5)]">
+            <span className="text-white text-[38px] font-bold tracking-tight">B</span>
           </div>
-          <p className="text-slate-500 text-sm">
-            {mode === "signin" ? "Войдите в систему" : "Создайте аккаунт"}
+          <h1 className="text-[28px] font-bold text-[var(--label)] mt-5 tracking-tight">
+            Babun CRM
+          </h1>
+          <p className="text-[15px] text-[var(--label-secondary)] mt-1">
+            {mode === "signin" ? "Войдите, чтобы продолжить" : "Создайте учётную запись"}
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow-sm border p-6 space-y-4"
-        >
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-slate-700 mb-1"
-            >
-              Email
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
             <input
               id="email"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@airfix.cy"
+              placeholder="Email"
               required
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
             />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-slate-700 mb-1"
-            >
-              Пароль
-            </label>
             <input
               id="password"
               type="password"
-              autoComplete={
-                mode === "signin" ? "current-password" : "new-password"
-              }
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Введите пароль"
+              placeholder="Пароль"
               required
               minLength={8}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
             />
           </div>
+
+          {error && (
+            <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-[50px] rounded-[12px] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition mt-4"
           >
             {loading
               ? mode === "signin"
@@ -143,26 +114,24 @@ export default function LoginPage() {
                 : "Создаём…"
               : mode === "signin"
                 ? "Войти"
-                : "Регистрация"}
+                : "Создать аккаунт"}
           </button>
 
           {supabaseLive && (
             <button
               type="button"
-              onClick={() =>
-                setMode((m) => (m === "signin" ? "signup" : "signin"))
-              }
-              className="w-full text-center text-xs text-violet-600 active:text-violet-800"
+              onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
+              className="w-full h-11 text-[14px] font-medium text-[var(--accent)] active:opacity-60 transition"
             >
               {mode === "signin"
-                ? "Нет аккаунта? Регистрация"
+                ? "Нет аккаунта? Зарегистрироваться"
                 : "Уже есть аккаунт? Войти"}
             </button>
           )}
         </form>
 
-        <p className="text-center text-xs text-slate-400 mt-6">
-          AirFix &copy; 2026 &mdash; Babun CRM
+        <p className="text-center text-[11px] text-[var(--label-tertiary)] mt-10">
+          AirFix &copy; 2026 · Babun CRM
         </p>
       </div>
     </main>

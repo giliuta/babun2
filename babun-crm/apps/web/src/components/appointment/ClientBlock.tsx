@@ -40,12 +40,12 @@ export default function ClientBlock({
         <button
           type="button"
           onClick={onPick}
-          className="w-full h-14 flex items-center gap-3 px-3 rounded-xl bg-white border-2 border-dashed border-slate-300 active:scale-[0.99]"
+          className="w-full h-14 flex items-center gap-3 px-3 rounded-[14px] bg-[var(--surface-card)] border border-dashed border-[var(--separator)] active:scale-[0.99]"
         >
-          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 text-[16px] font-bold">
+          <div className="w-9 h-9 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] flex items-center justify-center flex-shrink-0 text-[16px] font-bold">
             +
           </div>
-          <span className="text-[14px] font-medium text-slate-500">
+          <span className="text-[15px] font-medium text-[var(--label-secondary)]">
             Выбрать клиента
           </span>
         </button>
@@ -58,27 +58,27 @@ export default function ClientBlock({
 
   return (
     <div className="px-4 pt-2">
-      <div className="min-h-14 flex items-center gap-3 px-3 py-2 rounded-xl bg-white border border-slate-200">
+      <div className="min-h-14 flex items-center gap-3 px-3 py-2 rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)]">
         <button
           type="button"
           onClick={readonly ? undefined : onPick}
           disabled={readonly}
           className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70"
         >
-          <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-[13px] flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-bold text-[13px] flex-shrink-0">
             {initials(client.full_name)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[15px] font-semibold text-slate-900 truncate">
+            <div className="text-[15px] font-semibold text-[var(--label)] truncate">
               {client.full_name}
             </div>
             {phone && (
-              <div className="text-[13px] text-slate-500 tabular-nums truncate">
+              <div className="text-[13px] text-[var(--label-secondary)] tabular-nums truncate">
                 {phone}
               </div>
             )}
             {client.comment && client.comment.trim() && (
-              <div className="text-[11px] text-slate-400 truncate mt-0.5">
+              <div className="text-[12px] text-[var(--label-tertiary)] truncate mt-0.5">
                 {client.comment.trim()}
               </div>
             )}
@@ -89,7 +89,7 @@ export default function ClientBlock({
             <a
               href={`tel:${phoneDigits}`}
               aria-label="Позвонить"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-emerald-600 active:bg-emerald-50"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
@@ -101,7 +101,7 @@ export default function ClientBlock({
               type="button"
               onClick={onMenu}
               aria-label="Меню"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="5" cy="12" r="2" />
@@ -115,7 +115,7 @@ export default function ClientBlock({
               type="button"
               onClick={onChange}
               aria-label="Сменить"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 active:bg-slate-100"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MessageCircle, Phone, MessagesSquare } from "lucide-react";
 
 interface SuccessOverlayProps {
   clientName: string;
@@ -48,23 +49,23 @@ export default function SuccessOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-sm"
       onClick={onDone}
     >
       <div
-        className="w-[300px] bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center"
+        className="w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl p-6 flex flex-col items-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/40">
+        <div className="w-16 h-16 rounded-full bg-[var(--system-green)] flex items-center justify-center mb-3 shadow-lg shadow-[rgba(52,199,89,0.4)]">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <div className="text-[17px] font-bold text-slate-900 text-center">
+        <div className="text-[17px] font-semibold tracking-tight text-[var(--label)] text-center">
           Запись создана
         </div>
         {clientName && (
-          <div className="text-[13px] text-slate-500 mt-1 text-center truncate max-w-full">
+          <div className="text-[13px] text-[var(--label-secondary)] mt-1 text-center truncate max-w-full">
             {clientName}
           </div>
         )}
@@ -76,9 +77,9 @@ export default function SuccessOverlay({
               cancelAutoDismiss();
               setChooserOpen(true);
             }}
-            className="mt-4 w-full h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99]"
+            className="mt-4 w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] flex items-center justify-center gap-1.5"
           >
-            💬 Отправить сообщение о записи
+            <MessageCircle size={16} strokeWidth={2} /> Отправить сообщение
           </button>
         )}
 
@@ -88,24 +89,24 @@ export default function SuccessOverlay({
               <a
                 href={smsHref}
                 onClick={onDone}
-                className="w-full h-10 rounded-lg bg-slate-800 text-white text-[13px] font-semibold flex items-center justify-center active:opacity-80"
+                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
               >
-                📱 По SMS
+                <Phone size={16} strokeWidth={2} /> По SMS
               </a>
             )}
             {chatHref && (
               <a
                 href={chatHref}
                 onClick={onDone}
-                className="w-full h-10 rounded-lg bg-sky-500 text-white text-[13px] font-semibold flex items-center justify-center active:bg-sky-600"
+                className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--accent-pressed)]"
               >
-                💭 Через чат CRM
+                <MessagesSquare size={16} strokeWidth={2} /> Через чат CRM
               </a>
             )}
             <button
               type="button"
               onClick={onDone}
-              className="w-full h-9 text-[12px] font-medium text-slate-500 active:bg-slate-50 rounded-lg"
+              className="w-full h-11 text-[13px] font-medium text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] rounded-[10px]"
             >
               Не отправлять
             </button>

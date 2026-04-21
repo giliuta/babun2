@@ -58,8 +58,13 @@ export default function WheelPicker({
     >
       {/* Center highlight lines */}
       <div
-        className="absolute left-0 right-0 pointer-events-none border-y-2 border-violet-200"
-        style={{ top: itemHeight * halfCount, height: itemHeight }}
+        className="absolute left-0 right-0 pointer-events-none"
+        style={{
+          top: itemHeight * halfCount,
+          height: itemHeight,
+          borderTop: "1px solid var(--separator)",
+          borderBottom: "1px solid var(--separator)",
+        }}
       />
       <div
         ref={ref}
@@ -79,7 +84,7 @@ export default function WheelPicker({
           return (
             <div
               key={i}
-              className="flex items-center justify-center text-center text-slate-900 tabular-nums select-none"
+              className="flex items-center justify-center text-center text-[var(--label)] tabular-nums select-none"
               style={{
                 height: itemHeight,
                 scrollSnapAlign: "center",
