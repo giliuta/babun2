@@ -24,6 +24,42 @@ export interface MasterPermissions {
   visible_team_ids: string[];
 }
 
+// Sprint 026-cleanup: Master is now the employee record — it carries
+// salary terms, personal contacts, documents, and notes alongside the
+// original team/role/permissions. All new fields are optional so the
+// existing seeded / previously-persisted masters keep working without
+// a migration script.
+export type SalaryModel =
+  | "percent_of_team" // legacy behaviour: paid via team.payout_percentage
+  | "percent_of_own" // % of revenue from their own visits
+  | "per_visit" // flat fee per completed visit
+  | "monthly" // fixed monthly salary
+  | "hourly"; // hourly rate
+
+export interface MasterSalary {
+  model: SalaryModel;
+  /** Meaning depends on `model`:
+   *  percent_of_team → 0 (team handles it)
+   *  percent_of_own  → 0–100
+   *  per_visit       → euros per visit
+   *  monthly         → euros per month
+   *  hourly          → euros per hour
+   */
+  value: number;
+  /** Optional free-text clause shown on payroll review ("авансы по
+   *  средам", "минус наличные"). */
+  note?: string;
+}
+
+export interface MasterDocument {
+  id: string;
+  /** "Паспорт", "Водительские права", "ИНН" */
+  kind: string;
+  /** Номер / серия / expiry in one free-text line for v1. */
+  value: string;
+  note?: string;
+}
+
 export interface Master {
   id: string;
   full_name: string;
@@ -34,6 +70,27 @@ export interface Master {
   is_active: boolean;
   permissions: MasterPermissions;
   created_at: string; // ISO date
+
+  // Contact & personal (all optional — legacy records stay valid).
+  email?: string;
+  whatsapp?: string;
+  telegram?: string;
+  /** YYYY-MM-DD */
+  birthday?: string;
+  /** Free-text ("Пафос, ул. Posidonos 12"). No structure needed yet. */
+  address?: string;
+
+  // Employment.
+  /** YYYY-MM-DD */
+  hire_date?: string;
+  emergency_contact?: string;
+
+  // Compensation.
+  salary?: MasterSalary;
+
+  // Misc.
+  documents?: MasterDocument[];
+  notes?: string;
 }
 
 export interface Team {
@@ -116,6 +173,22 @@ export const ROLE_LABELS: Record<MasterRole, string> = {
   dispatcher: "Диспетчер",
   lead: "Бригадир",
   helper: "Помощник",
+};
+
+export const SALARY_MODEL_LABELS: Record<SalaryModel, string> = {
+  percent_of_team: "% от бригады",
+  percent_of_own: "% от своих работ",
+  per_visit: "Фиксировано за визит",
+  monthly: "Оклад в месяц",
+  hourly: "Почасовая",
+};
+
+export const SALARY_UNIT: Record<SalaryModel, string> = {
+  percent_of_team: "%",
+  percent_of_own: "%",
+  per_visit: "€",
+  monthly: "€",
+  hourly: "€/ч",
 };
 
 export const PERMISSION_LABELS: Record<keyof Omit<MasterPermissions, "visible_team_ids">, string> = {

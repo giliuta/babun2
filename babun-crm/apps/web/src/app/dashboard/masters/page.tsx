@@ -6,17 +6,15 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
-  PERMISSION_LABELS,
-  PERMISSION_GROUPS,
   ROLE_LABELS,
-  defaultPermissionsForRole,
-  generateId,
+  SALARY_MODEL_LABELS,
+  SALARY_UNIT,
   getInitials,
   type Master,
-  type MasterPermissions,
   type MasterRole,
   type Team,
 } from "@/lib/masters";
+import MasterSheet from "./MasterSheet";
 
 const ROLE_COLORS: Record<MasterRole, string> = {
   admin: "bg-red-500",
@@ -25,8 +23,9 @@ const ROLE_COLORS: Record<MasterRole, string> = {
   helper: "bg-slate-500",
 };
 
-// ─── Page ────────────────────────────────────────────────────────────────
-
+// Sprint 026: Мастера is its own page now — sibling to Бригады, not
+// a subsection. Adding a new row opens MasterSheet which covers all
+// employment fields (salary, permissions, documents, notes).
 export default function MastersPage() {
   const router = useRouter();
   const { masters, upsertMaster, deleteMaster } = useMasters();
@@ -35,11 +34,11 @@ export default function MastersPage() {
 
   const [editing, setEditing] = useState<Master | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [query, setQuery] = useState("");
 
-  // Another page can deep-link with ?edit=<id> to open a master's edit
-  // modal. Reading the query via window.location.search instead of
-  // useSearchParams() dodges the Next 16 CSR-bailout check that breaks
-  // static generation — the effect still runs only on the client.
+  // Deep-link ?edit=<id> opens the sheet for that master — used by
+  // other surfaces (e.g. the brigade detail card) without forcing a
+  // second tap to find them in the list.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -53,12 +52,23 @@ export default function MastersPage() {
     router.replace("/dashboard/masters");
   }, [masters, router]);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return masters;
+    return masters.filter(
+      (m) =>
+        m.full_name.toLowerCase().includes(q) ||
+        m.phone.toLowerCase().includes(q) ||
+        (m.email?.toLowerCase().includes(q) ?? false)
+    );
+  }, [masters, query]);
+
   const { active, inactive } = useMemo(() => {
     const a: Master[] = [];
     const i: Master[] = [];
-    masters.forEach((m) => (m.is_active ? a.push(m) : i.push(m)));
+    filtered.forEach((m) => (m.is_active ? a.push(m) : i.push(m)));
     return { active: a, inactive: i };
-  }, [masters]);
+  }, [filtered]);
 
   const openNew = () => {
     setEditing(null);
@@ -82,18 +92,16 @@ export default function MastersPage() {
 
   const handleDelete = async (master: Master) => {
     const ok = await confirm({
-      title: `Удалить мастера «${master.full_name}»?`,
-      message: "Будет удалён из всех бригад где состоял.",
+      title: `Удалить сотрудника «${master.full_name}»?`,
+      message: "Будет удалён из всех бригад где состоял. Отменить нельзя.",
     });
     if (!ok) return;
     deleteMaster(master.id);
 
-    // Remove references from teams (lead_id or helper_ids)
     const updatedTeams = teams.map<Team>((t) => {
       let changed = false;
       let nextLeadId = t.lead_id;
       let nextHelperIds = t.helper_ids;
-
       if (t.lead_id === master.id) {
         nextLeadId = null;
         changed = true;
@@ -102,84 +110,33 @@ export default function MastersPage() {
         nextHelperIds = t.helper_ids.filter((id) => id !== master.id);
         changed = true;
       }
-
       return changed ? { ...t, lead_id: nextLeadId, helper_ids: nextHelperIds } : t;
     });
     setTeams(updatedTeams);
     closeForm();
   };
 
-  const renderRow = (master: Master) => {
-    const team = master.team_id
-      ? teams.find((t) => t.id === master.team_id)
-      : null;
-    return (
-      <button
-        key={master.id}
-        type="button"
-        onClick={() => openEdit(master)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-b-0"
-      >
-        <div
-          className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 ${ROLE_COLORS[master.role]}`}
-        >
-          {getInitials(master.full_name)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-slate-900 truncate">
-            {master.full_name}
-          </div>
-          <div className="text-[11px] text-slate-500">
-            {ROLE_LABELS[master.role]}
-          </div>
-          <div className="text-xs text-slate-500 whitespace-nowrap">
-            {master.phone || "—"}
-          </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {team ? (
-            <span
-              className="inline-block text-[11px] px-2 py-0.5 rounded-full text-white font-medium whitespace-nowrap"
-              style={{ backgroundColor: team.color }}
-            >
-              {team.name}
-            </span>
-          ) : (
-            <span className="text-[11px] text-slate-400">—</span>
-          )}
-          <span
-            aria-label="Редактировать"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
-          </span>
-        </div>
-      </button>
-    );
-  };
-
   return (
     <>
       <PageHeader
         title="Мастера"
+        subtitle={`${masters.length} ${masters.length === 1 ? "сотрудник" : "сотрудников"}`}
         rightContent={
           <button
             type="button"
             onClick={openNew}
-            aria-label="Добавить мастера"
+            aria-label="Добавить сотрудника"
             className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -189,43 +146,53 @@ export default function MastersPage() {
 
       <div className="flex-1 overflow-y-auto bg-slate-50 relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
-          {/* Active */}
+          {/* Search */}
           <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
-              Активные ({active.length})
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
-              {active.length === 0 ? (
-                <div className="text-center text-slate-400 py-8 text-sm">
-                  Нет активных мастеров
-                </div>
-              ) : (
-                active.map(renderRow)
-              )}
-            </div>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по имени, телефону или email"
+              className="w-full h-11 px-3 rounded-xl bg-white border border-slate-200 text-[13px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
 
-          {/* Inactive */}
-          <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
-              Неактивные ({inactive.length})
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
-              {inactive.length === 0 ? (
-                <div className="text-center text-slate-400 py-8 text-sm">
-                  Нет неактивных мастеров
-                </div>
-              ) : (
-                inactive.map(renderRow)
-              )}
-            </div>
-          </div>
+          <ListGroup title={`Активные (${active.length})`}>
+            {active.length === 0 ? (
+              <Empty>
+                {query ? "Ничего не найдено" : "Нет активных сотрудников"}
+              </Empty>
+            ) : (
+              active.map((m) => (
+                <MasterRow
+                  key={m.id}
+                  master={m}
+                  team={m.team_id ? teams.find((t) => t.id === m.team_id) ?? null : null}
+                  onOpen={() => openEdit(m)}
+                />
+              ))
+            )}
+          </ListGroup>
+
+          <ListGroup title={`Неактивные (${inactive.length})`}>
+            {inactive.length === 0 ? (
+              <Empty>Нет неактивных</Empty>
+            ) : (
+              inactive.map((m) => (
+                <MasterRow
+                  key={m.id}
+                  master={m}
+                  team={m.team_id ? teams.find((t) => t.id === m.team_id) ?? null : null}
+                  onOpen={() => openEdit(m)}
+                />
+              ))
+            )}
+          </ListGroup>
         </div>
-
       </div>
 
       {showForm && (
-        <MasterFormModal
+        <MasterSheet
           key={editing?.id ?? "new"}
           master={editing}
           teams={teams}
@@ -238,325 +205,95 @@ export default function MastersPage() {
   );
 }
 
-// ─── Master Form Modal ──────────────────────────────────────────────────
-
-function MasterFormModal({
-  master,
-  teams,
-  onCancel,
-  onSave,
-  onDelete,
+function ListGroup({
+  title,
+  children,
 }: {
-  master: Master | null;
-  teams: Team[];
-  onCancel: () => void;
-  onSave: (master: Master) => void;
-  onDelete: (master: Master) => void;
+  title: string;
+  children: React.ReactNode;
 }) {
-  const isEditing = !!master;
-
-  const [fullName, setFullName] = useState(master?.full_name ?? "");
-  const [phone, setPhone] = useState(master?.phone ?? "");
-  const [teamId, setTeamId] = useState<string | null>(master?.team_id ?? null);
-  const [role, setRole] = useState<MasterRole>(master?.role ?? "helper");
-  const [isActive, setIsActive] = useState(master?.is_active ?? true);
-  const [permissions, setPermissions] = useState<MasterPermissions>(
-    master?.permissions ?? defaultPermissionsForRole("helper"),
-  );
-  const [permsOpen, setPermsOpen] = useState(true);
-
-  // Close on Escape
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
-
-  const handleRoleChange = (nextRole: MasterRole) => {
-    setRole(nextRole);
-    setPermissions(defaultPermissionsForRole(nextRole));
-  };
-
-  const togglePermission = (
-    key: keyof Omit<MasterPermissions, "visible_team_ids">,
-  ) => {
-    setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const allTeamsVisible = permissions.visible_team_ids.includes("*");
-
-  const toggleAllTeamsVisible = () => {
-    setPermissions((prev) => ({
-      ...prev,
-      visible_team_ids: prev.visible_team_ids.includes("*") ? [] : ["*"],
-    }));
-  };
-
-  const toggleTeamVisible = (teamId: string) => {
-    setPermissions((prev) => {
-      if (prev.visible_team_ids.includes("*")) return prev;
-      const has = prev.visible_team_ids.includes(teamId);
-      return {
-        ...prev,
-        visible_team_ids: has
-          ? prev.visible_team_ids.filter((id) => id !== teamId)
-          : [...prev.visible_team_ids, teamId],
-      };
-    });
-  };
-
-  const handleSubmit = () => {
-    if (!fullName.trim()) {
-      window.alert("Введите ФИО мастера");
-      return;
-    }
-
-    const nowIso = new Date().toISOString();
-    const nextMaster: Master = {
-      id: master?.id ?? generateId("m"),
-      full_name: fullName.trim(),
-      phone: phone.trim(),
-      avatar_url: master?.avatar_url ?? null,
-      team_id: teamId,
-      role,
-      is_active: isActive,
-      permissions,
-      created_at: master?.created_at ?? nowIso,
-    };
-
-    onSave(nextMaster);
-  };
-
-  void PERMISSION_LABELS;
-
   return (
-    <div
-      className="fixed inset-0 z-40 bg-black/50 flex items-end lg:items-center justify-center"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-white rounded-t-2xl lg:rounded-2xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-base font-semibold text-slate-900 mb-4">
-          {isEditing ? "Редактировать мастера" : "Новый мастер"}
-        </h2>
-
-        <div className="space-y-4">
-          {/* Full name */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">
-              ФИО <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Телефон</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
-          </div>
-
-          {/* Team */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Бригада</label>
-            <select
-              value={teamId ?? ""}
-              onChange={(e) => setTeamId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-            >
-              <option value="">— Без бригады —</option>
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Role */}
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Роль</label>
-            <select
-              value={role}
-              onChange={(e) => handleRoleChange(e.target.value as MasterRole)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-            >
-              {(Object.keys(ROLE_LABELS) as MasterRole[]).map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Active toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-700">Активен</span>
-            <ToggleSwitch checked={isActive} onChange={setIsActive} />
-          </div>
-
-          {/* Permissions section */}
-          <div className="border border-slate-200 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setPermsOpen((p) => !p)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-800"
-            >
-              <span>Доступы</span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className={`transition-transform ${permsOpen ? "rotate-180" : ""}`}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-            {permsOpen && (
-              <div className="px-3 pb-3 space-y-4 border-t border-slate-100 pt-3">
-                {PERMISSION_GROUPS.filter((g) => g.permissions.length > 0).map((group) => (
-                  <div key={group.key}>
-                    <div className="text-[11px] font-bold text-violet-700 uppercase tracking-wide mb-1">
-                      {group.title}
-                    </div>
-                    <div className="text-[11px] text-slate-500 mb-2">{group.description}</div>
-                    <div className="space-y-2 bg-slate-50 rounded-lg p-3">
-                      {group.permissions.map((key) => (
-                        <div
-                          key={key}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="text-sm text-slate-700">
-                            {PERMISSION_LABELS[key]}
-                          </span>
-                          <ToggleSwitch
-                            checked={permissions[key]}
-                            onChange={() => togglePermission(key)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Visible teams */}
-                <div className="pt-2">
-                  <div className="text-xs text-slate-500 mb-2">
-                    Видимые бригады
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={toggleAllTeamsVisible}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
-                        allTeamsVisible
-                          ? "bg-violet-600 text-white border-violet-600"
-                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      Все
-                    </button>
-                    {!allTeamsVisible &&
-                      teams.map((t) => {
-                        const selected = permissions.visible_team_ids.includes(
-                          t.id,
-                        );
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => toggleTeamVisible(t.id)}
-                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap ${
-                              selected
-                                ? "bg-violet-600 text-white border-violet-600"
-                                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                            }`}
-                          >
-                            {t.name}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between gap-2">
-          {isEditing && master ? (
-            <button
-              type="button"
-              onClick={() => onDelete(master)}
-              className="text-red-600 border border-red-200 hover:bg-red-50 rounded-lg px-4 py-2 text-sm font-medium"
-            >
-              Удалить
-            </button>
-          ) : (
-            <span />
-          )}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="border border-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-50"
-            >
-              Отмена
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700"
-            >
-              Сохранить
-            </button>
-          </div>
-        </div>
+    <div>
+      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
+        {title}
+      </div>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden divide-y divide-slate-100">
+        {children}
       </div>
     </div>
   );
 }
 
-// ─── Toggle Switch ──────────────────────────────────────────────────────
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-center text-slate-400 py-8 text-sm">{children}</div>
+  );
+}
 
-function ToggleSwitch({
-  checked,
-  onChange,
+function MasterRow({
+  master,
+  team,
+  onOpen,
 }: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
+  master: Master;
+  team: Team | null;
+  onOpen: () => void;
 }) {
+  const salaryLabel = master.salary
+    ? master.salary.model === "percent_of_team"
+      ? "через бригаду"
+      : `${master.salary.value} ${SALARY_UNIT[master.salary.model]} · ${SALARY_MODEL_LABELS[master.salary.model]}`
+    : "ЗП не задана";
+
   return (
     <button
       type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative w-9 h-5 rounded-full transition-colors ${
-        checked ? "bg-violet-600" : "bg-slate-300"
-      }`}
+      onClick={onOpen}
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left"
     >
-      <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0"
-        }`}
-      />
+      <div
+        className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-[12px] shrink-0 ${ROLE_COLORS[master.role]}`}
+      >
+        {getInitials(master.full_name)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-semibold text-slate-900 truncate">
+          {master.full_name}
+        </div>
+        <div className="text-[11px] text-slate-500 truncate">
+          {ROLE_LABELS[master.role]}
+          {team ? (
+            <>
+              {" · "}
+              <span style={{ color: team.color }} className="font-semibold">
+                {team.name}
+              </span>
+            </>
+          ) : (
+            " · без бригады"
+          )}
+        </div>
+        <div className="text-[11px] text-slate-400 truncate tabular-nums">
+          {master.phone || "—"}
+          {master.email ? ` · ${master.email}` : ""}
+        </div>
+      </div>
+      <div className="shrink-0 flex flex-col items-end gap-1">
+        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+          {salaryLabel}
+        </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          className="text-slate-300"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
     </button>
   );
 }

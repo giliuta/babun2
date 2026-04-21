@@ -48,8 +48,14 @@ const NAV_SECTIONS = [
   {
     href: "/dashboard/teams",
     icon: "👥",
-    title: "Бригады и мастера",
-    desc: "Состав команд, роли, рабочие часы",
+    title: "Бригады",
+    desc: "Состав команд, цвета, дефолтный город, % ЗП",
+  },
+  {
+    href: "/dashboard/masters",
+    icon: "🧑‍🔧",
+    title: "Мастера",
+    desc: "Сотрудники, контакты, зарплата, доступы, документы",
   },
   {
     href: "/dashboard/sms-templates",

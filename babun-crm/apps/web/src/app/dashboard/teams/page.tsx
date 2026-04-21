@@ -7,12 +7,10 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useAppointments, useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   TEAM_COLORS,
-  ROLE_LABELS,
   generateId,
   getInitials,
   getTeamMembers,
   type Master,
-  type MasterRole,
   type Team,
 } from "@/lib/masters";
 
@@ -117,33 +115,20 @@ export default function TeamsPage() {
   return (
     <>
       <PageHeader
-        title="Бригады и мастера"
+        title="Бригады"
+        subtitle={`${teams.length} ${teams.length === 1 ? "бригада" : "бригад"}`}
         rightContent={
-          <>
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard/masters")}
-              aria-label="Мастера"
-              className="px-2.5 h-9 flex items-center gap-1.5 rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100 text-[12px] font-medium"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              Мастера
-            </button>
-            <button
-              type="button"
-              onClick={openNew}
-              aria-label="Добавить бригаду"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={openNew}
+            aria-label="Добавить бригаду"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         }
       />
 
@@ -282,82 +267,28 @@ export default function TeamsPage() {
             );
           })}
 
-          {/* Мастера section — inline access from the teams page.
-              Tap any master to jump to /dashboard/masters for edit. */}
-          <div className="pt-4 flex items-center justify-between px-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              Мастера ({masters.length})
-            </div>
+          {/* Sprint 026: Мастера — отдельная страница. Здесь ссылка-
+              напоминалка, чтобы не забыть где их заводить и редактировать. */}
+          <div className="pt-2">
             <button
               type="button"
               onClick={() => router.push("/dashboard/masters")}
-              className="text-[11px] font-medium text-violet-600 active:text-violet-700"
+              className="w-full flex items-center justify-between bg-white rounded-2xl border border-slate-200 px-4 py-3 active:bg-slate-50 transition"
             >
-              Все мастера →
+              <div className="text-left">
+                <div className="text-[13px] font-semibold text-slate-900">
+                  Мастера ({masters.length})
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Добавить сотрудника, ЗП, доступы, документы
+                </div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-400">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
           </div>
 
-          {masters.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 text-center text-[12px] text-slate-400">
-              Пока нет мастеров. Добавьте их на странице «Мастера».
-            </div>
-          )}
-
-          {masters.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
-              {masters.map((m, i) => {
-                const team = m.team_id
-                  ? teams.find((t) => t.id === m.team_id) ?? null
-                  : null;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() =>
-                      router.push(`/dashboard/masters?edit=${m.id}`)
-                    }
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-50 ${
-                      i < masters.length - 1 ? "border-b border-slate-100" : ""
-                    }`}
-                  >
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0"
-                      style={{ backgroundColor: team?.color ?? "#9ca3af" }}
-                    >
-                      {getInitials(m.full_name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold text-slate-900 truncate">
-                        {m.full_name || "Без имени"}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {ROLE_LABELS[m.role]}
-                        {team ? ` · ${team.name}` : " · Без бригады"}
-                      </div>
-                    </div>
-                    {!m.is_active && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                        Неактивен
-                      </span>
-                    )}
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      className="text-slate-300 ml-1"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Unassigned hint if any */}
           {unassignedMasters.length > 0 && (
             <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               {unassignedMasters.length}{" "}

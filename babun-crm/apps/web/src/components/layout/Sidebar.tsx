@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Calendar as CalendarIcon,
   Users as UsersIcon,
+  UserCircle2,
   RotateCcw,
   Wallet,
   Wrench,
@@ -194,9 +195,15 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
               <SectionLabel>Админ</SectionLabel>
               <NavItem
                 icon={<UsersIcon size={18} strokeWidth={2} />}
-                label="Бригады и мастера"
-                active={isActive("teams") || isActive("masters")}
+                label="Бригады"
+                active={isActive("teams")}
                 onClick={() => handleNav("teams")}
+              />
+              <NavItem
+                icon={<UserCircle2 size={18} strokeWidth={2} />}
+                label="Мастера"
+                active={isActive("masters")}
+                onClick={() => handleNav("masters")}
               />
               <NavItem
                 icon={<Wrench size={18} strokeWidth={2} />}
