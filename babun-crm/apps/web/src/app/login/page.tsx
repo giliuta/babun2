@@ -20,16 +20,16 @@ export default function LoginPage() {
   const error = "";
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
+    <main className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
               <span className="text-white text-xl font-bold">B</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Babun CRM</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Babun CRM</h1>
           </div>
-          <p className="text-gray-500 text-sm">Войдите в систему</p>
+          <p className="text-slate-500 text-sm">Войдите в систему</p>
         </div>
 
         <form onSubmit={handleLogin} className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
@@ -40,7 +40,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
               Email
             </label>
             <input
@@ -50,12 +50,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@airfix.cy"
               required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
               Пароль
             </label>
             <input
@@ -65,7 +65,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Введите пароль"
               required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-slate-400 mt-6">
           AirFix &copy; 2026 &mdash; Babun CRM
         </p>
       </div>

@@ -22,7 +22,7 @@ const ROLE_COLORS: Record<MasterRole, string> = {
   admin: "bg-red-500",
   dispatcher: "bg-amber-500",
   lead: "bg-blue-500",
-  helper: "bg-gray-500",
+  helper: "bg-slate-500",
 };
 
 // ─── Page ────────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ export default function MastersPage() {
         key={master.id}
         type="button"
         onClick={() => openEdit(master)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-100 last:border-b-0"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-b-0"
       >
         <div
           className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 ${ROLE_COLORS[master.role]}`}
@@ -126,13 +126,13 @@ export default function MastersPage() {
           {getInitials(master.full_name)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-gray-900 truncate">
+          <div className="text-sm font-semibold text-slate-900 truncate">
             {master.full_name}
           </div>
-          <div className="text-[11px] text-gray-500">
+          <div className="text-[11px] text-slate-500">
             {ROLE_LABELS[master.role]}
           </div>
-          <div className="text-xs text-gray-500 whitespace-nowrap">
+          <div className="text-xs text-slate-500 whitespace-nowrap">
             {master.phone || "—"}
           </div>
         </div>
@@ -145,11 +145,11 @@ export default function MastersPage() {
               {team.name}
             </span>
           ) : (
-            <span className="text-[11px] text-gray-400">—</span>
+            <span className="text-[11px] text-slate-400">—</span>
           )}
           <span
             aria-label="Редактировать"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400"
           >
             <svg
               width="16"
@@ -177,7 +177,7 @@ export default function MastersPage() {
             type="button"
             onClick={openNew}
             aria-label="Добавить мастера"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -187,16 +187,16 @@ export default function MastersPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50 relative">
+      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
           {/* Active */}
           <div>
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
               Активные ({active.length})
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
               {active.length === 0 ? (
-                <div className="text-center text-gray-400 py-8 text-sm">
+                <div className="text-center text-slate-400 py-8 text-sm">
                   Нет активных мастеров
                 </div>
               ) : (
@@ -207,12 +207,12 @@ export default function MastersPage() {
 
           {/* Inactive */}
           <div>
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1 mb-2">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
               Неактивные ({inactive.length})
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
               {inactive.length === 0 ? (
-                <div className="text-center text-gray-400 py-8 text-sm">
+                <div className="text-center text-slate-400 py-8 text-sm">
                   Нет неактивных мастеров
                 </div>
               ) : (
@@ -340,42 +340,42 @@ function MasterFormModal({
         className="bg-white rounded-t-2xl lg:rounded-2xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold text-gray-900 mb-4">
+        <h2 className="text-base font-semibold text-slate-900 mb-4">
           {isEditing ? "Редактировать мастера" : "Новый мастер"}
         </h2>
 
         <div className="space-y-4">
           {/* Full name */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-slate-500 mb-1">
               ФИО <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Телефон</label>
+            <label className="block text-xs text-slate-500 mb-1">Телефон</label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
           {/* Team */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Бригада</label>
+            <label className="block text-xs text-slate-500 mb-1">Бригада</label>
             <select
               value={teamId ?? ""}
               onChange={(e) => setTeamId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               <option value="">— Без бригады —</option>
               {teams.map((t) => (
@@ -388,11 +388,11 @@ function MasterFormModal({
 
           {/* Role */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Роль</label>
+            <label className="block text-xs text-slate-500 mb-1">Роль</label>
             <select
               value={role}
               onChange={(e) => handleRoleChange(e.target.value as MasterRole)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               {(Object.keys(ROLE_LABELS) as MasterRole[]).map((r) => (
                 <option key={r} value={r}>
@@ -404,16 +404,16 @@ function MasterFormModal({
 
           {/* Active toggle */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700">Активен</span>
+            <span className="text-sm text-slate-700">Активен</span>
             <ToggleSwitch checked={isActive} onChange={setIsActive} />
           </div>
 
           {/* Permissions section */}
-          <div className="border border-gray-200 rounded-lg">
+          <div className="border border-slate-200 rounded-lg">
             <button
               type="button"
               onClick={() => setPermsOpen((p) => !p)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-800"
+              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-800"
             >
               <span>Доступы</span>
               <svg
@@ -429,20 +429,20 @@ function MasterFormModal({
               </svg>
             </button>
             {permsOpen && (
-              <div className="px-3 pb-3 space-y-4 border-t border-gray-100 pt-3">
+              <div className="px-3 pb-3 space-y-4 border-t border-slate-100 pt-3">
                 {PERMISSION_GROUPS.filter((g) => g.permissions.length > 0).map((group) => (
                   <div key={group.key}>
                     <div className="text-[11px] font-bold text-violet-700 uppercase tracking-wide mb-1">
                       {group.title}
                     </div>
-                    <div className="text-[11px] text-gray-500 mb-2">{group.description}</div>
-                    <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+                    <div className="text-[11px] text-slate-500 mb-2">{group.description}</div>
+                    <div className="space-y-2 bg-slate-50 rounded-lg p-3">
                       {group.permissions.map((key) => (
                         <div
                           key={key}
                           className="flex items-center justify-between"
                         >
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-slate-700">
                             {PERMISSION_LABELS[key]}
                           </span>
                           <ToggleSwitch
@@ -457,7 +457,7 @@ function MasterFormModal({
 
                 {/* Visible teams */}
                 <div className="pt-2">
-                  <div className="text-xs text-gray-500 mb-2">
+                  <div className="text-xs text-slate-500 mb-2">
                     Видимые бригады
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -467,7 +467,7 @@ function MasterFormModal({
                       className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                         allTeamsVisible
                           ? "bg-violet-600 text-white border-violet-600"
-                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                       }`}
                     >
                       Все
@@ -485,7 +485,7 @@ function MasterFormModal({
                             className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap ${
                               selected
                                 ? "bg-violet-600 text-white border-violet-600"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                             }`}
                           >
                             {t.name}
@@ -515,7 +515,7 @@ function MasterFormModal({
             <button
               type="button"
               onClick={onCancel}
-              className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50"
+              className="border border-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-50"
             >
               Отмена
             </button>
@@ -549,7 +549,7 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-9 h-5 rounded-full transition-colors ${
-        checked ? "bg-violet-600" : "bg-gray-300"
+        checked ? "bg-violet-600" : "bg-slate-300"
       }`}
     >
       <span

@@ -54,7 +54,7 @@ export default function UndoToast({
       role="status"
       className="fixed left-1/2 bottom-6 -translate-x-1/2 z-[60] w-[min(92vw,380px)]"
     >
-      <div className="relative overflow-hidden rounded-xl bg-gray-900 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-xl bg-slate-900 text-white shadow-xl">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="flex-1 text-[13px] leading-snug">{message}</div>
           <button

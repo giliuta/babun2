@@ -53,20 +53,20 @@ export default function CalendarSettingsPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         <div className="max-w-lg mx-auto p-3 lg:p-4 space-y-4 pb-24">
 
           {/* Time range */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-4">
-            <div className="text-sm font-semibold text-gray-700">Диапазон часов</div>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-4">
+            <div className="text-sm font-semibold text-slate-700">Диапазон часов</div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Начало дня</label>
+                <label className="block text-xs text-slate-500 mb-1">Начало дня</label>
                 <select
                   value={draft.startHour}
                   onChange={(e) => patch({ startHour: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
                 >
                   {HOURS_0_23.map((h) => (
                     <option key={h} value={h}>
@@ -77,11 +77,11 @@ export default function CalendarSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Конец дня</label>
+                <label className="block text-xs text-slate-500 mb-1">Конец дня</label>
                 <select
                   value={draft.endHour}
                   onChange={(e) => patch({ endHour: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
                 >
                   {HOURS_1_24.map((h) => (
                     <option key={h} value={h}>
@@ -98,14 +98,14 @@ export default function CalendarSettingsPage() {
               </div>
             )}
 
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-slate-400">
               Открытие календаря будет прокручено к {String(draft.startHour).padStart(2, "0")}:00
             </div>
           </div>
 
           {/* Grid step */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-            <div className="text-sm font-semibold text-gray-700">Шаг сетки</div>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div className="text-sm font-semibold text-slate-700">Шаг сетки</div>
             <div className="flex gap-2">
               {([15, 30, 60] as const).map((step) => (
                 <button
@@ -115,7 +115,7 @@ export default function CalendarSettingsPage() {
                   className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
                     draft.gridStep === step
                       ? "border-violet-600 bg-violet-600 text-white"
-                      : "border-gray-200 text-gray-700 bg-white"
+                      : "border-slate-200 text-slate-700 bg-white"
                   }`}
                 >
                   {step} мин
@@ -125,8 +125,8 @@ export default function CalendarSettingsPage() {
           </div>
 
           {/* Week start */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-            <div className="text-sm font-semibold text-gray-700">Начало недели</div>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div className="text-sm font-semibold text-slate-700">Начало недели</div>
             <div className="flex gap-2">
               {(["monday", "sunday"] as const).map((day) => (
                 <button
@@ -136,7 +136,7 @@ export default function CalendarSettingsPage() {
                   className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
                     draft.weekStart === day
                       ? "border-violet-600 bg-violet-600 text-white"
-                      : "border-gray-200 text-gray-700 bg-white"
+                      : "border-slate-200 text-slate-700 bg-white"
                   }`}
                 >
                   {day === "monday" ? "Понедельник" : "Воскресенье"}
@@ -146,12 +146,12 @@ export default function CalendarSettingsPage() {
           </div>
 
           {/* Timezone */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-            <div className="text-sm font-semibold text-gray-700">Часовой пояс</div>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div className="text-sm font-semibold text-slate-700">Часовой пояс</div>
             <select
               value={draft.timezone}
               onChange={(e) => patch({ timezone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
             >
               {TIMEZONE_OPTIONS.map((tz) => (
                 <option key={tz} value={tz}>
@@ -166,7 +166,7 @@ export default function CalendarSettingsPage() {
             <button
               type="button"
               onClick={handleReset}
-              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium"
+              className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-sm font-medium"
             >
               Сбросить
             </button>
@@ -176,7 +176,7 @@ export default function CalendarSettingsPage() {
               disabled={!!error}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 error
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                   : saved
                   ? "bg-green-600 text-white"
                   : "bg-violet-600 text-white active:bg-violet-700"
@@ -187,19 +187,19 @@ export default function CalendarSettingsPage() {
           </div>
 
           {/* Related: booking-form customisation */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <Link
               href="/dashboard/settings/booking"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
             >
               <span className="text-xl w-7 text-center shrink-0">🏠</span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900">Записи — типы объектов</div>
-                <div className="text-[11px] text-gray-400 mt-0.5">
+                <div className="text-sm font-medium text-slate-900">Записи — типы объектов</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
                   Дом, Квартира, Офис, Вилла — добавь свои
                 </div>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-300 shrink-0">
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </Link>

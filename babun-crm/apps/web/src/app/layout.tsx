@@ -56,7 +56,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-gray-50 font-sans">
+      <body className="min-h-full flex flex-col bg-slate-50 font-sans">
         <ServiceWorkerRegister />
         {children}
       </body>

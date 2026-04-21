@@ -91,14 +91,14 @@ export default function FinancesPage() {
           <button
             type="button"
             onClick={() => setShowCategories(true)}
-            className="px-2 py-1.5 lg:px-3 text-xs lg:text-sm font-medium text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100 rounded-lg"
+            className="px-2 py-1.5 lg:px-3 text-xs lg:text-sm font-medium text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100 rounded-lg"
           >
             ⚙ Категории
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50 relative">
+      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-8 space-y-3 stagger-children">
           <div className="grid grid-cols-4 gap-1.5">
             <SummaryCard
@@ -137,12 +137,12 @@ export default function FinancesPage() {
             />
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200 relative flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 relative flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowPeriodMenu((s) => !s)}
-                className="flex items-center gap-1 text-sm font-semibold text-gray-900 hover:opacity-80"
+                className="flex items-center gap-1 text-sm font-semibold text-slate-900 hover:opacity-80"
               >
                 {selectedPeriodLabel}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -161,7 +161,7 @@ export default function FinancesPage() {
                 Зарплата {totalPayroll > 0 && `· ${formatEUR(totalPayroll)}`}
               </button>
               {showPeriodMenu && (
-                <div className="absolute top-full left-4 mt-1 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[200px] border border-gray-200">
+                <div className="absolute top-full left-4 mt-1 bg-white rounded-lg shadow-lg py-1 z-10 min-w-[200px] border border-slate-200">
                   {PERIODS.map((p) => (
                     <button
                       key={p.key}
@@ -170,8 +170,8 @@ export default function FinancesPage() {
                         setPeriod(p.key);
                         setShowPeriodMenu(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                        period === p.key ? "text-violet-600 font-medium" : "text-gray-700"
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 ${
+                        period === p.key ? "text-violet-600 font-medium" : "text-slate-700"
                       }`}
                     >
                       {p.label}
@@ -181,7 +181,7 @@ export default function FinancesPage() {
               )}
             </div>
 
-            <div className="flex border-b border-gray-200 overflow-x-auto">
+            <div className="flex border-b border-slate-200 overflow-x-auto">
               {teamTabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -190,7 +190,7 @@ export default function FinancesPage() {
                   className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                     activeTeam === tab.id
                       ? "text-violet-600 border-b-2 border-violet-600"
-                      : "text-gray-500 hover:text-gray-700"
+                      : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   {tab.name}
@@ -198,8 +198,8 @@ export default function FinancesPage() {
               ))}
             </div>
 
-            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-              <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+            <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
                 {MODE_LABELS[mode]}
               </div>
             </div>
@@ -310,7 +310,7 @@ function SummaryCard({
     const positive = delta > 0;
     const goodDirection = deltaPositiveGood ? positive : !positive;
     const deltaColor =
-      delta === 0 ? "text-gray-400" : goodDirection ? "text-emerald-600" : "text-rose-500";
+      delta === 0 ? "text-slate-400" : goodDirection ? "text-emerald-600" : "text-rose-500";
     deltaEl = (
       <div className={`text-[10px] font-semibold tabular-nums ${deltaColor}`}>
         {formatPercentDelta(delta)}
@@ -323,10 +323,10 @@ function SummaryCard({
       type="button"
       onClick={onClick}
       className={`rounded-xl border px-2 py-2 text-left transition active:scale-[0.98] ${
-        active ? "bg-white border-violet-500 ring-1 ring-violet-500" : "bg-white border-gray-200"
+        active ? "bg-white border-violet-500 ring-1 ring-violet-500" : "bg-white border-slate-200"
       }`}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </div>
       <div className={`text-[13px] font-bold tabular-nums mt-0.5 ${amountColor}`}>{body}</div>
@@ -351,10 +351,10 @@ function CombinedSummary({
 
   return (
     <div>
-      <div className="px-4 py-4 space-y-3 border-b border-gray-200">
+      <div className="px-4 py-4 space-y-3 border-b border-slate-200">
         <Row label="Доход" value={`+${formatEUR(totalIncome)}`} color="emerald" />
         <Row label="Расход" value={`−${formatEUR(totalExpense)}`} color="rose" />
-        <div className="h-px bg-gray-200" />
+        <div className="h-px bg-slate-200" />
         <Row
           label="Прибыль"
           value={formatEURSigned(profit)}
@@ -364,15 +364,15 @@ function CombinedSummary({
         <Row label="Маржа" value={`${margin}%`} color="gray" />
       </div>
 
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
           Счёт записей
         </div>
         <div className="mt-1 grid grid-cols-2 gap-2 text-[12px]">
-          <div className="text-gray-700">
+          <div className="text-slate-700">
             Доходных строк: <span className="font-semibold">{incomeCount}</span>
           </div>
-          <div className="text-gray-700">
+          <div className="text-slate-700">
             Расходных строк: <span className="font-semibold">{expenseCount}</span>
           </div>
         </div>
@@ -385,7 +385,7 @@ function CombinedSummary({
       )}
 
       {incomeCount === 0 && expenseCount === 0 && (
-        <div className="px-4 py-6 text-center text-[12px] text-gray-400">
+        <div className="px-4 py-6 text-center text-[12px] text-slate-400">
           Нет данных за выбранный период.
         </div>
       )}
@@ -407,19 +407,19 @@ function CashboxBlock({
   shouldBe: number;
 }) {
   return (
-    <div className="px-4 py-4 border-t border-gray-200 bg-white">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
+    <div className="px-4 py-4 border-t border-slate-200 bg-white">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
         Сверка кассы
       </div>
       <div className="space-y-1.5">
         <KV label="Пришло наличкой" value={`+${formatEUR(cash)}`} tone="emerald" />
         <KV label="Пришло на карту" value={`+${formatEUR(card)}`} tone="sky" />
-        <div className="h-px bg-gray-100 my-1" />
+        <div className="h-px bg-slate-100 my-1" />
         <KV label="Расходы (из нала)" value={`−${formatEUR(expense)}`} tone="rose" />
         <KV label="ЗП бригаде (расчётная)" value={`−${formatEUR(salary)}`} tone="violet" />
-        <div className="h-px bg-gray-200 my-1.5" />
+        <div className="h-px bg-slate-200 my-1.5" />
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-gray-900">В кассе должно быть</span>
+          <span className="text-[13px] font-semibold text-slate-900">В кассе должно быть</span>
           <span
             className={`text-[17px] font-bold tabular-nums ${
               shouldBe >= 0 ? "text-emerald-700" : "text-rose-700"
@@ -452,7 +452,7 @@ function KV({
       : "text-violet-600";
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[13px] text-gray-600">{label}</span>
+      <span className="text-[13px] text-slate-600">{label}</span>
       <span className={`text-[14px] font-semibold tabular-nums ${color}`}>{value}</span>
     </div>
   );
@@ -476,10 +476,10 @@ function Row({
       ? "text-rose-600"
       : color === "indigo"
       ? "text-violet-600"
-      : "text-gray-600";
+      : "text-slate-600";
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[13px] text-gray-600">{label}</span>
+      <span className="text-[13px] text-slate-600">{label}</span>
       <span
         className={`tabular-nums ${colorClass} ${bold ? "text-[16px] font-bold" : "text-[14px] font-semibold"}`}
       >

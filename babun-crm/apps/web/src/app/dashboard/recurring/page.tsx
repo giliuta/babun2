@@ -55,7 +55,7 @@ export default function RecurringPage() {
         title={`Напоминания${due.length > 0 ? ` (${due.length})` : ""}`}
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
           {totalPending === 0 ? (
             <EmptyState

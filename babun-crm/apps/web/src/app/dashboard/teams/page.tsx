@@ -124,7 +124,7 @@ export default function TeamsPage() {
               type="button"
               onClick={() => router.push("/dashboard/masters")}
               aria-label="Мастера"
-              className="px-2.5 h-9 flex items-center gap-1.5 rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100 text-[12px] font-medium"
+              className="px-2.5 h-9 flex items-center gap-1.5 rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100 text-[12px] font-medium"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -136,7 +136,7 @@ export default function TeamsPage() {
               type="button"
               onClick={openNew}
               aria-label="Добавить бригаду"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -147,15 +147,15 @@ export default function TeamsPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50 relative">
+      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
           {teams.length === 0 && (
-            <div className="text-center text-gray-400 py-10 text-sm">
+            <div className="text-center text-slate-400 py-10 text-sm">
               Нет бригад. Нажмите «+» чтобы создать.
             </div>
           )}
 
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1">
             Бригады
           </div>
           {teams.map((team) => {
@@ -163,7 +163,7 @@ export default function TeamsPage() {
             return (
               <div
                 key={team.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4"
+                className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4"
               >
                 {/* Top row: color circle + name/region + actions */}
                 <div className="flex items-start gap-3">
@@ -174,10 +174,10 @@ export default function TeamsPage() {
                     {team.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 truncate">
+                    <div className="text-sm font-semibold text-slate-900 truncate">
                       {team.name}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
+                    <div className="text-xs text-slate-500 truncate">
                       {team.region || "—"}
                     </div>
                   </div>
@@ -186,7 +186,7 @@ export default function TeamsPage() {
                       type="button"
                       onClick={() => openEdit(team)}
                       aria-label="Редактировать"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                     >
                       <svg
                         width="16"
@@ -233,15 +233,15 @@ export default function TeamsPage() {
                       >
                         {getInitials(lead.full_name)}
                       </div>
-                      <div className="text-xs text-gray-700 whitespace-nowrap">
+                      <div className="text-xs text-slate-700 whitespace-nowrap">
                         Бригадир:{" "}
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-slate-900">
                           {lead.full_name}
                         </span>
                       </div>
                     </>
                   ) : (
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-slate-400">
                       Бригадир не назначен
                     </div>
                   )}
@@ -250,14 +250,14 @@ export default function TeamsPage() {
                 {/* Helpers row */}
                 {helpers.length > 0 && (
                   <div className="mt-2 flex items-start gap-2">
-                    <div className="text-xs text-gray-500 shrink-0 pt-0.5">
+                    <div className="text-xs text-slate-500 shrink-0 pt-0.5">
                       Помощники:
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {helpers.map((h) => (
                         <span
                           key={h.id}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[11px] whitespace-nowrap"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] whitespace-nowrap"
                         >
                           {h.full_name}
                         </span>
@@ -272,7 +272,7 @@ export default function TeamsPage() {
                     className={`inline-block text-[11px] px-2 py-0.5 rounded-full ${
                       team.active
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500"
+                        : "bg-slate-100 text-slate-500"
                     }`}
                   >
                     {team.active ? "Активна" : "Неактивна"}
@@ -285,7 +285,7 @@ export default function TeamsPage() {
           {/* Мастера section — inline access from the teams page.
               Tap any master to jump to /dashboard/masters for edit. */}
           <div className="pt-4 flex items-center justify-between px-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               Мастера ({masters.length})
             </div>
             <button
@@ -298,13 +298,13 @@ export default function TeamsPage() {
           </div>
 
           {masters.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 text-center text-[12px] text-gray-400">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 text-center text-[12px] text-slate-400">
               Пока нет мастеров. Добавьте их на странице «Мастера».
             </div>
           )}
 
           {masters.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
               {masters.map((m, i) => {
                 const team = m.team_id
                   ? teams.find((t) => t.id === m.team_id) ?? null
@@ -316,8 +316,8 @@ export default function TeamsPage() {
                     onClick={() =>
                       router.push(`/dashboard/masters?edit=${m.id}`)
                     }
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left active:bg-gray-50 ${
-                      i < masters.length - 1 ? "border-b border-gray-100" : ""
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-50 ${
+                      i < masters.length - 1 ? "border-b border-slate-100" : ""
                     }`}
                   >
                     <div
@@ -327,16 +327,16 @@ export default function TeamsPage() {
                       {getInitials(m.full_name)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold text-gray-900 truncate">
+                      <div className="text-[13px] font-semibold text-slate-900 truncate">
                         {m.full_name || "Без имени"}
                       </div>
-                      <div className="text-[11px] text-gray-500 truncate">
+                      <div className="text-[11px] text-slate-500 truncate">
                         {ROLE_LABELS[m.role]}
                         {team ? ` · ${team.name}` : " · Без бригады"}
                       </div>
                     </div>
                     {!m.is_active && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                         Неактивен
                       </span>
                     )}
@@ -347,7 +347,7 @@ export default function TeamsPage() {
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2.5"
-                      className="text-gray-300 ml-1"
+                      className="text-slate-300 ml-1"
                     >
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
@@ -478,37 +478,37 @@ function TeamFormModal({
         className="bg-white rounded-t-2xl lg:rounded-2xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold text-gray-900 mb-4">
+        <h2 className="text-base font-semibold text-slate-900 mb-4">
           {team ? "Редактировать бригаду" : "Новая бригада"}
         </h2>
 
         <div className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Название</label>
+            <label className="block text-xs text-slate-500 mb-1">Название</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
           {/* Region */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Регион</label>
+            <label className="block text-xs text-slate-500 mb-1">Регион</label>
             <input
               type="text"
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="Например: Пафос, Лимассол"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
           {/* Default city */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-slate-500 mb-1">
               Базовый город
             </label>
             <input
@@ -516,9 +516,9 @@ function TeamFormModal({
               value={defaultCity}
               onChange={(e) => setDefaultCity(e.target.value)}
               placeholder="Например: Пафос"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
-            <div className="text-[11px] text-gray-400 mt-1">
+            <div className="text-[11px] text-slate-400 mt-1">
               Ставится дефолтом на каждый день в календаре. Можно переопределить
               тапом по дню.
             </div>
@@ -526,7 +526,7 @@ function TeamFormModal({
 
           {/* Payout percentage */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-slate-500 mb-1">
               Зарплата (% от чистого дохода)
             </label>
             <div className="flex items-center gap-2">
@@ -536,11 +536,11 @@ function TeamFormModal({
                 max={100}
                 value={payoutPercentage}
                 onChange={(e) => setPayoutPercentage(Number(e.target.value) || 0)}
-                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 tabular-nums"
+                className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 tabular-nums"
               />
-              <span className="text-sm text-gray-500">%</span>
+              <span className="text-sm text-slate-500">%</span>
             </div>
-            <div className="text-[11px] text-gray-400 mt-1">
+            <div className="text-[11px] text-slate-400 mt-1">
               Применяется к (доход − расход бригады) за выбранный период.
               Используется на странице Финансы → Зарплата.
             </div>
@@ -548,7 +548,7 @@ function TeamFormModal({
 
           {/* Color */}
           <div>
-            <label className="block text-xs text-gray-500 mb-2">Цвет</label>
+            <label className="block text-xs text-slate-500 mb-2">Цвет</label>
             <div className="grid grid-cols-8 gap-2">
               {TEAM_COLORS.map((c) => (
                 <button
@@ -569,13 +569,13 @@ function TeamFormModal({
 
           {/* Lead */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-slate-500 mb-1">
               Бригадир (Лид)
             </label>
             <select
               value={leadId ?? ""}
               onChange={(e) => setLeadId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               <option value="">— Не выбран —</option>
               {activeMasters.map((m) => {
@@ -592,10 +592,10 @@ function TeamFormModal({
 
           {/* Helpers */}
           <div>
-            <label className="block text-xs text-gray-500 mb-2">Помощники</label>
-            <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+            <label className="block text-xs text-slate-500 mb-2">Помощники</label>
+            <div className="space-y-1 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2">
               {availableHelpers.length === 0 && (
-                <div className="text-xs text-gray-400 px-2 py-1">
+                <div className="text-xs text-slate-400 px-2 py-1">
                   Нет доступных мастеров
                 </div>
               )}
@@ -604,7 +604,7 @@ function TeamFormModal({
                 return (
                   <label
                     key={m.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -612,7 +612,7 @@ function TeamFormModal({
                       onChange={() => toggleHelper(m.id)}
                       className="w-4 h-4 accent-violet-600"
                     />
-                    <span className="text-sm text-gray-800">{m.full_name}</span>
+                    <span className="text-sm text-slate-800">{m.full_name}</span>
                   </label>
                 );
               })}
@@ -621,7 +621,7 @@ function TeamFormModal({
 
           {/* Active toggle */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700">Активна</span>
+            <span className="text-sm text-slate-700">Активна</span>
             <ToggleSwitch checked={active} onChange={setActive} />
           </div>
         </div>
@@ -630,7 +630,7 @@ function TeamFormModal({
           <button
             type="button"
             onClick={onCancel}
-            className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50"
+            className="border border-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-50"
           >
             Отмена
           </button>
@@ -663,7 +663,7 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-9 h-5 rounded-full transition-colors ${
-        checked ? "bg-violet-600" : "bg-gray-300"
+        checked ? "bg-violet-600" : "bg-slate-300"
       }`}
     >
       <span

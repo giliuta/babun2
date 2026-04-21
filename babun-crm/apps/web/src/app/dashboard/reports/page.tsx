@@ -100,8 +100,8 @@ function SummaryCard({
     color === "rose" ? "text-rose-600" : "text-violet-600";
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-3 py-3 flex-1 min-w-0">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">{label}</div>
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-3 flex-1 min-w-0">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
       <div className={`text-[15px] font-bold tabular-nums mt-0.5 ${colorClass}`}>
         {signed ? formatEURSigned(amount) : formatEUR(amount)}
       </div>
@@ -193,25 +193,25 @@ export default function ReportsPage() {
     <>
       <PageHeader title="Отчёты" />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         {/* Period selector */}
-        <div className="relative bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2">
+        <div className="relative bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowPeriodMenu((v) => !v)}
-            className="flex items-center gap-1 text-sm font-semibold text-gray-900"
+            className="flex items-center gap-1 text-sm font-semibold text-slate-900"
           >
             {selectedLabel}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
           </button>
           {showPeriodMenu && (
-            <div className="absolute top-full left-0 mt-0 bg-white shadow-lg rounded-b-xl z-20 w-52 border border-gray-200 border-t-0">
+            <div className="absolute top-full left-0 mt-0 bg-white shadow-lg rounded-b-xl z-20 w-52 border border-slate-200 border-t-0">
               {PERIODS.map((p) => (
                 <button
                   key={p.key}
                   type="button"
                   onClick={() => { setPeriod(p.key); setShowPeriodMenu(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-violet-600 font-semibold bg-violet-50" : "text-gray-700 hover:bg-gray-50"}`}
+                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-violet-600 font-semibold bg-violet-50" : "text-slate-700 hover:bg-slate-50"}`}
                 >
                   {p.label}
                 </button>
@@ -221,7 +221,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Brigade tabs */}
-        <div className="bg-white border-b border-gray-200 flex overflow-x-auto">
+        <div className="bg-white border-b border-slate-200 flex overflow-x-auto">
           {[{ id: "all", name: "Все" }, ...brigades].map((b) => (
             <button
               key={b.id}
@@ -230,7 +230,7 @@ export default function ReportsPage() {
               className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeBrigade === b.id
                   ? "text-violet-600 border-b-2 border-violet-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {b.name}
@@ -254,13 +254,13 @@ export default function ReportsPage() {
             if (company.vat_mode === "off" || totalIncome <= 0) return null;
             const vat = splitVat(totalIncome, company.vat_mode, company.vat_rate_percent);
             return (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-baseline justify-between gap-3">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-baseline justify-between gap-3">
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     VAT · {vat.rate}%{" "}
                     {vat.mode === "inclusive" ? "(включён)" : "(сверху)"}
                   </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5 tabular-nums">
+                  <div className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
                     Нетто {formatEUR(vat.net)}
                   </div>
                 </div>
@@ -268,7 +268,7 @@ export default function ReportsPage() {
                   <div className="text-[15px] font-bold text-violet-700 tabular-nums">
                     {formatEUR(vat.vat)}
                   </div>
-                  <div className="text-[10px] text-gray-400">к уплате</div>
+                  <div className="text-[10px] text-slate-400">к уплате</div>
                 </div>
               </div>
             );
@@ -276,10 +276,10 @@ export default function ReportsPage() {
 
           {/* Empty state */}
           {!hasData && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center">
               <div className="text-3xl mb-2">📈</div>
-              <div className="text-sm text-gray-500">Нет данных за выбранный период.</div>
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-sm text-slate-500">Нет данных за выбранный период.</div>
+              <div className="text-xs text-slate-400 mt-1">
                 Добавьте выплаты в разделе Расходы, или создайте финансовые платежи.
               </div>
             </div>
@@ -287,9 +287,9 @@ export default function ReportsPage() {
 
           {/* Day table */}
           {dayRows.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                <div className="grid grid-cols-4 gap-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
+                <div className="grid grid-cols-4 gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   <span>Дата</span>
                   <span className="text-right">Доход</span>
                   <span className="text-right">Расход</span>
@@ -305,10 +305,10 @@ export default function ReportsPage() {
                       type="button"
                       onClick={() => setExpandedDay(isExpanded ? null : row.date)}
                       className={`w-full grid grid-cols-4 gap-2 px-4 py-3 text-left ${
-                        i < dayRows.length - 1 ? "border-b border-gray-100" : ""
-                      } ${isExpanded ? "bg-violet-50" : "hover:bg-gray-50"}`}
+                        i < dayRows.length - 1 ? "border-b border-slate-100" : ""
+                      } ${isExpanded ? "bg-violet-50" : "hover:bg-slate-50"}`}
                     >
-                      <span className="text-[12px] text-gray-700">{row.date.slice(5)}</span>
+                      <span className="text-[12px] text-slate-700">{row.date.slice(5)}</span>
                       <span className="text-[12px] font-medium text-emerald-600 tabular-nums text-right">
                         {row.income > 0 ? `+${formatEUR(row.income)}` : "—"}
                       </span>
@@ -326,19 +326,19 @@ export default function ReportsPage() {
                         {expandedIncome.map((l) => (
                           <div key={l.id} className="flex items-center gap-2 text-[12px]">
                             <span className="text-emerald-600">+</span>
-                            <span className="flex-1 text-gray-700 truncate">{l.description}</span>
+                            <span className="flex-1 text-slate-700 truncate">{l.description}</span>
                             <span className="font-semibold text-emerald-600 tabular-nums">{formatEUR(l.amount)}</span>
                           </div>
                         ))}
                         {expandedExpense.map((l) => (
                           <div key={l.id} className="flex items-center gap-2 text-[12px]">
                             <span className="text-rose-600">−</span>
-                            <span className="flex-1 text-gray-700 truncate">{l.description}</span>
+                            <span className="flex-1 text-slate-700 truncate">{l.description}</span>
                             <span className="font-semibold text-rose-600 tabular-nums">{formatEUR(l.amount)}</span>
                           </div>
                         ))}
                         {expandedIncome.length === 0 && expandedExpense.length === 0 && (
-                          <div className="text-[11px] text-gray-400">Нет деталей</div>
+                          <div className="text-[11px] text-slate-400">Нет деталей</div>
                         )}
                       </div>
                     )}
@@ -347,8 +347,8 @@ export default function ReportsPage() {
               })}
 
               {/* Totals row */}
-              <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-gray-50 border-t border-gray-200">
-                <span className="text-[12px] font-semibold text-gray-700">Итого</span>
+              <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-slate-50 border-t border-slate-200">
+                <span className="text-[12px] font-semibold text-slate-700">Итого</span>
                 <span className="text-[12px] font-bold text-emerald-600 tabular-nums text-right">+{formatEUR(totalIncome)}</span>
                 <span className="text-[12px] font-bold text-rose-600 tabular-nums text-right">−{formatEUR(totalExpense)}</span>
                 <span className={`text-[12px] font-bold tabular-nums text-right ${totalProfit >= 0 ? "text-violet-600" : "text-rose-600"}`}>

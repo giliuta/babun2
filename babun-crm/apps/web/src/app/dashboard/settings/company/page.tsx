@@ -33,7 +33,7 @@ export default function CompanySettingsPage() {
   return (
     <>
       <PageHeader title="Реквизиты компании" backHref="/dashboard/settings" />
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         <div className="max-w-xl mx-auto p-3 lg:p-4 space-y-3">
 
           <Section title="Название и реквизиты">

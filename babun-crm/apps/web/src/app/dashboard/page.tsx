@@ -892,7 +892,7 @@ export default function DashboardPage() {
 
       {/* STORY-003: thin action bar under the header.
           Single TodayChip replaces the 7-column per-day income footer. */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-1 flex items-center gap-2">
+      <div className="flex-shrink-0 bg-white border-b border-slate-200 px-3 py-1 flex items-center gap-2">
         <TodayChip
           appointments={visibleAppointments}
           teamId={activeTeamId}
@@ -971,7 +971,7 @@ export default function DashboardPage() {
                 through to the day grid. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute top-0 bottom-0 left-12 lg:left-16 w-[2px] bg-gray-400 z-10"
+              className="pointer-events-none absolute top-0 bottom-0 left-12 lg:left-16 w-[2px] bg-slate-400 z-10"
             />
           </div>
         )}

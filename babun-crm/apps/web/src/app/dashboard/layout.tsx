@@ -699,7 +699,7 @@ export default function DashboardLayout({
       <SchedulesContext.Provider value={schedulesValue}>
       <ConfirmProvider>
         <div
-          className="h-[100dvh] flex overflow-hidden bg-gray-50"
+          className="h-[100dvh] flex overflow-hidden bg-slate-50"
           style={{
             paddingTop: "env(safe-area-inset-top)",
             paddingLeft: "env(safe-area-inset-left)",

@@ -115,17 +115,17 @@ export default function DayFinanceModal({
         {/* Appointments-sourced rows (read-only) */}
         {appointments.length > 0 ? (
           <>
-            <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               Из записей
             </div>
-            <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-100">
+            <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-100">
               <span className="text-[13px] text-emerald-700">Доход</span>
               <span className="text-[13px] font-semibold text-emerald-700 tabular-nums">
                 +{apptIncome}
               </span>
             </div>
             {apptMaterialCost > 0 && (
-              <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-100">
+              <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-100">
                 <span className="text-[13px] text-red-600">Материалы</span>
                 <span className="text-[13px] font-semibold text-red-600 tabular-nums">
                   −{apptMaterialCost}
@@ -133,7 +133,7 @@ export default function DayFinanceModal({
               </div>
             )}
             {apptManualExpenses > 0 && (
-              <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-100">
+              <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-100">
                 <span className="text-[13px] text-red-600">Расходы по записям</span>
                 <span className="text-[13px] font-semibold text-red-600 tabular-nums">
                   −{apptManualExpenses}
@@ -142,27 +142,27 @@ export default function DayFinanceModal({
             )}
           </>
         ) : (
-          <div className="px-4 pt-3 pb-2 text-[12px] text-gray-400">
+          <div className="px-4 pt-3 pb-2 text-[12px] text-slate-400">
             Записей на этот день нет
           </div>
         )}
 
         {/* Day-level extras */}
-        <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           Дополнительно
         </div>
         {localExtras.length > 0 ? (
           localExtras.map((e) => (
             <div
               key={e.id}
-              className="flex items-center gap-2 px-4 py-1.5 border-t border-gray-100"
+              className="flex items-center gap-2 px-4 py-1.5 border-t border-slate-100"
             >
               <div
                 className={`w-1 h-5 rounded-full flex-shrink-0 ${
                   e.kind === "income" ? "bg-emerald-400" : "bg-red-400"
                 }`}
               />
-              <span className="flex-1 text-[13px] text-gray-900 truncate">
+              <span className="flex-1 text-[13px] text-slate-900 truncate">
                 {e.name}
               </span>
               <span
@@ -177,7 +177,7 @@ export default function DayFinanceModal({
                 type="button"
                 onClick={() => handleRemoveExtra(e.id)}
                 aria-label="Удалить"
-                className="w-6 h-6 flex items-center justify-center text-gray-400 active:text-red-500"
+                className="w-6 h-6 flex items-center justify-center text-slate-400 active:text-red-500"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -188,7 +188,7 @@ export default function DayFinanceModal({
           ))
         ) : (
           !showAdd && (
-            <div className="px-4 py-2 text-[12px] text-gray-400">
+            <div className="px-4 py-2 text-[12px] text-slate-400">
               Нет дополнительных записей
             </div>
           )
@@ -214,7 +214,7 @@ export default function DayFinanceModal({
                   className={`flex-1 h-8 rounded text-[12px] font-semibold ${
                     newKind === "expense"
                       ? "bg-red-500 text-white"
-                      : "text-gray-500"
+                      : "text-slate-500"
                   }`}
                 >
                   Расход
@@ -225,7 +225,7 @@ export default function DayFinanceModal({
                   className={`flex-1 h-8 rounded text-[12px] font-semibold ${
                     newKind === "income"
                       ? "bg-emerald-500 text-white"
-                      : "text-gray-500"
+                      : "text-slate-500"
                   }`}
                 >
                   Доход
@@ -237,7 +237,7 @@ export default function DayFinanceModal({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Название (например, Бензин)"
-                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -249,9 +249,9 @@ export default function DayFinanceModal({
                     setNewAmount(v === "" ? "" : Number(v) || 0);
                   }}
                   placeholder="Сумма"
-                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
-                <span className="text-[13px] text-gray-500">€</span>
+                <span className="text-[13px] text-slate-500">€</span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -261,7 +261,7 @@ export default function DayFinanceModal({
                     setNewName("");
                     setNewAmount("");
                   }}
-                  className="flex-1 h-9 text-[12px] text-gray-600 font-medium"
+                  className="flex-1 h-9 text-[12px] text-slate-600 font-medium"
                 >
                   Отмена
                 </button>
@@ -283,7 +283,7 @@ export default function DayFinanceModal({
         </div>
 
         {/* Summary */}
-        <div className="border-t-2 border-gray-200 mt-1 pt-2 pb-1 px-4 space-y-0.5">
+        <div className="border-t-2 border-slate-200 mt-1 pt-2 pb-1 px-4 space-y-0.5">
           <div className="flex items-baseline justify-between">
             <span className="text-[12px] text-emerald-600">Итого доход</span>
             <span className="text-[13px] font-semibold text-emerald-600 tabular-nums">
@@ -296,7 +296,7 @@ export default function DayFinanceModal({
               {totalExpense}
             </span>
           </div>
-          <div className="flex items-baseline justify-between pt-1 border-t border-gray-100">
+          <div className="flex items-baseline justify-between pt-1 border-t border-slate-100">
             <span className="text-[13px] font-semibold text-sky-600">Прибыль</span>
             <span className="text-[18px] font-bold text-sky-600 tabular-nums">
               {profit}

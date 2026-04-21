@@ -68,7 +68,7 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
         </div>
 
         {/* Team tabs */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-slate-200">
           {TEAM_TABS.map((tab) => (
             <button
               key={tab}
@@ -76,7 +76,7 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTeam === tab
                   ? "text-violet-600 border-b-2 border-violet-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {tab}
@@ -85,15 +85,15 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
         </div>
 
         {/* Period selector */}
-        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <span className="text-xs text-gray-500 font-medium">По месяцам</span>
-          <span className="text-xs text-gray-400">Янв 2026 — Апр 2026</span>
+        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <span className="text-xs text-slate-500 font-medium">По месяцам</span>
+          <span className="text-xs text-slate-400">Янв 2026 — Апр 2026</span>
         </div>
 
         {/* Table */}
         <div className="flex-1 overflow-y-auto">
           {/* Table header */}
-          <div className="grid grid-cols-4 gap-2 px-4 py-2 bg-gray-50 text-xs text-gray-500 font-medium border-b border-gray-200">
+          <div className="grid grid-cols-4 gap-2 px-4 py-2 bg-slate-50 text-xs text-slate-500 font-medium border-b border-slate-200">
             <div>Период</div>
             <div className="text-right">Доходы</div>
             <div className="text-right">Расходы</div>
@@ -104,9 +104,9 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
           {reports.map((row) => (
             <div
               key={row.period}
-              className="grid grid-cols-4 gap-2 px-4 py-3 border-b border-gray-100 text-sm"
+              className="grid grid-cols-4 gap-2 px-4 py-3 border-b border-slate-100 text-sm"
             >
-              <div className="text-gray-900">{row.period}</div>
+              <div className="text-slate-900">{row.period}</div>
               <div className="text-right text-green-600 font-medium">
                 {row.income.toLocaleString("ru-RU")}
               </div>
@@ -124,8 +124,8 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
           ))}
 
           {/* Total row */}
-          <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-gray-50 text-sm font-bold border-t border-gray-300">
-            <div className="text-gray-900">Итого</div>
+          <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-slate-50 text-sm font-bold border-t border-slate-300">
+            <div className="text-slate-900">Итого</div>
             <div className="text-right text-green-600">
               {totals.income.toLocaleString("ru-RU")}
             </div>
@@ -143,10 +143,10 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
         </div>
 
         {/* Bottom */}
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center">
+        <div className="px-4 py-3 border-t border-slate-200 flex items-center">
           <button
             onClick={onClose}
-            className="flex-1 text-center text-sm text-gray-600 hover:text-gray-900"
+            className="flex-1 text-center text-sm text-slate-600 hover:text-slate-900"
           >
             Закрыть
           </button>

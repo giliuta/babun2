@@ -103,10 +103,10 @@ export default function ActionMenuModal({
                   opt.onSelect();
                   onClose();
                 }}
-                className={`w-full text-left px-4 py-3 border-t border-gray-100 first:border-t-0 select-none ${
+                className={`w-full text-left px-4 py-3 border-t border-slate-100 first:border-t-0 select-none ${
                   opt.disabled
                     ? "cursor-not-allowed"
-                    : "active:bg-gray-50"
+                    : "active:bg-slate-50"
                 }`}
                 style={{
                   WebkitUserSelect: "none",
@@ -116,10 +116,10 @@ export default function ActionMenuModal({
                 <div
                   className={`text-[14px] font-normal ${
                     opt.disabled
-                      ? "text-gray-400"
+                      ? "text-slate-400"
                       : opt.danger
                         ? "text-red-600"
-                        : "text-gray-900"
+                        : "text-slate-900"
                   }`}
                 >
                   {opt.label}
@@ -127,7 +127,7 @@ export default function ActionMenuModal({
                 {opt.subtitle && (
                   <div
                     className={`text-[11px] mt-0.5 ${
-                      opt.disabled ? "text-gray-300" : "text-gray-500"
+                      opt.disabled ? "text-slate-300" : "text-slate-500"
                     }`}
                   >
                     {opt.subtitle}
@@ -138,7 +138,7 @@ export default function ActionMenuModal({
         </div>
 
         {/* Footer with ОТМЕНА */}
-        <div className="flex justify-end px-2 py-2 border-t border-gray-100 flex-shrink-0">
+        <div className="flex justify-end px-2 py-2 border-t border-slate-100 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}

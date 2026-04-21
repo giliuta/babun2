@@ -69,7 +69,7 @@ export default function WaitlistPage() {
             type="button"
             onClick={() => setEditing(createBlankWaitlistItem())}
             aria-label="Добавить в лист ожидания"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-gray-700 hover:bg-violet-600 lg:hover:bg-gray-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -79,7 +79,7 @@ export default function WaitlistPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50 relative">
+      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
           {/* Filter chips */}
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
@@ -99,7 +99,7 @@ export default function WaitlistPage() {
                   className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
                     active
                       ? "bg-violet-600 text-white"
-                      : "bg-white border border-gray-200 text-gray-600"
+                      : "bg-white border border-slate-200 text-slate-600"
                   }`}
                 >
                   {label} ({count})
@@ -109,13 +109,13 @@ export default function WaitlistPage() {
           </div>
 
           {/* Items */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
             {visible.map((item, index) => (
               <div
                 key={item.id}
                 className={
                   index < visible.length - 1
-                    ? "border-b border-gray-100"
+                    ? "border-b border-slate-100"
                     : ""
                 }
               >
@@ -166,17 +166,17 @@ export default function WaitlistPage() {
                   <button
                     type="button"
                     onClick={() => setEditing(item)}
-                    className="w-full text-left px-4 py-3 active:bg-gray-50"
+                    className="w-full text-left px-4 py-3 active:bg-slate-50"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold text-sm shrink-0">
                         {(item.client_name || "?").charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-gray-900 truncate">
+                        <div className="text-sm font-semibold text-slate-900 truncate">
                           {item.client_name || "Без имени"}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">
+                        <div className="text-xs text-slate-500 truncate">
                           {item.services || "—"}
                         </div>
                       </div>
@@ -188,22 +188,22 @@ export default function WaitlistPage() {
                     </div>
                     <div className="pl-[52px] mt-1 space-y-0.5">
                       {item.master && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-slate-500">
                           Мастер: {item.master}
                         </div>
                       )}
                       {item.deadline && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-slate-500">
                           До: {item.deadline}
                         </div>
                       )}
                       {item.time_pref && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-slate-500">
                           Время: {item.time_pref}
                         </div>
                       )}
                       {item.location && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-slate-500">
                           {item.location}
                         </div>
                       )}
@@ -220,10 +220,10 @@ export default function WaitlistPage() {
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                 </div>
-                <div className="text-[14px] font-semibold text-gray-900">
+                <div className="text-[14px] font-semibold text-slate-900">
                   Пока никто не ждёт
                 </div>
-                <div className="text-[12px] text-gray-500 max-w-xs">
+                <div className="text-[12px] text-slate-500 max-w-xs">
                   Добавьте клиента в лист ожидания, когда нет свободных окон.
                 </div>
                 <button
@@ -283,14 +283,14 @@ function WaitlistEditor({
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40">
       <div className="w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-          <div className="font-semibold text-[15px] text-gray-900">
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+          <div className="font-semibold text-[15px] text-slate-900">
             {item.client_name ? "Редактировать" : "Новая запись"}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
             aria-label="Закрыть"
           >
             ✕
@@ -353,7 +353,7 @@ function WaitlistEditor({
           />
 
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
               Статус
             </div>
             <div className="flex gap-1.5">
@@ -370,7 +370,7 @@ function WaitlistEditor({
                     className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition ${
                       active
                         ? STATUS_COLORS[s] + " ring-1 ring-current"
-                        : "bg-gray-50 text-gray-500"
+                        : "bg-slate-50 text-slate-500"
                     }`}
                   >
                     {STATUS_LABELS[s]}
@@ -381,7 +381,7 @@ function WaitlistEditor({
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-2">
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3 flex gap-2">
           {item.client_name && (
             <button
               type="button"
@@ -415,7 +415,7 @@ interface FieldProps {
 function Field({ label, value, onChange, placeholder, type = "text" }: FieldProps) {
   return (
     <label className="block">
-      <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+      <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
         {label}
       </span>
       <input
@@ -423,7 +423,7 @@ function Field({ label, value, onChange, placeholder, type = "text" }: FieldProp
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-10 px-3 rounded-lg bg-gray-50 border border-gray-200 text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-violet-500"
+        className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500"
       />
     </label>
   );

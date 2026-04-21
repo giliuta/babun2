@@ -448,9 +448,9 @@ export const COLOR_KIND_TAILWIND: Record<
   },
   completed: {
     // Gray — done, faded so it doesn't distract from today's work
-    bg: "bg-gray-300",
-    border: "border-gray-400",
-    text: "text-gray-600",
+    bg: "bg-slate-300",
+    border: "border-slate-400",
+    text: "text-slate-600",
   },
   cancelled: {
     // Красный — отменена. Яркий, чтобы отличать от past/completed,

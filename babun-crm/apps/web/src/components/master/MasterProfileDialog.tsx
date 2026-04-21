@@ -115,7 +115,7 @@ export default function MasterProfileDialog({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-slate-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -123,7 +123,7 @@ export default function MasterProfileDialog({
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTab === tab.id
                   ? "text-violet-600 border-b-2 border-violet-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {tab.label}
@@ -136,32 +136,32 @@ export default function MasterProfileDialog({
           {activeTab === "profile" && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Имя</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Телефон</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Страна</label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Страна</label>
+                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
                   {country}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Валюта</label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Валюта</label>
+                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
                   {currency}
                 </div>
               </div>
@@ -173,9 +173,9 @@ export default function MasterProfileDialog({
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg group"
+                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg group"
                 >
-                  <div className="text-gray-300 cursor-grab">
+                  <div className="text-slate-300 cursor-grab">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="8" cy="6" r="1.5" />
                       <circle cx="16" cy="6" r="1.5" />
@@ -192,7 +192,7 @@ export default function MasterProfileDialog({
                         type="text"
                         value={service.name}
                         onChange={(e) => handleServiceChange(service.id, "name", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                        className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
                       />
                       <div className="flex gap-2">
                         <input
@@ -201,14 +201,14 @@ export default function MasterProfileDialog({
                           onChange={(e) =>
                             handleServiceChange(service.id, "duration_minutes", Number(e.target.value))
                           }
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
                           placeholder="мин"
                         />
                         <input
                           type="number"
                           value={service.price}
                           onChange={(e) => handleServiceChange(service.id, "price", Number(e.target.value))}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
                           placeholder="EUR"
                         />
                         <button
@@ -223,15 +223,15 @@ export default function MasterProfileDialog({
                   ) : (
                     <>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-gray-900 truncate">{service.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-sm text-slate-900 truncate">{service.name}</div>
+                        <div className="text-xs text-slate-500">
                           {service.duration_minutes} мин / {service.price} EUR
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setEditingServiceId(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 opacity-100 transition-opacity"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-slate-100 text-slate-400 opacity-100 transition-opacity"
                         aria-label="Редактировать"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -242,7 +242,7 @@ export default function MasterProfileDialog({
                       <button
                         type="button"
                         onClick={() => handleDeleteService(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
                         aria-label="Удалить"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -270,7 +270,7 @@ export default function MasterProfileDialog({
             <div className="space-y-4">
               {/* Team selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Бригада</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Бригада</label>
                 <div className="flex gap-2 flex-wrap">
                   {MOCK_TEAMS.map((team) => (
                     <button
@@ -280,7 +280,7 @@ export default function MasterProfileDialog({
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         editingTeamId === team.id
                           ? "bg-violet-600 text-white border-violet-600"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-violet-300"
+                          : "bg-white text-slate-700 border-slate-200 hover:border-violet-300"
                       }`}
                     >
                       {team.name}
@@ -289,8 +289,8 @@ export default function MasterProfileDialog({
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500">
-                График работы бригады <span className="font-medium text-gray-700">
+              <div className="text-xs text-slate-500">
+                График работы бригады <span className="font-medium text-slate-700">
                   {MOCK_TEAMS.find((t) => t.id === editingTeamId)?.name}
                 </span>. Часы вне расписания будут затемнены на календаре.
               </div>
@@ -298,21 +298,21 @@ export default function MasterProfileDialog({
               {/* Working hours */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Время работы с</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Время работы с</label>
                   <input
                     type="time"
                     value={currentSchedule.start}
                     onChange={(e) => updateScheduleField("start", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">до</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">до</label>
                   <input
                     type="time"
                     value={currentSchedule.end}
                     onChange={(e) => updateScheduleField("end", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function MasterProfileDialog({
                 <button
                   type="button"
                   onClick={resetSchedule}
-                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  className="text-xs text-slate-500 hover:text-slate-700 underline"
                 >
                   Сбросить к стандартному (08:00 – 22:00)
                 </button>
@@ -339,10 +339,10 @@ export default function MasterProfileDialog({
         </div>
 
         {/* Bottom */}
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center">
+        <div className="px-4 py-3 border-t border-slate-200 flex items-center">
           <button
             onClick={onClose}
-            className="flex-1 text-center text-sm text-gray-600 hover:text-gray-900"
+            className="flex-1 text-center text-sm text-slate-600 hover:text-slate-900"
           >
             Закрыть
           </button>
@@ -357,7 +357,7 @@ function PresetButton({ label, onClick }: { label: string; onClick: () => void }
     <button
       type="button"
       onClick={onClick}
-      className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+      className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200"
     >
       {label}
     </button>

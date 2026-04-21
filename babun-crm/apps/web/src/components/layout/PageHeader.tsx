@@ -31,7 +31,7 @@ export default function PageHeader({
   const sidebar = useSidebar();
 
   return (
-    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-gray-200 z-30">
+    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-slate-200 z-30">
       <div className="px-2 lg:px-4 py-2.5 lg:py-3.5 flex items-center gap-2 lg:bg-white">
         {leftContent ? (
           <div className="shrink-0">{leftContent}</div>
@@ -62,11 +62,11 @@ export default function PageHeader({
         )}
 
         <div className="flex-1 min-w-0">
-          <h1 className="text-[17px] lg:text-[19px] font-semibold text-white lg:text-gray-900 truncate tracking-tight">
+          <h1 className="text-[17px] lg:text-[19px] font-semibold text-white lg:text-slate-900 truncate tracking-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[11px] lg:text-xs text-white/70 lg:text-gray-500 truncate">
+            <p className="text-[11px] lg:text-xs text-white/70 lg:text-slate-500 truncate">
               {subtitle}
             </p>
           )}

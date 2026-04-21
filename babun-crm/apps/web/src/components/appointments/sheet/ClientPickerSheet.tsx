@@ -174,7 +174,7 @@ export default function ClientPickerSheet({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Поиск по имени или телефону"
-            className="w-full h-11 px-3 bg-gray-100 rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full h-11 px-3 bg-slate-100 rounded-lg text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
 
@@ -241,7 +241,7 @@ export default function ClientPickerSheet({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Имя клиента *"
-              className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full h-11 px-3 bg-white rounded-lg text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
 
             {duplicates.length > 0 && (
@@ -280,13 +280,13 @@ export default function ClientPickerSheet({
                 value={newPhones[0] ?? ""}
                 onChange={(e) => updatePhone(0, e.target.value)}
                 placeholder="+357 99 …"
-                className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+                className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
               />
             </div>
 
             {/* Comment — always visible per STORY-011, no ✕. */}
             <div className="flex items-start gap-2 bg-white rounded-lg px-3 py-2">
-              <span className="text-gray-400 flex-shrink-0 mt-2" aria-hidden>
+              <span className="text-slate-400 flex-shrink-0 mt-2" aria-hidden>
                 <CommentIcon />
               </span>
               <textarea
@@ -294,7 +294,7 @@ export default function ClientPickerSheet({
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Комментарий (язык, особенности)"
                 rows={2}
-                className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none resize-none leading-[1.35]"
+                className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none resize-none leading-[1.35]"
               />
             </div>
 
@@ -314,12 +314,12 @@ export default function ClientPickerSheet({
                     value={phone}
                     onChange={(e) => updatePhone(idx, e.target.value)}
                     placeholder="Доп. номер"
-                    className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+                    className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => removePhone(idx)}
-                    className="w-7 h-7 flex items-center justify-center text-gray-400 active:text-gray-700"
+                    className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-700"
                     aria-label="Убрать номер"
                   >
                     <CloseIcon />
@@ -349,7 +349,7 @@ export default function ClientPickerSheet({
 
             {/* Add-chips — Comment chip is gone since comment is now always visible. */}
             <div className="pt-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
                 Добавить (необязательно)
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -373,7 +373,7 @@ export default function ClientPickerSheet({
                   setShowNewForm(false);
                   resetForm();
                 }}
-                className="flex-1 h-11 text-gray-700 font-medium"
+                className="flex-1 h-11 text-slate-700 font-medium"
               >
                 Отмена
               </button>
@@ -392,11 +392,11 @@ export default function ClientPickerSheet({
         {/* Client list */}
         <div>
           {sorted.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-400">
+            <div className="py-8 text-center text-sm text-slate-400">
               {query ? "Никого не нашли" : "Клиентов пока нет"}
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100">
               {sorted.map(({ c }) => {
                 const isRecent = recentClientIds.includes(c.id);
                 return (
@@ -404,17 +404,17 @@ export default function ClientPickerSheet({
                     key={c.id}
                     type="button"
                     onClick={() => handleSelect(c)}
-                    className="w-full flex items-center gap-2.5 py-2 active:bg-gray-50"
+                    className="w-full flex items-center gap-2.5 py-2 active:bg-slate-50"
                   >
                     <div className="w-9 h-9 flex-shrink-0 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-[13px]">
                       {initials(c.full_name)}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-[13px] font-medium text-gray-900 truncate">
+                      <div className="text-[13px] font-medium text-slate-900 truncate">
                         {c.full_name}
                       </div>
                       {c.phone && (
-                        <div className="text-[11px] text-gray-500 truncate">{c.phone}</div>
+                        <div className="text-[11px] text-slate-500 truncate">{c.phone}</div>
                       )}
                     </div>
                     {isRecent && (
@@ -438,7 +438,7 @@ function AddChip({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="h-8 px-3 rounded-full bg-white border border-gray-200 text-[12px] font-semibold text-violet-700 active:bg-violet-50"
+      className="h-8 px-3 rounded-full bg-white border border-slate-200 text-[12px] font-semibold text-violet-700 active:bg-violet-50"
     >
       {label}
     </button>
@@ -468,12 +468,12 @@ function FieldRow({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none"
+        className="flex-1 text-[14px] text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
       />
       <button
         type="button"
         onClick={onRemove}
-        className="w-7 h-7 flex items-center justify-center text-gray-400 active:text-gray-700"
+        className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-slate-700"
         aria-label="Убрать поле"
       >
         <CloseIcon />

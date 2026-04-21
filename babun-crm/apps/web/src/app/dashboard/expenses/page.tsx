@@ -14,6 +14,7 @@ import {
   type ExpenseCategory,
 } from "@/lib/expenses";
 import { formatEURFromCents } from "@/lib/money";
+import EmptyState from "@/components/ui/EmptyState";
 
 // ─── Category config ────────────────────────────────────────────────────────
 
@@ -161,11 +162,11 @@ function AddExpenseForm({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">Категория</label>
+          <label className="block text-[11px] text-slate-500 mb-1">Категория</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm bg-white"
+            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
           >
             {CAT_KEYS.map((k) => (
               <option key={k} value={k}>
@@ -175,7 +176,7 @@ function AddExpenseForm({
           </select>
         </div>
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">Сумма (€)</label>
+          <label className="block text-[11px] text-slate-500 mb-1">Сумма (€)</label>
           <input
             type="number"
             min="0"
@@ -183,27 +184,27 @@ function AddExpenseForm({
             placeholder="0.00"
             value={amountEur}
             onChange={(e) => setAmountEur(e.target.value)}
-            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">Дата</label>
+          <label className="block text-[11px] text-slate-500 mb-1">Дата</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm"
           />
         </div>
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">Тип</label>
+          <label className="block text-[11px] text-slate-500 mb-1">Тип</label>
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value as "brigade" | "company")}
-            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm bg-white"
+            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
           >
             <option value="brigade">Бригада</option>
             <option value="company">Компания</option>
@@ -213,11 +214,11 @@ function AddExpenseForm({
 
       {scope === "brigade" && (
         <div>
-          <label className="block text-[11px] text-gray-500 mb-1">Бригада</label>
+          <label className="block text-[11px] text-slate-500 mb-1">Бригада</label>
           <select
             value={brigadeId ?? ""}
             onChange={(e) => setBrigadeId(e.target.value || null)}
-            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm bg-white"
+            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
           >
             {brigades.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
@@ -227,13 +228,13 @@ function AddExpenseForm({
       )}
 
       <div>
-        <label className="block text-[11px] text-gray-500 mb-1">Комментарий</label>
+        <label className="block text-[11px] text-slate-500 mb-1">Комментарий</label>
         <input
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={CAT_CONFIG[category].label}
-          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
+          className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm"
         />
       </div>
 
@@ -241,7 +242,7 @@ function AddExpenseForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 h-9 border border-gray-300 rounded-lg text-sm text-gray-700"
+          className="flex-1 h-9 border border-slate-300 rounded-lg text-sm text-slate-700"
         >
           Отмена
         </button>
@@ -319,7 +320,7 @@ export default function ExpensesPage() {
           <button
             type="button"
             onClick={() => setShowAddForm((v) => !v)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-violet-600 lg:text-gray-700 lg:hover:bg-gray-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white hover:bg-violet-600 lg:text-slate-700 lg:hover:bg-slate-100"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -329,26 +330,26 @@ export default function ExpensesPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         {/* Period selector */}
-        <div className="relative bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+        <div className="relative bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setShowPeriodMenu((v) => !v)}
-            className="flex items-center gap-1 text-sm font-semibold text-gray-900"
+            className="flex items-center gap-1 text-sm font-semibold text-slate-900"
           >
             {selectedLabel}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
           </button>
           <span className="text-sm font-bold text-rose-600 tabular-nums">{total > 0 ? `−${formatEURFromCents(total)}` : "€0"}</span>
           {showPeriodMenu && (
-            <div className="absolute top-full left-0 mt-0 bg-white shadow-lg rounded-b-xl z-20 w-56 border border-gray-200 border-t-0">
+            <div className="absolute top-full left-0 mt-0 bg-white shadow-lg rounded-b-xl z-20 w-56 border border-slate-200 border-t-0">
               {PERIODS.map((p) => (
                 <button
                   key={p.key}
                   type="button"
                   onClick={() => { setPeriod(p.key); setShowPeriodMenu(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-violet-600 font-semibold bg-violet-50" : "text-gray-700 hover:bg-gray-50"}`}
+                  className={`w-full text-left px-4 py-2.5 text-sm ${period === p.key ? "text-violet-600 font-semibold bg-violet-50" : "text-slate-700 hover:bg-slate-50"}`}
                 >
                   {p.label}
                 </button>
@@ -358,7 +359,7 @@ export default function ExpensesPage() {
         </div>
 
         {/* Brigade tabs */}
-        <div className="bg-white border-b border-gray-200 flex overflow-x-auto">
+        <div className="bg-white border-b border-slate-200 flex overflow-x-auto">
           {[{ id: "all", name: "Все" }, ...brigades].map((b) => (
             <button
               key={b.id}
@@ -367,7 +368,7 @@ export default function ExpensesPage() {
               className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeBrigade === b.id
                   ? "text-violet-600 border-b-2 border-violet-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {b.name}
@@ -377,7 +378,7 @@ export default function ExpensesPage() {
 
         {/* Add form */}
         {showAddForm && (
-          <div className="bg-white border-b border-gray-200">
+          <div className="bg-white border-b border-slate-200">
             <AddExpenseForm
               brigades={brigades}
               defaultBrigadeId={brigadeForForm}
@@ -390,7 +391,7 @@ export default function ExpensesPage() {
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3">
           {/* Pie + breakdown */}
           {filtered.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
               <div className="flex gap-4 items-start">
                 {pieData.length > 1 ? <PieChart data={pieData} /> : null}
                 <div className="flex-1 space-y-1.5">
@@ -402,16 +403,16 @@ export default function ExpensesPage() {
                         <span className="text-base">{CAT_CONFIG[k].emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center">
-                            <span className="text-[12px] text-gray-700">{CAT_CONFIG[k].label}</span>
+                            <span className="text-[12px] text-slate-700">{CAT_CONFIG[k].label}</span>
                             <span className="text-[12px] font-semibold text-rose-600 tabular-nums">
                               {formatEURFromCents(amt)}
                             </span>
                           </div>
-                          <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5">
+                          <div className="h-1 bg-slate-100 rounded-full overflow-hidden mt-0.5">
                             <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: CAT_CONFIG[k].color }} />
                           </div>
                         </div>
-                        <span className="text-[11px] text-gray-400 w-8 text-right">{pct}%</span>
+                        <span className="text-[11px] text-slate-400 w-8 text-right">{pct}%</span>
                       </div>
                     );
                   })}
@@ -422,33 +423,43 @@ export default function ExpensesPage() {
 
           {/* Expense list */}
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-              <div className="text-3xl mb-2">📊</div>
-              <div className="text-sm text-gray-500 mb-4">Расходов за этот период нет</div>
-              {expenses.length === 0 && process.env.NODE_ENV === "development" && (
-                <button
-                  type="button"
-                  onClick={() => { seedDemoExpenses(); reload(); }}
-                  className="text-sm font-medium text-violet-600 border border-violet-300 rounded-lg px-4 py-2"
-                >
-                  Засеять демо-данные
-                </button>
-              )}
+            <div className="bg-white rounded-2xl ring-1 ring-slate-200/70 shadow-sm">
+              <EmptyState
+                icon={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                }
+                title="Расходов за этот период нет"
+                description="Залил бензин, купил материалы или оплатил обед бригаде — добавь расход чтоб прибыль считалась честно."
+                action={
+                  expenses.length === 0 && process.env.NODE_ENV === "development" ? (
+                    <button
+                      type="button"
+                      onClick={() => { seedDemoExpenses(); reload(); }}
+                      className="text-sm font-medium text-violet-600 border border-violet-300 rounded-lg px-4 py-2"
+                    >
+                      Засеять демо-данные
+                    </button>
+                  ) : undefined
+                }
+              />
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               {[...filtered].sort((a, b) => b.date.localeCompare(a.date)).map((e, i, arr) => {
                 const cfg = CAT_CONFIG[e.category];
                 const brigade = brigades.find((b) => b.id === e.brigadeId);
                 return (
                   <div
                     key={e.id}
-                    className={`flex items-center gap-3 px-4 py-3 ${i < arr.length - 1 ? "border-b border-gray-100" : ""}`}
+                    className={`flex items-center gap-3 px-4 py-3 ${i < arr.length - 1 ? "border-b border-slate-100" : ""}`}
                   >
                     <span className="text-xl w-7 text-center shrink-0">{cfg.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium text-gray-900 truncate">{e.description}</div>
-                      <div className="text-[11px] text-gray-500 truncate">
+                      <div className="text-[13px] font-medium text-slate-900 truncate">{e.description}</div>
+                      <div className="text-[11px] text-slate-500 truncate">
                         {e.date} · {cfg.label}{brigade ? ` · ${brigade.name}` : ""}
                       </div>
                     </div>
@@ -459,7 +470,7 @@ export default function ExpensesPage() {
                       type="button"
                       onClick={() => handleDelete(e.id)}
                       aria-label="Удалить"
-                      className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-500 rounded shrink-0"
+                      className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 rounded shrink-0"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="3 6 5 6 21 6" />
@@ -469,8 +480,8 @@ export default function ExpensesPage() {
                   </div>
                 );
               })}
-              <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
-                <span className="text-sm text-gray-500">Итого</span>
+              <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex justify-between">
+                <span className="text-sm text-slate-500">Итого</span>
                 <span className="text-sm font-bold text-rose-600 tabular-nums">−{formatEURFromCents(total)}</span>
               </div>
             </div>

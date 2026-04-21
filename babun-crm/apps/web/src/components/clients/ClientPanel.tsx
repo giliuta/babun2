@@ -110,7 +110,7 @@ export default function ClientPanel({
   return (
     <div className="flex flex-col bg-white">
       {/* Tabs bar */}
-      <div className="flex overflow-x-auto border-b border-gray-200 bg-white sticky top-0 z-10">
+      <div className="flex overflow-x-auto border-b border-slate-200 bg-white sticky top-0 z-10">
         <TabBtn label="Профиль" active={tab === "profile"} onClick={() => setTab("profile")} />
         <TabBtn
           label={`Записи (${recordsCount})`}
@@ -172,7 +172,7 @@ function TabBtn({
       className={`px-4 py-3 text-[13px] font-semibold whitespace-nowrap border-b-2 transition-colors ${
         active
           ? "text-violet-700 border-violet-600"
-          : "text-gray-500 border-transparent"
+          : "text-slate-500 border-transparent"
       }`}
     >
       {label}
@@ -196,13 +196,13 @@ function ProfileForm({
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
 }) {
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-slate-100">
       <FieldRow icon={<IconUser />} label="Имя и фамилия">
         <input
           type="text"
           value={client.full_name}
           onChange={(e) => update("full_name", e.target.value)}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[15px] text-slate-900 focus:outline-none"
         />
       </FieldRow>
 
@@ -218,7 +218,7 @@ function ProfileForm({
           value={client.sms_name}
           onChange={(e) => update("sms_name", e.target.value)}
           placeholder={client.full_name.split(" ")[0] || "Имя"}
-          className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none"
+          className="w-full bg-transparent text-[15px] text-slate-900 focus:outline-none"
         />
       </FieldRow>
 
@@ -252,7 +252,7 @@ function ProfileForm({
             Клиент заблокирован
           </div>
         ) : (
-          <div className="text-[13px] text-gray-400">—</div>
+          <div className="text-[13px] text-slate-400">—</div>
         )}
       </FieldRow>
     </div>
@@ -305,7 +305,7 @@ function PhonesSection({
 
   return (
     <div className="px-4 pt-2 pb-2 space-y-1.5">
-      <div className="text-[11px] text-gray-500">Телефоны</div>
+      <div className="text-[11px] text-slate-500">Телефоны</div>
       <PhoneRow
         number={client.phone}
         label="Основной"
@@ -325,7 +325,7 @@ function PhonesSection({
       <button
         type="button"
         onClick={addPhone}
-        className="w-full h-8 border border-dashed border-gray-300 rounded-lg text-[12px] text-violet-600 font-semibold active:bg-violet-50"
+        className="w-full h-8 border border-dashed border-slate-300 rounded-lg text-[12px] text-violet-600 font-semibold active:bg-violet-50"
       >
         + Добавить номер
       </button>
@@ -350,7 +350,7 @@ function PhoneRow({
 }) {
   const digits = number.replace(/\D/g, "");
   return (
-    <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1.5">
+    <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2 py-1.5">
       <div className="text-violet-500 shrink-0">
         <IconPhone />
       </div>
@@ -359,15 +359,15 @@ function PhoneRow({
         value={number}
         onChange={(e) => onNumberChange(e.target.value)}
         placeholder="+357..."
-        className="w-[38%] min-w-0 bg-transparent text-[14px] text-gray-900 tabular-nums focus:outline-none"
+        className="w-[38%] min-w-0 bg-transparent text-[14px] text-slate-900 tabular-nums focus:outline-none"
       />
       {primary ? (
-        <span className="text-[11px] text-gray-500 px-1 shrink-0">{label}</span>
+        <span className="text-[11px] text-slate-500 px-1 shrink-0">{label}</span>
       ) : (
         <select
           value={label}
           onChange={(e) => onLabelChange?.(e.target.value)}
-          className="min-w-0 flex-1 h-7 bg-white border border-gray-200 rounded text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-500 px-1"
+          className="min-w-0 flex-1 h-7 bg-white border border-slate-200 rounded text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-violet-500 px-1"
         >
           {PHONE_LABEL_OPTIONS.concat(
             PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
@@ -399,7 +399,7 @@ function PhoneRow({
           type="button"
           onClick={onRemove}
           aria-label="Удалить номер"
-          className="w-7 h-7 flex items-center justify-center text-gray-400 active:text-rose-500 shrink-0"
+          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-rose-500 shrink-0"
         >
           ✕
         </button>
@@ -423,7 +423,7 @@ function MessengersSection({
 
   return (
     <div className="px-4 pt-2 pb-2 space-y-1.5">
-      <div className="text-[11px] text-gray-500">Мессенджеры</div>
+      <div className="text-[11px] text-slate-500">Мессенджеры</div>
 
       <MessengerRow
         icon={<IconTelegram />}
@@ -480,7 +480,7 @@ function MessengerRow({
   hint?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
+    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-2 py-1.5">
       <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${color}`} aria-label={label}>
         {icon}
       </div>
@@ -488,14 +488,14 @@ function MessengerRow({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 min-w-0 bg-transparent text-[14px] text-gray-900 focus:outline-none"
+        className="flex-1 min-w-0 bg-transparent text-[14px] text-slate-900 focus:outline-none"
       />
       {openUrl && (
         <a
           href={openUrl}
           target="_blank"
           rel="noreferrer"
-          className="h-7 px-2.5 rounded-md bg-white border border-gray-200 text-[11px] font-semibold text-violet-700 active:bg-violet-50 flex items-center shrink-0"
+          className="h-7 px-2.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-violet-700 active:bg-violet-50 flex items-center shrink-0"
         >
           Открыть
         </a>
@@ -526,7 +526,7 @@ function ContactSourcesSection({ clientId }: { clientId: string }) {
 
   return (
     <div className="px-4 pt-2 pb-2">
-      <div className="text-[11px] text-gray-500 mb-1">Где связывался</div>
+      <div className="text-[11px] text-slate-500 mb-1">Где связывался</div>
       <div className="flex flex-wrap gap-1">
         {linked.map((chat) => (
           <a
@@ -582,7 +582,7 @@ function AutoGrowTextarea({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={1}
-      className="w-full bg-transparent text-[15px] text-gray-900 focus:outline-none resize-none leading-snug"
+      className="w-full bg-transparent text-[15px] text-slate-900 focus:outline-none resize-none leading-snug"
     />
   );
 }
@@ -654,7 +654,7 @@ function RecordsTab({
   return (
     <div>
       {/* Sub-filter chips */}
-      <div className="flex overflow-x-auto border-b border-gray-200 bg-violet-700">
+      <div className="flex overflow-x-auto border-b border-slate-200 bg-violet-700">
         {RECORD_FILTERS.map((f) => {
           const active = filter === f.key;
           return (
@@ -673,11 +673,11 @@ function RecordsTab({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="p-8 text-center text-[13px] text-gray-500">
+        <div className="p-8 text-center text-[13px] text-slate-500">
           Записей нет
         </div>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-slate-100">
           {filtered.map((apt) => (
             <RecordCard
               key={apt.id}
@@ -721,7 +721,7 @@ function RecordCard({
     apt.status === "completed"
       ? "bg-emerald-50"
       : apt.status === "cancelled"
-      ? "bg-gray-50"
+      ? "bg-slate-50"
       : apt.status === "in_progress"
       ? "bg-violet-50"
       : "bg-sky-50";
@@ -729,15 +729,15 @@ function RecordCard({
   return (
     <div className={`${bg} px-4 py-3`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="text-[13px] text-gray-700">
+        <div className="text-[13px] text-slate-700">
           {formatRu(apt.date)} {apt.time_start}, {weekdayRu(apt.date)}
         </div>
-        <div className="text-[12px] font-semibold text-gray-500 shrink-0">
+        <div className="text-[12px] font-semibold text-slate-500 shrink-0">
           {STATUS_LABELS[apt.status]}
         </div>
       </div>
       {team && (
-        <div className="text-[12px] text-gray-500 mt-0.5 flex items-center gap-1">
+        <div className="text-[12px] text-slate-500 mt-0.5 flex items-center gap-1">
           <span
             className="w-2 h-2 rounded-full"
             style={{ background: team.color || "#8b5cf6" }}
@@ -746,7 +746,7 @@ function RecordCard({
         </div>
       )}
       {(serviceSummary || apt.comment) && (
-        <div className="text-[13px] text-gray-900 mt-1 whitespace-pre-wrap break-words">
+        <div className="text-[13px] text-slate-900 mt-1 whitespace-pre-wrap break-words">
           {serviceSummary}
           {serviceSummary && apt.comment ? "\n" : ""}
           {apt.comment}
@@ -790,13 +790,13 @@ function HistoryTab({
 }) {
   if (items.length === 0) {
     return (
-      <div className="p-8 text-center text-[13px] text-gray-500">
+      <div className="p-8 text-center text-[13px] text-slate-500">
         История пока пуста
       </div>
     );
   }
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-slate-100">
       {items.map((apt) => {
         const team = apt.team_id ? teamsById.get(apt.team_id) : null;
         return (
@@ -805,16 +805,16 @@ function HistoryTab({
               {formatRu(apt.date)} {apt.time_start}, {weekdayRu(apt.date)}
             </div>
             {team && (
-              <div className="text-[11px] text-gray-500 mb-1">
+              <div className="text-[11px] text-slate-500 mb-1">
                 Мастер: {team.name}
               </div>
             )}
             {apt.comment ? (
-              <div className="text-[14px] text-gray-900 whitespace-pre-wrap break-words">
+              <div className="text-[14px] text-slate-900 whitespace-pre-wrap break-words">
                 {linkify(apt.comment)}
               </div>
             ) : (
-              <div className="text-[13px] text-gray-400 italic">
+              <div className="text-[13px] text-slate-400 italic">
                 Заметок нет
               </div>
             )}
@@ -896,7 +896,7 @@ function RemindersTab({
 
   if (reminders.length === 0) {
     return (
-      <div className="p-8 text-center text-[13px] text-gray-500">
+      <div className="p-8 text-center text-[13px] text-slate-500">
         Напоминаний нет. Включите напоминание в карточке записи — появится
         здесь.
       </div>
@@ -917,7 +917,7 @@ function RemindersTab({
             className="bg-sky-50 rounded-2xl border border-sky-100 p-3"
           >
             <div className="flex items-start justify-between">
-              <div className="text-[13px] text-gray-700 font-medium">
+              <div className="text-[13px] text-slate-700 font-medium">
                 {formatRuLong(r.fireAt)}
               </div>
               <div
@@ -929,18 +929,18 @@ function RemindersTab({
               </div>
             </div>
             {team && (
-              <div className="text-[11px] text-gray-500 mt-0.5">
+              <div className="text-[11px] text-slate-500 mt-0.5">
                 Мастер: {team.name}
               </div>
             )}
-            <div className="text-[13px] font-semibold text-gray-900 mt-1.5">
+            <div className="text-[13px] font-semibold text-slate-900 mt-1.5">
               Напомнить о записи (SMS)
             </div>
-            <div className="text-[13px] text-gray-800 whitespace-pre-wrap break-words mt-1">
+            <div className="text-[13px] text-slate-800 whitespace-pre-wrap break-words mt-1">
               {r.body}
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <span className="px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-[12px] text-gray-700">
+              <span className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-[12px] text-slate-700">
                 SMS (вручную)
               </span>
               <a
@@ -959,7 +959,7 @@ function RemindersTab({
                 className={`h-9 px-4 rounded-lg text-[12px] font-semibold flex items-center ${
                   smsHref
                     ? "bg-orange-500 text-white active:bg-orange-600"
-                    : "bg-gray-200 text-gray-400"
+                    : "bg-slate-200 text-slate-400"
                 }`}
               >
                 Отправить
@@ -998,7 +998,7 @@ function FieldRow({
 }) {
   return (
     <div className="px-4 pt-2 pb-2">
-      <div className="text-[11px] text-gray-500 mb-0.5">{label}</div>
+      <div className="text-[11px] text-slate-500 mb-0.5">{label}</div>
       <div className="flex items-center gap-2">
         <div className="w-5 h-5 flex items-center justify-center text-violet-500 shrink-0">
           {icon}
@@ -1025,7 +1025,7 @@ function Toggle({
         onChange(!on);
       }}
       className={`w-11 h-6 rounded-full relative transition-colors ${
-        on ? "bg-red-500" : "bg-gray-300"
+        on ? "bg-red-500" : "bg-slate-300"
       }`}
       aria-pressed={on}
     >
@@ -1059,7 +1059,7 @@ function GroupsPicker({
             type="button"
             onClick={() => toggle(g.id)}
             className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${
-              on ? g.class : "bg-gray-100 text-gray-500"
+              on ? g.class : "bg-slate-100 text-slate-500"
             }`}
           >
             {on && "✓ "}
@@ -1077,7 +1077,7 @@ const PRESET_GROUPS = [
   { id: "tag-b2b", label: "B2B", class: "bg-blue-100 text-blue-700" },
   { id: "tag-problem", label: "Проблемный", class: "bg-red-100 text-red-700" },
   { id: "tag-new", label: "Новый", class: "bg-green-100 text-green-700" },
-  { id: "tag-referral", label: "Рекомендация", class: "bg-gray-200 text-gray-700" },
+  { id: "tag-referral", label: "Рекомендация", class: "bg-slate-200 text-slate-700" },
 ];
 
 // ─── Date helpers ────────────────────────────────────────────────────────

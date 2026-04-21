@@ -70,11 +70,11 @@ function PeriodDetail({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
         <div>
-          <div className="text-[13px] font-semibold text-gray-900">{weekLabel({ start: period.periodStart, end: period.periodEnd })}</div>
-          <div className="text-[11px] text-gray-500">{period.type === "weekly_percent" ? "% от выручки" : "Базовая ставка"}</div>
+          <div className="text-[13px] font-semibold text-slate-900">{weekLabel({ start: period.periodStart, end: period.periodEnd })}</div>
+          <div className="text-[11px] text-slate-500">{period.type === "weekly_percent" ? "% от выручки" : "Базовая ставка"}</div>
         </div>
         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[period.status]}`}>
           {STATUS_LABELS[period.status]}
@@ -82,23 +82,23 @@ function PeriodDetail({
       </div>
 
       {period.lines.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-gray-400">Нет строк выплат</div>
+        <div className="px-4 py-6 text-center text-sm text-slate-400">Нет строк выплат</div>
       ) : (
         <div>
           {period.lines.map((line, i) => {
             const member = members.find((m) => m.masterId === line.masterId);
             return (
-              <div key={line.id} className={`px-4 py-3 flex items-center gap-3 ${i < period.lines.length - 1 ? "border-b border-gray-100" : ""}`}>
+              <div key={line.id} className={`px-4 py-3 flex items-center gap-3 ${i < period.lines.length - 1 ? "border-b border-slate-100" : ""}`}>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-gray-900">
+                  <div className="text-[13px] font-medium text-slate-900">
                     {nameOf(line.masterId)}
                     {member && (
-                      <span className="text-[11px] text-gray-500 ml-1">
+                      <span className="text-[11px] text-slate-500 ml-1">
                         ({member.role === "lead" ? "лид" : "помощник"})
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-gray-500 truncate">{line.description}</div>
+                  <div className="text-[11px] text-slate-500 truncate">{line.description}</div>
                 </div>
                 <span className="text-[15px] font-bold text-violet-700 tabular-nums">
                   {formatEURFromCents(line.amountCents)}
@@ -106,15 +106,15 @@ function PeriodDetail({
               </div>
             );
           })}
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
-            <span className="text-sm font-semibold text-gray-700">Итого к выплате</span>
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex justify-between">
+            <span className="text-sm font-semibold text-slate-700">Итого к выплате</span>
             <span className="text-base font-bold text-violet-700 tabular-nums">{formatEURFromCents(period.totalCents)}</span>
           </div>
         </div>
       )}
 
       {(canApprove || canPay) && (
-        <div className="px-4 py-3 border-t border-gray-200 flex gap-2">
+        <div className="px-4 py-3 border-t border-slate-200 flex gap-2">
           {canApprove && (
             <button
               type="button"
@@ -184,34 +184,34 @@ function WeekPreview({
   const companyShareCents = netCents - totalPayoutCents;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200">
-        <div className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Предварительный расчёт</div>
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200">
+        <div className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Предварительный расчёт</div>
       </div>
 
-      <div className="px-4 py-3 space-y-1.5 border-b border-gray-100">
+      <div className="px-4 py-3 space-y-1.5 border-b border-slate-100">
         <div className="flex justify-between text-[13px]">
-          <span className="text-gray-600">Выручка недели</span>
+          <span className="text-slate-600">Выручка недели</span>
           <span className="font-semibold text-emerald-600 tabular-nums">+{formatEURFromCents(revenueCents)}</span>
         </div>
         <div className="flex justify-between text-[13px]">
-          <span className="text-gray-600">Расходы бригады</span>
+          <span className="text-slate-600">Расходы бригады</span>
           <span className="font-semibold text-rose-600 tabular-nums">−{formatEURFromCents(expenseCents)}</span>
         </div>
-        <div className="flex justify-between text-[13px] pt-1 border-t border-gray-100">
-          <span className="font-medium text-gray-900">Чистый доход</span>
+        <div className="flex justify-between text-[13px] pt-1 border-t border-slate-100">
+          <span className="font-medium text-slate-900">Чистый доход</span>
           <span className="font-bold text-violet-600 tabular-nums">{formatEURFromCents(netCents)}</span>
         </div>
       </div>
 
       {activeMembers.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-gray-400">Нет участников бригады в этом периоде</div>
+        <div className="px-4 py-6 text-center text-sm text-slate-400">Нет участников бригады в этом периоде</div>
       ) : (
         <div>
           {lines.map((l, i) => (
-            <div key={l.masterId} className={`px-4 py-2.5 flex items-center gap-2 ${i < lines.length - 1 ? "border-b border-gray-100" : ""}`}>
-              <div className="flex-1 text-[13px] text-gray-900">
-                {nameOf(l.masterId)} <span className="text-[11px] text-gray-500">({l.role === "lead" ? "лид" : "помощник"}, {l.percentRate}%)</span>
+            <div key={l.masterId} className={`px-4 py-2.5 flex items-center gap-2 ${i < lines.length - 1 ? "border-b border-slate-100" : ""}`}>
+              <div className="flex-1 text-[13px] text-slate-900">
+                {nameOf(l.masterId)} <span className="text-[11px] text-slate-500">({l.role === "lead" ? "лид" : "помощник"}, {l.percentRate}%)</span>
               </div>
               <span className="text-[14px] font-bold text-violet-700 tabular-nums">{formatEURFromCents(l.amountCents)}</span>
             </div>
@@ -222,7 +222,7 @@ function WeekPreview({
               <span className="font-bold text-violet-800 tabular-nums">{formatEURFromCents(totalPayoutCents)}</span>
             </div>
             <div className="flex justify-between text-[12px]">
-              <span className="text-gray-500">Остаток компании</span>
+              <span className="text-slate-500">Остаток компании</span>
               <span className={`font-semibold tabular-nums ${companyShareCents >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {formatEURFromCents(companyShareCents)}
               </span>
@@ -231,7 +231,7 @@ function WeekPreview({
         </div>
       )}
 
-      <div className="px-4 py-3 border-t border-gray-200">
+      <div className="px-4 py-3 border-t border-slate-200">
         <button
           type="button"
           onClick={onGenerate}
@@ -291,8 +291,8 @@ export default function PayrollPage() {
     return (
       <>
         <PageHeader title="Зарплата" />
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center text-gray-400 text-sm p-8">
+        <div className="flex-1 flex items-center justify-center bg-slate-50">
+          <div className="text-center text-slate-400 text-sm p-8">
             Нет бригад. Добавьте их в разделе Бригады.
           </div>
         </div>
@@ -304,9 +304,9 @@ export default function PayrollPage() {
     <>
       <PageHeader title="Зарплата" />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         {/* Brigade tabs */}
-        <div className="bg-white border-b border-gray-200 flex overflow-x-auto">
+        <div className="bg-white border-b border-slate-200 flex overflow-x-auto">
           {brigades.filter((b) => b.isActive).map((b) => (
             <button
               key={b.id}
@@ -315,7 +315,7 @@ export default function PayrollPage() {
               className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeBrigadeId === b.id
                   ? "text-violet-600 border-b-2 border-violet-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {b.name}
@@ -324,17 +324,17 @@ export default function PayrollPage() {
         </div>
 
         {/* Week navigation */}
-        <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
+        <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setWeekOffset((v) => v - 1)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
           </button>
           <div className="text-center">
-            <div className="text-sm font-semibold text-gray-900">{weekLabel(weekRange)}</div>
-            <div className="text-[11px] text-gray-500">
+            <div className="text-sm font-semibold text-slate-900">{weekLabel(weekRange)}</div>
+            <div className="text-[11px] text-slate-500">
               {weekOffset === 0 ? "Текущая неделя" : weekOffset === -1 ? "Прошлая неделя" : `${Math.abs(weekOffset)} нед. назад`}
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function PayrollPage() {
             type="button"
             onClick={() => setWeekOffset((v) => Math.min(0, v + 1))}
             disabled={weekOffset === 0}
-            className={`w-9 h-9 flex items-center justify-center rounded-lg text-gray-600 ${weekOffset === 0 ? "opacity-30" : "hover:bg-gray-100"}`}
+            className={`w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 ${weekOffset === 0 ? "opacity-30" : "hover:bg-slate-100"}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
@@ -375,7 +375,7 @@ export default function PayrollPage() {
           {/* Past periods for this brigade */}
           {periods.filter((p) => p.brigadeId === activeBrigadeId && p.id !== existingPeriod?.id).length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 px-1 mb-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-1 mb-2">
                 Прошлые периоды
               </div>
               <div className="space-y-2">
@@ -384,10 +384,10 @@ export default function PayrollPage() {
                   .sort((a, b) => b.periodStart.localeCompare(a.periodStart))
                   .slice(0, 5)
                   .map((p) => (
-                    <div key={p.id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between">
+                    <div key={p.id} className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[13px] font-medium text-gray-900">{weekLabel({ start: p.periodStart, end: p.periodEnd })}</div>
-                        <div className="text-[11px] text-gray-500">{STATUS_LABELS[p.status]}</div>
+                        <div className="text-[13px] font-medium text-slate-900">{weekLabel({ start: p.periodStart, end: p.periodEnd })}</div>
+                        <div className="text-[11px] text-slate-500">{STATUS_LABELS[p.status]}</div>
                       </div>
                       <span className="text-[15px] font-bold text-violet-700 tabular-nums">{formatEURFromCents(p.totalCents)}</span>
                     </div>

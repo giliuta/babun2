@@ -71,5 +71,5 @@ export const STATUS_COLORS: Record<WaitlistStatus, string> = {
   pending: "text-amber-600 bg-amber-50",
   contacted: "text-violet-600 bg-violet-50",
   booked: "text-emerald-600 bg-emerald-50",
-  dropped: "text-gray-500 bg-gray-100",
+  dropped: "text-slate-500 bg-slate-100",
 };

@@ -62,12 +62,12 @@ function MonthViewInner({
   return (
     <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
       {/* Days-of-week header */}
-      <div className="grid grid-cols-7 border-b border-gray-300 bg-gray-50 flex-shrink-0">
+      <div className="grid grid-cols-7 border-b border-slate-300 bg-slate-50 flex-shrink-0">
         {DAYS_OF_WEEK.map((dow, i) => (
           <div
             key={dow}
             className={`py-2 text-center text-[10px] font-semibold uppercase tracking-wide ${
-              i >= 5 ? "text-red-400" : "text-gray-500"
+              i >= 5 ? "text-red-400" : "text-slate-500"
             }`}
           >
             {dow}
@@ -88,8 +88,8 @@ function MonthViewInner({
               key={i}
               type="button"
               onClick={() => onDayClick(date)}
-              className={`border-r border-b border-gray-100 p-1 text-left flex flex-col items-start active:bg-violet-50 overflow-hidden ${
-                inCurrentMonth ? "bg-white" : "bg-gray-50/60"
+              className={`border-r border-b border-slate-100 p-1 text-left flex flex-col items-start active:bg-violet-50 overflow-hidden ${
+                inCurrentMonth ? "bg-white" : "bg-slate-50/60"
               } ${isWeekend && inCurrentMonth ? "bg-red-50/20" : ""}`}
             >
               <div className="flex items-center justify-between w-full">
@@ -103,8 +103,8 @@ function MonthViewInner({
                       inCurrentMonth
                         ? isWeekend
                           ? "text-red-500"
-                          : "text-gray-800"
-                        : "text-gray-400"
+                          : "text-slate-800"
+                        : "text-slate-400"
                     }`}
                   >
                     {date.getDate()}

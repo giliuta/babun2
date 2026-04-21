@@ -49,23 +49,23 @@ function CityRow({
           placeholder="Страна"
         />
         <button type="button" onClick={save} className="text-violet-700 text-sm font-semibold px-2">✓</button>
-        <button type="button" onClick={cancel} className="text-gray-400 text-sm px-1">✕</button>
+        <button type="button" onClick={cancel} className="text-slate-400 text-sm px-1">✕</button>
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${city.isActive ? "bg-white" : "bg-gray-50"}`}>
+    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${city.isActive ? "bg-white" : "bg-slate-50"}`}>
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium ${city.isActive ? "text-gray-900" : "text-gray-400 line-through"}`}>
+        <div className={`text-sm font-medium ${city.isActive ? "text-slate-900" : "text-slate-400 line-through"}`}>
           {city.name}
         </div>
-        <div className="text-[11px] text-gray-400">{city.country}</div>
+        <div className="text-[11px] text-slate-400">{city.country}</div>
       </div>
       <button
         type="button"
         onClick={() => onUpdate({ ...city, isActive: !city.isActive })}
-        className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${city.isActive ? "bg-violet-600" : "bg-gray-300"}`}
+        className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${city.isActive ? "bg-violet-600" : "bg-slate-300"}`}
         aria-label="Toggle active"
       >
         <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${city.isActive ? "translate-x-4" : "translate-x-0"}`} />
@@ -73,7 +73,7 @@ function CityRow({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-7 h-7 flex items-center justify-center text-gray-400 hover:bg-gray-100 rounded-lg"
+        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-lg"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z" />
@@ -146,7 +146,7 @@ export default function CitiesSettingsPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         <div className="max-w-lg mx-auto p-3 lg:p-4 space-y-2 pb-24">
 
           {addOpen && (
@@ -172,7 +172,7 @@ export default function CitiesSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setAddOpen(false)}
-                  className="flex-1 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm"
+                  className="flex-1 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm"
                 >
                   Отмена
                 </button>
@@ -188,9 +188,9 @@ export default function CitiesSettingsPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50">
             {cities.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-400">Нет городов</div>
+              <div className="px-4 py-8 text-center text-sm text-slate-400">Нет городов</div>
             ) : (
               <div className="p-2 space-y-1">
                 {cities.map((city) => (
@@ -205,7 +205,7 @@ export default function CitiesSettingsPage() {
             )}
           </div>
 
-          <div className="text-[11px] text-gray-400 px-1">
+          <div className="text-[11px] text-slate-400 px-1">
             Активные города доступны при выборе города в клиенте и записи. Отключённые скрыты, но данные сохраняются.
           </div>
         </div>

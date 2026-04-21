@@ -79,7 +79,7 @@ export default function WheelPicker({
           return (
             <div
               key={i}
-              className="flex items-center justify-center text-center text-gray-900 tabular-nums select-none"
+              className="flex items-center justify-center text-center text-slate-900 tabular-nums select-none"
               style={{
                 height: itemHeight,
                 scrollSnapAlign: "center",

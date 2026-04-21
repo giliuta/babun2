@@ -70,7 +70,7 @@ export default function Header({
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
   return (
-    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-gray-200 flex flex-col z-30">
+    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-slate-200 flex flex-col z-30">
       {/* Top row — icon-first, compact. Стрелок «вправо-влево» нет:
           неделя листается свайпом. Меньше кнопок — меньше шума. */}
       <div className="px-2 lg:px-4 py-1.5 lg:py-2 flex items-center gap-1 lg:bg-white">
@@ -93,9 +93,9 @@ export default function Header({
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 active:bg-white/10 lg:hover:bg-gray-50 rounded-lg px-2 py-1 active:scale-[0.98] transition max-w-full"
+            className="flex items-center gap-1 active:bg-white/10 lg:hover:bg-slate-50 rounded-lg px-2 py-1 active:scale-[0.98] transition max-w-full"
           >
-            <h2 className="text-[14px] lg:text-[17px] font-semibold text-white lg:text-gray-900 capitalize whitespace-nowrap truncate tracking-tight">
+            <h2 className="text-[14px] lg:text-[17px] font-semibold text-white lg:text-slate-900 capitalize whitespace-nowrap truncate tracking-tight">
               {monthName} {year}
             </h2>
             <svg
@@ -105,7 +105,7 @@ export default function Header({
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
-              className="text-white/70 lg:text-gray-400 flex-shrink-0"
+              className="text-white/70 lg:text-slate-400 flex-shrink-0"
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -129,7 +129,7 @@ export default function Header({
           type="button"
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
-          className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] flex-shrink-0 transition"
+          className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-slate-600 lg:hover:bg-slate-100 active:scale-[0.94] flex-shrink-0 transition"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -148,7 +148,7 @@ export default function Header({
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-gray-600 lg:hover:bg-gray-100 active:scale-[0.94] transition"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-slate-600 lg:hover:bg-slate-100 active:scale-[0.94] transition"
           >
             {viewMode === "day" ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -183,7 +183,7 @@ export default function Header({
                 className="fixed inset-0 z-40"
                 onClick={() => setShowViewDropdown(false)}
               />
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[120px]">
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-50 min-w-[120px]">
                 {(["day", "3days", "week", "month"] as ViewMode[]).map((mode) => (
                   <button
                     key={mode}
@@ -192,10 +192,10 @@ export default function Header({
                       onViewModeChange(mode);
                       setShowViewDropdown(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-[13px] hover:bg-gray-50 transition-colors ${
+                    className={`w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50 transition-colors ${
                       viewMode === mode
                         ? "text-violet-600 font-medium bg-violet-50"
-                        : "text-gray-700"
+                        : "text-slate-700"
                     }`}
                   >
                     {VIEW_MODE_LABELS[mode]}
@@ -276,8 +276,8 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
       }}
       className={`px-3 lg:px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap select-none transition ${
         active
-          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-gray-100 lg:text-gray-900"
-          : "text-white/80 lg:text-gray-500 hover:text-white lg:hover:text-gray-700"
+          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-slate-100 lg:text-slate-900"
+          : "text-white/80 lg:text-slate-500 hover:text-white lg:hover:text-slate-700"
       }`}
     >
       {team.name}

@@ -47,7 +47,7 @@ function LabelRow({
           placeholder="Название"
         />
         <button type="button" onClick={save} className="text-violet-700 text-sm font-semibold px-2">✓</button>
-        <button type="button" onClick={cancel} className="text-gray-400 text-sm px-1">✕</button>
+        <button type="button" onClick={cancel} className="text-slate-400 text-sm px-1">✕</button>
       </div>
     );
   }
@@ -55,14 +55,14 @@ function LabelRow({
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white">
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-gray-900 truncate">
+        <div className="text-sm font-medium text-slate-900 truncate">
           {label.name}
         </div>
       </div>
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-7 h-7 flex items-center justify-center text-gray-400 hover:bg-gray-100 rounded-lg"
+        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-lg"
         aria-label="Редактировать"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -136,7 +136,7 @@ export default function BookingSettingsPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-slate-50">
         <div className="max-w-lg mx-auto p-3 lg:p-4 space-y-2 pb-24">
 
           {addOpen && (
@@ -160,7 +160,7 @@ export default function BookingSettingsPage() {
                     setAddOpen(false);
                     setNewName("");
                   }}
-                  className="flex-1 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm"
+                  className="flex-1 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm"
                 >
                   Отмена
                 </button>
@@ -176,9 +176,9 @@ export default function BookingSettingsPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
             {locationLabels.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-400">
+              <div className="px-4 py-8 text-center text-sm text-slate-400">
                 Нет типов. Нажми «+ Добавить».
               </div>
             ) : (
@@ -195,7 +195,7 @@ export default function BookingSettingsPage() {
             )}
           </div>
 
-          <div className="text-[11px] text-gray-400 px-1">
+          <div className="text-[11px] text-slate-400 px-1">
             Эти типы появляются как быстрые чипы (Дом, Квартира, Офис, Вилла…) при добавлении адреса в записи.
             Кнопка «Другое…» остаётся всегда — для разового имени без сохранения в список.
           </div>

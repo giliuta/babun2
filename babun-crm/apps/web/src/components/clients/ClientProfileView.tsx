@@ -38,7 +38,7 @@ export default function ClientProfileView({
 
   if (!client) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6">
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-6">
         <div className="text-[14px] text-slate-500 mb-3">Клиент не найден</div>
         <Link
           href="/dashboard/clients"
@@ -93,7 +93,7 @@ export default function ClientProfileView({
   const grouped = groupAppointmentsByLocation(clientAppointments, activeLocations);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-gray-50 h-full">
+    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 h-full">
       {/* Sticky header */}
       <div className="sticky top-0 z-20 bg-white border-b border-slate-200">
         <div className="flex items-center gap-2 px-3 h-12">

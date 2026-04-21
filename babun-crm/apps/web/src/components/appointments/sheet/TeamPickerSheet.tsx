@@ -24,7 +24,7 @@ export default function TeamPickerSheet({
     <DialogModal open={open} onClose={onClose} title="Выбрать бригаду">
       <div className="p-3 space-y-2">
         {activeTeams.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">
+          <div className="py-8 text-center text-sm text-slate-400">
             Нет активных бригад
           </div>
         ) : (
@@ -42,7 +42,7 @@ export default function TeamPickerSheet({
                 className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg border-2 active:scale-[0.99] transition ${
                   selected
                     ? "border-violet-500 bg-violet-50"
-                    : "border-gray-200 bg-white"
+                    : "border-slate-200 bg-white"
                 }`}
               >
                 <div
@@ -52,11 +52,11 @@ export default function TeamPickerSheet({
                   {letter}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[13px] font-medium text-gray-900 truncate">
+                  <div className="text-[13px] font-medium text-slate-900 truncate">
                     {t.name}
                   </div>
                   {t.region && (
-                    <div className="text-[11px] text-gray-500 truncate">
+                    <div className="text-[11px] text-slate-500 truncate">
                       {t.region}
                     </div>
                   )}

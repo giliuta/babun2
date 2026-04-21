@@ -180,7 +180,7 @@ export default function FinanceSheet({
                 value={newExpenseName}
                 onChange={(e) => setNewExpenseName(e.target.value)}
                 placeholder="Название (например, Материалы)"
-                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -192,9 +192,9 @@ export default function FinanceSheet({
                     setNewExpenseAmount(v === "" ? "" : Number(v) || 0);
                   }}
                   placeholder="Сумма"
-                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
-                <span className="text-[13px] text-gray-500">€</span>
+                <span className="text-[13px] text-slate-500">€</span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -204,7 +204,7 @@ export default function FinanceSheet({
                     setNewExpenseName("");
                     setNewExpenseAmount("");
                   }}
-                  className="flex-1 h-9 text-[12px] text-gray-600 font-medium"
+                  className="flex-1 h-9 text-[12px] text-slate-600 font-medium"
                 >
                   Отмена
                 </button>
@@ -228,7 +228,7 @@ export default function FinanceSheet({
         {/* Services */}
         <div>
           {services.length === 0 ? (
-            <div className="px-3 py-3 text-center text-[12px] text-gray-400">
+            <div className="px-3 py-3 text-center text-[12px] text-slate-400">
               Услуги не выбраны
             </div>
           ) : (
@@ -240,13 +240,13 @@ export default function FinanceSheet({
               return (
                 <div
                   key={service.id}
-                  className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-100"
+                  className="flex items-center gap-2 px-3 py-1.5 border-t border-slate-100"
                 >
                   <div
                     className="w-1 h-5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: service.color }}
                   />
-                  <div className="flex-1 min-w-0 text-[13px] text-gray-900 truncate">
+                  <div className="flex-1 min-w-0 text-[13px] text-slate-900 truncate">
                     {qty > 1 ? `${service.name} ×${qty}` : service.name}
                   </div>
                   {isEditing ? (
@@ -288,10 +288,10 @@ export default function FinanceSheet({
             {localExpenses.map((e) => (
               <div
                 key={e.id}
-                className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-100"
+                className="flex items-center gap-2 px-3 py-1.5 border-t border-slate-100"
               >
                 <div className="w-1 h-5 rounded-full bg-red-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0 text-[13px] text-gray-900 truncate">
+                <div className="flex-1 min-w-0 text-[13px] text-slate-900 truncate">
                   {e.name}
                 </div>
                 <div className="text-[13px] font-semibold text-red-600 tabular-nums">
@@ -301,7 +301,7 @@ export default function FinanceSheet({
                   type="button"
                   onClick={() => handleRemoveExpense(e.id)}
                   aria-label="Удалить"
-                  className="w-6 h-6 flex items-center justify-center text-gray-400 active:text-red-500"
+                  className="w-6 h-6 flex items-center justify-center text-slate-400 active:text-red-500"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -314,7 +314,7 @@ export default function FinanceSheet({
         )}
 
         {/* Summary */}
-        <div className="border-t-2 border-gray-200 mt-1.5 pt-1.5 pb-1 px-3 space-y-0.5">
+        <div className="border-t-2 border-slate-200 mt-1.5 pt-1.5 pb-1 px-3 space-y-0.5">
           <div className="flex items-baseline justify-between">
             <span className="text-[12px] text-emerald-600">Доход</span>
             <span className="text-[13px] font-semibold text-emerald-600 tabular-nums">
@@ -333,16 +333,16 @@ export default function FinanceSheet({
                 onChange={(e) =>
                   setLocalDiscount(Math.max(0, Number(e.target.value) || 0))
                 }
-                className="w-12 h-7 px-1.5 bg-gray-100 rounded text-[12px] text-gray-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500 text-right"
+                className="w-12 h-7 px-1.5 bg-slate-100 rounded text-[12px] text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500 text-right"
               />
-              <div className="flex bg-gray-100 rounded overflow-hidden">
+              <div className="flex bg-slate-100 rounded overflow-hidden">
                 <button
                   type="button"
                   onClick={() => handleDiscountMode("amount")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "amount"
                       ? "bg-violet-600 text-white"
-                      : "text-gray-500"
+                      : "text-slate-500"
                   }`}
                 >
                   €
@@ -353,7 +353,7 @@ export default function FinanceSheet({
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "percent"
                       ? "bg-violet-600 text-white"
-                      : "text-gray-500"
+                      : "text-slate-500"
                   }`}
                 >
                   %
@@ -379,7 +379,7 @@ export default function FinanceSheet({
             </span>
           </div>
 
-          <div className="flex items-baseline justify-between pt-1 border-t border-gray-100">
+          <div className="flex items-baseline justify-between pt-1 border-t border-slate-100">
             <span className="text-[13px] font-semibold text-sky-600">Прибыль</span>
             <span className="text-[17px] font-bold text-sky-600 tabular-nums">
               {profit}

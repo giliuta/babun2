@@ -25,31 +25,31 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
           {MOCK_WAITLIST.map((item) => (
             <div
               key={item.id}
-              className="px-4 py-3 border-b border-gray-100 space-y-1"
+              className="px-4 py-3 border-b border-slate-100 space-y-1"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold text-sm shrink-0">
                   {item.client_name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="text-sm font-semibold text-slate-900">
                     {item.client_name}
                   </div>
-                  <div className="text-xs text-gray-500">{item.services}</div>
+                  <div className="text-xs text-slate-500">{item.services}</div>
                 </div>
               </div>
               <div className="pl-[52px] space-y-0.5">
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-slate-500">
                   Мастер: {item.master}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-slate-500">
                   До указанной даты: {item.deadline}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-slate-500">
                   Время: {item.time}
                 </div>
                 {item.location && (
-                  <div className="text-xs text-gray-500">{item.location}</div>
+                  <div className="text-xs text-slate-500">{item.location}</div>
                 )}
                 <div className="text-xs text-red-500 font-medium">
                   {item.status}
@@ -58,17 +58,17 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
             </div>
           ))}
           {MOCK_WAITLIST.length === 0 && (
-            <div className="text-center text-gray-400 py-10 text-sm">
+            <div className="text-center text-slate-400 py-10 text-sm">
               Лист ожидания пуст
             </div>
           )}
         </div>
 
         {/* Bottom */}
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center">
+        <div className="px-4 py-3 border-t border-slate-200 flex items-center">
           <button
             onClick={onClose}
-            className="flex-1 text-center text-sm text-gray-600 hover:text-gray-900"
+            className="flex-1 text-center text-sm text-slate-600 hover:text-slate-900"
           >
             Закрыть
           </button>

@@ -32,16 +32,16 @@ export default function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-3">
-          <h2 className="text-[16px] font-semibold text-gray-900 mb-1">
+          <h2 className="text-[16px] font-semibold text-slate-900 mb-1">
             {title}
           </h2>
-          <p className="text-[13px] text-gray-600 leading-snug">{message}</p>
+          <p className="text-[13px] text-slate-600 leading-snug">{message}</p>
         </div>
-        <div className="flex border-t border-gray-100">
+        <div className="flex border-t border-slate-100">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-12 text-[14px] font-medium text-gray-700 active:bg-gray-50 border-r border-gray-100"
+            className="flex-1 h-12 text-[14px] font-medium text-slate-700 active:bg-slate-50 border-r border-slate-100"
           >
             {cancelLabel}
           </button>

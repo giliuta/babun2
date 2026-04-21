@@ -59,19 +59,19 @@ export default function RepeatCopyModal({
           type="button"
           onClick={handleConfirm}
           disabled={previewDates.length === 0}
-          className="w-full h-11 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] disabled:bg-gray-300"
+          className="w-full h-11 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] disabled:bg-slate-300"
         >
           Создать {previewDates.length} копи{copyPlural(previewDates.length)}
         </button>
       }
     >
       <div className="p-4 space-y-4">
-        <div className="text-[12px] text-gray-500">
+        <div className="text-[12px] text-slate-500">
           Исходная запись: {formatDateLongRu(source.date)} в {source.time_start}
         </div>
 
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
             Периодичность
           </div>
           <div className="flex gap-1.5">
@@ -85,7 +85,7 @@ export default function RepeatCopyModal({
                   className={`flex-1 h-9 rounded-lg text-[12px] font-medium transition ${
                     active
                       ? "bg-violet-600 text-white"
-                      : "bg-gray-100 text-gray-600"
+                      : "bg-slate-100 text-slate-600"
                   }`}
                 >
                   {MODE_LABELS[m]}
@@ -96,24 +96,24 @@ export default function RepeatCopyModal({
         </div>
 
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
             Количество копий
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setCount((c) => Math.max(1, c - 1))}
-              className="w-10 h-10 rounded-lg bg-gray-100 text-gray-700 text-lg font-semibold active:scale-95"
+              className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 text-lg font-semibold active:scale-95"
             >
               −
             </button>
-            <div className="flex-1 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-[16px] font-bold text-gray-900 tabular-nums">
+            <div className="flex-1 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-[16px] font-bold text-slate-900 tabular-nums">
               {count}
             </div>
             <button
               type="button"
               onClick={() => setCount((c) => Math.min(52, c + 1))}
-              className="w-10 h-10 rounded-lg bg-gray-100 text-gray-700 text-lg font-semibold active:scale-95"
+              className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 text-lg font-semibold active:scale-95"
             >
               +
             </button>
@@ -121,14 +121,14 @@ export default function RepeatCopyModal({
         </div>
 
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
             Будут созданы
           </div>
-          <div className="max-h-[160px] overflow-y-auto rounded-lg bg-gray-50 border border-gray-200 divide-y divide-gray-200">
+          <div className="max-h-[160px] overflow-y-auto rounded-lg bg-slate-50 border border-slate-200 divide-y divide-slate-200">
             {previewDates.map((d) => (
               <div
                 key={d}
-                className="px-3 py-1.5 text-[12px] text-gray-700"
+                className="px-3 py-1.5 text-[12px] text-slate-700"
               >
                 {formatDateLongRu(d)}
               </div>

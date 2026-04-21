@@ -198,17 +198,17 @@ export default function ServicePickerSheet({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск услуги"
-          className="w-full h-10 px-3 bg-gray-100 rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full h-10 px-3 bg-slate-100 rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
 
         {grouped.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">
+          <div className="py-8 text-center text-sm text-slate-400">
             {query ? "Ничего не нашли" : "Услуг ещё нет"}
           </div>
         ) : (
           grouped.map(({ category, items }) => (
             <div key={category?.id ?? "none"} className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-0.5 pt-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-0.5 pt-1.5">
                 {category?.name ?? "Без категории"}
               </div>
               {items.map((s) => {
@@ -220,7 +220,7 @@ export default function ServicePickerSheet({
                     className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
                       selected
                         ? "border-violet-500 bg-violet-50"
-                        : "border-gray-200 bg-white"
+                        : "border-slate-200 bg-white"
                     }`}
                   >
                     <div
@@ -232,10 +232,10 @@ export default function ServicePickerSheet({
                       onClick={() => setQty(s.id, qty > 0 ? qty : 1)}
                       className="flex-1 min-w-0 text-left"
                     >
-                      <div className="text-[13px] font-medium text-gray-900 truncate">
+                      <div className="text-[13px] font-medium text-slate-900 truncate">
                         {s.name}
                       </div>
-                      <div className="text-[11px] text-gray-500">
+                      <div className="text-[11px] text-slate-500">
                         {s.duration_minutes} мин · {s.price}€
                       </div>
                     </button>
@@ -244,7 +244,7 @@ export default function ServicePickerSheet({
                         <button
                           type="button"
                           onClick={() => setQty(s.id, qty - 1)}
-                          className="w-7 h-7 rounded-full bg-white border border-gray-300 text-gray-700 flex items-center justify-center active:scale-95 text-[15px]"
+                          className="w-7 h-7 rounded-full bg-white border border-slate-300 text-slate-700 flex items-center justify-center active:scale-95 text-[15px]"
                           aria-label="Уменьшить"
                         >
                           −
@@ -265,7 +265,7 @@ export default function ServicePickerSheet({
                       <button
                         type="button"
                         onClick={() => setQty(s.id, 1)}
-                        className="w-7 h-7 rounded-full border-2 border-gray-300 text-gray-400 flex items-center justify-center active:scale-95 flex-shrink-0 text-[14px]"
+                        className="w-7 h-7 rounded-full border-2 border-slate-300 text-slate-400 flex items-center justify-center active:scale-95 flex-shrink-0 text-[14px]"
                         aria-label="Добавить"
                       >
                         +
