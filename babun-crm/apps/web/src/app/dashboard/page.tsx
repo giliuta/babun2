@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Suspense,
   useState,
   useCallback,
   useEffect,
@@ -91,7 +92,24 @@ function toYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Next 16 requires `useSearchParams()` to live inside a Suspense
+// boundary — without it, prerender of `/dashboard` aborts with
+// "useSearchParams() should be wrapped in a suspense boundary"
+// (Sprint 019 introduced the hook in DashboardPageInner; that broke
+// prod build for sprints 021-023, fixed here).
+//
+// The fallback is `null` because the body of the dashboard hydrates
+// inside the layout's existing `<main>` and we don't want a flash of
+// chrome before client takeover.
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardPageInner />
+    </Suspense>
+  );
+}
+
+function DashboardPageInner() {
   const router = useRouter();
   // Tracks `?new=1&kind=…` transitions so the create-sheet handler
   // re-runs when the FAB navigates here while we're already on
