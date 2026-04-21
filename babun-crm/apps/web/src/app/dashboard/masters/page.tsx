@@ -6,6 +6,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
+  ACCOUNT_STATUS_LABELS,
+  ACCOUNT_STATUS_TONE,
   ROLE_LABELS,
   SALARY_MODEL_LABELS,
   SALARY_UNIT,
@@ -279,6 +281,13 @@ function MasterRow({
         </div>
       </div>
       <div className="shrink-0 flex flex-col items-end gap-1">
+        {master.account_status && (
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${ACCOUNT_STATUS_TONE[master.account_status]}`}
+          >
+            {ACCOUNT_STATUS_LABELS[master.account_status]}
+          </span>
+        )}
         <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 whitespace-nowrap">
           {salaryLabel}
         </span>
