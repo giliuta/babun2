@@ -20,8 +20,8 @@ export default function QuickActions({ phone, address }: QuickActionsProps) {
         onClick={(e) => { if (!phoneDigits) e.preventDefault(); }}
         className={`min-h-[56px] rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[13px] font-semibold transition ${
           phoneDigits
-            ? "bg-emerald-500 text-white active:bg-emerald-600"
-            : "bg-slate-100 text-slate-400"
+            ? "bg-[rgba(52,199,89,0.08)]0 text-white active:bg-[var(--system-green)]"
+            : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -36,8 +36,8 @@ export default function QuickActions({ phone, address }: QuickActionsProps) {
         onClick={(e) => { if (!mapsHref) e.preventDefault(); }}
         className={`min-h-[56px] rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[13px] font-semibold transition ${
           mapsHref
-            ? "bg-sky-500 text-white active:bg-sky-600"
-            : "bg-slate-100 text-slate-400"
+            ? "bg-[var(--accent)] text-white active:bg-[var(--accent-pressed)]"
+            : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

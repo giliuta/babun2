@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import type { PhotoKind } from "@/lib/appointments";
@@ -57,7 +57,7 @@ export default function PhotoPicker({ open, onClose, onPick }: PhotoPickerProps)
         className="w-full max-w-[320px] bg-white rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-4 pt-4 pb-2 text-center text-[15px] font-semibold text-slate-900">
+        <div className="px-4 pt-4 pb-2 text-center text-[15px] font-semibold text-[var(--label)]">
           {stage === "category" ? "Что это за фото?" : "Откуда снимок?"}
         </div>
 
@@ -89,21 +89,21 @@ export default function PhotoPicker({ open, onClose, onPick }: PhotoPickerProps)
             <button
               type="button"
               onClick={() => cameraRef.current?.click()}
-              className="w-full h-12 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-xl bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.99] flex items-center justify-center gap-2"
             >
               📸 Камера
             </button>
             <button
               type="button"
               onClick={() => galleryRef.current?.click()}
-              className="w-full h-12 rounded-xl bg-white border border-slate-200 text-[14px] font-semibold text-slate-700 active:bg-slate-50 flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-xl bg-white border border-[var(--separator)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-tertiary)] flex items-center justify-center gap-2"
             >
               🖼 Из галереи
             </button>
             <button
               type="button"
               onClick={() => setStage("category")}
-              className="w-full h-10 text-[13px] font-medium text-slate-500 active:bg-slate-50 rounded-xl"
+              className="w-full h-10 text-[13px] font-medium text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)] rounded-xl"
             >
               ← Назад
             </button>
@@ -113,7 +113,7 @@ export default function PhotoPicker({ open, onClose, onPick }: PhotoPickerProps)
         <button
           type="button"
           onClick={handleClose}
-          className="w-full h-11 text-[13px] font-medium text-slate-500 border-t border-slate-100 active:bg-slate-50"
+          className="w-full h-11 text-[13px] font-medium text-[var(--label-secondary)] border-t border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
         >
           Отмена
         </button>
@@ -151,10 +151,10 @@ function CategoryButton({
   onClick: () => void;
 }) {
   const styles: Record<typeof color, string> = {
-    rose: "bg-rose-50 border-rose-200 text-rose-800 active:bg-rose-100",
+    rose: "bg-[rgba(255,59,48,0.08)] border-rose-200 text-[var(--system-red)] active:bg-[rgba(255,59,48,0.14)]",
     emerald:
-      "bg-emerald-50 border-emerald-200 text-emerald-800 active:bg-emerald-100",
-    slate: "bg-white border-slate-200 text-slate-800 active:bg-slate-50",
+      "bg-[rgba(52,199,89,0.08)] border-emerald-200 text-[var(--system-green)] active:bg-[rgba(52,199,89,0.14)]",
+    slate: "bg-white border-[var(--separator)] text-[var(--label)] active:bg-[var(--fill-tertiary)]",
   };
   return (
     <button

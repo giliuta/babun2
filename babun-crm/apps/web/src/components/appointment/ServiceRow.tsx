@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import type { AppointmentService, Discount } from "@/lib/appointments";
@@ -69,64 +69,64 @@ export default function ServiceRow({
       : null;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-3 py-2.5">
+    <div className="bg-white rounded-xl border border-[var(--separator)] px-3 py-2.5">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-semibold text-slate-900 truncate">
+          <div className="text-[14px] font-semibold text-[var(--label)] truncate">
             {service?.name ?? "Услуга"}
           </div>
 
           {/* Qty stepper + price expression */}
           <div className="flex items-center gap-2 mt-1.5">
             {isCountable && !readonly ? (
-              <div className="inline-flex items-center gap-1 bg-slate-100 rounded-lg h-8 px-1">
+              <div className="inline-flex items-center gap-1 bg-[var(--fill-primary)] rounded-lg h-8 px-1">
                 <button
                   type="button"
                   onClick={() => setQty(line.quantity - 1)}
                   disabled={line.quantity <= 1}
-                  className="w-7 h-7 rounded-md bg-white text-slate-700 text-[15px] font-bold active:bg-slate-50 disabled:opacity-40 flex items-center justify-center"
+                  className="w-7 h-7 rounded-md bg-white text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] disabled:opacity-40 flex items-center justify-center"
                 >
                   −
                 </button>
-                <span className="min-w-[24px] text-center text-[14px] font-bold text-slate-900 tabular-nums">
+                <span className="min-w-[24px] text-center text-[14px] font-bold text-[var(--label)] tabular-nums">
                   {line.quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => setQty(line.quantity + 1)}
-                  className="w-7 h-7 rounded-md bg-white text-slate-700 text-[15px] font-bold active:bg-slate-50 flex items-center justify-center"
+                  className="w-7 h-7 rounded-md bg-white text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] flex items-center justify-center"
                 >
                   +
                 </button>
               </div>
             ) : (
-              <span className="text-[12px] font-semibold text-slate-600 tabular-nums">
+              <span className="text-[12px] font-semibold text-[var(--label-secondary)] tabular-nums">
                 × {line.quantity}
               </span>
             )}
-            <span className="text-[12px] text-slate-500 tabular-nums">
+            <span className="text-[12px] text-[var(--label-secondary)] tabular-nums">
               × {formatEUR(line.pricePerUnit)}
             </span>
           </div>
 
           {/* Duration + hints */}
-          <div className="text-[11px] text-slate-500 mt-1 tabular-nums">
+          <div className="text-[11px] text-[var(--label-secondary)] mt-1 tabular-nums">
             {line.duration} мин
             {line.pricePerUnit !== catalogPrice && (
-              <span className="ml-1.5 text-slate-400 line-through">
+              <span className="ml-1.5 text-[var(--label-tertiary)] line-through">
                 было {formatEUR(catalogPrice)}/шт
               </span>
             )}
           </div>
 
           {bulkHint && (
-            <div className="text-[11px] text-violet-600 font-medium mt-0.5">
+            <div className="text-[11px] text-[var(--accent)] font-medium mt-0.5">
               {bulkHint}
             </div>
           )}
 
           {line.discount && (
-            <div className="text-[11px] text-rose-600 font-medium mt-0.5">
+            <div className="text-[11px] text-[var(--system-red)] font-medium mt-0.5">
               🏷 скидка{" "}
               {line.discount.type === "percent"
                 ? `${line.discount.value}%`
@@ -138,7 +138,7 @@ export default function ServiceRow({
 
         {/* Right column: total + actions */}
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <div className="text-[16px] font-bold text-emerald-700 tabular-nums">
+          <div className="text-[16px] font-bold text-[var(--system-green)] tabular-nums">
             {formatEUR(displayTotal)}
           </div>
           {!readonly && (
@@ -147,7 +147,7 @@ export default function ServiceRow({
                 type="button"
                 onClick={() => setEditorOpen((v) => !v)}
                 aria-label="Изменить цену"
-                className="w-7 h-7 flex items-center justify-center rounded-md text-slate-500 active:bg-slate-100"
+                className="w-7 h-7 flex items-center justify-center rounded-md text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 20h9" />
@@ -158,7 +158,7 @@ export default function ServiceRow({
                 type="button"
                 onClick={onRemove}
                 aria-label="Удалить"
-                className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 active:text-rose-500"
+                className="w-7 h-7 flex items-center justify-center rounded-md text-[var(--label-tertiary)] active:text-[var(--system-red)]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -191,7 +191,7 @@ export default function ServiceRow({
             className="w-full max-w-md bg-white rounded-2xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 pt-3 pb-2 text-[13px] font-semibold text-slate-700 truncate">
+            <div className="px-4 pt-3 pb-2 text-[13px] font-semibold text-[var(--label)] truncate">
               {service?.name ?? "Цена"}
             </div>
             <PriceEditor

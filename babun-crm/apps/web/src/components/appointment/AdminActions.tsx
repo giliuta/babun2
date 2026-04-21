@@ -28,11 +28,11 @@ export default function AdminActions({
 
   return (
     <div className="px-4 pt-3 pb-2">
-      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+      <div className="rounded-xl border border-[var(--separator)] overflow-hidden bg-white">
         <button
           type="button"
           onClick={onEdit}
-          className="w-full px-4 py-3 text-left text-[14px] text-slate-800 active:bg-slate-50"
+          className="w-full px-4 py-3 text-left text-[14px] text-[var(--label)] active:bg-[var(--fill-tertiary)]"
         >
           Редактировать
         </button>
@@ -40,7 +40,7 @@ export default function AdminActions({
           <button
             type="button"
             onClick={onShare}
-            className="w-full px-4 py-3 text-left text-[14px] text-slate-800 border-t border-slate-100 active:bg-slate-50 flex items-center gap-2"
+            className="w-full px-4 py-3 text-left text-[14px] text-[var(--label)] border-t border-[var(--separator)] active:bg-[var(--fill-tertiary)] flex items-center gap-2"
           >
             <svg
               width="16"
@@ -51,7 +51,7 @@ export default function AdminActions({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-slate-400"
+              className="text-[var(--label-tertiary)]"
             >
               <circle cx="18" cy="5" r="3" />
               <circle cx="6" cy="12" r="3" />
@@ -66,7 +66,7 @@ export default function AdminActions({
           <button
             type="button"
             onClick={onReschedule}
-            className="w-full px-4 py-3 text-left text-[14px] text-slate-800 border-t border-slate-100 active:bg-slate-50"
+            className="w-full px-4 py-3 text-left text-[14px] text-[var(--label)] border-t border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
           >
             Перенести
           </button>
@@ -74,7 +74,7 @@ export default function AdminActions({
         <button
           type="button"
           onClick={confirmCancel}
-          className="w-full px-4 py-3 text-left text-[14px] text-rose-600 border-t border-slate-100 active:bg-rose-50"
+          className="w-full px-4 py-3 text-left text-[14px] text-[var(--system-red)] border-t border-[var(--separator)] active:bg-[rgba(255,59,48,0.08)]"
         >
           Отменить запись
         </button>

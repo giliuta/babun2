@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -109,7 +109,7 @@ export function InstallPrompt() {
           {!isIOS && installEvent && (
             <button
               onClick={handleInstall}
-              className="mt-2 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700"
+              className="mt-2 px-3 py-1.5 bg-[var(--accent)] text-white rounded-lg text-xs font-medium hover:bg-[var(--accent-pressed)]"
             >
               Установить
             </button>

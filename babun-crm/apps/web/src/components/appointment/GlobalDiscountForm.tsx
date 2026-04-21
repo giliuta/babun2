@@ -31,8 +31,8 @@ export default function GlobalDiscountForm({
     return (
       <div className="px-4 pt-3">
         {discount ? (
-          <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
-            <div className="flex-1 text-[13px] text-rose-700 font-semibold">
+          <div className="flex items-center gap-2 bg-[rgba(255,59,48,0.08)] border border-rose-200 rounded-xl px-3 py-2">
+            <div className="flex-1 text-[13px] text-[var(--system-red)] font-semibold">
               🏷{" "}
               {discount.type === "percent"
                 ? `Скидка ${discount.value}%`
@@ -47,14 +47,14 @@ export default function GlobalDiscountForm({
                 setValue(String(discount.value));
                 setReason(discount.reason ?? "");
               }}
-              className="text-[12px] font-semibold text-rose-600 active:opacity-60 px-2"
+              className="text-[12px] font-semibold text-[var(--system-red)] active:opacity-60 px-2"
             >
               Изменить
             </button>
             <button
               type="button"
               onClick={() => onChange(null)}
-              className="text-[12px] font-semibold text-slate-500 active:opacity-60 px-1"
+              className="text-[12px] font-semibold text-[var(--label-secondary)] active:opacity-60 px-1"
               aria-label="Убрать"
             >
               ✕
@@ -64,7 +64,7 @@ export default function GlobalDiscountForm({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="w-full h-10 rounded-xl border-2 border-dashed border-slate-300 text-[13px] font-semibold text-slate-600 active:bg-slate-50"
+            className="w-full h-10 rounded-xl border-2 border-dashed border-slate-300 text-[13px] font-semibold text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)]"
           >
             🏷 Добавить скидку на всё
           </button>
@@ -87,15 +87,15 @@ export default function GlobalDiscountForm({
   return (
     <div className="px-4 pt-3">
       <div className="p-3 rounded-xl bg-white border-2 border-rose-300 space-y-2.5">
-        <div className="text-[12px] font-semibold text-slate-700">
+        <div className="text-[12px] font-semibold text-[var(--label)]">
           Скидка на всю запись
         </div>
-        <div className="inline-flex rounded-lg bg-slate-100 p-1 text-[12px] font-semibold">
+        <div className="inline-flex rounded-lg bg-[var(--fill-primary)] p-1 text-[12px] font-semibold">
           <button
             type="button"
             onClick={() => setType("fixed")}
             className={`px-3 py-1 rounded-md ${
-              type === "fixed" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"
+              type === "fixed" ? "bg-white shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
             }`}
           >
             € Сумма
@@ -104,7 +104,7 @@ export default function GlobalDiscountForm({
             type="button"
             onClick={() => setType("percent")}
             className={`px-3 py-1 rounded-md ${
-              type === "percent" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"
+              type === "percent" ? "bg-white shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
             }`}
           >
             % Процент
@@ -125,8 +125,8 @@ export default function GlobalDiscountForm({
                 }}
                 className={`h-8 px-3 rounded-lg text-[13px] font-semibold tabular-nums transition ${
                   active
-                    ? "bg-rose-500 text-white"
-                    : "bg-slate-100 text-slate-700 active:bg-slate-200"
+                    ? "bg-[rgba(255,59,48,0.08)]0 text-white"
+                    : "bg-[var(--fill-primary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
                 }`}
               >
                 −€{n}
@@ -134,8 +134,8 @@ export default function GlobalDiscountForm({
             );
           })}
         </div>
-        <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 h-11 border border-slate-200">
-          <span className="text-[14px] text-slate-400">
+        <div className="flex items-center gap-2 bg-[var(--fill-tertiary)] rounded-lg px-3 h-11 border border-[var(--separator)]">
+          <span className="text-[14px] text-[var(--label-tertiary)]">
             {type === "fixed" ? "€" : "%"}
           </span>
           <input
@@ -144,11 +144,11 @@ export default function GlobalDiscountForm({
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/[^\d.]/g, ""))}
             placeholder="0"
-            className="flex-1 bg-transparent text-[16px] font-bold text-slate-900 tabular-nums focus:outline-none"
+            className="flex-1 bg-transparent text-[16px] font-bold text-[var(--label)] tabular-nums focus:outline-none"
           />
         </div>
         <div className="space-y-1.5">
-          <div className="text-[11px] text-slate-500">Причина</div>
+          <div className="text-[11px] text-[var(--label-secondary)]">Причина</div>
           <div className="flex gap-1.5 flex-wrap">
             {REASONS.map((r) => (
               <button
@@ -156,7 +156,7 @@ export default function GlobalDiscountForm({
                 type="button"
                 onClick={() => setReason(r)}
                 className={`h-8 px-2.5 rounded-lg text-[12px] font-semibold ${
-                  reason === r ? "bg-rose-500 text-white" : "bg-slate-100 text-slate-700"
+                  reason === r ? "bg-[rgba(255,59,48,0.08)]0 text-white" : "bg-[var(--fill-primary)] text-[var(--label)]"
                 }`}
               >
                 {r}
@@ -168,21 +168,21 @@ export default function GlobalDiscountForm({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Свой текст"
-            className="w-full h-9 px-3 rounded-lg bg-white border border-slate-200 text-[13px] focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full h-9 px-3 rounded-lg bg-white border border-[var(--separator)] text-[13px] focus:outline-none focus:ring-2 focus:ring-rose-500"
           />
         </div>
         <div className="flex gap-2 pt-1">
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="flex-1 h-10 rounded-lg bg-slate-100 text-[13px] font-semibold text-slate-700"
+            className="flex-1 h-10 rounded-lg bg-[var(--fill-primary)] text-[13px] font-semibold text-[var(--label)]"
           >
             Отмена
           </button>
           <button
             type="button"
             onClick={apply}
-            className="flex-[2] h-10 rounded-lg bg-rose-500 text-white text-[13px] font-semibold active:scale-[0.99]"
+            className="flex-[2] h-10 rounded-lg bg-[rgba(255,59,48,0.08)]0 text-white text-[13px] font-semibold active:scale-[0.99]"
           >
             Применить
           </button>

@@ -10,7 +10,7 @@ interface CityPickerProps {
 // Четыре кнопки городов. Активный — в цвете города.
 export default function CityPicker({ value, onPick }: CityPickerProps) {
   return (
-    <div className="px-4 py-3 bg-white border-b border-slate-100 grid grid-cols-2 gap-2">
+    <div className="px-4 py-3 bg-white border-b border-[var(--separator)] grid grid-cols-2 gap-2">
       {CITY_LIST.map((c) => {
         const active = c.name === value;
         return (

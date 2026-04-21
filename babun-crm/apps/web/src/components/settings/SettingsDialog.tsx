@@ -27,11 +27,11 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-violet-600 text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">Настройки</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded hover:bg-violet-500"
+            className="w-8 h-8 flex items-center justify-center rounded hover:bg-[var(--accent-tint)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -60,7 +60,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <select
               value={appointmentFontSize}
               onChange={(e) => setAppointmentFontSize(e.target.value as FontSize)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-white"
             >
               {(Object.keys(FONT_SIZE_LABELS) as FontSize[]).map((size) => (
                 <option key={size} value={size}>
@@ -78,7 +78,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <select
               value={timeFontSize}
               onChange={(e) => setTimeFontSize(e.target.value as FontSize)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-white"
             >
               {(Object.keys(FONT_SIZE_LABELS) as FontSize[]).map((size) => (
                 <option key={size} value={size}>
@@ -97,7 +97,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               type="button"
               onClick={() => setUse12HourFormat(!use12HourFormat)}
               className={`relative w-11 h-6 rounded-full transition-colors ${
-                use12HourFormat ? "bg-violet-600" : "bg-slate-300"
+                use12HourFormat ? "bg-[var(--accent)]" : "bg-slate-300"
               }`}
             >
               <span
@@ -116,7 +116,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <select
               value={firstDayOfWeek}
               onChange={(e) => setFirstDayOfWeek(e.target.value as "monday" | "sunday")}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-white"
             >
               <option value="monday">Понедельник</option>
               <option value="sunday">Воскресенье</option>

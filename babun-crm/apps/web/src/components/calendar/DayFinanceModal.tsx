@@ -105,7 +105,7 @@ export default function DayFinanceModal({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-12 bg-violet-600 text-white rounded-xl font-semibold text-[14px] active:scale-[0.98] transition"
+          className="w-full h-12 bg-[var(--accent)] text-white rounded-[var(--radius-pill)] font-semibold text-[14px] active:scale-[0.98] transition"
         >
           Сохранить
         </button>
@@ -115,59 +115,63 @@ export default function DayFinanceModal({
         {/* Appointments-sourced rows (read-only) */}
         {appointments.length > 0 ? (
           <>
-            <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
               Из записей
             </div>
-            <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-100">
-              <span className="text-[13px] text-emerald-700">Доход</span>
-              <span className="text-[13px] font-semibold text-emerald-700 tabular-nums">
+            <div className="flex items-center justify-between px-4 py-1.5 border-t border-[var(--separator)]">
+              <span className="text-[13px] text-[var(--system-green)]">Доход</span>
+              <span className="text-[13px] font-semibold text-[var(--system-green)] tabular-nums">
                 +{apptIncome}
               </span>
             </div>
             {apptMaterialCost > 0 && (
-              <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-100">
-                <span className="text-[13px] text-red-600">Материалы</span>
-                <span className="text-[13px] font-semibold text-red-600 tabular-nums">
+              <div className="flex items-center justify-between px-4 py-1.5 border-t border-[var(--separator)]">
+                <span className="text-[13px] text-[var(--system-red)]">Материалы</span>
+                <span className="text-[13px] font-semibold text-[var(--system-red)] tabular-nums">
                   −{apptMaterialCost}
                 </span>
               </div>
             )}
             {apptManualExpenses > 0 && (
-              <div className="flex items-center justify-between px-4 py-1.5 border-t border-slate-100">
-                <span className="text-[13px] text-red-600">Расходы по записям</span>
-                <span className="text-[13px] font-semibold text-red-600 tabular-nums">
+              <div className="flex items-center justify-between px-4 py-1.5 border-t border-[var(--separator)]">
+                <span className="text-[13px] text-[var(--system-red)]">Расходы по записям</span>
+                <span className="text-[13px] font-semibold text-[var(--system-red)] tabular-nums">
                   −{apptManualExpenses}
                 </span>
               </div>
             )}
           </>
         ) : (
-          <div className="px-4 pt-3 pb-2 text-[12px] text-slate-400">
+          <div className="px-4 pt-3 pb-2 text-[12px] text-[var(--label-tertiary)]">
             Записей на этот день нет
           </div>
         )}
 
         {/* Day-level extras */}
-        <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
           Дополнительно
         </div>
         {localExtras.length > 0 ? (
           localExtras.map((e) => (
             <div
               key={e.id}
-              className="flex items-center gap-2 px-4 py-1.5 border-t border-slate-100"
+              className="flex items-center gap-2 px-4 py-1.5 border-t border-[var(--separator)]"
             >
               <div
                 className={`w-1 h-5 rounded-full flex-shrink-0 ${
-                  e.kind === "income" ? "bg-emerald-400" : "bg-red-400"
+                  e.kind === "income"
+                    ? "bg-[var(--system-green)]"
+                    : "bg-[var(--system-red)]"
                 }`}
               />
-              <span className="flex-1 text-[13px] text-slate-900 truncate">
+              <span className="flex-1 text-[13px] text-[var(--label)] truncate">
                 {e.name}
               </span>
               <span
                 className={`text-[13px] font-semibold tabular-nums ${
-                  e.kind === "income" ? "text-emerald-600" : "text-red-600"
+                  e.kind === "income"
+                    ? "text-[var(--system-green)]"
+                    : "text-[var(--system-red)]"
                 }`}
               >
                 {e.kind === "income" ? "+" : "−"}
@@ -177,7 +181,7 @@ export default function DayFinanceModal({
                 type="button"
                 onClick={() => handleRemoveExtra(e.id)}
                 aria-label="Удалить"
-                className="w-6 h-6 flex items-center justify-center text-slate-400 active:text-red-500"
+                className="w-6 h-6 flex items-center justify-center text-[var(--label-tertiary)] active:text-[var(--system-red)]"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -188,7 +192,7 @@ export default function DayFinanceModal({
           ))
         ) : (
           !showAdd && (
-            <div className="px-4 py-2 text-[12px] text-slate-400">
+            <div className="px-4 py-2 text-[12px] text-[var(--label-tertiary)]">
               Нет дополнительных записей
             </div>
           )
@@ -200,21 +204,21 @@ export default function DayFinanceModal({
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="w-full h-9 flex items-center justify-center gap-1.5 bg-violet-50 text-violet-700 rounded-lg text-[12px] font-semibold active:scale-[0.98]"
+              className="w-full h-9 flex items-center justify-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)] rounded-[var(--radius-pill)] text-[13px] font-semibold active:scale-[0.98]"
             >
               <span className="text-[15px] leading-none">+</span>
               Добавить
             </button>
           ) : (
-            <div className="bg-violet-50 rounded-lg p-2 space-y-2">
-              <div className="flex gap-1 bg-white rounded-md p-0.5">
+            <div className="bg-[var(--fill-tertiary)] rounded-[10px] p-2 space-y-2">
+              <div className="flex gap-1 bg-[var(--surface-card)] rounded-md p-0.5">
                 <button
                   type="button"
                   onClick={() => setNewKind("expense")}
-                  className={`flex-1 h-8 rounded text-[12px] font-semibold ${
+                  className={`flex-1 h-8 rounded text-[12px] font-semibold transition ${
                     newKind === "expense"
-                      ? "bg-red-500 text-white"
-                      : "text-slate-500"
+                      ? "bg-[var(--system-red)] text-white"
+                      : "text-[var(--label-secondary)]"
                   }`}
                 >
                   Расход
@@ -222,10 +226,10 @@ export default function DayFinanceModal({
                 <button
                   type="button"
                   onClick={() => setNewKind("income")}
-                  className={`flex-1 h-8 rounded text-[12px] font-semibold ${
+                  className={`flex-1 h-8 rounded text-[12px] font-semibold transition ${
                     newKind === "income"
-                      ? "bg-emerald-500 text-white"
-                      : "text-slate-500"
+                      ? "bg-[var(--system-green)] text-white"
+                      : "text-[var(--label-secondary)]"
                   }`}
                 >
                   Доход
@@ -237,7 +241,7 @@ export default function DayFinanceModal({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Название (например, Бензин)"
-                className="w-full h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full h-10 px-3 bg-[var(--surface-card)] rounded-[10px] text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -249,9 +253,9 @@ export default function DayFinanceModal({
                     setNewAmount(v === "" ? "" : Number(v) || 0);
                   }}
                   placeholder="Сумма"
-                  className="flex-1 h-10 px-3 bg-white rounded-lg text-[13px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 h-10 px-3 bg-[var(--surface-card)] rounded-[10px] text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
-                <span className="text-[13px] text-slate-500">€</span>
+                <span className="text-[13px] text-[var(--label-secondary)]">€</span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -261,7 +265,7 @@ export default function DayFinanceModal({
                     setNewName("");
                     setNewAmount("");
                   }}
-                  className="flex-1 h-9 text-[12px] text-slate-600 font-medium"
+                  className="flex-1 h-9 text-[13px] text-[var(--label-secondary)] font-medium"
                 >
                   Отмена
                 </button>
@@ -273,7 +277,7 @@ export default function DayFinanceModal({
                     typeof newAmount !== "number" ||
                     newAmount <= 0
                   }
-                  className="flex-1 h-9 bg-violet-600 text-white rounded-lg text-[12px] font-semibold disabled:opacity-40"
+                  className="flex-1 h-9 bg-[var(--accent)] text-white rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:opacity-40"
                 >
                   Добавить
                 </button>
@@ -283,22 +287,22 @@ export default function DayFinanceModal({
         </div>
 
         {/* Summary */}
-        <div className="border-t-2 border-slate-200 mt-1 pt-2 pb-1 px-4 space-y-0.5">
+        <div className="border-t border-[var(--separator)] mt-1 pt-2 pb-1 px-4 space-y-0.5">
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] text-emerald-600">Итого доход</span>
-            <span className="text-[13px] font-semibold text-emerald-600 tabular-nums">
+            <span className="text-[12px] text-[var(--system-green)]">Итого доход</span>
+            <span className="text-[13px] font-semibold text-[var(--system-green)] tabular-nums">
               {totalIncome}
             </span>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] text-red-600">Итого расход</span>
-            <span className="text-[13px] font-semibold text-red-600 tabular-nums">
+            <span className="text-[12px] text-[var(--system-red)]">Итого расход</span>
+            <span className="text-[13px] font-semibold text-[var(--system-red)] tabular-nums">
               {totalExpense}
             </span>
           </div>
-          <div className="flex items-baseline justify-between pt-1 border-t border-slate-100">
-            <span className="text-[13px] font-semibold text-sky-600">Прибыль</span>
-            <span className="text-[18px] font-bold text-sky-600 tabular-nums">
+          <div className="flex items-baseline justify-between pt-1 border-t border-[var(--separator)]">
+            <span className="text-[13px] font-semibold text-[var(--accent)]">Прибыль</span>
+            <span className="text-[18px] font-bold text-[var(--accent)] tabular-nums">
               {profit}
             </span>
           </div>

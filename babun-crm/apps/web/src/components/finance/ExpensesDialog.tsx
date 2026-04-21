@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { MOCK_EXPENSES } from "@/lib/mock-data";
@@ -35,7 +35,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-violet-600 text-white px-4 py-3">
+        <div className="bg-[var(--accent)] text-white px-4 py-3">
           <div className="relative">
             <button
               onClick={() => setShowPeriodMenu(!showPeriodMenu)}
@@ -56,7 +56,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
                       setShowPeriodMenu(false);
                     }}
                     className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 ${
-                      period === p ? "text-violet-600 font-medium" : "text-slate-700"
+                      period === p ? "text-[var(--accent)] font-medium" : "text-slate-700"
                     }`}
                   >
                     {p}
@@ -75,7 +75,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
               onClick={() => setActiveTeam(tab)}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTeam === tab
-                  ? "text-violet-600 border-b-2 border-violet-600"
+                  ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -106,7 +106,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
                   {entry.date} | {entry.category}
                 </div>
               </div>
-              <div className="text-sm font-semibold text-red-600">
+              <div className="text-sm font-semibold text-[var(--system-red)]">
                 -{entry.amount} EUR
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
         <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-500">Итого:</span>
-            <span className="text-base font-bold text-red-600">
+            <span className="text-base font-bold text-[var(--system-red)]">
               -{totalExpenses} EUR
             </span>
           </div>
@@ -139,7 +139,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
         </div>
 
         {/* FAB */}
-        <button className="absolute bottom-20 right-8 w-12 h-12 bg-violet-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-violet-700 transition-colors">
+        <button className="absolute bottom-20 right-8 w-12 h-12 bg-[var(--accent)] text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[var(--accent-pressed)] transition-colors">
           +
         </button>
       </div>

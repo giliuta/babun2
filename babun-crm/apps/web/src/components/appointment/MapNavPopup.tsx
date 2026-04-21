@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { buildMapUrl } from "@/lib/map-links";
 
@@ -32,28 +32,28 @@ export default function MapNavPopup({ open, onClose, input }: MapNavPopupProps) 
         className="w-full max-w-[300px] bg-white rounded-2xl shadow-2xl p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-center text-[14px] font-semibold text-slate-900 py-2">
+        <div className="text-center text-[14px] font-semibold text-[var(--label)] py-2">
           Открыть в картах
         </div>
         <div className="pt-2 space-y-2">
           <button
             type="button"
             onClick={() => openIn("google")}
-            className="w-full h-11 rounded-xl bg-sky-50 border border-sky-200 text-[14px] font-semibold text-sky-800 active:bg-sky-100 flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-xl bg-[rgba(62,136,247,0.08)] border border-[var(--separator)] text-[14px] font-semibold text-[var(--system-blue)] active:bg-[rgba(62,136,247,0.14)] flex items-center justify-center gap-2"
           >
             <span>🗺</span> Google Maps
           </button>
           <button
             type="button"
             onClick={() => openIn("apple")}
-            className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 text-[14px] font-semibold text-slate-800 active:bg-slate-100 flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-xl bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-primary)] flex items-center justify-center gap-2"
           >
             <span>📍</span> Apple Maps
           </button>
           <button
             type="button"
             onClick={() => openIn("waze")}
-            className="w-full h-11 rounded-xl bg-violet-50 border border-violet-200 text-[14px] font-semibold text-violet-800 active:bg-violet-100 flex items-center justify-center gap-2"
+            className="w-full h-11 rounded-xl bg-[var(--accent-tint)] border border-[var(--accent)]/30 text-[14px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center justify-center gap-2"
           >
             <span>🚗</span> Waze
           </button>
@@ -61,7 +61,7 @@ export default function MapNavPopup({ open, onClose, input }: MapNavPopupProps) 
         <button
           type="button"
           onClick={onClose}
-          className="w-full h-10 mt-2 rounded-xl text-[13px] font-medium text-slate-500 active:bg-slate-50"
+          className="w-full h-10 mt-2 rounded-xl text-[13px] font-medium text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)]"
         >
           Отмена
         </button>

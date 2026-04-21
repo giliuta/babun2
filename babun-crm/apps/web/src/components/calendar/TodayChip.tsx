@@ -11,9 +11,8 @@ interface TodayChipProps {
   onOpen: () => void;
 }
 
-// STORY-003: заменяет убранный 7-колоночный нижний футер.
-// Единая плашка в шапке календаря: «Сегодня €X · N ожид. →».
-// Считается из appointments с date === сегодня и team_id совпадает.
+// Single pill in the calendar header: «Сегодня €X · N ожид. →».
+// Counted from appointments with date === today and matching team.
 export default function TodayChip({ appointments, teamId, onOpen }: TodayChipProps) {
   const stats = useMemo(() => {
     const today = new Date();
@@ -36,23 +35,23 @@ export default function TodayChip({ appointments, teamId, onOpen }: TodayChipPro
     return { income, pending };
   }, [appointments, teamId]);
 
-  // Ничего не показываем если день пустой — чтобы не шуметь утром.
+  // Nothing on empty days — no morning noise.
   if (stats.income === 0 && stats.pending === 0) return null;
 
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-white/15 active:bg-white/25 lg:bg-slate-100 lg:active:bg-slate-200 text-[11px] font-semibold text-white lg:text-slate-700 tabular-nums flex-shrink-0"
+      className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-[var(--fill-primary)] active:bg-[var(--fill-secondary)] text-[11px] font-semibold text-[var(--label)] tabular-nums flex-shrink-0"
     >
       <span>Сегодня</span>
       {stats.income > 0 && (
-        <span className="text-emerald-200 lg:text-emerald-600">
+        <span className="text-[var(--system-green)]">
           {formatEUR(stats.income)}
         </span>
       )}
       {stats.pending > 0 && (
-        <span className="flex items-center gap-0.5 bg-amber-400/80 text-amber-950 rounded-full px-1.5 h-4">
+        <span className="flex items-center gap-0.5 bg-[var(--tile-orange)] text-white rounded-full px-1.5 h-4">
           {stats.pending} ожид.
         </span>
       )}

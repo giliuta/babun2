@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Camera } from "lucide-react";
@@ -113,7 +113,7 @@ export default function PhotoBlock({
           type="button"
           disabled={readonly || busy}
           onClick={() => setPickerOpen(true)}
-          className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-violet-300 text-[13px] font-semibold text-violet-600 active:bg-violet-50 flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-[var(--accent)]/40 text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Camera size={16} strokeWidth={2} />
           {busy ? "Сохраняем…" : "Добавить фото"}
@@ -137,7 +137,7 @@ export default function PhotoBlock({
               disabled={busy}
               onClick={() => setPickerOpen(true)}
               aria-label="Добавить фото"
-              className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-violet-300 text-violet-500 text-[22px] font-bold flex items-center justify-center active:bg-violet-50 disabled:opacity-40"
+              className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-[var(--accent)]/40 text-[var(--accent)] text-[22px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)] disabled:opacity-40"
             >
               {busy ? "…" : "+"}
             </button>
@@ -160,7 +160,7 @@ export default function PhotoBlock({
             className={`inline-flex h-8 px-3 rounded-full text-[12px] font-semibold ${
               toast.includes("Вернуть")
                 ? "bg-slate-900 text-white active:bg-slate-800"
-                : "bg-slate-100 text-slate-700"
+                : "bg-[var(--fill-primary)] text-[var(--label)]"
             }`}
           >
             {toast}
@@ -201,9 +201,9 @@ function PhotoThumb({
 }) {
   const badgeCls =
     photo.kind === "before"
-      ? "bg-rose-500"
+      ? "bg-[rgba(255,59,48,0.08)]0"
       : photo.kind === "after"
-      ? "bg-emerald-500"
+      ? "bg-[rgba(52,199,89,0.08)]0"
       : null;
   const badgeText =
     photo.kind === "before" ? "До" : photo.kind === "after" ? "После" : null;
@@ -212,7 +212,7 @@ function PhotoThumb({
       type="button"
       disabled={disabled}
       onClick={onTap}
-      className="flex-shrink-0 relative w-16 h-16 rounded-xl overflow-hidden bg-slate-200 active:scale-[0.98] disabled:opacity-40"
+      className="flex-shrink-0 relative w-16 h-16 rounded-xl overflow-hidden bg-[var(--fill-secondary)] active:scale-[0.98] disabled:opacity-40"
       style={{ touchAction: "manipulation" }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

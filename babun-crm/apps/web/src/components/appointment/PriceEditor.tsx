@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import type { Discount } from "@/lib/appointments";
@@ -54,34 +54,34 @@ export default function PriceEditor({
   };
 
   return (
-    <div className="mt-2 p-3 rounded-xl bg-white border border-slate-200 space-y-2.5">
-      <div className="text-[11px] text-slate-500">
+    <div className="mt-2 p-3 rounded-xl bg-white border border-[var(--separator)] space-y-2.5">
+      <div className="text-[11px] text-[var(--label-secondary)]">
         Стандартная: <span className="font-semibold">{catalogPrice}€/шт</span>
       </div>
 
-      <div className="inline-flex rounded-lg bg-slate-100 p-1 text-[12px] font-semibold">
+      <div className="inline-flex rounded-lg bg-[var(--fill-primary)] p-1 text-[12px] font-semibold">
         <ModeBtn label="Своя цена" active={mode === "price"} onClick={() => setMode("price")} />
         <ModeBtn label="€ Скидка" active={mode === "fixed"} onClick={() => setMode("fixed")} />
         <ModeBtn label="% Скидка" active={mode === "percent"} onClick={() => setMode("percent")} />
       </div>
 
       {mode === "price" ? (
-        <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 h-11 border border-slate-200">
-          <span className="text-[14px] text-slate-400">€</span>
+        <div className="flex items-center gap-2 bg-[var(--fill-tertiary)] rounded-lg px-3 h-11 border border-[var(--separator)]">
+          <span className="text-[14px] text-[var(--label-tertiary)]">€</span>
           <input
             type="number"
             inputMode="decimal"
             value={priceStr}
             onChange={(e) => setPriceStr(e.target.value.replace(/[^\d.]/g, ""))}
             placeholder="0"
-            className="flex-1 bg-transparent text-[16px] font-bold text-slate-900 tabular-nums focus:outline-none"
+            className="flex-1 bg-transparent text-[16px] font-bold text-[var(--label)] tabular-nums focus:outline-none"
           />
-          <span className="text-[11px] text-slate-400 uppercase">за шт</span>
+          <span className="text-[11px] text-[var(--label-tertiary)] uppercase">за шт</span>
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 h-11 border border-slate-200">
-            <span className="text-[14px] text-slate-400">
+          <div className="flex items-center gap-2 bg-[var(--fill-tertiary)] rounded-lg px-3 h-11 border border-[var(--separator)]">
+            <span className="text-[14px] text-[var(--label-tertiary)]">
               {mode === "fixed" ? "€" : "%"}
             </span>
             <input
@@ -90,11 +90,11 @@ export default function PriceEditor({
               value={valueStr}
               onChange={(e) => setValueStr(e.target.value.replace(/[^\d.]/g, ""))}
               placeholder="0"
-              className="flex-1 bg-transparent text-[16px] font-bold text-slate-900 tabular-nums focus:outline-none"
+              className="flex-1 bg-transparent text-[16px] font-bold text-[var(--label)] tabular-nums focus:outline-none"
             />
           </div>
           <div className="space-y-1.5">
-            <div className="text-[11px] text-slate-500">Причина</div>
+            <div className="text-[11px] text-[var(--label-secondary)]">Причина</div>
             <div className="flex gap-1.5 flex-wrap">
               {DISCOUNT_REASONS.map((r) => (
                 <button
@@ -103,8 +103,8 @@ export default function PriceEditor({
                   onClick={() => setReason(r)}
                   className={`h-8 px-2.5 rounded-lg text-[12px] font-semibold transition ${
                     reason === r
-                      ? "bg-violet-600 text-white"
-                      : "bg-slate-100 text-slate-700"
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-[var(--fill-primary)] text-[var(--label)]"
                   }`}
                 >
                   {r}
@@ -116,7 +116,7 @@ export default function PriceEditor({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Свой текст"
-              className="w-full h-9 px-3 rounded-lg bg-white border border-slate-200 text-[13px] focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full h-9 px-3 rounded-lg bg-white border border-[var(--separator)] text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
         </>
@@ -126,14 +126,14 @@ export default function PriceEditor({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 h-10 rounded-lg bg-slate-100 text-[13px] font-semibold text-slate-700 active:bg-slate-200"
+          className="flex-1 h-10 rounded-lg bg-[var(--fill-primary)] text-[13px] font-semibold text-[var(--label)] active:bg-[var(--fill-secondary)]"
         >
           Отмена
         </button>
         <button
           type="button"
           onClick={handleApply}
-          className="flex-[2] h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.99]"
+          className="flex-[2] h-10 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.99]"
         >
           Применить
         </button>
@@ -156,7 +156,7 @@ function ModeBtn({
       type="button"
       onClick={onClick}
       className={`px-3 py-1 rounded-md transition ${
-        active ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+        active ? "bg-white text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
       }`}
     >
       {label}

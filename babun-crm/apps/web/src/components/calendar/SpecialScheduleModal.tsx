@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import DialogModal from "@/components/appointments/sheet/DialogModal";
@@ -79,7 +79,7 @@ export default function SpecialScheduleModal({
             <button
               type="button"
               onClick={handleReset}
-              className="h-11 px-4 rounded-lg bg-slate-100 text-slate-600 text-[13px] font-medium active:scale-[0.98]"
+              className="h-11 px-4 rounded-lg bg-[var(--fill-primary)] text-[var(--label-secondary)] text-[13px] font-medium active:scale-[0.98]"
             >
               Сбросить
             </button>
@@ -87,7 +87,7 @@ export default function SpecialScheduleModal({
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 h-11 rounded-lg bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98]"
+            className="flex-1 h-11 rounded-lg bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.98]"
           >
             Сохранить
           </button>
@@ -95,14 +95,14 @@ export default function SpecialScheduleModal({
       }
     >
       <div className="p-4 space-y-4">
-        <div className="text-[12px] text-slate-500 capitalize">
+        <div className="text-[12px] text-[var(--label-secondary)] capitalize">
           {formatDateLongRu(dateKey)}
         </div>
 
         <label className="flex items-center gap-3 cursor-pointer">
           <span
             className={`relative inline-block w-10 h-6 rounded-full transition ${
-              working ? "bg-emerald-600" : "bg-slate-300"
+              working ? "bg-[var(--accent)]" : "bg-[var(--fill-primary)]"
             }`}
           >
             <input
@@ -117,7 +117,7 @@ export default function SpecialScheduleModal({
               }`}
             />
           </span>
-          <span className="text-[13px] text-slate-900 font-medium">
+          <span className="text-[13px] text-[var(--label)] font-medium">
             {working ? "Рабочий день" : "Выходной"}
           </span>
         </label>
@@ -129,7 +129,7 @@ export default function SpecialScheduleModal({
           </div>
         )}
 
-        <p className="text-[11px] text-slate-400 leading-snug">
+        <p className="text-[11px] text-[var(--label-tertiary)] leading-snug">
           Это расписание применится только к{" "}
           <span className="font-semibold">{formatDateLongRu(dateKey)}</span>. Общий
           рабочий график бригады не изменится.
@@ -148,13 +148,13 @@ interface TimeSelectProps {
 function TimeSelect({ label, value, onChange }: TimeSelectProps) {
   return (
     <label className="block">
-      <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
+      <span className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-0.5">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-10 px-2 rounded-lg bg-slate-50 border border-slate-200 text-[13px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+        className="w-full h-10 px-2 rounded-lg bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[13px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
       >
         {QUARTER_HOUR_OPTIONS.map((t) => (
           <option key={t} value={t}>

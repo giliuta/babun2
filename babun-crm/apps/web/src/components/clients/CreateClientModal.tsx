@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@/lib/clients";
@@ -126,7 +126,7 @@ export default function CreateClientModal({
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Язык, предпочтения, особенности..."
                   rows={3}
-                  className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
               </div>
               <p className="text-[12px] text-slate-400">
@@ -148,7 +148,7 @@ export default function CreateClientModal({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Имя или телефон"
                     autoFocus
-                    className="w-full h-12 pl-9 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full h-12 pl-9 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function CreateClientModal({
                     key={c.id}
                     className="flex items-center gap-3 px-4 py-3 border-b border-slate-100"
                   >
-                    <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center font-bold text-[13px] flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-bold text-[13px] flex-shrink-0">
                       {c.full_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -174,7 +174,7 @@ export default function CreateClientModal({
                     <button
                       type="button"
                       onClick={() => handleLink(c.id)}
-                      className="h-9 px-4 rounded-lg bg-violet-50 text-violet-600 text-[13px] font-semibold active:bg-violet-100 flex-shrink-0"
+                      className="h-9 px-4 rounded-lg bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold active:bg-[var(--accent-tint)] flex-shrink-0"
                     >
                       Привязать
                     </button>
@@ -186,7 +186,7 @@ export default function CreateClientModal({
                     <button
                       type="button"
                       onClick={() => setTab("new")}
-                      className="mt-2 text-[13px] text-violet-600 font-semibold"
+                      className="mt-2 text-[13px] text-[var(--accent)] font-semibold"
                     >
                       Создать нового →
                     </button>
@@ -207,7 +207,7 @@ export default function CreateClientModal({
               type="button"
               onClick={handleCreate}
               disabled={!name.trim()}
-              className="w-full h-12 rounded-xl bg-violet-600 text-white text-[15px] font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-12 rounded-xl bg-[var(--accent)] text-white text-[15px] font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
             >
               Создать и привязать
             </button>
@@ -247,7 +247,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className="w-full h-12 px-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        className="w-full h-12 px-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
       />
     </div>
   );

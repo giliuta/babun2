@@ -100,12 +100,12 @@ export default function MasterProfileDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-violet-600 text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">Профиль мастера</h2>
           <button
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-8 h-8 flex items-center justify-center rounded hover:bg-violet-500"
+            className="w-8 h-8 flex items-center justify-center rounded hover:bg-[var(--accent-tint)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -122,7 +122,7 @@ export default function MasterProfileDialog({
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTab === tab.id
-                  ? "text-violet-600 border-b-2 border-violet-600"
+                  ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -141,7 +141,7 @@ export default function MasterProfileDialog({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 />
               </div>
               <div>
@@ -150,7 +150,7 @@ export default function MasterProfileDialog({
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 />
               </div>
               <div>
@@ -192,7 +192,7 @@ export default function MasterProfileDialog({
                         type="text"
                         value={service.name}
                         onChange={(e) => handleServiceChange(service.id, "name", e.target.value)}
-                        className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                        className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                       />
                       <div className="flex gap-2">
                         <input
@@ -201,20 +201,20 @@ export default function MasterProfileDialog({
                           onChange={(e) =>
                             handleServiceChange(service.id, "duration_minutes", Number(e.target.value))
                           }
-                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                           placeholder="мин"
                         />
                         <input
                           type="number"
                           value={service.price}
                           onChange={(e) => handleServiceChange(service.id, "price", Number(e.target.value))}
-                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                           placeholder="EUR"
                         />
                         <button
                           type="button"
                           onClick={() => setEditingServiceId(null)}
-                          className="px-2 py-1 text-xs font-medium text-violet-600 bg-violet-50 rounded hover:bg-violet-100"
+                          className="px-2 py-1 text-xs font-medium text-[var(--accent)] bg-[var(--accent-tint)] rounded hover:bg-[var(--accent-tint)]"
                         >
                           Готово
                         </button>
@@ -242,7 +242,7 @@ export default function MasterProfileDialog({
                       <button
                         type="button"
                         onClick={() => handleDeleteService(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-[rgba(255,59,48,0.08)] text-slate-400 hover:text-[var(--system-red)] transition-colors"
                         aria-label="Удалить"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -259,7 +259,7 @@ export default function MasterProfileDialog({
               <button
                 type="button"
                 onClick={handleAddService}
-                className="w-full py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors"
+                className="w-full py-2 text-sm font-medium text-[var(--accent)] bg-[var(--accent-tint)] rounded-lg hover:bg-[var(--accent-tint)] transition-colors"
               >
                 + Добавить услугу
               </button>
@@ -279,8 +279,8 @@ export default function MasterProfileDialog({
                       onClick={() => setEditingTeamId(team.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         editingTeamId === team.id
-                          ? "bg-violet-600 text-white border-violet-600"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-violet-300"
+                          ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                          : "bg-white text-slate-700 border-slate-200 hover:border-[var(--accent)]/40"
                       }`}
                     >
                       {team.name}
@@ -303,7 +303,7 @@ export default function MasterProfileDialog({
                     type="time"
                     value={currentSchedule.start}
                     onChange={(e) => updateScheduleField("start", e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -312,7 +312,7 @@ export default function MasterProfileDialog({
                     type="time"
                     value={currentSchedule.end}
                     onChange={(e) => updateScheduleField("end", e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                   />
                 </div>
               </div>

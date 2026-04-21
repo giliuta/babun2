@@ -193,7 +193,7 @@ export default function PhotoViewer({
             <button
               type="button"
               onClick={() => onDelete(photo.id)}
-              className="ml-auto h-9 px-3 rounded-lg bg-rose-500 text-white text-[12px] font-semibold active:bg-rose-600"
+              className="ml-auto h-9 px-3 rounded-lg bg-[rgba(255,59,48,0.08)]0 text-white text-[12px] font-semibold active:bg-[var(--system-red)]"
             >
               Удалить
             </button>
@@ -211,7 +211,7 @@ export default function PhotoViewer({
             className="w-full max-w-[280px] bg-white rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <div className="px-4 py-3 border-b border-[var(--separator)] text-[11px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)]">
               Пометить как
             </div>
             {(["before", "after", "other"] as PhotoKind[]).map((k) => (
@@ -223,14 +223,14 @@ export default function PhotoViewer({
                   setMenuOpen(false);
                 }}
                 disabled={k === photo.kind}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-50 border-b border-slate-50 last:border-0 disabled:opacity-40"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--fill-tertiary)] border-b border-slate-50 last:border-0 disabled:opacity-40"
               >
                 <KindBadge kind={k} />
-                <span className="text-[14px] font-medium text-slate-900">
+                <span className="text-[14px] font-medium text-[var(--label)]">
                   {kindLabel(k)}
                 </span>
                 {k === photo.kind && (
-                  <span className="ml-auto text-[11px] text-slate-400">
+                  <span className="ml-auto text-[11px] text-[var(--label-tertiary)]">
                     текущая
                   </span>
                 )}
@@ -239,7 +239,7 @@ export default function PhotoViewer({
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
-              className="w-full h-11 text-[13px] font-medium text-slate-500 border-t border-slate-100 active:bg-slate-50"
+              className="w-full h-11 text-[13px] font-medium text-[var(--label-secondary)] border-t border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
             >
               Отмена
             </button>
@@ -253,20 +253,20 @@ export default function PhotoViewer({
 function KindBadge({ kind }: { kind: PhotoKind }) {
   if (kind === "before") {
     return (
-      <span className="h-6 px-2 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[rgba(255,59,48,0.08)]0 text-white text-[11px] font-bold flex items-center">
         До
       </span>
     );
   }
   if (kind === "after") {
     return (
-      <span className="h-6 px-2 rounded-full bg-emerald-500 text-white text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[rgba(52,199,89,0.08)]0 text-white text-[11px] font-bold flex items-center">
         После
       </span>
     );
   }
   return (
-    <span className="h-6 px-2 rounded-full bg-slate-500 text-white text-[11px] font-bold flex items-center">
+    <span className="h-6 px-2 rounded-full bg-[var(--fill-tertiary)]0 text-white text-[11px] font-bold flex items-center">
       Прочее
     </span>
   );

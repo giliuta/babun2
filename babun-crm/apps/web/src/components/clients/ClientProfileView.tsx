@@ -266,10 +266,10 @@ export default function ClientProfileView({
                   {client.notes.map((n) => (
                     <div
                       key={n.id}
-                      className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200"
+                      className="flex items-start gap-2 p-2 rounded-lg bg-[rgba(255,149,0,0.08)] border border-amber-200"
                     >
-                      <div className="flex-1 text-[13px] text-amber-900 whitespace-pre-wrap">
-                        <span className="text-[10px] text-amber-600 mr-1 tabular-nums">
+                      <div className="flex-1 text-[13px] text-[var(--system-orange)] whitespace-pre-wrap">
+                        <span className="text-[10px] text-[var(--system-orange)] mr-1 tabular-nums">
                           {formatShortDate(n.created_at)}
                         </span>
                         {n.text}
@@ -611,7 +611,7 @@ function EditableComment({
         }}
         rows={2}
         placeholder="Комментарий о клиенте…"
-        className="w-full mt-2 p-2 text-[12px] text-slate-700 bg-amber-50 border border-amber-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+        className="w-full mt-2 p-2 text-[12px] text-slate-700 bg-[rgba(255,149,0,0.08)] border border-amber-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[rgba(255,149,0,0.35)]"
       />
     );
   }
@@ -626,8 +626,8 @@ function EditableComment({
       className="mt-2 w-full text-left text-[13px] text-[var(--label-secondary)] active:opacity-60"
     >
       {value ? (
-        <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 whitespace-pre-wrap flex items-start gap-2">
-          <MessageSquare size={14} strokeWidth={2} className="mt-0.5 shrink-0 text-amber-700" />
+        <div className="p-2 rounded-lg bg-[rgba(255,149,0,0.08)] border border-amber-200 text-[var(--system-orange)] whitespace-pre-wrap flex items-start gap-2">
+          <MessageSquare size={14} strokeWidth={2} className="mt-0.5 shrink-0 text-[var(--system-orange)]" />
           <span>{value}</span>
         </div>
       ) : (
@@ -779,7 +779,7 @@ function AppointmentRow({ apt }: { apt: Appointment }) {
     if (apt.status === "cancelled")
       return { text: "Отменено", color: "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]" };
     if (apt.status === "in_progress")
-      return { text: "В работе", color: "bg-amber-100 text-amber-700" };
+      return { text: "В работе", color: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" };
     return { text: "Запланировано", color: "bg-[rgba(0,122,255,0.12)] text-[var(--system-blue)]" };
   })();
 

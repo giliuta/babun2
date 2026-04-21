@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Client, PhoneEntry } from "@/lib/clients";
@@ -171,7 +171,7 @@ function TabBtn({
       onClick={onClick}
       className={`px-4 py-3 text-[13px] font-semibold whitespace-nowrap border-b-2 transition-colors ${
         active
-          ? "text-violet-700 border-violet-600"
+          ? "text-[var(--accent)] border-[var(--accent)]"
           : "text-slate-500 border-transparent"
       }`}
     >
@@ -248,7 +248,7 @@ function ProfileForm({
         }
       >
         {client.blacklisted ? (
-          <div className="text-[13px] text-rose-600 font-semibold">
+          <div className="text-[13px] text-[var(--system-red)] font-semibold">
             Клиент заблокирован
           </div>
         ) : (
@@ -325,7 +325,7 @@ function PhonesSection({
       <button
         type="button"
         onClick={addPhone}
-        className="w-full h-8 border border-dashed border-slate-300 rounded-lg text-[12px] text-violet-600 font-semibold active:bg-violet-50"
+        className="w-full h-8 border border-dashed border-slate-300 rounded-lg text-[12px] text-[var(--accent)] font-semibold active:bg-[var(--accent-tint)]"
       >
         + Добавить номер
       </button>
@@ -351,7 +351,7 @@ function PhoneRow({
   const digits = number.replace(/\D/g, "");
   return (
     <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2 py-1.5">
-      <div className="text-violet-500 shrink-0">
+      <div className="text-[var(--accent)] shrink-0">
         <IconPhone />
       </div>
       <input
@@ -367,7 +367,7 @@ function PhoneRow({
         <select
           value={label}
           onChange={(e) => onLabelChange?.(e.target.value)}
-          className="min-w-0 flex-1 h-7 bg-white border border-slate-200 rounded text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-violet-500 px-1"
+          className="min-w-0 flex-1 h-7 bg-white border border-slate-200 rounded text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
         >
           {PHONE_LABEL_OPTIONS.concat(
             PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
@@ -381,14 +381,14 @@ function PhoneRow({
           <a
             href={`tel:${digits}`}
             aria-label="Позвонить"
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700 active:bg-emerald-200 shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-[rgba(52,199,89,0.14)] text-[var(--system-green)] active:bg-emerald-200 shrink-0"
           >
             <IconPhone />
           </a>
           <a
             href={`sms:${digits}`}
             aria-label="Отправить SMS"
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-sky-100 text-sky-700 active:bg-sky-200 shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)] active:bg-sky-200 shrink-0"
           >
             <IconChat />
           </a>
@@ -399,7 +399,7 @@ function PhoneRow({
           type="button"
           onClick={onRemove}
           aria-label="Удалить номер"
-          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-rose-500 shrink-0"
+          className="w-7 h-7 flex items-center justify-center text-slate-400 active:text-[var(--system-red)] shrink-0"
         >
           ✕
         </button>
@@ -427,7 +427,7 @@ function MessengersSection({
 
       <MessengerRow
         icon={<IconTelegram />}
-        color="bg-sky-100 text-sky-600"
+        color="bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)]"
         label="Telegram"
         value={client.telegram_username}
         placeholder="Telegram @username"
@@ -447,7 +447,7 @@ function MessengersSection({
 
       <MessengerRow
         icon={<IconWhatsapp />}
-        color="bg-emerald-100 text-emerald-600"
+        color="bg-[rgba(52,199,89,0.14)] text-[var(--system-green)]"
         label="WhatsApp"
         value={client.whatsapp_phone}
         placeholder={
@@ -495,7 +495,7 @@ function MessengerRow({
           href={openUrl}
           target="_blank"
           rel="noreferrer"
-          className="h-7 px-2.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-violet-700 active:bg-violet-50 flex items-center shrink-0"
+          className="h-7 px-2.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center shrink-0"
         >
           Открыть
         </a>
@@ -719,12 +719,12 @@ function RecordCard({
 
   const bg =
     apt.status === "completed"
-      ? "bg-emerald-50"
+      ? "bg-[rgba(52,199,89,0.08)]"
       : apt.status === "cancelled"
       ? "bg-slate-50"
       : apt.status === "in_progress"
-      ? "bg-violet-50"
-      : "bg-sky-50";
+      ? "bg-[var(--accent-tint)]"
+      : "bg-[rgba(62,136,247,0.08)]";
 
   return (
     <div className={`${bg} px-4 py-3`}>
@@ -754,20 +754,20 @@ function RecordCard({
       )}
       {/* Payment row */}
       <div className="flex items-center gap-3 mt-2 text-[12px]">
-        <span className="flex items-center gap-1 text-emerald-700">
-          <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">
+        <span className="flex items-center gap-1 text-[var(--system-green)]">
+          <span className="w-4 h-4 rounded-full bg-[rgba(52,199,89,0.08)]0 text-white flex items-center justify-center text-[10px]">
             +
           </span>
           {paid}
         </span>
-        <span className="flex items-center gap-1 text-rose-600">
-          <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px]">
+        <span className="flex items-center gap-1 text-[var(--system-red)]">
+          <span className="w-4 h-4 rounded-full bg-[rgba(255,59,48,0.08)]0 text-white flex items-center justify-center text-[10px]">
             −
           </span>
           {debt}
         </span>
-        <span className="flex items-center gap-1 text-sky-700">
-          <span className="w-4 h-4 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px]">
+        <span className="flex items-center gap-1 text-[var(--system-blue)]">
+          <span className="w-4 h-4 rounded-full bg-[rgba(62,136,247,0.08)]0 text-white flex items-center justify-center text-[10px]">
             ·
           </span>
           {total}
@@ -801,7 +801,7 @@ function HistoryTab({
         const team = apt.team_id ? teamsById.get(apt.team_id) : null;
         return (
           <div key={apt.id} className="px-4 py-3">
-            <div className="text-[13px] text-violet-700 font-semibold mb-1 border-b border-violet-100 pb-1">
+            <div className="text-[13px] text-[var(--accent)] font-semibold mb-1 border-b border-violet-100 pb-1">
               {formatRu(apt.date)} {apt.time_start}, {weekdayRu(apt.date)}
             </div>
             {team && (
@@ -839,7 +839,7 @@ function linkify(text: string) {
         href={m[0]}
         target="_blank"
         rel="noreferrer"
-        className="text-violet-600 underline break-all"
+        className="text-[var(--accent)] underline break-all"
       >
         {m[0]}
       </a>
@@ -914,7 +914,7 @@ function RemindersTab({
         return (
           <div
             key={r.key}
-            className="bg-sky-50 rounded-2xl border border-sky-100 p-3"
+            className="bg-[rgba(62,136,247,0.08)] rounded-2xl border border-sky-100 p-3"
           >
             <div className="flex items-start justify-between">
               <div className="text-[13px] text-slate-700 font-medium">
@@ -922,7 +922,7 @@ function RemindersTab({
               </div>
               <div
                 className={`text-[12px] font-semibold ${
-                  wasSent ? "text-emerald-600" : "text-sky-600"
+                  wasSent ? "text-[var(--system-green)]" : "text-[var(--system-blue)]"
                 }`}
               >
                 {wasSent ? "Отправлено" : "Не выполнено"}
@@ -958,7 +958,7 @@ function RemindersTab({
                 }}
                 className={`h-9 px-4 rounded-lg text-[12px] font-semibold flex items-center ${
                   smsHref
-                    ? "bg-orange-500 text-white active:bg-orange-600"
+                    ? "bg-[rgba(255,149,0,0.08)]0 text-white active:bg-orange-600"
                     : "bg-slate-200 text-slate-400"
                 }`}
               >
@@ -1000,7 +1000,7 @@ function FieldRow({
     <div className="px-4 pt-2 pb-2">
       <div className="text-[11px] text-slate-500 mb-0.5">{label}</div>
       <div className="flex items-center gap-2">
-        <div className="w-5 h-5 flex items-center justify-center text-violet-500 shrink-0">
+        <div className="w-5 h-5 flex items-center justify-center text-[var(--accent)] shrink-0">
           {icon}
         </div>
         <div className="flex-1 min-w-0">{children}</div>
@@ -1025,7 +1025,7 @@ function Toggle({
         onChange(!on);
       }}
       className={`w-11 h-6 rounded-full relative transition-colors ${
-        on ? "bg-red-500" : "bg-slate-300"
+        on ? "bg-[rgba(255,59,48,0.08)]0" : "bg-slate-300"
       }`}
       aria-pressed={on}
     >
@@ -1072,11 +1072,11 @@ function GroupsPicker({
 }
 
 const PRESET_GROUPS = [
-  { id: "tag-vip", label: "VIP", class: "bg-amber-100 text-amber-700" },
+  { id: "tag-vip", label: "VIP", class: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" },
   { id: "tag-regular", label: "Постоянный", class: "bg-purple-100 text-purple-700" },
-  { id: "tag-b2b", label: "B2B", class: "bg-blue-100 text-blue-700" },
-  { id: "tag-problem", label: "Проблемный", class: "bg-red-100 text-red-700" },
-  { id: "tag-new", label: "Новый", class: "bg-green-100 text-green-700" },
+  { id: "tag-b2b", label: "B2B", class: "bg-blue-100 text-[var(--system-blue)]" },
+  { id: "tag-problem", label: "Проблемный", class: "bg-[rgba(255,59,48,0.14)] text-[var(--system-red)]" },
+  { id: "tag-new", label: "Новый", class: "bg-green-100 text-[var(--system-green)]" },
   { id: "tag-referral", label: "Рекомендация", class: "bg-slate-200 text-slate-700" },
 ];
 

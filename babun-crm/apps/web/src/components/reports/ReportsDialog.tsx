@@ -49,16 +49,16 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-violet-600 text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">Отчеты</h2>
-          <button className="w-8 h-8 flex items-center justify-center rounded hover:bg-violet-500">
+          <button className="w-8 h-8 flex items-center justify-center rounded hover:bg-[var(--accent-tint)]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="6 9 6 2 18 2 18 9" />
               <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
               <rect x="6" y="14" width="12" height="8" />
             </svg>
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded hover:bg-violet-500">
+          <button className="w-8 h-8 flex items-center justify-center rounded hover:bg-[var(--accent-tint)]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="1" />
               <circle cx="12" cy="5" r="1" />
@@ -75,7 +75,7 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
               onClick={() => setActiveTeam(tab)}
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTeam === tab
-                  ? "text-violet-600 border-b-2 border-violet-600"
+                  ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -107,15 +107,15 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
               className="grid grid-cols-4 gap-2 px-4 py-3 border-b border-slate-100 text-sm"
             >
               <div className="text-slate-900">{row.period}</div>
-              <div className="text-right text-green-600 font-medium">
+              <div className="text-right text-[var(--system-green)] font-medium">
                 {row.income.toLocaleString("ru-RU")}
               </div>
-              <div className="text-right text-red-600 font-medium">
+              <div className="text-right text-[var(--system-red)] font-medium">
                 {row.expenses.toLocaleString("ru-RU")}
               </div>
               <div
                 className={`text-right font-medium ${
-                  row.profit >= 0 ? "text-green-600" : "text-red-600"
+                  row.profit >= 0 ? "text-[var(--system-green)]" : "text-[var(--system-red)]"
                 }`}
               >
                 {row.profit.toLocaleString("ru-RU")}
@@ -126,15 +126,15 @@ export default function ReportsDialog({ open, onClose }: ReportsDialogProps) {
           {/* Total row */}
           <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-slate-50 text-sm font-bold border-t border-slate-300">
             <div className="text-slate-900">Итого</div>
-            <div className="text-right text-green-600">
+            <div className="text-right text-[var(--system-green)]">
               {totals.income.toLocaleString("ru-RU")}
             </div>
-            <div className="text-right text-red-600">
+            <div className="text-right text-[var(--system-red)]">
               {totals.expenses.toLocaleString("ru-RU")}
             </div>
             <div
               className={`text-right ${
-                totals.profit >= 0 ? "text-green-600" : "text-red-600"
+                totals.profit >= 0 ? "text-[var(--system-green)]" : "text-[var(--system-red)]"
               }`}
             >
               {totals.profit.toLocaleString("ru-RU")}
