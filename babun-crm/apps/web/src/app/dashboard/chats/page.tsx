@@ -242,16 +242,16 @@ export default function ChatsPage() {
   const chatListEl = (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="flex-shrink-0 bg-violet-600 px-3 py-3">
+      <div className="flex-shrink-0 bg-[var(--accent)] px-3 py-3">
         <div className="text-[17px] font-semibold text-white tracking-tight">
-          Чаты{totalUnread > 0 && <span className="text-violet-200 font-normal"> ({totalUnread})</span>}
+          Чаты{totalUnread > 0 && <span className="text-white/70 font-normal"> ({totalUnread})</span>}
         </div>
       </div>
 
       {/* Search */}
-      <div className="flex-shrink-0 px-3 py-2 bg-white border-b border-slate-100">
+      <div className="flex-shrink-0 px-3 py-2 bg-white border-b border-[var(--separator)]">
         <div className="relative">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)]">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -259,13 +259,13 @@ export default function ChatsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск..."
-            className="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-100 text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full h-10 pl-9 pr-3 rounded-xl bg-[var(--fill-primary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex-shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b border-slate-100">
+      <div className="flex-shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b border-[var(--separator)]">
         {(["all", "unanswered", "whatsapp", "instagram", "telegram", "sms"] as FilterChannel[]).map((ch) => {
           const label = ch === "all" ? "Все" : ch === "unanswered" ? "Без ответа" : CHANNEL_LABELS[ch as ChatChannel];
           const count = ch === "all" ? chats.filter((c) => c.status !== "archived").length
@@ -276,8 +276,8 @@ export default function ChatsPage() {
             <button key={ch} type="button" onClick={() => setFilter(ch)}
               className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
                 filter === ch
-                  ? isOrange ? "bg-orange-500 text-white" : "bg-violet-600 text-white"
-                  : ch === "unanswered" && count > 0 ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"
+                  ? isOrange ? "bg-[rgba(255,149,0,0.08)]0 text-white" : "bg-[var(--accent)] text-white"
+                  : ch === "unanswered" && count > 0 ? "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
               }`}
             >{label} ({count})</button>
           );
@@ -292,16 +292,16 @@ export default function ChatsPage() {
           return (
             <SwipeableRow
               key={chat.id}
-              leftActions={[{ label: chat.is_pinned ? "Открепить" : "Закрепить", color: "bg-blue-500", onSelect: () => togglePin(chat.id) }]}
+              leftActions={[{ label: chat.is_pinned ? "Открепить" : "Закрепить", color: "bg-[rgba(62,136,247,0.08)]0", onSelect: () => togglePin(chat.id) }]}
               rightActions={[
-                { label: "Архив", color: "bg-amber-500", onSelect: () => archiveChat(chat.id) },
+                { label: "Архив", color: "bg-[rgba(255,149,0,0.08)]0", onSelect: () => archiveChat(chat.id) },
               ]}
             >
               <button
                 type="button"
                 onClick={() => openChat(chat)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-slate-100 transition ${
-                  isActive ? "bg-violet-50" : "active:bg-slate-50"
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-[var(--separator)] transition ${
+                  isActive ? "bg-[var(--accent-tint)]" : "active:bg-[var(--fill-tertiary)]"
                 }`}
               >
                 <div className="relative flex-shrink-0">
@@ -324,13 +324,13 @@ export default function ChatsPage() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1 min-w-0">
                       {chat.is_pinned && <span className="text-[11px]">📌</span>}
-                      <span className="text-[15px] font-semibold text-slate-900 truncate">
+                      <span className="text-[15px] font-semibold text-[var(--label)] truncate">
                         {chat.contact_name || chat.contact_handle || "Без имени"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <WaitingBadge chat={chat} />
-                      <span className={`text-[11px] ${chat.unread_count > 0 ? "text-green-600 font-semibold" : "text-slate-400"}`}>
+                      <span className={`text-[11px] ${chat.unread_count > 0 ? "text-[var(--system-green)] font-semibold" : "text-[var(--label-tertiary)]"}`}>
                         {formatTimeAgo(chat.last_message_at)}
                       </span>
                     </div>
@@ -338,10 +338,10 @@ export default function ChatsPage() {
                   <div className="flex items-center justify-between gap-2 mt-0.5">
                     <span className="text-[13px] truncate">
                       {chat.draft ? (
-                        <span className="text-red-500">Черновик: {chat.draft}</span>
+                        <span className="text-[var(--system-red)]">Черновик: {chat.draft}</span>
                       ) : (
-                        <span className="text-slate-500">
-                          {lastMsg?.direction === "out" && <span className="text-slate-400">Вы: </span>}
+                        <span className="text-[var(--label-secondary)]">
+                          {lastMsg?.direction === "out" && <span className="text-[var(--label-tertiary)]">Вы: </span>}
                           {lastMsg?.content_type === "image" || lastMsg?.photo ? (
                             <span className="inline-flex items-center gap-1"><ImageIcon size={12} /> Фото</span>
                           ) : lastMsg?.content_type === "audio" ? (
@@ -355,18 +355,18 @@ export default function ChatsPage() {
                       )}
                     </span>
                     {chat.unread_count > 0 && (
-                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-green-500 text-white text-[11px] font-bold flex items-center justify-center px-1">
+                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[rgba(52,199,89,0.08)]0 text-white text-[11px] font-bold flex items-center justify-center px-1">
                         {chat.unread_count}
                       </span>
                     )}
                   </div>
                   {chat.client_id && (() => {
                     const cl = clients.find((c) => c.id === chat.client_id);
-                    if (!cl) return <div className="text-[10px] text-green-600 font-medium mt-0.5">✓ Клиент привязан</div>;
+                    if (!cl) return <div className="text-[10px] text-[var(--system-green)] font-medium mt-0.5">✓ Клиент привязан</div>;
                     const parts = [cl.city, cl.property_type ? PROPERTY_LABELS[cl.property_type as PropertyType] : null];
                     if (cl.equipment.length > 0) parts.push(pluralizeAC(cl.equipment.length));
                     return (
-                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                      <div className="text-[10px] text-[var(--label-tertiary)] mt-0.5 truncate">
                         ✓ {parts.filter(Boolean).join(" · ")}
                       </div>
                     );
@@ -378,11 +378,11 @@ export default function ChatsPage() {
         })}
         {filtered.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-300">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--label-quaternary)]">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
-            <div className="text-[14px] font-medium text-slate-500">Нет чатов</div>
-            <div className="text-[12px] text-slate-400">Сообщения появятся здесь</div>
+            <div className="text-[14px] font-medium text-[var(--label-secondary)]">Нет чатов</div>
+            <div className="text-[12px] text-[var(--label-tertiary)]">Сообщения появятся здесь</div>
           </div>
         )}
       </div>
@@ -425,8 +425,8 @@ export default function ChatsPage() {
       }}
     />
   ) : (
-    <div className="hidden lg:flex flex-1 items-center justify-center bg-slate-50">
-      <div className="text-center text-slate-400">
+    <div className="hidden lg:flex flex-1 items-center justify-center bg-[var(--fill-tertiary)]">
+      <div className="text-center text-[var(--label-tertiary)]">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="mx-auto mb-3">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
         </svg>
@@ -444,7 +444,7 @@ export default function ChatsPage() {
   return (
     <div className="flex h-full">
       {/* List — always visible on desktop, hidden when chat open on mobile */}
-      <div className={`${activeChatId ? "hidden lg:flex" : "flex"} flex-col w-full lg:w-[360px] lg:flex-shrink-0 lg:border-r lg:border-slate-200 h-full`}>
+      <div className={`${activeChatId ? "hidden lg:flex" : "flex"} flex-col w-full lg:w-[360px] lg:flex-shrink-0 lg:border-r lg:border-[var(--separator)] h-full`}>
         {chatListEl}
       </div>
       {/* Chat — takes full width on mobile, flex on desktop */}
@@ -468,7 +468,7 @@ export default function ChatsPage() {
         <div className="fixed inset-0 z-[80] lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowClientPanel(false)} />
           <div className="absolute bottom-0 left-0 right-0 h-[85vh] bg-white rounded-t-2xl overflow-hidden animate-fade-in-up">
-            <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mt-3 mb-1" />
+            <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1" />
             <div className="h-full overflow-y-auto" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
               <ClientPanel
                 client={linkedClient}
@@ -483,25 +483,25 @@ export default function ChatsPage() {
 
       {/* Empty state for panel when no client linked — desktop xl+ */}
       {showClientPanel && !linkedClient && isLG && (
-        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full bg-white border-l border-slate-200 items-center justify-center text-center p-6">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-300 mb-3">
+        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full bg-white border-l border-[var(--separator)] items-center justify-center text-center p-6">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--label-quaternary)] mb-3">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <div className="text-[15px] font-medium text-slate-600 mb-1">Клиент не привязан</div>
-          <div className="text-[12px] text-slate-400 mb-4">Привяжите существующего или создайте нового</div>
+          <div className="text-[15px] font-medium text-[var(--label-secondary)] mb-1">Клиент не привязан</div>
+          <div className="text-[12px] text-[var(--label-tertiary)] mb-4">Привяжите существующего или создайте нового</div>
           <div className="flex flex-col gap-2 w-full">
             <button
               type="button"
               onClick={() => openCreateModal("existing")}
-              className="h-10 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-700 active:bg-slate-50"
+              className="h-10 rounded-lg border border-[var(--separator)] text-[13px] font-medium text-[var(--label)] active:bg-[var(--fill-tertiary)]"
             >
               Найти клиента
             </button>
             <button
               type="button"
               onClick={() => openCreateModal("new")}
-              className="h-10 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.98]"
+              className="h-10 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.98]"
             >
               + Создать нового
             </button>
@@ -573,7 +573,7 @@ function ChatDetailView({
   return (
     <>
       {/* Header */}
-      <div className="flex-shrink-0 bg-violet-600 z-30 relative">
+      <div className="flex-shrink-0 bg-[var(--accent)] z-30 relative">
         <div className="px-2 py-2 flex items-center gap-2">
           <button type="button" onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:hidden">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
@@ -584,7 +584,7 @@ function ChatDetailView({
             </div>
             <div className="flex-1 min-w-0 text-left">
               <div className="text-[14px] font-semibold text-white truncate">{chat.contact_name || chat.contact_handle || "Чат"}</div>
-              <div className="text-[11px] text-violet-200 truncate">
+              <div className="text-[11px] text-white/70 truncate">
                 {chat.last_seen ? `был(а) ${formatTimeAgo(chat.last_seen)}` : CHANNEL_LABELS[chat.channel]}
                 {chat.contact_handle && ` · ${chat.contact_handle}`}
               </div>
@@ -599,7 +599,7 @@ function ChatDetailView({
         {headerMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
-            <div className="absolute right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border border-slate-100 py-1 z-50 min-w-[200px]">
+            <div className="absolute right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border border-[var(--separator)] py-1 z-50 min-w-[200px]">
               <MenuItem label={chat.is_pinned ? "Открепить" : "Закрепить"} onClick={onTogglePin} />
               {linkedClient && (
                 <MenuItem
@@ -625,19 +625,19 @@ function ChatDetailView({
       </div>
 
       {/* Client link banner */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-slate-200" style={{ backgroundColor: linkedClient ? "#f0fdf4" : "#f5f3ff" }}>
+      <div className="flex-shrink-0 px-3 py-2 border-b border-[var(--separator)]" style={{ backgroundColor: linkedClient ? "#f0fdf4" : "#f5f3ff" }}>
         {linkedClient ? (
           <a
             href={`/dashboard/clients?id=${linkedClient.id}`}
-            className="flex items-center gap-2 text-[12px] text-green-700 active:opacity-80 w-full text-left"
+            className="flex items-center gap-2 text-[12px] text-[var(--system-green)] active:opacity-80 w-full text-left"
           >
-            <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
+            <span className="w-5 h-5 rounded-full bg-[var(--system-green)] text-white flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
             <span className="flex-1">✓ {linkedClient.full_name}</span>
-            <span className="text-[10px] uppercase tracking-wide text-green-600 font-semibold">Карточка</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-400"><polyline points="9 18 15 12 9 6" /></svg>
+            <span className="text-[10px] uppercase tracking-wide text-[var(--system-green)] font-semibold">Карточка</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[var(--system-green)]"><polyline points="9 18 15 12 9 6" /></svg>
           </a>
         ) : (
-          <button type="button" onClick={onCreateClient} className="text-[12px] font-semibold text-violet-600">
+          <button type="button" onClick={onCreateClient} className="text-[12px] font-semibold text-[var(--accent)]">
             + Привязать к клиенту
           </button>
         )}
@@ -649,7 +649,7 @@ function ChatDetailView({
           {groupedMessages.map((group) => (
             <div key={group.date}>
               <div className="flex justify-center my-3">
-                <span className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-[11px] font-medium text-slate-500 shadow-sm">
+                <span className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-[11px] font-medium text-[var(--label-secondary)] shadow-sm">
                   {formatDateLabel(group.date)}
                 </span>
               </div>
@@ -661,19 +661,19 @@ function ChatDetailView({
                   <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"} ${prevSame ? "mt-0.5" : "mt-2"}`}>
                     <div
                       className={`relative max-w-[75%] px-2.5 py-1.5 text-[14px] leading-relaxed ${
-                        isOut ? "bg-violet-500 text-white rounded-2xl rounded-br-sm" : "bg-white text-slate-900 rounded-2xl rounded-bl-sm shadow-sm"
+                        isOut ? "bg-[var(--accent)] text-white rounded-2xl rounded-br-sm" : "bg-white text-[var(--label)] rounded-2xl rounded-bl-sm shadow-sm"
                       }`}
                       onContextMenu={(e) => { e.preventDefault(); haptic("select"); setMsgMenu(msg); }}
                     >
                       {replyMsg && (
-                        <div className={`mb-1 px-2 py-1 rounded-md text-[11px] border-l-2 ${isOut ? "bg-violet-400/40 border-white/60 text-violet-100" : "bg-slate-100 border-violet-400 text-slate-600"}`}>
+                        <div className={`mb-1 px-2 py-1 rounded-md text-[11px] border-l-2 ${isOut ? "bg-white/20 border-white/60 text-white/90" : "bg-[var(--fill-primary)] border-[var(--accent)] text-[var(--label-secondary)]"}`}>
                           {replyMsg.text.slice(0, 50)}{replyMsg.text.length > 50 ? "…" : ""}
                         </div>
                       )}
                       {msg.photo && <img src={msg.photo} alt="" className="rounded-lg mb-1 max-w-full max-h-[200px] object-cover" />}
                       {msg.text && <span>{msg.text}</span>}
-                      <span className={`inline-flex items-center gap-0.5 ml-2 text-[10px] align-bottom float-right mt-1 ${isOut ? "text-violet-200" : "text-slate-400"}`}>
-                        {msg.is_starred && <span className="text-amber-400">⭐</span>}
+                      <span className={`inline-flex items-center gap-0.5 ml-2 text-[10px] align-bottom float-right mt-1 ${isOut ? "text-white/70" : "text-[var(--label-tertiary)]"}`}>
+                        {msg.is_starred && <span className="text-[var(--system-orange)]">⭐</span>}
                         {new Date(msg.timestamp).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                         {isOut && <StatusChecks status={msg.status} />}
                       </span>
@@ -689,7 +689,7 @@ function ChatDetailView({
         {/* Message context menu */}
         {msgMenu && (
           <div className="fixed inset-0 z-[80]" onClick={() => setMsgMenu(null)}>
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-[var(--separator)] overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
               <MenuItem label="Ответить" onClick={() => { setReplyTo(msgMenu); setMsgMenu(null); }} icon={<CornerUpLeft size={14} />} />
               <MenuItem label="Копировать" onClick={() => onCopyMessage(msgMenu.text)} icon={<Copy size={14} />} border />
               <MenuItem
@@ -705,12 +705,12 @@ function ChatDetailView({
 
         {/* Reply bar */}
         {replyTo && (
-          <div className="flex-shrink-0 px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center gap-2">
-            <div className="flex-1 min-w-0 border-l-2 border-violet-500 pl-2">
-              <div className="text-[11px] font-semibold text-violet-600">Ответ</div>
-              <div className="text-[12px] text-slate-600 truncate">{replyTo.text}</div>
+          <div className="flex-shrink-0 px-3 py-2 bg-[var(--fill-tertiary)] border-t border-[var(--separator)] flex items-center gap-2">
+            <div className="flex-1 min-w-0 border-l-2 border-[var(--accent)] pl-2">
+              <div className="text-[11px] font-semibold text-[var(--accent)]">Ответ</div>
+              <div className="text-[12px] text-[var(--label-secondary)] truncate">{replyTo.text}</div>
             </div>
-            <button type="button" onClick={() => setReplyTo(null)} className="w-8 h-8 flex items-center justify-center text-slate-400">✕</button>
+            <button type="button" onClick={() => setReplyTo(null)} className="w-8 h-8 flex items-center justify-center text-[var(--label-tertiary)]">✕</button>
           </div>
         )}
 
@@ -724,13 +724,13 @@ function ChatDetailView({
         )}
 
         {/* Input */}
-        <div className="flex-shrink-0 border-t border-slate-200 bg-white px-2 py-2 flex items-end gap-1.5">
-          <button type="button" onClick={onPhotoAttach} className="w-10 h-10 flex items-center justify-center rounded-full text-slate-400 active:bg-slate-100 flex-shrink-0">
+        <div className="flex-shrink-0 border-t border-[var(--separator)] bg-white px-2 py-2 flex items-end gap-1.5">
+          <button type="button" onClick={onPhotoAttach} className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-primary)] flex-shrink-0">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
             </svg>
           </button>
-          <button type="button" onClick={() => setShowQR(true)} className="w-10 h-10 flex items-center justify-center rounded-full text-amber-500 active:bg-amber-50 flex-shrink-0">
+          <button type="button" onClick={() => setShowQR(true)} className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.08)] flex-shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </button>
           <input
@@ -739,14 +739,14 @@ function ChatDetailView({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
             placeholder="Сообщение..."
-            className="flex-1 min-h-[40px] px-4 rounded-full bg-slate-100 text-[14px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="flex-1 min-h-[40px] px-4 rounded-full bg-[var(--fill-primary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
           {draft.trim() ? (
-            <button type="button" onClick={() => onSend()} className="w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center active:scale-95 flex-shrink-0">
+            <button type="button" onClick={() => onSend()} className="w-10 h-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center active:scale-95 flex-shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
             </button>
           ) : (
-            <button type="button" className="w-10 h-10 rounded-full text-slate-400 flex items-center justify-center flex-shrink-0">
+            <button type="button" className="w-10 h-10 rounded-full text-[var(--label-tertiary)] flex items-center justify-center flex-shrink-0">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
             </button>
           )}
@@ -760,7 +760,7 @@ function ChatDetailView({
 
 function StatusChecks({ status }: { status?: string }) {
   if (!status) return null;
-  const color = status === "read" ? "text-sky-300" : "currentColor";
+  const color = status === "read" ? "text-[rgba(255,255,255,0.9)]" : "currentColor";
   return (
     <svg width="16" height="10" viewBox="0 0 16 10" fill="none" className={`inline ${color}`}>
       <path d="M1.5 5l2.5 2.5L11 1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -781,9 +781,9 @@ function ChannelIcon({ channel, size = 10 }: { channel: ChatChannel; size?: numb
 function MenuItem({ label, onClick, icon, danger, border }: { label: string; onClick: () => void; icon?: React.ReactNode; danger?: boolean; border?: boolean }) {
   return (
     <button type="button" onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] active:bg-slate-50 ${border ? "border-t border-slate-100" : ""} ${danger ? "text-red-600" : "text-slate-900"}`}
+      className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] active:bg-[var(--fill-tertiary)] ${border ? "border-t border-[var(--separator)]" : ""} ${danger ? "text-[var(--system-red)]" : "text-[var(--label)]"}`}
     >
-      {icon && <span className="flex items-center justify-center w-4 h-4 text-slate-500">{icon}</span>}
+      {icon && <span className="flex items-center justify-center w-4 h-4 text-[var(--label-secondary)]">{icon}</span>}
       {label}
     </button>
   );
@@ -824,7 +824,7 @@ function WaitingBadge({ chat }: { chat: Chat }) {
   if (mins < 30) return null;
 
   const label = mins < 60 ? `${mins}м` : mins < 1440 ? `${Math.floor(mins / 60)}ч` : `${Math.floor(mins / 1440)}д`;
-  const color = mins > 240 ? "text-red-500 font-bold" : mins > 60 ? "text-orange-500" : "text-slate-400";
+  const color = mins > 240 ? "text-[var(--system-red)] font-bold" : mins > 60 ? "text-[var(--system-orange)]" : "text-[var(--label-tertiary)]";
 
   return (
     <span className={`text-[10px] tabular-nums ${color}`}>⏱ {label}</span>
@@ -867,10 +867,10 @@ function QuickReplySheet({
     <div className="fixed inset-0 z-[80] flex items-end justify-center lg:items-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl max-h-[70vh] flex flex-col overflow-hidden">
-        <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mt-3 mb-1 lg:hidden" />
-        <div className="px-4 pt-2 pb-3 border-b border-slate-100">
+        <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1 lg:hidden" />
+        <div className="px-4 pt-2 pb-3 border-b border-[var(--separator)]">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[15px] font-semibold text-slate-900">Быстрые ответы</div>
+            <div className="text-[15px] font-semibold text-[var(--label)]">Быстрые ответы</div>
             <div className="flex gap-1">
               {(["ru", "en", "el"] as Lang[]).map((l) => (
                 <button
@@ -878,7 +878,7 @@ function QuickReplySheet({
                   type="button"
                   onClick={() => setLang(l)}
                   className={`px-2 py-1 rounded text-[11px] font-bold uppercase transition ${
-                    lang === l ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500"
+                    lang === l ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
                   }`}
                 >
                   {LANG_LABELS[l]}
@@ -887,7 +887,7 @@ function QuickReplySheet({
             </div>
           </div>
           <div className="relative">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)]">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
@@ -895,7 +895,7 @@ function QuickReplySheet({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск шаблона..."
-              className="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-100 text-[14px] placeholder-slate-400 focus:outline-none"
+              className="w-full h-10 pl-9 pr-3 rounded-xl bg-[var(--fill-primary)] text-[14px] placeholder:text-[var(--label-tertiary)] focus:outline-none"
             />
           </div>
         </div>
@@ -907,20 +907,20 @@ function QuickReplySheet({
                 key={r.id}
                 type="button"
                 onClick={() => onSelect(variant.text)}
-                className="w-full text-left px-4 py-3 border-b border-slate-100 active:bg-slate-50"
+                className="w-full text-left px-4 py-3 border-b border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
               >
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[15px]">{r.emoji}</span>
-                  <span className="text-[14px] font-medium text-slate-900">{r.title}</span>
+                  <span className="text-[14px] font-medium text-[var(--label)]">{r.title}</span>
                 </div>
-                <div className="text-[13px] text-slate-500 leading-snug line-clamp-2 pl-7">
+                <div className="text-[13px] text-[var(--label-secondary)] leading-snug line-clamp-2 pl-7">
                   {variant.text}
                 </div>
               </button>
             );
           })}
           {filtered.length === 0 && (
-            <div className="text-center text-slate-400 py-8 text-[13px]">Не найдено</div>
+            <div className="text-center text-[var(--label-tertiary)] py-8 text-[13px]">Не найдено</div>
           )}
         </div>
       </div>
