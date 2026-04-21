@@ -244,7 +244,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             Выход
           </button>
           <div className="text-[10px] text-violet-400 mt-2">
-            Синхр. {new Date().toLocaleString("ru-RU", { timeZone: "Asia/Nicosia", hour: "2-digit", minute: "2-digit" })}
+            Синхр. <SyncTime />
           </div>
           <div className="text-[10px] text-violet-300/70 mt-1 font-mono tracking-wide">
             {BUILD_VERSION}
@@ -253,6 +253,29 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
       </aside>
     </>
   );
+}
+
+// Sync timestamp lives in its own client-only component so the parent
+// can SSR a stable empty placeholder. Putting `new Date()` directly in
+// render caused React #418 hydration mismatch on every dashboard load
+// (the build-time HTML and the client clock disagreed on the minute).
+// Sprint 023 hotfix.
+function SyncTime() {
+  const [label, setLabel] = useState<string>("…");
+  useEffect(() => {
+    const tick = () =>
+      setLabel(
+        new Date().toLocaleString("ru-RU", {
+          timeZone: "Asia/Nicosia",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    tick();
+    const t = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+  return <span suppressHydrationWarning>{label}</span>;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
