@@ -1,6 +1,6 @@
 # STORY-031 — Sprint 031: Telegram redesign (full app)
 
-**Status:** planning → awaiting approval
+**Status:** done (12 phases shipped, v215–v226 bumps, all in master)
 **Branch:** `master` (фиксируем по фазам, каждая фаза = 1 коммит)
 **Scope size:** XL (полная смена визуального языка)
 
