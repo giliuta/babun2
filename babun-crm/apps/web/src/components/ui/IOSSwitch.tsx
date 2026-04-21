@@ -7,9 +7,9 @@ interface IOSSwitchProps {
   ariaLabel?: string;
 }
 
-// iOS system switch — 46×28 with emerald-500 on-state. Matches the
-// native UISwitch track and knob proportions. Never use violet here;
-// iOS switches are always green when on. See docs/design-language.md.
+// Telegram-style switch — 46×28 track, accent-blue on-state (Telegram
+// uses the brand colour for switches, not iOS green). Name kept as
+// IOSSwitch for backwards import compatibility across the codebase.
 export default function IOSSwitch({
   checked,
   onChange,
@@ -25,7 +25,7 @@ export default function IOSSwitch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
-        checked ? "bg-[var(--system-green)]" : "bg-slate-300"
+        checked ? "bg-[var(--accent)]" : "bg-[var(--fill-primary)]"
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
     >
       <span

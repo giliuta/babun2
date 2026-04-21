@@ -9,7 +9,7 @@ interface BaseProps {
   /** Lucide icon component (e.g. `CalendarDays`). Optional — some
    *  rows are text-only (like an email display row). */
   icon?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  /** Tone of the coloured icon tile. Defaults to "violet" (Babun brand). */
+  /** Tone of the coloured icon tile. Defaults to "blue" (Telegram primary). */
   iconTone?: IconTone;
   label: ReactNode;
   subtitle?: ReactNode;
@@ -18,6 +18,8 @@ interface BaseProps {
   /** Show the trailing chevron. Defaults to true when `href` is set. */
   chevron?: boolean;
   destructive?: boolean;
+  /** Force separator underneath even if this is the last child. */
+  separator?: boolean;
 }
 
 type ListRowProps =
@@ -30,18 +32,19 @@ type ListRowProps =
 //   • onClick → renders a <button>
 //   • neither → renders a <div> (display-only)
 //
-// Left slot carries an optional 28×28 tinted tile with a lucide icon
-// (mirrors iOS Settings). Right slot is either a chevron (nav) or a
-// caller-provided accessory (switch, amount, chip).
+// Left slot carries an optional 28×28 coloured tile with a lucide
+// icon (mirrors Telegram Settings). Right slot is either a chevron
+// (nav) or a caller-provided accessory (switch, amount, chip).
 export default function ListRow(props: ListRowProps) {
   const {
     icon: Icon,
-    iconTone = "violet",
+    iconTone = "blue",
     label,
     subtitle,
     accessory,
     chevron,
     destructive,
+    separator,
   } = props;
   const isInteractive = "href" in props || "onClick" in props;
   const showChevron = chevron ?? ("href" in props && !accessory);
@@ -50,9 +53,9 @@ export default function ListRow(props: ListRowProps) {
     <>
       {Icon && (
         <span
-          className={`w-7 h-7 rounded-[7px] flex items-center justify-center text-white shrink-0 ${ICON_TONE_BG[iconTone]}`}
+          className={`w-7 h-7 rounded-[var(--radius-tile)] flex items-center justify-center text-white shrink-0 ${ICON_TONE_BG[iconTone]}`}
         >
-          <Icon size={16} strokeWidth={2} />
+          <Icon size={16} strokeWidth={2.25} />
         </span>
       )}
       <div className="flex-1 min-w-0">
@@ -69,14 +72,20 @@ export default function ListRow(props: ListRowProps) {
           </div>
         )}
       </div>
-      {accessory && <div className="shrink-0">{accessory}</div>}
+      {accessory && (
+        <div className="shrink-0 text-[15px] text-[var(--label-secondary)]">
+          {accessory}
+        </div>
+      )}
       {showChevron && (
-        <ChevronRight size={16} className="text-[var(--label-tertiary)] shrink-0" />
+        <ChevronRight size={18} className="text-[var(--label-tertiary)] shrink-0 -mr-1" />
       )}
     </>
   );
 
-  const rowCls = `flex items-center gap-3 px-4 py-3 min-h-[48px] ${
+  const rowCls = `flex items-center gap-3 px-4 py-2.5 min-h-[48px] ${
+    separator !== false ? "row-separator" : ""
+  } ${
     isInteractive ? "active:bg-[var(--fill-quaternary)] transition-colors" : ""
   }`;
 

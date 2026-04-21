@@ -13,10 +13,11 @@ interface ListGroupProps {
   className?: string;
 }
 
-// iOS grouped-list section. Composes three slots — caption · card ·
-// footnote — at the exact weights Apple ships. Rows live inside
-// `children`; the card handles its own rounded-2xl clipping and
-// subtle shadow so rows don't have to carry border radii.
+// Telegram grouped-list section. Composes three slots — caption ·
+// card · footnote. Card clips rows to `--radius-card` (10 px) and
+// carries almost no shadow (Telegram cards lay flat on the grouped
+// background unlike iOS HIG). Rows inside use the `.row-separator`
+// utility for 56-px-inset hairlines between them.
 export default function ListGroup({
   title,
   footer,
@@ -26,15 +27,15 @@ export default function ListGroup({
   return (
     <div className={className}>
       {title && (
-        <div className="px-4 pb-2 text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+        <div className="px-4 pb-1.5 text-[13px] font-normal text-[var(--label-secondary)] uppercase tracking-wider">
           {title}
         </div>
       )}
-      <div className="bg-[var(--surface-card)] rounded-2xl overflow-hidden shadow-[var(--shadow-card)]">
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden shadow-[var(--shadow-card)]">
         {children}
       </div>
       {footer && (
-        <div className="px-4 pt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+        <div className="px-4 pt-1.5 text-[12px] text-[var(--label-secondary)] leading-snug">
           {footer}
         </div>
       )}

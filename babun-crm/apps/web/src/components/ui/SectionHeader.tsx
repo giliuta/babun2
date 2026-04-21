@@ -7,13 +7,14 @@ interface SectionHeaderProps {
 }
 
 // Standalone caption used above blocks that don't belong inside a
-// ListGroup (e.g. "Расписание" on /dashboard/today's agenda, or
-// "Активные" on /dashboard/masters). Same typography as ListGroup's
-// internal caption so the two surfaces look unified.
+// ListGroup (e.g. "Расписание" on today's agenda, "Активные" on
+// /dashboard/masters). Same typography as ListGroup's internal
+// caption so the two surfaces look unified under Telegram's
+// grouped-list spec: 13 px, uppercase, tracked secondary-label.
 export default function SectionHeader({ title, action }: SectionHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 pb-2">
-      <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+    <div className="flex items-center justify-between px-4 pb-1.5">
+      <span className="text-[13px] font-normal text-[var(--label-secondary)] uppercase tracking-wider">
         {title}
       </span>
       {action && (

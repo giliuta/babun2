@@ -17,10 +17,11 @@ interface InputProps
   className?: string;
 }
 
-// iOS-inset text input. Resting state is fill-tertiary; focus state
-// lifts to white with an accent ring. Label/hint mirror the form
-// style used inside iOS Settings. `forwardRef` keeps it compatible
-// with react-hook-form and native DOM handlers.
+// Telegram-style text input. Resting state is fill-tertiary on a
+// grouped background; focused state lifts to surface-card with an
+// accent border. Label/hint mirror the pattern used inside Telegram's
+// settings sheets. `forwardRef` keeps it compatible with
+// react-hook-form and native DOM handlers.
 const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, hint, trailing, required, className = "", ...rest },
   ref
@@ -28,7 +29,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <label className="block">
       {label && (
-        <span className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+        <span className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 uppercase tracking-wider">
           {label}
           {required && (
             <span className="text-[var(--system-red)] ml-0.5">*</span>
@@ -48,7 +49,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         )}
       </span>
       {hint && (
-        <span className="block text-[11px] text-[var(--label-tertiary)] mt-1.5 leading-snug">
+        <span className="block text-[12px] text-[var(--label-secondary)] mt-1.5 leading-snug">
           {hint}
         </span>
       )}

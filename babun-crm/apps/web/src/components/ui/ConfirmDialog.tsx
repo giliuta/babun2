@@ -10,10 +10,10 @@ interface ConfirmDialogProps {
   danger?: boolean;
 }
 
-// iOS system alert — 270 px narrow card, centered 17-px title,
-// 13-px message, two buttons split by a vertical hairline. Apple's
-// UIAlertController uses this exact proportion for destructive
-// actions. Backdrop tap cancels.
+// Telegram system alert — 280 px narrow card, centered 17-px bold
+// title, 13-px body, two full-width buttons split by a hairline. The
+// confirm button is accent-blue for benign actions, red for
+// destructive. Backdrop tap cancels.
 export default function ConfirmDialog({
   title,
   message,
@@ -25,7 +25,7 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] px-4"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] px-4"
       onClick={onClose}
     >
       <div
@@ -33,7 +33,7 @@ export default function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-4 text-center">
-          <h2 className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
+          <h2 className="text-[17px] font-semibold text-[var(--label)]">
             {title}
           </h2>
           {message && (

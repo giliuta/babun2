@@ -13,10 +13,10 @@ interface SegmentedControlProps<T extends string> {
   fullWidth?: boolean;
 }
 
-// iOS UISegmentedControl — grey track with a white pill behind the
-// active option. Matches the "День / 3 дня / Неделя / Месяц" picker
-// style on iOS Calendar. The active pill gets a subtle shadow so it
-// feels raised, exactly like native.
+// Telegram segmented control — grey fill track with a raised
+// surface-card pill behind the active option (same pattern as iOS
+// but retuned against the Telegram palette). Used for the
+// "День / 3 дня / Неделя" calendar picker and similar view toggles.
 export default function SegmentedControl<T extends string>({
   options,
   value,
@@ -36,7 +36,7 @@ export default function SegmentedControl<T extends string>({
             onClick={() => onChange(o.value)}
             className={`flex-1 h-8 rounded-[7px] text-[13px] font-semibold transition ${
               active
-                ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_0_rgba(0,0,0,0.1)]"
+                ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_0_rgba(0,0,0,0.08)]"
                 : "text-[var(--label-secondary)]"
             }`}
           >

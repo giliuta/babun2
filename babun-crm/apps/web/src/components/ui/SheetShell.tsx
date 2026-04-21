@@ -21,10 +21,12 @@ interface SheetShellProps {
   children: ReactNode;
 }
 
-// Centered modal sheet — the canonical "heavy form" shell used for
-// MasterSheet, AppointmentSheet, etc. Backdrop blur, rounded 20-px
-// shell, sticky header + body + footer. Closes on Escape and on
-// backdrop tap. Body scrolls; header and footer stay fixed.
+// Centered modal sheet — the canonical "heavy form" shell used by
+// MasterSheet, AppointmentSheet, etc. Rounded 14 px, Telegram-style
+// sticky header (bold centered title + graphite close circle),
+// grouped-list body scroll, sticky footer with safe-area padding.
+// Closes on Escape and backdrop tap. Kept centered (per product
+// preference) rather than bottom-slide-up.
 export default function SheetShell({
   open,
   onClose,
@@ -54,17 +56,17 @@ export default function SheetShell({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] p-2"
       onClick={onClose}
     >
       <div
-        className={`w-full ${maxWidth} bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden`}
+        className={`w-full ${maxWidth} bg-[var(--surface-card)] rounded-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden`}
         style={{ height }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-shrink-0 px-5 pt-4 pb-3 flex items-center justify-between gap-3 border-b border-[var(--separator)]">
-          <div className="min-w-0">
-            <div className="text-[17px] font-semibold text-[var(--label)] truncate tracking-tight">
+        <div className="flex-shrink-0 px-4 pt-3.5 pb-3 flex items-center gap-3 border-b border-[var(--separator)] bg-[var(--surface-card)]">
+          <div className="flex-1 min-w-0">
+            <div className="text-[17px] font-semibold text-[var(--label)] truncate">
               {title}
             </div>
             {subtitle && (
@@ -79,7 +81,7 @@ export default function SheetShell({
               type="button"
               onClick={onClose}
               aria-label="Закрыть"
-              className="w-8 h-8 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] flex items-center justify-center transition"
+              className="w-8 h-8 rounded-full bg-[var(--fill-primary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] flex items-center justify-center transition"
             >
               <X size={16} strokeWidth={2.5} />
             </button>

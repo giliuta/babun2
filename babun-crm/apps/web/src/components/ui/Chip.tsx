@@ -10,9 +10,10 @@ interface ChipProps
   children: ReactNode;
 }
 
-// iOS-style filter chip. Active state uses the accent fill; idle
-// state is white on a subtle `separator` border. Height is 32 so two
-// rows of chips fit the same visual block as a single input.
+// Telegram filter chip. Active state uses accent fill + white label;
+// idle is a soft fill-tertiary pill (no border — Telegram never
+// borders chips). Height 32 matches the search-bar stack so two
+// rows of chips sit cleanly under the global search.
 export default function Chip({
   active = false,
   leadingIcon,
@@ -27,7 +28,7 @@ export default function Chip({
       className={`inline-flex items-center gap-1 h-8 px-3.5 rounded-full text-[13px] font-semibold transition ${
         active
           ? "bg-[var(--accent)] text-white"
-          : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
+          : "bg-[var(--fill-primary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
       } ${className}`}
     >
       {leadingIcon}
