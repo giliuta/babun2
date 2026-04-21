@@ -62,7 +62,6 @@ import { loadChats } from "@/lib/chats";
 import SuccessOverlay from "@/components/appointment/SuccessOverlay";
 import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
-import TodayChip from "@/components/calendar/TodayChip";
 import RescheduleSheet from "@/components/calendar/RescheduleSheet";
 import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
@@ -891,32 +890,9 @@ function DashboardPageInner() {
           MorningBriefing всё ещё показывает утренний бриф 06:00–10:00;
           на самом календаре этих плашек больше нет — ~56 px отыграли. */}
 
-      {/* STORY-003: thin action bar under the header.
-          Single TodayChip replaces the 7-column per-day income footer. */}
-      <div className="flex-shrink-0 bg-white border-b border-slate-200 px-3 py-1 flex items-center gap-2">
-        <TodayChip
-          appointments={visibleAppointments}
-          teamId={activeTeamId}
-          onOpen={() => router.push("/dashboard/finances")}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            const today = new Date();
-            const y = today.getFullYear();
-            const m = String(today.getMonth() + 1).padStart(2, "0");
-            const d = String(today.getDate()).padStart(2, "0");
-            setExpenseFor({
-              dateKey: `${y}-${m}-${d}`,
-              dayLabel: "Сегодня",
-            });
-          }}
-          className="hidden lg:flex items-center gap-1 h-7 px-2.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-semibold active:bg-rose-100"
-        >
-          <span>+</span> Расход
-        </button>
-        {Object.keys(EXPENSE_CATEGORIES).length > 0 && null}
-      </div>
+      {/* Sprint 027-hotfix: сняли полосу под шапкой (TodayChip + «+ Расход»)
+          по запросу CEO — не нужна. TodayChip жил под STORY-003, теперь
+          общая сводка остаётся только в DaySummaryStrip на Day-режиме. */}
 
       {/* Day view only: one-line summary (records, earnings, unpaid) */}
       {viewMode === "day" && (

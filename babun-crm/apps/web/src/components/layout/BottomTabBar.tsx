@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Wallet,
   Menu,
-  Plus,
 } from "lucide-react";
 import {
   useSidebar,
@@ -16,13 +15,13 @@ import {
   useClients,
 } from "@/app/dashboard/layout";
 import { loadChats, getTotalUnread } from "@/lib/chats";
-import CreateMenu from "./CreateMenu";
 import GlobalSearch from "./GlobalSearch";
 
-// Bottom tab bar — visible on mobile only (lg:hidden). The layout adds
-// padding-bottom so the bar never covers content. The centre "+ Запись"
-// pill navigates to /dashboard and sets a ?new=1 query param which the
-// calendar page picks up and opens the inline create sheet.
+// Bottom tab bar — mobile only (lg:hidden). Five equal tabs, no
+// center FAB. The "+" button was removed in Sprint 027-hotfix
+// because the CEO found it redundant — create flows now start from
+// the calendar grid (tap empty slot) or from the Ещё → создать.
+// Long-pressing Календарь still opens GlobalSearch (Cmd+K on desktop).
 
 export default function BottomTabBar() {
   const pathname = usePathname();
@@ -39,7 +38,6 @@ export default function BottomTabBar() {
     setUnreadChats(getTotalUnread(loadChats()));
   }, [pathname]);
 
-  const [createOpen, setCreateOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { appointments } = useAppointments();
   const { clients } = useClients();
@@ -70,7 +68,7 @@ export default function BottomTabBar() {
           boxShadow: "0 -8px 32px -12px rgba(15, 23, 42, 0.12)",
         }}
       >
-        <div className="flex items-end justify-around px-1 h-[62px] relative">
+        <div className="flex items-end justify-around px-1 h-[62px]">
           <TabButton
             label="Календарь"
             active={isCalendar}
@@ -84,19 +82,6 @@ export default function BottomTabBar() {
             onClick={() => go("/dashboard/clients")}
             icon={<UsersIcon size={24} strokeWidth={2} />}
           />
-
-          {/* Center FAB "+" — primary write-path. Sits above the tab-bar
-              centerline so the thumb always finds it. Opens CreateMenu
-              below (centred popup, per product rule). */}
-          <button
-            type="button"
-            aria-label="Создать"
-            onClick={() => setCreateOpen(true)}
-            className="relative -top-4 w-14 h-14 rounded-full bg-violet-600 text-white shadow-[0_10px_25px_-10px_rgba(124,58,237,0.6)] flex items-center justify-center active:scale-[0.94] transition"
-          >
-            <Plus size={26} strokeWidth={2.5} />
-          </button>
-
           <TabButton
             label="Чаты"
             active={isChats}
@@ -104,7 +89,6 @@ export default function BottomTabBar() {
             onClick={() => go("/dashboard/chats")}
             icon={<MessageSquare size={24} strokeWidth={2} />}
           />
-
           <TabButton
             label="Финансы"
             active={isFinances}
@@ -119,15 +103,6 @@ export default function BottomTabBar() {
           />
         </div>
       </nav>
-
-      <CreateMenu
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreateAppointment={() => router.push("/dashboard?new=1&kind=work")}
-        onCreateExpense={() => router.push("/dashboard?new=1&kind=expense")}
-        onCreateEvent={() => router.push("/dashboard?new=1&kind=event")}
-        onCreateLead={() => router.push("/dashboard/chats")}
-      />
 
       <GlobalSearch
         open={searchOpen}
