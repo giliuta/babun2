@@ -92,23 +92,23 @@ export default function CreateClientModal({
     <div className="fixed inset-0 z-[80] flex flex-col bg-white lg:items-center lg:justify-center lg:bg-black/40">
       <div className="flex flex-col h-full lg:h-auto lg:max-h-[85vh] lg:w-[480px] lg:rounded-2xl lg:bg-white lg:shadow-2xl lg:overflow-hidden">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-200">
+        <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[var(--separator)]">
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 active:bg-slate-100"
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <h2 className="text-[17px] font-semibold text-slate-900">
+          <h2 className="text-[17px] font-semibold text-[var(--label)]">
             {tab === "new" ? "Новый клиент" : "Найти клиента"}
           </h2>
         </div>
 
         {/* Tabs */}
-        <div className="flex-shrink-0 flex p-2 gap-1 bg-slate-50">
+        <div className="flex-shrink-0 flex p-2 gap-1 bg-[var(--fill-tertiary)]">
           <TabBtn active={tab === "new"} onClick={() => setTab("new")}>Новый</TabBtn>
           <TabBtn active={tab === "existing"} onClick={() => setTab("existing")}>Существующий</TabBtn>
         </div>
@@ -120,16 +120,16 @@ export default function CreateClientModal({
               <Field label="Имя *" value={name} onChange={setName} placeholder="Имя клиента" autoFocus />
               <Field label="Телефон" value={phone} onChange={setPhone} placeholder="+357 99 ..." type="tel" />
               <div>
-                <div className="text-[12px] font-medium text-slate-500 mb-1">Комментарий</div>
+                <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1">Комментарий</div>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Язык, предпочтения, особенности..."
                   rows={3}
-                  className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="w-full px-3 py-3 rounded-xl bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[15px] text-[var(--label)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
               </div>
-              <p className="text-[12px] text-slate-400">
+              <p className="text-[12px] text-[var(--label-tertiary)]">
                 Адрес и оборудование привяжутся при создании записи — у
                 клиента может быть несколько объектов.
               </p>
@@ -137,9 +137,9 @@ export default function CreateClientModal({
           ) : (
             <div className="pb-20">
               {/* Search */}
-              <div className="sticky top-0 bg-white px-4 py-3 border-b border-slate-100 z-10">
+              <div className="sticky top-0 bg-white px-4 py-3 border-b border-[var(--separator)] z-10">
                 <div className="relative">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)]">
                     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
                   <input
@@ -148,7 +148,7 @@ export default function CreateClientModal({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Имя или телефон"
                     autoFocus
-                    className="w-full h-12 pl-9 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    className="w-full h-12 pl-9 pr-3 rounded-xl bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
               </div>
@@ -158,17 +158,17 @@ export default function CreateClientModal({
                 {searchResults.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-3 px-4 py-3 border-b border-slate-100"
+                    className="flex items-center gap-3 px-4 py-3 border-b border-[var(--separator)]"
                   >
                     <div className="w-10 h-10 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-bold text-[13px] flex-shrink-0">
                       {c.full_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-medium text-slate-900 truncate">
+                      <div className="text-[14px] font-medium text-[var(--label)] truncate">
                         {c.full_name}
                       </div>
                       {c.phone && (
-                        <div className="text-[12px] text-slate-500 tabular-nums">{c.phone}</div>
+                        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">{c.phone}</div>
                       )}
                     </div>
                     <button
@@ -182,7 +182,7 @@ export default function CreateClientModal({
                 ))}
                 {searchResults.length === 0 && (
                   <div className="text-center py-10">
-                    <div className="text-[13px] text-slate-500">Клиентов не найдено</div>
+                    <div className="text-[13px] text-[var(--label-secondary)]">Клиентов не найдено</div>
                     <button
                       type="button"
                       onClick={() => setTab("new")}
@@ -200,7 +200,7 @@ export default function CreateClientModal({
         {/* Sticky action button — new tab only */}
         {tab === "new" && (
           <div
-            className="flex-shrink-0 px-4 pt-3 bg-white border-t border-slate-200"
+            className="flex-shrink-0 px-4 pt-3 bg-white border-t border-[var(--separator)]"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 12px) + 12px)" }}
           >
             <button
@@ -224,7 +224,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       type="button"
       onClick={onClick}
       className={`flex-1 h-11 rounded-lg text-[14px] font-semibold transition ${
-        active ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+        active ? "bg-white text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
       }`}
     >
       {children}
@@ -240,14 +240,14 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[12px] font-medium text-slate-500 mb-1">{label}</div>
+      <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1">{label}</div>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className="w-full h-12 px-3 rounded-xl bg-slate-50 border border-slate-200 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        className="w-full h-12 px-3 rounded-xl bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
       />
     </div>
   );

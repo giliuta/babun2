@@ -10,10 +10,10 @@ import {
   MessageCircle,
   Search,
   ArrowUpDown,
-  Plus,
   Check,
   Users,
   Ban,
+  PencilLine,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -27,7 +27,7 @@ import ClientPanel from "@/components/clients/ClientPanel";
 import { matchesClient } from "@/lib/client-search";
 
 const TAG_CHIPS = [
-  { id: "tag-vip", label: "VIP", active: "bg-amber-100 text-amber-700" },
+  { id: "tag-vip", label: "VIP", active: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" },
   { id: "tag-b2b", label: "B2B", active: "bg-blue-100 text-blue-700" },
   { id: "tag-regular", label: "Постоянный", active: "bg-purple-100 text-purple-700" },
   { id: "tag-new", label: "Новый", active: "bg-green-100 text-green-700" },
@@ -276,18 +276,10 @@ export default function ClientsPage() {
                 setSort(next);
               }}
               title={`Сортировка: ${SORT_LABELS[sort]}`}
-              className="h-9 px-2.5 flex items-center gap-1 rounded-lg text-white lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-quaternary)] text-[12px] font-medium"
+              className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] text-[13px] font-medium transition"
             >
               <ArrowUpDown size={14} strokeWidth={2} />
               {SORT_LABELS[sort]}
-            </button>
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              aria-label="Добавить клиента"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-quaternary)]"
-            >
-              <Plus size={20} strokeWidth={2.5} />
             </button>
           </>
         }
@@ -444,6 +436,22 @@ export default function ClientsPage() {
           </div>
         </div>
       </div>
+
+      {/* Telegram-style compose FAB — blue circle with a pencil, bottom
+          right above the BottomTabBar. The de-facto Telegram "new chat"
+          button, reused here for "new client". */}
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        aria-label="Добавить клиента"
+        className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-[0_12px_28px_-12px_rgba(42,171,238,0.65)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
+        style={{
+          bottom:
+            "calc(env(safe-area-inset-bottom, 12px) + 76px)",
+        }}
+      >
+        <PencilLine size={22} strokeWidth={2} />
+      </button>
     </>
   );
 }
