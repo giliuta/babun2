@@ -15,7 +15,6 @@ import {
   useAppointments,
   useClients,
 } from "@/app/dashboard/layout";
-import { loadWaitlist } from "@/lib/waitlist";
 import { loadChats, getTotalUnread } from "@/lib/chats";
 import CreateMenu from "./CreateMenu";
 import GlobalSearch from "./GlobalSearch";
@@ -33,11 +32,7 @@ export default function BottomTabBar() {
   const isCalendar = pathname === "/dashboard";
   const isClients = pathname.startsWith("/dashboard/clients");
   const isChats = pathname.startsWith("/dashboard/chats");
-  const isFinances =
-    pathname.startsWith("/dashboard/finances") ||
-    pathname.startsWith("/dashboard/expenses") ||
-    pathname.startsWith("/dashboard/payroll") ||
-    pathname.startsWith("/dashboard/reports");
+  const isFinances = pathname.startsWith("/dashboard/finances");
 
   const [unreadChats, setUnreadChats] = useState(0);
   useEffect(() => {
@@ -60,25 +55,6 @@ export default function BottomTabBar() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  // Unread waitlist — shows a red dot on the "Ещё" tab while any
-  // entry is still pending, so the dispatcher knows there's something
-  // to deal with without opening the drawer.
-  const [pendingWaitlist, setPendingWaitlist] = useState(0);
-  useEffect(() => {
-    const refresh = () => {
-      setPendingWaitlist(
-        loadWaitlist().filter((i) => i.status === "pending").length
-      );
-    };
-    refresh();
-    window.addEventListener("storage", refresh);
-    window.addEventListener("focus", refresh);
-    return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("focus", refresh);
-    };
-  }, [pathname]);
 
   const go = (path: string) => {
     router.push(path);
@@ -138,7 +114,6 @@ export default function BottomTabBar() {
           <TabButton
             label="Ещё"
             active={false}
-            dot={pendingWaitlist > 0}
             onClick={sidebar.toggle}
             icon={<Menu size={24} strokeWidth={2} />}
           />

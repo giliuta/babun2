@@ -46,16 +46,10 @@ const NAV_SECTIONS = [
     desc: "Справочник городов для клиентов и записей",
   },
   {
-    href: "/dashboard/brigades",
+    href: "/dashboard/teams",
     icon: "👥",
-    title: "Финансовые бригады",
-    desc: "Состав, оплата, рабочие часы бригад",
-  },
-  {
-    href: "/dashboard/schedule",
-    icon: "⏰",
-    title: "Расписание команд",
-    desc: "Рабочие часы по дням недели для каждой бригады",
+    title: "Бригады и мастера",
+    desc: "Состав команд, роли, рабочие часы",
   },
   {
     href: "/dashboard/sms-templates",

@@ -1,7 +1,7 @@
 // Single source of truth for income, expense and profit across the
-// whole app. Two surfaces (/dashboard/finances, /dashboard/reports)
-// historically diverged because they read from different stores and
-// formatted in different units. computeFinancials() fixes that by:
+// whole app. The tabs inside /dashboard/finances historically
+// diverged because they read from different stores and formatted in
+// different units. computeFinancials() fixes that by:
 //
 //   1. Accepting every money-bearing source at once (appointments,
 //      standalone FinancePayments, standalone Expenses, day extras).

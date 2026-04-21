@@ -9,8 +9,8 @@ import { isSupabaseEnabled } from "@/lib/supabase/backend-mode";
 //
 // Modes:
 //   * Supabase disabled (default) — stays the prototype stub: any
-//     submit drops onto /dashboard/today. Keeps local-device flow
-//     alive during the Supabase cutover.
+//     submit drops onto /dashboard (calendar). Keeps local-device
+//     flow alive during the Supabase cutover.
 //   * Supabase enabled — real email/password auth. A toggle lets
 //     the user switch between "Войти" and "Регистрация"; the signup
 //     trigger creates a tenant + owner row server-side, so no extra
@@ -36,7 +36,7 @@ export default function LoginPage() {
     if (!supabaseLive) {
       // Prototype fallback — keeps localStorage users unblocked until
       // the backend flips on.
-      router.push("/dashboard/today");
+      router.push("/dashboard");
       return;
     }
 
@@ -48,14 +48,14 @@ export default function LoginPage() {
         // Supabase defaults to email confirmation on. With it off
         // (see Supabase → Auth → Providers), the session is already
         // active and we can move straight to the app.
-        router.push("/dashboard/today");
+        router.push("/dashboard");
       } else {
         const { error: err } = await sb.auth.signInWithPassword({
           email,
           password,
         });
         if (err) throw err;
-        router.push("/dashboard/today");
+        router.push("/dashboard");
       }
     } catch (err) {
       setError(

@@ -888,10 +888,8 @@ function DashboardPageInner() {
 
       {/* Sprint 026-hotfix: убрали TodayGlance (фиолетовая плашка
           «Сегодня · 1 запись») и NowPill («Через N мин → клиент»).
-          Та же информация уже лежит на экране /dashboard/today +
-          MorningBriefing; в календаре они дублировали и занимали
-          ~56 px на каждом переключении. Если пользователь попросит
-          вернуть — раскомментировать этот блок. */}
+          MorningBriefing всё ещё показывает утренний бриф 06:00–10:00;
+          на самом календаре этих плашек больше нет — ~56 px отыграли. */}
 
       {/* STORY-003: thin action bar under the header.
           Single TodayChip replaces the 7-column per-day income footer. */}

@@ -1,50 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Calendar as CalendarIcon,
   Users as UsersIcon,
-  Navigation,
-  ClipboardList,
   RotateCcw,
   Wallet,
-  Receipt,
-  Banknote,
-  BarChart3,
-  LayoutGrid,
-  Clock as ClockIcon,
   Wrench,
   MessageSquare,
   Settings as SettingsIcon,
   LogOut,
   ChevronDown,
-  Sun,
 } from "lucide-react";
-import { loadWaitlist } from "@/lib/waitlist";
 import { loadRecurring, dueReminders } from "@/lib/recurring";
 import { loadChats, getTotalUnread } from "@/lib/chats";
 import { BUILD_VERSION } from "@/lib/version";
 
 export type DialogType =
-  | "today"
   | "calendar"
   | "clients"
   | "chats"
   | "finances"
-  | "expenses"
-  | "payroll"
-  | "reports"
-  | "waitlist"
   | "recurring"
   | "settings"
   | "masters"
   | "teams"
-  | "brigades"
   | "services"
   | "sms-templates"
-  | "schedule"
-  | "route"
   | null;
 
 interface SidebarProps {
@@ -55,39 +38,31 @@ interface SidebarProps {
 }
 
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
-  today: "/dashboard/today",
   calendar: "/dashboard",
   clients: "/dashboard/clients",
   chats: "/dashboard/chats",
   finances: "/dashboard/finances",
-  expenses: "/dashboard/expenses",
-  payroll: "/dashboard/payroll",
-  reports: "/dashboard/reports",
-  waitlist: "/dashboard/waitlist",
   recurring: "/dashboard/recurring",
   settings: "/dashboard/settings",
   masters: "/dashboard/masters",
   teams: "/dashboard/teams",
-  brigades: "/dashboard/brigades",
   services: "/dashboard/services",
   "sms-templates": "/dashboard/sms-templates",
-  schedule: "/dashboard/schedule",
-  route: "/dashboard/route",
 };
 
 const EXPAND_KEY = "babun-sidebar-expanded";
 
-// Sprint 025 KILL list. 16 nav items felt like a wall of text and
-// made the primary 7 hard to reach with the thumb. This version keeps
-// the 7 daily-driver items always visible and hides setup/admin
-// surfaces behind a single "Показать всё" toggle. The expand state
-// persists per-device so power-users keep the full list and new users
-// see the tight default.
+// Sprint 026-cleanup: the dispatcher daily-driver set is now 6 items
+// (Календарь, Клиенты, Чаты, Финансы, Напоминания, Настройки). Admin
+// surfaces (Бригады, Услуги, SMS-шаблоны) live behind a toggle. Eight
+// routes that CEO deemed redundant — Сегодня, Маршрут дня, Лист
+// ожидания, Расходы, Зарплата, Отчёты, Фин. бригады, Расписание —
+// were removed outright; finance data is still reachable via the
+// tabs on /dashboard/finances.
 export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [waitlistPending, setWaitlistPending] = useState(0);
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -99,9 +74,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
 
   useEffect(() => {
     const refresh = () => {
-      setWaitlistPending(
-        loadWaitlist().filter((i) => i.status === "pending").length
-      );
       setRecurringDue(dueReminders(loadRecurring()).length);
       setUnreadChats(getTotalUnread(loadChats()));
     };
@@ -115,14 +87,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
       window.removeEventListener("babun:recurring-changed", refresh);
     };
   }, [open, pathname]);
-
-  // If a hidden item has a badge (recurring due, unread messages that
-  // aren't chats, etc.), surface a red dot on the toggle itself so the
-  // dispatcher never misses an alert because of the collapse.
-  const hiddenBadgeCount = useMemo(() => {
-    if (expanded) return 0;
-    return recurringDue; // Only Напоминания lives behind the toggle today.
-  }, [expanded, recurringDue]);
 
   const handleNav = (dialog: DialogType) => {
     if (dialog) {
@@ -169,14 +133,8 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           </div>
         </div>
 
-        {/* Navigation — 7 primary items, rest behind a toggle. */}
+        {/* Navigation — 6 daily drivers, 3 admin surfaces behind a toggle. */}
         <nav className="flex-1 py-2 overflow-y-auto">
-          <NavItem
-            icon={<Sun size={18} strokeWidth={2} />}
-            label="Сегодня"
-            active={isActive("today")}
-            onClick={() => handleNav("today")}
-          />
           <NavItem
             icon={<CalendarIcon size={18} strokeWidth={2} />}
             label="Календарь"
@@ -197,23 +155,17 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             onClick={() => handleNav("chats")}
           />
           <NavItem
-            icon={<Navigation size={18} strokeWidth={2} />}
-            label="Маршрут дня"
-            active={isActive("route")}
-            onClick={() => handleNav("route")}
-          />
-          <NavItem
-            icon={<ClipboardList size={18} strokeWidth={2} />}
-            label="Лист ожидания"
-            badge={waitlistPending > 0 ? waitlistPending : undefined}
-            active={isActive("waitlist")}
-            onClick={() => handleNav("waitlist")}
-          />
-          <NavItem
             icon={<Wallet size={18} strokeWidth={2} />}
             label="Финансы"
             active={isActive("finances")}
             onClick={() => handleNav("finances")}
+          />
+          <NavItem
+            icon={<RotateCcw size={18} strokeWidth={2} />}
+            label="Напоминания"
+            badge={recurringDue > 0 ? recurringDue : undefined}
+            active={isActive("recurring")}
+            onClick={() => handleNav("recurring")}
           />
           <NavItem
             icon={<SettingsIcon size={18} strokeWidth={2} />}
@@ -222,7 +174,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             onClick={() => handleNav("settings")}
           />
 
-          {/* Toggle — expands setup / reporting surfaces */}
+          {/* Admin surfaces behind a toggle — used rarely once set up. */}
           <button
             type="button"
             onClick={toggleExpanded}
@@ -235,54 +187,17 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             <span className="flex-1 text-left">
               {expanded ? "Скрыть лишнее" : "Показать всё"}
             </span>
-            {hiddenBadgeCount > 0 && (
-              <span className="w-2 h-2 rounded-full bg-rose-400" aria-label="Есть уведомления" />
-            )}
           </button>
 
           {expanded && (
             <div className="pt-1">
-              <SectionLabel>Деньги</SectionLabel>
-              <NavItem
-                icon={<Receipt size={18} strokeWidth={2} />}
-                label="Расходы"
-                active={isActive("expenses")}
-                onClick={() => handleNav("expenses")}
-              />
-              <NavItem
-                icon={<Banknote size={18} strokeWidth={2} />}
-                label="Зарплата"
-                active={isActive("payroll")}
-                onClick={() => handleNav("payroll")}
-              />
-              <NavItem
-                icon={<BarChart3 size={18} strokeWidth={2} />}
-                label="Отчёты"
-                active={isActive("reports")}
-                onClick={() => handleNav("reports")}
-              />
-
-              <SectionLabel>Команда</SectionLabel>
+              <SectionLabel>Админ</SectionLabel>
               <NavItem
                 icon={<UsersIcon size={18} strokeWidth={2} />}
                 label="Бригады и мастера"
                 active={isActive("teams") || isActive("masters")}
                 onClick={() => handleNav("teams")}
               />
-              <NavItem
-                icon={<LayoutGrid size={18} strokeWidth={2} />}
-                label="Фин. бригады (% ставки)"
-                active={isActive("brigades")}
-                onClick={() => handleNav("brigades")}
-              />
-              <NavItem
-                icon={<ClockIcon size={18} strokeWidth={2} />}
-                label="Расписание"
-                active={isActive("schedule")}
-                onClick={() => handleNav("schedule")}
-              />
-
-              <SectionLabel>Каталог</SectionLabel>
               <NavItem
                 icon={<Wrench size={18} strokeWidth={2} />}
                 label="Услуги"
@@ -294,13 +209,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
                 label="SMS-шаблоны"
                 active={isActive("sms-templates")}
                 onClick={() => handleNav("sms-templates")}
-              />
-              <NavItem
-                icon={<RotateCcw size={18} strokeWidth={2} />}
-                label="Напоминания"
-                badge={recurringDue > 0 ? recurringDue : undefined}
-                active={isActive("recurring")}
-                onClick={() => handleNav("recurring")}
               />
             </div>
           )}

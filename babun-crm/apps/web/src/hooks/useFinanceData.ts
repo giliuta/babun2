@@ -253,8 +253,8 @@ export function useFinanceData({
   const previous = useMemo(() => computePreviousRange(period, current), [period, current]);
 
   // Standalone FinancePayment / Expense tables (new Phase-2 finance stores).
-  // Loaded client-side so both /dashboard/finances and /dashboard/reports
-  // see the exact same superset of money events. Refresh on the same
+  // Loaded client-side so /dashboard/finances sees the exact same
+  // superset of money events across its tabs. Refresh on the same
   // events that the rest of the app listens to.
   const [standalonePayments, setStandalonePayments] = useState<FinancePayment[]>([]);
   const [standaloneExpenses, setStandaloneExpenses] = useState<Expense[]>([]);
