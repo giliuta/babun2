@@ -66,6 +66,7 @@ import NowPill from "@/components/layout/NowPill";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
 import TodayGlance from "@/components/layout/TodayGlance";
+import MorningBriefing from "@/components/layout/MorningBriefing";
 
 
 import {
@@ -1236,6 +1237,13 @@ export default function DashboardPage() {
             updated_at: new Date().toISOString(),
           });
         }}
+      />
+
+      <MorningBriefing
+        appointments={appointments}
+        services={services}
+        teams={teams}
+        dayExtrasOf={getExtrasFor}
       />
     </>
   );
