@@ -65,10 +65,8 @@ import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import TodayChip from "@/components/calendar/TodayChip";
 import RescheduleSheet from "@/components/calendar/RescheduleSheet";
 import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
-import NowPill from "@/components/layout/NowPill";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
-import TodayGlance from "@/components/layout/TodayGlance";
 import MorningBriefing from "@/components/layout/MorningBriefing";
 
 
@@ -888,33 +886,12 @@ function DashboardPageInner() {
         onMenuToggle={sidebar.toggle}
       />
 
-      {/* Today glance — "Сегодня +€340 · нал 180 · карта 160". Emerald
-          strip under Header, tap jumps to /finances. Hidden when
-          today has zero income. */}
-      {viewMode !== "month" && (
-        <TodayGlance
-          appointments={appointments}
-          services={services}
-          teams={teams}
-          dayExtrasOf={getExtrasFor}
-          teamId={activeTeamId}
-        />
-      )}
-
-      {/* Now-pill: sticky "Сейчас / Через N мин" hint under the header.
-          Hidden in month view where "today" doesn't exist in the grid. */}
-      {viewMode !== "month" && (
-        <NowPill
-          appointments={visibleAppointments}
-          clients={clients}
-          teamId={activeTeamId}
-          onOpen={() => {
-            // No jump-to-slot yet — the grid auto-scrolls to now-line
-            // anyway (Sprint 005). Opening the sheet for the record
-            // would require propagating the setter; Phase 2.
-          }}
-        />
-      )}
+      {/* Sprint 026-hotfix: убрали TodayGlance (фиолетовая плашка
+          «Сегодня · 1 запись») и NowPill («Через N мин → клиент»).
+          Та же информация уже лежит на экране /dashboard/today +
+          MorningBriefing; в календаре они дублировали и занимали
+          ~56 px на каждом переключении. Если пользователь попросит
+          вернуть — раскомментировать этот блок. */}
 
       {/* STORY-003: thin action bar under the header.
           Single TodayChip replaces the 7-column per-day income footer. */}
