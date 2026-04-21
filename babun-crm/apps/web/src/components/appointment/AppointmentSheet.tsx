@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Camera, CalendarClock } from "lucide-react";
 import type {
   Appointment,
   AppointmentPayment,
@@ -10,7 +11,8 @@ import type {
 } from "@/lib/appointments";
 import { loadAppointments } from "@/lib/appointments";
 import type { Client, Location } from "@/lib/clients";
-import type { Team } from "@/lib/masters";
+import type { Master, Team } from "@/lib/masters";
+import { getTeamDisplayName } from "@/lib/masters";
 import type { Service, ServiceCategory } from "@/lib/services";
 import { pricePerUnit } from "@/lib/services";
 import { EVENT_PRESETS } from "@/lib/event-presets";
@@ -56,6 +58,8 @@ interface AppointmentSheetProps {
   recentClientIds: string[];
   teams: Team[];
   activeTeam: Team | null;
+  /** Masters — used to derive brigade display name ("Юра + Даня · Пафос"). */
+  masters?: Master[];
   /** Каталог услуг для выбора и сопоставления id → service. */
   catalog: Service[];
   /** Категории услуг для группировки в пикере. */
@@ -63,6 +67,10 @@ interface AppointmentSheetProps {
   cityForDate: (dateKey: string) => string;
   onSave: (apt: Appointment) => void;
   onCancelAppointment: (apt: Appointment) => void;
+  /** Sprint 025 STORY-005: header ↻ button opens parent's RescheduleSheet. */
+  onReschedule?: (apt: Appointment) => void;
+  /** Sprint 025 STORY-005: header ✓ button triggers parent's PaymentSheet. */
+  onCompleteQuick?: (apt: Appointment) => void;
 }
 
 type Kind = "work" | "event";
@@ -85,11 +93,14 @@ export default function AppointmentSheet({
   clients,
   recentClientIds,
   activeTeam,
+  masters,
   catalog,
   categories,
   cityForDate,
   onSave,
   onCancelAppointment,
+  onReschedule,
+  onCompleteQuick,
 }: AppointmentSheetProps) {
   const router = useRouter();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
@@ -237,7 +248,27 @@ export default function AppointmentSheet({
   const isEditable = liveMode === "create" || liveMode === "edit";
   const readonly = !isEditable;
   const isEventMode = kind === "event";
-  const teamLabel = activeTeam?.name ?? "—";
+  // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
+  // "Y&D" when masters are available. Falls back to team.name otherwise.
+  const teamLabel = activeTeam
+    ? masters && masters.length > 0
+      ? getTeamDisplayName(activeTeam, masters)
+      : activeTeam.name
+    : "—";
+
+  // Sprint 025 STORY-005: header quick actions (✓ / 📷 / ↻). Visible
+  // only in view mode for records that are still actionable (scheduled
+  // or in-progress). Completed / cancelled records already show the
+  // status badge in the header slot so these don't appear.
+  const photoScrollRef = useRef<HTMLDivElement | null>(null);
+  const showQuickActions =
+    liveMode === "view" &&
+    !isEventMode &&
+    appointment.status !== "completed" &&
+    appointment.status !== "cancelled";
+  const scrollToPhotos = () => {
+    photoScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   // В create: обязателен preset + клиент. В edit: если услуга уже
   // стоит (total_amount > 0 и status), сохранение разрешено и без
@@ -415,6 +446,47 @@ export default function AppointmentSheet({
           ) : (
             <div className="flex-1" />
           )}
+
+          {/* Sprint 025 STORY-005 — one-tap shortcuts on open visits:
+              ✓ complete, 📷 add photo, ↻ reschedule. They mirror the
+              three actions the dispatcher reaches for most; the slower
+              admin options still live in the ⋯ menu inside ClientBlock. */}
+          {showQuickActions && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {onCompleteQuick && (
+                <button
+                  type="button"
+                  onClick={() => onCompleteQuick(appointment)}
+                  aria-label="Отметить выполненной"
+                  title="Выполнено"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-emerald-600 active:bg-emerald-50"
+                >
+                  <Check size={20} strokeWidth={2.5} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={scrollToPhotos}
+                aria-label="Перейти к фото"
+                title="Фото"
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-violet-600 active:bg-violet-50"
+              >
+                <Camera size={19} strokeWidth={2} />
+              </button>
+              {onReschedule && (
+                <button
+                  type="button"
+                  onClick={() => onReschedule(appointment)}
+                  aria-label="Перенести запись"
+                  title="Перенести"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-amber-600 active:bg-amber-50"
+                >
+                  <CalendarClock size={19} strokeWidth={2} />
+                </button>
+              )}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={attemptClose}
@@ -607,12 +679,14 @@ export default function AppointmentSheet({
                 onChange={setComment}
               />
 
-              <PhotoBlock
-                photos={photos}
-                readonly={readonly}
-                locationLabel={selectedLocation?.label}
-                onChange={setPhotos}
-              />
+              <div ref={photoScrollRef}>
+                <PhotoBlock
+                  photos={photos}
+                  readonly={readonly}
+                  locationLabel={selectedLocation?.label}
+                  onChange={setPhotos}
+                />
+              </div>
 
               {/* Cancel-appointment toggle — always visible when the
                   appointment isn't already completed. Flipping on

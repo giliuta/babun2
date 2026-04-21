@@ -349,6 +349,27 @@ export function getMasterTeamName(master: Master, teams: Team[]): string {
   return teams.find((t) => t.id === master.team_id)?.name ?? "—";
 }
 
+// Cookie-name brigade labels ("Y&D", "D&K") are memorable to the
+// dispatcher but opaque to anyone else. `getTeamDisplayName` composes
+// "Юра + Даня · Пафос" from the lead + first helper + default city.
+// Falls back to `team.name` when masters aren't available (shared
+// read paths that don't pass the masters array).
+export function getTeamDisplayName(team: Team, masters: Master[]): string {
+  const firstName = (full: string) => full.trim().split(/\s+/)[0].replace(/[()]/g, "");
+  const lead = team.lead_id ? masters.find((m) => m.id === team.lead_id) : null;
+  const helper =
+    team.helper_ids
+      .map((id) => masters.find((m) => m.id === id))
+      .find((m): m is Master => Boolean(m)) ?? null;
+  const people = [lead, helper]
+    .filter((m): m is Master => Boolean(m))
+    .map((m) => firstName(m.full_name));
+  const city = team.default_city?.trim() || team.region?.split(/[,/]/)[0].trim() || "";
+  if (people.length === 0) return team.name;
+  const joined = people.join(" + ");
+  return city ? `${joined} · ${city}` : joined;
+}
+
 export function getTeamMembers(team: Team, masters: Master[]): {
   lead: Master | null;
   helpers: Master[];

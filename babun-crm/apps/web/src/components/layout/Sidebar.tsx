@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Calendar as CalendarIcon,
@@ -18,6 +18,8 @@ import {
   MessageSquare,
   Settings as SettingsIcon,
   LogOut,
+  ChevronDown,
+  Sun,
 } from "lucide-react";
 import { loadWaitlist } from "@/lib/waitlist";
 import { loadRecurring, dueReminders } from "@/lib/recurring";
@@ -25,6 +27,7 @@ import { loadChats, getTotalUnread } from "@/lib/chats";
 import { BUILD_VERSION } from "@/lib/version";
 
 export type DialogType =
+  | "today"
   | "calendar"
   | "clients"
   | "chats"
@@ -52,6 +55,7 @@ interface SidebarProps {
 }
 
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
+  today: "/dashboard/today",
   calendar: "/dashboard",
   clients: "/dashboard/clients",
   chats: "/dashboard/chats",
@@ -71,6 +75,14 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   route: "/dashboard/route",
 };
 
+const EXPAND_KEY = "babun-sidebar-expanded";
+
+// Sprint 025 KILL list. 16 nav items felt like a wall of text and
+// made the primary 7 hard to reach with the thumb. This version keeps
+// the 7 daily-driver items always visible and hides setup/admin
+// surfaces behind a single "Показать всё" toggle. The expand state
+// persists per-device so power-users keep the full list and new users
+// see the tight default.
 export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -78,6 +90,13 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const [waitlistPending, setWaitlistPending] = useState(0);
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setExpanded(window.localStorage.getItem(EXPAND_KEY) === "1");
+  }, []);
+
   useEffect(() => {
     const refresh = () => {
       setWaitlistPending(
@@ -87,8 +106,6 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
       setUnreadChats(getTotalUnread(loadChats()));
     };
     refresh();
-    // Re-read when the drawer is reopened or the user navigates — cheap
-    // enough to avoid a store abstraction for now.
     window.addEventListener("storage", refresh);
     window.addEventListener("focus", refresh);
     window.addEventListener("babun:recurring-changed", refresh);
@@ -99,6 +116,14 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
     };
   }, [open, pathname]);
 
+  // If a hidden item has a badge (recurring due, unread messages that
+  // aren't chats, etc.), surface a red dot on the toggle itself so the
+  // dispatcher never misses an alert because of the collapse.
+  const hiddenBadgeCount = useMemo(() => {
+    if (expanded) return 0;
+    return recurringDue; // Only Напоминания lives behind the toggle today.
+  }, [expanded, recurringDue]);
+
   const handleNav = (dialog: DialogType) => {
     if (dialog) {
       router.push(ROUTE_MAP[dialog]);
@@ -107,6 +132,14 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   };
 
   const isActive = (dialog: Exclude<DialogType, null>) => pathname === ROUTE_MAP[dialog];
+
+  const toggleExpanded = () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(EXPAND_KEY, next ? "1" : "0");
+    }
+  };
 
   return (
     <>
@@ -136,9 +169,14 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           </div>
         </div>
 
-        {/* Navigation — grouped into semantic sections */}
+        {/* Navigation — 7 primary items, rest behind a toggle. */}
         <nav className="flex-1 py-2 overflow-y-auto">
-          <SectionLabel>Работа</SectionLabel>
+          <NavItem
+            icon={<Sun size={18} strokeWidth={2} />}
+            label="Сегодня"
+            active={isActive("today")}
+            onClick={() => handleNav("today")}
+          />
           <NavItem
             icon={<CalendarIcon size={18} strokeWidth={2} />}
             label="Календарь"
@@ -172,71 +210,10 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             onClick={() => handleNav("waitlist")}
           />
           <NavItem
-            icon={<RotateCcw size={18} strokeWidth={2} />}
-            label="Напоминания"
-            badge={recurringDue > 0 ? recurringDue : undefined}
-            active={isActive("recurring")}
-            onClick={() => handleNav("recurring")}
-          />
-
-          <SectionLabel>Деньги</SectionLabel>
-          <NavItem
             icon={<Wallet size={18} strokeWidth={2} />}
             label="Финансы"
             active={isActive("finances")}
             onClick={() => handleNav("finances")}
-          />
-          <NavItem
-            icon={<Receipt size={18} strokeWidth={2} />}
-            label="Расходы"
-            active={isActive("expenses")}
-            onClick={() => handleNav("expenses")}
-          />
-          <NavItem
-            icon={<Banknote size={18} strokeWidth={2} />}
-            label="Зарплата"
-            active={isActive("payroll")}
-            onClick={() => handleNav("payroll")}
-          />
-          <NavItem
-            icon={<BarChart3 size={18} strokeWidth={2} />}
-            label="Отчёты"
-            active={isActive("reports")}
-            onClick={() => handleNav("reports")}
-          />
-
-          <SectionLabel>Команда</SectionLabel>
-          <NavItem
-            icon={<UsersIcon size={18} strokeWidth={2} />}
-            label="Бригады и мастера"
-            active={isActive("teams") || isActive("masters")}
-            onClick={() => handleNav("teams")}
-          />
-          <NavItem
-            icon={<LayoutGrid size={18} strokeWidth={2} />}
-            label="Фин. бригады (% ставки)"
-            active={isActive("brigades")}
-            onClick={() => handleNav("brigades")}
-          />
-          <NavItem
-            icon={<ClockIcon size={18} strokeWidth={2} />}
-            label="Расписание"
-            active={isActive("schedule")}
-            onClick={() => handleNav("schedule")}
-          />
-
-          <SectionLabel>Настройка</SectionLabel>
-          <NavItem
-            icon={<Wrench size={18} strokeWidth={2} />}
-            label="Услуги"
-            active={isActive("services")}
-            onClick={() => handleNav("services")}
-          />
-          <NavItem
-            icon={<MessageSquare size={18} strokeWidth={2} />}
-            label="SMS-шаблоны"
-            active={isActive("sms-templates")}
-            onClick={() => handleNav("sms-templates")}
           />
           <NavItem
             icon={<SettingsIcon size={18} strokeWidth={2} />}
@@ -244,6 +221,89 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             active={isActive("settings")}
             onClick={() => handleNav("settings")}
           />
+
+          {/* Toggle — expands setup / reporting surfaces */}
+          <button
+            type="button"
+            onClick={toggleExpanded}
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-violet-400 hover:text-violet-200 transition-colors mt-2"
+          >
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${expanded ? "" : "-rotate-90"}`}
+            />
+            <span className="flex-1 text-left">
+              {expanded ? "Скрыть лишнее" : "Показать всё"}
+            </span>
+            {hiddenBadgeCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-400" aria-label="Есть уведомления" />
+            )}
+          </button>
+
+          {expanded && (
+            <div className="pt-1">
+              <SectionLabel>Деньги</SectionLabel>
+              <NavItem
+                icon={<Receipt size={18} strokeWidth={2} />}
+                label="Расходы"
+                active={isActive("expenses")}
+                onClick={() => handleNav("expenses")}
+              />
+              <NavItem
+                icon={<Banknote size={18} strokeWidth={2} />}
+                label="Зарплата"
+                active={isActive("payroll")}
+                onClick={() => handleNav("payroll")}
+              />
+              <NavItem
+                icon={<BarChart3 size={18} strokeWidth={2} />}
+                label="Отчёты"
+                active={isActive("reports")}
+                onClick={() => handleNav("reports")}
+              />
+
+              <SectionLabel>Команда</SectionLabel>
+              <NavItem
+                icon={<UsersIcon size={18} strokeWidth={2} />}
+                label="Бригады и мастера"
+                active={isActive("teams") || isActive("masters")}
+                onClick={() => handleNav("teams")}
+              />
+              <NavItem
+                icon={<LayoutGrid size={18} strokeWidth={2} />}
+                label="Фин. бригады (% ставки)"
+                active={isActive("brigades")}
+                onClick={() => handleNav("brigades")}
+              />
+              <NavItem
+                icon={<ClockIcon size={18} strokeWidth={2} />}
+                label="Расписание"
+                active={isActive("schedule")}
+                onClick={() => handleNav("schedule")}
+              />
+
+              <SectionLabel>Каталог</SectionLabel>
+              <NavItem
+                icon={<Wrench size={18} strokeWidth={2} />}
+                label="Услуги"
+                active={isActive("services")}
+                onClick={() => handleNav("services")}
+              />
+              <NavItem
+                icon={<MessageSquare size={18} strokeWidth={2} />}
+                label="SMS-шаблоны"
+                active={isActive("sms-templates")}
+                onClick={() => handleNav("sms-templates")}
+              />
+              <NavItem
+                icon={<RotateCcw size={18} strokeWidth={2} />}
+                label="Напоминания"
+                badge={recurringDue > 0 ? recurringDue : undefined}
+                active={isActive("recurring")}
+                onClick={() => handleNav("recurring")}
+              />
+            </div>
+          )}
         </nav>
 
         {/* Bottom section */}

@@ -47,6 +47,7 @@ import {
   useSidebar,
   useSchedules,
   useTeams,
+  useMasters,
   useAppointments,
   useFormSettings,
   useServices,
@@ -55,6 +56,7 @@ import {
   useDayExtras,
   useCalendarSettings,
 } from "./layout";
+import { getTeamDisplayName } from "@/lib/masters";
 import { sumExtras } from "@/lib/day-extras";
 import { loadChats } from "@/lib/chats";
 import SuccessOverlay from "@/components/appointment/SuccessOverlay";
@@ -133,11 +135,17 @@ function DashboardPageInner() {
   const { requiredFields } = useFormSettings();
   const { services, categories: serviceCategories } = useServices();
   const { clients } = useClients();
+  const { masters } = useMasters();
 
-  // Header tabs need a stable shape: { id, name }
+  // Header tabs need a stable shape: { id, name }. Sprint 025 (STORY-009):
+  // show "Юра + Даня · Пафос" rather than the terse codename "Y&D" — the
+  // dispatcher recognises faces, the tabs are rarely read by anyone else.
   const teamTabs = useMemo(
-    () => teams.filter((t) => t.active).map((t) => ({ id: t.id, name: t.name })),
-    [teams]
+    () =>
+      teams
+        .filter((t) => t.active)
+        .map((t) => ({ id: t.id, name: getTeamDisplayName(t, masters) })),
+    [teams, masters]
   );
   // SSR-safe: start on a deterministic epoch Monday, then move to today
   // in useEffect after mount. Previous `getMonday(new Date())` in the
@@ -1026,6 +1034,7 @@ function DashboardPageInner() {
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam}
+          masters={masters}
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
@@ -1217,6 +1226,7 @@ function DashboardPageInner() {
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam}
+          masters={masters}
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
@@ -1231,6 +1241,16 @@ function DashboardPageInner() {
               updated_at: new Date().toISOString(),
             });
             setInlineSheet(null);
+          }}
+          onReschedule={(apt) => {
+            // Close the view sheet first so RescheduleSheet stacks cleanly;
+            // parent re-renders and ReschedulingSheet's `open` flips true.
+            setInlineSheet(null);
+            setRescheduleApt(apt);
+          }}
+          onCompleteQuick={(apt) => {
+            setInlineSheet(null);
+            setPaymentApt(apt);
           }}
         />
       )}

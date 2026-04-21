@@ -63,9 +63,21 @@ export default function Header({
   // useEffect so SSR ships a stable default (1) and the real number
   // appears on the client only.
   const [todayNumber, setTodayNumber] = useState<number>(1);
+  // Sprint 025: when the dispatcher is already on today's column in
+  // day view, the "Сегодня" icon does nothing — hide it to reclaim
+  // thumb-space. In 3-day / week / month views keep it visible because
+  // "today" may scroll off the visible range.
+  const [isOnToday, setIsOnToday] = useState(false);
   useEffect(() => {
-    setTodayNumber(new Date().getDate());
-  }, []);
+    const now = new Date();
+    setTodayNumber(now.getDate());
+    setIsOnToday(
+      viewMode === "day" &&
+        now.getFullYear() === currentDate.getFullYear() &&
+        now.getMonth() === currentDate.getMonth() &&
+        now.getDate() === currentDate.getDate()
+    );
+  }, [currentDate, viewMode]);
   const [showMiniCalendar, setShowMiniCalendar] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
@@ -124,11 +136,14 @@ export default function Header({
           )}
         </div>
 
-        {/* Today — calendar icon with current day number inside */}
+        {/* Today — calendar icon with current day number inside.
+            Hidden when the day view is already pointing at today
+            (Sprint 025 — clicking would be a no-op). */}
         <button
           type="button"
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
+          hidden={isOnToday}
           className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-slate-600 lg:hover:bg-slate-100 active:scale-[0.94] flex-shrink-0 transition"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

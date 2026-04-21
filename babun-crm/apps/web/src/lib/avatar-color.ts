@@ -14,9 +14,24 @@ export function getAvatarColor(name: string): string {
   return COLORS[Math.abs(hash) % COLORS.length];
 }
 
+// Clients occasionally name their contacts with emoji prefixes
+// ("⭐ Мария", "🔥 Дима") as ad-hoc VIP flags. `.slice(0, 2)` on the
+// raw string then chops the emoji surrogate pair in half and the
+// avatar shows a broken glyph. Strip emoji/symbols/punctuation first,
+// then walk code points (not code units) so Cyrillic / accented
+// letters still render their first grapheme correctly.
 export function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const cleaned = name
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}\p{Symbol}\p{Punctuation}]/gu, " ")
+    .trim();
+  if (!cleaned) return "?";
+  const parts = cleaned.split(/\s+/);
+  const first = Array.from(parts[0] ?? "")[0] ?? "";
+  const last =
+    parts.length > 1 ? Array.from(parts[parts.length - 1])[0] ?? "" : "";
+  if (parts.length === 1) {
+    const cps = Array.from(parts[0]);
+    return ((cps[0] ?? "?") + (cps[1] ?? "")).toUpperCase();
+  }
+  return (first + last).toUpperCase();
 }

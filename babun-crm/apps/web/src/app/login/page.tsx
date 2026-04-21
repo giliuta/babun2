@@ -10,11 +10,13 @@ export default function LoginPage() {
   const router = useRouter();
 
   // Prototype phase: no real auth backend yet. Any submission opens the
-  // dashboard — data is in localStorage and scoped to the device.
+  // "Сегодня" screen (Sprint 025 STORY-002) — a pre-answered agenda
+  // view replaces the cold "open calendar and scroll" landing. Data
+  // is still in localStorage and scoped to the device.
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    router.push("/dashboard");
+    router.push("/dashboard/today");
   };
 
   const error = "";
