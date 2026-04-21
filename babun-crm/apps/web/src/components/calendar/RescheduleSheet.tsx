@@ -10,11 +10,10 @@ interface RescheduleSheetProps {
   onConfirm: (next: { date: string; time_start: string; time_end: string }) => void;
 }
 
-// Centred mobile reschedule modal. Mobile users have no drag-drop on
-// the calendar (dnd-kit is desktop-only); this sheet is the path the
-// long-press menu opens (Sprint 019 U8 / BUG #12). Date and time are
-// adjusted independently; the duration is preserved so dragging from
-// 14:00 to 16:00 keeps a 60-min visit 60 min long.
+// Sprint 029 Phase 1: iOS alert-style reschedule sheet. Keeps the
+// sheet narrow (300 px) and centred, following UIAlertController
+// proportions — same visual weight as ConfirmDialog so the two
+// action-layer modals feel related.
 export default function RescheduleSheet({
   open,
   appointment,
@@ -44,8 +43,6 @@ export default function RescheduleSheet({
     };
   }, [open, onClose]);
 
-  // Preserve original duration so the visit window length stays the
-  // same after the move. If parsing fails, fall back to 60 minutes.
   const durationMin = useMemo(() => {
     if (!appointment) return 60;
     const [sh, sm] = appointment.time_start.split(":").map(Number);
@@ -68,36 +65,36 @@ export default function RescheduleSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[340px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-5 pt-5 pb-4 text-center border-b border-[var(--separator)]">
+          <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
             Перенести запись
           </div>
-          <div className="mt-1 text-[12px] text-slate-500 tabular-nums">
+          <div className="mt-1 text-[13px] text-[var(--label-secondary)] tabular-nums">
             Сейчас: {appointment.date} · {appointment.time_start}–{appointment.time_end}
           </div>
         </div>
 
-        <div className="px-4 pt-3 pb-2 space-y-3">
+        <div className="px-4 pt-4 pb-3 space-y-3">
           <label className="block">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1.5">
               Новая дата
             </div>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full h-11 px-3 rounded-lg border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-violet-400"
+              className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
             />
           </label>
           <label className="block">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1.5">
               Новое время начала
             </div>
             <input
@@ -105,22 +102,22 @@ export default function RescheduleSheet({
               value={time}
               step={300}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full h-11 px-3 rounded-lg border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-violet-400"
+              className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
             />
           </label>
-          <div className="text-[12px] text-slate-500 text-center pt-1">
+          <div className="text-[12px] text-[var(--label-secondary)] text-center pt-1">
             Длительность сохраняется ·{" "}
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-[var(--label)]">
               {time}–{computedEnd}
             </span>
           </div>
         </div>
 
-        <div className="px-4 pt-1 pb-4 flex gap-2">
+        <div className="flex border-t border-[var(--separator)]">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-11 rounded-xl bg-slate-100 text-slate-700 text-[14px] font-medium active:bg-slate-200"
+            className="flex-1 h-11 text-[17px] font-normal text-[var(--accent)] active:bg-[var(--fill-quaternary)] border-r border-[var(--separator)]"
           >
             Отмена
           </button>
@@ -131,7 +128,7 @@ export default function RescheduleSheet({
               onConfirm({ date, time_start: time, time_end: computedEnd });
               onClose();
             }}
-            className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99] disabled:opacity-40"
+            className="flex-1 h-11 text-[17px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
           >
             Перенести
           </button>

@@ -172,7 +172,7 @@ function TabButton({
         }
       }}
       className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition active:scale-[0.97] ${
-        active ? "text-violet-600" : "text-slate-500"
+        active ? "text-[var(--accent)]" : "text-[var(--label-secondary)]"
       }`}
     >
       <span className="relative">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Check, MapPin } from "lucide-react";
 import { CITY_LIST } from "@/lib/day-cities";
 
 interface CityPickerModalProps {
@@ -16,8 +17,9 @@ interface CityPickerModalProps {
   onReset?: () => void;
 }
 
-// Bottom sheet: «Куда едет бригада?» + 4 кнопки городов с MapPin
-// иконкой и цветной плашкой.
+// Sprint 029 Phase 1: iOS-style city picker. Grouped-list card with
+// city rows, each row gets a tinted pin tile matching the city's
+// brand colour, a checkmark on the right for the active choice.
 export default function CityPickerModal({
   open,
   onClose,
@@ -25,7 +27,6 @@ export default function CityPickerModal({
   dateKey,
   onPick,
 }: CityPickerModalProps) {
-  // ESC + body-scroll lock
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -60,84 +61,60 @@ export default function CityPickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[360px] bg-white rounded-2xl pb-4 shadow-2xl"
+        className="w-full max-w-[340px] bg-[var(--surface-grouped)] rounded-[14px] pb-3 overflow-hidden shadow-[var(--shadow-sheet)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-5 pt-4 pb-1">
+        <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)]">
+          <h2 className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
+            Куда едет бригада?
+          </h2>
           {dateLabel && (
-            <p className="text-[13px] text-slate-500 capitalize">
+            <p className="text-[13px] text-[var(--label-secondary)] capitalize mt-0.5">
               {dateLabel}
             </p>
           )}
-          <h2 className="text-[18px] font-semibold text-slate-900 mt-0.5">
-            Куда едет бригада?
-          </h2>
         </div>
 
-        {/* City list */}
-        <div className="px-3 mt-3 space-y-2">
-          {CITY_LIST.map((c) => {
-            const active = c.name === current;
-            return (
-              <button
-                key={c.name}
-                type="button"
-                onClick={() => handlePick(c.name)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition active:scale-[0.99]"
-                style={{
-                  borderColor: active ? c.color : "#e2e8f0",
-                  background: active ? c.bg : "white",
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: c.bg }}
+        <div className="px-3 pt-3">
+          <div className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden divide-y divide-[var(--separator)]">
+            {CITY_LIST.map((c) => {
+              const active = c.name === current;
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => handlePick(c.name)}
+                  className="w-full flex items-center gap-3 px-4 py-3 min-h-[48px] active:bg-[var(--fill-quaternary)] transition"
+                >
+                  <span
+                    className="w-7 h-7 rounded-[7px] flex items-center justify-center shrink-0"
+                    style={{ background: c.color }}
                   >
-                    {/* MapPin */}
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill={c.color}
-                      stroke={c.color}
-                      strokeWidth="2"
-                    >
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                      <circle cx="12" cy="10" r="3" fill="white" stroke="none" />
-                    </svg>
-                  </div>
-                  <div
-                    className="font-semibold text-[15px] text-left"
-                    style={{ color: active ? c.color : "#0f172a" }}
-                  >
+                    <MapPin
+                      size={16}
+                      strokeWidth={2.2}
+                      className="text-white"
+                    />
+                  </span>
+                  <span className="flex-1 text-left text-[15px] font-medium text-[var(--label)]">
                     {c.name}
-                  </div>
-                </div>
-                {active && (
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={c.color}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
+                  </span>
+                  {active && (
+                    <Check
+                      size={18}
+                      strokeWidth={2.5}
+                      className="text-[var(--accent)]"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-
       </div>
     </div>
   );

@@ -10,10 +10,11 @@ export interface UndoToastProps {
   durationMs?: number;
 }
 
-// Simple bottom toast with an Undo action. Auto-dismisses after
-// durationMs (default 5s) and lets the caller cancel by calling onClose.
-// Tapping "Отменить" triggers onUndo and closes. Rendered in a fixed
-// wrapper so it floats above the whole app without needing a portal.
+// iOS / Telegram undo toast. Dark pill at the bottom of the viewport
+// with a primary-coloured "Отменить" action on the right and a slim
+// progress bar underneath. Auto-dismisses; caller can force-close via
+// onClose. Positioned above the BottomTabBar using `safe-area-inset`
+// padding so it never covers the center FAB on phones.
 export default function UndoToast({
   open,
   message,
@@ -52,24 +53,27 @@ export default function UndoToast({
   return (
     <div
       role="status"
-      className="fixed left-1/2 bottom-6 -translate-x-1/2 z-[60] w-[min(92vw,380px)]"
+      className="fixed left-1/2 -translate-x-1/2 z-[60] w-[min(92vw,380px)]"
+      style={{
+        bottom: "calc(env(safe-area-inset-bottom, 8px) + 80px)",
+      }}
     >
-      <div className="relative overflow-hidden rounded-xl bg-slate-900 text-white shadow-xl">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="flex-1 text-[13px] leading-snug">{message}</div>
+      <div className="relative overflow-hidden rounded-[14px] bg-[#1C1C1E] text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="flex-1 text-[14px] leading-snug">{message}</div>
           <button
             type="button"
             onClick={() => {
               onUndo();
               onClose();
             }}
-            className="text-[13px] font-semibold text-amber-300 active:scale-95 transition"
+            className="text-[14px] font-semibold text-[var(--system-blue)] active:opacity-60 transition"
           >
             Отменить
           </button>
         </div>
         <div
-          className="absolute left-0 bottom-0 h-[2px] bg-amber-400 transition-all"
+          className="absolute left-0 bottom-0 h-[2px] bg-[var(--system-blue)] transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>

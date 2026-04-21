@@ -1,24 +1,30 @@
 "use client";
 
+import { ChevronLeft, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/app/dashboard/layout";
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  /** Show back arrow that navigates to /dashboard */
+  /** Show back arrow that navigates to `backHref`. */
   showBack?: boolean;
   /**
    * Override the back-button destination. Default is `/dashboard`.
    * Settings sub-pages should pass `/dashboard/settings` so back goes
-   * to the settings menu, not the calendar (Sprint 019 U6).
+   * to the settings menu, not the calendar.
    */
   backHref?: string;
-  /** Custom left slot — replaces the default back/menu button */
+  /** Custom left slot — replaces the default back/menu button. */
   leftContent?: React.ReactNode;
   rightContent?: React.ReactNode;
 }
 
+// iOS UINavigationBar — 44 pt nav, 17 pt semibold centred title with
+// optional 11 pt subtitle under it. Brand-violet on mobile (matches
+// the calendar header so the two chain together), white on desktop
+// (iPad / web). Back chevron uses the lucide glyph instead of an
+// inline SVG — keeps icon weights consistent across the app.
 export default function PageHeader({
   title,
   subtitle,
@@ -31,8 +37,8 @@ export default function PageHeader({
   const sidebar = useSidebar();
 
   return (
-    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-slate-200 z-30">
-      <div className="px-2 lg:px-4 py-2.5 lg:py-3.5 flex items-center gap-2 lg:bg-white">
+    <header className="flex-shrink-0 bg-[var(--accent)] lg:bg-[var(--surface-card)] lg:border-b lg:border-[var(--separator)] z-30">
+      <div className="px-2 lg:px-4 min-h-[44px] flex items-center gap-1 lg:bg-[var(--surface-card)]">
         {leftContent ? (
           <div className="shrink-0">{leftContent}</div>
         ) : showBack ? (
@@ -40,39 +46,35 @@ export default function PageHeader({
             type="button"
             onClick={() => router.push(backHref)}
             aria-label="Назад"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 shrink-0 transition-colors"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 shrink-0 transition"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
         ) : (
           <button
             type="button"
             onClick={sidebar.toggle}
             aria-label="Меню"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 shrink-0 transition-colors"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 shrink-0 transition"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
+            <Menu size={20} strokeWidth={2.5} />
           </button>
         )}
 
-        <div className="flex-1 min-w-0">
-          <h1 className="text-[17px] lg:text-[19px] font-semibold text-white lg:text-slate-900 truncate tracking-tight">
+        <div className="flex-1 min-w-0 py-2">
+          <h1 className="text-[17px] font-semibold text-white lg:text-[var(--label)] truncate tracking-tight leading-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[11px] lg:text-xs text-white/70 lg:text-slate-500 truncate">
+            <p className="text-[12px] text-white/70 lg:text-[var(--label-secondary)] truncate leading-tight mt-0.5">
               {subtitle}
             </p>
           )}
         </div>
 
-        {rightContent && <div className="flex items-center gap-1">{rightContent}</div>}
+        {rightContent && (
+          <div className="flex items-center gap-1 flex-shrink-0">{rightContent}</div>
+        )}
       </div>
     </header>
   );

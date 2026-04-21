@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  Menu,
+  ChevronDown,
+  CalendarClock,
+  Rows3,
+  LayoutGrid,
+  CalendarRange,
+  Calendar as CalendarOneDay,
+} from "lucide-react";
 import { getMonthName } from "@/lib/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 
@@ -81,46 +90,40 @@ export default function Header({
   const [showMiniCalendar, setShowMiniCalendar] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
 
+  const VIEW_ICONS: Record<ViewMode, typeof CalendarOneDay> = {
+    day: CalendarOneDay,
+    "3days": Rows3,
+    week: CalendarRange,
+    month: LayoutGrid,
+  };
+  const ActiveViewIcon = VIEW_ICONS[viewMode];
+
   return (
-    <header className="flex-shrink-0 bg-violet-600 lg:bg-white lg:border-b lg:border-slate-200 flex flex-col z-30">
-      {/* Top row — icon-first, compact. Стрелок «вправо-влево» нет:
-          неделя листается свайпом. Меньше кнопок — меньше шума. */}
-      <div className="px-2 lg:px-4 py-1.5 lg:py-2 flex items-center gap-1 lg:bg-white">
-        {/* Hamburger */}
+    <header className="flex-shrink-0 bg-[var(--accent)] lg:bg-[var(--surface-card)] lg:border-b lg:border-[var(--separator)] flex flex-col z-30">
+      <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1 lg:bg-[var(--surface-card)]">
         <button
           type="button"
           onClick={onMenuToggle}
           aria-label="Меню"
-          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 flex-shrink-0 transition-colors"
+          className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 flex-shrink-0 transition"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
+          <Menu size={20} strokeWidth={2.5} />
         </button>
 
-        {/* Month + year (tap = mini calendar) */}
         <div className="relative min-w-0 flex-1">
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 active:bg-white/10 lg:hover:bg-slate-50 rounded-lg px-2 py-1 active:scale-[0.98] transition max-w-full"
+            className="flex items-center gap-1 active:bg-white/10 lg:active:bg-[var(--fill-quaternary)] rounded-full px-2.5 py-1.5 transition max-w-full"
           >
-            <h2 className="text-[14px] lg:text-[17px] font-semibold text-white lg:text-slate-900 capitalize whitespace-nowrap truncate tracking-tight">
+            <h2 className="text-[17px] font-semibold text-white lg:text-[var(--label)] capitalize whitespace-nowrap truncate tracking-tight">
               {monthName} {year}
             </h2>
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="text-white/70 lg:text-slate-400 flex-shrink-0"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <ChevronDown
+              size={14}
+              strokeWidth={2.5}
+              className="text-white/70 lg:text-[var(--label-tertiary)] flex-shrink-0"
+            />
           </button>
 
           {showMiniCalendar && (
@@ -136,60 +139,27 @@ export default function Header({
           )}
         </div>
 
-        {/* Today — calendar icon with current day number inside.
-            Hidden when the day view is already pointing at today
-            (Sprint 025 — clicking would be a no-op). */}
         <button
           type="button"
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
           hidden={isOnToday}
-          className="relative w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-slate-600 lg:hover:bg-slate-100 active:scale-[0.94] flex-shrink-0 transition"
+          className="relative w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 lg:text-[var(--label-secondary)] lg:active:bg-[var(--fill-quaternary)] flex-shrink-0 transition"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
+          <CalendarClock size={20} strokeWidth={2} />
           <span className="absolute text-[9px] font-bold translate-y-[3px]">
             {todayNumber}
           </span>
         </button>
 
-        {/* View mode — opens a small dropdown */}
         <div className="relative flex-shrink-0">
           <button
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10 lg:text-slate-600 lg:hover:bg-slate-100 active:scale-[0.94] transition"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 lg:text-[var(--label-secondary)] lg:active:bg-[var(--fill-quaternary)] transition"
           >
-            {viewMode === "day" ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="7" y="3" width="10" height="18" rx="1.5" />
-              </svg>
-            ) : viewMode === "3days" ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="5" height="18" rx="1" />
-                <rect x="10" y="3" width="5" height="18" rx="1" />
-                <rect x="17" y="3" width="5" height="18" rx="1" />
-              </svg>
-            ) : viewMode === "week" ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                <line x1="15" y1="3" x2="15" y2="21" />
-              </svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="1.5" />
-                <line x1="3" y1="9" x2="21" y2="9" />
-                <line x1="3" y1="14" x2="21" y2="14" />
-                <line x1="9" y1="4" x2="9" y2="20" />
-                <line x1="15" y1="4" x2="15" y2="20" />
-              </svg>
-            )}
+            <ActiveViewIcon size={20} strokeWidth={2} />
           </button>
 
           {showViewDropdown && (
@@ -198,32 +168,35 @@ export default function Header({
                 className="fixed inset-0 z-40"
                 onClick={() => setShowViewDropdown(false)}
               />
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-50 min-w-[120px]">
-                {(["day", "3days", "week", "month"] as ViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => {
-                      onViewModeChange(mode);
-                      setShowViewDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50 transition-colors ${
-                      viewMode === mode
-                        ? "text-violet-600 font-medium bg-violet-50"
-                        : "text-slate-700"
-                    }`}
-                  >
-                    {VIEW_MODE_LABELS[mode]}
-                  </button>
-                ))}
+              <div className="absolute right-0 top-full mt-2 bg-[var(--surface-card)] rounded-[12px] shadow-[var(--shadow-sheet)] py-1 z-50 min-w-[140px] border border-[var(--separator)]">
+                {(["day", "3days", "week", "month"] as ViewMode[]).map((mode) => {
+                  const Icon = VIEW_ICONS[mode];
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => {
+                        onViewModeChange(mode);
+                        setShowViewDropdown(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[14px] active:bg-[var(--fill-quaternary)] transition-colors ${
+                        viewMode === mode
+                          ? "text-[var(--accent)] font-semibold"
+                          : "text-[var(--label)]"
+                      }`}
+                    >
+                      <Icon size={16} strokeWidth={2} />
+                      {VIEW_MODE_LABELS[mode]}
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* Bottom row: team tabs */}
-      <div className="bg-violet-600 lg:bg-white px-2 lg:px-4 pb-1 lg:pb-2 flex items-center gap-3 lg:gap-1 overflow-x-auto scrollbar-hide">
+      <div className="bg-[var(--accent)] lg:bg-[var(--surface-card)] px-2 lg:px-4 pb-1 lg:pb-2 flex items-center gap-4 lg:gap-1 overflow-x-auto scrollbar-hide">
         {teams.map((team) => (
           <TeamTab
             key={team.id}
@@ -289,10 +262,10 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
         onLongPress?.();
         firedRef.current = true;
       }}
-      className={`px-3 lg:px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap select-none transition ${
+      className={`px-3 lg:px-4 py-2 text-[14px] font-semibold whitespace-nowrap select-none transition tracking-tight ${
         active
-          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-slate-100 lg:text-slate-900"
-          : "text-white/80 lg:text-slate-500 hover:text-white lg:hover:text-slate-700"
+          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-[var(--fill-tertiary)] lg:text-[var(--label)] lg:rounded-full"
+          : "text-white/70 lg:text-[var(--label-secondary)]"
       }`}
     >
       {team.name}

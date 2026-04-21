@@ -150,24 +150,24 @@ export default function MorningBriefing({
 
   return (
     <div
-      className="fixed inset-0 z-[95] bg-white flex flex-col"
+      className="fixed inset-0 z-[95] bg-[var(--surface-grouped)] flex flex-col"
       style={{
         paddingTop: "max(env(safe-area-inset-top), 12px)",
         paddingBottom: "max(env(safe-area-inset-bottom), 24px)",
       }}
     >
-      <div className="flex-1 overflow-y-auto px-5 pt-6 pb-4">
-        <div className="text-[12px] font-semibold uppercase tracking-wider text-violet-500">
+      <div className="flex-1 overflow-y-auto px-5 pt-8 pb-4">
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)]">
           {greeting}
         </div>
-        <h1 className="mt-1 text-[26px] font-bold text-slate-900 leading-tight">
+        <h1 className="mt-2 text-[28px] font-bold text-[var(--label)] leading-tight tracking-tight">
           {todayLabelRu(new Date())}
         </h1>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-7 space-y-2.5">
           <Stat
             tone="violet"
-            icon={<CalendarClock size={22} strokeWidth={2} />}
+            icon={<CalendarClock size={18} strokeWidth={2} />}
             value={
               summary.count === 0
                 ? "Ни одной записи"
@@ -183,7 +183,7 @@ export default function MorningBriefing({
           {(summary.already > 0 || summary.expected > 0) && (
             <Stat
               tone="emerald"
-              icon={<WalletIcon size={22} strokeWidth={2} />}
+              icon={<WalletIcon size={18} strokeWidth={2} />}
               value={
                 summary.already > 0
                   ? `+${formatEUR(summary.already)} в кассе`
@@ -202,7 +202,7 @@ export default function MorningBriefing({
           {summary.unread > 0 && (
             <Stat
               tone="sky"
-              icon={<MessageSquare size={22} strokeWidth={2} />}
+              icon={<MessageSquare size={18} strokeWidth={2} />}
               value={`${summary.unread} ${countWord(summary.unread, "сообщение", "сообщения", "сообщений")} в чатах`}
               hint="Кто-то ждёт ответа"
             />
@@ -211,7 +211,7 @@ export default function MorningBriefing({
           {summary.overdueDebt > 0 && (
             <Stat
               tone="rose"
-              icon={<AlertTriangle size={22} strokeWidth={2} />}
+              icon={<AlertTriangle size={18} strokeWidth={2} />}
               value={`Должны ${formatEUR(summary.overdueDebt)}`}
               hint={`${summary.overdueCount} ${countWord(summary.overdueCount, "клиент", "клиента", "клиентов")} больше 14 дней`}
             />
@@ -226,7 +226,7 @@ export default function MorningBriefing({
             dismiss();
             router.push("/dashboard");
           }}
-          className="w-full h-12 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.99]"
+          className="w-full h-[50px] rounded-[12px] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           К календарю
         </button>
@@ -237,7 +237,7 @@ export default function MorningBriefing({
               dismiss();
               router.push("/dashboard/chats");
             }}
-            className="w-full h-11 rounded-xl bg-sky-50 text-sky-700 text-[13px] font-semibold active:bg-sky-100"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[15px] font-semibold active:opacity-75 transition"
           >
             Ответить в чатах
           </button>
@@ -245,7 +245,7 @@ export default function MorningBriefing({
         <button
           type="button"
           onClick={dismiss}
-          className="w-full h-10 text-slate-500 text-[13px] active:bg-slate-100 rounded-lg"
+          className="w-full h-11 text-[var(--label-secondary)] text-[15px] active:bg-[var(--fill-quaternary)] rounded-[10px]"
         >
           Скрыть до завтра
         </button>
@@ -254,34 +254,15 @@ export default function MorningBriefing({
   );
 }
 
+// Soft tinted tile + strong label + muted hint — iOS Numbers stat cell.
 const TONE: Record<
   "violet" | "emerald" | "sky" | "rose",
-  { bg: string; ic: string; text: string; hint: string }
+  { bg: string; ic: string }
 > = {
-  violet: {
-    bg: "bg-violet-50",
-    ic: "bg-violet-100 text-violet-700",
-    text: "text-violet-900",
-    hint: "text-violet-700/70",
-  },
-  emerald: {
-    bg: "bg-emerald-50",
-    ic: "bg-emerald-100 text-emerald-700",
-    text: "text-emerald-900",
-    hint: "text-emerald-700/70",
-  },
-  sky: {
-    bg: "bg-sky-50",
-    ic: "bg-sky-100 text-sky-700",
-    text: "text-sky-900",
-    hint: "text-sky-700/70",
-  },
-  rose: {
-    bg: "bg-rose-50",
-    ic: "bg-rose-100 text-rose-700",
-    text: "text-rose-900",
-    hint: "text-rose-700/70",
-  },
+  violet: { bg: "bg-[var(--accent-tint)]", ic: "bg-[var(--accent)]" },
+  emerald: { bg: "bg-[#E6F7EC]", ic: "bg-[var(--system-green)]" },
+  sky: { bg: "bg-[#E6F4FA]", ic: "bg-[var(--system-blue)]" },
+  rose: { bg: "bg-[#FCE7EA]", ic: "bg-[var(--system-red)]" },
 };
 
 function Stat({
@@ -297,16 +278,18 @@ function Stat({
 }) {
   const t = TONE[tone];
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${t.bg}`}>
-      <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${t.ic}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-[14px] ${t.bg}`}>
+      <span
+        className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-white shrink-0 ${t.ic}`}
+      >
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <div className={`text-[15px] font-bold leading-snug ${t.text}`}>
+        <div className="text-[15px] font-semibold text-[var(--label)] leading-snug">
           {value}
         </div>
         {hint && (
-          <div className={`text-[11px] mt-0.5 ${t.hint}`}>{hint}</div>
+          <div className="text-[12px] mt-0.5 text-[var(--label-secondary)]">{hint}</div>
         )}
       </div>
     </div>
