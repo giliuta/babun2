@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
 import BottomTabBar from "@/components/layout/BottomTabBar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import {
   loadSchedules,
   saveSchedules,
@@ -696,6 +697,7 @@ export default function DashboardLayout({
       <CitiesContext.Provider value={citiesValue}>
       <LocationLabelsContext.Provider value={locationLabelsValue}>
       <SchedulesContext.Provider value={schedulesValue}>
+      <ConfirmProvider>
         <div
           className="h-[100dvh] flex overflow-hidden bg-gray-50"
           style={{
@@ -723,6 +725,7 @@ export default function DashboardLayout({
           <BottomTabBar />
           <InstallPrompt />
         </div>
+      </ConfirmProvider>
       </SchedulesContext.Provider>
       </LocationLabelsContext.Provider>
       </CitiesContext.Provider>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import {
   loadRecurring,
   dueReminders,
@@ -20,6 +21,7 @@ import {
 
 export default function RecurringPage() {
   const router = useRouter();
+  const confirm = useConfirm();
   const [items, setItems] = useState<RecurringReminder[]>([]);
   const [showAll, setShowAll] = useState(false);
 
@@ -76,8 +78,8 @@ export default function RecurringPage() {
                     markStatus(r.id, "booked");
                     refresh();
                   }}
-                  onDismiss={() => {
-                    if (window.confirm("Удалить напоминание?")) {
+                  onDismiss={async () => {
+                    if (await confirm({ title: "Удалить напоминание?" })) {
                       removeRecurring(r.id);
                       refresh();
                     }

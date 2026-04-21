@@ -1,6 +1,6 @@
 "use client";
 
-import { formatEUR } from "@/lib/money";
+import { formatEUR, formatEURFromCents } from "@/lib/money";
 import AnimatedNumber from "./AnimatedNumber";
 
 type MoneySize = "sm" | "md" | "lg" | "xl" | "hero";
@@ -37,10 +37,13 @@ export default function Money({
     return (
       <AnimatedNumber
         value={cents}
-        format={(n) => formatEUR(Math.round(n))}
+        // `cents` is integer; divide inside the format callback so the
+        // animation interpolates in the storage unit (avoids a visible
+        // 100× jump on mount). `formatEUR` takes euros.
+        format={(n) => formatEUR(Math.round(n / 100))}
         className={classes}
       />
     );
   }
-  return <span className={classes}>{formatEUR(cents)}</span>;
+  return <span className={classes}>{formatEURFromCents(cents)}</span>;
 }

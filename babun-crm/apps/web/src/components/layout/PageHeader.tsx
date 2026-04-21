@@ -8,6 +8,12 @@ interface PageHeaderProps {
   subtitle?: string;
   /** Show back arrow that navigates to /dashboard */
   showBack?: boolean;
+  /**
+   * Override the back-button destination. Default is `/dashboard`.
+   * Settings sub-pages should pass `/dashboard/settings` so back goes
+   * to the settings menu, not the calendar (Sprint 019 U6).
+   */
+  backHref?: string;
   /** Custom left slot — replaces the default back/menu button */
   leftContent?: React.ReactNode;
   rightContent?: React.ReactNode;
@@ -17,6 +23,7 @@ export default function PageHeader({
   title,
   subtitle,
   showBack = true,
+  backHref = "/dashboard",
   leftContent,
   rightContent,
 }: PageHeaderProps) {
@@ -31,7 +38,7 @@ export default function PageHeader({
         ) : showBack ? (
           <button
             type="button"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push(backHref)}
             aria-label="Назад"
             className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 shrink-0 transition-colors"
           >

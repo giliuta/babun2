@@ -8,7 +8,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   MouseSensor,
@@ -60,6 +60,7 @@ import SuccessOverlay from "@/components/appointment/SuccessOverlay";
 import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import TodayChip from "@/components/calendar/TodayChip";
+import RescheduleSheet from "@/components/calendar/RescheduleSheet";
 import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
 import NowPill from "@/components/layout/NowPill";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
@@ -91,6 +92,12 @@ function toYmd(d: Date): string {
 
 export default function DashboardPage() {
   const router = useRouter();
+  // Tracks `?new=1&kind=…` transitions so the create-sheet handler
+  // re-runs when the FAB navigates here while we're already on
+  // /dashboard. Using the search-params string as a stable dependency
+  // keeps the effect predictable.
+  const searchParams = useSearchParams();
+  const searchString = searchParams?.toString() ?? "";
   const sidebar = useSidebar();
   const { schedules, setSchedules } = useSchedules();
   const { teams, setTeams } = useTeams();
@@ -589,45 +596,51 @@ export default function DashboardPage() {
     setBooking({ dateKey: date, timeStart: time, timeEnd });
   }, []);
 
-  // BottomTabBar's centre button navigates here with ?new=1. Read the
-  // flag directly from window.location.search so we don't pull in
-  // useSearchParams(), which forces Next 16 to abort static
-  // generation on this client-only page.
-  // ?new=1 opens the creation form. ?client_id=X pre-fills the client
-  // (used by "Записать на приём" from chats — Dima doesn't have to
-  // search for the client again).
+  // BottomTabBar / FAB navigates here with ?new=1 while we're already
+  // on /dashboard. Previous implementation read `window.location.search`
+  // with only `[activeTeamId, router, clients]` as deps — the query
+  // never re-ran the effect (Sprint 019 B1). Now we track the search
+  // string as a real dependency so a query flip from "" → "new=1&kind=X"
+  // always dispatches once.
+  //
+  // ?new=1        → opens the creation form
+  // ?kind=work    → appointment sheet
+  // ?kind=event   → event-mode sheet
+  // ?kind=expense → ExpenseSheet
+  // ?client_id=X  → pre-fills the client (used by "Записать" from chats)
+  // ?date=YYYY-MM-DD → pre-fills the date (used by recurring reminders)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("new") === "1") {
-      const kindParam = params.get("kind"); // "work" | "event" | "expense"
-      const clientId = params.get("client_id");
-      const client = clientId ? clients.find((c) => c.id === clientId) : null;
-      const dateParam = params.get("date");
-      const dateKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
-        ? dateParam
-        : new Date().toISOString().slice(0, 10);
+    const params = new URLSearchParams(searchString);
+    if (params.get("new") !== "1") return;
+    const kindParam = params.get("kind");
+    const clientId = params.get("client_id");
+    const client = clientId ? clients.find((c) => c.id === clientId) : null;
+    const dateParam = params.get("date");
+    const dateKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+      ? dateParam
+      : new Date().toISOString().slice(0, 10);
 
-      if (kindParam === "expense") {
-        setExpenseFor({ dateKey, dayLabel: "Сегодня" });
-      } else {
-        const blank = createBlankAppointment({
-          date: dateKey,
-          time_start: "10:00",
-          time_end: "11:00",
-          team_id: activeTeamId || null,
-          client_id: clientId || null,
-          address: client?.address ?? "",
-          kind: kindParam === "event" ? "event" : "work",
-        });
-        setInlineSheet({ mode: "new", initial: blank });
-      }
-      router.replace("/dashboard");
+    if (kindParam === "expense") {
+      setExpenseFor({ dateKey, dayLabel: "Сегодня" });
+    } else {
+      const blank = createBlankAppointment({
+        date: dateKey,
+        time_start: "10:00",
+        time_end: "11:00",
+        team_id: activeTeamId || null,
+        client_id: clientId || null,
+        address: client?.address ?? "",
+        kind: kindParam === "event" ? "event" : "work",
+      });
+      setInlineSheet({ mode: "new", initial: blank });
     }
-  }, [activeTeamId, router, clients]);
+    router.replace("/dashboard");
+  }, [searchString, activeTeamId, router, clients]);
 
   // Long-press action menu on an existing appointment.
   const [longPressApt, setLongPressApt] = useState<Appointment | null>(null);
+  const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
   const handleAppointmentLongPress = useCallback((apt: Appointment) => {
     haptic("select");
     setLongPressApt(apt);
@@ -796,6 +809,13 @@ export default function DashboardPage() {
           ? [{
               label: "📅 Вернуть в план",
               onSelect: () => handleQuickStatus(longPressApt, "scheduled"),
+            }]
+          : []),
+        // Reschedule — mobile users have no drag (Sprint 019 U8)
+        ...(longPressApt.status !== "cancelled"
+          ? [{
+              label: "📅 Перенести",
+              onSelect: () => setRescheduleApt(longPressApt),
             }]
           : []),
         // Copy — useful for recurring clients
@@ -1200,6 +1220,22 @@ export default function DashboardPage() {
         appointments={appointments}
         teamId={activeTeamId}
         onOpenUnpaid={() => router.push("/dashboard/finances")}
+      />
+
+      <RescheduleSheet
+        open={rescheduleApt !== null}
+        appointment={rescheduleApt}
+        onClose={() => setRescheduleApt(null)}
+        onConfirm={(next) => {
+          if (!rescheduleApt) return;
+          upsertAppointment({
+            ...rescheduleApt,
+            date: next.date,
+            time_start: next.time_start,
+            time_end: next.time_end,
+            updated_at: new Date().toISOString(),
+          });
+        }}
       />
     </>
   );

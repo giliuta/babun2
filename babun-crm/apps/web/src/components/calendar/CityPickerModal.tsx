@@ -60,21 +60,15 @@ export default function CityPickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-white rounded-t-3xl lg:rounded-3xl lg:mb-8 pb-8 shadow-2xl"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 32px)" }}
+        className="w-full max-w-[360px] bg-white rounded-2xl pb-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Grabber */}
-        <div className="flex justify-center pt-2">
-          <div className="w-10 h-1 rounded-full bg-slate-300" />
-        </div>
-
         {/* Header */}
-        <div className="px-5 pt-3 pb-1">
+        <div className="px-5 pt-4 pb-1">
           {dateLabel && (
             <p className="text-[13px] text-slate-500 capitalize">
               {dateLabel}

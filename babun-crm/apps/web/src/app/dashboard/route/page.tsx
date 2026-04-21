@@ -65,8 +65,12 @@ export default function RouteDayPage() {
   const [teamId, setTeamId] = useState<string | null>(null);
 
   const dayList = useMemo<Appointment[]>(() => {
+    // Include events too — a "дозвониться клиенту" slot at 13:00 is part
+    // of the day's plan even if it isn't a paid visit (Sprint 019 B7).
+    // Address-less events fall off naturally because the route view
+    // only renders items with a resolvable address further down.
     return appointments
-      .filter((a) => a.date === date && a.kind === "work")
+      .filter((a) => a.date === date)
       .filter((a) => (teamId ? a.team_id === teamId : true))
       .filter((a) => a.status !== "cancelled")
       .sort((a, b) => a.time_start.localeCompare(b.time_start));

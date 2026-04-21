@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+
 interface AdminActionsProps {
   canReschedule: boolean; // только для pending
   onEdit: () => void;
@@ -17,8 +19,11 @@ export default function AdminActions({
   onCancel,
   onShare,
 }: AdminActionsProps) {
-  const confirmCancel = () => {
-    if (window.confirm("Отменить запись?")) onCancel();
+  const confirm = useConfirm();
+  const confirmCancel = async () => {
+    if (await confirm({ title: "Отменить запись?", confirmLabel: "Отменить" })) {
+      onCancel();
+    }
   };
 
   return (

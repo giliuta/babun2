@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useTeams, useSchedules } from "@/app/dashboard/layout";
 import {
@@ -18,7 +18,18 @@ export default function SchedulePage() {
   const { teams } = useTeams();
   const { schedules, setSchedules } = useSchedules();
   const activeTeams = useMemo(() => teams.filter((t) => t.active), [teams]);
-  const [teamId, setTeamId] = useState<string>(activeTeams[0]?.id ?? "");
+  // `teams` is hydrated asynchronously from localStorage by the
+  // dashboard layout, so the first render always sees `activeTeams = []`.
+  // A lazy `useState(activeTeams[0]?.id ?? "")` initializer snapshotted
+  // that empty array and left `teamId` stuck on "" forever — Sprint 019
+  // BUG #4. Start empty, then sync in a layout effect once teams arrive.
+  const [teamId, setTeamId] = useState<string>("");
+  useEffect(() => {
+    if (!teamId && activeTeams[0]) setTeamId(activeTeams[0].id);
+    if (teamId && !activeTeams.some((t) => t.id === teamId)) {
+      setTeamId(activeTeams[0]?.id ?? "");
+    }
+  }, [activeTeams, teamId]);
 
   const schedule: TeamSchedule = schedules[teamId] ?? DEFAULT_SCHEDULE;
 

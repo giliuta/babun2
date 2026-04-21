@@ -25,6 +25,11 @@ body {
   color: #111827;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  /* Reports table, AppointmentSheet totals, brigade payroll rows —
+     every digit lines up glyph-for-glyph. Cheaper than codemodding
+     `tabular-nums` into 100+ className strings. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 .scrollbar-hide {
