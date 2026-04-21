@@ -1,9 +1,29 @@
 # STORY-001 — Supabase migration
 
-**Status:** `todo`
-**Estimate:** 8 (large — may split into sub-stories)
-**Dependencies:** none
-**Assignee:** Artem + Claude
+**Status:** `in-progress` (Sprint 026 — scaffolding landed; CEO provisioning pending)
+**Estimate:** 8 (large — splits into sub-stories)
+**Dependencies:** [ADR-001](../adr/ADR-001-supabase-backend.md) (accepted 2026-04-21)
+**Assignee:** Dima + Claude
+
+## Progress log
+
+- **2026-04-21 (Sprint 026)** — scaffolding in `master`:
+  - `supabase/migrations/` with `initial_schema`, `rls`, `signup_trigger`
+  - `src/lib/supabase/{client,types,backend-mode,SupabaseProvider,import}`
+  - `SupabaseProvider` mounted in root layout (inert when `BACKEND_MODE=localStorage`)
+  - Login page accepts email/password when Supabase is enabled; falls back to stub otherwise
+  - `/dashboard/settings/import` page drains localStorage into a new tenant
+  - `.env.example` + `supabase/README.md` with CEO pre-flight checklist
+  - `NEXT_PUBLIC_BACKEND_MODE` killswitch (`localStorage` | `shadow` | `supabase`)
+  - App still runs in localStorage mode in prod — no runtime change yet
+
+Next sub-stories (see breakdown at bottom):
+
+- **001a** — CEO provisions `babun-prod` + `babun-staging`, pushes migrations, sets Vercel env vars.
+- **001b** — IDB offline outbox + write-through cache layer.
+- **001c** — Per-resource shadow-read diff logging; two-week soak.
+- **001d** — Flip reads → flip writes per resource (teams → masters → services → clients → appointments).
+- **001e** — Delete localStorage seeds; automated cross-tenant RLS test in CI.
 
 ## User story
 

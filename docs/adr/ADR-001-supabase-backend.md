@@ -1,6 +1,6 @@
 # ADR-001 — Supabase as the Babun CRM backend
 
-**Status:** `proposed` — awaiting CEO sign-off on multi-tenancy shape before execution
+**Status:** `accepted` — 2026-04-21 (CEO approved pool model + LWW offline v1)
 **Date:** 2026-04-21
 **Deciders:** Dima (CEO/owner), Claude (architect)
 **Supersedes:** none
@@ -113,9 +113,9 @@ Execution detail lives in [STORY-001](../stories/STORY-001.md). Phases:
 
 ## Sign-off
 
-Awaiting **CEO Да/Нет** on two points:
+CEO approved 2026-04-21:
 
-1. **Pool model vs schema-per-tenant?** — recommendation: pool model. If CEO wants schema-per-tenant for future regulated customers, we absorb the extra migration overhead now.
-2. **Offline strategy: IDB outbox LWW?** — recommendation: yes for v1. CRDT is a 6× effort multiplier for a single-dispatcher use-case we don't have yet.
+1. **Pool model** — `tenant_id` + RLS on shared tables. Revisit if a regulated customer appears.
+2. **Offline strategy: IDB outbox + last-write-wins** for v1. CRDT deferred until multi-dispatcher per tenant is a real use-case.
 
-Once signed off, STORY-001 moves from `todo` to `in-progress` and becomes its own multi-session sprint (est. 5–8 engineering days).
+STORY-001 moves to `in-progress`. Execution is phased across multiple sessions — this ADR locks the *shape* of the solution; sub-stories (001a schema, 001b auth, 001c shadow-read, 001d cutover, 001e cleanup) will carry the week-by-week work.
