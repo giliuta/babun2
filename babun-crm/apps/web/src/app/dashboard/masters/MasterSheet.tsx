@@ -314,21 +314,21 @@ export default function MasterSheet({
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between gap-3 border-b border-slate-100">
-          <h2 className="text-[17px] font-semibold text-slate-900 truncate tracking-tight">
+        <div className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between gap-3 border-b border-[var(--separator)]">
+          <h2 className="text-[17px] font-semibold text-[var(--label)] truncate tracking-tight">
             {titleForHeader}
           </h2>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Закрыть"
-            className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 flex items-center justify-center flex-shrink-0 transition"
+            className="w-8 h-8 rounded-full bg-[var(--fill-primary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] flex items-center justify-center flex-shrink-0 transition"
           >
             <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-3 bg-slate-50">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-3 bg-[var(--fill-tertiary)]">
           <AccordionSection
             title="Аккаунт в Babun"
             subtitle={
@@ -369,7 +369,7 @@ export default function MasterSheet({
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 active:bg-slate-200 transition"
+                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--fill-primary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] transition"
                   aria-label={showPassword ? "Скрыть" : "Показать"}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -377,14 +377,14 @@ export default function MasterSheet({
                 <button
                   type="button"
                   onClick={handleGeneratePassword}
-                  className="h-10 px-3.5 rounded-lg bg-violet-600 text-white text-[13px] font-semibold active:scale-[0.98] transition"
+                  className="h-10 px-3.5 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.98] transition"
                 >
                   Создать
                 </button>
               </div>
             </Field>
             {isEditing && master?.last_login_at && (
-              <div className="text-[11px] text-slate-500 px-1">
+              <div className="text-[11px] text-[var(--label-secondary)] px-1">
                 Последний вход:{" "}
                 {new Date(master.last_login_at).toLocaleString("ru-RU", {
                   day: "numeric",
@@ -527,7 +527,7 @@ export default function MasterSheet({
               />
             </Field>
             <div>
-              <div className="text-[11px] text-slate-500 mb-1">Рабочие дни</div>
+              <div className="text-[11px] text-[var(--label-secondary)] mb-1">Рабочие дни</div>
               <div className="flex gap-1.5">
                 {WEEKDAY_LABELS.map((label, idx) => (
                   <button
@@ -536,8 +536,8 @@ export default function MasterSheet({
                     onClick={() => toggleWorkDay(idx)}
                     className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition ${
                       workSchedule.days[idx]
-                        ? "bg-violet-600 text-white"
-                        : "bg-slate-100 text-slate-500"
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
                     }`}
                   >
                     {label}
@@ -568,7 +568,7 @@ export default function MasterSheet({
               </Field>
             </div>
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[13px] text-slate-700">Числится в компании</span>
+              <span className="text-[13px] text-[var(--label)]">Числится в компании</span>
               <ToggleSwitch checked={isActive} onChange={setIsActive} />
             </div>
           </AccordionSection>
@@ -591,7 +591,7 @@ export default function MasterSheet({
                   </option>
                 ))}
               </select>
-              <div className="text-[11px] text-slate-500 mt-1">
+              <div className="text-[11px] text-[var(--label-secondary)] mt-1">
                 {SALARY_MODEL_HINTS[salaryModel]}
               </div>
             </Field>
@@ -617,7 +617,7 @@ export default function MasterSheet({
                     onChange={(e) => setHybridPercent(Number(e.target.value) || 0)}
                     className={`${inputCls} w-24 tabular-nums`}
                   />
-                  <span className="text-[12px] text-slate-500">%</span>
+                  <span className="text-[12px] text-[var(--label-secondary)]">%</span>
                 </div>
               </Field>
             )}
@@ -688,14 +688,14 @@ export default function MasterSheet({
           >
             <div className="space-y-1.5">
               <div className="px-1">
-                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
                   Видимость бригад
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
+                <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">
                   Что мастер видит в списке команд
                 </div>
               </div>
-              <div className="inline-flex w-full rounded-xl bg-slate-100 p-1">
+              <div className="inline-flex w-full rounded-xl bg-[var(--fill-primary)] p-1">
                 {(
                   [
                     ["own", "Только своя"],
@@ -709,8 +709,8 @@ export default function MasterSheet({
                     onClick={() => setBrigadeVisibility(k)}
                     className={`flex-1 h-8 rounded-lg text-[12px] font-semibold transition ${
                       brigadeVisibility === k
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500"
+                        ? "bg-white text-[var(--label)] shadow-sm"
+                        : "text-[var(--label-secondary)]"
                     }`}
                   >
                     {label}
@@ -789,10 +789,10 @@ export default function MasterSheet({
             onToggle={() => setOpen((p) => ({ ...p, documents: !p.documents }))}
           >
             {documents.length === 0 ? (
-              <div className="text-[12px] text-slate-500 px-1">Документов пока нет.</div>
+              <div className="text-[12px] text-[var(--label-secondary)] px-1">Документов пока нет.</div>
             ) : (
               documents.map((doc) => (
-                <div key={doc.id} className="bg-slate-50 rounded-lg p-3 space-y-2">
+                <div key={doc.id} className="bg-[var(--fill-tertiary)] rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -811,7 +811,7 @@ export default function MasterSheet({
                         setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
                       }
                       aria-label="Удалить"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-rose-500 active:bg-rose-50"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)]"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="3 6 5 6 21 6" />
@@ -841,7 +841,7 @@ export default function MasterSheet({
                   { id: generateId("doc"), kind: "Паспорт", value: "" },
                 ])
               }
-              className="w-full h-10 rounded-lg border-[1.5px] border-dashed border-violet-300 text-[13px] font-semibold text-violet-600 active:bg-violet-50"
+              className="w-full h-10 rounded-lg border-[1.5px] border-dashed border-[var(--accent)]/40 text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)]"
             >
               + Добавить документ
             </button>
@@ -864,7 +864,7 @@ export default function MasterSheet({
         </div>
 
         <div
-          className="flex-shrink-0 px-4 py-3 border-t border-slate-100 bg-white flex items-center justify-between gap-2"
+          className="flex-shrink-0 px-4 py-3 border-t border-[var(--separator)] bg-white flex items-center justify-between gap-2"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 12px)" }}
         >
           {isEditing && master ? (
@@ -872,7 +872,7 @@ export default function MasterSheet({
               type="button"
               onClick={() => onDelete(master)}
               aria-label="Удалить"
-              className="w-11 h-11 flex items-center justify-center rounded-xl text-rose-600 active:bg-rose-50 transition"
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)] transition"
             >
               <Trash2 size={20} strokeWidth={2} />
             </button>
@@ -883,14 +883,14 @@ export default function MasterSheet({
             <button
               type="button"
               onClick={onCancel}
-              className="h-11 px-5 rounded-xl text-slate-700 text-[15px] font-medium active:bg-slate-100 transition"
+              className="h-11 px-5 rounded-xl text-[var(--label)] text-[15px] font-medium active:bg-[var(--fill-primary)] transition"
             >
               Отмена
             </button>
             <button
               type="button"
               onClick={handleSubmit}
-              className="h-11 px-6 bg-violet-600 text-white rounded-xl text-[15px] font-semibold active:scale-[0.98] transition"
+              className="h-11 px-6 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold active:scale-[0.98] transition"
             >
               Сохранить
             </button>
@@ -942,36 +942,36 @@ function PasswordShowOnce({
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
         <div>
-          <div className="text-[17px] font-semibold text-slate-900 tracking-tight">
+          <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
             Пароль создан
           </div>
-          <div className="text-[13px] text-slate-500 leading-snug mt-1">
+          <div className="text-[13px] text-[var(--label-secondary)] leading-snug mt-1">
             Это единственный раз, когда пароль показан. Скопируйте и передайте сотруднику.
           </div>
         </div>
         {email && (
-          <div className="flex items-center justify-between px-3 py-2.5 bg-slate-100 rounded-xl">
-            <span className="text-[12px] font-medium text-slate-500">Логин</span>
-            <span className="text-[13px] font-semibold text-slate-900 tabular-nums">
+          <div className="flex items-center justify-between px-3 py-2.5 bg-[var(--fill-primary)] rounded-xl">
+            <span className="text-[12px] font-medium text-[var(--label-secondary)]">Логин</span>
+            <span className="text-[13px] font-semibold text-[var(--label)] tabular-nums">
               {email}
             </span>
           </div>
         )}
-        <div className="text-[17px] font-mono font-bold text-slate-900 bg-violet-50 rounded-xl px-4 py-4 tracking-[0.08em] text-center">
+        <div className="text-[17px] font-mono font-bold text-[var(--label)] bg-[var(--accent-tint)] rounded-xl px-4 py-4 tracking-[0.08em] text-center">
           {password}
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onDismiss}
-            className="flex-1 h-11 rounded-xl bg-slate-100 text-slate-700 text-[14px] font-semibold active:bg-slate-200 transition"
+            className="flex-1 h-11 rounded-xl bg-[var(--fill-primary)] text-[var(--label)] text-[14px] font-semibold active:bg-[var(--fill-secondary)] transition"
           >
             Готово
           </button>
           <button
             type="button"
             onClick={copy}
-            className="flex-1 h-11 rounded-xl bg-violet-600 text-white text-[14px] font-semibold active:scale-[0.98] transition"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.98] transition"
           >
             Скопировать
           </button>
@@ -984,13 +984,13 @@ function PasswordShowOnce({
 // iOS-style input: no visible border, soft inset background. Looks like
 // the fields in Telegram's settings / iOS' System Settings.
 const inputCls =
-  "w-full px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-xl text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-violet-500 transition";
+  "w-full px-3.5 py-2.5 bg-[var(--fill-primary)] border border-transparent rounded-xl text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-white focus:border-[var(--accent)] transition";
 
 const chipCls = (on: boolean) =>
   `text-[12px] px-3 py-1.5 rounded-full transition-colors ${
     on
-      ? "bg-violet-600 text-white"
-      : "bg-white text-slate-700 border border-slate-200 active:bg-slate-50"
+      ? "bg-[var(--accent)] text-white"
+      : "bg-white text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
   }`;
 
 function Field({
@@ -1006,12 +1006,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[12px] font-medium text-slate-500 mb-1.5 tracking-wide">
+      <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
         {label}
-        {required && <span className="text-rose-500 ml-0.5">*</span>}
+        {required && <span className="text-[var(--system-red)] ml-0.5">*</span>}
       </label>
       {children}
-      {hint && <div className="text-[11px] text-slate-400 mt-1.5 leading-snug">{hint}</div>}
+      {hint && <div className="text-[11px] text-[var(--label-tertiary)] mt-1.5 leading-snug">{hint}</div>}
     </div>
   );
 }
@@ -1030,14 +1030,14 @@ function PermissionGroup({
   return (
     <div className="space-y-1.5 pt-2">
       <div className="px-1">
-        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
           {title}
         </div>
         {description && (
-          <div className="text-[11px] text-slate-400 mt-0.5">{description}</div>
+          <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">{description}</div>
         )}
       </div>
-      <div className="rounded-xl bg-white divide-y divide-slate-100">{children}</div>
+      <div className="rounded-xl bg-white divide-y divide-[var(--separator)]">{children}</div>
     </div>
   );
 }
@@ -1053,7 +1053,7 @@ function SettingRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 min-h-[44px]">
-      <span className="text-[14px] text-slate-900 flex-1 leading-snug">{label}</span>
+      <span className="text-[14px] text-[var(--label)] flex-1 leading-snug">{label}</span>
       <ToggleSwitch checked={checked} onChange={onChange} />
     </div>
   );
@@ -1079,14 +1079,14 @@ function AccordionSection({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-slate-50 transition"
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-[var(--fill-tertiary)] transition"
       >
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold text-slate-900 tracking-tight">
+          <div className="text-[15px] font-semibold text-[var(--label)] tracking-tight">
             {title}
           </div>
           {subtitle && (
-            <div className="text-[13px] text-slate-500 truncate mt-0.5">
+            <div className="text-[13px] text-[var(--label-secondary)] truncate mt-0.5">
               {subtitle}
             </div>
           )}
@@ -1094,11 +1094,11 @@ function AccordionSection({
         <ChevronDown
           size={18}
           strokeWidth={2}
-          className={`text-slate-400 flex-shrink-0 ml-3 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`text-[var(--label-tertiary)] flex-shrink-0 ml-3 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-3.5 border-t border-slate-100">
+        <div className="px-4 pb-4 pt-1 space-y-3.5 border-t border-[var(--separator)]">
           {children}
         </div>
       )}
@@ -1122,7 +1122,7 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
-        checked ? "bg-emerald-500" : "bg-slate-300"
+        checked ? "bg-[rgba(52,199,89,0.08)]0" : "bg-[var(--fill-primary)]"
       }`}
     >
       <span

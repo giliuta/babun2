@@ -19,10 +19,10 @@ import {
 import MasterSheet from "./MasterSheet";
 
 const ROLE_COLORS: Record<MasterRole, string> = {
-  admin: "bg-red-500",
-  dispatcher: "bg-amber-500",
+  admin: "bg-[rgba(255,59,48,0.08)]0",
+  dispatcher: "bg-[rgba(255,149,0,0.08)]0",
   lead: "bg-blue-500",
-  helper: "bg-slate-500",
+  helper: "bg-[var(--fill-tertiary)]0",
 };
 
 // Sprint 026: Мастера is its own page now — sibling to Бригады, not
@@ -128,7 +128,7 @@ export default function MastersPage() {
             type="button"
             onClick={openNew}
             aria-label="Добавить сотрудника"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-slate-700 hover:bg-violet-600 lg:hover:bg-slate-100"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-primary)]"
           >
             <svg
               width="20"
@@ -146,7 +146,7 @@ export default function MastersPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50 relative">
+      <div className="flex-1 overflow-y-auto bg-[var(--fill-tertiary)] relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
           {/* Search */}
           <div>
@@ -155,7 +155,7 @@ export default function MastersPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Поиск по имени, телефону или email"
-              className="w-full h-11 px-3 rounded-xl bg-white border border-slate-200 text-[13px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full h-11 px-3 rounded-xl bg-white border border-[var(--separator)] text-[13px] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
@@ -216,10 +216,10 @@ function ListGroup({
 }) {
   return (
     <div>
-      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-2">
+      <div className="text-xs font-semibold text-[var(--label-secondary)] uppercase tracking-wide px-1 mb-2">
         {title}
       </div>
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden divide-y divide-slate-100">
+      <div className="bg-white rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden divide-y divide-[var(--separator)]">
         {children}
       </div>
     </div>
@@ -228,7 +228,7 @@ function ListGroup({
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-center text-slate-400 py-8 text-sm">{children}</div>
+    <div className="text-center text-[var(--label-tertiary)] py-8 text-sm">{children}</div>
   );
 }
 
@@ -251,7 +251,7 @@ function MasterRow({
     <button
       type="button"
       onClick={onOpen}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left"
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--fill-tertiary)] text-left"
     >
       <div
         className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-[12px] shrink-0 ${ROLE_COLORS[master.role]}`}
@@ -259,10 +259,10 @@ function MasterRow({
         {getInitials(master.full_name)}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-semibold text-slate-900 truncate">
+        <div className="text-[14px] font-semibold text-[var(--label)] truncate">
           {master.full_name}
         </div>
-        <div className="text-[11px] text-slate-500 truncate">
+        <div className="text-[11px] text-[var(--label-secondary)] truncate">
           {ROLE_LABELS[master.role]}
           {team ? (
             <>
@@ -275,7 +275,7 @@ function MasterRow({
             " · без бригады"
           )}
         </div>
-        <div className="text-[11px] text-slate-400 truncate tabular-nums">
+        <div className="text-[11px] text-[var(--label-tertiary)] truncate tabular-nums">
           {master.phone || "—"}
           {master.email ? ` · ${master.email}` : ""}
         </div>
@@ -288,7 +288,7 @@ function MasterRow({
             {ACCOUNT_STATUS_LABELS[master.account_status]}
           </span>
         )}
-        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+        <span className="text-[10px] font-semibold text-[var(--label-secondary)] bg-[var(--fill-primary)] rounded-full px-2 py-0.5 whitespace-nowrap">
           {salaryLabel}
         </span>
         <svg
@@ -298,7 +298,7 @@ function MasterRow({
           fill="none"
           stroke="currentColor"
           strokeWidth="2.5"
-          className="text-slate-300"
+          className="text-[var(--label-quaternary)]"
         >
           <polyline points="9 18 15 12 9 6" />
         </svg>

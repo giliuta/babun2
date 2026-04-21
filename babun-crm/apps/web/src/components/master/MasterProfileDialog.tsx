@@ -31,14 +31,14 @@ export default function MasterProfileDialog({
   // Profile state
   const [name, setName] = useState("AirFix");
   const [phone, setPhone] = useState("+357 99 000000");
-  const country = "Кипр";
+  const country = "РљРёРїСЂ";
   const currency = "EUR";
 
   // Services state
   const [services, setServices] = useState<MockService[]>([...MOCK_SERVICES]);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
 
-  // Schedule state — which team are we editing
+  // Schedule state вЂ” which team are we editing
   const [editingTeamId, setEditingTeamId] = useState<string>(
     initialTeamId || MOCK_TEAMS[0]?.id || ""
   );
@@ -46,9 +46,9 @@ export default function MasterProfileDialog({
   if (!open) return null;
 
   const tabs: { id: TabId; label: string }[] = [
-    { id: "profile", label: "Профиль" },
-    { id: "services", label: "Услуги" },
-    { id: "schedule", label: "Расписание" },
+    { id: "profile", label: "РџСЂРѕС„РёР»СЊ" },
+    { id: "services", label: "РЈСЃР»СѓРіРё" },
+    { id: "schedule", label: "Р Р°СЃРїРёСЃР°РЅРёРµ" },
   ];
 
   const handleDeleteService = (id: string) => {
@@ -61,7 +61,7 @@ export default function MasterProfileDialog({
       ...services,
       {
         id: newId,
-        name: "Новая услуга",
+        name: "РќРѕРІР°СЏ СѓСЃР»СѓРіР°",
         category: "other",
         duration_minutes: 60,
         price: 0,
@@ -101,10 +101,10 @@ export default function MasterProfileDialog({
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
-          <h2 className="flex-1 text-base font-semibold">Профиль мастера</h2>
+          <h2 className="flex-1 text-base font-semibold">РџСЂРѕС„РёР»СЊ РјР°СЃС‚РµСЂР°</h2>
           <button
             onClick={onClose}
-            aria-label="Закрыть"
+            aria-label="Р—Р°РєСЂС‹С‚СЊ"
             className="w-8 h-8 flex items-center justify-center rounded hover:bg-[var(--accent-tint)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -115,7 +115,7 @@ export default function MasterProfileDialog({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-200">
+        <div className="flex border-b border-[var(--separator)]">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -123,7 +123,7 @@ export default function MasterProfileDialog({
               className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
                 activeTab === tab.id
                   ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-[var(--label-secondary)] hover:text-[var(--label)]"
               }`}
             >
               {tab.label}
@@ -136,32 +136,32 @@ export default function MasterProfileDialog({
           {activeTab === "profile" && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Имя</label>
+                <label className="block text-sm font-medium text-[var(--label)] mb-1">РРјСЏ</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Телефон</label>
+                <label className="block text-sm font-medium text-[var(--label)] mb-1">РўРµР»РµС„РѕРЅ</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Страна</label>
-                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+                <label className="block text-sm font-medium text-[var(--label)] mb-1">РЎС‚СЂР°РЅР°</label>
+                <div className="px-3 py-2 bg-[var(--fill-tertiary)] border border-[var(--separator)] rounded-lg text-sm text-[var(--label-secondary)]">
                   {country}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Валюта</label>
-                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+                <label className="block text-sm font-medium text-[var(--label)] mb-1">Р’Р°Р»СЋС‚Р°</label>
+                <div className="px-3 py-2 bg-[var(--fill-tertiary)] border border-[var(--separator)] rounded-lg text-sm text-[var(--label-secondary)]">
                   {currency}
                 </div>
               </div>
@@ -173,9 +173,9 @@ export default function MasterProfileDialog({
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg group"
+                  className="flex items-center gap-2 px-3 py-2 border border-[var(--separator)] rounded-lg group"
                 >
-                  <div className="text-slate-300 cursor-grab">
+                  <div className="text-[var(--label-quaternary)] cursor-grab">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="8" cy="6" r="1.5" />
                       <circle cx="16" cy="6" r="1.5" />
@@ -192,7 +192,7 @@ export default function MasterProfileDialog({
                         type="text"
                         value={service.name}
                         onChange={(e) => handleServiceChange(service.id, "name", e.target.value)}
-                        className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                        className="w-full px-2 py-1 border border-[var(--separator)] rounded text-sm text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                       />
                       <div className="flex gap-2">
                         <input
@@ -201,14 +201,14 @@ export default function MasterProfileDialog({
                           onChange={(e) =>
                             handleServiceChange(service.id, "duration_minutes", Number(e.target.value))
                           }
-                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                          placeholder="мин"
+                          className="w-20 px-2 py-1 border border-[var(--separator)] rounded text-sm text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                          placeholder="РјРёРЅ"
                         />
                         <input
                           type="number"
                           value={service.price}
                           onChange={(e) => handleServiceChange(service.id, "price", Number(e.target.value))}
-                          className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                          className="w-20 px-2 py-1 border border-[var(--separator)] rounded text-sm text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                           placeholder="EUR"
                         />
                         <button
@@ -216,23 +216,23 @@ export default function MasterProfileDialog({
                           onClick={() => setEditingServiceId(null)}
                           className="px-2 py-1 text-xs font-medium text-[var(--accent)] bg-[var(--accent-tint)] rounded hover:bg-[var(--accent-tint)]"
                         >
-                          Готово
+                          Р“РѕС‚РѕРІРѕ
                         </button>
                       </div>
                     </div>
                   ) : (
                     <>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-slate-900 truncate">{service.name}</div>
-                        <div className="text-xs text-slate-500">
-                          {service.duration_minutes} мин / {service.price} EUR
+                        <div className="text-sm text-[var(--label)] truncate">{service.name}</div>
+                        <div className="text-xs text-[var(--label-secondary)]">
+                          {service.duration_minutes} РјРёРЅ / {service.price} EUR
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setEditingServiceId(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-slate-100 text-slate-400 opacity-100 transition-opacity"
-                        aria-label="Редактировать"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--fill-primary)] text-[var(--label-tertiary)] opacity-100 transition-opacity"
+                        aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -242,8 +242,8 @@ export default function MasterProfileDialog({
                       <button
                         type="button"
                         onClick={() => handleDeleteService(service.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-[rgba(255,59,48,0.08)] text-slate-400 hover:text-[var(--system-red)] transition-colors"
-                        aria-label="Удалить"
+                        className="w-7 h-7 flex items-center justify-center rounded hover:bg-[rgba(255,59,48,0.08)] text-[var(--label-tertiary)] hover:text-[var(--system-red)] transition-colors"
+                        aria-label="РЈРґР°Р»РёС‚СЊ"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <polyline points="3 6 5 6 21 6" />
@@ -261,7 +261,7 @@ export default function MasterProfileDialog({
                 onClick={handleAddService}
                 className="w-full py-2 text-sm font-medium text-[var(--accent)] bg-[var(--accent-tint)] rounded-lg hover:bg-[var(--accent-tint)] transition-colors"
               >
-                + Добавить услугу
+                + Р”РѕР±Р°РІРёС‚СЊ СѓСЃР»СѓРіСѓ
               </button>
             </div>
           )}
@@ -270,7 +270,7 @@ export default function MasterProfileDialog({
             <div className="space-y-4">
               {/* Team selector */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Бригада</label>
+                <label className="block text-sm font-medium text-[var(--label)] mb-1">Р‘СЂРёРіР°РґР°</label>
                 <div className="flex gap-2 flex-wrap">
                   {MOCK_TEAMS.map((team) => (
                     <button
@@ -280,7 +280,7 @@ export default function MasterProfileDialog({
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         editingTeamId === team.id
                           ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-[var(--accent)]/40"
+                          : "bg-white text-[var(--label)] border-[var(--separator)] hover:border-[var(--accent)]/40"
                       }`}
                     >
                       {team.name}
@@ -289,49 +289,49 @@ export default function MasterProfileDialog({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-500">
-                График работы бригады <span className="font-medium text-slate-700">
+              <div className="text-xs text-[var(--label-secondary)]">
+                Р“СЂР°С„РёРє СЂР°Р±РѕС‚С‹ Р±СЂРёРіР°РґС‹ <span className="font-medium text-[var(--label)]">
                   {MOCK_TEAMS.find((t) => t.id === editingTeamId)?.name}
-                </span>. Часы вне расписания будут затемнены на календаре.
+                </span>. Р§Р°СЃС‹ РІРЅРµ СЂР°СЃРїРёСЃР°РЅРёСЏ Р±СѓРґСѓС‚ Р·Р°С‚РµРјРЅРµРЅС‹ РЅР° РєР°Р»РµРЅРґР°СЂРµ.
               </div>
 
               {/* Working hours */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Время работы с</label>
+                  <label className="block text-sm font-medium text-[var(--label)] mb-1">Р’СЂРµРјСЏ СЂР°Р±РѕС‚С‹ СЃ</label>
                   <input
                     type="time"
                     value={currentSchedule.start}
                     onChange={(e) => updateScheduleField("start", e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">до</label>
+                  <label className="block text-sm font-medium text-[var(--label)] mb-1">РґРѕ</label>
                   <input
                     type="time"
                     value={currentSchedule.end}
                     onChange={(e) => updateScheduleField("end", e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Quick presets */}
               <div className="flex gap-2 flex-wrap">
-                <PresetButton label="08–22" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "08:00", end: "22:00" } })} />
-                <PresetButton label="09–18" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "09:00", end: "18:00" } })} />
-                <PresetButton label="07–20" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "07:00", end: "20:00" } })} />
-                <PresetButton label="00–24" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "00:00", end: "23:59" } })} />
+                <PresetButton label="08вЂ“22" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "08:00", end: "22:00" } })} />
+                <PresetButton label="09вЂ“18" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "09:00", end: "18:00" } })} />
+                <PresetButton label="07вЂ“20" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "07:00", end: "20:00" } })} />
+                <PresetButton label="00вЂ“24" onClick={() => onSchedulesChange({ ...schedules, [editingTeamId]: { start: "00:00", end: "23:59" } })} />
               </div>
 
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={resetSchedule}
-                  className="text-xs text-slate-500 hover:text-slate-700 underline"
+                  className="text-xs text-[var(--label-secondary)] hover:text-[var(--label)] underline"
                 >
-                  Сбросить к стандартному (08:00 – 22:00)
+                  РЎР±СЂРѕСЃРёС‚СЊ Рє СЃС‚Р°РЅРґР°СЂС‚РЅРѕРјСѓ (08:00 вЂ“ 22:00)
                 </button>
               </div>
             </div>
@@ -339,12 +339,12 @@ export default function MasterProfileDialog({
         </div>
 
         {/* Bottom */}
-        <div className="px-4 py-3 border-t border-slate-200 flex items-center">
+        <div className="px-4 py-3 border-t border-[var(--separator)] flex items-center">
           <button
             onClick={onClose}
-            className="flex-1 text-center text-sm text-slate-600 hover:text-slate-900"
+            className="flex-1 text-center text-sm text-[var(--label-secondary)] hover:text-[var(--label)]"
           >
-            Закрыть
+            Р—Р°РєСЂС‹С‚СЊ
           </button>
         </div>
       </div>
@@ -357,7 +357,7 @@ function PresetButton({ label, onClick }: { label: string; onClick: () => void }
     <button
       type="button"
       onClick={onClick}
-      className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200"
+      className="px-2.5 py-1 text-xs font-medium text-[var(--label-secondary)] bg-[var(--fill-primary)] rounded hover:bg-[var(--fill-secondary)]"
     >
       {label}
     </button>
