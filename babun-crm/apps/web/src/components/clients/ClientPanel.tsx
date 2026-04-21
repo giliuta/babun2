@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Client, PhoneEntry } from "@/lib/clients";
@@ -958,7 +958,7 @@ function RemindersTab({
                 }}
                 className={`h-9 px-4 rounded-lg text-[12px] font-semibold flex items-center ${
                   smsHref
-                    ? "bg-[rgba(255,149,0,0.08)]0 text-white active:bg-orange-600"
+                    ? "bg-[rgba(255,149,0,0.08)]0 text-white active:bg-[var(--system-orange)]"
                     : "bg-[var(--fill-secondary)] text-[var(--label-tertiary)]"
                 }`}
               >
@@ -1074,9 +1074,9 @@ function GroupsPicker({
 const PRESET_GROUPS = [
   { id: "tag-vip", label: "VIP", class: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" },
   { id: "tag-regular", label: "Постоянный", class: "bg-purple-100 text-purple-700" },
-  { id: "tag-b2b", label: "B2B", class: "bg-blue-100 text-[var(--system-blue)]" },
+  { id: "tag-b2b", label: "B2B", class: "bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)]" },
   { id: "tag-problem", label: "Проблемный", class: "bg-[rgba(255,59,48,0.14)] text-[var(--system-red)]" },
-  { id: "tag-new", label: "Новый", class: "bg-green-100 text-[var(--system-green)]" },
+  { id: "tag-new", label: "Новый", class: "bg-[rgba(52,199,89,0.14)] text-[var(--system-green)]" },
   { id: "tag-referral", label: "Рекомендация", class: "bg-[var(--fill-secondary)] text-[var(--label)]" },
 ];
 

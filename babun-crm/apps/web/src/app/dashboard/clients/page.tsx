@@ -28,10 +28,10 @@ import { matchesClient } from "@/lib/client-search";
 
 const TAG_CHIPS = [
   { id: "tag-vip", label: "VIP", active: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" },
-  { id: "tag-b2b", label: "B2B", active: "bg-blue-100 text-blue-700" },
+  { id: "tag-b2b", label: "B2B", active: "bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)]" },
   { id: "tag-regular", label: "Постоянный", active: "bg-purple-100 text-purple-700" },
-  { id: "tag-new", label: "Новый", active: "bg-green-100 text-green-700" },
-  { id: "tag-problem", label: "Проблемный", active: "bg-red-100 text-red-700" },
+  { id: "tag-new", label: "Новый", active: "bg-[rgba(52,199,89,0.14)] text-[var(--system-green)]" },
+  { id: "tag-problem", label: "Проблемный", active: "bg-[rgba(255,59,48,0.14)] text-[var(--system-red)]" },
 ];
 
 type SortKey = "recent" | "name" | "revenue" | "equipment";

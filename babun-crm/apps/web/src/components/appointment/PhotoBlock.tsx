@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { Camera } from "lucide-react";
@@ -159,7 +159,7 @@ export default function PhotoBlock({
             }}
             className={`inline-flex h-8 px-3 rounded-full text-[12px] font-semibold ${
               toast.includes("Вернуть")
-                ? "bg-slate-900 text-white active:bg-slate-800"
+                ? "bg-[var(--label)] text-white active:bg-[var(--label)]"
                 : "bg-[var(--fill-primary)] text-[var(--label)]"
             }`}
           >

@@ -34,7 +34,7 @@ export default function ServiceBlock({
         <button
           type="button"
           onClick={onPick}
-          className="w-full flex items-center justify-between px-3 py-3 rounded-xl bg-white border-2 border-dashed border-slate-300 active:scale-[0.99]"
+          className="w-full flex items-center justify-between px-3 py-3 rounded-xl bg-white border-2 border-dashed border-[var(--separator)] active:scale-[0.99]"
         >
           <span className="text-[14px] font-medium text-[var(--label-secondary)]">
             Выбрать услугу

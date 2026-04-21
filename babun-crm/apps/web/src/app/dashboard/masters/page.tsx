@@ -21,7 +21,7 @@ import MasterSheet from "./MasterSheet";
 const ROLE_COLORS: Record<MasterRole, string> = {
   admin: "bg-[rgba(255,59,48,0.08)]0",
   dispatcher: "bg-[rgba(255,149,0,0.08)]0",
-  lead: "bg-blue-500",
+  lead: "bg-[var(--accent)]",
   helper: "bg-[var(--fill-tertiary)]0",
 };
 

@@ -16,7 +16,7 @@ export default function AddressBlock({ address, askHref }: AddressBlockProps) {
           href={mapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="block px-3 py-3 rounded-xl bg-[rgba(62,136,247,0.08)] border border-sky-200 active:bg-[rgba(62,136,247,0.14)]"
+          className="block px-3 py-3 rounded-xl bg-[rgba(62,136,247,0.08)] border border-[rgba(62,136,247,0.25)] active:bg-[rgba(62,136,247,0.14)]"
         >
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[rgba(62,136,247,0.14)] flex items-center justify-center flex-shrink-0">
@@ -37,7 +37,7 @@ export default function AddressBlock({ address, askHref }: AddressBlockProps) {
   }
   return (
     <div className="px-4 pt-3">
-      <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-[rgba(255,149,0,0.08)] border border-amber-200">
+      <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.25)]">
         <div className="text-[13px] text-[var(--system-orange)] flex-1">
           ⚠️ Адрес не указан
         </div>

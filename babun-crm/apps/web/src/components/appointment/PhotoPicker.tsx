@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import type { PhotoKind } from "@/lib/appointments";
@@ -151,9 +151,9 @@ function CategoryButton({
   onClick: () => void;
 }) {
   const styles: Record<typeof color, string> = {
-    rose: "bg-[rgba(255,59,48,0.08)] border-rose-200 text-[var(--system-red)] active:bg-[rgba(255,59,48,0.14)]",
+    rose: "bg-[rgba(255,59,48,0.08)] border-[rgba(255,59,48,0.25)] text-[var(--system-red)] active:bg-[rgba(255,59,48,0.14)]",
     emerald:
-      "bg-[rgba(52,199,89,0.08)] border-emerald-200 text-[var(--system-green)] active:bg-[rgba(52,199,89,0.14)]",
+      "bg-[rgba(52,199,89,0.08)] border-[rgba(52,199,89,0.25)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.14)]",
     slate: "bg-white border-[var(--separator)] text-[var(--label)] active:bg-[var(--fill-tertiary)]",
   };
   return (

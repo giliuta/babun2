@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { Location } from "@/lib/clients";
 
@@ -52,7 +52,7 @@ export default function LocationPicker({
           <button
             type="button"
             onClick={onAdd}
-            className="flex-shrink-0 min-w-[86px] px-3 py-2 rounded-xl border-2 border-dashed border-slate-300 text-[12px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)]"
+            className="flex-shrink-0 min-w-[86px] px-3 py-2 rounded-xl border-2 border-dashed border-[var(--separator)] text-[12px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)]"
           >
             + Объект
           </button>
