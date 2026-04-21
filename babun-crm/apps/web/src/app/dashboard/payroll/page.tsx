@@ -16,6 +16,7 @@ import {
 import { loadPayments, type FinancePayment } from "@/lib/payments";
 import { loadExpenses, type Expense } from "@/lib/expenses";
 import { formatEURFromCents } from "@/lib/money";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,15 +57,27 @@ function PeriodDetail({
   const nameOf = (id: string) => masters.find((m) => m.id === id)?.full_name ?? id;
   const canApprove = period.status === "draft";
   const canPay     = period.status === "approved";
+  const confirmDialog = useConfirm();
 
-  const handleApprove = () => {
-    if (!confirm("Подтвердить период? Будут созданы записи расходов (зарплата).")) return;
+  const handleApprove = async () => {
+    const ok = await confirmDialog({
+      title: "Подтвердить период?",
+      message: "Будут созданы записи расходов (зарплата).",
+      confirmLabel: "Подтвердить",
+      danger: false,
+    });
+    if (!ok) return;
     approvePeriod(period.id);
     onAction();
   };
 
-  const handlePay = () => {
-    if (!confirm("Отметить как выплачено?")) return;
+  const handlePay = async () => {
+    const ok = await confirmDialog({
+      title: "Отметить как выплачено?",
+      confirmLabel: "Выплачено",
+      danger: false,
+    });
+    if (!ok) return;
     markPaid(period.id);
     onAction();
   };

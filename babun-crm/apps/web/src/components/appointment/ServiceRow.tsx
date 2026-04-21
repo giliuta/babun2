@@ -7,6 +7,7 @@ import { pricePerUnit } from "@/lib/services";
 import { lineTotal } from "@/lib/finance/appointment-calc";
 import { formatEUR } from "@/lib/money";
 import PriceEditor from "./PriceEditor";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface ServiceRowProps {
   line: AppointmentService;
@@ -27,6 +28,7 @@ export default function ServiceRow({
   onUpdate,
   onRemove,
 }: ServiceRowProps) {
+  const confirm = useConfirm();
   const [editorOpen, setEditorOpen] = useState(false);
   const catalogPrice = service?.price ?? line.originalPrice;
   const displayTotal = lineTotal(line);
@@ -171,10 +173,16 @@ export default function ServiceRow({
       {editorOpen && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
-          onClick={() => {
+          onClick={async () => {
             // Guard: PriceEditor has its own internal draft — always
             // confirm before silently losing it on backdrop-tap.
-            if (window.confirm("Закрыть без применения изменений?")) {
+            if (
+              await confirm({
+                title: "Закрыть без применения изменений?",
+                confirmLabel: "Закрыть",
+                danger: false,
+              })
+            ) {
               setEditorOpen(false);
             }
           }}

@@ -15,6 +15,7 @@ import {
 } from "@/lib/expenses";
 import { formatEURFromCents } from "@/lib/money";
 import EmptyState from "@/components/ui/EmptyState";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 // ─── Category config ────────────────────────────────────────────────────────
 
@@ -261,6 +262,7 @@ function AddExpenseForm({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function ExpensesPage() {
+  const confirm = useConfirm();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [brigades, setBrigades] = useState<Brigade[]>([]);
   const [period, setPeriod] = useState<PeriodKey>("this_month");
@@ -302,8 +304,8 @@ export default function ExpensesPage() {
       .map((k) => ({ color: CAT_CONFIG[k].color, pct: (byCategory[k] / total) * 100 }));
   }, [byCategory, total]);
 
-  const handleDelete = (id: string) => {
-    if (!confirm("Удалить этот расход?")) return;
+  const handleDelete = async (id: string) => {
+    if (!(await confirm({ title: "Удалить этот расход?" }))) return;
     deleteExpense(id);
     reload();
   };

@@ -14,6 +14,7 @@ import {
   totalDuration,
 } from "@/lib/finance/appointment-calc";
 import { formatEUR } from "@/lib/money";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface IncomeBlockProps {
   services: AppointmentService[];
@@ -131,6 +132,7 @@ function IncomePopup({
   onGlobalDiscountChange: (next: Discount | null) => void;
   onClose: () => void;
 }) {
+  const confirmDialog = useConfirm();
   const [discType, setDiscType] = useState<"none" | "fixed" | "percent">(
     globalDiscount?.type ?? "none"
   );
@@ -152,12 +154,12 @@ function IncomePopup({
     );
   };
 
-  const attemptClose = () => {
+  const attemptClose = async () => {
     if (!dirty && discType === (globalDiscount?.type ?? "none") && discValue === (globalDiscount ? String(globalDiscount.value) : "")) {
       onClose();
       return;
     }
-    if (window.confirm("Отменить изменения цены / скидки?")) {
+    if (await confirmDialog({ title: "Отменить изменения цены / скидки?", confirmLabel: "Отменить", danger: false })) {
       onClose();
     }
   };
