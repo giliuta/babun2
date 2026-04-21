@@ -57,7 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-slate-50 font-sans">
+      <body className="min-h-full flex flex-col bg-[var(--surface-grouped)] font-sans">
         <ServiceWorkerRegister />
         {/* SupabaseProvider is inert when NEXT_PUBLIC_BACKEND_MODE
             leaves its default (`localStorage`) — rendering `children`

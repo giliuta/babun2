@@ -1,152 +1,288 @@
-# Babun CRM — Design Language
+# Babun CRM — Design Language (iOS + Telegram)
 
-Sprint 028 (2026-04-21) — CEO direction: "iPhone + Telegram style, никаких эмодзи в UI".
+Canonical spec for every UI surface in the app. If a screen doesn't match this doc, fix the screen, not the doc. Current revision: **Sprint 029 Phase 0** (2026-04-21).
 
-This doc captures the rules that every new surface in the app must follow. When in doubt, look at iOS System Settings or Telegram's settings screen for reference.
+> **Mental model**: iOS Settings app layout and typography, with Babun's violet accent wherever iOS uses system-blue. Telegram-style warmth in dense views (chat list, client list). Nothing is decorative for its own sake.
 
 ---
 
-## 1. Visual identity
+## 1. Tokens
 
-| Token | Value |
-|---|---|
-| Primary accent | `violet-600` (#7C3AED) |
-| Success toggle | `emerald-500` (iOS green switch) |
-| Danger | `rose-600` / `rose-500` |
-| Warning / pending | `amber-500` |
-| Canvas background (screens) | `slate-50` |
-| Card background | `white` |
-| Divider | `slate-100` (hairline, 1 px) |
-| Soft separator | `border-slate-200` only when a border is needed for structure |
+Everything lives as a CSS variable in [src/app/globals.css](../babun-crm/apps/web/src/app/globals.css) and is mirrored in [src/lib/design-tokens.ts](../babun-crm/apps/web/src/lib/design-tokens.ts) as typed exports. Tailwind v4 surfaces them as utility classes via `@theme inline`.
 
-Never use `slate-700` or below for backgrounds. The app stays bright; dark mode is out-of-scope for now.
+### 1.1 Surfaces
+
+| Token | Hex | Used for |
+|---|---|---|
+| `--surface-grouped` | `#F2F2F7` | Screen background (canvas behind grouped lists) |
+| `--surface-card` | `#FFFFFF` | Cards on top of grouped surface |
+| `--surface-card-secondary` | `#F2F2F7` | Nested inputs inside cards |
+| `--surface-overlay` | `rgba(0,0,0,0.4)` | Modal backdrop |
+| `--surface-nav-blur` | `rgba(255,255,255,0.8)` | BottomTabBar / nav bars |
+
+### 1.2 Separators
+
+| Token | Value | Used for |
+|---|---|---|
+| `--separator` | `rgba(60,60,67,0.12)` | Hairlines between rows in a list |
+| `--separator-opaque` | `#C6C6C8` | Opaque separator (table headers) |
+
+### 1.3 Labels
+
+| Token | Value | Used for |
+|---|---|---|
+| `--label` | `#000000` | Primary text |
+| `--label-secondary` | `rgba(60,60,67,0.6)` | Subtitles, captions |
+| `--label-tertiary` | `rgba(60,60,67,0.3)` | Placeholders, disabled text |
+| `--label-quaternary` | `rgba(60,60,67,0.18)` | Chevron tint, tiny glyphs |
+
+### 1.4 Fills (interactive idle states)
+
+| Token | Value | Used for |
+|---|---|---|
+| `--fill-primary` | `rgba(120,120,128,0.2)` | Buttons at rest |
+| `--fill-secondary` | `rgba(120,120,128,0.16)` | Hover/press state |
+| `--fill-tertiary` | `rgba(118,118,128,0.12)` | Input backgrounds |
+| `--fill-quaternary` | `rgba(116,116,128,0.08)` | Row press state |
+
+### 1.5 Accent + system semantics
+
+| Token | Hex | Used for |
+|---|---|---|
+| `--accent` | `#7C3AED` (violet-600) | Primary fills, active nav, links |
+| `--accent-pressed` | `#6D28D9` | Pressed state of primary buttons |
+| `--accent-tint` | `#EDE9FE` | Tinted pill backgrounds |
+| `--system-red` | `#FF3B30` | Destructive actions |
+| `--system-green` | `#34C759` | iOS switch on-state |
+| `--system-orange` | `#FF9500` | Warnings |
+| `--system-blue` | `#007AFF` | iOS default link (rarely used — we prefer accent) |
+
+---
 
 ## 2. Typography
 
-System font stack via `Inter` with cyrillic subset (already configured in `app/layout.tsx`). Sizes:
+### 2.1 Font stack
 
-| Role | px |
-|---|---|
-| Row label (iOS settings) | 15 |
-| Section header (uppercase) | 11, tracking-wider |
-| Row caption / subtitle | 12–13 |
-| Footnote below a group | 11 |
-| Title inside sheets | 17, semibold, tracking-tight |
-| Numeric / monospace amounts | 14–17, `tabular-nums` |
+```css
+font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+             var(--font-inter), "Segoe UI", Roboto, Helvetica, Arial,
+             system-ui, sans-serif;
+```
 
-Never mix more than two font sizes in a single row.
+- iOS + macOS get **SF Pro** natively.
+- Android / Windows fall back to **Inter** (shipped via Next/font with cyrillic subset).
+- Latin-only OSes drop to Segoe / Roboto.
+
+### 2.2 Type scale (Apple HIG 1:1)
+
+| Style | Size/LH | Weight | Used for |
+|---|---|---|---|
+| Large Title | 34/41 | 700 | Never used in Babun (too loud for CRM) |
+| Title 1 | 28/34 | 700 | Hero numbers in finances |
+| Title 2 | 22/28 | 600 | Page titles when no nav bar |
+| Title 3 | 20/25 | 600 | Sheet section headers |
+| Headline | 17/22 | 600 | PageHeader title |
+| Body | 17/22 | 400 | Default text |
+| Callout | 16/21 | 400 | Secondary body |
+| Subhead | 15/20 | 400 | List row labels (iOS default) |
+| Footnote | 13/18 | 400 | Row subtitles |
+| Caption 1 | 12/16 | 500 | Chips, small captions |
+| Caption 2 | 11/13 | 600 | Section headers (uppercase, tracking-wider) |
+
+Letter-spacing: `-0.02em` on titles, `-0.01em` on body, `0.05em` on caption-2 uppercase.
+
+Tabular numerals applied globally on `body` — no per-element class needed.
+
+---
 
 ## 3. Icons
 
-- **Library**: `lucide-react`. No emoji in chrome (data can still carry them — category icons, user-entered tags).
-- **Stroke**: 2 (default) or 2.5 for emphasis.
-- **Size**: 14 in inline chips, 16 in row accessories, 18 in card icons, 20 in buttons.
-- **Colour**: monochrome, follows text colour. For iOS-settings-style lists, icons sit inside a **coloured rounded-square tile** (`rounded-lg`, 32×32, white icon on a tinted bg).
-- **Never animate** icon fills. Fade opacity or swap icon components only.
+- **Library**: [`lucide-react`](https://lucide.dev). No emoji in chrome.
+- **Stroke**: 2 default, 2.5 for emphasis (close buttons, primary CTAs).
+- **Sizes**: 14 (inline chips), 16 (list row accessory), 18 (section icons), 20 (sheet actions).
+- **Tiled presentation** (iOS Settings style): icon sits inside a 28×28 `rounded-lg` coloured tile with a white glyph. Tones exposed as `IconTone` in design-tokens.ts.
 
-Emojis that survive: inside user-generated data (client names, category labels the admin entered, tag names), and in notification push titles where OS rendering adds pizzazz for free. Nowhere else.
+Emojis that survive: user-entered data (tag names, category labels the admin types in). Everywhere else — lucide.
 
-## 4. Surfaces
+---
 
-### 4.1 Grouped list (the default layout)
+## 4. Spacing
 
-```
-┌─ РАЗДЕЛ ─────────────────┐  ← 11px uppercase caption, slate-500
-│┌────────────────────────┐│
-││ [icon] Row label     › ││  ← white card, rounded-2xl (16 px)
-││────────────────────────││  ← slate-100 hairline divider
-││ [icon] Row label     › ││
-│└────────────────────────┘│
-│  11px footnote text…     │  ← explanatory line under the card
-└──────────────────────────┘
-```
+Apple's 8-pt grid, applied 1:1 on web.
 
-- Card: `bg-white rounded-2xl shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]`
-- Row: `px-4 py-3 min-h-[48px]`
-- Divider: `divide-y divide-slate-100`
-- Chevron at the end of a nav row: `<ChevronRight size={16} className="text-slate-300" />`
-- Accessory (toggle, badge, amount): right-aligned with 12 px gap from label.
-
-### 4.2 Modal sheet (full-screen on phone, centered on desktop)
-
-- Wrapper: `fixed inset-0 z-[70] bg-black/50 backdrop-blur-[2px] p-2 items-center justify-center`
-- Shell: `w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col`, `height: 92vh`
-- Never bottom-sheet unless the content is specifically a picker (date / time / city). Bottom sheets collide with BottomTabBar; centred sheets sit cleanly above it.
-- Header: 17 px title + round `X` close button on the right.
-- Footer: sticky, 11-px height action bar with left-aligned destructive action and right-aligned primary pair.
-
-### 4.3 Form inputs
-
-iOS-style inset fields — no visible border in resting state:
-
-```tsx
-"w-full px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-xl text-[15px] focus:outline-none focus:bg-white focus:border-violet-500 transition"
-```
-
-Never use `<select>` styling beyond the default; Safari renders it natively.
-
-### 4.4 Buttons
-
-| Variant | Class sketch |
+| Token | Value |
 |---|---|
-| Primary | `h-11 px-5 bg-violet-600 text-white rounded-xl text-[15px] font-semibold active:scale-[0.98]` |
-| Secondary | `h-11 px-5 text-slate-700 text-[15px] font-medium active:bg-slate-100` (no border) |
-| Ghost destructive | `w-11 h-11 rounded-xl text-rose-600 active:bg-rose-50` (icon-only) |
-| Chip filter | `h-8 px-3.5 rounded-full text-[12px] font-semibold` — active: `bg-violet-600 text-white`; idle: `bg-white border border-slate-200` |
+| `xs` | 4 |
+| `sm` | 8 |
+| `md` | 12 |
+| `lg` | 16 |
+| `xl` | 20 |
+| `xxl` | 24 |
 
-Never render a `border-2` hard border on a primary button. iOS buttons are fills + radius, nothing else.
+- Outer page padding: `px-4 py-4` mobile, `px-6 py-6` desktop.
+- Between groups on a screen: `space-y-5` (20 px).
+- Inside a row: `px-4 py-3 min-h-[48px]`.
 
-### 4.5 iOS switch
+---
+
+## 5. Radii
+
+| Token | Value | Used for |
+|---|---|---|
+| `sm` | 6 | Small chips |
+| `md` | 10 | Buttons, inputs |
+| `lg` | 14 | Smaller cards |
+| `xl` | 16 | Standard cards |
+| `xxl` | 20 | Modal sheets |
+
+iOS buttons are fills + radius, never `border-2`.
+
+---
+
+## 6. Primitive kit
+
+Located in [src/components/ui/](../babun-crm/apps/web/src/components/ui). Import from the barrel:
 
 ```tsx
-<button
-  className={`relative w-[46px] h-[28px] rounded-full ${checked ? "bg-emerald-500" : "bg-slate-300"}`}
->
-  <span className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${checked ? "translate-x-[18px]" : ""}`} />
-</button>
+import {
+  ListGroup, ListRow, ToggleRow, IOSSwitch,
+  SegmentedControl, SheetShell,
+  Button, Chip, Input, SectionHeader,
+} from "@/components/ui";
 ```
 
-Emerald-500 when on (matches native iOS). Never violet — violet is reserved for primary fills and selected nav state.
+### 6.1 `<ListGroup>`
 
-## 5. Spacing
+iOS grouped-list section — caption · card · footnote.
 
-- Outer page padding: `px-4 py-4` on mobile, `px-6 py-6` on desktop.
-- Between groups on a screen: `space-y-5` (20 px) — larger than iOS default because our screens are denser.
-- Between rows in a card: hairline only (no vertical padding beyond the row's own `py-3`).
+```tsx
+<ListGroup title="РАЗДЕЛЫ" footer="Пояснение под карточкой">
+  <ListRow icon={CalendarDays} iconTone="violet" label="Календарь" href="/dashboard/settings/calendar" />
+  <ListRow icon={MapPin} iconTone="rose" label="Города" href="/dashboard/settings/cities" />
+</ListGroup>
+```
 
-## 6. Motion
+Children of `ListGroup` are divided by a 1 px hairline automatically (card has `divide-y divide-[var(--separator)]` via `rounded-2xl overflow-hidden` + your own divider class if needed). Dividers are always the CSS variable, never slate-100.
 
-- `active:scale-[0.98]` on primary buttons.
-- `active:bg-slate-50` / `active:bg-slate-100` on tappable rows.
-- Modal entry: no bespoke animation — the default React conditional render is fine. Sheets from BottomTabBar flow use a 200 ms slide.
-- Never use `animate-spin` for loading states over 400 ms. If it's slow, show a skeleton instead.
+### 6.2 `<ListRow>`
 
-## 7. What we removed in Sprint 028
+Single row. Three variants: `href` (Link), `onClick` (button), neither (display-only div).
 
-- **Cartoon emojis in chrome**: ☕💼🧭🌙✈️ (event presets), 📷 (photo button), 💵✅🔄📅📋♻️❌🗑 (action menu), 🗓📍👥🧑‍🔧💬🔧🏢 (settings nav), 🙈👁 (password toggle), ⏳⭐📋↩📌 (chats menu icons).
-- **Account status chip** at the top of MasterSheet. `is_active` toggle in "Работа" covers the only distinction that matters for payroll.
-- **TodayChip strip** above the calendar header.
-- **Center FAB** in BottomTabBar.
-- **Hard borders** on primary buttons (`border-2 border-slate-200`).
+Props: `icon`, `iconTone`, `label`, `subtitle`, `accessory`, `chevron`, `destructive`.
 
-## 8. What to do when adding a new surface
+### 6.3 `<ToggleRow>`
 
-1. Read [AGENTS.md](../babun-crm/apps/web/AGENTS.md) for Next 16 deprecation notes.
-2. Look at an existing redesigned screen for the pattern — [/dashboard/settings/page.tsx](../babun-crm/apps/web/src/app/dashboard/settings/page.tsx) is the canonical grouped-list example; [MasterSheet.tsx](../babun-crm/apps/web/src/app/dashboard/masters/MasterSheet.tsx) is the canonical modal sheet.
-3. Pick a lucide icon for every decorative glyph — no emoji shortcuts.
-4. Spacing: 48-px min row height for tappable rows; 20-px gap between groups; 16-px inside rows.
-5. Copy this doc's tokens verbatim — do not improvise a new accent colour without adding it here first.
+Sugar over `ListRow` with a trailing `IOSSwitch`. Use in `<ListGroup>`:
 
-## 9. Pages still on the old look (backlog)
+```tsx
+<ToggleRow label="Клиент обязателен" checked={v} onChange={setV} />
+```
 
-Ship order — tight pass-by-pass, no parallel agents after the Sprint 028 wave:
+### 6.4 `<IOSSwitch>`
 
-- `/dashboard/clients` + `/dashboard/clients/[id]` — client list + profile
-- `/dashboard/finances` — tab bar, period picker, row styling
-- `/dashboard` (calendar) — header chrome, TimeColumn ticks, CitySpecialSchedule
-- `/dashboard/chats` — remaining inline glyphs (📌⭐📋↩ on messages already cleaned; waitingBadge ⏱ still there)
-- `/dashboard/close-day` — action footer spacing
-- Client/appointment sheets — tighten to new tokens
-- Login / signup — Telegram-style big-card layout
+46×28 px, emerald-500 on-state. Never violet.
 
-One page per sprint keeps the diff readable and reviewable. Leave a breadcrumb comment (`// Sprint 028-visual-pass`) in the PR.
+### 6.5 `<SegmentedControl>`
+
+iOS segmented pill group.
+
+```tsx
+<SegmentedControl
+  options={[
+    { value: "day", label: "День" },
+    { value: "week", label: "Неделя" },
+  ]}
+  value={viewMode}
+  onChange={setViewMode}
+/>
+```
+
+### 6.6 `<SheetShell>`
+
+Centered modal shell with sticky header + scrollable body + optional footer. Escape + backdrop tap close.
+
+```tsx
+<SheetShell open={open} onClose={close} title="Новый клиент" footer={<Button>Сохранить</Button>}>
+  <div className="p-4 space-y-4">…</div>
+</SheetShell>
+```
+
+### 6.7 `<Button>`
+
+Variants: `primary` (violet fill, max 1 per row), `secondary` (neutral fill, for "Отмена"), `tinted` (translucent accent), `ghost` (label-only), `destructive` (rose label).
+
+Sizes: `sm` (32 px), `md` (44 px — default), `lg` (50 px).
+
+### 6.8 `<Chip>`
+
+Filter pill. `active` prop drives accent fill vs white+border.
+
+### 6.9 `<Input>`
+
+iOS-inset text input with optional `label`, `hint`, `trailing` slot. `forwardRef` — compatible with any form library or native DOM handler.
+
+### 6.10 `<SectionHeader>`
+
+Standalone 11-px uppercase caption above non-grouped blocks. Optional right-aligned action link ("Все →").
+
+---
+
+## 7. Page layouts
+
+### 7.1 Settings-style screen (the canonical one)
+
+```tsx
+<PageHeader title="Настройки" />
+<div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+  <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
+    <ListGroup title="РАЗДЕЛЫ">…</ListGroup>
+    <ListGroup title="ПОЛЯ" footer="Что показывать в форме">…</ListGroup>
+  </div>
+</div>
+```
+
+### 7.2 Modal sheet screen
+
+```tsx
+<SheetShell
+  open
+  onClose={…}
+  title="Сотрудник"
+  footer={<div className="flex gap-2">…</div>}
+>
+  <div className="px-4 py-4 space-y-3">
+    <ListGroup title="ЛИЧНЫЕ ДАННЫЕ">…</ListGroup>
+    <ListGroup title="РАБОТА">…</ListGroup>
+  </div>
+</SheetShell>
+```
+
+### 7.3 Calendar / dense view
+
+Retains its custom grid, but uses the same tokens (separators, label colours, accent). No grouped-list pattern — this surface is its own thing.
+
+---
+
+## 8. Anti-patterns
+
+- `border-2 border-slate-*` anywhere. Use hairlines or fills.
+- `bg-slate-50` / `bg-slate-100` hard-coded. Use `bg-[var(--surface-grouped)]` / `bg-[var(--fill-tertiary)]`.
+- Violet iOS switches. The switch is always `--system-green`.
+- Mixing Inter-bold with SF Pro-regular in the same line. Let the system pick one family; never force `font-inter` explicitly.
+- `text-xs` / `text-sm` / etc. for chrome — use token pixel sizes so we don't drift.
+- Decorative emojis in UI strings.
+- Bottom-sheet modals (they collide with the tab bar). Always `SheetShell` centered.
+
+---
+
+## 9. Rollout schedule
+
+See [docs/sprints/SPRINT-028-visual.md](sprints/SPRINT-028-visual.md) (will be added when we kick off Phase 1). Seven phases planned; each ships a clean incremental push with a version bump.
+
+- [x] Phase 0 — Foundation tokens + kit
+- [ ] Phase 1 — Chrome (Header, Sidebar, BottomTabBar, PageHeader, global modals)
+- [ ] Phase 2 — Calendar + Clients
+- [ ] Phase 3 — Finances + Chats
+- [ ] Phase 4 — Setup (services, teams, masters list, recurring, sms-templates, settings sub-pages)
+- [ ] Phase 5 — AppointmentSheet body + picker sheets
+- [ ] Phase 6 — Auth + edges (login, signup, share, 404)

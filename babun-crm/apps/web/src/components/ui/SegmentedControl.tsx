@@ -1,0 +1,49 @@
+"use client";
+
+interface SegmentedOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+interface SegmentedControlProps<T extends string> {
+  options: SegmentedOption<T>[];
+  value: T;
+  onChange: (next: T) => void;
+  /** Stretch the control to fill its container. Default true. */
+  fullWidth?: boolean;
+}
+
+// iOS UISegmentedControl — grey track with a white pill behind the
+// active option. Matches the "День / 3 дня / Неделя / Месяц" picker
+// style on iOS Calendar. The active pill gets a subtle shadow so it
+// feels raised, exactly like native.
+export default function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  fullWidth = true,
+}: SegmentedControlProps<T>) {
+  return (
+    <div
+      className={`inline-flex rounded-[9px] bg-[var(--fill-tertiary)] p-[2px] ${fullWidth ? "w-full" : ""}`}
+    >
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            className={`flex-1 h-8 rounded-[7px] text-[13px] font-semibold transition ${
+              active
+                ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_0_rgba(0,0,0,0.1)]"
+                : "text-[var(--label-secondary)]"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

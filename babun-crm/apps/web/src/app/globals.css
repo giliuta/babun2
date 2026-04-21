@@ -1,18 +1,124 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────
-   Babun CRM — Bright & Clean (Bumpix-style)
+   Babun CRM — iOS + Telegram design language
+   Sprint 029 Phase 0. Tokens mirror Apple's Human Interface
+   Guidelines (UIKit system variables) with Babun's violet accent
+   where Apple uses blue. Complete reference in docs/design-language.md.
    ──────────────────────────────────────────────────────────────── */
 
 :root {
+  /* Surfaces ──────────────────────────────────────────────────
+     iOS has a two-level grouped-list backdrop: the screen uses
+     `systemGroupedBackground` (gray) and the cards on top use
+     `secondarySystemGroupedBackground` (white). */
+  --surface-grouped: #F2F2F7;
+  --surface-card: #FFFFFF;
+  --surface-card-secondary: #F2F2F7;
+  --surface-overlay: rgba(0, 0, 0, 0.4);
+  --surface-nav-blur: rgba(255, 255, 255, 0.8);
+
+  /* Separators (hairlines) ─────────────────────────────────── */
+  --separator: rgba(60, 60, 67, 0.12);
+  --separator-opaque: #C6C6C8;
+
+  /* Text hierarchy (labels) ────────────────────────────────── */
+  --label: #000000;
+  --label-secondary: rgba(60, 60, 67, 0.6);
+  --label-tertiary: rgba(60, 60, 67, 0.3);
+  --label-quaternary: rgba(60, 60, 67, 0.18);
+  --label-on-accent: #FFFFFF;
+
+  /* Fills (background for interactive elements at rest) ────── */
+  --fill-primary: rgba(120, 120, 128, 0.2);
+  --fill-secondary: rgba(120, 120, 128, 0.16);
+  --fill-tertiary: rgba(118, 118, 128, 0.12);
+  --fill-quaternary: rgba(116, 116, 128, 0.08);
+
+  /* System semantic colours ────────────────────────────────── */
+  --system-red: #FF3B30;
+  --system-orange: #FF9500;
+  --system-yellow: #FFCC00;
+  --system-green: #34C759;   /* iOS switch on-state */
+  --system-mint: #00C7BE;
+  --system-teal: #30B0C7;
+  --system-cyan: #32ADE6;
+  --system-blue: #007AFF;    /* iOS default link */
+  --system-indigo: #5856D6;
+  --system-purple: #AF52DE;
+  --system-pink: #FF2D55;
+
+  /* Accent — Babun brand keeps violet-600; used in place of
+     iOS system-blue for tinted icons, active nav, primary fill. */
+  --accent: #7C3AED;
+  --accent-pressed: #6D28D9;
+  --accent-tint: #EDE9FE;
+
+  /* Legacy — kept for the handful of surfaces that still read these
+     directly. New code should prefer the semantic names above. */
   --background: #ffffff;
   --foreground: #111827;
+
+  /* Typography scale (HIG) ─────────────────────────────────── */
+  --font-size-large-title: 34px;
+  --font-size-title-1: 28px;
+  --font-size-title-2: 22px;
+  --font-size-title-3: 20px;
+  --font-size-headline: 17px;
+  --font-size-body: 17px;
+  --font-size-callout: 16px;
+  --font-size-subhead: 15px;
+  --font-size-footnote: 13px;
+  --font-size-caption-1: 12px;
+  --font-size-caption-2: 11px;
+
+  /* Radii (corners) ────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  /* Shadow — the subtle inset-ish tint under iOS cards */
+  --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.04),
+                 0 0 0 0.5px rgba(15, 23, 42, 0.02);
+  --shadow-sheet: 0 20px 40px -20px rgba(15, 23, 42, 0.25);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+
+  /* Semantic colours — usable as `bg-surface-grouped`,
+     `text-label-secondary`, etc. Tailwind v4 derives utilities
+     from the `@theme` block. */
+  --color-surface-grouped: var(--surface-grouped);
+  --color-surface-card: var(--surface-card);
+  --color-surface-card-secondary: var(--surface-card-secondary);
+  --color-separator: var(--separator);
+  --color-separator-opaque: var(--separator-opaque);
+  --color-label: var(--label);
+  --color-label-secondary: var(--label-secondary);
+  --color-label-tertiary: var(--label-tertiary);
+  --color-label-quaternary: var(--label-quaternary);
+  --color-fill-primary: var(--fill-primary);
+  --color-fill-secondary: var(--fill-secondary);
+  --color-fill-tertiary: var(--fill-tertiary);
+  --color-fill-quaternary: var(--fill-quaternary);
+  --color-system-red: var(--system-red);
+  --color-system-orange: var(--system-orange);
+  --color-system-green: var(--system-green);
+  --color-system-blue: var(--system-blue);
+  --color-accent: var(--accent);
+  --color-accent-pressed: var(--accent-pressed);
+  --color-accent-tint: var(--accent-tint);
+
+  /* Font stack — SF Pro first on Apple devices, then broad
+     fallbacks; Inter from Next/font lands last for Linux/Windows
+     where SF Pro is absent. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+               "SF Pro Display", var(--font-inter), "Segoe UI",
+               Roboto, Helvetica, Arial, system-ui, sans-serif;
 }
 
 html, body {
@@ -21,15 +127,27 @@ html, body {
 }
 
 body {
-  background: #ffffff;
-  color: #111827;
+  background: var(--surface-card);
+  color: var(--label);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
-  /* Reports table, AppointmentSheet totals, brigade payroll rows —
-     every digit lines up glyph-for-glyph. Cheaper than codemodding
-     `tabular-nums` into 100+ className strings. */
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Tabular numerals everywhere — reports, appointment totals,
+     payroll rows all line up glyph-for-glyph without needing a
+     per-element class. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+  /* iOS HIG letter-spacing for the default body size: negligible
+     at 17 px, tightens visibly at titles. */
+  letter-spacing: -0.01em;
+}
+
+/* Headlines and titles track slightly tighter — matches SF Pro
+   Display's internal metrics on iOS. */
+h1, h2, h3,
+.babun-title {
+  letter-spacing: -0.02em;
 }
 
 .scrollbar-hide {
@@ -69,10 +187,16 @@ body {
   animation: shimmer 1.6s linear infinite;
 }
 
-/* Glass for bottom bar */
+/* Glass surface — BottomTabBar, nav overlays. Tokenised so the
+   whole app gets the same iOS-style backdrop filter behind it. */
 .glass-surface {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: saturate(180%) blur(16px);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--surface-nav-blur);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--separator);
 }
+
+/* Hairline — 1 px on standard, 0.5 px on retina if supported via
+   media query. Keeps separators crisp and iOS-native. */
+.hairline-top { box-shadow: 0 -0.5px 0 0 var(--separator); }
+.hairline-bottom { box-shadow: 0 0.5px 0 0 var(--separator); }
