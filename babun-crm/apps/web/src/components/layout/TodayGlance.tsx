@@ -20,12 +20,12 @@ interface TodayGlanceProps {
 }
 
 // Three-second glance at today. Two flavours:
-//   * Money mode (emerald) — at least €1 came in today; show totals.
-//   * Plan mode (violet)   — no money yet but visits exist; show count
-//                            and first-visit time.
+//   * Money mode (green tint) — at least €1 came in today; show totals.
+//   * Plan mode (accent tint) — no money yet but visits exist; show count
+//                               and first-visit time.
 // Hidden only when today has zero records and zero income — empty days
-// keep the dashboard empty (Sprint 019 U1). Uses `computeFinancials`
-// so the number never disagrees with /finances for the same filter.
+// keep the dashboard empty. Uses `computeFinancials` so the number never
+// disagrees with /finances for the same filter.
 export default function TodayGlance({
   appointments,
   services,
@@ -71,20 +71,20 @@ export default function TodayGlance({
     return (
       <Link
         href="/dashboard"
-        className="block px-3 py-1.5 bg-violet-50 border-b border-violet-100 active:bg-violet-100 transition"
+        className="block px-3 py-1.5 bg-[var(--accent-tint)] active:opacity-80 transition"
       >
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-violet-700 shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)] shrink-0">
             Сегодня
           </span>
-          <span className="text-[14px] font-bold text-violet-800">
+          <span className="text-[14px] font-bold text-[var(--accent)]">
             {pluralRecord(plan.count)}
           </span>
-          <span className="flex-1 text-[11px] text-violet-800/70">
+          <span className="flex-1 text-[11px] text-[var(--accent)] opacity-70">
             первая в{" "}
             <span className="font-semibold tabular-nums">{plan.first}</span>
           </span>
-          <span className="text-violet-700 shrink-0 text-[13px]">›</span>
+          <span className="text-[var(--accent)] shrink-0 text-[13px]">›</span>
         </div>
       </Link>
     );
@@ -93,16 +93,16 @@ export default function TodayGlance({
   return (
     <Link
       href="/dashboard/finances"
-      className="block px-3 py-1.5 bg-emerald-50 border-b border-emerald-100 active:bg-emerald-100 transition"
+      className="block px-3 py-1.5 bg-[rgba(52,199,89,0.12)] active:opacity-80 transition"
     >
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 shrink-0">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-green)] shrink-0">
           Сегодня
         </span>
-        <span className="text-[17px] font-bold text-emerald-700 leading-none">
+        <span className="text-[17px] font-bold text-[var(--system-green)] leading-none">
           +{formatEUR(totalIncome)}
         </span>
-        <div className="flex-1 flex items-baseline gap-2 text-[11px] text-emerald-800/70 min-w-0">
+        <div className="flex-1 flex items-baseline gap-2 text-[11px] text-[var(--system-green)] opacity-80 min-w-0">
           {cash > 0 && (
             <span>
               нал <span className="font-semibold">{formatEUR(cash)}</span>
@@ -114,7 +114,7 @@ export default function TodayGlance({
             </span>
           )}
         </div>
-        <span className="text-emerald-700 shrink-0 text-[13px]">›</span>
+        <span className="text-[var(--system-green)] shrink-0 text-[13px]">›</span>
       </div>
     </Link>
   );

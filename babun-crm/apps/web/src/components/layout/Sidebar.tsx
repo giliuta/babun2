@@ -19,11 +19,10 @@ import { loadChats, getTotalUnread } from "@/lib/chats";
 import { BUILD_VERSION } from "@/lib/version";
 import { ICON_TONE_BG, type IconTone } from "@/lib/design-tokens";
 
-// Sprint 029 Phase 1: the sidebar moves to iOS grouped-list aesthetics.
-// White canvas with the brand-violet Babun header, tinted rounded-square
-// icon tiles per row (mirrors iOS Settings), soft slate-100 dividers.
-// Admin surfaces stay behind a "Показать всё" toggle so the primary
-// set doesn't balloon.
+// Telegram-style drawer (Sprint 031). Accent-blue brand header with
+// avatar + company, grouped-list body below with coloured tile icons
+// per row. Admin surfaces sit behind a "Показать всё" toggle so the
+// primary set doesn't balloon.
 
 export type DialogType =
   | "calendar"
@@ -121,17 +120,19 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Brand header — violet for the Babun identity, matches calendar nav. */}
+        {/* Telegram-style brand header — blue wash with white avatar
+            ring around the B mark. Stays the identity element of the
+            drawer but follows the new accent. */}
         <div className="flex-shrink-0 bg-[var(--accent)] px-4 pt-6 pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center text-white text-[17px] font-bold">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[var(--accent)] text-[20px] font-bold">
               B
             </div>
             <div className="min-w-0">
-              <div className="text-[15px] font-semibold text-white leading-tight">
+              <div className="text-[16px] font-semibold text-white leading-tight">
                 Babun CRM
               </div>
-              <div className="text-[12px] text-white/70 truncate">
+              <div className="text-[12px] text-white/80 truncate">
                 airfix.cy@gmail.com
               </div>
             </div>
@@ -142,21 +143,21 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           <Group>
             <NavRow
               icon={CalendarIcon}
-              tone="violet"
+              tone="orange"
               label="Календарь"
               active={isActive("calendar")}
               onClick={() => handleNav("calendar")}
             />
             <NavRow
               icon={UsersIcon}
-              tone="sky"
+              tone="cyan"
               label="Клиенты"
               active={isActive("clients")}
               onClick={() => handleNav("clients")}
             />
             <NavRow
               icon={MessageSquare}
-              tone="emerald"
+              tone="green"
               label="Чаты"
               badge={unreadChats > 0 ? unreadChats : undefined}
               active={isActive("chats")}
@@ -164,14 +165,14 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             />
             <NavRow
               icon={Wallet}
-              tone="amber"
+              tone="yellow"
               label="Финансы"
               active={isActive("finances")}
               onClick={() => handleNav("finances")}
             />
             <NavRow
               icon={RotateCcw}
-              tone="rose"
+              tone="red"
               label="Напоминания"
               badge={recurringDue > 0 ? recurringDue : undefined}
               active={isActive("recurring")}
@@ -179,7 +180,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             />
             <NavRow
               icon={SettingsIcon}
-              tone="slate"
+              tone="gray"
               label="Настройки"
               active={isActive("settings")}
               onClick={() => handleNav("settings")}
@@ -218,7 +219,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
               />
               <NavRow
                 icon={Wrench}
-                tone="orange"
+                tone="purple"
                 label="Услуги"
                 active={isActive("services")}
                 onClick={() => handleNav("services")}

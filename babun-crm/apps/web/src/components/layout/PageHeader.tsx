@@ -20,11 +20,10 @@ interface PageHeaderProps {
   rightContent?: React.ReactNode;
 }
 
-// iOS UINavigationBar — 44 pt nav, 17 pt semibold centred title with
-// optional 11 pt subtitle under it. Brand-violet on mobile (matches
-// the calendar header so the two chain together), white on desktop
-// (iPad / web). Back chevron uses the lucide glyph instead of an
-// inline SVG — keeps icon weights consistent across the app.
+// Telegram-style navigation bar. 44 pt nav height, 17 pt semibold
+// centered title + optional 12 pt subtitle. Leading button is a
+// 40 pt fill-primary circle (back chevron accent-blue, menu icon
+// secondary-label grey). Lives on every non-calendar screen.
 export default function PageHeader({
   title,
   subtitle,
@@ -38,7 +37,7 @@ export default function PageHeader({
 
   return (
     <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] z-30">
-      <div className="px-2 lg:px-4 min-h-[44px] flex items-center gap-1">
+      <div className="px-3 lg:px-4 min-h-[44px] flex items-center gap-2">
         {leftContent ? (
           <div className="shrink-0">{leftContent}</div>
         ) : showBack ? (
@@ -46,23 +45,23 @@ export default function PageHeader({
             type="button"
             onClick={() => router.push(backHref)}
             aria-label="Назад"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] shrink-0 transition"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-[var(--fill-primary)] text-[var(--accent)] active:bg-[var(--fill-secondary)] shrink-0 transition"
           >
-            <ChevronLeft size={24} strokeWidth={2.5} />
+            <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
         ) : (
           <button
             type="button"
             onClick={sidebar.toggle}
             aria-label="Меню"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] shrink-0 transition"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-[var(--fill-primary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] shrink-0 transition"
           >
-            <Menu size={22} strokeWidth={2} />
+            <Menu size={20} strokeWidth={2} />
           </button>
         )}
 
         <div className="flex-1 min-w-0 py-2 text-center lg:text-left">
-          <h1 className="text-[17px] font-semibold text-[var(--label)] truncate tracking-tight leading-tight">
+          <h1 className="text-[17px] font-semibold text-[var(--label)] truncate leading-tight">
             {title}
           </h1>
           {subtitle && (
@@ -73,7 +72,7 @@ export default function PageHeader({
         </div>
 
         {rightContent && (
-          <div className="flex items-center gap-1 flex-shrink-0">{rightContent}</div>
+          <div className="flex items-center gap-2 flex-shrink-0">{rightContent}</div>
         )}
       </div>
     </header>

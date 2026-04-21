@@ -17,45 +17,44 @@ interface CreateMenuProps {
   onCreateLead: () => void;
 }
 
-// Centered popup opened by the BottomTabBar "+" FAB. One tap reaches
-// the four most common write-paths so the dispatcher never hunts for
-// "where do I add a visit?". Not a bottom-sheet on purpose — per the
-// product rule every popup is centred on screen (memory
-// `feedback_center_modals.md`).
+// Centered popup opened by the "+" trigger. One tap reaches the four
+// most common write-paths so the dispatcher never hunts for "where
+// do I add a visit?". Not a bottom-sheet on purpose — per the product
+// rule every popup is centred on screen.
 const ITEMS: {
   key: keyof Handlers;
   icon: React.ReactNode;
   label: string;
   hint: string;
-  tone: string;
+  tile: string;
 }[] = [
   {
     key: "appointment",
-    icon: <CalendarPlus size={22} strokeWidth={2} />,
+    icon: <CalendarPlus size={22} strokeWidth={2.25} />,
     label: "Запись",
     hint: "визит, работа, клиент",
-    tone: "bg-violet-50 text-violet-700",
+    tile: "bg-[var(--tile-blue)]",
   },
   {
     key: "expense",
-    icon: <Receipt size={22} strokeWidth={2} />,
+    icon: <Receipt size={22} strokeWidth={2.25} />,
     label: "Расход",
     hint: "бензин, материалы, обед",
-    tone: "bg-rose-50 text-rose-700",
+    tile: "bg-[var(--tile-red)]",
   },
   {
     key: "event",
-    icon: <CalendarHeart size={22} strokeWidth={2} />,
+    icon: <CalendarHeart size={22} strokeWidth={2.25} />,
     label: "Событие",
     hint: "обед, личное, перерыв",
-    tone: "bg-amber-50 text-amber-700",
+    tile: "bg-[var(--tile-orange)]",
   },
   {
     key: "lead",
-    icon: <MessagesSquare size={22} strokeWidth={2} />,
+    icon: <MessagesSquare size={22} strokeWidth={2.25} />,
     label: "Лид из чата",
     hint: "перенести обращение в запись",
-    tone: "bg-sky-50 text-sky-700",
+    tile: "bg-[var(--tile-cyan)]",
   },
 ];
 
@@ -99,7 +98,7 @@ export default function CreateMenu({
 
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-[var(--surface-overlay)] p-5"
       onClick={onClose}
     >
       <div
@@ -107,7 +106,7 @@ export default function CreateMenu({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-4 pb-3 border-b border-[var(--separator)] text-center">
-          <div className="text-[13px] font-semibold text-[var(--label-secondary)]">
+          <div className="text-[13px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
             Создать
           </div>
         </div>
@@ -122,7 +121,7 @@ export default function CreateMenu({
               }}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--fill-quaternary)] transition min-h-[56px]"
             >
-              <span className={`w-9 h-9 rounded-[9px] flex items-center justify-center shrink-0 ${item.tone}`}>
+              <span className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-white shrink-0 ${item.tile}`}>
                 {item.icon}
               </span>
               <div className="flex-1 min-w-0">

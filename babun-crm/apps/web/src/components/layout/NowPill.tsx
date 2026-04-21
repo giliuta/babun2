@@ -17,9 +17,8 @@ interface NowPillProps {
 // Thin banner under the header. Shows what's happening right now or
 // what's coming up next — "Через 18 мин → Иванов, Limassol 14:00" —
 // so the dispatcher doesn't have to scan the grid for the next visit.
-// Appointments that started but aren't marked in_progress get an
-// amber highlight; visits in the past that never got completed glow
-// rose so they can be closed.
+// In-progress visits glow green, overdue ones glow red, upcoming
+// ones use the accent tint.
 //
 // Re-ticks every 30 seconds. Re-renders are cheap because the
 // computation is one linear scan of today's visits.
@@ -50,10 +49,10 @@ export default function NowPill({
 
   const toneClass =
     state === "in-progress"
-      ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+      ? "bg-[rgba(52,199,89,0.12)] text-[var(--system-green)]"
       : state === "overdue"
-        ? "bg-rose-50 text-rose-800 ring-rose-200"
-        : "bg-violet-50 text-violet-800 ring-violet-200";
+        ? "bg-[rgba(255,59,48,0.12)] text-[var(--system-red)]"
+        : "bg-[var(--accent-tint)] text-[var(--accent)]";
 
   const prefix =
     state === "in-progress"
@@ -66,7 +65,7 @@ export default function NowPill({
     <button
       type="button"
       onClick={() => onOpen?.(appointment.id)}
-      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium ring-1 rounded-none ${toneClass} active:opacity-80`}
+      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium ${toneClass} active:opacity-80`}
     >
       <span className="shrink-0 tabular-nums font-semibold">{prefix}</span>
       <span className="opacity-60">→</span>

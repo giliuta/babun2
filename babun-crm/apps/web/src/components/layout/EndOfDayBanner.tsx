@@ -10,11 +10,11 @@ interface EndOfDayBannerProps {
   onOpenUnpaid: () => void;
 }
 
-// After 18:00 local time, if any of today's completed visits still
-// have an outstanding debt, nag the dispatcher with a sticky pill
-// above the bottom tab bar. One-tap "Закрыть" routes to the unpaid
-// list. Disappears automatically once every visit is closed or the
-// dispatcher dismisses it for the rest of the evening.
+// After 18:00 local, if any of today's completed visits still have
+// outstanding debt, nag the dispatcher with a sticky pill above the
+// bottom tab bar. Telegram-style orange tint card with a primary
+// call-to-action and a close button. One-tap "Открыть" routes to
+// the unpaid list.
 const DISMISS_PREFIX = "babun:end-of-day-dismissed:";
 
 export default function EndOfDayBanner({
@@ -64,23 +64,25 @@ export default function EndOfDayBanner({
   return (
     <div
       className="fixed left-0 right-0 z-30 px-3 lg:left-auto lg:right-4 lg:w-80"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 8px) + 76px)" }}
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 8px) + 72px)" }}
     >
-      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 ring-1 ring-amber-300 shadow-md">
-        <span className="text-[18px]" aria-hidden>
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-[14px] bg-[var(--surface-card)] shadow-[var(--shadow-float)]">
+        <span className="w-8 h-8 rounded-[7px] bg-[var(--tile-orange)] text-white flex items-center justify-center shrink-0 text-[16px]" aria-hidden>
           ⚠
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[12px] font-semibold text-amber-900">
+          <div className="text-[13px] font-semibold text-[var(--label)]">
             {unpaidCount}{" "}
             {unpaidCount === 1 ? "запись без оплаты" : "записей без оплаты"}
           </div>
-          <div className="text-[11px] text-amber-800">Закройте до конца дня</div>
+          <div className="text-[11px] text-[var(--label-secondary)]">
+            Закройте до конца дня
+          </div>
         </div>
         <button
           type="button"
           onClick={onOpenUnpaid}
-          className="shrink-0 h-8 px-3 rounded-lg bg-amber-600 text-white text-[12px] font-semibold active:scale-[0.97]"
+          className="shrink-0 h-8 px-3 rounded-full bg-[var(--accent)] text-white text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.97] transition"
         >
           Открыть
         </button>
@@ -88,11 +90,11 @@ export default function EndOfDayBanner({
           type="button"
           onClick={handleDismiss}
           aria-label="Скрыть"
-          className="shrink-0 w-8 h-8 rounded-lg text-amber-700 active:bg-amber-100"
+          className="shrink-0 w-8 h-8 rounded-full bg-[var(--fill-primary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] flex items-center justify-center transition"
         >
           <svg
-            width="14"
-            height="14"
+            width="12"
+            height="12"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"

@@ -27,11 +27,9 @@ interface MorningBriefingProps {
 // Once-per-day full-screen briefing shown when the dispatcher opens
 // Babun for the first time between 06:00 and 10:00 local. Answers
 // "что меня ждёт сегодня" before he taps anything: visit count, first
-// departure, expected revenue, unread chats, overdue debts. Dismiss
-// stores `babun:briefing:YYYY-MM-DD` so subsequent opens stay quiet.
-//
-// Sprint 019 F1. Replaces "open app blind, find out at 08:55 about
-// 09:00 visit" with a 5-second answer.
+// departure, expected revenue, unread chats, overdue debts. Telegram
+// grouped-list surface with tile-coloured stat rows. Dismiss stores
+// `babun:briefing:YYYY-MM-DD` so subsequent opens stay quiet.
 
 const DISMISS_PREFIX = "babun:briefing:";
 
@@ -160,14 +158,14 @@ export default function MorningBriefing({
         <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)]">
           {greeting}
         </div>
-        <h1 className="mt-2 text-[28px] font-bold text-[var(--label)] leading-tight tracking-tight">
+        <h1 className="mt-2 text-[28px] font-bold text-[var(--label)] leading-tight">
           {todayLabelRu(new Date())}
         </h1>
 
-        <div className="mt-7 space-y-2.5">
+        <div className="mt-7 bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden shadow-[var(--shadow-card)] divide-y divide-[var(--separator)]">
           <Stat
-            tone="violet"
-            icon={<CalendarClock size={18} strokeWidth={2} />}
+            tile="bg-[var(--tile-blue)]"
+            icon={<CalendarClock size={16} strokeWidth={2.25} />}
             value={
               summary.count === 0
                 ? "Ни одной записи"
@@ -182,8 +180,8 @@ export default function MorningBriefing({
 
           {(summary.already > 0 || summary.expected > 0) && (
             <Stat
-              tone="emerald"
-              icon={<WalletIcon size={18} strokeWidth={2} />}
+              tile="bg-[var(--tile-green)]"
+              icon={<WalletIcon size={16} strokeWidth={2.25} />}
               value={
                 summary.already > 0
                   ? `+${formatEUR(summary.already)} в кассе`
@@ -201,8 +199,8 @@ export default function MorningBriefing({
 
           {summary.unread > 0 && (
             <Stat
-              tone="sky"
-              icon={<MessageSquare size={18} strokeWidth={2} />}
+              tile="bg-[var(--tile-cyan)]"
+              icon={<MessageSquare size={16} strokeWidth={2.25} />}
               value={`${summary.unread} ${countWord(summary.unread, "сообщение", "сообщения", "сообщений")} в чатах`}
               hint="Кто-то ждёт ответа"
             />
@@ -210,8 +208,8 @@ export default function MorningBriefing({
 
           {summary.overdueDebt > 0 && (
             <Stat
-              tone="rose"
-              icon={<AlertTriangle size={18} strokeWidth={2} />}
+              tile="bg-[var(--tile-red)]"
+              icon={<AlertTriangle size={16} strokeWidth={2.25} />}
               value={`Должны ${formatEUR(summary.overdueDebt)}`}
               hint={`${summary.overdueCount} ${countWord(summary.overdueCount, "клиент", "клиента", "клиентов")} больше 14 дней`}
             />
@@ -226,7 +224,7 @@ export default function MorningBriefing({
             dismiss();
             router.push("/dashboard");
           }}
-          className="w-full h-[50px] rounded-[12px] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           К календарю
         </button>
@@ -237,7 +235,7 @@ export default function MorningBriefing({
               dismiss();
               router.push("/dashboard/chats");
             }}
-            className="w-full h-11 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[15px] font-semibold active:opacity-75 transition"
+            className="w-full h-11 rounded-[var(--radius-pill)] bg-[var(--accent-tint)] text-[var(--accent)] text-[15px] font-semibold active:opacity-75 transition"
           >
             Ответить в чатах
           </button>
@@ -254,33 +252,22 @@ export default function MorningBriefing({
   );
 }
 
-// Soft tinted tile + strong label + muted hint — iOS Numbers stat cell.
-const TONE: Record<
-  "violet" | "emerald" | "sky" | "rose",
-  { bg: string; ic: string }
-> = {
-  violet: { bg: "bg-[var(--accent-tint)]", ic: "bg-[var(--accent)]" },
-  emerald: { bg: "bg-[#E6F7EC]", ic: "bg-[var(--system-green)]" },
-  sky: { bg: "bg-[#E6F4FA]", ic: "bg-[var(--system-blue)]" },
-  rose: { bg: "bg-[#FCE7EA]", ic: "bg-[var(--system-red)]" },
-};
-
+// Telegram settings row — coloured tile + strong label + muted hint.
 function Stat({
-  tone,
+  tile,
   icon,
   value,
   hint,
 }: {
-  tone: keyof typeof TONE;
+  tile: string;
   icon: React.ReactNode;
   value: string;
   hint?: string;
 }) {
-  const t = TONE[tone];
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-[14px] ${t.bg}`}>
+    <div className="flex items-center gap-3 px-4 py-3">
       <span
-        className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-white shrink-0 ${t.ic}`}
+        className={`w-7 h-7 rounded-[var(--radius-tile)] flex items-center justify-center text-white shrink-0 ${tile}`}
       >
         {icon}
       </span>
@@ -296,7 +283,4 @@ function Stat({
   );
 }
 
-// `countWord` was inlined here in Sprint 020; Sprint 024 promotes it
-// to lib/pluralize.ts as `countWordRu` so other surfaces (clients
-// list, sidebar badges, chat counters) reuse the same agreement.
 const countWord = countWordRu;

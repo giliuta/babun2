@@ -15,9 +15,8 @@ interface DaySummaryStripProps {
 }
 
 // "Сегодня · 6 записей · €450 · 3 в работе · 1 без оплаты" — the
-// dispatcher's morning glance. Shown only in Day view. Each number
-// is derived live from the appointments list; the unpaid pill is
-// tappable because that's the action the dispatcher takes most.
+// dispatcher's morning glance. Shown only in Day view. Telegram-style
+// tinted pills under the header strip. Unpaid pill is tappable.
 export default function DaySummaryStrip({
   appointments,
   teamId,
@@ -45,16 +44,16 @@ export default function DaySummaryStrip({
   if (stats.count === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[11px] overflow-x-auto">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[11px] overflow-x-auto scrollbar-hide">
       <Chip label={pluralRecord(stats.count)} />
-      {stats.income > 0 && <Chip label={formatEUR(stats.income)} tone="emerald" />}
+      {stats.income > 0 && <Chip label={formatEUR(stats.income)} tone="green" />}
       {stats.inProgress > 0 && (
-        <Chip label={`${stats.inProgress} в работе`} tone="indigo" />
+        <Chip label={`${stats.inProgress} в работе`} tone="accent" />
       )}
       {stats.unpaid > 0 && (
         <Chip
           label={`${stats.unpaid} без оплаты`}
-          tone="rose"
+          tone="red"
           onClick={onUnpaidTap}
         />
       )}
@@ -62,18 +61,18 @@ export default function DaySummaryStrip({
   );
 }
 
-type Tone = "slate" | "emerald" | "indigo" | "rose";
+type Tone = "neutral" | "green" | "accent" | "red";
 
 const TONE: Record<Tone, string> = {
-  slate: "bg-[var(--fill-tertiary)] text-[var(--label)]",
-  emerald: "bg-[rgba(52,199,89,0.12)] text-[var(--system-green)]",
-  indigo: "bg-[var(--accent-tint)] text-[var(--accent)]",
-  rose: "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)] ring-1 ring-[rgba(255,59,48,0.2)]",
+  neutral: "bg-[var(--fill-tertiary)] text-[var(--label)]",
+  green: "bg-[rgba(52,199,89,0.12)] text-[var(--system-green)]",
+  accent: "bg-[var(--accent-tint)] text-[var(--accent)]",
+  red: "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)]",
 };
 
 function Chip({
   label,
-  tone = "slate",
+  tone = "neutral",
   onClick,
 }: {
   label: string;
@@ -88,14 +87,14 @@ function Chip({
       <button
         type="button"
         onClick={onClick}
-        className={`px-2 py-1 rounded-full text-[11px] active:scale-[0.97] ${TONE[tone]}`}
+        className={`px-2.5 py-1 rounded-full text-[11px] active:scale-[0.97] ${TONE[tone]}`}
       >
         {content}
       </button>
     );
   }
   return (
-    <span className={`px-2 py-1 rounded-full text-[11px] ${TONE[tone]}`}>
+    <span className={`px-2.5 py-1 rounded-full text-[11px] ${TONE[tone]}`}>
       {content}
     </span>
   );

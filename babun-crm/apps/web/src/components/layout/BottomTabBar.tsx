@@ -17,11 +17,12 @@ import {
 import { loadChats, getTotalUnread } from "@/lib/chats";
 import GlobalSearch from "./GlobalSearch";
 
-// Bottom tab bar — mobile only (lg:hidden). Five equal tabs, no
-// center FAB. The "+" button was removed in Sprint 027-hotfix
-// because the CEO found it redundant — create flows now start from
-// the calendar grid (tap empty slot) or from the Ещё → создать.
-// Long-pressing Календарь still opens GlobalSearch (Cmd+K on desktop).
+// Telegram-style bottom nav. Five tabs, each a vertical stack of
+// icon + tiny label. Active tab sits inside an accent-tint pill that
+// wraps the whole stack (the "pill around the active tab" you see
+// in Telegram iOS). Inactive tabs are secondary-label grey.
+// The "+" FAB was removed in Sprint 027-hotfix — create flows start
+// from the calendar grid or from Ещё → создать.
 
 export default function BottomTabBar() {
   const pathname = usePathname();
@@ -62,44 +63,43 @@ export default function BottomTabBar() {
     <>
       <nav
         aria-label="Главная навигация"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-surface"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-card)] border-t border-[var(--separator)]"
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
-          boxShadow: "0 -8px 32px -12px rgba(15, 23, 42, 0.12)",
         }}
       >
-        <div className="flex items-end justify-around px-1 h-[62px]">
+        <div className="flex items-end justify-around px-2 h-[58px] pt-1 pb-1">
           <TabButton
             label="Календарь"
             active={isCalendar}
             onClick={() => go("/dashboard")}
             onLongPress={() => setSearchOpen(true)}
-            icon={<CalendarIcon size={24} strokeWidth={2} />}
+            icon={<CalendarIcon size={22} strokeWidth={2} />}
           />
           <TabButton
             label="Клиенты"
             active={isClients}
             onClick={() => go("/dashboard/clients")}
-            icon={<UsersIcon size={24} strokeWidth={2} />}
+            icon={<UsersIcon size={22} strokeWidth={2} />}
           />
           <TabButton
             label="Чаты"
             active={isChats}
             count={unreadChats}
             onClick={() => go("/dashboard/chats")}
-            icon={<MessageSquare size={24} strokeWidth={2} />}
+            icon={<MessageSquare size={22} strokeWidth={2} />}
           />
           <TabButton
             label="Финансы"
             active={isFinances}
             onClick={() => go("/dashboard/finances")}
-            icon={<Wallet size={24} strokeWidth={2} />}
+            icon={<Wallet size={22} strokeWidth={2} />}
           />
           <TabButton
             label="Ещё"
             active={false}
             onClick={sidebar.toggle}
-            icon={<Menu size={24} strokeWidth={2} />}
+            icon={<Menu size={22} strokeWidth={2} />}
           />
         </div>
       </nav>
@@ -134,9 +134,9 @@ function TabButton({
   const showCount = typeof count === "number" && count > 0;
   const label9 = showCount && count > 9 ? "9+" : String(count ?? "");
 
-  // Long-press handling — 500 ms threshold matches the rest of the
-  // app (calendar long-press, etc.). Suppresses the click if the
-  // long-press fired so we don't navigate AND open search.
+  // Long-press matches the 500 ms threshold used elsewhere (calendar
+  // long-press, etc.). Suppresses the click if long-press fired so
+  // we don't navigate AND open search.
   const longPressFiredRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const startLongPress = () => {
@@ -171,19 +171,21 @@ function TabButton({
           onLongPress();
         }
       }}
-      className={`relative flex-1 min-w-[44px] h-[62px] flex flex-col items-center justify-center gap-1 transition active:scale-[0.97] ${
-        active ? "text-[var(--accent)]" : "text-[var(--label-secondary)]"
+      className={`relative flex-1 min-w-[44px] h-[50px] rounded-[var(--radius-pill)] flex flex-col items-center justify-center gap-0.5 transition active:scale-[0.97] ${
+        active
+          ? "bg-[var(--accent-tint)] text-[var(--accent)]"
+          : "text-[var(--label-secondary)]"
       }`}
     >
       <span className="relative">
         {icon}
         {showCount && (
-          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-[16px] text-center ring-2 ring-white">
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-white text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--surface-card)]">
             {label9}
           </span>
         )}
         {!showCount && dot && (
-          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--system-red)] ring-2 ring-[var(--surface-card)]" />
         )}
       </span>
       <span
