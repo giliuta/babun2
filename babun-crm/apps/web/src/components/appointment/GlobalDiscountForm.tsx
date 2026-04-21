@@ -125,7 +125,7 @@ export default function GlobalDiscountForm({
                 }}
                 className={`h-8 px-3 rounded-lg text-[13px] font-semibold tabular-nums transition ${
                   active
-                    ? "bg-[rgba(255,59,48,0.08)]0 text-white"
+                    ? "bg-[var(--system-red)] text-white"
                     : "bg-[var(--fill-primary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
                 }`}
               >
@@ -156,7 +156,7 @@ export default function GlobalDiscountForm({
                 type="button"
                 onClick={() => setReason(r)}
                 className={`h-8 px-2.5 rounded-lg text-[12px] font-semibold ${
-                  reason === r ? "bg-[rgba(255,59,48,0.08)]0 text-white" : "bg-[var(--fill-primary)] text-[var(--label)]"
+                  reason === r ? "bg-[var(--system-red)] text-white" : "bg-[var(--fill-primary)] text-[var(--label)]"
                 }`}
               >
                 {r}
@@ -168,7 +168,7 @@ export default function GlobalDiscountForm({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Свой текст"
-            className="w-full h-9 px-3 rounded-lg bg-white border border-[var(--separator)] text-[13px] focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full h-9 px-3 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--system-red)]"
           />
         </div>
         <div className="flex gap-2 pt-1">
@@ -182,7 +182,7 @@ export default function GlobalDiscountForm({
           <button
             type="button"
             onClick={apply}
-            className="flex-[2] h-10 rounded-lg bg-[rgba(255,59,48,0.08)]0 text-white text-[13px] font-semibold active:scale-[0.99]"
+            className="flex-[2] h-10 rounded-lg bg-[var(--system-red)] text-white text-[13px] font-semibold active:scale-[0.99]"
           >
             Применить
           </button>

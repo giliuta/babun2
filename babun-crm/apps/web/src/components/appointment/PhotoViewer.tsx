@@ -193,7 +193,7 @@ export default function PhotoViewer({
             <button
               type="button"
               onClick={() => onDelete(photo.id)}
-              className="ml-auto h-9 px-3 rounded-lg bg-[rgba(255,59,48,0.08)]0 text-white text-[12px] font-semibold active:bg-[var(--system-red)]"
+              className="ml-auto h-9 px-3 rounded-lg bg-[var(--system-red)] text-white text-[12px] font-semibold active:bg-[var(--system-red)]"
             >
               Удалить
             </button>
@@ -253,20 +253,20 @@ export default function PhotoViewer({
 function KindBadge({ kind }: { kind: PhotoKind }) {
   if (kind === "before") {
     return (
-      <span className="h-6 px-2 rounded-full bg-[rgba(255,59,48,0.08)]0 text-white text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[var(--system-red)] text-white text-[11px] font-bold flex items-center">
         До
       </span>
     );
   }
   if (kind === "after") {
     return (
-      <span className="h-6 px-2 rounded-full bg-[rgba(52,199,89,0.08)]0 text-white text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[var(--system-green)] text-white text-[11px] font-bold flex items-center">
         После
       </span>
     );
   }
   return (
-    <span className="h-6 px-2 rounded-full bg-[var(--fill-tertiary)]0 text-white text-[11px] font-bold flex items-center">
+    <span className="h-6 px-2 rounded-full bg-[var(--fill-primary)] text-white text-[11px] font-bold flex items-center">
       Прочее
     </span>
   );

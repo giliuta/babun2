@@ -20,7 +20,7 @@ export default function QuickActions({ phone, address }: QuickActionsProps) {
         onClick={(e) => { if (!phoneDigits) e.preventDefault(); }}
         className={`min-h-[56px] rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[13px] font-semibold transition ${
           phoneDigits
-            ? "bg-[rgba(52,199,89,0.08)]0 text-white active:bg-[var(--system-green)]"
+            ? "bg-[var(--system-green)] text-white active:bg-[var(--system-green)]"
             : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
         }`}
       >

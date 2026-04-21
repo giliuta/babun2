@@ -44,7 +44,7 @@ export default function AddressBlock({ address, askHref }: AddressBlockProps) {
         {askHref && (
           <a
             href={askHref}
-            className="h-8 px-3 rounded-lg bg-[rgba(255,149,0,0.08)]0 text-white text-[12px] font-semibold flex items-center active:bg-[var(--system-orange)] flex-shrink-0"
+            className="h-8 px-3 rounded-lg bg-[var(--system-orange)] text-white text-[12px] font-semibold flex items-center active:bg-[var(--system-orange)] flex-shrink-0"
           >
             Спросить
           </a>

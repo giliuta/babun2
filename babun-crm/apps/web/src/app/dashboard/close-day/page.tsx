@@ -358,8 +358,8 @@ function ScheduledRow({
   onMoveTomorrow: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 p-2 rounded-xl bg-amber-50/40">
-      <span className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+    <div className="flex items-center gap-3 p-2 rounded-xl bg-[rgba(255,149,0,0.08)]/40">
+      <span className="w-9 h-9 rounded-lg bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)] flex items-center justify-center shrink-0">
         <WalletIcon size={16} strokeWidth={2} />
       </span>
       <div className="flex-1 min-w-0">

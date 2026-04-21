@@ -1122,7 +1122,7 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
-        checked ? "bg-[rgba(52,199,89,0.08)]0" : "bg-[var(--fill-primary)]"
+        checked ? "bg-[var(--system-green)]" : "bg-[var(--fill-primary)]"
       }`}
     >
       <span

@@ -201,9 +201,9 @@ function PhotoThumb({
 }) {
   const badgeCls =
     photo.kind === "before"
-      ? "bg-[rgba(255,59,48,0.08)]0"
+      ? "bg-[var(--system-red)]"
       : photo.kind === "after"
-      ? "bg-[rgba(52,199,89,0.08)]0"
+      ? "bg-[var(--system-green)]"
       : null;
   const badgeText =
     photo.kind === "before" ? "До" : photo.kind === "after" ? "После" : null;

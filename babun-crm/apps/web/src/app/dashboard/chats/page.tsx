@@ -276,7 +276,7 @@ export default function ChatsPage() {
             <button key={ch} type="button" onClick={() => setFilter(ch)}
               className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
                 filter === ch
-                  ? isOrange ? "bg-[rgba(255,149,0,0.08)]0 text-white" : "bg-[var(--accent)] text-white"
+                  ? isOrange ? "bg-[var(--system-orange)] text-white" : "bg-[var(--accent)] text-white"
                   : ch === "unanswered" && count > 0 ? "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
               }`}
             >{label} ({count})</button>
@@ -292,9 +292,9 @@ export default function ChatsPage() {
           return (
             <SwipeableRow
               key={chat.id}
-              leftActions={[{ label: chat.is_pinned ? "Открепить" : "Закрепить", color: "bg-[rgba(62,136,247,0.08)]0", onSelect: () => togglePin(chat.id) }]}
+              leftActions={[{ label: chat.is_pinned ? "Открепить" : "Закрепить", color: "bg-[var(--system-blue)]", onSelect: () => togglePin(chat.id) }]}
               rightActions={[
-                { label: "Архив", color: "bg-[rgba(255,149,0,0.08)]0", onSelect: () => archiveChat(chat.id) },
+                { label: "Архив", color: "bg-[var(--system-orange)]", onSelect: () => archiveChat(chat.id) },
               ]}
             >
               <button
@@ -355,7 +355,7 @@ export default function ChatsPage() {
                       )}
                     </span>
                     {chat.unread_count > 0 && (
-                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[rgba(52,199,89,0.08)]0 text-white text-[11px] font-bold flex items-center justify-center px-1">
+                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[var(--system-green)] text-white text-[11px] font-bold flex items-center justify-center px-1">
                         {chat.unread_count}
                       </span>
                     )}

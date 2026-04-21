@@ -60,49 +60,49 @@ const NAV_SECTIONS: NavSection[] = [
   {
     href: "/dashboard/settings/calendar",
     icon: CalendarDays,
-    tone: "bg-violet-500",
+    tone: "bg-[var(--tile-orange)]",
     title: "Календарь",
     desc: "Часы работы, шаг сетки, часовой пояс",
   },
   {
     href: "/dashboard/settings/cities",
     icon: MapPin,
-    tone: "bg-rose-500",
+    tone: "bg-[var(--tile-red)]",
     title: "Города",
     desc: "Справочник городов для клиентов и записей",
   },
   {
     href: "/dashboard/teams",
     icon: UsersIcon,
-    tone: "bg-sky-500",
+    tone: "bg-[var(--tile-blue)]",
     title: "Бригады",
     desc: "Состав команд, цвета, дефолтный город, % ЗП",
   },
   {
     href: "/dashboard/masters",
     icon: UserCircle2,
-    tone: "bg-emerald-500",
+    tone: "bg-[var(--tile-indigo)]",
     title: "Мастера",
     desc: "Сотрудники, контакты, зарплата, доступы, документы",
   },
   {
     href: "/dashboard/sms-templates",
     icon: MessageSquare,
-    tone: "bg-amber-500",
+    tone: "bg-[var(--tile-mint)]",
     title: "Шаблоны SMS",
     desc: "Тексты напоминаний и подтверждений",
   },
   {
     href: "/dashboard/services",
     icon: Wrench,
-    tone: "bg-slate-500",
+    tone: "bg-[var(--tile-purple)]",
     title: "Услуги и категории",
     desc: "Каталог услуг, цены, длительность",
   },
   {
     href: "/dashboard/settings/company",
     icon: Building2,
-    tone: "bg-indigo-500",
+    tone: "bg-[var(--system-indigo)]",
     title: "Реквизиты и VAT",
     desc: "Название, VAT-номер, режим 19% для счетов",
   },
@@ -125,17 +125,17 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Настройки" />
 
-      <div className="flex-1 overflow-y-auto bg-slate-50">
+      <div className="flex-1 overflow-y-auto bg-[var(--fill-tertiary)]">
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
           <Group title="Разделы">
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[var(--separator)]">
               {NAV_SECTIONS.map((s) => {
                 const Icon = s.icon;
                 return (
                   <Link
                     key={s.href}
                     href={s.href}
-                    className="flex items-center gap-3 px-4 py-3 active:bg-slate-50 transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 active:bg-[var(--fill-tertiary)] transition-colors"
                   >
                     <span
                       className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 ${s.tone}`}
@@ -143,14 +143,14 @@ export default function SettingsPage() {
                       <Icon size={18} strokeWidth={2} />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-medium text-slate-900 truncate">
+                      <div className="text-[15px] font-medium text-[var(--label)] truncate">
                         {s.title}
                       </div>
-                      <div className="text-[12px] text-slate-500 mt-0.5 truncate">
+                      <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 truncate">
                         {s.desc}
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-300 shrink-0" />
+                    <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
                   </Link>
                 );
               })}
@@ -159,8 +159,8 @@ export default function SettingsPage() {
 
           <Group title="Учётная запись">
             <div className="px-4 py-3 flex items-center justify-between">
-              <span className="text-[15px] text-slate-900">Email</span>
-              <span className="text-[13px] text-slate-500 tabular-nums">
+              <span className="text-[15px] text-[var(--label)]">Email</span>
+              <span className="text-[13px] text-[var(--label-secondary)] tabular-nums">
                 airfix.cy@gmail.com
               </span>
             </div>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
             title="Поля записи"
             footer="Какие поля показывать в форме создания визита"
           >
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[var(--separator)]">
               {(Object.keys(FIELD_VIS_LABELS) as (keyof FormFieldVisibility)[]).map(
                 (key) => {
                   const disabled = DISABLED_FIELD_VIS.includes(key);
@@ -192,7 +192,7 @@ export default function SettingsPage() {
             title="Обязательные поля"
             footer="Без заполнения этих полей запись нельзя сохранить"
           >
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[var(--separator)]">
               {(Object.keys(REQUIRED_LABELS) as (keyof RequiredFields)[]).map((key) => (
                 <ToggleRow
                   key={key}
@@ -220,14 +220,14 @@ function Group({
 }) {
   return (
     <div>
-      <div className="px-4 pb-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+      <div className="px-4 pb-2 text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
         {title}
       </div>
       <div className="bg-white rounded-2xl overflow-hidden shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]">
         {children}
       </div>
       {footer && (
-        <div className="px-4 pt-2 text-[11px] text-slate-400 leading-snug">
+        <div className="px-4 pt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
           {footer}
         </div>
       )}
@@ -252,14 +252,14 @@ function ToggleRow({
         disabled ? "opacity-50" : ""
       }`}
     >
-      <span className="text-[15px] text-slate-900 flex-1">{label}</span>
+      <span className="text-[15px] text-[var(--label)] flex-1">{label}</span>
       <button
         type="button"
         onClick={onChange}
         disabled={disabled}
         aria-label={label}
         className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
-          checked ? "bg-emerald-500" : "bg-slate-300"
+          checked ? "bg-[var(--system-green)]" : "bg-[var(--fill-primary)]"
         } ${disabled ? "cursor-not-allowed" : ""}`}
       >
         <span

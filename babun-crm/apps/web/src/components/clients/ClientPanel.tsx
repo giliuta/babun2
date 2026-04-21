@@ -755,19 +755,19 @@ function RecordCard({
       {/* Payment row */}
       <div className="flex items-center gap-3 mt-2 text-[12px]">
         <span className="flex items-center gap-1 text-[var(--system-green)]">
-          <span className="w-4 h-4 rounded-full bg-[rgba(52,199,89,0.08)]0 text-white flex items-center justify-center text-[10px]">
+          <span className="w-4 h-4 rounded-full bg-[var(--system-green)] text-white flex items-center justify-center text-[10px]">
             +
           </span>
           {paid}
         </span>
         <span className="flex items-center gap-1 text-[var(--system-red)]">
-          <span className="w-4 h-4 rounded-full bg-[rgba(255,59,48,0.08)]0 text-white flex items-center justify-center text-[10px]">
+          <span className="w-4 h-4 rounded-full bg-[var(--system-red)] text-white flex items-center justify-center text-[10px]">
             −
           </span>
           {debt}
         </span>
         <span className="flex items-center gap-1 text-[var(--system-blue)]">
-          <span className="w-4 h-4 rounded-full bg-[rgba(62,136,247,0.08)]0 text-white flex items-center justify-center text-[10px]">
+          <span className="w-4 h-4 rounded-full bg-[var(--system-blue)] text-white flex items-center justify-center text-[10px]">
             ·
           </span>
           {total}
@@ -958,7 +958,7 @@ function RemindersTab({
                 }}
                 className={`h-9 px-4 rounded-lg text-[12px] font-semibold flex items-center ${
                   smsHref
-                    ? "bg-[rgba(255,149,0,0.08)]0 text-white active:bg-[var(--system-orange)]"
+                    ? "bg-[var(--system-orange)] text-white active:bg-[var(--system-orange)]"
                     : "bg-[var(--fill-secondary)] text-[var(--label-tertiary)]"
                 }`}
               >

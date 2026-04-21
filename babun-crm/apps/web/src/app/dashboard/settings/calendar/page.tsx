@@ -188,7 +188,7 @@ export default function CalendarSettingsPage() {
               href="/dashboard/settings/booking"
               className="flex items-center gap-3 px-4 py-3 min-h-[48px] active:bg-[var(--fill-quaternary)] transition-colors"
             >
-              <span className="w-7 h-7 rounded-[7px] flex items-center justify-center text-white shrink-0 bg-rose-500">
+              <span className="w-7 h-7 rounded-[7px] flex items-center justify-center text-white shrink-0 bg-[var(--system-red)]">
                 <Home size={16} strokeWidth={2} />
               </span>
               <div className="flex-1 min-w-0">

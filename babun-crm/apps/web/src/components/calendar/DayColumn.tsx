@@ -359,8 +359,8 @@ function DayColumnInner({
             style={{ top: mins(currentTimeMinutes) }}
           >
             <div className="flex items-center">
-              <div className="w-2 h-2 bg-[rgba(255,59,48,0.08)]0 rounded-full -ml-1" />
-              <div className="flex-1 h-[2px] bg-[rgba(255,59,48,0.08)]0" />
+              <div className="w-2 h-2 bg-[var(--system-red)] rounded-full -ml-1" />
+              <div className="flex-1 h-[2px] bg-[var(--system-red)]" />
             </div>
           </div>
         )}

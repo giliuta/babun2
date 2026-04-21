@@ -19,10 +19,10 @@ import {
 import MasterSheet from "./MasterSheet";
 
 const ROLE_COLORS: Record<MasterRole, string> = {
-  admin: "bg-[rgba(255,59,48,0.08)]0",
-  dispatcher: "bg-[rgba(255,149,0,0.08)]0",
+  admin: "bg-[var(--system-red)]",
+  dispatcher: "bg-[var(--system-orange)]",
   lead: "bg-[var(--accent)]",
-  helper: "bg-[var(--fill-tertiary)]0",
+  helper: "bg-[var(--fill-primary)]",
 };
 
 // Sprint 026: Мастера is its own page now — sibling to Бригады, not
