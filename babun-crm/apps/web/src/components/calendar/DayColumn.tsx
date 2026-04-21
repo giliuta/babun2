@@ -197,6 +197,11 @@ function DayColumnInner({
                переход в светлый фон столбца, без видимой границы.
           Разделители между колонками — 1px semi-white. Внешний border-r
           заменён на inline style чтобы не конфликтовал с body. */}
+      {/* Sprint 030: day header flattened to the iOS Calendar pattern.
+          White background, single accent underline for today, city
+          shown as a small muted label above the date. The 2-colour
+          gradient + glass-shine + fade were a Bumpix holdover — strong
+          visual noise that didn't match the rest of the HIG surfaces. */}
       <div
         role="button"
         tabIndex={0}
@@ -209,73 +214,47 @@ function DayColumnInner({
           e.preventDefault();
           onDayHeaderTap?.(dateKey);
         }}
-        className={`relative sticky top-0 z-20 h-[52px] lg:h-[60px] overflow-hidden text-center cursor-pointer active:brightness-95 transition ${
-          isToday ? "ring-2 ring-white/70 ring-inset" : ""
-        }`}
-        style={{
-          // 1. Gradient 135° от светлого c1 к тёмному c2.
-          backgroundImage: cityCfg
-            ? `linear-gradient(135deg, ${cityCfg.c1} 0%, ${cityCfg.color} 100%)`
-            : "linear-gradient(135deg, #94a3b8 0%, #475569 100%)",
-          borderRight: "1px solid rgba(255,255,255,0.15)",
-        }}
+        className="relative sticky top-0 z-20 h-[58px] lg:h-[64px] bg-[var(--surface-card)] border-b border-[var(--separator)] overflow-hidden text-center cursor-pointer active:bg-[var(--fill-quaternary)] transition"
       >
-        {/* 2. Glass-shine overlay. Тонкий блик сверху, мягкая тень
-            снизу — создаёт «стеклянную» глубину. */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)",
-          }}
-        />
-
-        {/* 3. Текст — компактный стек. Weekday + число на одной строке,
-            город тонкой надписью сверху. Экономит ~20 px вертикального
-            места на iPhone 390, не жертвуя читаемостью. */}
-        <div className="relative z-10 px-0.5 pt-1 pb-1.5 flex flex-col items-center justify-start gap-0.5">
-          {/* Город — 8px uppercase bold. */}
-          <span
-            className="text-[8px] lg:text-[10px] font-bold uppercase tracking-wide text-white truncate max-w-full leading-none"
-            style={{ opacity: cityLabel ? 0.9 : 0.5 }}
-          >
-            {cityShort || "+ город"}
+        <div className="relative z-10 px-0.5 pt-1.5 flex flex-col items-center gap-0.5 leading-none">
+          {/* Weekday label — iOS Calendar: small uppercase muted */}
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${isWeekend ? "text-[var(--system-red)]/70" : "text-[var(--label-secondary)]"}`}>
+            {dayName}
+            {isFirstOfMonth && (
+              <span className="ml-1 opacity-80">{monthShort}</span>
+            )}
           </span>
 
-          {/* Weekday + число в одну строку. */}
-          <div
-            className="flex items-baseline gap-1 text-white leading-none"
-            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
-          >
-            <span
-              className="text-[9px] lg:text-[10px] font-semibold uppercase tracking-wide"
-              style={{ opacity: 0.7 }}
-            >
-              {dayName}
-              {isFirstOfMonth && (
-                <span className="ml-1 opacity-80">{monthShort}</span>
-              )}
-            </span>
-            <span className="text-[22px] lg:text-[26px] font-black tabular-nums">
+          {/* Day number — today wraps in a filled accent pill */}
+          {isToday ? (
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--accent)] text-white text-[15px] font-semibold tabular-nums">
               {date.getDate()}
             </span>
-          </div>
+          ) : (
+            <span
+              className={`text-[22px] font-semibold tabular-nums tracking-tight ${isWeekend ? "text-[var(--system-red)]" : "text-[var(--label)]"}`}
+            >
+              {date.getDate()}
+            </span>
+          )}
+
+          {/* City — tiny coloured dot + name. The dot keeps the dispatcher's
+              visual cue; name is small muted text. */}
+          {cityShort ? (
+            <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-[var(--label-secondary)] truncate max-w-full">
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ background: cityCfg?.color ?? "var(--label-tertiary)" }}
+              />
+              {cityShort}
+            </span>
+          ) : (
+            <span className="text-[9px] text-[var(--label-tertiary)]">+ город</span>
+          )}
         </div>
 
-        {/* 4. Fade bottom — 8px переход от тёмной границы к светлому
-            фону тела столбца. Убирает резкую линию. */}
-        <div
-          className="absolute left-0 right-0 bottom-0 pointer-events-none"
-          style={{
-            height: "8px",
-            backgroundImage: cityCfg
-              ? `linear-gradient(to bottom, ${cityCfg.color}00, ${cityCfg.bg})`
-              : "linear-gradient(to bottom, rgba(71,85,105,0), #ffffff)",
-          }}
-        />
-
         {dayAppointments.length > 0 && (
-          <span className="absolute top-1 right-1.5 z-10 text-[9px] font-bold tabular-nums text-white/80">
+          <span className="absolute top-1 right-1.5 z-10 text-[10px] font-semibold tabular-nums text-[var(--label-tertiary)]">
             {dayAppointments.length}
           </span>
         )}
@@ -293,14 +272,18 @@ function DayColumnInner({
           height: "calc(var(--hh) * 24)",
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
-          backgroundColor:
-            cityBg ??
-            (isToday ? "#ecfdf5" : isWeekend ? "#fffbeb" : "#ffffff"),
-          // Hourly grid — a solid 1 px line in gray-200, with a subtle
-          // dashed 0.5 h line at the mid-mark in gray-100 for rhythm.
+          // Sprint 030: city-tinted body backgrounds removed. iOS
+          // Calendar keeps the grid white; the city is communicated
+          // via the header dot + the left accent stripe (4 px below).
+          backgroundColor: isToday
+            ? "rgba(124,58,237,0.04)" // barely-there accent tint — today
+            : isWeekend
+              ? "rgba(60,60,67,0.02)" // just a hint of gray — weekend
+              : "#FFFFFF",
+          // Hourly grid — hairlines at each hour line, softer at half-hour.
           backgroundImage: [
-            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgb(209 213 219) calc(var(--hh) - 1px), rgb(209 213 219) var(--hh))",
-            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / 2 - 1px), rgb(243 244 246) calc(var(--hh) / 2 - 1px), rgb(243 244 246) calc(var(--hh) / 2))",
+            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgba(60,60,67,0.12) calc(var(--hh) - 1px), rgba(60,60,67,0.12) var(--hh))",
+            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / 2 - 1px), rgba(60,60,67,0.06) calc(var(--hh) / 2 - 1px), rgba(60,60,67,0.06) calc(var(--hh) / 2))",
           ].join(","),
           contain: "layout paint",
         }}

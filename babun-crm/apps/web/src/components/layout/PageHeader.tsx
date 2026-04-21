@@ -37,8 +37,8 @@ export default function PageHeader({
   const sidebar = useSidebar();
 
   return (
-    <header className="flex-shrink-0 bg-[var(--accent)] lg:bg-[var(--surface-card)] lg:border-b lg:border-[var(--separator)] z-30">
-      <div className="px-2 lg:px-4 min-h-[44px] flex items-center gap-1 lg:bg-[var(--surface-card)]">
+    <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] z-30">
+      <div className="px-2 lg:px-4 min-h-[44px] flex items-center gap-1">
         {leftContent ? (
           <div className="shrink-0">{leftContent}</div>
         ) : showBack ? (
@@ -46,27 +46,27 @@ export default function PageHeader({
             type="button"
             onClick={() => router.push(backHref)}
             aria-label="Назад"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 shrink-0 transition"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] shrink-0 transition"
           >
-            <ChevronLeft size={22} strokeWidth={2.5} />
+            <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
         ) : (
           <button
             type="button"
             onClick={sidebar.toggle}
             aria-label="Меню"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 shrink-0 transition"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] shrink-0 transition"
           >
-            <Menu size={20} strokeWidth={2.5} />
+            <Menu size={22} strokeWidth={2} />
           </button>
         )}
 
-        <div className="flex-1 min-w-0 py-2">
-          <h1 className="text-[17px] font-semibold text-white lg:text-[var(--label)] truncate tracking-tight leading-tight">
+        <div className="flex-1 min-w-0 py-2 text-center lg:text-left">
+          <h1 className="text-[17px] font-semibold text-[var(--label)] truncate tracking-tight leading-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[12px] text-white/70 lg:text-[var(--label-secondary)] truncate leading-tight mt-0.5">
+            <p className="text-[12px] text-[var(--label-secondary)] truncate leading-tight mt-0.5">
               {subtitle}
             </p>
           )}

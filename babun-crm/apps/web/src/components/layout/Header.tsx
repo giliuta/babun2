@@ -98,31 +98,35 @@ export default function Header({
   };
   const ActiveViewIcon = VIEW_ICONS[viewMode];
 
+  // Sprint 030: mobile header goes white (iOS Calendar style). Brand
+  // violet was a Bumpix holdover that clashed with the rest of the
+  // HIG-tokenised surfaces. Accent now lives inside active chips and
+  // icons, not as a big colored wash behind the nav.
   return (
-    <header className="flex-shrink-0 bg-[var(--accent)] lg:bg-[var(--surface-card)] lg:border-b lg:border-[var(--separator)] flex flex-col z-30">
-      <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1 lg:bg-[var(--surface-card)]">
+    <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] flex flex-col z-30">
+      <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1">
         <button
           type="button"
           onClick={onMenuToggle}
           aria-label="Меню"
-          className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 flex-shrink-0 transition"
+          className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] flex-shrink-0 transition"
         >
-          <Menu size={20} strokeWidth={2.5} />
+          <Menu size={22} strokeWidth={2} />
         </button>
 
         <div className="relative min-w-0 flex-1">
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 active:bg-white/10 lg:active:bg-[var(--fill-quaternary)] rounded-full px-2.5 py-1.5 transition max-w-full"
+            className="flex items-center gap-1 active:bg-[var(--fill-quaternary)] rounded-full px-2.5 py-1.5 transition max-w-full"
           >
-            <h2 className="text-[17px] font-semibold text-white lg:text-[var(--label)] capitalize whitespace-nowrap truncate tracking-tight">
+            <h2 className="text-[17px] font-semibold text-[var(--label)] capitalize whitespace-nowrap truncate tracking-tight">
               {monthName} {year}
             </h2>
             <ChevronDown
               size={14}
               strokeWidth={2.5}
-              className="text-white/70 lg:text-[var(--label-tertiary)] flex-shrink-0"
+              className="text-[var(--label-tertiary)] flex-shrink-0"
             />
           </button>
 
@@ -144,7 +148,7 @@ export default function Header({
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
           hidden={isOnToday}
-          className="relative w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 lg:text-[var(--label-secondary)] lg:active:bg-[var(--fill-quaternary)] flex-shrink-0 transition"
+          className="relative w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] flex-shrink-0 transition"
         >
           <CalendarClock size={20} strokeWidth={2} />
           <span className="absolute text-[9px] font-bold translate-y-[3px]">
@@ -157,7 +161,7 @@ export default function Header({
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-white active:bg-white/10 lg:text-[var(--label-secondary)] lg:active:bg-[var(--fill-quaternary)] transition"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
           >
             <ActiveViewIcon size={20} strokeWidth={2} />
           </button>
@@ -196,18 +200,22 @@ export default function Header({
         </div>
       </div>
 
-      <div className="bg-[var(--accent)] lg:bg-[var(--surface-card)] px-2 lg:px-4 pb-1 lg:pb-2 flex items-center gap-4 lg:gap-1 overflow-x-auto scrollbar-hide">
-        {teams.map((team) => (
-          <TeamTab
-            key={team.id}
-            team={team}
-            active={activeTeamId === team.id}
-            onClick={() => onTeamChange(team.id)}
-            onLongPress={
-              onTeamLongPress ? () => onTeamLongPress(team.id) : undefined
-            }
-          />
-        ))}
+      {/* Team tabs — iOS segmented pill. Active tab gets a white
+          pill on the fill-tertiary track, inactive stays grey text. */}
+      <div className="px-3 lg:px-4 pb-2 overflow-x-auto scrollbar-hide">
+        <div className="inline-flex rounded-[9px] bg-[var(--fill-tertiary)] p-[2px] min-w-full">
+          {teams.map((team) => (
+            <TeamTab
+              key={team.id}
+              team={team}
+              active={activeTeamId === team.id}
+              onClick={() => onTeamChange(team.id)}
+              onLongPress={
+                onTeamLongPress ? () => onTeamLongPress(team.id) : undefined
+              }
+            />
+          ))}
+        </div>
       </div>
     </header>
   );
@@ -262,10 +270,10 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
         onLongPress?.();
         firedRef.current = true;
       }}
-      className={`px-3 lg:px-4 py-2 text-[14px] font-semibold whitespace-nowrap select-none transition tracking-tight ${
+      className={`flex-1 h-8 px-3 rounded-[7px] text-[13px] font-semibold whitespace-nowrap select-none transition ${
         active
-          ? "text-white border-b-2 border-white lg:border-b-0 lg:bg-[var(--fill-tertiary)] lg:text-[var(--label)] lg:rounded-full"
-          : "text-white/70 lg:text-[var(--label-secondary)]"
+          ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_0_rgba(0,0,0,0.1)]"
+          : "text-[var(--label-secondary)]"
       }`}
     >
       {team.name}
