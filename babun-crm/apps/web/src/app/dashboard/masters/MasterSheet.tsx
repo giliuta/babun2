@@ -175,13 +175,18 @@ export default function MasterSheet({
     onSave(next);
   };
 
+  // Centered modal (not bottom-sheet) — matches AppointmentSheet and
+  // the CEO rule "popups/pickers open centered, not as bottom sheets".
+  // z-[70] clears the mobile BottomTabBar (z-40) so its "+" FAB no
+  // longer pokes through the bottom of the sheet.
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/50 flex items-end lg:items-center justify-center"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-2"
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-t-2xl lg:rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col"
+        style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
