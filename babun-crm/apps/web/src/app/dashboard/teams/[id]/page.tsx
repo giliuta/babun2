@@ -201,11 +201,10 @@ export default function BrigadePage({ params }: RouteParams) {
       // If we just removed the current default_city, clear it.
       if (draft.default_city === cityName) update("default_city", "");
     } else {
-      const next = [...current, cityName];
-      update("cities", next);
-      // First city becomes default automatically — matches the
-      // "Базовый город появляется после добавления" UX.
-      if (!draft.default_city) update("default_city", cityName);
+      update("cities", [...current, cityName]);
+      // User picks the base city explicitly via the dropdown — no
+      // more auto-selecting the first one so the app doesn't impose
+      // defaults the user never asked for.
     }
   };
 
@@ -228,10 +227,11 @@ export default function BrigadePage({ params }: RouteParams) {
       color: newCityColor,
     };
     setCities([...cities, created]);
-    // Auto-add to brigade list + make it default if none yet.
+    // Auto-pin to brigade list so the tag the user just named is
+    // immediately selected. Base-city stays user-controlled — we set
+    // nothing automatically.
     const brigadeCities = draft.cities ?? [];
     update("cities", [...brigadeCities, name]);
-    if (!draft.default_city) update("default_city", name);
     setNewCityName("");
     setNewCityColor(CITY_COLOR_PRESETS[0].value);
     setAddingCity(false);
