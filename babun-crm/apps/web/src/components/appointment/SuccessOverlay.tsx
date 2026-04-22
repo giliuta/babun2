@@ -77,7 +77,7 @@ export default function SuccessOverlay({
               cancelAutoDismiss();
               setChooserOpen(true);
             }}
-            className="mt-4 w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] flex items-center justify-center gap-1.5"
+            className="mt-4 w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] flex items-center justify-center gap-1.5"
           >
             <MessageCircle size={16} strokeWidth={2} /> Отправить сообщение
           </button>
@@ -98,7 +98,7 @@ export default function SuccessOverlay({
               <a
                 href={chatHref}
                 onClick={onDone}
-                className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--accent-pressed)]"
+                className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--accent-pressed)]"
               >
                 <MessagesSquare size={16} strokeWidth={2} /> Через чат CRM
               </a>

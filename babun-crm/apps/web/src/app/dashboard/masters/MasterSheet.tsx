@@ -310,7 +310,7 @@ export default function MasterSheet({
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col"
+        className="bg-[var(--surface-card)] rounded-2xl shadow-2xl w-full max-w-lg flex flex-col"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -377,7 +377,7 @@ export default function MasterSheet({
                 <button
                   type="button"
                   onClick={handleGeneratePassword}
-                  className="h-10 px-3.5 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.98] transition"
+                  className="h-10 px-3.5 rounded-lg bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:scale-[0.98] transition"
                 >
                   Создать
                 </button>
@@ -536,7 +536,7 @@ export default function MasterSheet({
                     onClick={() => toggleWorkDay(idx)}
                     className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition ${
                       workSchedule.days[idx]
-                        ? "bg-[var(--accent)] text-white"
+                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                         : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
                     }`}
                   >
@@ -709,7 +709,7 @@ export default function MasterSheet({
                     onClick={() => setBrigadeVisibility(k)}
                     className={`flex-1 h-8 rounded-lg text-[12px] font-semibold transition ${
                       brigadeVisibility === k
-                        ? "bg-white text-[var(--label)] shadow-sm"
+                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm"
                         : "text-[var(--label-secondary)]"
                     }`}
                   >
@@ -864,7 +864,7 @@ export default function MasterSheet({
         </div>
 
         <div
-          className="flex-shrink-0 px-4 py-3 border-t border-[var(--separator)] bg-white flex items-center justify-between gap-2"
+          className="flex-shrink-0 px-4 py-3 border-t border-[var(--separator)] bg-[var(--surface-card)] flex items-center justify-between gap-2"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 12px)" }}
         >
           {isEditing && master ? (
@@ -890,7 +890,7 @@ export default function MasterSheet({
             <button
               type="button"
               onClick={handleSubmit}
-              className="h-11 px-6 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold active:scale-[0.98] transition"
+              className="h-11 px-6 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-xl text-[15px] font-semibold active:scale-[0.98] transition"
             >
               Сохранить
             </button>
@@ -940,7 +940,7 @@ function PasswordShowOnce({
   };
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+      <div className="bg-[var(--surface-card)] rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
         <div>
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
             Пароль создан
@@ -971,7 +971,7 @@ function PasswordShowOnce({
           <button
             type="button"
             onClick={copy}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.98] transition"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98] transition"
           >
             Скопировать
           </button>
@@ -984,13 +984,13 @@ function PasswordShowOnce({
 // iOS-style input: no visible border, soft inset background. Looks like
 // the fields in Telegram's settings / iOS' System Settings.
 const inputCls =
-  "w-full px-3.5 py-2.5 bg-[var(--fill-primary)] border border-transparent rounded-xl text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-white focus:border-[var(--accent)] transition";
+  "w-full px-3.5 py-2.5 bg-[var(--fill-primary)] border border-transparent rounded-xl text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition";
 
 const chipCls = (on: boolean) =>
   `text-[12px] px-3 py-1.5 rounded-full transition-colors ${
     on
-      ? "bg-[var(--accent)] text-white"
-      : "bg-white text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
+      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+      : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
   }`;
 
 function Field({
@@ -1037,7 +1037,7 @@ function PermissionGroup({
           <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">{description}</div>
         )}
       </div>
-      <div className="rounded-xl bg-white divide-y divide-[var(--separator)]">{children}</div>
+      <div className="rounded-xl bg-[var(--surface-card)] divide-y divide-[var(--separator)]">{children}</div>
     </div>
   );
 }
@@ -1075,7 +1075,7 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white shadow-[0_1px_2px_0_rgba(15,23,42,0.04)] overflow-hidden">
+    <div className="rounded-2xl bg-[var(--surface-card)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04)] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -1126,7 +1126,7 @@ function ToggleSwitch({
       }`}
     >
       <span
-        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
           checked ? "translate-x-[18px]" : "translate-x-0"
         }`}
       />

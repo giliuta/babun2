@@ -29,7 +29,7 @@ export default function IOSSwitch({
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
     >
       <span
-        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[0_2px_4px_rgba(42,32,22,0.18)] transition-transform ${
           checked ? "translate-x-[18px]" : "translate-x-0"
         }`}
       />

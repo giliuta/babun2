@@ -92,7 +92,7 @@ function MonthViewInner({
             >
               <div className="flex items-center justify-between w-full">
                 {isToday ? (
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent)] text-white text-[12px] font-bold">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[12px] font-bold">
                     {date.getDate()}
                   </span>
                 ) : (

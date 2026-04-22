@@ -89,8 +89,8 @@ export default function CreateClientModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-white lg:items-center lg:justify-center lg:bg-black/40">
-      <div className="flex flex-col h-full lg:h-auto lg:max-h-[85vh] lg:w-[480px] lg:rounded-2xl lg:bg-white lg:shadow-2xl lg:overflow-hidden">
+    <div className="fixed inset-0 z-[80] flex flex-col bg-[var(--surface-card)] lg:items-center lg:justify-center lg:bg-black/40">
+      <div className="flex flex-col h-full lg:h-auto lg:max-h-[85vh] lg:w-[480px] lg:rounded-2xl lg:bg-[var(--surface-card)] lg:shadow-2xl lg:overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[var(--separator)]">
           <button
@@ -137,7 +137,7 @@ export default function CreateClientModal({
           ) : (
             <div className="pb-20">
               {/* Search */}
-              <div className="sticky top-0 bg-white px-4 py-3 border-b border-[var(--separator)] z-10">
+              <div className="sticky top-0 bg-[var(--surface-card)] px-4 py-3 border-b border-[var(--separator)] z-10">
                 <div className="relative">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)]">
                     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -200,14 +200,14 @@ export default function CreateClientModal({
         {/* Sticky action button — new tab only */}
         {tab === "new" && (
           <div
-            className="flex-shrink-0 px-4 pt-3 bg-white border-t border-[var(--separator)]"
+            className="flex-shrink-0 px-4 pt-3 bg-[var(--surface-card)] border-t border-[var(--separator)]"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 12px) + 12px)" }}
           >
             <button
               type="button"
               onClick={handleCreate}
               disabled={!name.trim()}
-              className="w-full h-12 rounded-xl bg-[var(--accent)] text-white text-[15px] font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-12 rounded-xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
             >
               Создать и привязать
             </button>
@@ -224,7 +224,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       type="button"
       onClick={onClick}
       className={`flex-1 h-11 rounded-lg text-[14px] font-semibold transition ${
-        active ? "bg-white text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
+        active ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
       }`}
     >
       {children}

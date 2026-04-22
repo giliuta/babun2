@@ -158,7 +158,7 @@ export default function CloseDayPage() {
 
           {closed && (
             <div className="rounded-2xl bg-[rgba(52,199,89,0.12)] p-4 flex items-start gap-3">
-              <span className="w-10 h-10 rounded-xl bg-[var(--system-green)] text-white flex items-center justify-center shrink-0">
+              <span className="w-10 h-10 rounded-xl bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center shrink-0">
                 <Check size={22} strokeWidth={2.5} />
               </span>
               <div className="flex-1">
@@ -340,7 +340,7 @@ function UnpaidRow({
       <button
         type="button"
         onClick={onPaidCash}
-        className="shrink-0 h-9 px-3 rounded-lg bg-[var(--system-green)] text-white text-[13px] font-semibold active:scale-[0.97]"
+        className="shrink-0 h-9 px-3 rounded-lg bg-[var(--system-green)] text-[var(--label-on-accent)] text-[13px] font-semibold active:scale-[0.97]"
       >
         Оплачено
       </button>

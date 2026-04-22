@@ -95,7 +95,7 @@ export default function GlobalDiscountForm({
             type="button"
             onClick={() => setType("fixed")}
             className={`px-3 py-1 rounded-md ${
-              type === "fixed" ? "bg-white shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
+              type === "fixed" ? "bg-[var(--surface-card)] shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
             }`}
           >
             € Сумма
@@ -104,7 +104,7 @@ export default function GlobalDiscountForm({
             type="button"
             onClick={() => setType("percent")}
             className={`px-3 py-1 rounded-md ${
-              type === "percent" ? "bg-white shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
+              type === "percent" ? "bg-[var(--surface-card)] shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
             }`}
           >
             % Процент
@@ -125,7 +125,7 @@ export default function GlobalDiscountForm({
                 }}
                 className={`h-8 px-3 rounded-lg text-[13px] font-semibold tabular-nums transition ${
                   active
-                    ? "bg-[var(--system-red)] text-white"
+                    ? "bg-[var(--system-red)] text-[var(--label-on-accent)]"
                     : "bg-[var(--fill-primary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
                 }`}
               >
@@ -156,7 +156,7 @@ export default function GlobalDiscountForm({
                 type="button"
                 onClick={() => setReason(r)}
                 className={`h-8 px-2.5 rounded-lg text-[12px] font-semibold ${
-                  reason === r ? "bg-[var(--system-red)] text-white" : "bg-[var(--fill-primary)] text-[var(--label)]"
+                  reason === r ? "bg-[var(--system-red)] text-[var(--label-on-accent)]" : "bg-[var(--fill-primary)] text-[var(--label)]"
                 }`}
               >
                 {r}
@@ -182,7 +182,7 @@ export default function GlobalDiscountForm({
           <button
             type="button"
             onClick={apply}
-            className="flex-[2] h-10 rounded-lg bg-[var(--system-red)] text-white text-[13px] font-semibold active:scale-[0.99]"
+            className="flex-[2] h-10 rounded-lg bg-[var(--system-red)] text-[var(--label-on-accent)] text-[13px] font-semibold active:scale-[0.99]"
           >
             Применить
           </button>

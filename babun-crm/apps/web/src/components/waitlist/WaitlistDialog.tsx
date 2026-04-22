@@ -12,9 +12,9 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--surface-card)] rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-[var(--accent)] text-[var(--label-on-accent)] px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">
             Лист ожидания ({MOCK_WAITLIST.length})
           </h2>
@@ -28,7 +28,7 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
               className="px-4 py-3 border-b border-[var(--separator)] space-y-1"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[var(--tile-orange)] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[var(--tile-orange)] text-[var(--label-on-accent)] flex items-center justify-center font-bold text-sm shrink-0">
                   {item.client_name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -75,7 +75,7 @@ export default function WaitlistDialog({ open, onClose }: WaitlistDialogProps) {
         </div>
 
         {/* FAB */}
-        <button className="absolute bottom-20 right-8 w-12 h-12 bg-[var(--accent)] text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[var(--accent-pressed)] transition-colors">
+        <button className="absolute bottom-20 right-8 w-12 h-12 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[var(--accent-pressed)] transition-colors">
           +
         </button>
       </div>

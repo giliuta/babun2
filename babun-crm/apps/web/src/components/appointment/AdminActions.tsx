@@ -28,7 +28,7 @@ export default function AdminActions({
 
   return (
     <div className="px-4 pt-3 pb-2">
-      <div className="rounded-xl border border-[var(--separator)] overflow-hidden bg-white">
+      <div className="rounded-xl border border-[var(--separator)] overflow-hidden bg-[var(--surface-card)]">
         <button
           type="button"
           onClick={onEdit}

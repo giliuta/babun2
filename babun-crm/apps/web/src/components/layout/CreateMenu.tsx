@@ -121,7 +121,7 @@ export default function CreateMenu({
               }}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--fill-quaternary)] transition min-h-[56px]"
             >
-              <span className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-white shrink-0 ${item.tile}`}>
+              <span className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${item.tile}`}>
                 {item.icon}
               </span>
               <div className="flex-1 min-w-0">

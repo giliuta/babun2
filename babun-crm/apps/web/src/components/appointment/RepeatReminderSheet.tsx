@@ -120,7 +120,7 @@ export default function RepeatReminderSheet({
               onConfirm(months, note);
               onClose();
             }}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
           >
             Создать
           </button>

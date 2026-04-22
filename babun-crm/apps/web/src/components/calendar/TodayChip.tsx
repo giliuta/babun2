@@ -51,7 +51,7 @@ export default function TodayChip({ appointments, teamId, onOpen }: TodayChipPro
         </span>
       )}
       {stats.pending > 0 && (
-        <span className="flex items-center gap-0.5 bg-[var(--tile-orange)] text-white rounded-full px-1.5 h-4">
+        <span className="flex items-center gap-0.5 bg-[var(--tile-orange)] text-[var(--label-on-accent)] rounded-full px-1.5 h-4">
           {stats.pending} ожид.
         </span>
       )}

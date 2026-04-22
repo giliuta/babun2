@@ -54,7 +54,7 @@ export default function PriceEditor({
   };
 
   return (
-    <div className="mt-2 p-3 rounded-xl bg-white border border-[var(--separator)] space-y-2.5">
+    <div className="mt-2 p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--separator)] space-y-2.5">
       <div className="text-[11px] text-[var(--label-secondary)]">
         Стандартная: <span className="font-semibold">{catalogPrice}€/шт</span>
       </div>
@@ -103,7 +103,7 @@ export default function PriceEditor({
                   onClick={() => setReason(r)}
                   className={`h-8 px-2.5 rounded-lg text-[12px] font-semibold transition ${
                     reason === r
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "bg-[var(--fill-primary)] text-[var(--label)]"
                   }`}
                 >
@@ -116,7 +116,7 @@ export default function PriceEditor({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Свой текст"
-              className="w-full h-9 px-3 rounded-lg bg-white border border-[var(--separator)] text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full h-9 px-3 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
         </>
@@ -133,7 +133,7 @@ export default function PriceEditor({
         <button
           type="button"
           onClick={handleApply}
-          className="flex-[2] h-10 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.99]"
+          className="flex-[2] h-10 rounded-lg bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:scale-[0.99]"
         >
           Применить
         </button>
@@ -156,7 +156,7 @@ function ModeBtn({
       type="button"
       onClick={onClick}
       className={`px-3 py-1 rounded-md transition ${
-        active ? "bg-white text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
+        active ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
       }`}
     >
       {label}

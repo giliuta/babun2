@@ -77,7 +77,7 @@ export default function ServicesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-white text-[var(--accent)] lg:bg-[var(--accent)] lg:text-white rounded-lg text-sm font-semibold"
+            className="px-3 py-1.5 bg-[var(--surface-card)] text-[var(--accent)] lg:bg-[var(--accent)] lg:text-[var(--label-on-accent)] rounded-lg text-sm font-semibold"
           >
             + Новая
           </button>
@@ -89,7 +89,7 @@ export default function ServicesPage() {
           <button
             type="button"
             onClick={() => setShowCategories((x) => !x)}
-            className="w-full bg-white rounded-lg border border-[var(--separator)] px-4 py-3 text-sm text-left font-medium text-[var(--label)] hover:bg-[var(--fill-tertiary)] flex items-center justify-between"
+            className="w-full bg-[var(--surface-card)] rounded-lg border border-[var(--separator)] px-4 py-3 text-sm text-left font-medium text-[var(--label)] hover:bg-[var(--fill-tertiary)] flex items-center justify-between"
           >
             <span className="inline-flex items-center gap-2">
               <Settings size={14} className="text-[var(--label-secondary)]" />
@@ -110,7 +110,7 @@ export default function ServicesPage() {
           {grouped.map(([catKey, svcList]) => {
             const cat = categoryById.get(catKey);
             return (
-              <section key={catKey} className="bg-white rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+              <section key={catKey} className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
                 <div
                   className="px-4 py-2 text-sm font-semibold border-b border-[var(--separator)] flex items-center gap-2"
                   style={{ backgroundColor: cat ? `${cat.color}15` : undefined }}
@@ -248,7 +248,7 @@ function CategoriesEditor({
   };
 
   return (
-    <section className="bg-white rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-3">
+    <section className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-3">
       {categories.map((c, i) => (
         <div key={c.id} className="flex items-center gap-2">
           <input
@@ -293,7 +293,7 @@ function CategoriesEditor({
           type="button"
           onClick={handleAdd}
           disabled={!name.trim()}
-          className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold disabled:bg-[var(--fill-primary)]"
+          className="px-4 py-2 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-lg text-sm font-semibold disabled:bg-[var(--fill-primary)]"
         >
           +
         </button>
@@ -354,7 +354,7 @@ function ServiceEditorSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40">
-      <div className="w-full lg:max-w-lg bg-white rounded-t-2xl lg:rounded-2xl max-h-[92vh] flex flex-col">
+      <div className="w-full lg:max-w-lg bg-[var(--surface-card)] rounded-t-2xl lg:rounded-2xl max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
           <h2 className="text-base font-semibold text-[var(--label)]">
             {service.name ? "Редактировать услугу" : "Новая услуга"}
@@ -385,7 +385,7 @@ function ServiceEditorSheet({
             <select
               value={draft.category_id ?? ""}
               onChange={(e) => setDraft({ ...draft, category_id: e.target.value || null })}
-              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] bg-white"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] bg-[var(--surface-card)]"
             >
               <option value="">— Без категории —</option>
               {categories.map((c) => (
@@ -441,7 +441,7 @@ function ServiceEditorSheet({
               aria-pressed={draft.is_countable}
             >
               <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--surface-card)] transition-transform ${
                   draft.is_countable ? "translate-x-[22px]" : "translate-x-0.5"
                 }`}
               />
@@ -570,8 +570,8 @@ function ServiceEditorSheet({
                     onClick={() => toggleWeekday(day)}
                     className={`flex-1 py-2 text-xs font-semibold rounded-lg border ${
                       on
-                        ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                        : "bg-white text-[var(--label-secondary)] border-[var(--separator)] hover:bg-[var(--fill-tertiary)]"
+                        ? "bg-[var(--accent)] text-[var(--label-on-accent)] border-[var(--accent)]"
+                        : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)] hover:bg-[var(--fill-tertiary)]"
                     }`}
                   >
                     {WEEKDAY_LABELS[day]}
@@ -679,7 +679,7 @@ function ServiceEditorSheet({
             type="button"
             onClick={() => onSave(draft)}
             disabled={!draft.name.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--accent)] disabled:bg-[var(--fill-primary)]"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-[var(--label-on-accent)] bg-[var(--accent)] disabled:bg-[var(--fill-primary)]"
           >
             Сохранить
           </button>

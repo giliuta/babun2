@@ -61,14 +61,14 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
         <button
           type="button"
           onClick={() => payAll("cash")}
-          className="h-11 rounded-[10px] bg-[var(--system-green)] text-white text-[13px] font-semibold active:opacity-90 flex items-center justify-center gap-1.5"
+          className="h-11 rounded-[10px] bg-[var(--system-green)] text-[var(--label-on-accent)] text-[13px] font-semibold active:opacity-90 flex items-center justify-center gap-1.5"
         >
           <Banknote size={16} strokeWidth={2} /> Нал
         </button>
         <button
           type="button"
           onClick={() => payAll("card")}
-          className="h-11 rounded-[10px] bg-[var(--accent)] text-white text-[13px] font-semibold active:bg-[var(--accent-pressed)] flex items-center justify-center gap-1.5"
+          className="h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] flex items-center justify-center gap-1.5"
         >
           <CreditCard size={16} strokeWidth={2} /> Карта
         </button>
@@ -117,7 +117,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
             type="button"
             onClick={paySplit}
             disabled={!splitValid}
-            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
           >
             Подтвердить сплит
           </button>

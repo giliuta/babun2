@@ -98,9 +98,9 @@ export default function MasterProfileDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--surface-card)] rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-[var(--accent)] text-[var(--label-on-accent)] px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">РџСЂРѕС„РёР»СЊ РјР°СЃС‚РµСЂР°</h2>
           <button
             onClick={onClose}
@@ -279,8 +279,8 @@ export default function MasterProfileDialog({
                       onClick={() => setEditingTeamId(team.id)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                         editingTeamId === team.id
-                          ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                          : "bg-white text-[var(--label)] border-[var(--separator)] hover:border-[var(--accent)]/40"
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)] border-[var(--accent)]"
+                          : "bg-[var(--surface-card)] text-[var(--label)] border-[var(--separator)] hover:border-[var(--accent)]/40"
                       }`}
                     >
                       {team.name}

@@ -45,7 +45,7 @@ function LabelRow({
             if (e.key === "Enter") save();
             if (e.key === "Escape") cancel();
           }}
-          className="flex-1 h-9 px-2 bg-white border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
+          className="flex-1 h-9 px-2 bg-[var(--surface-card)] border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
           placeholder="Название"
         />
         <button
@@ -138,7 +138,7 @@ export default function BookingSettingsPage() {
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="text-white lg:text-[var(--accent)] text-[13px] font-semibold px-2"
+            className="text-[var(--label-on-accent)] lg:text-[var(--accent)] text-[13px] font-semibold px-2"
           >
             + Добавить
           </button>
@@ -161,7 +161,7 @@ export default function BookingSettingsPage() {
                   if (e.key === "Enter") addLabel();
                   if (e.key === "Escape") setAddOpen(false);
                 }}
-                className="w-full h-10 px-3 bg-white border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
+                className="w-full h-10 px-3 bg-[var(--surface-card)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
                 placeholder="Напр. Склад, Магазин, Ресторан"
               />
               <div className="flex gap-2">

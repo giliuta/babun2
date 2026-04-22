@@ -395,7 +395,7 @@ export default function ClientPickerSheet({
                 type="button"
                 onClick={handleCreateNew}
                 disabled={!canCreateClient}
-                className="flex-1 h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] disabled:opacity-40"
+                className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] disabled:opacity-40"
                 title={
                   !newName.trim()
                     ? "Введите имя"
@@ -524,7 +524,7 @@ function TelegramIcon() {
 function InstagramIcon() {
   return (
     <span
-      className="text-white w-5 h-5 rounded flex items-center justify-center"
+      className="text-[var(--label-on-accent)] w-5 h-5 rounded flex items-center justify-center"
       style={{
         background:
           "radial-gradient(circle at 30% 110%, #ffd86b 0%, #fa8a3c 25%, #e6313b 50%, #c13584 75%, #833ab4 100%)",

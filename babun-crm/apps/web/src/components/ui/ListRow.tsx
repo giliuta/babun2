@@ -53,7 +53,7 @@ export default function ListRow(props: ListRowProps) {
     <>
       {Icon && (
         <span
-          className={`w-7 h-7 rounded-[var(--radius-tile)] flex items-center justify-center text-white shrink-0 ${ICON_TONE_BG[iconTone]}`}
+          className={`w-7 h-7 rounded-[var(--radius-tile)] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${ICON_TONE_BG[iconTone]}`}
         >
           <Icon size={16} strokeWidth={2.25} />
         </span>

@@ -377,7 +377,7 @@ export function ExpenseCategoriesSheet({
           <button
             type="button"
             onClick={() => onSave(draft)}
-            className="flex-1 min-h-[44px] px-4 py-2 rounded-[10px] text-[15px] font-semibold text-white bg-[var(--accent)] active:bg-[var(--accent-pressed)]"
+            className="flex-1 min-h-[44px] px-4 py-2 rounded-[10px] text-[15px] font-semibold text-[var(--label-on-accent)] bg-[var(--accent)] active:bg-[var(--accent-pressed)]"
           >
             Сохранить
           </button>

@@ -224,7 +224,7 @@ export default function MorningBriefing({
             dismiss();
             router.push("/dashboard");
           }}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-white text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           К календарю
         </button>
@@ -267,7 +267,7 @@ function Stat({
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <span
-        className={`w-7 h-7 rounded-[var(--radius-tile)] flex items-center justify-center text-white shrink-0 ${tile}`}
+        className={`w-7 h-7 rounded-[var(--radius-tile)] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${tile}`}
       >
         {icon}
       </span>

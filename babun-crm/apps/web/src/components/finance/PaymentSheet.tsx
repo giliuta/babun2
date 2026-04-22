@@ -78,7 +78,7 @@ export default function PaymentSheet({
           <button
             type="button"
             onClick={() => onPay("cash")}
-            className="w-full h-12 rounded-[10px] bg-[var(--system-green)] text-white flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-90 transition"
+            className="w-full h-12 rounded-[10px] bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-90 transition"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="20" height="12" rx="2" />
@@ -89,7 +89,7 @@ export default function PaymentSheet({
           <button
             type="button"
             onClick={() => onPay("card")}
-            className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition"
+            className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center gap-2 text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="5" width="20" height="14" rx="2" />

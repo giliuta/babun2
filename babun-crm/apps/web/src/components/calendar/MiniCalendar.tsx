@@ -132,7 +132,7 @@ export default function MiniCalendar({
               onClick={() => handleDayClick(day)}
               className={`h-9 flex flex-col items-center justify-center rounded-full text-[14px] relative active:bg-[var(--fill-quaternary)] transition-colors ${
                 isToday
-                  ? "bg-[var(--accent)] text-white font-semibold"
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold"
                   : "text-[var(--label)]"
               }`}
             >

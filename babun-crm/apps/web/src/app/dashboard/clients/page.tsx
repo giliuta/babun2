@@ -139,7 +139,7 @@ export default function ClientsPage() {
                 type="button"
                 onClick={() => setConfirmDelete(selectedClient)}
                 aria-label="Удалить клиента"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-quaternary)]"
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-quaternary)]"
               >
                 <Trash2 size={18} strokeWidth={2} />
               </button>
@@ -351,7 +351,7 @@ export default function ClientsPage() {
                     i < filtered.length - 1 ? "border-b border-[var(--separator)]" : ""
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0" style={{ backgroundColor: color }}>
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[13px] flex-shrink-0" style={{ backgroundColor: color }}>
                     {getInitials(client.full_name)}
                   </div>
 
@@ -444,7 +444,7 @@ export default function ClientsPage() {
         type="button"
         onClick={() => setCreating(true)}
         aria-label="Добавить клиента"
-        className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-[0_12px_28px_-12px_rgba(42,171,238,0.65)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
+        className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-[0_12px_28px_-12px_rgba(42,171,238,0.65)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
         style={{
           bottom:
             "calc(env(safe-area-inset-bottom, 12px) + 76px)",

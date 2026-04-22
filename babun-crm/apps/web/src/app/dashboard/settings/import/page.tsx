@@ -80,7 +80,7 @@ export default function ImportPage() {
           type="button"
           disabled={disabled}
           onClick={runImport}
-          className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:scale-[0.99] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
+          className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:scale-[0.99] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
         >
           {running ? "Импортируем…" : "Запустить импорт"}
         </button>

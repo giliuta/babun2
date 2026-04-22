@@ -108,9 +108,9 @@ export default function ClientPanel({
   }, [teams]);
 
   return (
-    <div className="flex flex-col bg-white">
+    <div className="flex flex-col bg-[var(--surface-card)]">
       {/* Tabs bar */}
-      <div className="flex overflow-x-auto border-b border-[var(--separator)] bg-white sticky top-0 z-10">
+      <div className="flex overflow-x-auto border-b border-[var(--separator)] bg-[var(--surface-card)] sticky top-0 z-10">
         <TabBtn label="Профиль" active={tab === "profile"} onClick={() => setTab("profile")} />
         <TabBtn
           label={`Записи (${recordsCount})`}
@@ -367,7 +367,7 @@ function PhoneRow({
         <select
           value={label}
           onChange={(e) => onLabelChange?.(e.target.value)}
-          className="min-w-0 flex-1 h-7 bg-white border border-[var(--separator)] rounded text-[11px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
+          className="min-w-0 flex-1 h-7 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[11px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
         >
           {PHONE_LABEL_OPTIONS.concat(
             PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
@@ -495,7 +495,7 @@ function MessengerRow({
           href={openUrl}
           target="_blank"
           rel="noreferrer"
-          className="h-7 px-2.5 rounded-md bg-white border border-[var(--separator)] text-[11px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center shrink-0"
+          className="h-7 px-2.5 rounded-md bg-[var(--surface-card)] border border-[var(--separator)] text-[11px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center shrink-0"
         >
           Открыть
         </a>
@@ -536,7 +536,7 @@ function ContactSourcesSection({ clientId }: { clientId: string }) {
             // client. Lets Dima jump from the card straight into the
             // Instagram / WhatsApp / Telegram thread.
             href={`/dashboard/chats?chat_id=${chat.id}`}
-            className="flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-semibold text-white active:scale-[0.98]"
+            className="flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-semibold text-[var(--label-on-accent)] active:scale-[0.98]"
             style={{ background: CHANNEL_COLORS[chat.channel as ChatChannel] || "#8b5cf6" }}
           >
             <ChannelGlyph channel={chat.channel as ChatChannel} />
@@ -663,7 +663,7 @@ function RecordsTab({
               type="button"
               onClick={() => setFilter(f.key)}
               className={`px-3 py-2 text-[12px] font-semibold whitespace-nowrap transition-colors ${
-                active ? "text-white" : "text-white/60"
+                active ? "text-[var(--label-on-accent)]" : "text-white/60"
               }`}
             >
               {f.label} ({counts[f.key]})
@@ -755,19 +755,19 @@ function RecordCard({
       {/* Payment row */}
       <div className="flex items-center gap-3 mt-2 text-[12px]">
         <span className="flex items-center gap-1 text-[var(--system-green)]">
-          <span className="w-4 h-4 rounded-full bg-[var(--system-green)] text-white flex items-center justify-center text-[10px]">
+          <span className="w-4 h-4 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px]">
             +
           </span>
           {paid}
         </span>
         <span className="flex items-center gap-1 text-[var(--system-red)]">
-          <span className="w-4 h-4 rounded-full bg-[var(--system-red)] text-white flex items-center justify-center text-[10px]">
+          <span className="w-4 h-4 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px]">
             −
           </span>
           {debt}
         </span>
         <span className="flex items-center gap-1 text-[var(--system-blue)]">
-          <span className="w-4 h-4 rounded-full bg-[var(--system-blue)] text-white flex items-center justify-center text-[10px]">
+          <span className="w-4 h-4 rounded-full bg-[var(--system-blue)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px]">
             ·
           </span>
           {total}
@@ -940,7 +940,7 @@ function RemindersTab({
               {r.body}
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <span className="px-2.5 py-1.5 rounded-lg bg-white border border-[var(--separator)] text-[12px] text-[var(--label)]">
+              <span className="px-2.5 py-1.5 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[12px] text-[var(--label)]">
                 SMS (вручную)
               </span>
               <a
@@ -958,7 +958,7 @@ function RemindersTab({
                 }}
                 className={`h-9 px-4 rounded-lg text-[12px] font-semibold flex items-center ${
                   smsHref
-                    ? "bg-[var(--system-orange)] text-white active:bg-[var(--system-orange)]"
+                    ? "bg-[var(--system-orange)] text-[var(--label-on-accent)] active:bg-[var(--system-orange)]"
                     : "bg-[var(--fill-secondary)] text-[var(--label-tertiary)]"
                 }`}
               >
@@ -1030,7 +1030,7 @@ function Toggle({
       aria-pressed={on}
     >
       <span
-        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+        className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--surface-card)] transition-transform ${
           on ? "translate-x-[22px]" : "translate-x-0.5"
         }`}
       />

@@ -111,7 +111,7 @@ export default function SendMessagePopup({
                   type="button"
                   disabled={!digits}
                   onClick={() => send(ch)}
-                  className={`h-11 rounded-[10px] text-[15px] font-semibold text-white active:scale-[0.98] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)] flex items-center justify-center gap-1.5 ${
+                  className={`h-11 rounded-[10px] text-[15px] font-semibold text-[var(--label-on-accent)] active:scale-[0.98] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)] flex items-center justify-center gap-1.5 ${
                     digits ? meta.color : ""
                   }`}
                 >

@@ -59,7 +59,7 @@ export default function RepeatCopyModal({
           type="button"
           onClick={handleConfirm}
           disabled={previewDates.length === 0}
-          className="w-full h-11 rounded-lg bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.98] disabled:bg-[var(--fill-secondary)]"
+          className="w-full h-11 rounded-lg bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98] disabled:bg-[var(--fill-secondary)]"
         >
           Создать {previewDates.length} копи{copyPlural(previewDates.length)}
         </button>
@@ -84,7 +84,7 @@ export default function RepeatCopyModal({
                   onClick={() => setMode(m)}
                   className={`flex-1 h-9 rounded-lg text-[12px] font-medium transition ${
                     active
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
                   }`}
                 >

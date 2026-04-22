@@ -282,7 +282,7 @@ function IncomePopup({
                       onClick={() => setDiscType(opt.key)}
                       className={`flex-1 h-9 rounded-[10px] text-[13px] font-semibold transition ${
                         discType === opt.key
-                          ? "bg-[var(--accent)] text-white"
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                           : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
                       }`}
                     >
@@ -335,7 +335,7 @@ function IncomePopup({
           <button
             type="button"
             onClick={applyDiscount}
-            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
           >
             Применить
           </button>

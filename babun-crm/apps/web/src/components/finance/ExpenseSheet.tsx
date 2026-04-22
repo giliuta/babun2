@@ -203,7 +203,7 @@ export default function ExpenseSheet({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full h-12 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
+            className="w-full h-12 rounded-[10px] bg-[var(--system-red)] text-[var(--label-on-accent)] text-[15px] font-semibold active:scale-[0.99] transition disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
           >
             {canSave
               ? `Добавить расход · −${formatEUR(amount)}`

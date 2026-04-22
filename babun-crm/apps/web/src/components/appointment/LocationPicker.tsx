@@ -35,7 +35,7 @@ export default function LocationPicker({
               onClick={readonly ? undefined : () => onSelect?.(loc.id)}
               disabled={readonly}
               className={`flex-shrink-0 min-w-[86px] px-3 py-2 rounded-xl border-2 text-left transition ${
-                active ? "border-[var(--accent)] bg-[var(--accent-tint)]" : "border-[var(--separator)] bg-white"
+                active ? "border-[var(--accent)] bg-[var(--accent-tint)]" : "border-[var(--separator)] bg-[var(--surface-card)]"
               } ${readonly ? "" : "active:scale-[0.98]"}`}
             >
               <div

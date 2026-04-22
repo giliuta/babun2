@@ -118,7 +118,7 @@ export default function CalendarSettingsPage() {
                   onClick={() => patch({ gridStep: step })}
                   className={`flex-1 h-11 rounded-[10px] text-[14px] font-medium transition-all ${
                     draft.gridStep === step
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "bg-[var(--fill-tertiary)] text-[var(--label)]"
                   }`}
                 >
@@ -139,7 +139,7 @@ export default function CalendarSettingsPage() {
                   onClick={() => patch({ weekStart: day })}
                   className={`flex-1 h-11 rounded-[10px] text-[14px] font-medium transition-all ${
                     draft.weekStart === day
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "bg-[var(--fill-tertiary)] text-[var(--label)]"
                   }`}
                 >
@@ -188,7 +188,7 @@ export default function CalendarSettingsPage() {
               href="/dashboard/settings/booking"
               className="flex items-center gap-3 px-4 py-3 min-h-[48px] active:bg-[var(--fill-quaternary)] transition-colors"
             >
-              <span className="w-7 h-7 rounded-[7px] flex items-center justify-center text-white shrink-0 bg-[var(--system-red)]">
+              <span className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 bg-[var(--system-red)]">
                 <Home size={16} strokeWidth={2} />
               </span>
               <div className="flex-1 min-w-0">

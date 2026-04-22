@@ -78,7 +78,7 @@ export default function DateWheelModal({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
+          className="w-full h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           Готово
         </button>

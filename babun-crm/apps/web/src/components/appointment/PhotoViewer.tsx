@@ -107,7 +107,7 @@ export default function PhotoViewer({
                 if (e.key === "Escape") setCaptionEditing(false);
               }}
               placeholder="Добавить подпись…"
-              className="w-full h-9 px-2 rounded-lg bg-white/10 text-white text-[13px] focus:outline-none focus:bg-white/20 placeholder-white/50"
+              className="w-full h-9 px-2 rounded-lg bg-white/10 text-[var(--label-on-accent)] text-[13px] focus:outline-none focus:bg-white/20 placeholder-white/50"
             />
           ) : (
             <button
@@ -132,7 +132,7 @@ export default function PhotoViewer({
           type="button"
           onClick={onClose}
           aria-label="Закрыть"
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-white active:bg-white/10"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] active:bg-white/10"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -158,7 +158,7 @@ export default function PhotoViewer({
             type="button"
             onClick={() => setIndex(index - 1)}
             aria-label="Назад"
-            className="absolute top-1/2 left-2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 text-white text-[20px] hidden lg:flex items-center justify-center active:bg-white/20"
+            className="absolute top-1/2 left-2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 text-[var(--label-on-accent)] text-[20px] hidden lg:flex items-center justify-center active:bg-white/20"
           >
             ‹
           </button>
@@ -168,7 +168,7 @@ export default function PhotoViewer({
             type="button"
             onClick={() => setIndex(index + 1)}
             aria-label="Вперёд"
-            className="absolute top-1/2 right-2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 text-white text-[20px] hidden lg:flex items-center justify-center active:bg-white/20"
+            className="absolute top-1/2 right-2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 text-[var(--label-on-accent)] text-[20px] hidden lg:flex items-center justify-center active:bg-white/20"
           >
             ›
           </button>
@@ -186,14 +186,14 @@ export default function PhotoViewer({
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
-              className="h-9 px-3 rounded-lg bg-white/10 text-white text-[12px] font-semibold active:bg-white/20"
+              className="h-9 px-3 rounded-lg bg-white/10 text-[var(--label-on-accent)] text-[12px] font-semibold active:bg-white/20"
             >
               Пометить…
             </button>
             <button
               type="button"
               onClick={() => onDelete(photo.id)}
-              className="ml-auto h-9 px-3 rounded-lg bg-[var(--system-red)] text-white text-[12px] font-semibold active:bg-[var(--system-red)]"
+              className="ml-auto h-9 px-3 rounded-lg bg-[var(--system-red)] text-[var(--label-on-accent)] text-[12px] font-semibold active:bg-[var(--system-red)]"
             >
               Удалить
             </button>
@@ -208,7 +208,7 @@ export default function PhotoViewer({
           onClick={() => setMenuOpen(false)}
         >
           <div
-            className="w-full max-w-[280px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className="w-full max-w-[280px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 border-b border-[var(--separator)] text-[11px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)]">
@@ -253,20 +253,20 @@ export default function PhotoViewer({
 function KindBadge({ kind }: { kind: PhotoKind }) {
   if (kind === "before") {
     return (
-      <span className="h-6 px-2 rounded-full bg-[var(--system-red)] text-white text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center">
         До
       </span>
     );
   }
   if (kind === "after") {
     return (
-      <span className="h-6 px-2 rounded-full bg-[var(--system-green)] text-white text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center">
         После
       </span>
     );
   }
   return (
-    <span className="h-6 px-2 rounded-full bg-[var(--fill-primary)] text-white text-[11px] font-bold flex items-center">
+    <span className="h-6 px-2 rounded-full bg-[var(--fill-primary)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center">
       Прочее
     </span>
   );

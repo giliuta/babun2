@@ -159,7 +159,7 @@ export default function PhotoBlock({
             }}
             className={`inline-flex h-8 px-3 rounded-full text-[12px] font-semibold ${
               toast.includes("Вернуть")
-                ? "bg-[var(--label)] text-white active:bg-[var(--label)]"
+                ? "bg-[var(--label)] text-[var(--label-on-accent)] active:bg-[var(--label)]"
                 : "bg-[var(--fill-primary)] text-[var(--label)]"
             }`}
           >
@@ -225,7 +225,7 @@ function PhotoThumb({
       />
       {badgeCls && badgeText && (
         <span
-          className={`absolute top-0.5 left-0.5 h-4 px-1.5 rounded-full ${badgeCls} text-white text-[9px] font-bold flex items-center`}
+          className={`absolute top-0.5 left-0.5 h-4 px-1.5 rounded-full ${badgeCls} text-[var(--label-on-accent)] text-[9px] font-bold flex items-center`}
         >
           {badgeText}
         </span>

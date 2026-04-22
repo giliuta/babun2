@@ -138,7 +138,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-3 px-4 py-3 active:bg-[var(--fill-tertiary)] transition-colors"
                   >
                     <span
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 ${s.tone}`}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${s.tone}`}
                     >
                       <Icon size={18} strokeWidth={2} />
                     </span>
@@ -223,7 +223,7 @@ function Group({
       <div className="px-4 pb-2 text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
         {title}
       </div>
-      <div className="bg-white rounded-2xl overflow-hidden shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]">
+      <div className="bg-[var(--surface-card)] rounded-2xl overflow-hidden shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]">
         {children}
       </div>
       {footer && (
@@ -263,7 +263,7 @@ function ToggleRow({
         } ${disabled ? "cursor-not-allowed" : ""}`}
       >
         <span
-          className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+          className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
             checked ? "translate-x-[18px]" : "translate-x-0"
           }`}
         />

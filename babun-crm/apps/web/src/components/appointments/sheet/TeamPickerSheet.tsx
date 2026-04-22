@@ -46,7 +46,7 @@ export default function TeamPickerSheet({
                 }`}
               >
                 <div
-                  className="w-9 h-9 rounded-md flex items-center justify-center text-white font-semibold text-[13px]"
+                  className="w-9 h-9 rounded-md flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[13px]"
                   style={{ backgroundColor: t.color || "#f59e0b" }}
                 >
                   {letter}

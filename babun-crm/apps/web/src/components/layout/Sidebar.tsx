@@ -125,11 +125,11 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             drawer but follows the new accent. */}
         <div className="flex-shrink-0 bg-[var(--accent)] px-4 pt-6 pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[var(--accent)] text-[20px] font-bold">
+            <div className="w-12 h-12 bg-[var(--surface-card)] rounded-full flex items-center justify-center text-[var(--accent)] text-[20px] font-bold">
               B
             </div>
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold text-white leading-tight">
+              <div className="text-[16px] font-semibold text-[var(--label-on-accent)] leading-tight">
                 Babun CRM
               </div>
               <div className="text-[12px] text-white/80 truncate">
@@ -306,7 +306,7 @@ function NavRow({
       }`}
     >
       <span
-        className={`w-7 h-7 rounded-[7px] flex items-center justify-center text-white shrink-0 ${ICON_TONE_BG[tone]}`}
+        className={`w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${ICON_TONE_BG[tone]}`}
       >
         <Icon size={16} strokeWidth={2} />
       </span>
@@ -318,7 +318,7 @@ function NavRow({
         {label}
       </span>
       {badge !== undefined && (
-        <span className="min-w-[22px] h-[22px] px-1.5 bg-[var(--system-red)] rounded-full text-[12px] font-semibold text-white flex items-center justify-center tabular-nums">
+        <span className="min-w-[22px] h-[22px] px-1.5 bg-[var(--system-red)] rounded-full text-[12px] font-semibold text-[var(--label-on-accent)] flex items-center justify-center tabular-nums">
           {badge}
         </span>
       )}

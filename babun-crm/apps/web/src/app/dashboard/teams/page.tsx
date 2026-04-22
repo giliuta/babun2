@@ -124,7 +124,7 @@ export default function TeamsPage() {
             type="button"
             onClick={openNew}
             aria-label="Добавить бригаду"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-tertiary)]"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-tertiary)]"
           >
             <Plus size={20} strokeWidth={2.5} />
           </button>
@@ -153,7 +153,7 @@ export default function TeamsPage() {
                   {/* Top row: color circle + name/region + actions */}
                   <div className="flex items-start gap-3">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-sm shrink-0"
                       style={{ backgroundColor: team.color }}
                     >
                       {team.name.charAt(0).toUpperCase()}
@@ -191,7 +191,7 @@ export default function TeamsPage() {
                     {lead ? (
                       <>
                         <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--label-on-accent)] text-[11px] font-semibold shrink-0"
                           style={{ backgroundColor: team.color }}
                         >
                           {getInitials(lead.full_name)}

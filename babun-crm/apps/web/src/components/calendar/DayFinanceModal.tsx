@@ -105,7 +105,7 @@ export default function DayFinanceModal({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-12 bg-[var(--accent)] text-white rounded-[var(--radius-pill)] font-semibold text-[14px] active:scale-[0.98] transition"
+          className="w-full h-12 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[var(--radius-pill)] font-semibold text-[14px] active:scale-[0.98] transition"
         >
           Сохранить
         </button>
@@ -217,7 +217,7 @@ export default function DayFinanceModal({
                   onClick={() => setNewKind("expense")}
                   className={`flex-1 h-8 rounded text-[12px] font-semibold transition ${
                     newKind === "expense"
-                      ? "bg-[var(--system-red)] text-white"
+                      ? "bg-[var(--system-red)] text-[var(--label-on-accent)]"
                       : "text-[var(--label-secondary)]"
                   }`}
                 >
@@ -228,7 +228,7 @@ export default function DayFinanceModal({
                   onClick={() => setNewKind("income")}
                   className={`flex-1 h-8 rounded text-[12px] font-semibold transition ${
                     newKind === "income"
-                      ? "bg-[var(--system-green)] text-white"
+                      ? "bg-[var(--system-green)] text-[var(--label-on-accent)]"
                       : "text-[var(--label-secondary)]"
                   }`}
                 >
@@ -277,7 +277,7 @@ export default function DayFinanceModal({
                     typeof newAmount !== "number" ||
                     newAmount <= 0
                   }
-                  className="flex-1 h-9 bg-[var(--accent)] text-white rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:opacity-40"
+                  className="flex-1 h-9 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:opacity-40"
                 >
                   Добавить
                 </button>

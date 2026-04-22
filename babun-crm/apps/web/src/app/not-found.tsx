@@ -11,7 +11,7 @@ export default function NotFound() {
         paddingBottom: "max(env(safe-area-inset-bottom), 24px)",
       }}
     >
-      <div className="w-16 h-16 rounded-[18px] bg-[var(--accent)] text-white flex items-center justify-center text-[28px] font-bold mb-6 shadow-[0_15px_30px_-10px_rgba(62,136,247,0.45)]">
+      <div className="w-16 h-16 rounded-[18px] bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center text-[28px] font-bold mb-6 shadow-[0_15px_30px_-10px_rgba(62,136,247,0.45)]">
         B
       </div>
       <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)] mb-1">
@@ -27,7 +27,7 @@ export default function NotFound() {
       <div className="mt-8 flex flex-col gap-2 w-full max-w-xs">
         <Link
           href="/dashboard"
-          className="h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-white text-[17px] font-semibold flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
+          className="h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           На главную
         </Link>

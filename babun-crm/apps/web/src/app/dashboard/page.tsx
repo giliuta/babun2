@@ -914,7 +914,7 @@ function DashboardPageInner() {
         ) : (
           <div
             ref={outerScrollerRef}
-            className="flex-1 flex bg-white min-h-0 relative"
+            className="flex-1 flex bg-[var(--surface-card)] min-h-0 relative"
             style={{
               overflowY: "auto",
               overflowX: "clip",
@@ -952,7 +952,7 @@ function DashboardPageInner() {
 
       {/* Build tag — visible proof that latest code is running */}
       <div
-        className="fixed left-2 z-30 pointer-events-none text-[10px] font-mono bg-black/70 text-white px-1.5 py-0.5 rounded"
+        className="fixed left-2 z-30 pointer-events-none text-[10px] font-mono bg-black/70 text-[var(--label-on-accent)] px-1.5 py-0.5 rounded"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 0.25rem)" }}
       >
         {BUILD_VERSION}
@@ -1132,7 +1132,7 @@ function DashboardPageInner() {
         type="button"
         onClick={() => openNewAppointmentInline(null, null, "work")}
         aria-label="Новая запись"
-        className="hidden lg:flex fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg items-center justify-center active:scale-95 transition z-30 hover:bg-[var(--accent-pressed)]"
+        className="hidden lg:flex fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-lg items-center justify-center active:scale-95 transition z-30 hover:bg-[var(--accent-pressed)]"
       >
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />

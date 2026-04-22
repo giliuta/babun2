@@ -92,7 +92,7 @@ export default function FinancesPage() {
           <button
             type="button"
             onClick={() => setShowCategories(true)}
-            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-white lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-tertiary)] rounded-lg"
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-tertiary)] rounded-lg"
           >
             <SlidersHorizontal size={14} strokeWidth={2} />
             Категории
@@ -154,7 +154,7 @@ export default function FinancesPage() {
                 onClick={() => setMode("payroll")}
                 className={`h-8 px-3 rounded-lg text-[12px] font-semibold transition ${
                   mode === "payroll"
-                    ? "bg-[var(--accent)] text-white"
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                     : "bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--fill-secondary)]"
                 }`}
               >

@@ -154,7 +154,7 @@ export default function FinanceSheet({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
+          className="w-full h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
           Сохранить
         </button>
@@ -216,7 +216,7 @@ export default function FinanceSheet({
                     typeof newExpenseAmount !== "number" ||
                     newExpenseAmount <= 0
                   }
-                  className="flex-1 h-11 bg-[var(--accent)] text-white rounded-[10px] text-[13px] font-semibold active:bg-[var(--accent-pressed)] disabled:opacity-40"
+                  className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] text-[13px] font-semibold active:bg-[var(--accent-pressed)] disabled:opacity-40"
                 >
                   Добавить
                 </button>
@@ -341,7 +341,7 @@ export default function FinanceSheet({
                   onClick={() => handleDiscountMode("amount")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "amount"
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "text-[var(--label-secondary)]"
                   }`}
                 >
@@ -352,7 +352,7 @@ export default function FinanceSheet({
                   onClick={() => handleDiscountMode("percent")}
                   className={`px-1.5 h-7 text-[11px] font-semibold ${
                     discountMode === "percent"
-                      ? "bg-[var(--accent)] text-white"
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "text-[var(--label-secondary)]"
                   }`}
                 >

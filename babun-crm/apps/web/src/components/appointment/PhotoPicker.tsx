@@ -54,7 +54,7 @@ export default function PhotoPicker({ open, onClose, onPick }: PhotoPickerProps)
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-[320px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 pt-4 pb-2 text-center text-[15px] font-semibold text-[var(--label)]">
@@ -89,14 +89,14 @@ export default function PhotoPicker({ open, onClose, onPick }: PhotoPickerProps)
             <button
               type="button"
               onClick={() => cameraRef.current?.click()}
-              className="w-full h-12 rounded-xl bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.99] flex items-center justify-center gap-2"
             >
               📸 Камера
             </button>
             <button
               type="button"
               onClick={() => galleryRef.current?.click()}
-              className="w-full h-12 rounded-xl bg-white border border-[var(--separator)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-tertiary)] flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-xl bg-[var(--surface-card)] border border-[var(--separator)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-tertiary)] flex items-center justify-center gap-2"
             >
               🖼 Из галереи
             </button>
@@ -154,7 +154,7 @@ function CategoryButton({
     rose: "bg-[rgba(255,59,48,0.08)] border-[rgba(255,59,48,0.25)] text-[var(--system-red)] active:bg-[rgba(255,59,48,0.14)]",
     emerald:
       "bg-[rgba(52,199,89,0.08)] border-[rgba(52,199,89,0.25)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.14)]",
-    slate: "bg-white border-[var(--separator)] text-[var(--label)] active:bg-[var(--fill-tertiary)]",
+    slate: "bg-[var(--surface-card)] border-[var(--separator)] text-[var(--label)] active:bg-[var(--fill-tertiary)]",
   };
   return (
     <button

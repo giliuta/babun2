@@ -47,7 +47,7 @@ export default function Button({
 
   const variantCls = {
     primary:
-      "bg-[var(--accent)] text-white font-semibold rounded-[var(--radius-pill)] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition",
+      "bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition",
     secondary:
       "bg-[var(--fill-primary)] text-[var(--label)] font-medium rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] transition",
     tinted:

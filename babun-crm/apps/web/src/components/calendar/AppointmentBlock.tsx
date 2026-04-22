@@ -206,7 +206,7 @@ function StatusBadge({ appointment }: { appointment: Appointment }) {
   if (status === "completed") {
     return (
       <div className="absolute top-0.5 right-1 w-3.5 h-3.5 rounded-full bg-[var(--system-green)] flex items-center justify-center">
-        <Check size={9} strokeWidth={3.5} className="text-white" />
+        <Check size={9} strokeWidth={3.5} className="text-[var(--label-on-accent)]" />
       </div>
     );
   }
@@ -215,7 +215,7 @@ function StatusBadge({ appointment }: { appointment: Appointment }) {
     if (end.getTime() < Date.now()) {
       return (
         <div className="absolute top-0.5 right-1 w-3.5 h-3.5 rounded-full bg-[var(--system-orange)] flex items-center justify-center">
-          <Clock size={9} strokeWidth={2.5} className="text-white" />
+          <Clock size={9} strokeWidth={2.5} className="text-[var(--label-on-accent)]" />
         </div>
       );
     }

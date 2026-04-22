@@ -59,7 +59,7 @@ export default function ClientProfileView({
         <div className="text-[14px] text-[var(--label-secondary)] mb-3">Клиент не найден</div>
         <Link
           href="/dashboard/clients"
-          className="h-10 px-4 rounded-[10px] bg-[var(--accent)] text-white text-[13px] font-semibold flex items-center active:bg-[var(--accent-pressed)]"
+          className="h-10 px-4 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold flex items-center active:bg-[var(--accent-pressed)]"
         >
           ← К списку клиентов
         </Link>

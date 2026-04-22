@@ -793,7 +793,7 @@ export default function AppointmentSheet({
               }}
               className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
                 canSave
-                  ? "bg-[var(--accent)] text-white active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
                   : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
               }`}
             >
@@ -873,7 +873,7 @@ export default function AppointmentSheet({
                 disabled={!canSave}
                 className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
                   canSave
-                    ? "bg-[var(--accent)] text-white active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
                     : "bg-[var(--fill-primary)] text-[var(--label-tertiary)] cursor-not-allowed"
                 }`}
               >
@@ -929,7 +929,7 @@ export default function AppointmentSheet({
                   setAskClientFirst(false);
                   setClientSheet(true);
                 }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-white text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
               >
                 Да
               </button>

@@ -5,7 +5,7 @@ import { useRef, useState, type ReactNode } from "react";
 export interface SwipeAction {
   label: string;
   icon?: ReactNode;
-  color: string; // tailwind bg colour, e.g. "bg-emerald-500"
+  color: string; // tailwind bg colour, e.g. "bg-[var(--system-green)]"
   onSelect: () => void;
 }
 
@@ -71,7 +71,7 @@ export default function SwipeableRow({
                 a.onSelect();
                 close();
               }}
-              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-white text-[11px] font-medium ${a.color}`}
+              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-[var(--label-on-accent)] text-[11px] font-medium ${a.color}`}
             >
               {a.icon}
               {a.label}
@@ -89,7 +89,7 @@ export default function SwipeableRow({
                 a.onSelect();
                 close();
               }}
-              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-white text-[11px] font-medium ${a.color}`}
+              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-[var(--label-on-accent)] text-[11px] font-medium ${a.color}`}
             >
               {a.icon}
               {a.label}
@@ -98,7 +98,7 @@ export default function SwipeableRow({
         </div>
       )}
       <div
-        className="relative bg-white transition-transform touch-pan-y"
+        className="relative bg-[var(--surface-card)] transition-transform touch-pan-y"
         style={{
           transform: `translateX(${offset}px)`,
           transitionDuration: startX.current === null ? "200ms" : "0ms",

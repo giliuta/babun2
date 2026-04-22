@@ -69,7 +69,7 @@ export default function ServiceRow({
       : null;
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--separator)] px-3 py-2.5">
+    <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--separator)] px-3 py-2.5">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-semibold text-[var(--label)] truncate">
@@ -84,7 +84,7 @@ export default function ServiceRow({
                   type="button"
                   onClick={() => setQty(line.quantity - 1)}
                   disabled={line.quantity <= 1}
-                  className="w-7 h-7 rounded-md bg-white text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] disabled:opacity-40 flex items-center justify-center"
+                  className="w-7 h-7 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] disabled:opacity-40 flex items-center justify-center"
                 >
                   −
                 </button>
@@ -94,7 +94,7 @@ export default function ServiceRow({
                 <button
                   type="button"
                   onClick={() => setQty(line.quantity + 1)}
-                  className="w-7 h-7 rounded-md bg-white text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] flex items-center justify-center"
+                  className="w-7 h-7 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] flex items-center justify-center"
                 >
                   +
                 </button>
@@ -188,7 +188,7 @@ export default function ServiceRow({
           }}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl shadow-2xl"
+            className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 pt-3 pb-2 text-[13px] font-semibold text-[var(--label)] truncate">

@@ -34,7 +34,7 @@ export default function ServiceBlock({
         <button
           type="button"
           onClick={onPick}
-          className="w-full flex items-center justify-between px-3 py-3 rounded-xl bg-white border-2 border-dashed border-[var(--separator)] active:scale-[0.99]"
+          className="w-full flex items-center justify-between px-3 py-3 rounded-xl bg-[var(--surface-card)] border-2 border-dashed border-[var(--separator)] active:scale-[0.99]"
         >
           <span className="text-[14px] font-medium text-[var(--label-secondary)]">
             Выбрать услугу
@@ -50,7 +50,7 @@ export default function ServiceBlock({
   return (
     <div className="px-4 pt-3">
       <div
-        className={`flex items-center gap-3 px-3 py-3 rounded-xl bg-white border border-[var(--separator)] ${
+        className={`flex items-center gap-3 px-3 py-3 rounded-xl bg-[var(--surface-card)] border border-[var(--separator)] ${
           readonly ? "" : "cursor-pointer active:scale-[0.99]"
         }`}
         onClick={readonly ? undefined : onPick}

@@ -25,9 +25,9 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--surface-card)] rounded-xl shadow-lg w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-[var(--accent)] text-white px-4 py-3 flex items-center gap-2">
+        <div className="bg-[var(--accent)] text-[var(--label-on-accent)] px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">Настройки</h2>
           <button
             onClick={onClose}
@@ -60,7 +60,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <select
               value={appointmentFontSize}
               onChange={(e) => setAppointmentFontSize(e.target.value as FontSize)}
-              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-[var(--surface-card)]"
             >
               {(Object.keys(FONT_SIZE_LABELS) as FontSize[]).map((size) => (
                 <option key={size} value={size}>
@@ -78,7 +78,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <select
               value={timeFontSize}
               onChange={(e) => setTimeFontSize(e.target.value as FontSize)}
-              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-[var(--surface-card)]"
             >
               {(Object.keys(FONT_SIZE_LABELS) as FontSize[]).map((size) => (
                 <option key={size} value={size}>
@@ -101,7 +101,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[var(--surface-card)] rounded-full shadow transition-transform ${
                   use12HourFormat ? "translate-x-5" : "translate-x-0"
                 }`}
               />
@@ -116,7 +116,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <select
               value={firstDayOfWeek}
               onChange={(e) => setFirstDayOfWeek(e.target.value as "monday" | "sunday")}
-              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-[var(--separator)] rounded-lg text-sm text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent bg-[var(--surface-card)]"
             >
               <option value="monday">Понедельник</option>
               <option value="sunday">Воскресенье</option>

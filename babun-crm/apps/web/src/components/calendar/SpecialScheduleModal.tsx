@@ -87,7 +87,7 @@ export default function SpecialScheduleModal({
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 h-11 rounded-lg bg-[var(--accent)] text-white text-[14px] font-semibold active:scale-[0.98]"
+            className="flex-1 h-11 rounded-lg bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98]"
           >
             Сохранить
           </button>
@@ -112,7 +112,7 @@ export default function SpecialScheduleModal({
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
             <span
-              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
+              className={`absolute top-0.5 w-5 h-5 bg-[var(--surface-card)] rounded-full shadow transition-all ${
                 working ? "left-[1.125rem]" : "left-0.5"
               }`}
             />

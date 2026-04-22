@@ -419,65 +419,62 @@ export const COLOR_KIND_TAILWIND: Record<
   { bg: string; border: string; text: string }
 > = {
   scheduled: {
-    // Тёмно-синий — клиент записан, адрес известен, всё готово.
-    // Dima специально просил насыщенный тёмный синий для confirmed-like
-    // визуального состояния — он сильно читается на фоне сетки.
-    bg: "bg-blue-700",
-    border: "border-blue-800",
-    text: "text-white",
+    // Forest green — клиент записан, адрес известен, всё готово.
+    // Primary accent of the Old Money palette; reads as "confirmed".
+    bg: "bg-[var(--accent)]",
+    border: "border-[var(--accent-pressed)]",
+    text: "text-[var(--label-on-accent)]",
   },
   commercial: {
-    // Orange — office/restaurant/shop. Team: bring commercial ladder!
-    bg: "bg-orange-500",
-    border: "border-orange-600",
-    text: "text-white",
+    // Warm gold — office/restaurant/shop. Team: bring commercial ladder!
+    bg: "bg-[var(--system-orange)]",
+    border: "border-[var(--system-orange)]",
+    text: "text-[var(--label-on-accent)]",
   },
   no_address: {
-    // Yellow — ADDRESS MISSING! Most common problem. Stands out.
-    bg: "bg-amber-400",
-    border: "border-amber-500",
-    text: "text-amber-900",
+    // Mustard — ADDRESS MISSING! Still warm, still stands out.
+    bg: "bg-[var(--system-yellow)]",
+    border: "border-[var(--system-yellow)]",
+    text: "text-[var(--label)]",
   },
   tentative: {
-    // Бирюзовый — предварительная запись (>30 дней вперёд, требует
-    // подтверждения). Отделён от past (светло-голубой), чтобы не
-    // сливались.
-    bg: "bg-teal-200",
-    border: "border-teal-300",
-    text: "text-teal-800",
+    // Muted mint — предварительная запись (>30 дней вперёд, требует
+    // подтверждения). Calmer than in_progress to signal future.
+    bg: "bg-[var(--system-mint)]",
+    border: "border-[var(--system-teal)]",
+    text: "text-[var(--label-on-accent)]",
   },
   completed: {
-    // Gray — done, faded so it doesn't distract from today's work
-    bg: "bg-slate-300",
-    border: "border-slate-400",
-    text: "text-slate-600",
+    // Taupe — done, faded so it doesn't distract from today's work.
+    bg: "bg-[var(--fill-secondary)]",
+    border: "border-[var(--separator-opaque)]",
+    text: "text-[var(--label-secondary)]",
   },
   cancelled: {
-    // Красный — отменена. Яркий, чтобы отличать от past/completed,
-    // с line-through применяемым в компоненте блока.
-    bg: "bg-red-500",
-    border: "border-red-600",
-    text: "text-white",
+    // Burgundy — отменена. Line-through applied in the block component.
+    bg: "bg-[var(--system-red)]",
+    border: "border-[var(--system-red)]",
+    text: "text-[var(--label-on-accent)]",
   },
   in_progress: {
-    // Green — team is ON SITE working right now
-    bg: "bg-emerald-500",
-    border: "border-emerald-600",
-    text: "text-white",
+    // Sage green — team is ON SITE working right now.
+    bg: "bg-[var(--system-green)]",
+    border: "border-[var(--system-green)]",
+    text: "text-[var(--label-on-accent)]",
   },
   event: {
-    // Slate — internal task: "buy supplies", "team meeting"
-    bg: "bg-slate-400",
-    border: "border-slate-500",
-    text: "text-white",
+    // Plum — internal task: "buy supplies", "team meeting".
+    bg: "bg-[var(--system-purple)]",
+    border: "border-[var(--system-purple)]",
+    text: "text-[var(--label-on-accent)]",
   },
   past: {
-    // Светло-голубой — время записи прошло, но бригада ещё не
-    // отметила выполнение. Отдельный цвет от completed (серый) и
-    // scheduled (тёмно-синий): сразу видно «надо добить».
-    bg: "bg-sky-200",
-    border: "border-sky-300",
-    text: "text-sky-900",
+    // Dusty navy — время записи прошло, но бригада ещё не отметила
+    // выполнение. Separate hue from completed (taupe) and scheduled
+    // (forest) so «надо добить» reads instantly.
+    bg: "bg-[var(--system-blue)]",
+    border: "border-[var(--system-blue)]",
+    text: "text-[var(--label-on-accent)]",
   },
 };
 

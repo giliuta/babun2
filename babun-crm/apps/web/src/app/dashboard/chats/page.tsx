@@ -240,16 +240,16 @@ export default function ChatsPage() {
   // ─── RENDERS ──────────────────────────────────────────────────────
 
   const chatListEl = (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[var(--surface-card)]">
       {/* Header */}
       <div className="flex-shrink-0 bg-[var(--accent)] px-3 py-3">
-        <div className="text-[17px] font-semibold text-white tracking-tight">
+        <div className="text-[17px] font-semibold text-[var(--label-on-accent)] tracking-tight">
           Чаты{totalUnread > 0 && <span className="text-white/70 font-normal"> ({totalUnread})</span>}
         </div>
       </div>
 
       {/* Search */}
-      <div className="flex-shrink-0 px-3 py-2 bg-white border-b border-[var(--separator)]">
+      <div className="flex-shrink-0 px-3 py-2 bg-[var(--surface-card)] border-b border-[var(--separator)]">
         <div className="relative">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)]">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -276,7 +276,7 @@ export default function ChatsPage() {
             <button key={ch} type="button" onClick={() => setFilter(ch)}
               className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
                 filter === ch
-                  ? isOrange ? "bg-[var(--system-orange)] text-white" : "bg-[var(--accent)] text-white"
+                  ? isOrange ? "bg-[var(--system-orange)] text-[var(--label-on-accent)]" : "bg-[var(--accent)] text-[var(--label-on-accent)]"
                   : ch === "unanswered" && count > 0 ? "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
               }`}
             >{label} ({count})</button>
@@ -306,7 +306,7 @@ export default function ChatsPage() {
               >
                 <div className="relative flex-shrink-0">
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-[15px]"
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[15px]"
                     style={{ backgroundColor: CHANNEL_COLORS[chat.channel] }}
                   >
                     {(chat.contact_name || "?").charAt(0).toUpperCase()}
@@ -355,7 +355,7 @@ export default function ChatsPage() {
                       )}
                     </span>
                     {chat.unread_count > 0 && (
-                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[var(--system-green)] text-white text-[11px] font-bold flex items-center justify-center px-1">
+                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center justify-center px-1">
                         {chat.unread_count}
                       </span>
                     )}
@@ -467,7 +467,7 @@ export default function ChatsPage() {
       {showClientPanel && linkedClient && !isLG && (
         <div className="fixed inset-0 z-[80] lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowClientPanel(false)} />
-          <div className="absolute bottom-0 left-0 right-0 h-[85vh] bg-white rounded-t-2xl overflow-hidden animate-fade-in-up">
+          <div className="absolute bottom-0 left-0 right-0 h-[85vh] bg-[var(--surface-card)] rounded-t-2xl overflow-hidden animate-fade-in-up">
             <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1" />
             <div className="h-full overflow-y-auto" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
               <ClientPanel
@@ -483,7 +483,7 @@ export default function ChatsPage() {
 
       {/* Empty state for panel when no client linked — desktop xl+ */}
       {showClientPanel && !linkedClient && isLG && (
-        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full bg-white border-l border-[var(--separator)] items-center justify-center text-center p-6">
+        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full bg-[var(--surface-card)] border-l border-[var(--separator)] items-center justify-center text-center p-6">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--label-quaternary)] mb-3">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -501,7 +501,7 @@ export default function ChatsPage() {
             <button
               type="button"
               onClick={() => openCreateModal("new")}
-              className="h-10 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold active:scale-[0.98]"
+              className="h-10 rounded-lg bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:scale-[0.98]"
             >
               + Создать нового
             </button>
@@ -575,22 +575,22 @@ function ChatDetailView({
       {/* Header */}
       <div className="flex-shrink-0 bg-[var(--accent)] z-30 relative">
         <div className="px-2 py-2 flex items-center gap-2">
-          <button type="button" onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10 lg:hidden">
+          <button type="button" onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--label-on-accent)] active:bg-white/10 lg:hidden">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
           </button>
           <button type="button" onClick={onTogglePanel} className="flex items-center gap-2 flex-1 min-w-0 active:opacity-80">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: CHANNEL_COLORS[chat.channel] }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-sm flex-shrink-0" style={{ backgroundColor: CHANNEL_COLORS[chat.channel] }}>
               {(chat.contact_name || "?").charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-[14px] font-semibold text-white truncate">{chat.contact_name || chat.contact_handle || "Чат"}</div>
+              <div className="text-[14px] font-semibold text-[var(--label-on-accent)] truncate">{chat.contact_name || chat.contact_handle || "Чат"}</div>
               <div className="text-[11px] text-white/70 truncate">
                 {chat.last_seen ? `был(а) ${formatTimeAgo(chat.last_seen)}` : CHANNEL_LABELS[chat.channel]}
                 {chat.contact_handle && ` · ${chat.contact_handle}`}
               </div>
             </div>
           </button>
-          <button type="button" onClick={() => setHeaderMenu(!headerMenu)} className="w-10 h-10 flex items-center justify-center rounded-xl text-white active:bg-white/10">
+          <button type="button" onClick={() => setHeaderMenu(!headerMenu)} className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--label-on-accent)] active:bg-white/10">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
           </button>
         </div>
@@ -599,7 +599,7 @@ function ChatDetailView({
         {headerMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
-            <div className="absolute right-2 top-full mt-1 bg-white rounded-xl shadow-2xl border border-[var(--separator)] py-1 z-50 min-w-[200px]">
+            <div className="absolute right-2 top-full mt-1 bg-[var(--surface-card)] rounded-xl shadow-2xl border border-[var(--separator)] py-1 z-50 min-w-[200px]">
               <MenuItem label={chat.is_pinned ? "Открепить" : "Закрепить"} onClick={onTogglePin} />
               {linkedClient && (
                 <MenuItem
@@ -631,7 +631,7 @@ function ChatDetailView({
             href={`/dashboard/clients?id=${linkedClient.id}`}
             className="flex items-center gap-2 text-[12px] text-[var(--system-green)] active:opacity-80 w-full text-left"
           >
-            <span className="w-5 h-5 rounded-full bg-[var(--system-green)] text-white flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
+            <span className="w-5 h-5 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
             <span className="flex-1">✓ {linkedClient.full_name}</span>
             <span className="text-[10px] uppercase tracking-wide text-[var(--system-green)] font-semibold">Карточка</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[var(--system-green)]"><polyline points="9 18 15 12 9 6" /></svg>
@@ -661,7 +661,7 @@ function ChatDetailView({
                   <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"} ${prevSame ? "mt-0.5" : "mt-2"}`}>
                     <div
                       className={`relative max-w-[75%] px-2.5 py-1.5 text-[14px] leading-relaxed ${
-                        isOut ? "bg-[var(--accent)] text-white rounded-2xl rounded-br-sm" : "bg-white text-[var(--label)] rounded-2xl rounded-bl-sm shadow-sm"
+                        isOut ? "bg-[var(--accent)] text-[var(--label-on-accent)] rounded-2xl rounded-br-sm" : "bg-[var(--surface-card)] text-[var(--label)] rounded-2xl rounded-bl-sm shadow-sm"
                       }`}
                       onContextMenu={(e) => { e.preventDefault(); haptic("select"); setMsgMenu(msg); }}
                     >
@@ -689,7 +689,7 @@ function ChatDetailView({
         {/* Message context menu */}
         {msgMenu && (
           <div className="fixed inset-0 z-[80]" onClick={() => setMsgMenu(null)}>
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-[var(--separator)] overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[var(--surface-card)] rounded-2xl shadow-2xl border border-[var(--separator)] overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
               <MenuItem label="Ответить" onClick={() => { setReplyTo(msgMenu); setMsgMenu(null); }} icon={<CornerUpLeft size={14} />} />
               <MenuItem label="Копировать" onClick={() => onCopyMessage(msgMenu.text)} icon={<Copy size={14} />} border />
               <MenuItem
@@ -724,7 +724,7 @@ function ChatDetailView({
         )}
 
         {/* Input */}
-        <div className="flex-shrink-0 border-t border-[var(--separator)] bg-white px-2 py-2 flex items-end gap-1.5">
+        <div className="flex-shrink-0 border-t border-[var(--separator)] bg-[var(--surface-card)] px-2 py-2 flex items-end gap-1.5">
           <button type="button" onClick={onPhotoAttach} className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-primary)] flex-shrink-0">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
@@ -742,7 +742,7 @@ function ChatDetailView({
             className="flex-1 min-h-[40px] px-4 rounded-full bg-[var(--fill-primary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
           {draft.trim() ? (
-            <button type="button" onClick={() => onSend()} className="w-10 h-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center active:scale-95 flex-shrink-0">
+            <button type="button" onClick={() => onSend()} className="w-10 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center active:scale-95 flex-shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
             </button>
           ) : (
@@ -866,7 +866,7 @@ function QuickReplySheet({
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center lg:items-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full lg:max-w-md bg-white rounded-t-2xl lg:rounded-2xl max-h-[70vh] flex flex-col overflow-hidden">
+      <div className="relative w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-2xl lg:rounded-2xl max-h-[70vh] flex flex-col overflow-hidden">
         <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1 lg:hidden" />
         <div className="px-4 pt-2 pb-3 border-b border-[var(--separator)]">
           <div className="flex items-center justify-between mb-2">
@@ -878,7 +878,7 @@ function QuickReplySheet({
                   type="button"
                   onClick={() => setLang(l)}
                   className={`px-2 py-1 rounded text-[11px] font-bold uppercase transition ${
-                    lang === l ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
+                    lang === l ? "bg-[var(--accent)] text-[var(--label-on-accent)]" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
                   }`}
                 >
                   {LANG_LABELS[l]}

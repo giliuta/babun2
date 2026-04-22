@@ -161,7 +161,7 @@ export default function ServicePickerSheet({
           type="button"
           onClick={handleConfirm}
           disabled={totals.count === 0}
-          className="w-full h-11 bg-[var(--accent)] text-white rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
+          className="w-full h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
         >
           <span>
             {totals.count > 0
@@ -175,7 +175,7 @@ export default function ServicePickerSheet({
       <div className="p-3 space-y-2">
         {clientName && (
           <div className="flex items-center gap-2.5 px-3 py-2 rounded-[14px] bg-[var(--accent-tint)] border border-[var(--accent)]">
-            <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center text-[12px] font-bold flex-shrink-0">
               {clientInitials(clientName)}
             </div>
             <div className="flex-1 min-w-0">
@@ -255,7 +255,7 @@ export default function ServicePickerSheet({
                         <button
                           type="button"
                           onClick={() => setQty(s.id, qty + 1)}
-                          className="w-7 h-7 rounded-full bg-[var(--accent)] text-white flex items-center justify-center active:scale-95 text-[15px]"
+                          className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center active:scale-95 text-[15px]"
                           aria-label="Увеличить"
                         >
                           +

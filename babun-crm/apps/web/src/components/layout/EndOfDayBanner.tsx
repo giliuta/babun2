@@ -67,7 +67,7 @@ export default function EndOfDayBanner({
       style={{ bottom: "calc(env(safe-area-inset-bottom, 8px) + 72px)" }}
     >
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-[14px] bg-[var(--surface-card)] shadow-[var(--shadow-float)]">
-        <span className="w-8 h-8 rounded-[7px] bg-[var(--tile-orange)] text-white flex items-center justify-center shrink-0 text-[16px]" aria-hidden>
+        <span className="w-8 h-8 rounded-[7px] bg-[var(--tile-orange)] text-[var(--label-on-accent)] flex items-center justify-center shrink-0 text-[16px]" aria-hidden>
           ⚠
         </span>
         <div className="flex-1 min-w-0">
@@ -82,7 +82,7 @@ export default function EndOfDayBanner({
         <button
           type="button"
           onClick={onOpenUnpaid}
-          className="shrink-0 h-8 px-3 rounded-full bg-[var(--accent)] text-white text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.97] transition"
+          className="shrink-0 h-8 px-3 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.97] transition"
         >
           Открыть
         </button>

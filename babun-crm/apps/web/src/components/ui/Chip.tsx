@@ -27,7 +27,7 @@ export default function Chip({
       {...rest}
       className={`inline-flex items-center gap-1 h-8 px-3.5 rounded-full text-[13px] font-semibold transition ${
         active
-          ? "bg-[var(--accent)] text-white"
+          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
           : "bg-[var(--fill-primary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
       } ${className}`}
     >

@@ -180,7 +180,7 @@ function TabButton({
       <span className="relative">
         {icon}
         {showCount && (
-          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-white text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--surface-card)]">
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--surface-card)]">
             {label9}
           </span>
         )}

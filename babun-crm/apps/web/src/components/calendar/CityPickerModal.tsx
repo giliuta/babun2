@@ -97,7 +97,7 @@ export default function CityPickerModal({
                     <MapPin
                       size={16}
                       strokeWidth={2.2}
-                      className="text-white"
+                      className="text-[var(--label-on-accent)]"
                     />
                   </span>
                   <span className="flex-1 text-left text-[15px] font-medium text-[var(--label)]">

@@ -128,7 +128,7 @@ export default function MastersPage() {
             type="button"
             onClick={openNew}
             aria-label="Добавить сотрудника"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-white lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-primary)]"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-primary)]"
           >
             <svg
               width="20"
@@ -155,7 +155,7 @@ export default function MastersPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Поиск по имени, телефону или email"
-              className="w-full h-11 px-3 rounded-xl bg-white border border-[var(--separator)] text-[13px] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full h-11 px-3 rounded-xl bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
@@ -219,7 +219,7 @@ function ListGroup({
       <div className="text-xs font-semibold text-[var(--label-secondary)] uppercase tracking-wide px-1 mb-2">
         {title}
       </div>
-      <div className="bg-white rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden divide-y divide-[var(--separator)]">
+      <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden divide-y divide-[var(--separator)]">
         {children}
       </div>
     </div>
@@ -254,7 +254,7 @@ function MasterRow({
       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--fill-tertiary)] text-left"
     >
       <div
-        className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-[12px] shrink-0 ${ROLE_COLORS[master.role]}`}
+        className={`w-10 h-10 rounded-full text-[var(--label-on-accent)] flex items-center justify-center font-bold text-[12px] shrink-0 ${ROLE_COLORS[master.role]}`}
       >
         {getInitials(master.full_name)}
       </div>

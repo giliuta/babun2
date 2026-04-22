@@ -41,13 +41,13 @@ function CityRow({
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") cancel(); }}
-          className="flex-1 h-9 px-2 bg-white border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
+          className="flex-1 h-9 px-2 bg-[var(--surface-card)] border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
           placeholder="Город"
         />
         <input
           value={country}
           onChange={(e) => setCountry(e.target.value)}
-          className="w-24 h-9 px-2 bg-white border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
+          className="w-24 h-9 px-2 bg-[var(--surface-card)] border border-transparent rounded-[8px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
           placeholder="Страна"
         />
         <button
@@ -148,7 +148,7 @@ export default function CitiesSettingsPage() {
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="text-white lg:text-[var(--accent)] text-[13px] font-semibold px-2"
+            className="text-[var(--label-on-accent)] lg:text-[var(--accent)] text-[13px] font-semibold px-2"
           >
             + Добавить
           </button>
@@ -169,13 +169,13 @@ export default function CitiesSettingsPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") addCity(); if (e.key === "Escape") setAddOpen(false); }}
-                  className="flex-1 h-10 px-3 bg-white border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
+                  className="flex-1 h-10 px-3 bg-[var(--surface-card)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
                   placeholder="Название города"
                 />
                 <input
                   value={newCountry}
                   onChange={(e) => setNewCountry(e.target.value)}
-                  className="w-28 h-10 px-3 bg-white border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
+                  className="w-28 h-10 px-3 bg-[var(--surface-card)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:border-[var(--accent)]"
                   placeholder="Страна"
                 />
               </div>
