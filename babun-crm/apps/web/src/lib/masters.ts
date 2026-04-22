@@ -631,19 +631,11 @@ export function generatePassword(): string {
 }
 
 // ─── Color palette for teams ───────────────────────────────────────────
+// Sprint 033 Phase I20 — aliased to the unified PRESET_COLORS so
+// brigade, city, group and service pickers all share one palette.
 
-export const TEAM_COLORS = [
-  { name: "Синий", value: "#3b82f6" },
-  { name: "Зелёный", value: "#10b981" },
-  { name: "Фиолетовый", value: "#8b5cf6" },
-  { name: "Розовый", value: "#ec4899" },
-  { name: "Оранжевый", value: "#f97316" },
-  { name: "Бирюзовый", value: "#14b8a6" },
-  { name: "Жёлтый", value: "#eab308" },
-  { name: "Красный", value: "#ef4444" },
-  { name: "Индиго", value: "#6366f1" },
-  { name: "Циан", value: "#06b6d4" },
-];
+import { PRESET_COLORS as UNIFIED_TEAM_COLORS } from "./colors";
+export const TEAM_COLORS = UNIFIED_TEAM_COLORS;
 
 // ─── Seed data (Артём's real team) ─────────────────────────────────────
 

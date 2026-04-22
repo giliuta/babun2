@@ -41,6 +41,20 @@ export interface Service {
    *  one (treated as Infinity). Reordered by drag-and-drop on the
    *  brigade services subroute. */
   sort_order?: number;
+  /** Sprint 033 Phase I20 — bulk-pricing LADDER. Replaces the
+   *  single-step bulk_threshold + bulk_price pair with an array of
+   *  { min_qty, price_per_unit } steps. Legacy records are migrated
+   *  on load. Tiers are sorted by min_qty asc; the tier with the
+   *  highest min_qty ≤ current qty wins. */
+  price_tiers?: PriceTier[];
+}
+
+export interface PriceTier {
+  /** Minimum quantity for this tier to apply. Must be ≥ 2 (qty=1
+   *  always uses the base Service.price). */
+  min_qty: number;
+  /** Price per single unit when the tier applies. */
+  price_per_unit: number;
 }
 
 export interface ServiceCategory {
@@ -49,13 +63,11 @@ export interface ServiceCategory {
   color: string;
 }
 
-export const DEFAULT_CATEGORIES: ServiceCategory[] = [
-  { id: "cat-cleaning", name: "Чистка", color: "#3b82f6" },
-  { id: "cat-installation", name: "Установка", color: "#8b5cf6" },
-  { id: "cat-repair", name: "Ремонт", color: "#ef4444" },
-  { id: "cat-maintenance", name: "Обслуживание", color: "#10b981" },
-  { id: "cat-consultation", name: "Диагностика", color: "#f59e0b" },
-];
+// Sprint 033 Phase I20 — empty seed. Babun is multi-tenant SaaS,
+// each tenant starts from scratch and defines their own groups.
+// AirFix's real data is already in localStorage so they're
+// unaffected.
+export const DEFAULT_CATEGORIES: ServiceCategory[] = [];
 
 const NOW = new Date().toISOString();
 
@@ -96,32 +108,28 @@ function svc(
   };
 }
 
-// MEGA-UPDATE: вместо 10 услуг (x1, x2 ... x6 для чистки) — пять
-// мастер-услуг со степпером количества и bulk-ценой.
-export const DEFAULT_SERVICES: Service[] = [
-  svc("svc-clean", "Чистка кондиционера", "cat-cleaning", 45, 50, "#3b82f6", {
-    bulkThreshold: 3,
-    bulkPrice: 45,
-    costPerUnit: 3,
-    isCountable: true,
-  }),
-  svc("svc-install", "Установка A/C", "cat-installation", 120, 150, "#8b5cf6", {
-    isCountable: true,
-  }),
-  svc("svc-diag", "Диагностика A/C", "cat-consultation", 60, 50, "#f59e0b", {
-    isCountable: false,
-  }),
-  svc("svc-repair", "Ремонт A/C", "cat-repair", 120, 200, "#ef4444", {
-    isCountable: false,
-  }),
-  svc("svc-freon", "Заправка фреоном", "cat-maintenance", 30, 80, "#10b981", {
-    costPerUnit: 25,
-    isCountable: true,
-  }),
-];
+// Sprint 033 Phase I20 — empty seed. See DEFAULT_CATEGORIES above.
+export const DEFAULT_SERVICES: Service[] = [];
+// Keep svc() helper un-exported but still defined for any legacy
+// call sites — may be removed in a later pass.
+void svc;
 
-// Pricing helper: bulk price срабатывает от threshold штук.
+// Pricing helper. Sprint 033 Phase I20: honours the new price_tiers
+// ladder first — pick the tier with the highest min_qty ≤ qty.
+// Falls back to the legacy single-step bulk_threshold / bulk_price
+// for records that haven't been migrated yet.
 export function pricePerUnit(service: Service, qty: number): number {
+  const tiers = service.price_tiers ?? [];
+  if (tiers.length > 0) {
+    // Sort defensively; the UI writes them sorted but we shouldn't
+    // trust storage on that.
+    const sorted = [...tiers].sort((a, b) => a.min_qty - b.min_qty);
+    let unit = service.price;
+    for (const t of sorted) {
+      if (qty >= t.min_qty) unit = t.price_per_unit;
+    }
+    return unit;
+  }
   if (
     service.bulk_threshold > 0 &&
     service.bulk_price > 0 &&
@@ -145,14 +153,32 @@ export function loadServices(): Service[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_SERVICES;
     // MEGA-UPDATE migration: fill in new fields on legacy records.
-    return parsed.map((s: Partial<Service>) => ({
-      ...s,
-      bulk_threshold: s.bulk_threshold ?? 0,
-      bulk_price: s.bulk_price ?? 0,
-      cost_per_unit: s.cost_per_unit ?? 0,
-      is_countable: s.is_countable ?? true,
-      brigade_ids: s.brigade_ids ?? [],
-    })) as Service[];
+    // Phase I20: also migrate the legacy single-step bulk pricing
+    // (bulk_threshold + bulk_price) to the new price_tiers ladder
+    // the first time we see it.
+    return parsed.map((s: Partial<Service>) => {
+      const hasLegacyBulk =
+        !s.price_tiers &&
+        (s.bulk_threshold ?? 0) > 1 &&
+        (s.bulk_price ?? 0) > 0;
+      const migratedTiers: PriceTier[] | undefined = hasLegacyBulk
+        ? [
+            {
+              min_qty: s.bulk_threshold as number,
+              price_per_unit: s.bulk_price as number,
+            },
+          ]
+        : s.price_tiers;
+      return {
+        ...s,
+        bulk_threshold: s.bulk_threshold ?? 0,
+        bulk_price: s.bulk_price ?? 0,
+        cost_per_unit: s.cost_per_unit ?? 0,
+        is_countable: s.is_countable ?? true,
+        brigade_ids: s.brigade_ids ?? [],
+        price_tiers: migratedTiers,
+      };
+    }) as Service[];
   } catch {
     return DEFAULT_SERVICES;
   }

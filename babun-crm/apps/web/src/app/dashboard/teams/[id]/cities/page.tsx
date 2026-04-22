@@ -638,7 +638,7 @@ function AddCityModal({
                   <div className="text-[11px] text-[var(--label-secondary)] mb-1.5">
                     Цвет
                   </div>
-                  <div className="grid grid-cols-6 gap-2.5">
+                  <div className="grid grid-cols-7 gap-2.5">
                     {CITY_COLOR_PRESETS.map((c) => {
                       const picked = c.value === color;
                       return (

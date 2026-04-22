@@ -14,23 +14,12 @@ export interface City {
   color?: string;
 }
 
-/** Colour palette offered when adding a custom "city" tag. iOS system
- *  colours mirroring --tile-* tokens, so a new tag sits naturally in
- *  the rest of the UI. */
-export const CITY_COLOR_PRESETS: { name: string; value: string }[] = [
-  { name: "Голубой",     value: "#32ADE6" },
-  { name: "Синий",       value: "#007AFF" },
-  { name: "Индиго",      value: "#5E5CE6" },
-  { name: "Фиолетовый",  value: "#AF52DE" },
-  { name: "Розовый",     value: "#FF2D55" },
-  { name: "Красный",     value: "#FF3B30" },
-  { name: "Оранжевый",   value: "#FF9500" },
-  { name: "Жёлтый",      value: "#FFCC00" },
-  { name: "Зелёный",     value: "#34C759" },
-  { name: "Мята",        value: "#00C7BE" },
-  { name: "Бирюзовый",   value: "#30B0C7" },
-  { name: "Коричневый",  value: "#A2845E" },
-];
+/** Colour palette for city / tag pickers. Sprint 033 Phase I20 —
+ *  aliased to the unified PRESET_COLORS so brigade / city /
+ *  service-group / service all share one palette (13 colours,
+ *  iOS system hues). */
+import { PRESET_COLORS } from "./colors";
+export const CITY_COLOR_PRESETS = PRESET_COLORS;
 
 const STORAGE_KEY = "babun2:settings:cities";
 

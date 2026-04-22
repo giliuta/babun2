@@ -49,10 +49,12 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
 import {
   createBlankService,
-  DEFAULT_CATEGORIES,
+  type PriceTier,
   type Service,
   type ServiceCategory,
+  type ServiceMaterialCost,
 } from "@/lib/services";
+import { PRESET_COLOR_VALUES } from "@/lib/colors";
 import { generateId } from "@/lib/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import IOSSwitch from "@/components/ui/IOSSwitch";
@@ -105,21 +107,39 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     return brigadeServices.filter((s) => normalize(s.name).includes(q));
   }, [brigadeServices, query]);
 
+  // Sprint 033 Phase I20 — categories shown on THIS brigade's page
+  // are scoped: only categories that have at least one active
+  // service attached to this brigade are listed. Global
+  // `categories` is still the storage of truth (ServiceCategory
+  // lives at tenant level), but this brigade only sees what IT
+  // uses. Fixes "откуда оно берёт группу если не в одной бригаде —
+  // не указано". Empty brigades force the user to create a group
+  // first via the modal.
+  const brigadeCategories = useMemo(() => {
+    const usedIds = new Set<string>();
+    brigadeServices.forEach((s) => {
+      if (s.category_id) usedIds.add(s.category_id);
+    });
+    return categories.filter((c) => usedIds.has(c.id));
+  }, [brigadeServices, categories]);
+
   const categoriesWithServices = useMemo(() => {
-    return categories
+    return brigadeCategories
       .map((cat) => ({
         cat,
         list: filtered.filter((s) => s.category_id === cat.id),
       }))
       .filter((x) => x.list.length > 0 || !query);
-  }, [categories, filtered, query]);
+  }, [brigadeCategories, filtered, query]);
 
   const orphanServices = useMemo(
     () =>
       filtered.filter(
-        (s) => !s.category_id || !categories.some((c) => c.id === s.category_id),
+        (s) =>
+          !s.category_id ||
+          !brigadeCategories.some((c) => c.id === s.category_id),
       ),
-    [filtered, categories],
+    [filtered, brigadeCategories],
   );
 
   // DnD — activate drag after 500 ms hold with <6 px movement, so
@@ -317,7 +337,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
         open={addOpen}
         mode="create"
         brigadeId={team.id}
-        categories={categories}
+        categories={brigadeCategories}
         onClose={() => setAddOpen(false)}
         onSubmit={(svc) => {
           upsertService(svc);
@@ -338,7 +358,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
         mode="edit"
         service={editing}
         brigadeId={team.id}
-        categories={categories}
+        categories={brigadeCategories}
         onClose={() => setEditing(null)}
         onSubmit={(svc) => {
           upsertService(svc);
@@ -569,12 +589,15 @@ function ServiceFormModal({
   const [colorManuallyPicked, setColorManuallyPicked] = useState(false);
   const [min, setMin] = useState(60);
   const [price, setPrice] = useState(0);
-  // Extras
-  const [showExtras, setShowExtras] = useState(false);
-  const [costPerUnit, setCostPerUnit] = useState(0);
-  const [bulkThreshold, setBulkThreshold] = useState(0);
-  const [bulkPrice, setBulkPrice] = useState(0);
+  // Sprint 033 Phase I20 — extras reworked into two LIST sub-cards.
+  // priceTiers replaces the single bulk_threshold/bulk_price pair;
+  // materialCosts replaces the single cost_per_unit number with a
+  // full list of named expense items.
+  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
+  const [materialCosts, setMaterialCosts] = useState<ServiceMaterialCost[]>([]);
   const [isCountable, setIsCountable] = useState(true);
+  const [showTiers, setShowTiers] = useState(false);
+  const [showMaterials, setShowMaterials] = useState(false);
 
   const [inlineCatOpen, setInlineCatOpen] = useState(false);
 
@@ -588,15 +611,16 @@ function ServiceFormModal({
       setColorManuallyPicked(true); // don't stomp existing colour
       setMin(service.duration_minutes);
       setPrice(service.price);
-      setCostPerUnit(service.cost_per_unit ?? 0);
-      setBulkThreshold(service.bulk_threshold ?? 0);
-      setBulkPrice(service.bulk_price ?? 0);
       setIsCountable(service.is_countable ?? true);
-      setShowExtras(
-        (service.cost_per_unit ?? 0) > 0 ||
-          (service.bulk_threshold ?? 0) > 0 ||
-          service.is_countable === false,
-      );
+      // Load tiers — migration in loadServices() may have already
+      // turned a legacy bulk_threshold/bulk_price pair into the
+      // single-entry price_tiers array.
+      const tiers = service.price_tiers ?? [];
+      setPriceTiers(tiers);
+      setShowTiers(tiers.length > 0);
+      const costs = service.material_costs ?? [];
+      setMaterialCosts(costs);
+      setShowMaterials(costs.length > 0);
     } else {
       setCategoryId("");
       setName("");
@@ -604,11 +628,11 @@ function ServiceFormModal({
       setColorManuallyPicked(false);
       setMin(60);
       setPrice(0);
-      setCostPerUnit(0);
-      setBulkThreshold(0);
-      setBulkPrice(0);
+      setPriceTiers([]);
+      setMaterialCosts([]);
       setIsCountable(true);
-      setShowExtras(false);
+      setShowTiers(false);
+      setShowMaterials(false);
     }
     const t = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
@@ -637,8 +661,21 @@ function ServiceFormModal({
   const submit = () => {
     if (!canSubmit) return;
     haptic("tap");
-    const normalizedBulkThreshold = bulkThreshold > 1 ? bulkThreshold : 0;
-    const normalizedBulkPrice = normalizedBulkThreshold > 0 ? bulkPrice : 0;
+    // Clean up tiers: drop incomplete ones, sort by qty asc.
+    const cleanTiers = priceTiers
+      .filter((t) => t.min_qty > 1 && t.price_per_unit >= 0)
+      .sort((a, b) => a.min_qty - b.min_qty);
+    // Clean up materials: drop unnamed / zero items.
+    const cleanMaterials = materialCosts.filter(
+      (m) => m.name.trim().length > 0 && m.amount >= 0,
+    );
+    // cost_per_unit kept in sync as sum of material amounts — used
+    // by the finances page for quick net-revenue maths.
+    const sumCostPerUnit = cleanMaterials.reduce(
+      (s, m) => s + Math.max(0, m.amount),
+      0,
+    );
+    // Legacy bulk_* fields zeroed; price_tiers is canonical now.
     if (mode === "edit" && service) {
       onSubmit({
         ...service,
@@ -647,9 +684,11 @@ function ServiceFormModal({
         duration_minutes: Math.max(1, min),
         price: Math.max(0, price),
         category_id: categoryId,
-        cost_per_unit: Math.max(0, costPerUnit),
-        bulk_threshold: normalizedBulkThreshold,
-        bulk_price: normalizedBulkPrice,
+        price_tiers: cleanTiers.length > 0 ? cleanTiers : undefined,
+        bulk_threshold: 0,
+        bulk_price: 0,
+        material_costs: cleanMaterials,
+        cost_per_unit: sumCostPerUnit,
         is_countable: isCountable,
       });
     } else {
@@ -660,14 +699,57 @@ function ServiceFormModal({
           duration_minutes: Math.max(1, min),
           price: Math.max(0, price),
           category_id: categoryId,
-          cost_per_unit: Math.max(0, costPerUnit),
-          bulk_threshold: normalizedBulkThreshold,
-          bulk_price: normalizedBulkPrice,
+          price_tiers: cleanTiers.length > 0 ? cleanTiers : undefined,
+          material_costs: cleanMaterials,
+          cost_per_unit: sumCostPerUnit,
           is_countable: isCountable,
           brigade_ids: [brigadeId],
         }),
       );
     }
+  };
+
+  // ── Tier handlers ───────────────────────────────────────────────
+  const addTier = () => {
+    haptic("tap");
+    // Seed a sensible next step: (last+1 qty, base price − 5 €).
+    const last =
+      priceTiers.length > 0 ? priceTiers[priceTiers.length - 1].min_qty : 1;
+    const suggestedQty = Math.max(2, last + 1);
+    setPriceTiers([
+      ...priceTiers,
+      { min_qty: suggestedQty, price_per_unit: Math.max(0, price - 5) },
+    ]);
+  };
+  const updateTier = (idx: number, patch: Partial<PriceTier>) => {
+    setPriceTiers(
+      priceTiers.map((t, i) => (i === idx ? { ...t, ...patch } : t)),
+    );
+  };
+  const removeTier = (idx: number) => {
+    haptic("warning");
+    setPriceTiers(priceTiers.filter((_, i) => i !== idx));
+  };
+
+  // ── Material-cost handlers ─────────────────────────────────────
+  const addMaterial = () => {
+    haptic("tap");
+    setMaterialCosts([
+      ...materialCosts,
+      { id: generateId("mat"), name: "", amount: 0 },
+    ]);
+  };
+  const updateMaterial = (
+    id: string,
+    patch: Partial<ServiceMaterialCost>,
+  ) => {
+    setMaterialCosts(
+      materialCosts.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    );
+  };
+  const removeMaterial = (id: string) => {
+    haptic("warning");
+    setMaterialCosts(materialCosts.filter((m) => m.id !== id));
   };
 
   return (
@@ -769,7 +851,7 @@ function ServiceFormModal({
               Цвет
             </label>
             <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] p-3">
-              <div className="grid grid-cols-6 gap-2.5">
+              <div className="grid grid-cols-7 gap-2">
                 {GROUP_COLORS.map((c) => {
                   const picked = c === color;
                   return (
@@ -838,118 +920,154 @@ function ServiceFormModal({
             </div>
           </div>
 
-          {/* 5. EXTRAS (collapsible) */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowExtras(!showExtras)}
-              className="w-full flex items-center gap-2 px-1 py-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] press-scale"
-            >
-              <ChevronDown
-                size={14}
-                strokeWidth={2.5}
-                className={`transition-transform ${
-                  showExtras ? "rotate-0" : "-rotate-90"
-                }`}
-              />
-              Дополнительно
-            </button>
-            {showExtras && (
-              <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] p-3 space-y-3">
-                {/* Cost per unit */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-[13px] text-[var(--label)]">
-                      Расход материалов
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5">
-                      <span className="text-[13px] text-[var(--label-secondary)]">
-                        €
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={costPerUnit}
-                        onChange={(e) =>
-                          setCostPerUnit(Number(e.target.value) || 0)
-                        }
-                        className="w-14 h-8 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                      />
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-1">
-                    Сколько уходит химии / фреона / материалов на одну штуку. Учитывается в чистой выручке.
-                  </div>
+          {/* 5. PRICE TIERS — ladder, own collapsible tab */}
+          <ExtraSection
+            open={showTiers}
+            onToggle={() => setShowTiers(!showTiers)}
+            title="Оптовая цена"
+            hint={
+              priceTiers.length === 0
+                ? "Скидки за объём. «3 шт — €45» значит при 3+ штуках каждая идёт по €45."
+                : undefined
+            }
+          >
+            {priceTiers.map((tier, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-[12px] text-[var(--label-tertiary)]">
+                  от
+                </span>
+                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
+                  <input
+                    type="number"
+                    min={2}
+                    step={1}
+                    value={tier.min_qty}
+                    onChange={(e) =>
+                      updateTier(idx, {
+                        min_qty: Math.max(2, Number(e.target.value) || 2),
+                      })
+                    }
+                    className="w-10 h-9 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                  />
+                  <span className="text-[12px] text-[var(--label-secondary)]">
+                    шт.
+                  </span>
                 </div>
-
-                {/* Bulk pricing */}
-                <div className="border-t border-[var(--separator)] pt-3">
-                  <div className="text-[13px] text-[var(--label)] mb-1.5">
-                    Оптовая цена
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-[var(--label-tertiary)]">
-                      от
-                    </span>
-                    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={bulkThreshold}
-                        onChange={(e) =>
-                          setBulkThreshold(Number(e.target.value) || 0)
-                        }
-                        className="w-10 h-8 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                      />
-                      <span className="text-[12px] text-[var(--label-secondary)]">
-                        шт.
-                      </span>
-                    </div>
-                    <span className="text-[12px] text-[var(--label-tertiary)]">
-                      по
-                    </span>
-                    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 flex-1">
-                      <span className="text-[12px] text-[var(--label-secondary)]">
-                        €
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        disabled={bulkThreshold <= 1}
-                        value={bulkPrice}
-                        onChange={(e) =>
-                          setBulkPrice(Number(e.target.value) || 0)
-                        }
-                        className="flex-1 min-w-0 h-8 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums disabled:opacity-40"
-                      />
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-1">
-                    Скидка за объём. «от 3 шт. по €45» = при 3+ штуках каждая идёт по €45 вместо €{price}.
-                  </div>
-                </div>
-
-                {/* Is countable */}
-                <div className="border-t border-[var(--separator)] pt-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-[var(--label)]">
-                      Можно делать несколько
-                    </div>
-                    <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
-                      «Чистка × 3» в одной записи. Для диагностики / ремонта обычно выключено.
-                    </div>
-                  </div>
-                  <IOSSwitch
-                    checked={isCountable}
-                    onChange={setIsCountable}
-                    ariaLabel="Можно делать несколько"
+                <span className="text-[12px] text-[var(--label-tertiary)]">
+                  по
+                </span>
+                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 flex-1 min-w-0">
+                  <span className="text-[12px] text-[var(--label-secondary)]">
+                    €
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={tier.price_per_unit}
+                    onChange={(e) =>
+                      updateTier(idx, {
+                        price_per_unit: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                    className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => removeTier(idx)}
+                  aria-label="Удалить ступень"
+                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+                >
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
               </div>
-            )}
+            ))}
+            <button
+              type="button"
+              onClick={addTier}
+              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              Добавить ступень
+            </button>
+          </ExtraSection>
+
+          {/* 6. MATERIAL COSTS — list of named items, own tab */}
+          <ExtraSection
+            open={showMaterials}
+            onToggle={() => setShowMaterials(!showMaterials)}
+            title="Расход материалов"
+            hint={
+              materialCosts.length === 0
+                ? "Что уходит на одну штуку услуги — химия, фреон, расходники. Сумма вычитается из выручки в финансах."
+                : undefined
+            }
+          >
+            {materialCosts.map((m) => (
+              <div key={m.id} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={m.name}
+                  onChange={(e) =>
+                    updateMaterial(m.id, { name: e.target.value })
+                  }
+                  placeholder="Напр. Фреон R410"
+                  className="flex-1 min-w-0 h-9 px-3 rounded-[8px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  maxLength={40}
+                />
+                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 w-[90px] shrink-0">
+                  <span className="text-[12px] text-[var(--label-secondary)]">
+                    €
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={m.amount}
+                    onChange={(e) =>
+                      updateMaterial(m.id, {
+                        amount: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                    className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeMaterial(m.id)}
+                  aria-label="Удалить расход"
+                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+                >
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addMaterial}
+              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              Добавить расход
+            </button>
+          </ExtraSection>
+
+          {/* 7. IS-COUNTABLE — inline row */}
+          <div className="bg-[var(--surface-card)] rounded-[10px] px-4 py-2.5 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] text-[var(--label)]">
+                Можно делать несколько
+              </div>
+              <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
+                «× 3» в одной записи. Для диагностики / ремонта обычно выключено.
+              </div>
+            </div>
+            <IOSSwitch
+              checked={isCountable}
+              onChange={setIsCountable}
+              ariaLabel="Можно делать несколько"
+            />
           </div>
         </div>
 
@@ -990,15 +1108,10 @@ function ServiceFormModal({
 }
 
 // ─── Category form modal (create group) ──────────────────────────
-
-const GROUP_COLORS = DEFAULT_CATEGORIES.map((c) => c.color).concat([
-  "#FF9500",
-  "#FFCC00",
-  "#34C759",
-  "#5856D6",
-  "#AF52DE",
-  "#FF2D55",
-]);
+// Phase I20 — use the unified PRESET_COLOR_VALUES palette everywhere
+// a colour is picked, so brigade / Метка / group / service all share
+// the same 13-colour palette. Local GROUP_COLORS retired.
+const GROUP_COLORS = PRESET_COLOR_VALUES;
 
 function CategoryFormModal({
   open,
@@ -1071,7 +1184,7 @@ function CategoryFormModal({
               Цвет
             </div>
             <div className="bg-[var(--surface-card)] rounded-[10px] p-3">
-              <div className="grid grid-cols-6 gap-2.5">
+              <div className="grid grid-cols-7 gap-2">
                 {GROUP_COLORS.map((c) => {
                   const picked = c === color;
                   return (
@@ -1118,6 +1231,50 @@ function CategoryFormModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Collapsible sub-card with title + children ──────────────────
+function ExtraSection({
+  open,
+  onToggle,
+  title,
+  hint,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-1 py-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] press-scale"
+      >
+        <ChevronDown
+          size={14}
+          strokeWidth={2.5}
+          className={`transition-transform ${
+            open ? "rotate-0" : "-rotate-90"
+          }`}
+        />
+        {title}
+      </button>
+      {open && (
+        <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] p-3 space-y-2">
+          {children}
+          {hint && (
+            <div className="text-[11px] text-[var(--label-tertiary)] leading-snug pt-1">
+              {hint}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
