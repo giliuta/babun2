@@ -25,8 +25,12 @@ export default function TeamsPage() {
   const { appointments, upsertAppointment } = useAppointments();
   const confirm = useConfirm();
 
-  const [editing, setEditing] = useState<Team | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  // Sprint 033: brigade editing moved to the full-page route
+  // /dashboard/teams/[id]. The modal was fine for a 4-field form; now
+  // the brigade is the central hub (cities, services, members,
+  // calendar window, scroll-to-time, ЗП) so we need the real estate.
+  const _unusedEditing: Team | null = null;
+  void _unusedEditing;
 
   // Group masters by their team_id so the "Мастера" section below can
   // render them clustered with the team they belong to (plus a
@@ -43,51 +47,8 @@ export default function TeamsPage() {
 
   const unassignedMasters = mastersByTeam.get(null) ?? [];
 
-  const openNew = () => {
-    setEditing(null);
-    setShowForm(true);
-  };
-
-  const openEdit = (team: Team) => {
-    setEditing(team);
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditing(null);
-  };
-
-  const handleSave = (team: Team, leadId: string | null, helperIds: string[]) => {
-    upsertTeam(team);
-
-    // Update master.team_id for lead and helpers → set to team.id
-    // For masters that were previously in this team but are no longer → set to null
-    const newMemberIds = new Set<string>();
-    if (leadId) newMemberIds.add(leadId);
-    helperIds.forEach((id) => newMemberIds.add(id));
-
-    const updatedMasters = masters.map<Master>((m) => {
-      const wasInThisTeam = m.team_id === team.id;
-      const isInThisTeamNow = newMemberIds.has(m.id);
-
-      if (isInThisTeamNow) {
-        if (m.team_id !== team.id) {
-          return { ...m, team_id: team.id };
-        }
-        return m;
-      }
-
-      if (wasInThisTeam) {
-        return { ...m, team_id: null };
-      }
-
-      return m;
-    });
-
-    setMasters(updatedMasters);
-    closeForm();
-  };
+  const openNew = () => router.push("/dashboard/teams/new");
+  const openEdit = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
 
   const handleDelete = async (team: Team) => {
     const orphanCount = appointments.filter((a) => a.team_id === team.id).length;
@@ -282,15 +243,6 @@ export default function TeamsPage() {
 
       </div>
 
-      {showForm && (
-        <TeamFormModal
-          key={editing?.id ?? "new"}
-          team={editing}
-          masters={masters}
-          onCancel={closeForm}
-          onSave={handleSave}
-        />
-      )}
     </>
   );
 }

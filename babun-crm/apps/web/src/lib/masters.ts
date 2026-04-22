@@ -241,6 +241,24 @@ export interface Team {
   payout_percentage: number;
   active: boolean;
   created_at: string;
+  // ── Sprint 033 — brigade-as-hub extensions. All optional so records
+  //    saved before this sprint keep parsing; empty array / undefined
+  //    means "no preference" and the calendar falls back to global
+  //    defaults, as before.
+  /** Cities this brigade works in (besides default_city). If set,
+   *  CityPickerModal bubbles these to the top. */
+  cities?: string[];
+  // Services this brigade does are NOT stored here — the inverse
+  // relation lives on `Service.brigade_ids`. This avoids two sources
+  // of truth that could drift out of sync. The brigade editor toggles
+  // `brigade_ids` directly.
+  /** Time the calendar scrolls to when the user switches to this
+   *  brigade ("14:00"). Undefined = no auto-scroll. */
+  default_scroll_time?: string;
+  /** Calendar grid start ("06:00"). Undefined = 00:00. */
+  calendar_window_start?: string;
+  /** Calendar grid end ("23:30"). Undefined = 24:00. */
+  calendar_window_end?: string;
 }
 
 // ─── Default permissions per role ──────────────────────────────────────
