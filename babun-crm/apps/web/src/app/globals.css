@@ -1,34 +1,33 @@
 @import "tailwindcss";
-/* v229-ios-bright */
+/* v245-tg-polish */
 
 /* ──────────────────────────────────────────────────────────────────
-   Babun CRM — iOS bright palette + Telegram structure (Sprint 032 P2)
-   Pivot from Old Money muted back to bright iOS system colours while
-   keeping Telegram's grouped-list DNA (ListGroup, ListRow, SheetShell,
-   BottomTabBar, floating pills, colored tiles). Light canonical —
-   dark mode deferred.
-
-   Why the pivot: Old Money muted pastels failed the daylight-readability
-   test on a live iPhone. "Давит на глаза, плохо читаемое." iOS system
-   colours give us the punch while the Telegram chrome provides the
-   familiar mobile-first structure.
+   Babun CRM — Telegram iOS light (Sprint 033 Phase I)
+   Full Telegram-iOS light-theme pivot per user request: "переделай
+   всю срм в стиль Telegram, светлая тема". Keeps the iOS system
+   colours for semantic status (green OK, red destructive, orange
+   warning) but swings the brand-accent, surfaces, shadows and
+   chrome back to Telegram's own palette:
+     - accent #3E88F7 (Telegram iOS 10+ brand blue)
+     - cooler grouped-grey screen + warmer separator hue
+     - shadows removed on cards (Telegram is flat — only hairline)
+     - pill primary 50 px, ghost secondary
+   Dark mode stays out — explicit user ask.
    ──────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces ──────────────────────────────────────────────────
-     iOS HIG grouped-list: soft cool grey screen with pure white
-     cards on top — that classic "Settings-app" depth. */
-  --surface-grouped: #F2F2F7;
+  /* Surfaces — Telegram iOS grouped scheme. */
+  --surface-grouped: #EFEFF4;
   --surface-card: #FFFFFF;
   --surface-card-secondary: #F2F2F7;
-  --surface-overlay: rgba(0, 0, 0, 0.45);
-  --surface-nav-blur: rgba(255, 255, 255, 0.88);
-  --surface-tint-accent: rgba(0, 122, 255, 0.12);
+  --surface-overlay: rgba(0, 0, 0, 0.40);
+  --surface-nav-blur: rgba(247, 247, 247, 0.92);
+  --surface-tint-accent: rgba(62, 136, 247, 0.12);
 
-  /* Separators (hairlines) — cool neutral, inset 56px from the left
-     in ListRow so it clears the tile icon column. */
-  --separator: rgba(60, 60, 67, 0.12);
-  --separator-opaque: #E5E5EA;
+  /* Separators — Telegram uses a slightly bluer hairline than pure
+     iOS. Inset 56px from the left in ListRow to clear the tile. */
+  --separator: rgba(60, 60, 67, 0.10);
+  --separator-opaque: #E6E7E8;
 
   /* Text hierarchy (labels) — iOS HIG label levels. */
   --label: #000000;
@@ -57,29 +56,30 @@
   --system-pink: #FF2D55;
   --system-brown: #A2845E;
 
-  /* Accent — iOS systemBlue. Bright, familiar, readable. */
-  --accent: #007AFF;
-  --accent-pressed: #0062CC;
-  --accent-tint: rgba(0, 122, 255, 0.15);
+  /* Accent — Telegram iOS brand blue. Slightly warmer than iOS
+     systemBlue, which is the native Telegram feel. */
+  --accent: #3E88F7;
+  --accent-pressed: #2D7BE5;
+  --accent-tint: rgba(62, 136, 247, 0.12);
   --accent-on: #FFFFFF;
 
-  /* Tile palette — bright iOS system colours used in settings-style
-     28×28 coloured squares on the left of ListRow items. */
-  --tile-red: #FF3B30;
-  --tile-orange: #FF9500;
-  --tile-yellow: #FFCC00;
-  --tile-green: #34C759;
-  --tile-mint: #00C7BE;
-  --tile-teal: #30B0C7;
-  --tile-cyan: #32ADE6;
-  --tile-blue: #007AFF;
-  --tile-indigo: #5E5CE6;
-  --tile-purple: #AF52DE;
-  --tile-pink: #FF2D55;
+  /* Tile palette — Telegram-iOS rounded-square icons on the left of
+     ListRow items. Slightly saturated so they pop on the light card. */
+  --tile-red: #F5483F;
+  --tile-orange: #F59E0B;
+  --tile-yellow: #F4C430;
+  --tile-green: #4CAF50;
+  --tile-mint: #10B981;
+  --tile-teal: #14B8A6;
+  --tile-cyan: #3EB8E5;
+  --tile-blue: #3E88F7;
+  --tile-indigo: #5E72E4;
+  --tile-purple: #9B59B6;
+  --tile-pink: #EC407A;
   --tile-gray: #8E8E93;
 
   /* Legacy — kept for surfaces that still read these directly. */
-  --background: #F2F2F7;
+  --background: #EFEFF4;
   --foreground: #000000;
 
   /* Typography scale — iOS HIG sizes. */
@@ -106,12 +106,13 @@
   --radius-tile: 7px;         /* colored icon tiles */
   --radius-pill: 9999px;      /* primary buttons, chips, avatar */
 
-  /* Shadow — iOS cards lift very little, sheets lift more. */
-  --shadow-card: 0 0 0 0.5px rgba(0, 0, 0, 0.04),
-                 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sheet: 0 -6px 32px -12px rgba(0, 0, 0, 0.22);
-  --shadow-float: 0 10px 28px -14px rgba(0, 0, 0, 0.22);
-  --shadow-fab: 0 6px 16px -2px rgba(0, 122, 255, 0.35),
+  /* Shadow — Telegram is almost flat. Cards have no lift, just a
+     hairline "ring" so they sit on the grouped-grey without bleeding
+     into it. Sheets still lift a bit so they read as modal. */
+  --shadow-card: 0 0 0 0.5px rgba(15, 23, 42, 0.04);
+  --shadow-sheet: 0 -4px 24px -8px rgba(0, 0, 0, 0.18);
+  --shadow-float: 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+  --shadow-fab: 0 6px 16px -2px rgba(62, 136, 247, 0.35),
                 0 2px 6px rgba(0, 0, 0, 0.12);
 
   /* iOS-style easings — spring-ish via cubic-bezier. */
