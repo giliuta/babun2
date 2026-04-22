@@ -220,6 +220,12 @@ function DashboardPageInner() {
   // When the current day is actually visible in the range, anchor on the
   // now-line at ~30 % of viewport so the dispatcher sees "2 h ago plus
   // what's coming" instead of stale morning hours.
+  //
+  // Sprint 033 — brigade-as-hub: if the active brigade has its own
+  // `default_scroll_time` set (edit on /dashboard/teams/:id → section
+  // "Календарь бригады"), it wins over both the settings startHour and
+  // the now-line anchor. This way switching to a nightshift brigade
+  // opens its calendar at the right time immediately.
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
@@ -231,7 +237,16 @@ function DashboardPageInner() {
     const todayVisible = now >= currentMonday && now < rangeEnd;
     const hh = hourHeightRef.current;
     let targetTop = calendarSettings.startHour * hh;
-    if (todayVisible) {
+
+    // Brigade-level override takes priority.
+    const activeTeam = teams.find((t) => t.id === activeTeamId);
+    const brigadeScroll = activeTeam?.default_scroll_time;
+    if (brigadeScroll && /^\d{1,2}:\d{2}$/.test(brigadeScroll)) {
+      const [bh, bm] = brigadeScroll.split(":").map(Number);
+      const brigadeHours = bh + bm / 60;
+      const viewportOffset = el.clientHeight * 0.15;
+      targetTop = Math.max(0, brigadeHours * hh - viewportOffset);
+    } else if (todayVisible) {
       const hoursNow = now.getHours() + now.getMinutes() / 60;
       const inWorkHours =
         hoursNow >= calendarSettings.startHour - 0.5 &&
@@ -249,7 +264,7 @@ function DashboardPageInner() {
       el.scrollTop = targetTop;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode]);
+  }, [viewMode, activeTeamId]);
 
   const { zoomBy, handleZoomIn, handleZoomOut } = useCalendarGestures({
     outerScrollerRef,
