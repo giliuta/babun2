@@ -56,11 +56,11 @@ export default function SheetShell({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] p-2"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] p-2 animate-backdrop-in"
       onClick={onClose}
     >
       <div
-        className={`w-full ${maxWidth} bg-[var(--surface-card)] rounded-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden`}
+        className={`w-full ${maxWidth} bg-[var(--surface-card)] rounded-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden animate-sheet-up`}
         style={{ height }}
         onClick={(e) => e.stopPropagation()}
       >

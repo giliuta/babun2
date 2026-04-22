@@ -109,7 +109,7 @@ export default function Header({
           type="button"
           onClick={onMenuToggle}
           aria-label="Меню"
-          className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] flex-shrink-0 transition"
+          className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale flex-shrink-0 transition"
         >
           <Menu size={22} strokeWidth={2} />
         </button>
@@ -148,10 +148,10 @@ export default function Header({
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
           hidden={isOnToday}
-          className="relative w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] flex-shrink-0 transition"
+          className="relative w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale flex-shrink-0 transition"
         >
           <CalendarClock size={20} strokeWidth={2} />
-          <span className="absolute text-[9px] font-bold translate-y-[3px]">
+          <span className="absolute text-[11px] font-bold translate-y-[3px]">
             {todayNumber}
           </span>
         </button>
@@ -161,7 +161,7 @@ export default function Header({
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
+            className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale transition"
           >
             <ActiveViewIcon size={20} strokeWidth={2} />
           </button>

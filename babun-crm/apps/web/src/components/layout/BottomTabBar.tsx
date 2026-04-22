@@ -15,6 +15,7 @@ import {
   useClients,
 } from "@/app/dashboard/layout";
 import { loadChats, getTotalUnread } from "@/lib/chats";
+import { haptic } from "@/lib/haptics";
 import GlobalSearch from "./GlobalSearch";
 
 // Telegram-style bottom nav. Five tabs, each a vertical stack of
@@ -56,6 +57,7 @@ export default function BottomTabBar() {
   }, []);
 
   const go = (path: string) => {
+    haptic("tap");
     router.push(path);
   };
 
@@ -171,13 +173,16 @@ function TabButton({
           onLongPress();
         }
       }}
-      className={`relative flex-1 min-w-[44px] h-[50px] rounded-[var(--radius-pill)] flex flex-col items-center justify-center gap-0.5 transition active:scale-[0.97] ${
+      className={`relative flex-1 min-w-[44px] h-[50px] rounded-[var(--radius-pill)] flex flex-col items-center justify-center gap-0.5 press-scale ${
         active
-          ? "bg-[var(--accent-tint)] text-[var(--accent)]"
+          ? "bg-[var(--accent-tint)] text-[var(--accent)] animate-pill-hop"
           : "text-[var(--label-secondary)]"
       }`}
+      style={{
+        transition: "background-color var(--dur-base) var(--ease-ios), color var(--dur-base) var(--ease-ios)",
+      }}
     >
-      <span className="relative">
+      <span className={`relative ${active ? "transition-transform duration-200 scale-105" : ""}`}>
         {icon}
         {showCount && (
           <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--surface-card)]">

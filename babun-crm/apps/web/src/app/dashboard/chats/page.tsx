@@ -241,11 +241,17 @@ export default function ChatsPage() {
 
   const chatListEl = (
     <div className="flex flex-col h-full bg-[var(--surface-card)]">
-      {/* Header */}
-      <div className="flex-shrink-0 bg-[var(--accent)] px-3 py-3">
-        <div className="text-[17px] font-semibold text-[var(--label-on-accent)] tracking-tight">
-          Чаты{totalUnread > 0 && <span className="text-white/70 font-normal"> ({totalUnread})</span>}
-        </div>
+      {/* Header — flat iOS nav bar, centred title, matches the rest
+          of the app (Clients, Finances, Settings use the same style).
+          The blue banner that was here lived from Sprint 031; it clashed
+          with every other page. */}
+      <div className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] h-12 flex items-center justify-center relative">
+        <h1 className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
+          Чаты
+          {totalUnread > 0 && (
+            <span className="text-[var(--label-secondary)] font-normal"> ({totalUnread})</span>
+          )}
+        </h1>
       </div>
 
       {/* Search */}

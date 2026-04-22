@@ -19,11 +19,19 @@ const COLORS = [
 ];
 
 export function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  // DJB2-ish hash with a prime mix step so names like «Анастасия П»,
+  // «Анна», «Ангела М» (all starting with the same 2 code units) don't
+  // collide onto the same tile colour. Walking code points keeps the
+  // hash stable for surrogate-pair / Cyrillic input.
+  let hash = 5381;
+  const cps = Array.from(name.trim());
+  for (let i = 0; i < cps.length; i++) {
+    hash = ((hash << 5) + hash) ^ cps[i].codePointAt(0)!;
   }
-  return COLORS[Math.abs(hash) % COLORS.length];
+  // Mix length back in so 4-letter and 10-letter names with the same
+  // leading letters still land on different hues.
+  hash = (hash ^ cps.length * 2654435761) >>> 0;
+  return COLORS[hash % COLORS.length];
 }
 
 // Clients occasionally name their contacts with emoji prefixes

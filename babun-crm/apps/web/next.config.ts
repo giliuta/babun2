@@ -83,6 +83,11 @@ const nextConfig: NextConfig = {
       { source: "/sms", destination: "/dashboard/sms-templates", permanent: false },
       { source: "/today", destination: "/dashboard", permanent: false },
       { source: "/calendar", destination: "/dashboard", permanent: false },
+      // Old separate /dashboard/appointment/new route was replaced by
+      // an in-page AppointmentSheet — catch bookmarks and share links
+      // with a ?new=1 flag the dashboard picks up at mount.
+      { source: "/dashboard/appointment/new", destination: "/dashboard?new=1", permanent: false },
+      { source: "/dashboard/appointment", destination: "/dashboard", permanent: false },
     ];
   },
 };
