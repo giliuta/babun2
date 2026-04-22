@@ -6,6 +6,7 @@ import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
 import type { Client } from "@/lib/clients";
+import type { City } from "@/lib/cities";
 import type { ViewMode } from "@/components/layout/Header";
 import DayColumn from "./DayColumn";
 
@@ -27,6 +28,9 @@ interface WeekViewProps {
   extrasForDate?: (dateKey: string) => { income: number; expense: number };
   dragEnabled?: boolean;
   teamColorFor?: (apt: Appointment) => string | null;
+  /** Sprint 033: settings.cities list so custom tags render in the
+   *  user-picked colour instead of neutral grey. */
+  cityLookup?: City[];
 }
 
 export default function WeekView({
@@ -47,6 +51,7 @@ export default function WeekView({
   extrasForDate,
   dragEnabled = false,
   teamColorFor,
+  cityLookup,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -98,6 +103,7 @@ export default function WeekView({
             extraExpense={extrasForDate?.(dateKey).expense ?? 0}
             dragEnabled={dragEnabled}
             teamColorFor={teamColorFor}
+            cityLookup={cityLookup}
           />
         );
       })}

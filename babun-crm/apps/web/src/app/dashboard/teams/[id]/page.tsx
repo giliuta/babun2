@@ -12,17 +12,19 @@
 
 import { use, useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Trash2, Check, X } from "lucide-react";
+import { ChevronLeft, Trash2, Check, X, Plus } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useMasters, useTeams, useServices, useAppointments, useCities } from "@/app/dashboard/layout";
+import { useMasters, useTeams, useServices, useAppointments, useCities, useSchedules } from "@/app/dashboard/layout";
+import { DEFAULT_SCHEDULE, type TeamSchedule } from "@/lib/schedule";
 import {
   TEAM_COLORS,
   generateId,
   type Master,
   type Team,
 } from "@/lib/masters";
-import type { Service } from "@/lib/services";
+import { createBlankService, type Service } from "@/lib/services";
+import { CITY_COLOR_PRESETS, generateCityId, type City } from "@/lib/cities";
 
 const BLANK_TEAM: Team = {
   id: "",
@@ -54,7 +56,15 @@ export default function BrigadePage({ params }: RouteParams) {
   const { masters, setMasters } = useMasters();
   const { services, categories, upsertService } = useServices();
   const { appointments, upsertAppointment } = useAppointments();
-  const { cities } = useCities();
+  const { cities, setCities } = useCities();
+  const { schedules, setSchedules } = useSchedules();
+
+  const schedule: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
+  const updateScheduleBase = (key: "start" | "end", value: string) => {
+    const curr: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
+    const next = { ...curr, [key]: value };
+    setSchedules({ ...schedules, [id]: next });
+  };
 
   // Source of truth — the stored team (for edit) or BLANK_TEAM (for
   // new). Cloned into local form state on mount so unsaved edits
@@ -73,6 +83,19 @@ export default function BrigadePage({ params }: RouteParams) {
   const [draft, setDraft] = useState<Team>(originalTeam);
   const [leadId, setLeadId] = useState<string | null>(originalTeam.lead_id);
   const [helperIds, setHelperIds] = useState<string[]>(originalTeam.helper_ids);
+
+  // Inline add-city form state. The brigade editor is intentionally
+  // the only place custom tags can be created ("Германия", "День ног")
+  // so the user never has to leave the page.
+  const [newCityName, setNewCityName] = useState("");
+  const [newCityColor, setNewCityColor] = useState(CITY_COLOR_PRESETS[0].value);
+  const [addingCity, setAddingCity] = useState(false);
+
+  // Inline add-service form state.
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceMinutes, setNewServiceMinutes] = useState(60);
+  const [newServicePrice, setNewServicePrice] = useState(0);
+  const [addingService, setAddingService] = useState(false);
 
   // If teams list arrives after mount (async hydrate in some cases),
   // rehydrate the draft from the stored team so the form isn't stuck
@@ -116,10 +139,62 @@ export default function BrigadePage({ params }: RouteParams) {
     haptic("tap");
     const current = draft.cities ?? [];
     if (current.includes(cityName)) {
-      update("cities", current.filter((c) => c !== cityName));
+      const next = current.filter((c) => c !== cityName);
+      update("cities", next);
+      // If we just removed the current default_city, clear it.
+      if (draft.default_city === cityName) update("default_city", "");
     } else {
-      update("cities", [...current, cityName]);
+      const next = [...current, cityName];
+      update("cities", next);
+      // First city becomes default automatically — matches the
+      // "Базовый город появляется после добавления" UX.
+      if (!draft.default_city) update("default_city", cityName);
     }
+  };
+
+  const addNewCity = () => {
+    const name = newCityName.trim();
+    if (!name) return;
+    if (cities.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+      // Already exists — just toggle it onto this brigade.
+      toggleCity(name);
+      setNewCityName("");
+      setAddingCity(false);
+      return;
+    }
+    haptic("tap");
+    const created: City = {
+      id: generateCityId(),
+      name,
+      country: "",
+      isActive: true,
+      color: newCityColor,
+    };
+    setCities([...cities, created]);
+    // Auto-add to brigade list + make it default if none yet.
+    const brigadeCities = draft.cities ?? [];
+    update("cities", [...brigadeCities, name]);
+    if (!draft.default_city) update("default_city", name);
+    setNewCityName("");
+    setNewCityColor(CITY_COLOR_PRESETS[0].value);
+    setAddingCity(false);
+  };
+
+  const addNewService = () => {
+    const name = newServiceName.trim();
+    if (!name || !draft.id) return;
+    haptic("tap");
+    const created = createBlankService({
+      name,
+      duration_minutes: Math.max(1, newServiceMinutes),
+      price: Math.max(0, newServicePrice),
+      brigade_ids: [draft.id],
+    });
+    upsertService(created);
+    setNewServiceName("");
+    setNewServiceMinutes(60);
+    setNewServicePrice(0);
+    setAddingService(false);
   };
 
   // Services-to-brigade relation lives on Service.brigade_ids. Toggle
@@ -253,13 +328,13 @@ export default function BrigadePage({ params }: RouteParams) {
                 className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               />
             </FieldRow>
-            <FieldRow label="Регион (описание)">
-              <input
-                type="text"
+            <FieldRow label="Описание">
+              <textarea
                 value={draft.region}
                 onChange={(e) => update("region", e.target.value)}
-                placeholder="Напр. Пафос, Лимассол"
-                className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                placeholder="Комментарий к бригаде — для вас"
+                rows={2}
+                className="w-full px-3 py-2 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
               />
             </FieldRow>
             <FieldRow label="Цвет бригады">
@@ -294,50 +369,128 @@ export default function BrigadePage({ params }: RouteParams) {
             </FieldRow>
           </Section>
 
-          {/* ── Section: Города (филиалы) ──────────────────────────── */}
+          {/* ── Section: Города (филиалы / теги) ───────────────────── */}
           <Section
             title="Города / Филиалы"
-            subtitle="Где бригада работает. Первый выбранный — базовый город (дефолт для новых дней)."
+            subtitle="Где бригада работает. Добавляйте любые теги — Германия, День ног — они сразу появятся в календаре в своём цвете."
           >
             <div className="flex flex-wrap gap-2">
               {activeCities.map((c) => {
                 const selected = (draft.cities ?? []).includes(c.name) || draft.default_city === c.name;
                 const isBase = draft.default_city === c.name;
+                const tint = c.color ?? "var(--accent)";
                 return (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => toggleCity(c.name)}
-                    onDoubleClick={() => update("default_city", c.name)}
                     className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[14px] font-medium press-scale transition ${
                       isBase
-                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                        ? "text-[var(--label-on-accent)]"
                         : selected
-                          ? "bg-[var(--accent-tint)] text-[var(--accent)]"
+                          ? "text-[var(--label)]"
                           : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
                     }`}
+                    style={
+                      isBase
+                        ? { backgroundColor: tint }
+                        : selected
+                          ? { backgroundColor: `${tint}22`, color: tint }
+                          : undefined
+                    }
                   >
-                    {isBase && <Check size={14} />}
+                    {c.color && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />}
                     {c.name}
+                    {isBase && <Check size={14} strokeWidth={2.5} />}
                   </button>
                 );
               })}
+
+              {/* Inline add-city button */}
+              {!addingCity && (
+                <button
+                  type="button"
+                  onClick={() => setAddingCity(true)}
+                  className="inline-flex items-center gap-1 h-9 px-3 rounded-full text-[14px] font-medium bg-[var(--accent-tint)] text-[var(--accent)] press-scale"
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  Добавить
+                </button>
+              )}
             </div>
-            <div className="mt-3 text-[12px] text-[var(--label-tertiary)]">
-              Тап — добавить/убрать. Двойной тап — сделать базовым (синий).
-            </div>
-            <FieldRow label="Базовый город">
-              <select
-                value={draft.default_city}
-                onChange={(e) => update("default_city", e.target.value)}
-                className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              >
-                <option value="">— не выбран —</option>
-                {activeCities.map((c) => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            </FieldRow>
+
+            {/* Inline add-city form */}
+            {addingCity && (
+              <div className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newCityName}
+                  onChange={(e) => setNewCityName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addNewCity();
+                    if (e.key === "Escape") setAddingCity(false);
+                  }}
+                  placeholder="Название (напр. Германия, День ног)"
+                  className="w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+                <div>
+                  <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
+                    Цвет
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {CITY_COLOR_PRESETS.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setNewCityColor(c.value)}
+                        aria-label={c.name}
+                        className={`w-8 h-8 rounded-full press-scale ${
+                          newCityColor === c.value ? "ring-[3px] ring-offset-2 ring-[var(--accent)]" : ""
+                        }`}
+                        style={{ backgroundColor: c.value }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setAddingCity(false); setNewCityName(""); }}
+                    className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addNewCity}
+                    disabled={!newCityName.trim()}
+                    className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                  >
+                    Добавить
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Базовый город — shows only after at least one city is picked */}
+            {(draft.cities?.length ?? 0) > 0 && (
+              <FieldRow label="Базовый город">
+                <select
+                  value={draft.default_city}
+                  onChange={(e) => update("default_city", e.target.value)}
+                  className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                >
+                  <option value="">— не выбран —</option>
+                  {(draft.cities ?? []).map((cityName) => (
+                    <option key={cityName} value={cityName}>{cityName}</option>
+                  ))}
+                </select>
+                <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
+                  Ставится дефолтом на каждый день. Тап по дню в календаре переопределяет.
+                </div>
+              </FieldRow>
+            )}
           </Section>
 
           {/* ── Section: Мастера ───────────────────────────────────── */}
@@ -391,11 +544,90 @@ export default function BrigadePage({ params }: RouteParams) {
           {/* ── Section: Услуги ────────────────────────────────────── */}
           <Section
             title="Услуги бригады"
-            subtitle="Какие услуги эта бригада делает. Если не выбрано ничего — бригаде доступны все услуги."
+            subtitle="Какие услуги делает бригада. При записи клиента показываются только они. Не выбрано ничего — доступны все услуги."
           >
+            {/* Inline add-service form */}
+            {addingService ? (
+              <div className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addNewService();
+                    if (e.key === "Escape") setAddingService(false);
+                  }}
+                  placeholder="Название услуги"
+                  className="w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">
+                      Длительность
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={1}
+                        step={5}
+                        value={newServiceMinutes}
+                        onChange={(e) => setNewServiceMinutes(Number(e.target.value) || 0)}
+                        className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                      />
+                      <span className="text-[14px] text-[var(--label-secondary)]">мин</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">
+                      Цена
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[15px] text-[var(--label-secondary)]">€</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={newServicePrice}
+                        onChange={(e) => setNewServicePrice(Number(e.target.value) || 0)}
+                        className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setAddingService(false); setNewServiceName(""); }}
+                    className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addNewService}
+                    disabled={!newServiceName.trim()}
+                    className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                  >
+                    Добавить услугу
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setAddingService(true); if (!isNew) return; }}
+                disabled={isNew}
+                className="w-full h-11 flex items-center justify-center gap-2 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[14px] font-semibold press-scale disabled:opacity-40"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                {isNew ? "Сохраните бригаду, чтобы добавлять услуги" : "Добавить новую услугу"}
+              </button>
+            )}
+
             {services.length === 0 ? (
               <div className="text-[13px] text-[var(--label-tertiary)] py-2">
-                Нет услуг. Создайте их в разделе Услуги.
+                Пока нет услуг. Добавьте первую выше.
               </div>
             ) : (
               serviceCategories.map((cat) => {
@@ -446,29 +678,74 @@ export default function BrigadePage({ params }: RouteParams) {
           {/* ── Section: Календарь бригады ─────────────────────────── */}
           <Section
             title="Календарь бригады"
-            subtitle="Окно и стартовая точка календаря, когда выбрана эта бригада. Всё необязательно — пусто = как в общих настройках."
+            subtitle="Общая сетка календаря + рабочее окно бригады (светлая подсветка) + стартовая точка при открытии."
           >
-            <div className="grid grid-cols-2 gap-3">
-              <FieldRow label="Начало сетки">
-                <input
-                  type="time"
-                  value={draft.calendar_window_start ?? ""}
-                  onChange={(e) => update("calendar_window_start", e.target.value)}
-                  step={1800}
-                  className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
-              </FieldRow>
-              <FieldRow label="Конец сетки">
-                <input
-                  type="time"
-                  value={draft.calendar_window_end ?? ""}
-                  onChange={(e) => update("calendar_window_end", e.target.value)}
-                  step={1800}
-                  className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
-              </FieldRow>
+            {/* Grid window — overall visible range */}
+            <div>
+              <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
+                Сетка календаря
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--label-tertiary)]">с</span>
+                  <input
+                    type="time"
+                    value={draft.calendar_window_start ?? ""}
+                    onChange={(e) => update("calendar_window_start", e.target.value)}
+                    step={1800}
+                    className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--label-tertiary)]">по</span>
+                  <input
+                    type="time"
+                    value={draft.calendar_window_end ?? ""}
+                    onChange={(e) => update("calendar_window_end", e.target.value)}
+                    step={1800}
+                    className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
+                Сколько часов видно в календаре. Пусто = 00:00–24:00.
+              </div>
             </div>
-            <FieldRow label="Стартовый скролл при открытии">
+
+            {/* Working hours — highlighted band inside the grid */}
+            <div>
+              <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
+                Рабочее время бригады
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--label-tertiary)]">с</span>
+                  <input
+                    type="time"
+                    value={schedule.start ?? "09:00"}
+                    onChange={(e) => updateScheduleBase("start", e.target.value)}
+                    step={1800}
+                    className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--label-tertiary)]">по</span>
+                  <input
+                    type="time"
+                    value={schedule.end ?? "18:00"}
+                    onChange={(e) => updateScheduleBase("end", e.target.value)}
+                    step={1800}
+                    className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
+                В эти часы колонки календаря будут светлее.
+              </div>
+            </div>
+
+            {/* Start-scroll */}
+            <FieldRow label="Открывать на">
               <input
                 type="time"
                 value={draft.default_scroll_time ?? ""}
@@ -476,52 +753,24 @@ export default function BrigadePage({ params }: RouteParams) {
                 step={1800}
                 className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               />
+              <div className="text-[12px] text-[var(--label-tertiary)] mt-1">
+                При открытии бригады календарь проскроллится сюда. Пусто = как обычно.
+              </div>
             </FieldRow>
-            <div className="text-[12px] text-[var(--label-tertiary)]">
-              Примеры: сетка 06:00–23:30, скролл 14:00. Рабочие часы бригады
-              (подсветка) настраиваются в разделе «Расписание».
-            </div>
-          </Section>
 
-          {/* ── Section: Расписание (shortcut) ─────────────────────── */}
-          <Section title="Расписание работы">
+            {/* Detailed per-weekday schedule shortcut */}
             <button
               type="button"
               onClick={() => router.push("/dashboard/schedule")}
-              className="w-full h-12 flex items-center justify-between px-4 rounded-[10px] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)] press-scale"
+              className="w-full h-11 flex items-center justify-between px-4 rounded-[10px] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)] press-scale"
             >
               <div className="text-left">
-                <div className="text-[15px] font-medium text-[var(--label)]">
-                  Часы работы по дням недели
-                </div>
-                <div className="text-[12px] text-[var(--label-secondary)]">
-                  Базовое расписание + перерывы
+                <div className="text-[14px] font-medium text-[var(--label)]">
+                  Расписание по дням недели + перерывы
                 </div>
               </div>
-              <ChevronLeft size={18} strokeWidth={2.5} className="rotate-180 text-[var(--label-tertiary)]" />
+              <ChevronLeft size={16} strokeWidth={2.5} className="rotate-180 text-[var(--label-tertiary)]" />
             </button>
-          </Section>
-
-          {/* ── Section: ЗП и доступы ──────────────────────────────── */}
-          <Section title="ЗП и доступы">
-            <FieldRow label="Зарплата (% от чистого дохода бригады)">
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={draft.payout_percentage}
-                  onChange={(e) => update("payout_percentage", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                  className="w-20 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
-                <span className="text-[15px] text-[var(--label-secondary)]">%</span>
-              </div>
-              <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
-                Применяется к (доход – расход бригады) за выбранный период.
-                Используется на странице Финансы → Зарплата.
-              </div>
-            </FieldRow>
           </Section>
 
           {/* ── Delete (bottom) ────────────────────────────────────── */}

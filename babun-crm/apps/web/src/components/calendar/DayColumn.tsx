@@ -19,7 +19,8 @@ import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
-import { getCityConfig, getCityBg } from "@/lib/day-cities";
+import { getCityConfig, getCityBg, cityConfigFromColor, type CityConfig } from "@/lib/day-cities";
+import type { City } from "@/lib/cities";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -32,6 +33,11 @@ interface DayColumnProps {
   currentTimeMinutes: number;
   schedule?: TeamSchedule;
   cityLabel?: string; // "Пафос" | "Лимассол" etc — shown under day header
+  /** Sprint 033: settings.cities lookup so custom tags (Германия,
+   *  День ног…) with user-picked colours render correctly. If a
+   *  matching City has a `color`, we derive a CityConfig from it.
+   *  Falls back to the legacy hardcoded CITIES dict. */
+  cityLookup?: City[];
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
@@ -114,6 +120,7 @@ function DayColumnInner({
   extraExpense = 0,
   dragEnabled = false,
   teamColorFor,
+  cityLookup,
 }: DayColumnProps) {
   const dateKeyFromDate = formatDateKey(date);
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -128,8 +135,16 @@ function DayColumnInner({
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const monthShort = getMonthNameShort(date.getMonth());
   const isFirstOfMonth = date.getDate() === 1;
-  const cityCfg = cityLabel ? getCityConfig(cityLabel) : null;
-  const cityBg = cityLabel ? getCityBg(cityLabel, isToday) : null;
+  // Prefer user-extended City.color (custom tags like «Германия»,
+  // «День ног»). Fall back to the legacy hardcoded CITIES dict for
+  // the original 4 Cyprus presets. Finally null = neutral grey chip.
+  const cityCfg: CityConfig | null = (() => {
+    if (!cityLabel) return null;
+    const custom = cityLookup?.find((c) => c.name === cityLabel && c.color);
+    if (custom?.color) return cityConfigFromColor(custom.name, custom.color);
+    return getCityConfig(cityLabel);
+  })();
+  const cityBg = cityCfg ? (isToday ? cityCfg.bgToday : cityCfg.bg) : (cityLabel ? getCityBg(cityLabel, isToday) : null);
   const cityHex = cityCfg?.color ?? null;
   // Narrow week-view columns (≈56-64 px on iPhone 14) can't fit even
   // a 5-char uppercase Cyrillic label — "ЛАРНА." / "ЛИМАС." got clipped

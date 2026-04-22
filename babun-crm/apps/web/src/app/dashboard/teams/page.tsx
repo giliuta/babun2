@@ -207,38 +207,18 @@ export default function TeamsPage() {
             })}
           </div>
 
-          {/* Sprint 026: Мастера — отдельная страница. Здесь ссылка-
-              напоминалка, чтобы не забыть где их заводить и редактировать. */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard/masters")}
-              className="w-full flex items-center justify-between bg-[var(--surface-card)] rounded-2xl px-4 py-3 active:bg-[var(--fill-quaternary)] transition shadow-[var(--shadow-card)]"
-            >
-              <div className="text-left">
-                <div className="text-[15px] font-semibold text-[var(--label)]">
-                  Мастера ({masters.length})
-                </div>
-                <div className="text-[12px] text-[var(--label-secondary)]">
-                  Добавить сотрудника, ЗП, доступы, документы
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-[var(--label-tertiary)]" />
-            </button>
-          </div>
-
-          {unassignedMasters.length > 0 && (
-            <div className="flex items-start gap-2 text-[12px] text-[var(--system-orange)] bg-[rgba(255,149,0,0.1)] rounded-lg px-3 py-2">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <span>
-                {unassignedMasters.length}{" "}
-                {unassignedMasters.length === 1
-                  ? "мастер не привязан"
-                  : "мастера не привязаны"}{" "}
-                к бригадам. Откройте бригаду и добавьте их в состав.
-              </span>
-            </div>
-          )}
+          {/* Big, visible "+ Новая бригада" CTA. Sprint 033 — the small
+              pencil-next-to-plus pair in the top bar was hard to spot
+              on phones; a full-width card-style button under the list
+              is impossible to miss. */}
+          <button
+            type="button"
+            onClick={openNew}
+            className="w-full h-14 rounded-2xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[16px] font-semibold shadow-[var(--shadow-fab)] flex items-center justify-center gap-2 press-scale active:bg-[var(--accent-pressed)]"
+          >
+            <Plus size={20} strokeWidth={2.5} />
+            Новая бригада
+          </button>
         </div>
 
       </div>

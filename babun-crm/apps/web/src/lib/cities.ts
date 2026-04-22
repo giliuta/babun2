@@ -6,16 +6,40 @@ export interface City {
   name: string;
   country: string;
   isActive: boolean;
+  /** Sprint 033: per-city accent colour. Used for the calendar column
+   *  tint + day-header chip on /dashboard. Custom tags like «Германия»
+   *  or «День ног» all pick one colour here and show up in calendar.
+   *  Optional for backward compat — missing colour falls back to the
+   *  legacy CITIES palette in lib/day-cities.ts or neutral grey. */
+  color?: string;
 }
+
+/** Colour palette offered when adding a custom "city" tag. iOS system
+ *  colours mirroring --tile-* tokens, so a new tag sits naturally in
+ *  the rest of the UI. */
+export const CITY_COLOR_PRESETS: { name: string; value: string }[] = [
+  { name: "Голубой",     value: "#32ADE6" },
+  { name: "Синий",       value: "#007AFF" },
+  { name: "Индиго",      value: "#5E5CE6" },
+  { name: "Фиолетовый",  value: "#AF52DE" },
+  { name: "Розовый",     value: "#FF2D55" },
+  { name: "Красный",     value: "#FF3B30" },
+  { name: "Оранжевый",   value: "#FF9500" },
+  { name: "Жёлтый",      value: "#FFCC00" },
+  { name: "Зелёный",     value: "#34C759" },
+  { name: "Мята",        value: "#00C7BE" },
+  { name: "Бирюзовый",   value: "#30B0C7" },
+  { name: "Коричневый",  value: "#A2845E" },
+];
 
 const STORAGE_KEY = "babun2:settings:cities";
 
 export const SEED_CITIES: City[] = [
-  { id: "city-limassol",  name: "Лимассол",  country: "Cyprus", isActive: true },
-  { id: "city-paphos",    name: "Пафос",     country: "Cyprus", isActive: true },
-  { id: "city-larnaca",   name: "Ларнака",   country: "Cyprus", isActive: true },
-  { id: "city-nicosia",   name: "Никосия",   country: "Cyprus", isActive: true },
-  { id: "city-ayia-napa", name: "Айя-Напа",  country: "Cyprus", isActive: true },
+  { id: "city-limassol",  name: "Лимассол",  country: "Cyprus", isActive: true, color: "#FF9500" },
+  { id: "city-paphos",    name: "Пафос",     country: "Cyprus", isActive: true, color: "#32ADE6" },
+  { id: "city-larnaca",   name: "Ларнака",   country: "Cyprus", isActive: true, color: "#34C759" },
+  { id: "city-nicosia",   name: "Никосия",   country: "Cyprus", isActive: true, color: "#AF52DE" },
+  { id: "city-ayia-napa", name: "Айя-Напа",  country: "Cyprus", isActive: true, color: "#FFCC00" },
 ];
 
 export function loadCities(): City[] {

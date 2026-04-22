@@ -55,6 +55,7 @@ import {
   useDayCities,
   useDayExtras,
   useCalendarSettings,
+  useCities,
 } from "./layout";
 import { getTeamDisplayName } from "@/lib/masters";
 import { sumExtras } from "@/lib/day-extras";
@@ -122,6 +123,7 @@ function DashboardPageInner() {
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { calendarSettings } = useCalendarSettings();
+  const { cities } = useCities();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
   // Refs for the mount-only seed effect — lets the effect read current values
   // without listing them as deps, which would re-trigger on every render.
@@ -792,6 +794,7 @@ function DashboardPageInner() {
           onDayHeaderTap={handleDayHeaderTap}
           extrasForDate={extrasForDate}
           teamColorFor={teamColorFor}
+          cityLookup={cities}
           dragEnabled
         />
       );

@@ -104,3 +104,30 @@ export function getCityBg(city: string, today: boolean): string | null {
   if (!cfg) return null;
   return today ? cfg.bgToday : cfg.bg;
 }
+
+// Sprint 033 — custom tags (Германия, День ног, …) get a user-picked
+// accent colour stored on settings.cities. Derive a CityConfig from
+// that single colour + the city name so DayColumn renders consistently
+// for legacy 4-city presets and new tags.
+
+/** Derives c1 / bg / bgToday shades from a single accent colour so the
+ *  calendar header gradient + column tint + today tint still look like
+ *  a cohesive set. We use rgba so the shade works on any surface
+ *  without needing a colour-mix polyfill. */
+export function cityConfigFromColor(name: string, color: string): CityConfig {
+  const code = name.trim().slice(0, 2).toUpperCase();
+  const rgb = hexToRgb(color);
+  const c1 = color; // gradient start = same hue (we'll let CSS blend it)
+  const bg = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08)` : "#F2F2F7";
+  const bgToday = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)` : "#E5E5EA";
+  return { name, code, color, c1, bg, bgToday };
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const match = hex.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!match) return null;
+  let h = match[1];
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const int = parseInt(h, 16);
+  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+}
