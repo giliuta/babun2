@@ -234,7 +234,15 @@ export interface Team {
   region: string;
   color: string; // hex
   default_city: string; // Базовый город бригады — используется как дефолт для дней
+  /** Primary lead id. Kept for backwards compat with records saved
+   *  before Sprint 033 and still read by a few non-editor views
+   *  (schedule picker, finances summary). New code should prefer
+   *  `getTeamLeadIds(team)` which handles multi-lead teams. */
   lead_id: string | null;
+  /** Sprint 033: multiple leads. When defined, this wins over
+   *  `lead_id` everywhere. The editor writes both fields — `lead_id`
+   *  = first of `lead_ids` — so legacy readers keep working. */
+  lead_ids?: string[];
   helper_ids: string[];
   /** Зарплата бригады = этот процент от чистого дохода бригады
    *  (доходы минус расходы) за период. 0 = не считается. */
@@ -806,16 +814,31 @@ export function getMasterTeamName(master: Master, teams: Team[]): string {
 // "Юра + Даня · Пафос" from the lead + first helper + default city.
 // Falls back to `team.name` when masters aren't available (shared
 // read paths that don't pass the masters array).
+/** Canonical list of lead ids for the team. Prefers the Sprint 033
+ *  `lead_ids` array if set, falls back to the single legacy `lead_id`.
+ *  Deduped, empty-string filtered. Always safe to call. */
+export function getTeamLeadIds(team: Team): string[] {
+  const fromArr = Array.isArray(team.lead_ids) ? team.lead_ids.filter(Boolean) : [];
+  if (fromArr.length > 0) return Array.from(new Set(fromArr));
+  return team.lead_id ? [team.lead_id] : [];
+}
+
 export function getTeamDisplayName(team: Team, masters: Master[]): string {
   const firstName = (full: string) => full.trim().split(/\s+/)[0].replace(/[()]/g, "");
-  const lead = team.lead_id ? masters.find((m) => m.id === team.lead_id) : null;
-  const helper =
-    team.helper_ids
-      .map((id) => masters.find((m) => m.id === id))
-      .find((m): m is Master => Boolean(m)) ?? null;
-  const people = [lead, helper]
-    .filter((m): m is Master => Boolean(m))
-    .map((m) => firstName(m.full_name));
+  const leadIds = getTeamLeadIds(team);
+  const leads = leadIds
+    .map((id) => masters.find((m) => m.id === id))
+    .filter((m): m is Master => Boolean(m));
+  const helpers = team.helper_ids
+    .map((id) => masters.find((m) => m.id === id))
+    .filter((m): m is Master => Boolean(m));
+  // Display: up to 2 people — first lead + first helper, or first two leads
+  // if there's no helper. Keeps the "Юра + Даня · Пафос" rhythm stable.
+  const picked: Master[] = [];
+  if (leads[0]) picked.push(leads[0]);
+  if (helpers[0]) picked.push(helpers[0]);
+  else if (leads[1]) picked.push(leads[1]);
+  const people = picked.map((m) => firstName(m.full_name));
   const city = team.default_city?.trim() || team.region?.split(/[,/]/)[0].trim() || "";
   if (people.length === 0) return team.name;
   const joined = people.join(" + ");
@@ -824,13 +847,17 @@ export function getTeamDisplayName(team: Team, masters: Master[]): string {
 
 export function getTeamMembers(team: Team, masters: Master[]): {
   lead: Master | null;
+  leads: Master[];
   helpers: Master[];
 } {
-  const lead = team.lead_id ? masters.find((m) => m.id === team.lead_id) ?? null : null;
+  const leadIds = getTeamLeadIds(team);
+  const leads = leadIds
+    .map((id) => masters.find((m) => m.id === id))
+    .filter((m): m is Master => Boolean(m));
   const helpers = team.helper_ids
     .map((id) => masters.find((m) => m.id === id))
     .filter((m): m is Master => Boolean(m));
-  return { lead, helpers };
+  return { lead: leads[0] ?? null, leads, helpers };
 }
 
 export function generateId(prefix: string): string {

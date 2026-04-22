@@ -20,6 +20,7 @@ import { DEFAULT_SCHEDULE, type TeamSchedule } from "@/lib/schedule";
 import {
   TEAM_COLORS,
   generateId,
+  getTeamLeadIds,
   type Master,
   type Team,
 } from "@/lib/masters";
@@ -33,6 +34,7 @@ const BLANK_TEAM: Team = {
   color: TEAM_COLORS[0].value,
   default_city: "",
   lead_id: null,
+  lead_ids: [],
   helper_ids: [],
   payout_percentage: 30,
   active: true,
@@ -81,7 +83,7 @@ export default function BrigadePage({ params }: RouteParams) {
   }, [isNew, id, teams]);
 
   const [draft, setDraft] = useState<Team>(originalTeam);
-  const [leadId, setLeadId] = useState<string | null>(originalTeam.lead_id);
+  const [leadIds, setLeadIds] = useState<string[]>(getTeamLeadIds(originalTeam));
   const [helperIds, setHelperIds] = useState<string[]>(originalTeam.helper_ids);
 
   // Inline add-city form state. The brigade editor is intentionally
@@ -103,7 +105,7 @@ export default function BrigadePage({ params }: RouteParams) {
   useEffect(() => {
     if (!isNew && originalTeam.id && draft.id === "") {
       setDraft(originalTeam);
-      setLeadId(originalTeam.lead_id);
+      setLeadIds(getTeamLeadIds(originalTeam));
       setHelperIds(originalTeam.helper_ids);
     }
   }, [originalTeam, isNew, draft.id]);
@@ -220,12 +222,27 @@ export default function BrigadePage({ params }: RouteParams) {
     if (helperIds.includes(masterId)) {
       setHelperIds(helperIds.filter((id) => id !== masterId));
     } else {
+      // A helper tick also un-ticks the lead (a master can be one or
+      // the other, not both). Keeps save-logic simple.
       setHelperIds([...helperIds, masterId]);
+      setLeadIds(leadIds.filter((id) => id !== masterId));
     }
   };
 
-  const availableLeads = masters.filter((m) => m.team_id === null || m.team_id === draft.id || m.id === leadId);
-  const availableHelpers = masters.filter((m) => m.id !== leadId);
+  const toggleLead = (masterId: string) => {
+    haptic("tap");
+    if (leadIds.includes(masterId)) {
+      setLeadIds(leadIds.filter((id) => id !== masterId));
+    } else {
+      setLeadIds([...leadIds, masterId]);
+      // Ticking as lead un-ticks helper for the same person.
+      setHelperIds(helperIds.filter((id) => id !== masterId));
+    }
+  };
+
+  const availableMasters = masters.filter(
+    (m) => m.team_id === null || m.team_id === draft.id || leadIds.includes(m.id) || helperIds.includes(m.id),
+  );
 
   const handleSave = () => {
     if (!draft.name.trim()) {
@@ -234,10 +251,15 @@ export default function BrigadePage({ params }: RouteParams) {
     }
     haptic("tap");
 
+    const dedupedLeads = Array.from(new Set(leadIds));
+    // Helpers cannot also be leads — de-dupe.
+    const dedupedHelpers = helperIds.filter((id) => !dedupedLeads.includes(id));
+
     const saved: Team = {
       ...draft,
-      lead_id: leadId,
-      helper_ids: helperIds.filter((id) => id !== leadId),
+      lead_id: dedupedLeads[0] ?? null, // legacy compat
+      lead_ids: dedupedLeads.length > 0 ? dedupedLeads : undefined,
+      helper_ids: dedupedHelpers,
       // Normalize empty strings → undefined so the type matches
       // optional fields rather than being "" forever.
       default_scroll_time: draft.default_scroll_time?.trim() || undefined,
@@ -249,7 +271,7 @@ export default function BrigadePage({ params }: RouteParams) {
 
     // Propagate team_id onto masters per lead+helpers selection.
     const memberIds = new Set<string>();
-    if (saved.lead_id) memberIds.add(saved.lead_id);
+    dedupedLeads.forEach((mid) => memberIds.add(mid));
     saved.helper_ids.forEach((mid) => memberIds.add(mid));
     const updatedMasters = masters.map<Master>((m) => {
       const wasHere = m.team_id === saved.id;
@@ -496,49 +518,63 @@ export default function BrigadePage({ params }: RouteParams) {
           {/* ── Section: Мастера ───────────────────────────────────── */}
           <Section
             title="Мастера"
-            subtitle="Бригадир отвечает за бригаду. Помощники работают под его началом."
+            subtitle="Бригадиров и помощников может быть несколько. Отметь галочкой — мастер закрепится за бригадой и увидит её в календаре."
           >
-            <FieldRow label="Бригадир (лид)">
-              <select
-                value={leadId ?? ""}
-                onChange={(e) => setLeadId(e.target.value || null)}
-                className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              >
-                <option value="">— не назначен —</option>
-                {availableLeads.map((m) => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
-              </select>
-            </FieldRow>
-            <FieldRow label="Помощники">
-              {availableHelpers.length === 0 ? (
-                <div className="text-[13px] text-[var(--label-tertiary)] py-2">
-                  Нет свободных мастеров. Создайте их в разделе Мастера.
-                </div>
-              ) : (
-                <div className="flex flex-col divide-y divide-[var(--separator)] -my-2">
-                  {availableHelpers.map((m) => {
-                    const checked = helperIds.includes(m.id);
-                    return (
-                      <label
-                        key={m.id}
-                        className="flex items-center gap-3 py-3 cursor-pointer active:bg-[var(--fill-quaternary)] transition"
-                      >
-                        <div
-                          className={`w-6 h-6 rounded-md flex items-center justify-center press-scale ${
-                            checked ? "bg-[var(--accent)]" : "border-2 border-[var(--separator-opaque)]"
-                          }`}
+            {availableMasters.length === 0 ? (
+              <div className="text-[13px] text-[var(--label-tertiary)] py-2">
+                Нет свободных мастеров. Создайте их в разделе Мастера.
+              </div>
+            ) : (
+              <>
+                <FieldRow label="Бригадиры">
+                  <div className="flex flex-col divide-y divide-[var(--separator)] -my-2">
+                    {availableMasters.map((m) => {
+                      const checked = leadIds.includes(m.id);
+                      return (
+                        <label
+                          key={m.id}
+                          className="flex items-center gap-3 py-3 cursor-pointer active:bg-[var(--fill-quaternary)] transition"
                         >
-                          {checked && <Check size={14} className="text-[var(--label-on-accent)]" strokeWidth={3} />}
-                        </div>
-                        <div className="flex-1 text-[15px] text-[var(--label)]">{m.full_name}</div>
-                        <input type="checkbox" checked={checked} onChange={() => toggleHelper(m.id)} className="sr-only" />
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </FieldRow>
+                          <div
+                            className={`w-6 h-6 rounded-md flex items-center justify-center press-scale ${
+                              checked ? "bg-[var(--accent)]" : "border-2 border-[var(--separator-opaque)]"
+                            }`}
+                          >
+                            {checked && <Check size={14} className="text-[var(--label-on-accent)]" strokeWidth={3} />}
+                          </div>
+                          <div className="flex-1 text-[15px] text-[var(--label)]">{m.full_name}</div>
+                          <input type="checkbox" checked={checked} onChange={() => toggleLead(m.id)} className="sr-only" />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </FieldRow>
+
+                <FieldRow label="Помощники">
+                  <div className="flex flex-col divide-y divide-[var(--separator)] -my-2">
+                    {availableMasters.map((m) => {
+                      const checked = helperIds.includes(m.id);
+                      return (
+                        <label
+                          key={m.id}
+                          className="flex items-center gap-3 py-3 cursor-pointer active:bg-[var(--fill-quaternary)] transition"
+                        >
+                          <div
+                            className={`w-6 h-6 rounded-md flex items-center justify-center press-scale ${
+                              checked ? "bg-[var(--accent)]" : "border-2 border-[var(--separator-opaque)]"
+                            }`}
+                          >
+                            {checked && <Check size={14} className="text-[var(--label-on-accent)]" strokeWidth={3} />}
+                          </div>
+                          <div className="flex-1 text-[15px] text-[var(--label)]">{m.full_name}</div>
+                          <input type="checkbox" checked={checked} onChange={() => toggleHelper(m.id)} className="sr-only" />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </FieldRow>
+              </>
+            )}
           </Section>
 
           {/* ── Section: Услуги ────────────────────────────────────── */}
