@@ -224,7 +224,7 @@ export default function CloseDayPage() {
                 </span>
               </div>
               <label className="block mt-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                   Сколько в кассе фактически (€)
                 </div>
                 <input
@@ -283,7 +283,7 @@ export default function CloseDayPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-3">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-3">
         {title}
       </div>
       <div className="space-y-2">{children}</div>

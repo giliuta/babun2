@@ -102,7 +102,7 @@ export default function CalendarSettingsPage() {
               </div>
             )}
 
-            <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
+            <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
               Открытие календаря будет прокручено к {String(draft.startHour).padStart(2, "0")}:00
             </div>
           </div>

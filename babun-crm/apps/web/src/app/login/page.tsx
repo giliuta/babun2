@@ -129,7 +129,7 @@ export default function LoginPage() {
           )}
         </form>
 
-        <p className="text-center text-[11px] text-[var(--label-tertiary)] mt-10">
+        <p className="text-center text-[12px] text-[var(--label-tertiary)] mt-10">
           AirFix &copy; 2026 · Babun CRM
         </p>
       </div>

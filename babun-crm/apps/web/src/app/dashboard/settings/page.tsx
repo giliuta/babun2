@@ -220,14 +220,14 @@ function Group({
 }) {
   return (
     <div>
-      <div className="px-4 pb-2 text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+      <div className="px-4 pb-2 text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
         {title}
       </div>
       <div className="bg-[var(--surface-card)] rounded-2xl overflow-hidden shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]">
         {children}
       </div>
       {footer && (
-        <div className="px-4 pt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+        <div className="px-4 pt-2 text-[12px] text-[var(--label-tertiary)] leading-snug">
           {footer}
         </div>
       )}

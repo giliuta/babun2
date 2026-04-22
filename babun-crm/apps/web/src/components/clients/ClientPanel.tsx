@@ -305,7 +305,7 @@ function PhonesSection({
 
   return (
     <div className="px-4 pt-2 pb-2 space-y-1.5">
-      <div className="text-[11px] text-[var(--label-secondary)]">Телефоны</div>
+      <div className="text-[12px] text-[var(--label-secondary)]">Телефоны</div>
       <PhoneRow
         number={client.phone}
         label="Основной"
@@ -362,12 +362,12 @@ function PhoneRow({
         className="w-[38%] min-w-0 bg-transparent text-[14px] text-[var(--label)] tabular-nums focus:outline-none"
       />
       {primary ? (
-        <span className="text-[11px] text-[var(--label-secondary)] px-1 shrink-0">{label}</span>
+        <span className="text-[12px] text-[var(--label-secondary)] px-1 shrink-0">{label}</span>
       ) : (
         <select
           value={label}
           onChange={(e) => onLabelChange?.(e.target.value)}
-          className="min-w-0 flex-1 h-7 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[11px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
+          className="min-w-0 flex-1 h-7 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[12px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
         >
           {PHONE_LABEL_OPTIONS.concat(
             PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
@@ -423,7 +423,7 @@ function MessengersSection({
 
   return (
     <div className="px-4 pt-2 pb-2 space-y-1.5">
-      <div className="text-[11px] text-[var(--label-secondary)]">Мессенджеры</div>
+      <div className="text-[12px] text-[var(--label-secondary)]">Мессенджеры</div>
 
       <MessengerRow
         icon={<IconTelegram />}
@@ -495,7 +495,7 @@ function MessengerRow({
           href={openUrl}
           target="_blank"
           rel="noreferrer"
-          className="h-7 px-2.5 rounded-md bg-[var(--surface-card)] border border-[var(--separator)] text-[11px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center shrink-0"
+          className="h-7 px-2.5 rounded-md bg-[var(--surface-card)] border border-[var(--separator)] text-[12px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center shrink-0"
         >
           Открыть
         </a>
@@ -526,7 +526,7 @@ function ContactSourcesSection({ clientId }: { clientId: string }) {
 
   return (
     <div className="px-4 pt-2 pb-2">
-      <div className="text-[11px] text-[var(--label-secondary)] mb-1">Где связывался</div>
+      <div className="text-[12px] text-[var(--label-secondary)] mb-1">Где связывался</div>
       <div className="flex flex-wrap gap-1">
         {linked.map((chat) => (
           <a
@@ -536,7 +536,7 @@ function ContactSourcesSection({ clientId }: { clientId: string }) {
             // client. Lets Dima jump from the card straight into the
             // Instagram / WhatsApp / Telegram thread.
             href={`/dashboard/chats?chat_id=${chat.id}`}
-            className="flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-semibold text-[var(--label-on-accent)] active:scale-[0.98]"
+            className="flex items-center gap-1 h-7 px-2.5 rounded-full text-[12px] font-semibold text-[var(--label-on-accent)] active:scale-[0.98]"
             style={{ background: CHANNEL_COLORS[chat.channel as ChatChannel] || "#8b5cf6" }}
           >
             <ChannelGlyph channel={chat.channel as ChatChannel} />
@@ -805,7 +805,7 @@ function HistoryTab({
               {formatRu(apt.date)} {apt.time_start}, {weekdayRu(apt.date)}
             </div>
             {team && (
-              <div className="text-[11px] text-[var(--label-secondary)] mb-1">
+              <div className="text-[12px] text-[var(--label-secondary)] mb-1">
                 Мастер: {team.name}
               </div>
             )}
@@ -929,7 +929,7 @@ function RemindersTab({
               </div>
             </div>
             {team && (
-              <div className="text-[11px] text-[var(--label-secondary)] mt-0.5">
+              <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
                 Мастер: {team.name}
               </div>
             )}
@@ -998,7 +998,7 @@ function FieldRow({
 }) {
   return (
     <div className="px-4 pt-2 pb-2">
-      <div className="text-[11px] text-[var(--label-secondary)] mb-0.5">{label}</div>
+      <div className="text-[12px] text-[var(--label-secondary)] mb-0.5">{label}</div>
       <div className="flex items-center gap-2">
         <div className="w-5 h-5 flex items-center justify-center text-[var(--accent)] shrink-0">
           {icon}
@@ -1058,7 +1058,7 @@ function GroupsPicker({
             key={g.id}
             type="button"
             onClick={() => toggle(g.id)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${
+            className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition ${
               on ? g.class : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
             }`}
           >

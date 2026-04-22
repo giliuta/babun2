@@ -71,7 +71,7 @@ export default function SwipeableRow({
                 a.onSelect();
                 close();
               }}
-              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-[var(--label-on-accent)] text-[11px] font-medium ${a.color}`}
+              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-[var(--label-on-accent)] text-[12px] font-medium ${a.color}`}
             >
               {a.icon}
               {a.label}
@@ -89,7 +89,7 @@ export default function SwipeableRow({
                 a.onSelect();
                 close();
               }}
-              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-[var(--label-on-accent)] text-[11px] font-medium ${a.color}`}
+              className={`w-[72px] flex flex-col items-center justify-center gap-1 text-[var(--label-on-accent)] text-[12px] font-medium ${a.color}`}
             >
               {a.icon}
               {a.label}

@@ -560,7 +560,7 @@ export default function AppointmentSheet({
                     <div className="font-semibold">Пересечение с записью</div>
                     <div className="text-[var(--label-secondary)]">{overlapWarning}</div>
                   </div>
-                  <span className="text-[var(--system-orange)] text-[11px] group-open:rotate-180 transition">
+                  <span className="text-[var(--system-orange)] text-[12px] group-open:rotate-180 transition">
                     ▾
                   </span>
                 </summary>
@@ -606,7 +606,7 @@ export default function AppointmentSheet({
           {/* Event mode body */}
           {isEventMode && isEditable ? (
             <div className="px-4 pt-4 space-y-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Тип события
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -646,7 +646,7 @@ export default function AppointmentSheet({
                 ))}
               </div>
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                   Название
                 </div>
                 <input

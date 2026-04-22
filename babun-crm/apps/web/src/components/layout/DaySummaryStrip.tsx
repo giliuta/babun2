@@ -44,7 +44,7 @@ export default function DaySummaryStrip({
   if (stats.count === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[11px] overflow-x-auto scrollbar-hide">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[12px] overflow-x-auto scrollbar-hide">
       <Chip label={pluralRecord(stats.count)} />
       {stats.income > 0 && <Chip label={formatEUR(stats.income)} tone="green" />}
       {stats.inProgress > 0 && (
@@ -87,14 +87,14 @@ function Chip({
       <button
         type="button"
         onClick={onClick}
-        className={`px-2.5 py-1 rounded-full text-[11px] active:scale-[0.97] ${TONE[tone]}`}
+        className={`px-2.5 py-1 rounded-full text-[12px] active:scale-[0.97] ${TONE[tone]}`}
       >
         {content}
       </button>
     );
   }
   return (
-    <span className={`px-2.5 py-1 rounded-full text-[11px] ${TONE[tone]}`}>
+    <span className={`px-2.5 py-1 rounded-full text-[12px] ${TONE[tone]}`}>
       {content}
     </span>
   );

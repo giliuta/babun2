@@ -52,7 +52,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
 
   return (
     <div className="px-4 pt-3 space-y-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
         Оплата · {formatEUR(total)}
       </div>
 
@@ -104,7 +104,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
               <div className="flex-1 text-[15px] font-bold text-[var(--label)] tabular-nums">
                 {cardVal}
               </div>
-              <span className="text-[11px] text-[var(--label-tertiary)] uppercase">авто</span>
+              <span className="text-[12px] text-[var(--label-tertiary)] uppercase">авто</span>
             </div>
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-[var(--separator)]">

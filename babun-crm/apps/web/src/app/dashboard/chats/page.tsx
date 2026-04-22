@@ -329,14 +329,14 @@ export default function ChatsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1 min-w-0">
-                      {chat.is_pinned && <span className="text-[11px]">📌</span>}
+                      {chat.is_pinned && <span className="text-[12px]">📌</span>}
                       <span className="text-[15px] font-semibold text-[var(--label)] truncate">
                         {chat.contact_name || chat.contact_handle || "Без имени"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <WaitingBadge chat={chat} />
-                      <span className={`text-[11px] ${chat.unread_count > 0 ? "text-[var(--system-green)] font-semibold" : "text-[var(--label-tertiary)]"}`}>
+                      <span className={`text-[12px] ${chat.unread_count > 0 ? "text-[var(--system-green)] font-semibold" : "text-[var(--label-tertiary)]"}`}>
                         {formatTimeAgo(chat.last_message_at)}
                       </span>
                     </div>
@@ -361,18 +361,18 @@ export default function ChatsPage() {
                       )}
                     </span>
                     {chat.unread_count > 0 && (
-                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center justify-center px-1">
+                      <span className="flex-shrink-0 min-w-[20px] h-[20px] rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] text-[12px] font-bold flex items-center justify-center px-1">
                         {chat.unread_count}
                       </span>
                     )}
                   </div>
                   {chat.client_id && (() => {
                     const cl = clients.find((c) => c.id === chat.client_id);
-                    if (!cl) return <div className="text-[10px] text-[var(--system-green)] font-medium mt-0.5">✓ Клиент привязан</div>;
+                    if (!cl) return <div className="text-[12px] text-[var(--system-green)] font-medium mt-0.5">✓ Клиент привязан</div>;
                     const parts = [cl.city, cl.property_type ? PROPERTY_LABELS[cl.property_type as PropertyType] : null];
                     if (cl.equipment.length > 0) parts.push(pluralizeAC(cl.equipment.length));
                     return (
-                      <div className="text-[10px] text-[var(--label-tertiary)] mt-0.5 truncate">
+                      <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5 truncate">
                         ✓ {parts.filter(Boolean).join(" · ")}
                       </div>
                     );
@@ -590,7 +590,7 @@ function ChatDetailView({
             </div>
             <div className="flex-1 min-w-0 text-left">
               <div className="text-[14px] font-semibold text-[var(--label-on-accent)] truncate">{chat.contact_name || chat.contact_handle || "Чат"}</div>
-              <div className="text-[11px] text-white/70 truncate">
+              <div className="text-[12px] text-white/70 truncate">
                 {chat.last_seen ? `был(а) ${formatTimeAgo(chat.last_seen)}` : CHANNEL_LABELS[chat.channel]}
                 {chat.contact_handle && ` · ${chat.contact_handle}`}
               </div>
@@ -639,7 +639,7 @@ function ChatDetailView({
           >
             <span className="w-5 h-5 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
             <span className="flex-1">✓ {linkedClient.full_name}</span>
-            <span className="text-[10px] uppercase tracking-wide text-[var(--system-green)] font-semibold">Карточка</span>
+            <span className="text-[12px] uppercase tracking-wide text-[var(--system-green)] font-semibold">Карточка</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[var(--system-green)]"><polyline points="9 18 15 12 9 6" /></svg>
           </a>
         ) : (
@@ -655,7 +655,7 @@ function ChatDetailView({
           {groupedMessages.map((group) => (
             <div key={group.date}>
               <div className="flex justify-center my-3">
-                <span className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-[11px] font-medium text-[var(--label-secondary)] shadow-sm">
+                <span className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-[12px] font-medium text-[var(--label-secondary)] shadow-sm">
                   {formatDateLabel(group.date)}
                 </span>
               </div>
@@ -672,13 +672,13 @@ function ChatDetailView({
                       onContextMenu={(e) => { e.preventDefault(); haptic("select"); setMsgMenu(msg); }}
                     >
                       {replyMsg && (
-                        <div className={`mb-1 px-2 py-1 rounded-md text-[11px] border-l-2 ${isOut ? "bg-white/20 border-white/60 text-white/90" : "bg-[var(--fill-primary)] border-[var(--accent)] text-[var(--label-secondary)]"}`}>
+                        <div className={`mb-1 px-2 py-1 rounded-md text-[12px] border-l-2 ${isOut ? "bg-white/20 border-white/60 text-white/90" : "bg-[var(--fill-primary)] border-[var(--accent)] text-[var(--label-secondary)]"}`}>
                           {replyMsg.text.slice(0, 50)}{replyMsg.text.length > 50 ? "…" : ""}
                         </div>
                       )}
                       {msg.photo && <img src={msg.photo} alt="" className="rounded-lg mb-1 max-w-full max-h-[200px] object-cover" />}
                       {msg.text && <span>{msg.text}</span>}
-                      <span className={`inline-flex items-center gap-0.5 ml-2 text-[10px] align-bottom float-right mt-1 ${isOut ? "text-white/70" : "text-[var(--label-tertiary)]"}`}>
+                      <span className={`inline-flex items-center gap-0.5 ml-2 text-[12px] align-bottom float-right mt-1 ${isOut ? "text-white/70" : "text-[var(--label-tertiary)]"}`}>
                         {msg.is_starred && <span className="text-[var(--system-orange)]">⭐</span>}
                         {new Date(msg.timestamp).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                         {isOut && <StatusChecks status={msg.status} />}
@@ -713,7 +713,7 @@ function ChatDetailView({
         {replyTo && (
           <div className="flex-shrink-0 px-3 py-2 bg-[var(--fill-tertiary)] border-t border-[var(--separator)] flex items-center gap-2">
             <div className="flex-1 min-w-0 border-l-2 border-[var(--accent)] pl-2">
-              <div className="text-[11px] font-semibold text-[var(--accent)]">Ответ</div>
+              <div className="text-[12px] font-semibold text-[var(--accent)]">Ответ</div>
               <div className="text-[12px] text-[var(--label-secondary)] truncate">{replyTo.text}</div>
             </div>
             <button type="button" onClick={() => setReplyTo(null)} className="w-8 h-8 flex items-center justify-center text-[var(--label-tertiary)]">✕</button>
@@ -833,7 +833,7 @@ function WaitingBadge({ chat }: { chat: Chat }) {
   const color = mins > 240 ? "text-[var(--system-red)] font-bold" : mins > 60 ? "text-[var(--system-orange)]" : "text-[var(--label-tertiary)]";
 
   return (
-    <span className={`text-[10px] tabular-nums ${color}`}>⏱ {label}</span>
+    <span className={`text-[12px] tabular-nums ${color}`}>⏱ {label}</span>
   );
 }
 
@@ -883,7 +883,7 @@ function QuickReplySheet({
                   key={l}
                   type="button"
                   onClick={() => setLang(l)}
-                  className={`px-2 py-1 rounded text-[11px] font-bold uppercase transition ${
+                  className={`px-2 py-1 rounded text-[12px] font-bold uppercase transition ${
                     lang === l ? "bg-[var(--accent)] text-[var(--label-on-accent)]" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
                   }`}
                 >

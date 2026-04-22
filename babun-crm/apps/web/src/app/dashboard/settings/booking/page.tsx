@@ -150,7 +150,7 @@ export default function BookingSettingsPage() {
 
           {addOpen && (
             <div className="bg-[var(--accent-tint)] rounded-2xl p-3 space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                 Новый тип
               </div>
               <input
@@ -208,7 +208,7 @@ export default function BookingSettingsPage() {
             )}
           </div>
 
-          <div className="text-[11px] text-[var(--label-tertiary)] px-4 leading-snug">
+          <div className="text-[12px] text-[var(--label-tertiary)] px-4 leading-snug">
             Эти типы появляются как быстрые чипы (Дом, Квартира, Офис, Вилла…) при добавлении адреса в записи.
             Кнопка «Другое…» остаётся всегда — для разового имени без сохранения в список.
           </div>

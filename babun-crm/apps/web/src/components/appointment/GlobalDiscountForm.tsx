@@ -148,7 +148,7 @@ export default function GlobalDiscountForm({
           />
         </div>
         <div className="space-y-1.5">
-          <div className="text-[11px] text-[var(--label-secondary)]">Причина</div>
+          <div className="text-[12px] text-[var(--label-secondary)]">Причина</div>
           <div className="flex gap-1.5 flex-wrap">
             {REASONS.map((r) => (
               <button

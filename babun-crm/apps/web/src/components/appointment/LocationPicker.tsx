@@ -22,7 +22,7 @@ export default function LocationPicker({
   if (locations.length <= 1) return null;
   return (
     <div className="px-4 pt-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
         Объекты ({locations.length})
       </div>
       <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">

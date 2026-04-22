@@ -131,7 +131,7 @@ export default function CompanySettingsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="px-4 pb-2 text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+      <div className="px-4 pb-2 text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
         {title}
       </div>
       <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">
@@ -156,7 +156,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
         {label}
       </div>
       <input

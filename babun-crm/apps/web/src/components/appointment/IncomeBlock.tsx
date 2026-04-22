@@ -81,7 +81,7 @@ export default function IncomeBlock({
           </>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">Доход</span>
+          <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">Доход</span>
           <div className="flex items-center gap-2">
             <span
               className={`text-[22px] font-bold tabular-nums ${
@@ -221,7 +221,7 @@ function IncomePopup({
           <div className="p-3 space-y-3">
             {/* Line breakdown */}
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                 Разбивка
               </div>
               <div className="space-y-1.5">
@@ -265,7 +265,7 @@ function IncomePopup({
             {/* Global discount */}
             {services.length > 0 && (
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                   Скидка на всё
                 </div>
                 <div className="flex gap-1.5 mb-2">

@@ -110,7 +110,7 @@ export default function ServiceRow({
           </div>
 
           {/* Duration + hints */}
-          <div className="text-[11px] text-[var(--label-secondary)] mt-1 tabular-nums">
+          <div className="text-[12px] text-[var(--label-secondary)] mt-1 tabular-nums">
             {line.duration} мин
             {line.pricePerUnit !== catalogPrice && (
               <span className="ml-1.5 text-[var(--label-tertiary)] line-through">
@@ -120,13 +120,13 @@ export default function ServiceRow({
           </div>
 
           {bulkHint && (
-            <div className="text-[11px] text-[var(--accent)] font-medium mt-0.5">
+            <div className="text-[12px] text-[var(--accent)] font-medium mt-0.5">
               {bulkHint}
             </div>
           )}
 
           {line.discount && (
-            <div className="text-[11px] text-[var(--system-red)] font-medium mt-0.5">
+            <div className="text-[12px] text-[var(--system-red)] font-medium mt-0.5">
               🏷 скидка{" "}
               {line.discount.type === "percent"
                 ? `${line.discount.value}%`

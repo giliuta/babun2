@@ -19,7 +19,7 @@ function TimeColumnInner() {
           className="border-b border-[var(--separator)] flex items-start justify-end pr-1.5 lg:pr-2"
           style={{ height: "var(--hh)", boxSizing: "border-box" }}
         >
-          <span className="text-[11px] lg:text-[12px] font-medium text-[var(--label-tertiary)] -mt-2 select-none tabular-nums">
+          <span className="text-[12px] lg:text-[12px] font-medium text-[var(--label-tertiary)] -mt-2 select-none tabular-nums">
             {String(hour).padStart(2, "0")}:00
           </span>
         </div>

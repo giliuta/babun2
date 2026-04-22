@@ -151,7 +151,7 @@ export default function Header({
           className="relative w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale flex-shrink-0 transition"
         >
           <CalendarClock size={20} strokeWidth={2} />
-          <span className="absolute text-[11px] font-bold translate-y-[3px]">
+          <span className="absolute text-[12px] font-bold translate-y-[3px]">
             {todayNumber}
           </span>
         </button>

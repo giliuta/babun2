@@ -954,7 +954,7 @@ function DashboardPageInner() {
           only; in prod the chip would be noise on top of the calendar. */}
       {process.env.NODE_ENV !== "production" && (
         <div
-          className="fixed left-2 z-30 pointer-events-none text-[10px] font-mono bg-black/70 text-[var(--label-on-accent)] px-1.5 py-0.5 rounded"
+          className="fixed left-2 z-30 pointer-events-none text-[12px] font-mono bg-black/70 text-[var(--label-on-accent)] px-1.5 py-0.5 rounded"
           style={{ bottom: "calc(env(safe-area-inset-bottom) + 0.25rem)" }}
         >
           {BUILD_VERSION}

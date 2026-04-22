@@ -201,7 +201,7 @@ export default function FinancesPage() {
             </div>
 
             <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center justify-between">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 {MODE_LABELS[mode]}
               </div>
             </div>
@@ -318,7 +318,7 @@ function SummaryCard({
         ? "text-[var(--system-green)]"
         : "text-[var(--system-red)]";
     deltaEl = (
-      <div className={`text-[10px] font-semibold tabular-nums ${deltaColor}`}>
+      <div className={`text-[12px] font-semibold tabular-nums ${deltaColor}`}>
         {formatPercentDelta(delta)}
       </div>
     );
@@ -334,7 +334,7 @@ function SummaryCard({
           : "bg-[var(--surface-card)] border-[var(--separator)]"
       }`}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
         {label}
       </div>
       <div className={`text-[13px] font-bold tabular-nums mt-0.5 ${amountColor}`}>{body}</div>
@@ -373,7 +373,7 @@ function CombinedSummary({
       </div>
 
       <div className="px-4 py-3 border-b border-[var(--separator)] bg-[var(--surface-grouped)]">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
           Счёт записей
         </div>
         <div className="mt-1 grid grid-cols-2 gap-2 text-[13px]">
@@ -416,7 +416,7 @@ function CashboxBlock({
 }) {
   return (
     <div className="px-4 py-4 border-t border-[var(--separator)] bg-[var(--surface-card)]">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">
         Сверка кассы
       </div>
       <div className="space-y-1.5">

@@ -71,7 +71,7 @@ export default function RepeatCopyModal({
         </div>
 
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
             Периодичность
           </div>
           <div className="flex gap-1.5">
@@ -96,7 +96,7 @@ export default function RepeatCopyModal({
         </div>
 
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
             Количество копий
           </div>
           <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function RepeatCopyModal({
         </div>
 
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
             Будут созданы
           </div>
           <div className="max-h-[160px] overflow-y-auto rounded-lg bg-[var(--fill-tertiary)] border border-[var(--separator)] divide-y divide-[var(--separator)]">

@@ -27,7 +27,7 @@ export default function CommentBlock({ value, readonly, onChange }: CommentBlock
 
   return (
     <div className="px-4 pt-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
         Комментарий
       </div>
       <textarea

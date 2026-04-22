@@ -98,7 +98,7 @@ export default function ExpenseSheet({
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
           {/* Category grid 2×2 */}
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
               Категория
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -146,7 +146,7 @@ export default function ExpenseSheet({
 
           {/* Amount input */}
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
               Сумма
             </div>
             <div className="flex items-center gap-2 bg-[var(--fill-tertiary)] border border-transparent rounded-[14px] px-3 h-14 focus-within:bg-[var(--surface-card)] focus-within:border-[var(--accent)]">
@@ -181,7 +181,7 @@ export default function ExpenseSheet({
 
           {/* Comment */}
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
               Комментарий
             </div>
             <input

@@ -74,13 +74,13 @@ export default function TodayGlance({
         className="block px-3 py-1.5 bg-[var(--accent-tint)] active:opacity-80 transition"
       >
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)] shrink-0">
+          <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)] shrink-0">
             Сегодня
           </span>
           <span className="text-[14px] font-bold text-[var(--accent)]">
             {pluralRecord(plan.count)}
           </span>
-          <span className="flex-1 text-[11px] text-[var(--accent)] opacity-70">
+          <span className="flex-1 text-[12px] text-[var(--accent)] opacity-70">
             первая в{" "}
             <span className="font-semibold tabular-nums">{plan.first}</span>
           </span>
@@ -96,13 +96,13 @@ export default function TodayGlance({
       className="block px-3 py-1.5 bg-[rgba(52,199,89,0.12)] active:opacity-80 transition"
     >
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-green)] shrink-0">
+        <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-green)] shrink-0">
           Сегодня
         </span>
         <span className="text-[17px] font-bold text-[var(--system-green)] leading-none">
           +{formatEUR(totalIncome)}
         </span>
-        <div className="flex-1 flex items-baseline gap-2 text-[11px] text-[var(--system-green)] opacity-80 min-w-0">
+        <div className="flex-1 flex items-baseline gap-2 text-[12px] text-[var(--system-green)] opacity-80 min-w-0">
           {cash > 0 && (
             <span>
               нал <span className="font-semibold">{formatEUR(cash)}</span>

@@ -262,7 +262,7 @@ function MasterRow({
         <div className="text-[14px] font-semibold text-[var(--label)] truncate">
           {master.full_name}
         </div>
-        <div className="text-[11px] text-[var(--label-secondary)] truncate">
+        <div className="text-[12px] text-[var(--label-secondary)] truncate">
           {ROLE_LABELS[master.role]}
           {team ? (
             <>
@@ -275,7 +275,7 @@ function MasterRow({
             " · без бригады"
           )}
         </div>
-        <div className="text-[11px] text-[var(--label-tertiary)] truncate tabular-nums">
+        <div className="text-[12px] text-[var(--label-tertiary)] truncate tabular-nums">
           {master.phone || "—"}
           {master.email ? ` · ${master.email}` : ""}
         </div>
@@ -283,12 +283,12 @@ function MasterRow({
       <div className="shrink-0 flex flex-col items-end gap-1">
         {master.account_status && (
           <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${ACCOUNT_STATUS_TONE[master.account_status]}`}
+            className={`text-[12px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${ACCOUNT_STATUS_TONE[master.account_status]}`}
           >
             {ACCOUNT_STATUS_LABELS[master.account_status]}
           </span>
         )}
-        <span className="text-[10px] font-semibold text-[var(--label-secondary)] bg-[var(--fill-primary)] rounded-full px-2 py-0.5 whitespace-nowrap">
+        <span className="text-[12px] font-semibold text-[var(--label-secondary)] bg-[var(--fill-primary)] rounded-full px-2 py-0.5 whitespace-nowrap">
           {salaryLabel}
         </span>
         <svg

@@ -225,7 +225,7 @@ function DayColumnInner({
         <div className="relative z-10 px-1 pt-1.5 flex flex-col items-center gap-[2px] leading-none">
           {/* Weekday label. Red on weekends, muted otherwise. */}
           <span
-            className={`text-[10px] font-semibold uppercase tracking-wider ${
+            className={`text-[12px] font-semibold uppercase tracking-wider ${
               isWeekend
                 ? "text-[var(--system-red)]/70"
                 : "text-[var(--label-secondary)]"
@@ -261,7 +261,7 @@ function DayColumnInner({
               sits on fill-tertiary when no city is set. */}
           {cityShort ? (
             <span
-              className="inline-flex items-center h-[18px] px-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide truncate max-w-full"
+              className="inline-flex items-center h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide truncate max-w-full"
               style={{
                 background: cityCfg?.bg ?? "var(--fill-tertiary)",
                 color: cityCfg?.color ?? "var(--label-secondary)",
@@ -270,14 +270,14 @@ function DayColumnInner({
               {cityShort}
             </span>
           ) : (
-            <span className="inline-flex items-center h-[18px] px-1.5 rounded-full text-[10px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)]">
+            <span className="inline-flex items-center h-[18px] px-1.5 rounded-full text-[12px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)]">
               + город
             </span>
           )}
         </div>
 
         {dayAppointments.length > 0 && (
-          <span className="absolute top-1 right-1.5 z-10 text-[10px] font-semibold tabular-nums text-[var(--label-tertiary)]">
+          <span className="absolute top-1 right-1.5 z-10 text-[12px] font-semibold tabular-nums text-[var(--label-tertiary)]">
             {dayAppointments.length}
           </span>
         )}
@@ -347,7 +347,7 @@ function DayColumnInner({
                 className="absolute left-0 right-0 bg-[var(--fill-secondary)] pointer-events-none border-y border-[var(--separator)]"
                 style={{ top: mins(bs), height: mins(be - bs) }}
               >
-                <div className="text-[9px] text-[var(--label-secondary)] pl-1">Перерыв</div>
+                <div className="text-[12px] text-[var(--label-secondary)] pl-1">Перерыв</div>
               </div>
             );
           })}

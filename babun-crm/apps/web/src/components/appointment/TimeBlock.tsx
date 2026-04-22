@@ -179,7 +179,7 @@ export default function TimeBlock({
         </span>
         <ChevronDownIcon />
       </button>
-      <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[11px] font-semibold text-[var(--label-secondary)] tabular-nums">
+      <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[12px] font-semibold text-[var(--label-secondary)] tabular-nums">
         {duration} мин
       </span>
     </div>

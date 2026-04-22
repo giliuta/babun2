@@ -142,7 +142,7 @@ export default function ServicesPage() {
                           <div className="text-sm font-semibold text-[var(--label)] truncate flex items-center gap-2">
                             <span className="truncate">{s.name || "Без названия"}</span>
                             {!s.is_countable && (
-                              <span className="text-[9px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide flex-shrink-0">
+                              <span className="text-[12px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide flex-shrink-0">
                                 ×1
                               </span>
                             )}
@@ -182,7 +182,7 @@ export default function ServicesPage() {
                                 return (
                                   <span
                                     key={bid}
-                                    className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                                    className="text-[12px] px-1.5 py-0.5 rounded font-medium"
                                     style={{
                                       background: `${t.color}22`,
                                       color: t.color,
@@ -201,7 +201,7 @@ export default function ServicesPage() {
                           )}
                         </div>
                         {!s.is_active && (
-                          <span className="text-[10px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-2 py-0.5 rounded">
+                          <span className="text-[12px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-2 py-0.5 rounded">
                             скрыта
                           </span>
                         )}

@@ -339,7 +339,7 @@ export default function FinanceSheet({
                 <button
                   type="button"
                   onClick={() => handleDiscountMode("amount")}
-                  className={`px-1.5 h-7 text-[11px] font-semibold ${
+                  className={`px-1.5 h-7 text-[12px] font-semibold ${
                     discountMode === "amount"
                       ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "text-[var(--label-secondary)]"
@@ -350,7 +350,7 @@ export default function FinanceSheet({
                 <button
                   type="button"
                   onClick={() => handleDiscountMode("percent")}
-                  className={`px-1.5 h-7 text-[11px] font-semibold ${
+                  className={`px-1.5 h-7 text-[12px] font-semibold ${
                     discountMode === "percent"
                       ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "text-[var(--label-secondary)]"

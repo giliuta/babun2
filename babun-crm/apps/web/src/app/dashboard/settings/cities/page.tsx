@@ -160,7 +160,7 @@ export default function CitiesSettingsPage() {
 
           {addOpen && (
             <div className="bg-[var(--accent-tint)] rounded-2xl p-3 space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                 Новый город
               </div>
               <div className="flex gap-2">
@@ -213,7 +213,7 @@ export default function CitiesSettingsPage() {
             )}
           </div>
 
-          <div className="text-[11px] text-[var(--label-tertiary)] px-4 leading-snug">
+          <div className="text-[12px] text-[var(--label-tertiary)] px-4 leading-snug">
             Активные города доступны при выборе города в клиенте и записи. Отключённые скрыты, но данные сохраняются.
           </div>
         </div>

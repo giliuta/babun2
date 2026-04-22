@@ -163,7 +163,7 @@ function CategoryButton({
       className={`w-full h-14 px-3 rounded-xl border text-left flex flex-col justify-center ${styles[color]}`}
     >
       <div className="text-[14px] font-semibold">{title}</div>
-      <div className="text-[11px] opacity-75">{subtitle}</div>
+      <div className="text-[12px] opacity-75">{subtitle}</div>
     </button>
   );
 }

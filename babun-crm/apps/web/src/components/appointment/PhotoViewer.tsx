@@ -124,7 +124,7 @@ export default function PhotoViewer({
               )}
             </button>
           )}
-          <div className="text-[10px] text-white/50 tabular-nums">
+          <div className="text-[12px] text-white/50 tabular-nums">
             {index + 1} / {photos.length}
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function PhotoViewer({
             className="w-full max-w-[280px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-[var(--separator)] text-[11px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)]">
+            <div className="px-4 py-3 border-b border-[var(--separator)] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)]">
               Пометить как
             </div>
             {(["before", "after", "other"] as PhotoKind[]).map((k) => (
@@ -230,7 +230,7 @@ export default function PhotoViewer({
                   {kindLabel(k)}
                 </span>
                 {k === photo.kind && (
-                  <span className="ml-auto text-[11px] text-[var(--label-tertiary)]">
+                  <span className="ml-auto text-[12px] text-[var(--label-tertiary)]">
                     текущая
                   </span>
                 )}
@@ -260,13 +260,13 @@ function KindBadge({ kind }: { kind: PhotoKind }) {
   }
   if (kind === "after") {
     return (
-      <span className="h-6 px-2 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center">
+      <span className="h-6 px-2 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] text-[12px] font-bold flex items-center">
         После
       </span>
     );
   }
   return (
-    <span className="h-6 px-2 rounded-full bg-[var(--fill-primary)] text-[var(--label-on-accent)] text-[11px] font-bold flex items-center">
+    <span className="h-6 px-2 rounded-full bg-[var(--fill-primary)] text-[var(--label-on-accent)] text-[12px] font-bold flex items-center">
       Прочее
     </span>
   );

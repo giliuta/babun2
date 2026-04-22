@@ -139,7 +139,7 @@ export default function TeamsPage() {
             </div>
           )}
 
-          <div className="px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          <div className="px-4 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Бригады
           </div>
           <div className="space-y-3">
@@ -191,7 +191,7 @@ export default function TeamsPage() {
                     {lead ? (
                       <>
                         <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--label-on-accent)] text-[11px] font-semibold shrink-0"
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--label-on-accent)] text-[12px] font-semibold shrink-0"
                           style={{ backgroundColor: team.color }}
                         >
                           {getInitials(lead.full_name)}
@@ -220,7 +220,7 @@ export default function TeamsPage() {
                         {helpers.map((h) => (
                           <span
                             key={h.id}
-                            className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[11px] whitespace-nowrap"
+                            className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[12px] whitespace-nowrap"
                           >
                             {h.full_name}
                           </span>
@@ -232,7 +232,7 @@ export default function TeamsPage() {
                   {/* Status chip */}
                   <div className="mt-3">
                     <span
-                      className={`inline-block text-[11px] px-2 py-0.5 rounded-full ${
+                      className={`inline-block text-[12px] px-2 py-0.5 rounded-full ${
                         team.active
                           ? "bg-[rgba(52,199,89,0.15)] text-[var(--system-green)]"
                           : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
@@ -434,7 +434,7 @@ function TeamFormModal({
               />
               <span className="text-[15px] text-[var(--label-secondary)]">%</span>
             </div>
-            <div className="text-[11px] text-[var(--label-tertiary)] mt-1.5 leading-snug">
+            <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5 leading-snug">
               Применяется к (доход − расход бригады) за выбранный период.
               Используется на странице Финансы → Зарплата.
             </div>

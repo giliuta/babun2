@@ -63,7 +63,7 @@ export default function ServiceBlock({
             {label}
           </div>
           {duration != null && (
-            <div className="text-[11px] text-[var(--label-secondary)] tabular-nums">
+            <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
               {duration} мин
             </div>
           )}

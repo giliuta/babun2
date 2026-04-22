@@ -36,7 +36,7 @@ export function IncomeTab({
     <>
       {services.length > 0 && (
         <div className="px-4 py-3 border-b border-[var(--separator)] bg-[var(--fill-tertiary)]">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
             По типам услуг
           </div>
           <div className="space-y-1">
@@ -52,7 +52,7 @@ export function IncomeTab({
                         {formatEUR(s.revenue)}
                       </span>
                     </div>
-                    <div className="text-[11px] text-[var(--label-secondary)] tabular-nums">
+                    <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
                       {s.count} зак. · ср. {formatEUR(avg)} · {Math.round(pct)}%
                     </div>
                     <div className="h-1 bg-[var(--fill-tertiary)] rounded-full overflow-hidden mt-0.5">
@@ -129,7 +129,7 @@ export function ExpenseGroups({
                 ) : (
                   <Tag size={16} strokeWidth={2} className="text-[var(--label-secondary)]" />
                 )}
-                <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                <span className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
                   {catName}
                 </span>
               </div>
@@ -264,11 +264,11 @@ export function PayrollTab({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.team.color }} />
             <div className="flex-1 text-[15px] font-semibold text-[var(--label)]">{p.team.name}</div>
-            <div className="text-[11px] text-[var(--label-secondary)]">
+            <div className="text-[12px] text-[var(--label-secondary)]">
               {p.percentage}% × {formatEUR(p.net)}
             </div>
           </div>
-          <div className="mt-1.5 grid grid-cols-3 gap-2 text-[11px]">
+          <div className="mt-1.5 grid grid-cols-3 gap-2 text-[12px]">
             <Kv label="Доход" value={`+${formatEUR(p.income)}`} color="emerald" />
             <Kv label="Расход" value={`−${formatEUR(p.expense)}`} color="rose" />
             <Kv label="Чистый" value={formatEURSigned(p.net)} color="indigo" />
@@ -417,7 +417,7 @@ function Kv({ label, value, color }: { label: string; value: string; color: "eme
       : "text-[var(--accent)]";
   return (
     <div className="bg-[var(--fill-tertiary)] rounded-md px-2 py-1">
-      <div className="text-[9px] text-[var(--label-secondary)] uppercase tracking-wider">{label}</div>
+      <div className="text-[12px] text-[var(--label-secondary)] uppercase tracking-wider">{label}</div>
       <div className={`text-[12px] font-semibold tabular-nums ${cc}`}>{value}</div>
     </div>
   );

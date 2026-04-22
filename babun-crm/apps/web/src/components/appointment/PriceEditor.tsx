@@ -55,7 +55,7 @@ export default function PriceEditor({
 
   return (
     <div className="mt-2 p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--separator)] space-y-2.5">
-      <div className="text-[11px] text-[var(--label-secondary)]">
+      <div className="text-[12px] text-[var(--label-secondary)]">
         Стандартная: <span className="font-semibold">{catalogPrice}€/шт</span>
       </div>
 
@@ -76,7 +76,7 @@ export default function PriceEditor({
             placeholder="0"
             className="flex-1 bg-transparent text-[16px] font-bold text-[var(--label)] tabular-nums focus:outline-none"
           />
-          <span className="text-[11px] text-[var(--label-tertiary)] uppercase">за шт</span>
+          <span className="text-[12px] text-[var(--label-tertiary)] uppercase">за шт</span>
         </div>
       ) : (
         <>
@@ -94,7 +94,7 @@ export default function PriceEditor({
             />
           </div>
           <div className="space-y-1.5">
-            <div className="text-[11px] text-[var(--label-secondary)]">Причина</div>
+            <div className="text-[12px] text-[var(--label-secondary)]">Причина</div>
             <div className="flex gap-1.5 flex-wrap">
               {DISCOUNT_REASONS.map((r) => (
                 <button

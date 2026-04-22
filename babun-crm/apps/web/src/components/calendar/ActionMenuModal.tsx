@@ -115,7 +115,7 @@ export default function ActionMenuModal({
                     {opt.label}
                   </div>
                   {opt.subtitle && (
-                    <div className="text-[11px] mt-0.5 text-[var(--label-tertiary)]">
+                    <div className="text-[12px] mt-0.5 text-[var(--label-tertiary)]">
                       {opt.subtitle}
                     </div>
                   )}

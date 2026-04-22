@@ -131,7 +131,7 @@ export default function GlobalSearch({
 
           {clientHits.length > 0 && (
             <div>
-              <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+              <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Клиенты ({clientHits.length})
               </div>
               {clientHits.map((c) => (
@@ -164,7 +164,7 @@ export default function GlobalSearch({
 
           {aptHits.length > 0 && (
             <div>
-              <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+              <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Записи ({aptHits.length})
               </div>
               {aptHits.map((a) => (

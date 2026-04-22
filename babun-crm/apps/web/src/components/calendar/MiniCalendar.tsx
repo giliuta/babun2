@@ -108,7 +108,7 @@ export default function MiniCalendar({
 
       <div className="grid grid-cols-7 gap-0 mb-1">
         {dayHeaders.map((d) => (
-          <div key={d} className="text-center text-[11px] font-semibold uppercase text-[var(--label-tertiary)] tracking-wider py-1">
+          <div key={d} className="text-center text-[12px] font-semibold uppercase text-[var(--label-tertiary)] tracking-wider py-1">
             {d}
           </div>
         ))}

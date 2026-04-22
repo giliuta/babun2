@@ -20,7 +20,7 @@ export default function TimeGrid({ hourHeight = 60 }: TimeGridProps) {
           className="border-b border-[var(--separator)] flex items-start justify-end pr-1 lg:pr-2 pt-0"
           style={{ height: `${hourHeight}px` }}
         >
-          <span className="text-[9px] lg:text-[11px] text-[var(--label-tertiary)] -mt-1.5 select-none">
+          <span className="text-[12px] lg:text-[12px] text-[var(--label-tertiary)] -mt-1.5 select-none">
             {String(hour).padStart(2, "0")}:00
           </span>
         </div>

@@ -75,7 +75,7 @@ export default function EndOfDayBanner({
             {unpaidCount}{" "}
             {unpaidCount === 1 ? "запись без оплаты" : "записей без оплаты"}
           </div>
-          <div className="text-[11px] text-[var(--label-secondary)]">
+          <div className="text-[12px] text-[var(--label-secondary)]">
             Закройте до конца дня
           </div>
         </div>

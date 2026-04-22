@@ -65,7 +65,7 @@ function MonthViewInner({
         {DAYS_OF_WEEK.map((dow, i) => (
           <div
             key={dow}
-            className={`py-2 text-center text-[11px] font-semibold uppercase tracking-wider ${
+            className={`py-2 text-center text-[12px] font-semibold uppercase tracking-wider ${
               i >= 5 ? "text-[var(--system-red)]/60" : "text-[var(--label-secondary)]"
             }`}
           >
@@ -115,7 +115,7 @@ function MonthViewInner({
                 )}
               </div>
               {data && data.income > 0 && (
-                <div className="text-[10px] text-[var(--system-green)] font-semibold mt-0.5 tabular-nums truncate w-full">
+                <div className="text-[12px] text-[var(--system-green)] font-semibold mt-0.5 tabular-nums truncate w-full">
                   {data.income}€
                 </div>
               )}

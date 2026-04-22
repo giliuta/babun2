@@ -42,7 +42,7 @@ export default function TodayChip({ appointments, teamId, onOpen }: TodayChipPro
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-[var(--fill-primary)] active:bg-[var(--fill-secondary)] text-[11px] font-semibold text-[var(--label)] tabular-nums flex-shrink-0"
+      className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-[var(--fill-primary)] active:bg-[var(--fill-secondary)] text-[12px] font-semibold text-[var(--label)] tabular-nums flex-shrink-0"
     >
       <span>Сегодня</span>
       {stats.income > 0 && (

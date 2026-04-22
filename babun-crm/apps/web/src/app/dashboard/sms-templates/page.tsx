@@ -81,11 +81,11 @@ export default function SmsTemplatesPage() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                    <span className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
                       {KIND_LABELS[tpl.kind]}
                     </span>
                     {!tpl.enabled && (
-                      <span className="text-[10px] bg-[var(--fill-tertiary)] text-[var(--label-secondary)] px-2 py-0.5 rounded">
+                      <span className="text-[12px] bg-[var(--fill-tertiary)] text-[var(--label-secondary)] px-2 py-0.5 rounded">
                         выкл.
                       </span>
                     )}
@@ -210,7 +210,7 @@ function TemplateEditor({
               <label className="text-[12px] font-medium text-[var(--label-secondary)] tracking-wide">
                 Текст сообщения
               </label>
-              <span className="text-[11px] text-[var(--label-tertiary)] tabular-nums">
+              <span className="text-[12px] text-[var(--label-tertiary)] tabular-nums">
                 {smsLength} знаков · {smsCount} SMS
               </span>
             </div>

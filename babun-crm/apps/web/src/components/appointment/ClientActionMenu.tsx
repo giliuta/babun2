@@ -71,7 +71,7 @@ export default function ClientActionMenu({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-3 border-b border-[var(--separator)]">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             {client.full_name}
           </div>
         </div>

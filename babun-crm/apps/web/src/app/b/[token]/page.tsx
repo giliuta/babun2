@@ -54,7 +54,7 @@ export default function SharePage(props: PageProps) {
     >
       <div className="max-w-md mx-auto px-4 pt-8">
         <div className="text-center mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Ваша запись
           </div>
           <div className="mt-1 text-[12px] text-[var(--label-tertiary)]">
@@ -90,7 +90,7 @@ export default function SharePage(props: PageProps) {
           )}
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-[var(--label-tertiary)] leading-snug">
+        <p className="mt-6 text-center text-[12px] text-[var(--label-tertiary)] leading-snug">
           Ссылка создана мастером. Данные действительны на момент отправки.
         </p>
       </div>
@@ -108,7 +108,7 @@ const statusMap: Record<string, string> = {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="px-5 py-3 flex items-start gap-3 min-h-[48px]">
-      <div className="w-20 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] pt-0.5">
+      <div className="w-20 shrink-0 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] pt-0.5">
         {label}
       </div>
       <div className="flex-1 text-[15px] text-[var(--label)]">{value}</div>
@@ -120,7 +120,7 @@ function AddressRow({ address }: { address: string }) {
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   return (
     <div className="px-5 py-3 flex items-start gap-3 min-h-[48px]">
-      <div className="w-20 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] pt-0.5">
+      <div className="w-20 shrink-0 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] pt-0.5">
         Адрес
       </div>
       <div className="flex-1 text-[15px] text-[var(--label)]">

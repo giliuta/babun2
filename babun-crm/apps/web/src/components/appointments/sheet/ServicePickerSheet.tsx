@@ -179,7 +179,7 @@ export default function ServicePickerSheet({
               {clientInitials(clientName)}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)]">
                 Клиент
               </div>
               <div className="text-[15px] font-semibold text-[var(--label)] truncate">
@@ -208,7 +208,7 @@ export default function ServicePickerSheet({
         ) : (
           grouped.map(({ category, items }) => (
             <div key={category?.id ?? "none"} className="space-y-1">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-0.5 pt-1.5">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-0.5 pt-1.5">
                 {category?.name ?? "Без категории"}
               </div>
               {items.map((s) => {

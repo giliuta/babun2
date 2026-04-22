@@ -51,7 +51,7 @@ export default function RepeatReminderSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-4 pb-3 border-b border-[var(--separator)]">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Напомнить о повторе
           </div>
           <div className="mt-1 text-[17px] font-semibold tracking-tight text-[var(--label)]">
@@ -90,7 +90,7 @@ export default function RepeatReminderSheet({
         </div>
 
         <div className="px-4 pt-1 pb-2">
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          <label className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Заметка (необязательно)
           </label>
           <input

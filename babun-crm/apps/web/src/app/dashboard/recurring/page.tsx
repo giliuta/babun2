@@ -129,11 +129,11 @@ function RecurringCard({
               {item.client_name}
             </div>
             {overdue ? (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-red)] bg-[rgba(255,59,48,0.1)] px-1.5 py-0.5 rounded">
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] bg-[rgba(255,59,48,0.1)] px-1.5 py-0.5 rounded">
                 просрочено
               </span>
             ) : daysUntil <= 3 ? (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-orange)] bg-[rgba(255,149,0,0.1)] px-1.5 py-0.5 rounded">
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-orange)] bg-[rgba(255,149,0,0.1)] px-1.5 py-0.5 rounded">
                 скоро
               </span>
             ) : null}
@@ -143,7 +143,7 @@ function RecurringCard({
               {item.service_summary}
             </div>
           )}
-          <div className="text-[11px] text-[var(--label-tertiary)] mt-1 tabular-nums">
+          <div className="text-[12px] text-[var(--label-tertiary)] mt-1 tabular-nums">
             {overdue
               ? `${Math.abs(daysUntil)} дн. назад · ${item.next_due_date}`
               : daysUntil === 0

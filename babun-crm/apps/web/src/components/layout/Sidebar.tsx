@@ -190,7 +190,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={toggleExpanded}
-            className="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] active:text-[var(--label)] transition"
+            className="w-full flex items-center gap-2 px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] active:text-[var(--label)] transition"
           >
             <ChevronDown
               size={14}
@@ -243,11 +243,11 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
             <LogOut size={16} strokeWidth={2} />
             Выход
           </button>
-          <div className="text-[11px] text-[var(--label-tertiary)] mt-3 flex items-center gap-1 tabular-nums">
+          <div className="text-[12px] text-[var(--label-tertiary)] mt-3 flex items-center gap-1 tabular-nums">
             <span>Синхр.</span>
             <SyncTime />
           </div>
-          <div className="text-[10px] text-[var(--label-tertiary)] mt-1 font-mono tracking-wide">
+          <div className="text-[12px] text-[var(--label-tertiary)] mt-1 font-mono tracking-wide">
             {BUILD_VERSION}
           </div>
         </div>

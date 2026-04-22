@@ -196,7 +196,7 @@ export default function ClientPickerSheet({
                 onClick={() => handleSelect(c)}
                 className="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-[var(--accent-tint)] border border-[var(--accent)] active:scale-[0.97]"
               >
-                <span className="w-7 h-7 rounded-full bg-[var(--surface-card)] text-[var(--accent)] flex items-center justify-center text-[11px] font-semibold shrink-0">
+                <span className="w-7 h-7 rounded-full bg-[var(--surface-card)] text-[var(--accent)] flex items-center justify-center text-[12px] font-semibold shrink-0">
                   {initials(c.full_name)}
                 </span>
                 <span className="text-[12px] font-medium text-[var(--accent)] truncate max-w-[120px]">
@@ -238,7 +238,7 @@ export default function ClientPickerSheet({
                 <span className="truncate">
                   <span className="font-semibold">В буфере:</span> {clipboardHint}
                 </span>
-                <span className="text-[11px] font-semibold text-[var(--accent)] shrink-0">
+                <span className="text-[12px] font-semibold text-[var(--accent)] shrink-0">
                   Вставить →
                 </span>
               </button>
@@ -271,7 +271,7 @@ export default function ClientPickerSheet({
                       {c.full_name}
                       {c.phone ? ` · ${c.phone}` : ""}
                     </span>
-                    <span className="text-[11px] font-semibold text-[var(--system-orange)] shrink-0">
+                    <span className="text-[12px] font-semibold text-[var(--system-orange)] shrink-0">
                       Выбрать →
                     </span>
                   </button>
@@ -293,7 +293,7 @@ export default function ClientPickerSheet({
               />
             </div>
             {phoneMissing && newName.trim().length > 0 && (
-              <div className="text-[11px] text-[var(--system-red)] -mt-1 px-1">
+              <div className="text-[12px] text-[var(--system-red)] -mt-1 px-1">
                 Введите телефон, иначе кнопка «Позвонить» не сработает
               </div>
             )}
@@ -363,7 +363,7 @@ export default function ClientPickerSheet({
 
             {/* Add-chips — Comment chip is gone since comment is now always visible. */}
             <div className="pt-1">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                 Добавить (необязательно)
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -439,7 +439,7 @@ export default function ClientPickerSheet({
                       )}
                     </div>
                     {isRecent && (
-                      <div className="text-[10px] font-semibold text-[var(--accent)] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded-full">
+                      <div className="text-[12px] font-semibold text-[var(--accent)] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded-full">
                         недавний
                       </div>
                     )}

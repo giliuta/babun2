@@ -162,7 +162,7 @@ export default function ClientProfileView({
                     key={t.id}
                     type="button"
                     onClick={() => toggleTag(t.id)}
-                    className="h-7 px-2.5 rounded-full text-[11px] font-semibold border transition inline-flex items-center gap-1"
+                    className="h-7 px-2.5 rounded-full text-[12px] font-semibold border transition inline-flex items-center gap-1"
                     style={
                       active
                         ? {
@@ -183,7 +183,7 @@ export default function ClientProfileView({
                 );
               })}
               {tagObjects.length === 0 && (
-                <span className="text-[11px] text-[var(--label-tertiary)]">Нет тегов</span>
+                <span className="text-[12px] text-[var(--label-tertiary)]">Нет тегов</span>
               )}
             </div>
             <div className="flex items-center justify-between pt-1">
@@ -197,7 +197,7 @@ export default function ClientProfileView({
 
           {/* Objects */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+            <div className="px-4 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
               Объекты ({activeLocations.length})
             </div>
             {activeLocations.length === 0 ? (
@@ -223,7 +223,7 @@ export default function ClientProfileView({
               <div className="divide-y divide-[var(--separator)]">
                 {grouped.map((group) => (
                   <div key={group.key} className="py-1">
-                    <div className="px-3 pt-1.5 pb-0.5 text-[11px] font-semibold text-[var(--label-secondary)] truncate">
+                    <div className="px-3 pt-1.5 pb-0.5 text-[12px] font-semibold text-[var(--label-secondary)] truncate">
                       {group.title}
                     </div>
                     <div>
@@ -260,7 +260,7 @@ export default function ClientProfileView({
                 </Button>
               </div>
               {client.notes.length === 0 ? (
-                <div className="text-[11px] text-[var(--label-tertiary)] italic">Пусто</div>
+                <div className="text-[12px] text-[var(--label-tertiary)] italic">Пусто</div>
               ) : (
                 <div className="space-y-1.5">
                   {client.notes.map((n) => (
@@ -269,7 +269,7 @@ export default function ClientProfileView({
                       className="flex items-start gap-2 p-2 rounded-lg bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.25)]"
                     >
                       <div className="flex-1 text-[13px] text-[var(--system-orange)] whitespace-pre-wrap">
-                        <span className="text-[10px] text-[var(--system-orange)] mr-1 tabular-nums">
+                        <span className="text-[12px] text-[var(--system-orange)] mr-1 tabular-nums">
                           {formatShortDate(n.created_at)}
                         </span>
                         {n.text}
@@ -344,7 +344,7 @@ export default function ClientProfileView({
             className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-[var(--separator)] text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">
+            <div className="px-4 py-3 border-b border-[var(--separator)] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">
               {client.full_name}
             </div>
             <MenuItem
@@ -473,7 +473,7 @@ function CollapsibleCard({
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-3 h-10 active:bg-[var(--fill-quaternary)]"
       >
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+        <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
           {title}
         </span>
         <span
@@ -753,7 +753,7 @@ function ObjectRow({ location }: { location: Location }) {
         <div className="text-[14px] font-semibold text-[var(--label)] truncate">
           {location.label || "Объект"}
           {location.isPrimary && (
-            <span className="text-[11px] text-[var(--accent)] ml-1 font-normal">· основной</span>
+            <span className="text-[12px] text-[var(--accent)] ml-1 font-normal">· основной</span>
           )}
         </div>
         <div className="text-[12px] text-[var(--label-secondary)] truncate">
@@ -789,7 +789,7 @@ function AppointmentRow({ apt }: { apt: Appointment }) {
         <div className="text-[13px] text-[var(--label)] truncate">
           {apt.comment || "—"}
         </div>
-        <div className="text-[11px] text-[var(--label-secondary)] tabular-nums">
+        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
           {formatAptDate(apt.date)} · {apt.time_start}
         </div>
       </div>

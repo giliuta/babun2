@@ -98,7 +98,7 @@ export default function SendMessagePopup({
             className="w-full px-3.5 py-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
           />
 
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
             Отправить через
           </div>
           <div className="grid grid-cols-2 gap-2">

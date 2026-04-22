@@ -106,7 +106,7 @@ export default function ImportPage() {
             {result.ok ? (
               <>
                 <div className="font-semibold mb-1">Готово</div>
-                <pre className="text-[11px] whitespace-pre-wrap">
+                <pre className="text-[12px] whitespace-pre-wrap">
                   {JSON.stringify(result.imported, null, 2)}
                 </pre>
               </>

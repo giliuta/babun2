@@ -28,7 +28,7 @@ export default function AddressBlock({ address, askHref }: AddressBlockProps) {
               {address}
             </div>
           </div>
-          <div className="text-[11px] text-[var(--system-blue)] font-semibold mt-1 ml-10">
+          <div className="text-[12px] text-[var(--system-blue)] font-semibold mt-1 ml-10">
             Открыть навигацию →
           </div>
         </a>

@@ -129,7 +129,7 @@ export default function SpecialScheduleModal({
           </div>
         )}
 
-        <p className="text-[11px] text-[var(--label-tertiary)] leading-snug">
+        <p className="text-[12px] text-[var(--label-tertiary)] leading-snug">
           Это расписание применится только к{" "}
           <span className="font-semibold">{formatDateLongRu(dateKey)}</span>. Общий
           рабочий график бригады не изменится.
@@ -148,7 +148,7 @@ interface TimeSelectProps {
 function TimeSelect({ label, value, onChange }: TimeSelectProps) {
   return (
     <label className="block">
-      <span className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-0.5">
+      <span className="block text-[12px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-0.5">
         {label}
       </span>
       <select

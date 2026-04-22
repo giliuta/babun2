@@ -14,7 +14,7 @@ export default function NotFound() {
       <div className="w-16 h-16 rounded-[18px] bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center text-[28px] font-bold mb-6 shadow-[0_15px_30px_-10px_rgba(62,136,247,0.45)]">
         B
       </div>
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)] mb-1">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--accent)] mb-1">
         404
       </div>
       <h1 className="text-[22px] font-bold text-[var(--label)]">

@@ -181,7 +181,7 @@ export default function ClientsPage() {
           <a
             href={phoneDigits ? `tel:${phoneDigits}` : undefined}
             onClick={(e) => { if (!phoneDigits) e.preventDefault(); }}
-            className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold ${
+            className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[12px] font-semibold ${
               phoneDigits ? "text-[var(--system-green)] active:bg-[var(--fill-quaternary)]" : "text-[var(--label-tertiary)]"
             }`}
           >
@@ -191,7 +191,7 @@ export default function ClientsPage() {
           <a
             href={phoneDigits ? `sms:${phoneDigits}` : undefined}
             onClick={(e) => { if (!phoneDigits) e.preventDefault(); }}
-            className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold ${
+            className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[12px] font-semibold ${
               phoneDigits ? "text-[var(--system-blue)] active:bg-[var(--fill-quaternary)]" : "text-[var(--label-tertiary)]"
             }`}
           >
@@ -201,7 +201,7 @@ export default function ClientsPage() {
           <button
             type="button"
             onClick={() => router.push(`/dashboard?new=1&client_id=${selectedClient.id}`)}
-            className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)]"
+            className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[12px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)]"
           >
             <CalendarPlus size={18} strokeWidth={2.2} />
             Записать
@@ -209,7 +209,7 @@ export default function ClientsPage() {
           <button
             type="button"
             onClick={() => router.push(`/dashboard/chats?client_id=${selectedClient.id}`)}
-            className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+            className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[12px] font-semibold text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
             <MessageCircle size={18} strokeWidth={2.2} />
             Чат
@@ -361,7 +361,7 @@ export default function ClientsPage() {
                         {client.full_name}
                       </span>
                       {rev?.lastDate && (
-                        <span className="text-[11px] text-[var(--label-tertiary)] flex-shrink-0 tabular-nums">
+                        <span className="text-[12px] text-[var(--label-tertiary)] flex-shrink-0 tabular-nums">
                           {rev.lastDate.split("-").reverse().join(".")}
                         </span>
                       )}
@@ -374,7 +374,7 @@ export default function ClientsPage() {
                     {((client.equipment.length > 0) || (rev && rev.total > 0) || client.balance < 0 || (rev && rev.debt > 0) || client.blacklisted) && (
                       <div className="flex items-center gap-2 flex-wrap text-[13px] mt-0.5">
                         {client.blacklisted && (
-                          <span className="px-1.5 py-0.5 rounded bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] font-semibold text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] font-semibold text-[12px]">
                             Чёрный список
                           </span>
                         )}
@@ -404,7 +404,7 @@ export default function ClientsPage() {
                         {client.tag_ids.map((tid) => {
                           const chip = TAG_CHIPS.find((t) => t.id === tid);
                           return chip ? (
-                            <span key={tid} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${chip.active}`}>{chip.label}</span>
+                            <span key={tid} className={`text-[12px] px-1.5 py-0.5 rounded-full font-medium ${chip.active}`}>{chip.label}</span>
                           ) : null;
                         })}
                       </div>

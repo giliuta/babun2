@@ -384,7 +384,7 @@ export default function MasterSheet({
               </div>
             </Field>
             {isEditing && master?.last_login_at && (
-              <div className="text-[11px] text-[var(--label-secondary)] px-1">
+              <div className="text-[12px] text-[var(--label-secondary)] px-1">
                 Последний вход:{" "}
                 {new Date(master.last_login_at).toLocaleString("ru-RU", {
                   day: "numeric",
@@ -527,7 +527,7 @@ export default function MasterSheet({
               />
             </Field>
             <div>
-              <div className="text-[11px] text-[var(--label-secondary)] mb-1">Рабочие дни</div>
+              <div className="text-[12px] text-[var(--label-secondary)] mb-1">Рабочие дни</div>
               <div className="flex gap-1.5">
                 {WEEKDAY_LABELS.map((label, idx) => (
                   <button
@@ -591,7 +591,7 @@ export default function MasterSheet({
                   </option>
                 ))}
               </select>
-              <div className="text-[11px] text-[var(--label-secondary)] mt-1">
+              <div className="text-[12px] text-[var(--label-secondary)] mt-1">
                 {SALARY_MODEL_HINTS[salaryModel]}
               </div>
             </Field>
@@ -688,10 +688,10 @@ export default function MasterSheet({
           >
             <div className="space-y-1.5">
               <div className="px-1">
-                <div className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                <div className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
                   Видимость бригад
                 </div>
-                <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">
+                <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
                   Что мастер видит в списке команд
                 </div>
               </div>
@@ -1011,7 +1011,7 @@ function Field({
         {required && <span className="text-[var(--system-red)] ml-0.5">*</span>}
       </label>
       {children}
-      {hint && <div className="text-[11px] text-[var(--label-tertiary)] mt-1.5 leading-snug">{hint}</div>}
+      {hint && <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5 leading-snug">{hint}</div>}
     </div>
   );
 }
@@ -1030,11 +1030,11 @@ function PermissionGroup({
   return (
     <div className="space-y-1.5 pt-2">
       <div className="px-1">
-        <div className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+        <div className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
           {title}
         </div>
         {description && (
-          <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">{description}</div>
+          <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5">{description}</div>
         )}
       </div>
       <div className="rounded-xl bg-[var(--surface-card)] divide-y divide-[var(--separator)]">{children}</div>
