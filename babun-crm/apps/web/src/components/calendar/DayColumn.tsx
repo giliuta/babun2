@@ -297,16 +297,18 @@ function DayColumnInner({
             )}
           </span>
 
-          {/* City pill — main visual anchor of the header. Tinted card
-              that uses the city's brand palette. 3-letter uppercase
-              code (ПАФ / ЛАР / ЛИМ) guarantees it fits even the
-              narrowest week-view column. */}
+          {/* City pill — main visual anchor of the header. Fully
+              filled with the city's accent colour so it reads as a
+              hard "label" on the column, not a tinted hint (user
+              ask, Sprint 033 Phase I4). 3-letter uppercase code
+              (ПАФ / ЛАР / ЛИМ) fits even the narrowest week-view
+              column. */}
           {cityShort ? (
             <span
-              className="inline-flex items-center justify-center h-[18px] px-1 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+              className="inline-flex items-center justify-center h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
               style={{
-                background: cityCfg?.bg ?? "var(--fill-tertiary)",
-                color: cityCfg?.color ?? "var(--label-secondary)",
+                background: cityCfg?.color ?? "var(--fill-primary)",
+                color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
               }}
             >
               {cityShort}
@@ -401,16 +403,17 @@ function DayColumnInner({
             );
           })}
 
-        {/* Current time indicator — hide if outside the window. */}
+        {/* Current time dot — just the red dot on today's column. The
+            full-width horizontal line is rendered one level up in
+            WeekView so it spans every day instead of looking like a
+            2 px stub stranded on a single column (user report,
+            Sprint 033 Phase I4). */}
         {isToday && currentTimeMinutes >= windowStartMin && currentTimeMinutes <= windowEndMin && (
           <div
-            className="absolute left-0 right-0 z-20 pointer-events-none"
-            style={{ top: windowedMins(currentTimeMinutes) }}
+            className="absolute left-0 z-20 pointer-events-none"
+            style={{ top: `calc(${windowedMins(currentTimeMinutes)} - 4px)` }}
           >
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-[var(--system-red)] rounded-full -ml-1" />
-              <div className="flex-1 h-[2px] bg-[var(--system-red)]" />
-            </div>
+            <div className="w-2 h-2 bg-[var(--system-red)] rounded-full -ml-1" />
           </div>
         )}
 

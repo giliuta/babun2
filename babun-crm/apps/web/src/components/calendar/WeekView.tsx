@@ -79,8 +79,39 @@ export default function WeekView({
     visibleDates = weekDates;
   }
 
+  // Sprint 033 Phase I4 — full-width now-line stretched across every
+  // visible day. The per-column DayColumn still draws a red dot on
+  // today's column so you can tell which day you're on, but the
+  // horizontal stripe lives here so zooming doesn't leave a 2-px stub.
+  const windowStartMin = Math.max(0, Math.min(24, windowStart ?? 0)) * 60;
+  const windowEndMin =
+    Math.max(windowStartMin / 60 + 1, Math.min(24, windowEnd ?? 24)) * 60;
+  const todayIsVisible = visibleDates.some(
+    (d) =>
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate(),
+  );
+  const nowLineVisible =
+    todayIsVisible &&
+    currentTimeMinutes >= windowStartMin &&
+    currentTimeMinutes <= windowEndMin;
+  const nowLineTop = `calc(var(--hh) * ${(currentTimeMinutes - windowStartMin) / 60})`;
+
+  // Offset below the day-header (height hardcoded in DayColumn:
+  // h-[82px] lg:h-[82px]). We replicate it here so the line sits
+  // relative to the grid, not the page top.
+  const HEADER_PX = 72; // mobile; DayColumn header is 72-82 px
   return (
-    <div className="flex w-full">
+    <div className="relative flex w-full">
+      {nowLineVisible && (
+        <div
+          className="absolute left-0 right-0 z-[15] pointer-events-none"
+          style={{ top: `calc(${HEADER_PX}px + ${nowLineTop})` }}
+        >
+          <div className="h-[1.5px] bg-[var(--system-red)] opacity-80" />
+        </div>
+      )}
       {visibleDates.map((date) => {
         // Local YYYY-MM-DD — единый формат с DayColumn/page.tsx.
         // toISOString() converts to UTC and ломает ключ для GMT+2/+3
