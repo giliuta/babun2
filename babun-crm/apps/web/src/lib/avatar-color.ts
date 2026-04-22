@@ -1,9 +1,22 @@
 // Deterministic avatar colour from a name — each client gets a unique
-// hue so the list isn't a wall of the same yellow.
+// hue so the list isn't a wall of the same colour. Old Money tile
+// palette (Sprint 032): muted, warm, nothing neon. Mirrors the 12
+// --tile-* tokens in globals.css so avatars sit in the same palette
+// as settings ListRow icons.
 
 const COLORS = [
-  "#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626",
-  "#DB2777", "#4F46E5", "#0891B2", "#EA580C", "#6D28D9",
+  "#A55A50", // tile-red      muted terracotta
+  "#B0814E", // tile-orange   burnt sienna
+  "#C9A860", // tile-yellow   antique gold
+  "#6C8A68", // tile-green    olive
+  "#7CA08A", // tile-mint     sage
+  "#6C8B89", // tile-teal     muted teal
+  "#6B87A0", // tile-cyan     steel blue
+  "#5D7A94", // tile-blue     dusty navy
+  "#6A6E8D", // tile-indigo   slate blue
+  "#87688B", // tile-purple   plum
+  "#A47888", // tile-pink     dusty rose
+  "#948A7C", // tile-gray     warm taupe
 ];
 
 export function getAvatarColor(name: string): string {
