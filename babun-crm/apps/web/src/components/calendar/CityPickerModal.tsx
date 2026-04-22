@@ -18,6 +18,11 @@ interface CityPickerModalProps {
    *  need to appear here. When missing, falls back to the 4 legacy
    *  CITIES presets so nothing ever renders empty. */
   cities?: City[];
+  /** Sprint 033 Phase I5: narrow the picker to just the cities this
+   *  brigade is configured for (brigade.cities[]). When provided and
+   *  non-empty the picker shows only these; otherwise falls back to
+   *  the full cities list. */
+  brigadeCities?: string[];
   onPick: (city: string) => void;
   /** kept for API back-compat; reset button removed from UI */
   onReset?: () => void;
@@ -32,13 +37,17 @@ export default function CityPickerModal({
   current,
   dateKey,
   cities,
+  brigadeCities,
   onPick,
 }: CityPickerModalProps) {
   // Build the single render list. Prefer settings.cities (the source of
   // truth that the brigade editor writes to). Each entry carries its
   // accent colour so custom tags render in the user-picked hue.
+  // When brigadeCities is provided and non-empty, narrow to that set
+  // so the user can't accidentally pick a city the brigade isn't
+  // configured for.
   const pickerList = useMemo(() => {
-    const list = (cities && cities.length > 0 ? cities : [])
+    const source = (cities && cities.length > 0 ? cities : [])
       .filter((c) => c.isActive)
       .map((c) => {
         const legacy = CITIES[c.name];
@@ -47,10 +56,14 @@ export default function CityPickerModal({
           color: c.color ?? legacy?.color ?? "#8E8E93",
         };
       });
-    if (list.length > 0) return list;
+    const narrowed =
+      brigadeCities && brigadeCities.length > 0
+        ? source.filter((c) => brigadeCities.includes(c.name))
+        : source;
+    if (narrowed.length > 0) return narrowed;
     // Fallback — the 4 hardcoded Cyprus presets.
     return Object.values(CITIES).map((c) => ({ name: c.name, color: c.color }));
-  }, [cities]);
+  }, [cities, brigadeCities]);
 
   void cityConfigFromColor;
   useEffect(() => {

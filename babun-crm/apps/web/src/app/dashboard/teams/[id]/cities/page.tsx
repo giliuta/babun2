@@ -3,8 +3,9 @@
 // Sprint 033 Phase H — Brigade cities / filials / tags subroute.
 
 import { use, useEffect, useState } from "react";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { haptic } from "@/lib/haptics";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useCities, useTeams } from "@/app/dashboard/layout";
 import {
   CITY_COLOR_PRESETS,
@@ -22,12 +23,14 @@ interface RouteParams {
 
 export default function BrigadeCitiesPage({ params }: RouteParams) {
   const { id } = use(params);
+  const confirm = useConfirm();
   const { teams, upsertTeam } = useTeams();
   const { cities, setCities } = useCities();
 
   const team = teams.find((t) => t.id === id);
   const [selected, setSelected] = useState<string[]>(team?.cities ?? []);
   const [defaultCity, setDefaultCity] = useState<string>(team?.default_city ?? "");
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (team) {
@@ -98,6 +101,40 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
     return true;
   };
 
+  // Permanently remove a city from the reference book. Cascades:
+  //  - drop from every brigade's cities[] and default_city
+  //  - the day-city map keeps orphan entries but they resolve to
+  //    cfg-less neutral grey on the calendar, which is safe.
+  const removeCityGlobally = async (cityName: string) => {
+    const ok = await confirm({
+      title: `Удалить город «${cityName}»?`,
+      message:
+        "Будет удалён из справочника городов. В бригадах, где он был выбран, автоматически снимется.",
+      confirmLabel: "Удалить",
+    });
+    if (!ok) return;
+    haptic("warning");
+    // Remove from settings.cities
+    setCities(cities.filter((c) => c.name !== cityName));
+    // Cascade: every brigade's cities[] and default_city
+    teams.forEach((t) => {
+      const next = (t.cities ?? []).filter((c) => c !== cityName);
+      const changed =
+        next.length !== (t.cities?.length ?? 0) || t.default_city === cityName;
+      if (!changed) return;
+      upsertTeam({
+        ...t,
+        cities: next.length > 0 ? next : undefined,
+        default_city: t.default_city === cityName ? "" : t.default_city,
+      });
+    });
+    // Update local draft state too
+    setSelected((prev) => prev.filter((c) => c !== cityName));
+    if (defaultCity === cityName) setDefaultCity("");
+  };
+
+  const hasAnyCity = activeCities.length > 0;
+
   return (
     <BrigadeSectionShell
       brigadeId={id}
@@ -105,11 +142,35 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
       onSave={handleSave}
     >
       <SectionCard subtitle="Где бригада работает. Любые теги — «Германия», «День ног» — появятся в календаре в своём цвете.">
+        {hasAnyCity && (
+          <div className="flex items-center justify-end -mt-1">
+            <button
+              type="button"
+              onClick={() => setEditMode((v) => !v)}
+              className="h-8 px-3 rounded-full text-[13px] font-medium press-scale bg-[var(--fill-tertiary)] text-[var(--label)]"
+            >
+              {editMode ? "Готово" : "Редактировать"}
+            </button>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {activeCities.map((c) => {
             const isSel = selected.includes(c.name) || defaultCity === c.name;
             const isBase = defaultCity === c.name;
             const tint = c.color ?? "var(--accent)";
+            if (editMode) {
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => removeCityGlobally(c.name)}
+                  className="inline-flex items-center gap-1.5 h-9 pl-2 pr-3 rounded-full text-[14px] font-medium press-scale transition bg-[rgba(255,59,48,0.10)] text-[var(--system-red)]"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                  {c.name}
+                </button>
+              );
+            }
             return (
               <button
                 key={c.id}
@@ -136,7 +197,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
               </button>
             );
           })}
-          {!adding && (
+          {!adding && !editMode && (
             <button
               type="button"
               onClick={() => setAdding(true)}
@@ -147,6 +208,12 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
             </button>
           )}
         </div>
+        {editMode && (
+          <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
+            Тап по городу — удалить из справочника. В бригадах, где он
+            был выбран, автоматически снимется.
+          </div>
+        )}
 
         {adding && (
           <div className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3 mt-3">
