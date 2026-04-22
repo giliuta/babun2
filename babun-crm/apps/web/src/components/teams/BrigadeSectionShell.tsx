@@ -15,8 +15,12 @@ interface BrigadeSectionShellProps {
   /** Disable save when the form can't be committed yet. */
   canSave?: boolean;
   /** Fired when the primary button is tapped. Return `true` to auto-
-   *  navigate back after save (default), `false` to stay on the page. */
-  onSave: () => boolean | Promise<boolean> | void | Promise<void>;
+   *  navigate back after save (default), `false` to stay on the page.
+   *  Ignored when `hideSave` is true. */
+  onSave?: () => boolean | Promise<boolean> | void | Promise<void>;
+  /** Hide the top-right Save pill entirely. Use for pages where each
+   *  action persists instantly (iOS-Settings style). */
+  hideSave?: boolean;
   /** Optional destructive action rendered at the bottom of the page.
    *  When set, renders as "Удалить …" in burgundy. */
   onDelete?: () => void;
@@ -30,6 +34,7 @@ export default function BrigadeSectionShell({
   saveLabel = "Сохранить",
   canSave = true,
   onSave,
+  hideSave = false,
   onDelete,
   deleteLabel = "Удалить",
   children,
@@ -39,6 +44,7 @@ export default function BrigadeSectionShell({
     brigadeId === "new" ? "/dashboard/teams" : `/dashboard/teams/${brigadeId}`;
 
   const handleSave = async () => {
+    if (!onSave) return;
     const res = await onSave();
     if (res === false) return;
     router.push(backHref);
@@ -59,14 +65,18 @@ export default function BrigadeSectionShell({
         <h1 className="absolute left-1/2 -translate-x-1/2 text-[17px] font-semibold text-[var(--label)] tracking-tight truncate max-w-[55%] text-center">
           {title}
         </h1>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!canSave}
-          className="ml-auto h-9 px-3 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] press-scale disabled:opacity-40"
-        >
-          {saveLabel}
-        </button>
+        {hideSave ? (
+          <span className="ml-auto w-11 h-11" aria-hidden />
+        ) : (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave}
+            className="ml-auto h-9 px-3 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] press-scale disabled:opacity-40"
+          >
+            {saveLabel}
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">

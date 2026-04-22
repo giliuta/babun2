@@ -1,20 +1,21 @@
 "use client";
 
-// Sprint 033 Phase I8 — Cities page, Ultrathink pass.
+// Sprint 033 Phase I9 — Cities, simplified to pure iPhone/Telegram.
 //
-// Design goals (from iPhone walkthrough with the user):
-//  · Telegram-like iOS light feel. Grouped cards + hairline separators.
-//  · Swipe the row to reveal actions (delete on left-swipe,
-//    toggle-base on right-swipe). Visible star button stays as a
-//    discoverable shortcut for base-toggle.
-//  · Adding a city must feel deliberate — a centered modal with name,
-//    colour palette, and a live preview tile. Not an inline form that
-//    breaks the scroll flow.
-//  · Empty state when the reference book is actually empty, with a
-//    direct "Добавить первый город" primary button.
+// What changed vs I8:
+//  · Save button gone. Every tap persists to upsertTeam instantly —
+//    behaves like iOS Settings toggles.
+//  · No more ВЫБРАНЫ / ДОСТУПНЫЕ split. One alphabetical list,
+//    selection shown by a right-side indicator (gold ★ for base,
+//    blue ✓ for selected, nothing otherwise).
+//  · Tap = toggle in one motion. Long-press (500 ms) opens an iOS
+//    ActionSheet with "Сделать базовым" and "Удалить".
+//  · Swipe-row removed from this page — long-press is the one extra-
+//    actions mechanism. Less gesture ambiguity.
+//  · Footer hint removed — discoverable by trying.
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import { Check, MapPin, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { Check, MapPin, Plus, Search, Star, X } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useCities, useTeams } from "@/app/dashboard/layout";
@@ -24,7 +25,9 @@ import {
   type City,
 } from "@/lib/cities";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
-import SwipeableRow from "@/components/ui/SwipeableRow";
+import ActionMenuModal, {
+  type ActionMenuOption,
+} from "@/components/calendar/ActionMenuModal";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -41,21 +44,20 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
   const { cities, setCities } = useCities();
   const team = teams.find((t) => t.id === id);
 
-  const [selected, setSelected] = useState<string[]>(team?.cities ?? []);
-  const [defaultCity, setDefaultCity] = useState<string>(team?.default_city ?? "");
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [menuCity, setMenuCity] = useState<City | null>(null);
 
-  useEffect(() => {
-    if (team) {
-      setSelected(team.cities ?? []);
-      setDefaultCity(team.default_city ?? "");
-    }
-  }, [team]);
+  const selected = team?.cities ?? [];
+  const defaultCity = team?.default_city ?? "";
 
-  // Hooks above any conditional return (Rules of Hooks).
+  // Hooks above any conditional return.
   const activeCities = useMemo(
-    () => cities.filter((c) => c.isActive),
+    () =>
+      cities
+        .filter((c) => c.isActive)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, "ru")),
     [cities],
   );
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -67,7 +69,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Города / Филиалы" onSave={() => true}>
+      <BrigadeSectionShell brigadeId={id} title="Города / Филиалы" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Бригада не найдена.
         </div>
@@ -75,25 +77,41 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
     );
   }
 
-  const pickedList = filtered.filter((c) => selectedSet.has(c.name));
-  const availableList = filtered.filter((c) => !selectedSet.has(c.name));
+  const persist = (next: { cities?: string[]; default_city?: string }) => {
+    upsertTeam({
+      ...team,
+      cities:
+        next.cities !== undefined
+          ? next.cities.length > 0
+            ? next.cities
+            : undefined
+          : team.cities,
+      default_city:
+        next.default_city !== undefined ? next.default_city : team.default_city,
+    });
+  };
 
   const toggle = (cityName: string) => {
     haptic("tap");
     if (selectedSet.has(cityName)) {
-      setSelected(selected.filter((c) => c !== cityName));
-      if (defaultCity === cityName) setDefaultCity("");
+      persist({
+        cities: selected.filter((c) => c !== cityName),
+        default_city: defaultCity === cityName ? "" : defaultCity,
+      });
     } else {
-      setSelected([...selected, cityName]);
+      persist({ cities: [...selected, cityName] });
     }
   };
 
   const setBase = (cityName: string) => {
     haptic("tap");
-    if (!selectedSet.has(cityName)) {
-      setSelected([...selected, cityName]);
-    }
-    setDefaultCity(defaultCity === cityName ? "" : cityName);
+    const nextSelected = selectedSet.has(cityName)
+      ? selected
+      : [...selected, cityName];
+    persist({
+      cities: nextSelected,
+      default_city: defaultCity === cityName ? "" : cityName,
+    });
   };
 
   const addNew = (name: string, color: string) => {
@@ -114,13 +132,13 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
       color,
     };
     setCities([...cities, created]);
-    setSelected([...selected, n]);
+    persist({ cities: [...selected, n] });
     setAddOpen(false);
   };
 
   const removeCityGlobally = async (cityName: string) => {
     const ok = await confirm({
-      title: `Удалить город «${cityName}»?`,
+      title: `Удалить «${cityName}»?`,
       message:
         "Город уйдёт из справочника. Во всех бригадах, где он был выбран, автоматически снимется.",
       confirmLabel: "Удалить",
@@ -139,54 +157,71 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
         default_city: t.default_city === cityName ? "" : t.default_city,
       });
     });
-    setSelected((prev) => prev.filter((c) => c !== cityName));
-    if (defaultCity === cityName) setDefaultCity("");
-  };
-
-  const handleSave = () => {
-    haptic("tap");
-    upsertTeam({
-      ...team,
-      cities: selected.length > 0 ? selected : undefined,
-      default_city: selected.includes(defaultCity) ? defaultCity : "",
-    });
-    return true;
   };
 
   const showSearch = activeCities.length > 6;
   const referenceEmpty = activeCities.length === 0 && !query;
 
+  // Action-sheet options for the currently long-pressed city.
+  const menuOptions: ActionMenuOption[] = menuCity
+    ? [
+        selectedSet.has(menuCity.name)
+          ? {
+              label:
+                defaultCity === menuCity.name
+                  ? "Снять с базы"
+                  : "Сделать базовым",
+              subtitle:
+                defaultCity === menuCity.name
+                  ? "Этот город перестанет быть основным"
+                  : "Бригада будет открываться на этом городе по умолчанию",
+              onSelect: () => setBase(menuCity.name),
+            }
+          : {
+              label: "Добавить бригаде",
+              subtitle: "Появится в календаре с этим цветом",
+              onSelect: () => toggle(menuCity.name),
+            },
+        {
+          label: "Удалить из справочника",
+          subtitle: "Исчезнет из всех бригад",
+          danger: true,
+          onSelect: () => removeCityGlobally(menuCity.name),
+        },
+      ]
+    : [];
+
   return (
     <BrigadeSectionShell
       brigadeId={id}
       title="Города / Филиалы"
-      onSave={handleSave}
+      hideSave
     >
-      {/* Empty state — reference book has nothing yet. */}
+      {/* Empty state */}
       {referenceEmpty && (
-        <div className="px-6 pt-6 pb-4 flex flex-col items-center text-center gap-3">
-          <span className="w-14 h-14 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
-            <MapPin size={26} strokeWidth={2} />
+        <div className="px-6 pt-8 pb-4 flex flex-col items-center text-center gap-3">
+          <span className="w-16 h-16 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
+            <MapPin size={28} strokeWidth={2} />
           </span>
           <div>
             <div className="text-[17px] font-semibold text-[var(--label)]">
               Пока нет ни одного города
             </div>
             <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-              Добавьте первый город или тег — бригада начнёт привязываться к нему в&nbsp;календаре.
+              Добавьте город или тег — бригада привяжется к&nbsp;нему в&nbsp;календаре.
             </div>
           </div>
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="mt-2 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
+            className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
           >
             Добавить город
           </button>
         </div>
       )}
 
-      {/* Search field — lifted from any card so it sits above sections. */}
+      {/* Search */}
       {!referenceEmpty && showSearch && (
         <div className="relative">
           <Search
@@ -214,73 +249,24 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
         </div>
       )}
 
-      {/* ── ВЫБРАНЫ ──────────────────────────────────────────────── */}
-      {!referenceEmpty && pickedList.length > 0 && (
-        <ListSection title="ВЫБРАНЫ" count={pickedList.length}>
-          {pickedList.map((c) => (
-            <SwipeableRow
-              key={c.id}
-              leftActions={[
-                {
-                  label: defaultCity === c.name ? "Снять ★" : "Базовый",
-                  color: "bg-[var(--system-yellow)]",
-                  icon: (
-                    <Star
-                      size={16}
-                      strokeWidth={2}
-                      fill={defaultCity === c.name ? "none" : "white"}
-                    />
-                  ),
-                  onSelect: () => setBase(c.name),
-                },
-              ]}
-              rightActions={[
-                {
-                  label: "Удалить",
-                  color: "bg-[var(--system-red)]",
-                  icon: <Trash2 size={16} strokeWidth={2} />,
-                  onSelect: () => removeCityGlobally(c.name),
-                },
-              ]}
-            >
-              <CityRow
-                city={c}
-                selected
-                isBase={defaultCity === c.name}
-                onTap={() => toggle(c.name)}
-                onStarTap={() => setBase(c.name)}
-              />
-            </SwipeableRow>
-          ))}
-        </ListSection>
-      )}
-
-      {/* ── ДОСТУПНЫЕ / ВСЕ ─────────────────────────────────────── */}
+      {/* Single unified list */}
       {!referenceEmpty && (
-        <ListSection
-          title={pickedList.length > 0 ? "ДОСТУПНЫЕ" : "ВСЕ ГОРОДА"}
-          count={availableList.length}
-        >
-          {availableList.map((c) => (
-            <SwipeableRow
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
+          {filtered.map((c) => (
+            <CityRow
               key={c.id}
-              rightActions={[
-                {
-                  label: "Удалить",
-                  color: "bg-[var(--system-red)]",
-                  icon: <Trash2 size={16} strokeWidth={2} />,
-                  onSelect: () => removeCityGlobally(c.name),
-                },
-              ]}
-            >
-              <CityRow
-                city={c}
-                selected={false}
-                isBase={false}
-                onTap={() => toggle(c.name)}
-              />
-            </SwipeableRow>
+              city={c}
+              selected={selectedSet.has(c.name)}
+              isBase={defaultCity === c.name}
+              onTap={() => toggle(c.name)}
+              onLongPress={() => setMenuCity(c)}
+            />
           ))}
+          {filtered.length === 0 && query && (
+            <div className="px-4 py-4 text-center text-[13px] text-[var(--label-tertiary)]">
+              Ничего не найдено по запросу «{query}».
+            </div>
+          )}
           {!query && (
             <button
               type="button"
@@ -295,24 +281,6 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
               </span>
             </button>
           )}
-          {availableList.length === 0 && query && (
-            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
-              Ничего не найдено по запросу «{query}».
-            </div>
-          )}
-        </ListSection>
-      )}
-
-      {/* Footer hint — subtle, single line. */}
-      {!referenceEmpty && (
-        <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
-          Свайп влево —{" "}
-          <span className="text-[var(--system-red)] font-medium">удалить</span>{" "}
-          из справочника. Свайп вправо —{" "}
-          <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
-            базовый
-          </span>
-          . Тап по&nbsp;★&nbsp;тоже работает.
         </div>
       )}
 
@@ -322,36 +290,72 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
         onAdd={addNew}
         existingNames={cities.map((c) => c.name)}
       />
+
+      <ActionMenuModal
+        open={!!menuCity}
+        onClose={() => setMenuCity(null)}
+        title={menuCity?.name ?? ""}
+        options={menuOptions}
+      />
     </BrigadeSectionShell>
   );
 }
 
-// ─── List section helper ───────────────────────────────────────────────
+// ─── Long-press hook ───────────────────────────────────────────────────
 
-function ListSection({
-  title,
-  count,
-  children,
+function useLongPressTap({
+  onTap,
+  onLongPress,
+  delay = 500,
 }: {
-  title: string;
-  count?: number;
-  children: React.ReactNode;
+  onTap: () => void;
+  onLongPress: () => void;
+  delay?: number;
 }) {
-  return (
-    <div>
-      <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
-        {title}
-        {typeof count === "number" && (
-          <span className="ml-1 text-[var(--label-tertiary)] font-normal normal-case tracking-normal">
-            · {count}
-          </span>
-        )}
-      </div>
-      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-        {children}
-      </div>
-    </div>
-  );
+  const timer = useRef<number | null>(null);
+  const triggered = useRef(false);
+  const origin = useRef<{ x: number; y: number } | null>(null);
+
+  const cancel = () => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      triggered.current = false;
+      origin.current = { x: e.clientX, y: e.clientY };
+      timer.current = window.setTimeout(() => {
+        triggered.current = true;
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate?.(12);
+        }
+        onLongPress();
+      }, delay);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!origin.current || timer.current == null) return;
+      const dx = Math.abs(e.clientX - origin.current.x);
+      const dy = Math.abs(e.clientY - origin.current.y);
+      if (dx > 10 || dy > 10) cancel();
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      cancel();
+      if (triggered.current) {
+        e.preventDefault();
+        e.stopPropagation();
+      } else {
+        onTap();
+      }
+    },
+    onPointerCancel: cancel,
+    onPointerLeave: cancel,
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+    },
+  };
 }
 
 // ─── City row ──────────────────────────────────────────────────────────
@@ -361,83 +365,65 @@ function CityRow({
   selected,
   isBase,
   onTap,
-  onStarTap,
+  onLongPress,
 }: {
   city: City;
   selected: boolean;
   isBase: boolean;
   onTap: () => void;
-  onStarTap?: () => void;
+  onLongPress: () => void;
 }) {
+  const handlers = useLongPressTap({ onTap, onLongPress });
   const tile = city.color ?? "#8E8E93";
   return (
     <div
-      className={`flex items-center gap-3 px-4 min-h-[56px] ${
+      {...handlers}
+      className={`flex items-center gap-3 px-4 min-h-[56px] cursor-pointer select-none active:bg-[var(--fill-quaternary)] transition ${
         isBase ? "bg-[var(--accent-tint)]" : ""
       }`}
+      style={{
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}
     >
-      <button
-        type="button"
-        onClick={onTap}
-        className="flex-1 min-w-0 flex items-center gap-3 py-3 text-left active:opacity-70 press-scale"
+      <span
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--label-on-accent)] shrink-0"
+        style={{ backgroundColor: tile }}
       >
-        <span
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--label-on-accent)] shrink-0"
-          style={{ backgroundColor: tile }}
-        >
-          <MapPin size={16} strokeWidth={2.2} />
-        </span>
-        <span className="flex-1 min-w-0 flex items-center gap-1.5">
-          <span
-            className={`text-[15px] truncate ${
-              isBase
-                ? "font-semibold text-[var(--accent)]"
-                : selected
-                  ? "font-medium text-[var(--label)]"
-                  : "text-[var(--label)]"
-            }`}
-          >
-            {city.name}
-          </span>
-          {isBase && (
-            <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--accent)] text-[var(--label-on-accent)]">
-              база
-            </span>
-          )}
-        </span>
-        {selected ? (
-          <Check size={18} strokeWidth={2.5} className="text-[var(--accent)]" />
-        ) : (
-          <span className="w-[18px]" />
-        )}
-      </button>
-      {selected && onStarTap && (
-        <button
-          type="button"
-          onClick={onStarTap}
-          aria-label={isBase ? "Убрать статус базового" : "Сделать базовым"}
-          className={`w-10 h-10 flex items-center justify-center rounded-full press-scale shrink-0 ${
-            isBase
-              ? "text-[var(--system-yellow)]"
-              : "text-[var(--label-quaternary)]"
-          } active:bg-[var(--fill-quaternary)]`}
-        >
+        <MapPin size={16} strokeWidth={2.2} />
+      </span>
+      <span
+        className={`flex-1 min-w-0 text-[15px] truncate ${
+          isBase
+            ? "font-semibold text-[var(--accent)]"
+            : selected
+              ? "font-medium text-[var(--label)]"
+              : "text-[var(--label)]"
+        }`}
+      >
+        {city.name}
+      </span>
+      <span className="w-6 flex items-center justify-end">
+        {isBase ? (
           <Star
-            size={18}
-            strokeWidth={2}
-            fill={isBase ? "var(--system-yellow)" : "none"}
+            size={20}
+            strokeWidth={0}
+            fill="var(--system-yellow)"
+            className="text-[var(--system-yellow)] drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
           />
-        </button>
-      )}
+        ) : selected ? (
+          <Check
+            size={20}
+            strokeWidth={3}
+            className="text-[var(--accent)]"
+          />
+        ) : null}
+      </span>
     </div>
   );
 }
 
 // ─── Add-city modal ────────────────────────────────────────────────────
-//
-// Centered iOS-style sheet. Keeps the user's flow on the page — no
-// route push, no full-screen takeover. Matches CityPickerModal chrome
-// for consistency across all modals in the app.
 
 function AddCityModal({
   open,
@@ -454,31 +440,13 @@ function AddCityModal({
   const [color, setColor] = useState<string>(CITY_COLOR_PRESETS[0].value);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Reset fields whenever the modal is closed.
   useEffect(() => {
     if (!open) {
       setName("");
       setColor(CITY_COLOR_PRESETS[0].value);
-    } else {
-      // Small delay to let the modal mount before focusing — iOS Safari
-      // otherwise skips the keyboard raise on first open.
-      const t = setTimeout(() => inputRef.current?.focus(), 30);
-      return () => clearTimeout(t);
     }
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -502,30 +470,29 @@ function AddCityModal({
         className="w-full max-w-[360px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center">
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
             Новый город или тег
           </div>
           <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
-            Любое название — «Пафос», «Германия», «День ног». Цвет
-            подтянется в календарь.
+            Любое название — «Пафос», «Германия», «День ног».
           </div>
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Name input */}
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
               Название
             </label>
             <input
               ref={inputRef}
+              autoFocus
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
+                if (e.key === "Escape") onClose();
               }}
               placeholder="Напр. Пафос"
               className="mt-1 w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
@@ -533,12 +500,11 @@ function AddCityModal({
             />
             {isDup && (
               <div className="mt-1 px-1 text-[12px] text-[var(--system-red)]">
-                Такое название уже есть — откройте список и выберите его.
+                Такое название уже есть — откройте список и выберите.
               </div>
             )}
           </div>
 
-          {/* Colour palette */}
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
               Цвет
@@ -579,7 +545,6 @@ function AddCityModal({
             </div>
           </div>
 
-          {/* Live preview */}
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
               Предпросмотр
@@ -604,8 +569,8 @@ function AddCityModal({
                   </span>
                 </span>
                 <Check
-                  size={18}
-                  strokeWidth={2.5}
+                  size={20}
+                  strokeWidth={3}
                   className="text-[var(--accent)]"
                 />
               </div>
@@ -613,7 +578,6 @@ function AddCityModal({
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="px-4 pb-4 pt-1 flex gap-2">
           <button
             type="button"
