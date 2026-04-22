@@ -36,6 +36,11 @@ export interface Service {
   is_countable: boolean;
   /** Бригады, которые делают эту услугу. Пусто = все бригады. */
   brigade_ids: string[];
+  /** Sprint 033 Phase I18 — explicit sort order inside the parent
+   *  category. Services without a value sort after those that have
+   *  one (treated as Infinity). Reordered by drag-and-drop on the
+   *  brigade services subroute. */
+  sort_order?: number;
 }
 
 export interface ServiceCategory {

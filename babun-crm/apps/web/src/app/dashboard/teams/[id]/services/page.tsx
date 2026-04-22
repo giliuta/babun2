@@ -1,37 +1,46 @@
 "use client";
 
-// Sprint 033 Phase I16 — Brigade services, iOS-Settings redesign.
+// Sprint 033 Phase I18 — Brigade services as a direct editor.
 //
-// Pattern matches Метки / Мастера / Brigades:
-//  · hideSave + instant persist on every toggle
-//  · Tap row = toggle inclusion for this brigade
-//  · Long-press row = anchored context menu (Редактировать / Убрать
-//    из бригады / Удалить навсегда)
-//  · Swipe left = red «Убрать» (or «Удалить навсегда» if this is
-//    the only brigade using it)
-//  · Category groups shown as separate list cards; each header has
-//    a "Выбрать все" / "Снять" chip
-//  · Search input above; when nothing matches → single helpful line
-//  · Edit and Add flows moved from inline-in-card to a centered
-//    modal (ServiceFormModal) — no more expanding form rows
-//  · The old "Доступны все услуги" banner is demoted to a footer
-//    hint below the list when the brigade has zero selected
+// User reframed the page:
+//  · "Зачем мне выбирать услуги? Это не надо, просто добавлять их и
+//    редактировать." → removed the per-service selection checkbox.
+//    Every visible row IS in the brigade.
+//  · "Группы: Чистка, Ремонт… я туда вношу услуги" → categories
+//    surface as named groups. User can create a new group via
+//    "Новая группа" and a service via "Новая услуга".
+//  · "При удерживании могу переместить верх" → @dnd-kit with a
+//    delay sensor so long-press picks the row up and vertical drag
+//    swaps it with its neighbours. Sort order persisted on Service.
 //
-// Semantics unchanged:
-//  · Editing a service edits the global catalog (shared by all
-//    brigades), matches existing data-model behaviour.
-//  · "Delete" checks whether any other brigade uses it: if yes,
-//    just removes this brigade from service.brigade_ids; if no,
-//    flips is_active=false.
+// Gestures:
+//  · Tap row → opens edit modal (single action — no selection state)
+//  · Long-press + drag vertically → reorder within the group
+//  · Swipe left → red «Удалить» (removes this brigade from the
+//    service's brigade_ids; if it was the only brigade, the service
+//    is deactivated globally)
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   Check,
-  Pencil,
+  FolderPlus,
   Plus,
   Search,
   Trash2,
-  UserMinus,
   X,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
@@ -39,13 +48,12 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
 import {
   createBlankService,
+  DEFAULT_CATEGORIES,
   type Service,
   type ServiceCategory,
 } from "@/lib/services";
+import { generateId } from "@/lib/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
-import ContextMenu, {
-  type ContextMenuOption,
-} from "@/components/ui/ContextMenu";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 
 interface RouteParams {
@@ -56,30 +64,69 @@ function normalize(s: string): string {
   return s.toLowerCase().replace(/ё/g, "е");
 }
 
+// Sort helpers — services sort by explicit sort_order asc, then created_at.
+const sortServices = (a: Service, b: Service) => {
+  const ao = a.sort_order ?? Number.POSITIVE_INFINITY;
+  const bo = b.sort_order ?? Number.POSITIVE_INFINITY;
+  if (ao !== bo) return ao - bo;
+  return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+};
+
 export default function BrigadeServicesPage({ params }: RouteParams) {
   const { id } = use(params);
   const confirm = useConfirm();
   const { teams } = useTeams();
-  const { services, categories, upsertService } = useServices();
+  const { services, categories, upsertService, setCategories } = useServices();
   const team = teams.find((t) => t.id === id);
 
   const [query, setQuery] = useState("");
-  const [menu, setMenu] = useState<{
-    service: Service;
-    anchor: { x: number; y: number };
-  } | null>(null);
   const [editing, setEditing] = useState<Service | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
-  const activeAll = useMemo(
-    () => services.filter((s) => s.is_active !== false),
-    [services],
-  );
+  // Services belonging to this brigade (either explicitly listed or
+  // legacy entries with empty brigade_ids = all brigades).
+  const brigadeServices = useMemo(() => {
+    if (!team) return [];
+    return services
+      .filter(
+        (s) =>
+          s.is_active !== false &&
+          (s.brigade_ids.length === 0 || s.brigade_ids.includes(team.id)),
+      )
+      .sort(sortServices);
+  }, [services, team]);
+
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
-    if (!q) return activeAll;
-    return activeAll.filter((s) => normalize(s.name).includes(q));
-  }, [activeAll, query]);
+    if (!q) return brigadeServices;
+    return brigadeServices.filter((s) => normalize(s.name).includes(q));
+  }, [brigadeServices, query]);
+
+  const categoriesWithServices = useMemo(() => {
+    return categories
+      .map((cat) => ({
+        cat,
+        list: filtered.filter((s) => s.category_id === cat.id),
+      }))
+      .filter((x) => x.list.length > 0 || !query);
+  }, [categories, filtered, query]);
+
+  const orphanServices = useMemo(
+    () =>
+      filtered.filter(
+        (s) => !s.category_id || !categories.some((c) => c.id === s.category_id),
+      ),
+    [filtered, categories],
+  );
+
+  // DnD — activate drag after 500 ms hold with <6 px movement, so
+  // taps and horizontal swipes still belong to SwipeableRow.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 500, tolerance: 6 },
+    }),
+  );
 
   if (!team) {
     return (
@@ -91,48 +138,27 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     );
   }
 
-  const hasService = (svc: Service) => svc.brigade_ids.includes(team.id);
-  const selectedCount = activeAll.filter(hasService).length;
-  const totalCount = activeAll.length;
-
-  const toggle = (svc: Service) => {
-    haptic("tap");
-    upsertService({
-      ...svc,
-      brigade_ids: hasService(svc)
-        ? svc.brigade_ids.filter((b) => b !== team.id)
-        : [...svc.brigade_ids, team.id],
-    });
-  };
-
-  const bulkSet = (list: Service[], attach: boolean) => {
-    haptic("tap");
-    for (const svc of list) {
-      if (attach && !hasService(svc)) {
-        upsertService({ ...svc, brigade_ids: [...svc.brigade_ids, team.id] });
-      } else if (!attach && hasService(svc)) {
-        upsertService({
-          ...svc,
-          brigade_ids: svc.brigade_ids.filter((b) => b !== team.id),
-        });
-      }
-    }
-  };
-
-  const removeFromBrigade = (svc: Service) => {
-    haptic("warning");
-    upsertService({
-      ...svc,
-      brigade_ids: svc.brigade_ids.filter((b) => b !== team.id),
-    });
-  };
-
-  const deleteForever = async (svc: Service) => {
+  const removeFromBrigade = async (svc: Service) => {
     const usedElsewhere =
       svc.brigade_ids.filter((b) => b !== team.id).length > 0;
+    if (svc.brigade_ids.length === 0) {
+      // Legacy "everyone" service — confirm before global deletion.
+      const ok = await confirm({
+        title: `Удалить услугу «${svc.name}»?`,
+        message: "Эта услуга была доступна всем бригадам и пропадёт полностью.",
+        confirmLabel: "Удалить",
+      });
+      if (!ok) return;
+      haptic("warning");
+      upsertService({ ...svc, is_active: false, brigade_ids: [] });
+      return;
+    }
     if (usedElsewhere) {
-      // Only detach from this brigade — others still need it.
-      removeFromBrigade(svc);
+      haptic("warning");
+      upsertService({
+        ...svc,
+        brigade_ids: svc.brigade_ids.filter((b) => b !== team.id),
+      });
       return;
     }
     const ok = await confirm({
@@ -145,61 +171,55 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     upsertService({ ...svc, is_active: false, brigade_ids: [] });
   };
 
-  const menuOptions: ContextMenuOption[] = menu
-    ? [
-        {
-          label: "Редактировать",
-          icon: <Pencil size={18} strokeWidth={2} />,
-          onSelect: () => setEditing(menu.service),
-        },
-        ...(hasService(menu.service)
-          ? [
-              {
-                label: "Убрать из бригады",
-                icon: <UserMinus size={18} strokeWidth={2} />,
-                onSelect: () => removeFromBrigade(menu.service),
-              },
-            ]
-          : []),
-        {
-          label: "Удалить навсегда",
-          icon: <Trash2 size={18} strokeWidth={2} />,
-          danger: true,
-          onSelect: () => deleteForever(menu.service),
-        },
-      ]
-    : [];
+  // Drop handler — reorders services within one category by writing
+  // sort_order on the new sequence. Persists via upsertService.
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    haptic("tap");
+    // Find which category the dragged item belongs to — reorder in
+    // that bucket only. Cross-category drag would move the service's
+    // category_id and is out of scope for this pass.
+    const activeSvc = services.find((s) => s.id === active.id);
+    if (!activeSvc) return;
+    const bucket = brigadeServices.filter(
+      (s) => s.category_id === activeSvc.category_id,
+    );
+    const oldIdx = bucket.findIndex((s) => s.id === active.id);
+    const newIdx = bucket.findIndex((s) => s.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(bucket, oldIdx, newIdx);
+    // Assign sort_order in 10s so future inserts have gaps.
+    reordered.forEach((svc, i) => {
+      const next = (i + 1) * 10;
+      if (svc.sort_order !== next) {
+        upsertService({ ...svc, sort_order: next });
+      }
+    });
+  };
 
-  const allSelected = selectedCount === totalCount && totalCount > 0;
+  const createCategory = (name: string, color: string) => {
+    if (!name.trim()) return;
+    haptic("tap");
+    setCategories([
+      ...categories,
+      { id: generateId("cat"), name: name.trim(), color },
+    ]);
+    setAddCategoryOpen(false);
+  };
 
-  // Build a list of non-empty categories after filtering.
-  const categoriesWithServices = useMemo(() => {
-    return categories
-      .map((cat) => ({
-        cat,
-        list: filtered.filter(
-          (s) => s.category_id === cat.id && s.is_active !== false,
-        ),
-      }))
-      .filter((x) => x.list.length > 0);
-  }, [categories, filtered]);
-
-  // Services without a category.
-  const orphanServices = useMemo(
-    () =>
-      filtered.filter(
-        (s) => !s.category_id || !categories.some((c) => c.id === s.category_id),
-      ),
-    [filtered, categories],
-  );
+  const totalCount = brigadeServices.length;
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Услуги" hideSave>
-      {totalCount === 0 ? (
-        <EmptyState onAdd={() => setAddOpen(true)} />
+      {totalCount === 0 && !query ? (
+        <EmptyState
+          onAddService={() => setAddOpen(true)}
+          onAddCategory={() => setAddCategoryOpen(true)}
+        />
       ) : (
         <>
-          {/* Search + bulk-all */}
+          {/* Search + top-level create actions */}
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Search
@@ -227,52 +247,51 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
             </div>
             <button
               type="button"
-              onClick={() => bulkSet(activeAll, !allSelected)}
-              className="shrink-0 h-10 px-3 rounded-full text-[13px] font-medium press-scale bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
+              onClick={() => setAddCategoryOpen(true)}
+              aria-label="Новая группа"
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)] press-scale"
             >
-              {allSelected ? "Снять все" : "Выбрать все"}
+              <FolderPlus size={18} strokeWidth={2} />
             </button>
           </div>
 
-          {/* Category-grouped lists */}
-          {categoriesWithServices.map(({ cat, list }) => (
-            <CategorySection
-              key={cat.id}
-              cat={cat}
-              list={list}
-              hasService={hasService}
-              onBulkSet={(attach) => bulkSet(list, attach)}
-              onTap={toggle}
-              onLongPress={(svc, anchor) => setMenu({ service: svc, anchor })}
-              onRemove={removeFromBrigade}
-              onDelete={deleteForever}
-            />
-          ))}
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            {categoriesWithServices.map(({ cat, list }) => (
+              <CategorySection
+                key={cat.id}
+                cat={cat}
+                list={list}
+                onTap={(svc) => setEditing(svc)}
+                onRemove={removeFromBrigade}
+                onAddService={() => {
+                  setAddOpen(true);
+                  // Default category will be picked up by the modal.
+                }}
+              />
+            ))}
 
-          {orphanServices.length > 0 && (
-            <CategorySection
-              cat={{
-                id: "__orphans__",
-                name: "Без категории",
-                color: "#8E8E93",
-              } as ServiceCategory}
-              list={orphanServices}
-              hasService={hasService}
-              onBulkSet={(attach) => bulkSet(orphanServices, attach)}
-              onTap={toggle}
-              onLongPress={(svc, anchor) => setMenu({ service: svc, anchor })}
-              onRemove={removeFromBrigade}
-              onDelete={deleteForever}
-            />
-          )}
+            {orphanServices.length > 0 && (
+              <CategorySection
+                cat={{
+                  id: "__orphans__",
+                  name: "Без группы",
+                  color: "#8E8E93",
+                }}
+                list={orphanServices}
+                onTap={(svc) => setEditing(svc)}
+                onRemove={removeFromBrigade}
+                onAddService={() => setAddOpen(true)}
+              />
+            )}
+          </DndContext>
 
-          {/* Add new */}
+          {/* Add new service */}
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] active:bg-[var(--fill-quaternary)] transition press-scale"
+            className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] active:bg-[var(--fill-quaternary)] transition press-scale"
           >
-            <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent-tint)] text-[var(--accent)] shrink-0">
+            <span className="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--accent-tint)] text-[var(--accent)] shrink-0">
               <Plus size={18} strokeWidth={2.5} />
             </span>
             <span className="flex-1 text-[15px] font-medium text-[var(--accent)]">
@@ -280,29 +299,17 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
             </span>
           </button>
 
-          {/* Empty search result */}
           {filtered.length === 0 && query && (
             <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-5 text-center text-[13px] text-[var(--label-tertiary)]">
               Ничего не найдено по запросу «{query}».
             </div>
           )}
 
-          {/* Footer hint */}
           <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
-            {selectedCount === 0
-              ? "Ничего не отмечено — при записи клиента в эту бригаду видны все услуги."
-              : `Выбрано ${selectedCount} из ${totalCount}. Тап — переключить. Долгое нажатие — меню. Свайп влево — убрать.`}
+            Тап — редактировать. Долгое нажатие — перетащить. Свайп влево — удалить.
           </div>
         </>
       )}
-
-      <ContextMenu
-        open={!!menu}
-        onClose={() => setMenu(null)}
-        anchor={menu?.anchor ?? null}
-        title={menu?.service.name}
-        options={menuOptions}
-      />
 
       <ServiceFormModal
         open={addOpen}
@@ -327,158 +334,157 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
           setEditing(null);
         }}
       />
+      <CategoryFormModal
+        open={addCategoryOpen}
+        onClose={() => setAddCategoryOpen(false)}
+        onSubmit={createCategory}
+      />
     </BrigadeSectionShell>
   );
 }
 
-// ─── Category section ─────────────────────────────────────────────
+// ─── Category group card ──────────────────────────────────────────
 
 function CategorySection({
   cat,
   list,
-  hasService,
-  onBulkSet,
   onTap,
-  onLongPress,
   onRemove,
-  onDelete,
+  onAddService,
 }: {
   cat: ServiceCategory;
   list: Service[];
-  hasService: (svc: Service) => boolean;
-  onBulkSet: (attach: boolean) => void;
   onTap: (svc: Service) => void;
-  onLongPress: (svc: Service, anchor: { x: number; y: number }) => void;
   onRemove: (svc: Service) => void;
-  onDelete: (svc: Service) => void;
+  onAddService: () => void;
 }) {
-  const selected = list.filter(hasService).length;
-  const catAll = selected === list.length;
   return (
     <div>
-      <div className="px-4 pb-1.5 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: cat.color }}
-          />
-          <div className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)] truncate">
-            {cat.name}
-          </div>
-          <div className="text-[11px] text-[var(--label-tertiary)] tabular-nums shrink-0">
-            {selected}/{list.length}
-          </div>
+      <div className="px-4 pb-1.5 flex items-center gap-2">
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: cat.color }}
+        />
+        <div className="flex-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)] truncate">
+          {cat.name}
         </div>
         <button
           type="button"
-          onClick={() => onBulkSet(!catAll)}
-          className="shrink-0 h-7 px-2.5 rounded-full text-[12px] font-medium press-scale bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
+          onClick={onAddService}
+          aria-label="Добавить услугу в группу"
+          className="shrink-0 h-7 w-7 flex items-center justify-center rounded-full bg-[var(--fill-tertiary)] text-[var(--accent)] press-scale"
         >
-          {catAll ? "Снять" : "Выбрать все"}
+          <Plus size={14} strokeWidth={2.5} />
         </button>
       </div>
       <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-        {list.map((s) => {
-          const inBrigade = hasService(s);
-          return (
-            <SwipeableRow
+        <SortableContext
+          items={list.map((s) => s.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {list.map((s) => (
+            <SortableServiceRow
               key={s.id}
-              rightActions={
-                inBrigade
-                  ? [
-                      {
-                        label: "Убрать",
-                        color: "bg-[var(--system-red)]",
-                        icon: <UserMinus size={16} strokeWidth={2} />,
-                        onSelect: () => onRemove(s),
-                      },
-                    ]
-                  : [
-                      {
-                        label: "Удалить",
-                        color: "bg-[var(--system-red)]",
-                        icon: <Trash2 size={16} strokeWidth={2} />,
-                        onSelect: () => onDelete(s),
-                      },
-                    ]
-              }
-            >
-              <ServiceRow
-                service={s}
-                cat={cat}
-                selected={inBrigade}
-                onTap={() => onTap(s)}
-                onLongPress={(a) => onLongPress(s, a)}
-              />
-            </SwipeableRow>
-          );
-        })}
+              service={s}
+              cat={cat}
+              onTap={() => onTap(s)}
+              onRemove={() => onRemove(s)}
+            />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );
 }
 
-// ─── Service row ──────────────────────────────────────────────────
+// ─── Sortable row wrapper ─────────────────────────────────────────
 
-function ServiceRow({
+function SortableServiceRow({
   service,
   cat,
-  selected,
   onTap,
-  onLongPress,
+  onRemove,
 }: {
   service: Service;
   cat: ServiceCategory;
-  selected: boolean;
   onTap: () => void;
-  onLongPress: (anchor: { x: number; y: number }) => void;
+  onRemove: () => void;
 }) {
-  const handlers = useLongPressOrTap({ onTap, onLongPress });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: service.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    position: "relative",
+    boxShadow: isDragging
+      ? "0 10px 24px rgba(0,0,0,0.18)"
+      : undefined,
+    background: isDragging ? "var(--surface-card)" : undefined,
+    opacity: isDragging ? 0.95 : 1,
+  };
+
   return (
-    <div
-      {...handlers}
-      className={`flex items-center gap-3 px-4 min-h-[56px] py-2 cursor-pointer select-none active:bg-[var(--fill-quaternary)] transition ${
-        selected ? "bg-[var(--accent-tint)]" : ""
-      }`}
-      style={{
-        WebkitUserSelect: "none",
-        WebkitTouchCallout: "none",
-      }}
-    >
-      <span
-        className="w-2 h-8 rounded-full shrink-0"
-        style={{ backgroundColor: cat.color }}
-      />
-      <div className="flex-1 min-w-0">
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <SwipeableRow
+        rightActions={[
+          {
+            label: "Удалить",
+            color: "bg-[var(--system-red)]",
+            icon: <Trash2 size={16} strokeWidth={2} />,
+            onSelect: onRemove,
+          },
+        ]}
+      >
         <div
-          className={`text-[15px] truncate ${
-            selected
-              ? "font-semibold text-[var(--accent)]"
-              : "text-[var(--label)]"
-          }`}
+          {...listeners}
+          onClick={(e) => {
+            // dnd-kit steals pointerup when an actual drag happened;
+            // plain clicks fall through to us — treat as "open edit".
+            if (!isDragging) onTap();
+            else e.preventDefault();
+          }}
+          className="flex items-center gap-3 px-4 min-h-[56px] py-2 cursor-pointer select-none active:bg-[var(--fill-quaternary)] transition"
+          style={{
+            WebkitUserSelect: "none",
+            WebkitTouchCallout: "none",
+            touchAction: "pan-y",
+          }}
         >
-          {service.name}
+          <span
+            className="w-2 h-8 rounded-full shrink-0"
+            style={{ backgroundColor: cat.color }}
+          />
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] text-[var(--label)] truncate">
+              {service.name}
+            </div>
+            <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
+              {service.duration_minutes} мин · €{service.price}
+            </div>
+          </div>
         </div>
-        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
-          {service.duration_minutes} мин · €{service.price}
-        </div>
-      </div>
-      {selected ? (
-        <Check
-          size={20}
-          strokeWidth={3}
-          className="text-[var(--accent)] shrink-0"
-        />
-      ) : (
-        <span className="w-5" />
-      )}
+      </SwipeableRow>
     </div>
   );
 }
 
 // ─── Empty state ──────────────────────────────────────────────────
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({
+  onAddService,
+  onAddCategory,
+}: {
+  onAddService: () => void;
+  onAddCategory: () => void;
+}) {
   return (
     <div className="px-6 pt-10 pb-4 flex flex-col items-center text-center gap-3">
       <span className="w-16 h-16 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
@@ -489,21 +495,31 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
           Пока нет услуг
         </div>
         <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-          Добавьте первую — она появится при записи клиента в&nbsp;эту бригаду.
+          Сначала сделайте группу (Чистка, Ремонт…), потом добавляйте услуги. Или просто добавьте первую.
         </div>
       </div>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
-      >
-        Добавить услугу
-      </button>
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onAddCategory}
+          className="h-11 px-4 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[14px] font-medium press-scale flex items-center gap-1.5"
+        >
+          <FolderPlus size={16} strokeWidth={2} />
+          Новая группа
+        </button>
+        <button
+          type="button"
+          onClick={onAddService}
+          className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
+        >
+          Новая услуга
+        </button>
+      </div>
     </div>
   );
 }
 
-// ─── Service form modal (create/edit) ─────────────────────────────
+// ─── Service form modal ──────────────────────────────────────────
 
 function ServiceFormModal({
   open,
@@ -528,8 +544,7 @@ function ServiceFormModal({
   const [categoryId, setCategoryId] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
+  useMemoizedInit(open, () => {
     if (mode === "edit" && service) {
       setName(service.name);
       setMin(service.duration_minutes);
@@ -543,21 +558,9 @@ function ServiceFormModal({
     }
     const t = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
-  }, [open, mode, service, categories]);
+  });
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
+  useEscClose(open, onClose);
 
   if (!open) return null;
 
@@ -663,7 +666,7 @@ function ServiceFormModal({
           {categories.length > 0 && (
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Категория
+                Группа
               </label>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {categories.map((c) => {
@@ -714,60 +717,159 @@ function ServiceFormModal({
   );
 }
 
-// ─── Long-press + tap hook ────────────────────────────────────────
+// ─── Category form modal (create group) ──────────────────────────
 
-function useLongPressOrTap({
-  onTap,
-  onLongPress,
-  delay = 500,
+const GROUP_COLORS = DEFAULT_CATEGORIES.map((c) => c.color).concat([
+  "#FF9500",
+  "#FFCC00",
+  "#34C759",
+  "#5856D6",
+  "#AF52DE",
+  "#FF2D55",
+]);
+
+function CategoryFormModal({
+  open,
+  onClose,
+  onSubmit,
 }: {
-  onTap: () => void;
-  onLongPress: (anchor: { x: number; y: number }) => void;
-  delay?: number;
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (name: string, color: string) => void;
 }) {
-  const timer = useRef<number | null>(null);
-  const triggered = useRef(false);
-  const origin = useRef<{ x: number; y: number } | null>(null);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(GROUP_COLORS[0]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const cancel = () => {
-    if (timer.current != null) {
-      window.clearTimeout(timer.current);
-      timer.current = null;
-    }
-  };
+  useMemoizedInit(open, () => {
+    setName("");
+    setColor(GROUP_COLORS[0]);
+    const t = window.setTimeout(() => inputRef.current?.focus(), 40);
+    return () => window.clearTimeout(t);
+  });
 
-  return {
-    onPointerDown: (e: React.PointerEvent) => {
-      triggered.current = false;
-      origin.current = { x: e.clientX, y: e.clientY };
-      timer.current = window.setTimeout(() => {
-        triggered.current = true;
-        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-          navigator.vibrate?.(12);
-        }
-        if (origin.current) onLongPress(origin.current);
-      }, delay);
-    },
-    onPointerMove: (e: React.PointerEvent) => {
-      if (!origin.current || timer.current == null) return;
-      const dx = Math.abs(e.clientX - origin.current.x);
-      const dy = Math.abs(e.clientY - origin.current.y);
-      if (dx > 10 || dy > 10) cancel();
-    },
-    onPointerUp: cancel,
-    onPointerCancel: cancel,
-    onPointerLeave: cancel,
-    onClick: (e: React.MouseEvent) => {
-      if (triggered.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        triggered.current = false;
-        return;
-      }
-      onTap();
-    },
-    onContextMenu: (e: React.MouseEvent) => {
-      e.preventDefault();
-    },
-  };
+  useEscClose(open, onClose);
+
+  if (!open) return null;
+
+  const trimmed = name.trim();
+  const canSubmit = trimmed.length > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[360px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center">
+          <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
+            Новая группа
+          </div>
+          <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
+            Например «Чистка», «Ремонт», «Монтаж».
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
+              Название
+            </label>
+            <input
+              ref={inputRef}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canSubmit) onSubmit(trimmed, color);
+              }}
+              placeholder="Чистка"
+              className="mt-1 w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              maxLength={40}
+            />
+          </div>
+
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
+              Цвет
+            </div>
+            <div className="bg-[var(--surface-card)] rounded-[10px] p-3">
+              <div className="grid grid-cols-6 gap-2.5">
+                {GROUP_COLORS.map((c) => {
+                  const picked = c === color;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        haptic("tap");
+                        setColor(c);
+                      }}
+                      className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
+                      style={{ backgroundColor: c }}
+                    >
+                      {picked && (
+                        <Check
+                          size={16}
+                          strokeWidth={3}
+                          className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 pb-4 pt-1 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] press-scale"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={() => canSubmit && onSubmit(trimmed, color)}
+            disabled={!canSubmit}
+            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
+          >
+            Создать
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tiny hook helpers ────────────────────────────────────────────
+
+function useMemoizedInit(active: boolean, init: () => void | (() => void)) {
+  useEffect(() => {
+    if (!active) return;
+    return init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+}
+
+function useEscClose(open: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
 }

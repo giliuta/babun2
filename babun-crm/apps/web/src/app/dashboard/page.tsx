@@ -247,6 +247,16 @@ function DashboardPageInner() {
   // "Календарь бригады"), it wins over both the settings startHour and
   // the now-line anchor. This way switching to a nightshift brigade
   // opens its calendar at the right time immediately.
+  // Pull default_scroll_time off the currently-active team into a
+  // primitive string so the scroll effect below fires when THIS field
+  // changes — not only when the brigade id or window bounds change.
+  // Previously editing /teams/[id]/calendar → "Открывать на" didn't
+  // trigger a re-scroll because the effect deps didn't include it.
+  const activeBrigadeScroll = useMemo(() => {
+    const t = teams.find((x) => x.id === activeTeamId);
+    return t?.default_scroll_time ?? "";
+  }, [teams, activeTeamId]);
+
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
@@ -263,11 +273,10 @@ function DashboardPageInner() {
       Math.max(0, (hourValue - windowStart) * hh);
     let targetTop = toTop(Math.max(calendarSettings.startHour, windowStart));
 
-    // Brigade-level override takes priority.
-    const activeTeamLocal = teams.find((t) => t.id === activeTeamId);
-    const brigadeScroll = activeTeamLocal?.default_scroll_time;
-    if (brigadeScroll && /^\d{1,2}:\d{2}$/.test(brigadeScroll)) {
-      const [bh, bm] = brigadeScroll.split(":").map(Number);
+    // Brigade-level "Открывать на" override. When set, it wins over the
+    // now-line anchor and the global startHour.
+    if (activeBrigadeScroll && /^\d{1,2}:\d{2}$/.test(activeBrigadeScroll)) {
+      const [bh, bm] = activeBrigadeScroll.split(":").map(Number);
       const brigadeHours = bh + bm / 60;
       const viewportOffset = el.clientHeight * 0.15;
       targetTop = Math.max(0, toTop(brigadeHours) - viewportOffset);
@@ -285,11 +294,24 @@ function DashboardPageInner() {
         );
       }
     }
+
+    // Double-rAF: the first frame commits scrollTop; the second re-
+    // asserts it in case a sibling effect (day columns re-mount on
+    // brigade swap, windowStart change, etc.) nudged the scroller in
+    // between. Without this, switching brigades with different
+    // calendar windows sometimes lost the scroll after the initial
+    // write. Explicit set + clamp against scrollHeight so an over-
+    // shoot on a shorter grid still lands cleanly.
+    const assertScroll = () => {
+      const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+      el.scrollTop = Math.min(targetTop, maxTop);
+    };
     requestAnimationFrame(() => {
-      el.scrollTop = targetTop;
+      assertScroll();
+      requestAnimationFrame(assertScroll);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, activeTeamId, windowStart, windowEnd]);
+  }, [viewMode, activeTeamId, windowStart, windowEnd, activeBrigadeScroll]);
 
   const { zoomBy, handleZoomIn, handleZoomOut } = useCalendarGestures({
     outerScrollerRef,
