@@ -288,6 +288,18 @@ h1, h2, h3,
   animation: pillHop var(--dur-base) var(--ease-ios-spring) both;
 }
 
+/* Context menu — Telegram-style anchored popover. Scales up from its
+   transform-origin (matched to the long-press point) with a quick
+   spring curve. Paired with a fast backdrop fade. */
+@keyframes ctxMenuIn {
+  from { opacity: 0; transform: scale(0.86); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* Skeleton shimmer — retint via surface-card-secondary. */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }

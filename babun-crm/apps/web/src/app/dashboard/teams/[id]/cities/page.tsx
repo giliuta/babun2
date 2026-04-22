@@ -15,7 +15,16 @@
 //  · Footer hint removed — discoverable by trying.
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import { Check, MapPin, Plus, Search, Star, X } from "lucide-react";
+import {
+  Check,
+  MapPin,
+  Plus,
+  Search,
+  Star,
+  StarOff,
+  Trash2,
+  X,
+} from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useCities, useTeams } from "@/app/dashboard/layout";
@@ -25,9 +34,9 @@ import {
   type City,
 } from "@/lib/cities";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
-import ActionMenuModal, {
-  type ActionMenuOption,
-} from "@/components/calendar/ActionMenuModal";
+import ContextMenu, {
+  type ContextMenuOption,
+} from "@/components/ui/ContextMenu";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -46,7 +55,10 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
 
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [menuCity, setMenuCity] = useState<City | null>(null);
+  const [menu, setMenu] = useState<{
+    city: City;
+    anchor: { x: number; y: number };
+  } | null>(null);
 
   const selected = team?.cities ?? [];
   const defaultCity = team?.default_city ?? "";
@@ -162,31 +174,45 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
   const showSearch = activeCities.length > 6;
   const referenceEmpty = activeCities.length === 0 && !query;
 
-  // Action-sheet options for the currently long-pressed city.
-  const menuOptions: ActionMenuOption[] = menuCity
+  // Effective base: if the user didn't mark one but selected exactly one
+  // city, that single city is the implicit base. Display uses this, data
+  // model stays untouched so the user's "no explicit choice" intent is
+  // preserved.
+  const effectiveBase = defaultCity || (selected.length === 1 ? selected[0] : "");
+  const needsBasePrompt = selected.length >= 2 && !defaultCity;
+
+  // Context-menu options for the currently long-pressed city.
+  const menuOptions: ContextMenuOption[] = menu
     ? [
-        selectedSet.has(menuCity.name)
+        selectedSet.has(menu.city.name)
           ? {
               label:
-                defaultCity === menuCity.name
-                  ? "Снять с базы"
-                  : "Сделать базовым",
-              subtitle:
-                defaultCity === menuCity.name
-                  ? "Этот город перестанет быть основным"
-                  : "Бригада будет открываться на этом городе по умолчанию",
-              onSelect: () => setBase(menuCity.name),
+                defaultCity === menu.city.name
+                  ? "Убрать из основных"
+                  : "Сделать основным",
+              icon:
+                defaultCity === menu.city.name ? (
+                  <StarOff size={18} strokeWidth={2} />
+                ) : (
+                  <Star
+                    size={18}
+                    strokeWidth={2}
+                    fill="var(--system-yellow)"
+                    className="text-[var(--system-yellow)]"
+                  />
+                ),
+              onSelect: () => setBase(menu.city.name),
             }
           : {
               label: "Добавить бригаде",
-              subtitle: "Появится в календаре с этим цветом",
-              onSelect: () => toggle(menuCity.name),
+              icon: <Plus size={18} strokeWidth={2.2} />,
+              onSelect: () => toggle(menu.city.name),
             },
         {
           label: "Удалить из справочника",
-          subtitle: "Исчезнет из всех бригад",
+          icon: <Trash2 size={18} strokeWidth={2} />,
           danger: true,
-          onSelect: () => removeCityGlobally(menuCity.name),
+          onSelect: () => removeCityGlobally(menu.city.name),
         },
       ]
     : [];
@@ -257,9 +283,12 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
               key={c.id}
               city={c}
               selected={selectedSet.has(c.name)}
-              isBase={defaultCity === c.name}
+              isBase={effectiveBase === c.name}
+              isImplicitBase={
+                effectiveBase === c.name && defaultCity !== c.name
+              }
               onTap={() => toggle(c.name)}
-              onLongPress={() => setMenuCity(c)}
+              onLongPress={(anchor) => setMenu({ city: c, anchor })}
             />
           ))}
           {filtered.length === 0 && query && (
@@ -284,6 +313,38 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
         </div>
       )}
 
+      {/* "No base picked" hint — purely informational. We don't force
+          a choice because nothing critically breaks without it, but we
+          tell the user what to expect. */}
+      {!referenceEmpty && selected.length >= 1 && (
+        <div
+          className={`mx-0.5 px-3 py-2.5 rounded-[12px] text-[12px] leading-snug flex items-start gap-2 ${
+            needsBasePrompt
+              ? "bg-[var(--accent-tint)] text-[var(--label)]"
+              : "text-[var(--label-tertiary)]"
+          }`}
+        >
+          {needsBasePrompt ? (
+            <>
+              <Star
+                size={14}
+                strokeWidth={2}
+                fill="var(--system-yellow)"
+                className="text-[var(--system-yellow)] mt-[1px] shrink-0"
+              />
+              <span>
+                Выберите основной город — он будет подтягиваться в&nbsp;календарь по&nbsp;умолчанию. Долгий тап по городу →{" "}
+                <span className="font-medium">«Сделать основным»</span>.
+              </span>
+            </>
+          ) : (
+            <span>
+              Тап — добавить/убрать. Долгий тап — меню с&nbsp;опциями.
+            </span>
+          )}
+        </div>
+      )}
+
       <AddCityModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
@@ -291,10 +352,11 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
         existingNames={cities.map((c) => c.name)}
       />
 
-      <ActionMenuModal
-        open={!!menuCity}
-        onClose={() => setMenuCity(null)}
-        title={menuCity?.name ?? ""}
+      <ContextMenu
+        open={!!menu}
+        onClose={() => setMenu(null)}
+        anchor={menu?.anchor ?? null}
+        title={menu?.city.name}
         options={menuOptions}
       />
     </BrigadeSectionShell>
@@ -309,7 +371,7 @@ function useLongPressTap({
   delay = 500,
 }: {
   onTap: () => void;
-  onLongPress: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
   delay?: number;
 }) {
   const timer = useRef<number | null>(null);
@@ -332,7 +394,7 @@ function useLongPressTap({
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate?.(12);
         }
-        onLongPress();
+        if (origin.current) onLongPress(origin.current);
       }, delay);
     },
     onPointerMove: (e: React.PointerEvent) => {
@@ -364,14 +426,21 @@ function CityRow({
   city,
   selected,
   isBase,
+  isImplicitBase,
   onTap,
   onLongPress,
 }: {
   city: City;
   selected: boolean;
+  /** True when this row visually reads as "base" — either explicitly
+   *  set as default_city, or implicitly when it's the only selected
+   *  city in the brigade. */
   isBase: boolean;
+  /** When true, show the star with a dashed outline instead of filled
+   *  yellow — signals "not explicitly chosen, just the only option". */
+  isImplicitBase?: boolean;
   onTap: () => void;
-  onLongPress: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
 }) {
   const handlers = useLongPressTap({ onTap, onLongPress });
   const tile = city.color ?? "#8E8E93";
@@ -405,12 +474,20 @@ function CityRow({
       </span>
       <span className="w-6 flex items-center justify-end">
         {isBase ? (
-          <Star
-            size={20}
-            strokeWidth={0}
-            fill="var(--system-yellow)"
-            className="text-[var(--system-yellow)] drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
-          />
+          isImplicitBase ? (
+            <Star
+              size={20}
+              strokeWidth={2}
+              className="text-[var(--system-yellow)] opacity-70"
+            />
+          ) : (
+            <Star
+              size={20}
+              strokeWidth={0}
+              fill="var(--system-yellow)"
+              className="text-[var(--system-yellow)] drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+            />
+          )
         ) : selected ? (
           <Check
             size={20}
