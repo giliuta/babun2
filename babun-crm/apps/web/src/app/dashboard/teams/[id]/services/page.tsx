@@ -36,6 +36,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ChevronDown,
   Check,
   FolderPlus,
   Plus,
@@ -54,6 +55,7 @@ import {
 } from "@/lib/services";
 import { generateId } from "@/lib/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 
 interface RouteParams {
@@ -321,6 +323,15 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
           upsertService(svc);
           setAddOpen(false);
         }}
+        onCreateCategory={(name, color) => {
+          const cat: ServiceCategory = {
+            id: generateId("cat"),
+            name: name.trim(),
+            color,
+          };
+          setCategories([...categories, cat]);
+          return cat.id;
+        }}
       />
       <ServiceFormModal
         open={!!editing}
@@ -332,6 +343,15 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
         onSubmit={(svc) => {
           upsertService(svc);
           setEditing(null);
+        }}
+        onCreateCategory={(name, color) => {
+          const cat: ServiceCategory = {
+            id: generateId("cat"),
+            name: name.trim(),
+            color,
+          };
+          setCategories([...categories, cat]);
+          return cat.id;
         }}
       />
       <CategoryFormModal
@@ -529,6 +549,7 @@ function ServiceFormModal({
   categories,
   onClose,
   onSubmit,
+  onCreateCategory,
 }: {
   open: boolean;
   mode: "create" | "edit";
@@ -537,24 +558,57 @@ function ServiceFormModal({
   categories: ServiceCategory[];
   onClose: () => void;
   onSubmit: (svc: Service) => void;
+  /** Called when user taps "+ Новая группа" inside the service form.
+   *  Creates a new category and returns its id so the modal can
+   *  auto-select it. */
+  onCreateCategory: (name: string, color: string) => string;
 }) {
+  const [categoryId, setCategoryId] = useState<string>("");
   const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(GROUP_COLORS[0]);
+  const [colorManuallyPicked, setColorManuallyPicked] = useState(false);
   const [min, setMin] = useState(60);
   const [price, setPrice] = useState(0);
-  const [categoryId, setCategoryId] = useState<string>("");
+  // Extras
+  const [showExtras, setShowExtras] = useState(false);
+  const [costPerUnit, setCostPerUnit] = useState(0);
+  const [bulkThreshold, setBulkThreshold] = useState(0);
+  const [bulkPrice, setBulkPrice] = useState(0);
+  const [isCountable, setIsCountable] = useState(true);
+
+  const [inlineCatOpen, setInlineCatOpen] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useMemoizedInit(open, () => {
     if (mode === "edit" && service) {
+      setCategoryId(service.category_id ?? "");
       setName(service.name);
+      setColor(service.color || GROUP_COLORS[0]);
+      setColorManuallyPicked(true); // don't stomp existing colour
       setMin(service.duration_minutes);
       setPrice(service.price);
-      setCategoryId(service.category_id ?? "");
+      setCostPerUnit(service.cost_per_unit ?? 0);
+      setBulkThreshold(service.bulk_threshold ?? 0);
+      setBulkPrice(service.bulk_price ?? 0);
+      setIsCountable(service.is_countable ?? true);
+      setShowExtras(
+        (service.cost_per_unit ?? 0) > 0 ||
+          (service.bulk_threshold ?? 0) > 0 ||
+          service.is_countable === false,
+      );
     } else {
+      setCategoryId("");
       setName("");
+      setColor(GROUP_COLORS[0]);
+      setColorManuallyPicked(false);
       setMin(60);
       setPrice(0);
-      setCategoryId(categories[0]?.id ?? "");
+      setCostPerUnit(0);
+      setBulkThreshold(0);
+      setBulkPrice(0);
+      setIsCountable(true);
+      setShowExtras(false);
     }
     const t = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
@@ -562,28 +616,54 @@ function ServiceFormModal({
 
   useEscClose(open, onClose);
 
+  // When user picks a group and hasn't manually overridden the colour,
+  // the service adopts the group's colour. This is the common case —
+  // one click on «Чистка» → blue service tile.
+  const pickCategory = (id: string) => {
+    haptic("tap");
+    setCategoryId(id);
+    if (!colorManuallyPicked) {
+      const cat = categories.find((c) => c.id === id);
+      if (cat) setColor(cat.color);
+    }
+  };
+
   if (!open) return null;
 
-  const canSubmit = name.trim().length > 0 && min > 0;
+  const hasCategories = categories.length > 0;
+  const canSubmit =
+    name.trim().length > 0 && min > 0 && categoryId.length > 0;
 
   const submit = () => {
     if (!canSubmit) return;
     haptic("tap");
+    const normalizedBulkThreshold = bulkThreshold > 1 ? bulkThreshold : 0;
+    const normalizedBulkPrice = normalizedBulkThreshold > 0 ? bulkPrice : 0;
     if (mode === "edit" && service) {
       onSubmit({
         ...service,
         name: name.trim(),
+        color,
         duration_minutes: Math.max(1, min),
         price: Math.max(0, price),
-        category_id: categoryId || null,
+        category_id: categoryId,
+        cost_per_unit: Math.max(0, costPerUnit),
+        bulk_threshold: normalizedBulkThreshold,
+        bulk_price: normalizedBulkPrice,
+        is_countable: isCountable,
       });
     } else {
       onSubmit(
         createBlankService({
           name: name.trim(),
+          color,
           duration_minutes: Math.max(1, min),
           price: Math.max(0, price),
-          category_id: categoryId || null,
+          category_id: categoryId,
+          cost_per_unit: Math.max(0, costPerUnit),
+          bulk_threshold: normalizedBulkThreshold,
+          bulk_price: normalizedBulkPrice,
+          is_countable: isCountable,
           brigade_ids: [brigadeId],
         }),
       );
@@ -596,7 +676,7 @@ function ServiceFormModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[360px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)] max-h-[85vh] flex flex-col"
+        className="w-full max-w-[380px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)] max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
@@ -606,9 +686,68 @@ function ServiceFormModal({
         </div>
 
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
+          {/* 1. GROUP — required, first. */}
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-              Название
+              Группа <span className="text-[var(--system-red)]">*</span>
+            </label>
+            {hasCategories ? (
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {categories.map((c) => {
+                  const picked = c.id === categoryId;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => pickCategory(c.id)}
+                      className={`h-8 px-3 rounded-full text-[13px] font-medium press-scale flex items-center gap-1.5 transition ${
+                        picked
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                          : "bg-[var(--surface-card)] text-[var(--label)]"
+                      }`}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: c.color }}
+                      />
+                      {c.name}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setInlineCatOpen(true)}
+                  className="h-8 px-3 rounded-full text-[13px] font-medium press-scale flex items-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)]"
+                >
+                  <Plus size={12} strokeWidth={2.5} />
+                  Новая группа
+                </button>
+              </div>
+            ) : (
+              <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] px-3 py-3 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                  <FolderPlus size={16} strokeWidth={2} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] text-[var(--label)] leading-snug">
+                    Сначала создайте группу — без неё нельзя добавить услугу.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInlineCatOpen(true)}
+                  className="shrink-0 h-9 px-3 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold press-scale"
+                >
+                  Создать
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 2. NAME */}
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
+              Название <span className="text-[var(--system-red)]">*</span>
             </label>
             <input
               ref={inputRef}
@@ -624,10 +763,46 @@ function ServiceFormModal({
             />
           </div>
 
+          {/* 3. COLOR */}
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
+              Цвет
+            </label>
+            <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] p-3">
+              <div className="grid grid-cols-6 gap-2.5">
+                {GROUP_COLORS.map((c) => {
+                  const picked = c === color;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        haptic("tap");
+                        setColor(c);
+                        setColorManuallyPicked(true);
+                      }}
+                      className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
+                      style={{ backgroundColor: c }}
+                    >
+                      {picked && (
+                        <Check
+                          size={16}
+                          strokeWidth={3}
+                          className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 4. DURATION + PRICE */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Длительность
+                Длительность <span className="text-[var(--system-red)]">*</span>
               </label>
               <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pr-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
                 <input
@@ -645,7 +820,7 @@ function ServiceFormModal({
             </div>
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Цена
+                Цена <span className="text-[var(--system-red)]">*</span>
               </label>
               <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pl-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
                 <span className="text-[15px] text-[var(--label-secondary)]">
@@ -663,36 +838,119 @@ function ServiceFormModal({
             </div>
           </div>
 
-          {categories.length > 0 && (
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Группа
-              </label>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {categories.map((c) => {
-                  const picked = c.id === categoryId;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCategoryId(c.id)}
-                      className={`h-8 px-3 rounded-full text-[13px] font-medium press-scale flex items-center gap-1.5 transition ${
-                        picked
-                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                          : "bg-[var(--surface-card)] text-[var(--label)]"
-                      }`}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: c.color }}
+          {/* 5. EXTRAS (collapsible) */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowExtras(!showExtras)}
+              className="w-full flex items-center gap-2 px-1 py-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] press-scale"
+            >
+              <ChevronDown
+                size={14}
+                strokeWidth={2.5}
+                className={`transition-transform ${
+                  showExtras ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+              Дополнительно
+            </button>
+            {showExtras && (
+              <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] p-3 space-y-3">
+                {/* Cost per unit */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-[13px] text-[var(--label)]">
+                      Расход материалов
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5">
+                      <span className="text-[13px] text-[var(--label-secondary)]">
+                        €
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={costPerUnit}
+                        onChange={(e) =>
+                          setCostPerUnit(Number(e.target.value) || 0)
+                        }
+                        className="w-14 h-8 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
                       />
-                      {c.name}
-                    </button>
-                  );
-                })}
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-1">
+                    Сколько уходит химии / фреона / материалов на одну штуку. Учитывается в чистой выручке.
+                  </div>
+                </div>
+
+                {/* Bulk pricing */}
+                <div className="border-t border-[var(--separator)] pt-3">
+                  <div className="text-[13px] text-[var(--label)] mb-1.5">
+                    Оптовая цена
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-[var(--label-tertiary)]">
+                      от
+                    </span>
+                    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={bulkThreshold}
+                        onChange={(e) =>
+                          setBulkThreshold(Number(e.target.value) || 0)
+                        }
+                        className="w-10 h-8 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                      />
+                      <span className="text-[12px] text-[var(--label-secondary)]">
+                        шт.
+                      </span>
+                    </div>
+                    <span className="text-[12px] text-[var(--label-tertiary)]">
+                      по
+                    </span>
+                    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 flex-1">
+                      <span className="text-[12px] text-[var(--label-secondary)]">
+                        €
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        disabled={bulkThreshold <= 1}
+                        value={bulkPrice}
+                        onChange={(e) =>
+                          setBulkPrice(Number(e.target.value) || 0)
+                        }
+                        className="flex-1 min-w-0 h-8 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums disabled:opacity-40"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-1">
+                    Скидка за объём. «от 3 шт. по €45» = при 3+ штуках каждая идёт по €45 вместо €{price}.
+                  </div>
+                </div>
+
+                {/* Is countable */}
+                <div className="border-t border-[var(--separator)] pt-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] text-[var(--label)]">
+                      Можно делать несколько
+                    </div>
+                    <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
+                      «Чистка × 3» в одной записи. Для диагностики / ремонта обычно выключено.
+                    </div>
+                  </div>
+                  <IOSSwitch
+                    checked={isCountable}
+                    onChange={setIsCountable}
+                    ariaLabel="Можно делать несколько"
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="px-4 pb-4 pt-1 flex gap-2 shrink-0">
@@ -713,6 +971,20 @@ function ServiceFormModal({
           </button>
         </div>
       </div>
+
+      {/* Nested "Новая группа" modal — opened from the group row.
+          Uses z-[70] so it stacks above this modal. */}
+      <CategoryFormModal
+        open={inlineCatOpen}
+        onClose={() => setInlineCatOpen(false)}
+        onSubmit={(n, c) => {
+          const id = onCreateCategory(n, c);
+          setInlineCatOpen(false);
+          // Auto-select the brand-new category.
+          setCategoryId(id);
+          if (!colorManuallyPicked) setColor(c);
+        }}
+      />
     </div>
   );
 }
@@ -757,7 +1029,9 @@ function CategoryFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
+      // z-[70] so it stacks above ServiceFormModal (z-[60]) when
+      // opened inline via "+ Новая группа".
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div

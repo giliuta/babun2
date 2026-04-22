@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v262-scroll-and-separator-retry";
+export const BUILD_VERSION = "v263-service-modal-expanded";
