@@ -986,6 +986,7 @@ function DashboardPageInner() {
         current={cityPickerDateKey ? cityForDate(cityPickerDateKey) : ""}
         defaultCity={teamDefaultCity}
         dateKey={cityPickerDateKey ?? undefined}
+        cities={cities}
         onPick={handleCityPick}
         onReset={handleCityReset}
       />

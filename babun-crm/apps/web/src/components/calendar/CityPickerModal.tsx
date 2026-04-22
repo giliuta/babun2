@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Check, MapPin } from "lucide-react";
-import { CITY_LIST } from "@/lib/day-cities";
+import { CITIES, cityConfigFromColor } from "@/lib/day-cities";
+import type { City } from "@/lib/cities";
 
 interface CityPickerModalProps {
   open: boolean;
@@ -12,6 +13,11 @@ interface CityPickerModalProps {
   defaultCity?: string;
   /** ISO date key "YYYY-MM-DD" of the day being edited (for the header). */
   dateKey?: string;
+  /** Sprint 033: full settings.cities list. Custom tags the user added
+   *  from the brigade editor («Германия», «День ног», Айя-Напа…) all
+   *  need to appear here. When missing, falls back to the 4 legacy
+   *  CITIES presets so nothing ever renders empty. */
+  cities?: City[];
   onPick: (city: string) => void;
   /** kept for API back-compat; reset button removed from UI */
   onReset?: () => void;
@@ -25,8 +31,28 @@ export default function CityPickerModal({
   onClose,
   current,
   dateKey,
+  cities,
   onPick,
 }: CityPickerModalProps) {
+  // Build the single render list. Prefer settings.cities (the source of
+  // truth that the brigade editor writes to). Each entry carries its
+  // accent colour so custom tags render in the user-picked hue.
+  const pickerList = useMemo(() => {
+    const list = (cities && cities.length > 0 ? cities : [])
+      .filter((c) => c.isActive)
+      .map((c) => {
+        const legacy = CITIES[c.name];
+        return {
+          name: c.name,
+          color: c.color ?? legacy?.color ?? "#8E8E93",
+        };
+      });
+    if (list.length > 0) return list;
+    // Fallback — the 4 hardcoded Cyprus presets.
+    return Object.values(CITIES).map((c) => ({ name: c.name, color: c.color }));
+  }, [cities]);
+
+  void cityConfigFromColor;
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -81,7 +107,7 @@ export default function CityPickerModal({
 
         <div className="px-3 pt-3">
           <div className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden divide-y divide-[var(--separator)]">
-            {CITY_LIST.map((c) => {
+            {pickerList.map((c) => {
               const active = c.name === current;
               return (
                 <button
