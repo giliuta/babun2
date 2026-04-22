@@ -16,7 +16,15 @@ import { ChevronLeft, Trash2, Check, X, Plus } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useMasters, useTeams, useServices, useAppointments, useCities, useSchedules } from "@/app/dashboard/layout";
-import { DEFAULT_SCHEDULE, type TeamSchedule } from "@/lib/schedule";
+import {
+  DEFAULT_SCHEDULE,
+  WEEKDAY_KEYS,
+  WEEKDAY_NAMES,
+  type ScheduleBreak,
+  type TeamSchedule,
+  type WeekdayKey,
+} from "@/lib/schedule";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   TEAM_COLORS,
   generateId,
@@ -62,10 +70,57 @@ export default function BrigadePage({ params }: RouteParams) {
   const { schedules, setSchedules } = useSchedules();
 
   const schedule: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
-  const updateScheduleBase = (key: "start" | "end", value: string) => {
-    const curr: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
-    const next = { ...curr, [key]: value };
+
+  // Break state derived from the first item in schedule.breaks — one
+  // break per day is enough for the Bumpix-style inline editor; the
+  // full /dashboard/schedule page still supports arbitrarily many.
+  const firstBreak: ScheduleBreak | null = schedule.breaks?.[0] ?? null;
+
+  const persistSchedule = (next: TeamSchedule) => {
     setSchedules({ ...schedules, [id]: next });
+  };
+
+  const updateScheduleBase = (key: "start" | "end", value: string) => {
+    persistSchedule({ ...schedule, [key]: value });
+  };
+
+  const toggleBreak = (on: boolean) => {
+    if (on) {
+      persistSchedule({ ...schedule, breaks: [{ start: "13:00", end: "14:00" }] });
+    } else {
+      persistSchedule({ ...schedule, breaks: [] });
+    }
+  };
+
+  const updateBreak = (key: "start" | "end", value: string) => {
+    const current = schedule.breaks?.[0] ?? { start: "13:00", end: "14:00" };
+    const nextBreak: ScheduleBreak = { ...current, [key]: value };
+    persistSchedule({ ...schedule, breaks: [nextBreak] });
+  };
+
+  // Weekday overrides used for "выходные дни". Tapping a chip flips
+  // `is_working` on that weekday's override, leaving everything else
+  // about the day's schedule in sync with the base.
+  const isDayOff = (key: WeekdayKey): boolean => {
+    const ov = schedule.overrides?.[key];
+    return ov ? !ov.is_working : false;
+  };
+
+  const toggleDayOff = (key: WeekdayKey) => {
+    haptic("tap");
+    const overrides = { ...(schedule.overrides ?? {}) };
+    if (isDayOff(key)) {
+      // Was off → clear override (fall back to base = working).
+      delete overrides[key];
+    } else {
+      overrides[key] = {
+        is_working: false,
+        start: schedule.start,
+        end: schedule.end,
+        breaks: [],
+      };
+    }
+    persistSchedule({ ...schedule, overrides });
   };
 
   // Source of truth — the stored team (for edit) or BLANK_TEAM (for
@@ -711,12 +766,12 @@ export default function BrigadePage({ params }: RouteParams) {
             )}
           </Section>
 
-          {/* ── Section: Календарь бригады ─────────────────────────── */}
+          {/* ── Section: Настройки календаря ───────────────────────── */}
           <Section
-            title="Календарь бригады"
-            subtitle="Общая сетка календаря + рабочее окно бригады (светлая подсветка) + стартовая точка при открытии."
+            title="Настройки календаря"
+            subtitle="Как выглядит календарь, когда выбрана эта бригада."
           >
-            {/* Grid window — overall visible range */}
+            {/* Grid window */}
             <div>
               <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
                 Сетка календаря
@@ -748,10 +803,29 @@ export default function BrigadePage({ params }: RouteParams) {
               </div>
             </div>
 
-            {/* Working hours — highlighted band inside the grid */}
+            <FieldRow label="Открывать на">
+              <input
+                type="time"
+                value={draft.default_scroll_time ?? ""}
+                onChange={(e) => update("default_scroll_time", e.target.value)}
+                step={1800}
+                className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
+              <div className="text-[12px] text-[var(--label-tertiary)] mt-1">
+                При открытии бригады календарь проскроллится сюда. Пусто = как обычно.
+              </div>
+            </FieldRow>
+          </Section>
+
+          {/* ── Section: Расписание дня бригады (Bumpix-style) ─────── */}
+          <Section
+            title="Расписание дня бригады"
+            subtitle="График работы. В эти часы колонки календаря подсвечиваются светлее."
+          >
+            {/* Work hours */}
             <div>
               <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
-                Рабочее время бригады
+                Время работы
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-1.5">
@@ -765,7 +839,7 @@ export default function BrigadePage({ params }: RouteParams) {
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[12px] text-[var(--label-tertiary)]">по</span>
+                  <span className="text-[12px] text-[var(--label-tertiary)]">до</span>
                   <input
                     type="time"
                     value={schedule.end ?? "18:00"}
@@ -775,38 +849,76 @@ export default function BrigadePage({ params }: RouteParams) {
                   />
                 </div>
               </div>
-              <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
-                В эти часы колонки календаря будут светлее.
-              </div>
             </div>
 
-            {/* Start-scroll */}
-            <FieldRow label="Открывать на">
-              <input
-                type="time"
-                value={draft.default_scroll_time ?? ""}
-                onChange={(e) => update("default_scroll_time", e.target.value)}
-                step={1800}
-                className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
-              <div className="text-[12px] text-[var(--label-tertiary)] mt-1">
-                При открытии бригады календарь проскроллится сюда. Пусто = как обычно.
+            {/* Break */}
+            <div>
+              <div className="flex items-center justify-between py-1">
+                <div className="text-[15px] font-medium text-[var(--label)]">Перерыв</div>
+                <IOSSwitch
+                  checked={firstBreak !== null}
+                  onChange={toggleBreak}
+                  ariaLabel="Включить перерыв"
+                />
               </div>
-            </FieldRow>
-
-            {/* Detailed per-weekday schedule shortcut */}
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard/schedule")}
-              className="w-full h-11 flex items-center justify-between px-4 rounded-[10px] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)] press-scale"
-            >
-              <div className="text-left">
-                <div className="text-[14px] font-medium text-[var(--label)]">
-                  Расписание по дням недели + перерывы
+              {firstBreak ? (
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] text-[var(--label-tertiary)]">с</span>
+                    <input
+                      type="time"
+                      value={firstBreak.start}
+                      onChange={(e) => updateBreak("start", e.target.value)}
+                      step={1800}
+                      className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] text-[var(--label-tertiary)]">до</span>
+                    <input
+                      type="time"
+                      value={firstBreak.end}
+                      onChange={(e) => updateBreak("end", e.target.value)}
+                      step={1800}
+                      className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    />
+                  </div>
                 </div>
+              ) : (
+                <div className="text-[13px] text-[var(--label-tertiary)]">
+                  Без перерыва
+                </div>
+              )}
+            </div>
+
+            {/* Day-off chips — weekdays the brigade doesn't work */}
+            <div>
+              <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
+                Выходные дни
               </div>
-              <ChevronLeft size={16} strokeWidth={2.5} className="rotate-180 text-[var(--label-tertiary)]" />
-            </button>
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAY_KEYS.map((k) => {
+                  const off = isDayOff(k);
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => toggleDayOff(k)}
+                      className={`inline-flex items-center justify-center h-9 min-w-[44px] px-3 rounded-full text-[14px] font-medium press-scale transition ${
+                        off
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                          : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                      }`}
+                    >
+                      {WEEKDAY_NAMES[k]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
+                Отмеченные дни бригада не работает. Тап — включить/выключить.
+              </div>
+            </div>
           </Section>
 
           {/* ── Delete (bottom) ────────────────────────────────────── */}
