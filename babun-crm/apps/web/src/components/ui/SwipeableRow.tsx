@@ -107,8 +107,12 @@ export default function SwipeableRow({
         onPointerMove={(e) => handleMove(e.clientX)}
         onPointerUp={handleEnd}
         onPointerCancel={handleEnd}
-        onClick={() => {
+        onClickCapture={(e) => {
+          // When the row is open, swallow the first tap — it should
+          // close the row, not trigger the row's own onClick handlers.
           if (offset !== 0) {
+            e.stopPropagation();
+            e.preventDefault();
             close();
           }
         }}
