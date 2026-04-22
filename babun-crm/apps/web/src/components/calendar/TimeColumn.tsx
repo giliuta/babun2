@@ -2,18 +2,30 @@
 
 import { memo } from "react";
 
+interface TimeColumnProps {
+  /** Sprint 033: visible hour window. Defaults to 0..24 = full day.
+   *  When a brigade narrows the calendar (e.g. 06:00–23:30), only the
+   *  matching hour labels are rendered so the column lines up with
+   *  DayColumn's clipped grid. */
+  startHour?: number;
+  endHour?: number;
+}
+
 // Standalone time column rendered OUTSIDE the swipeable area, so it stays
 // fixed on the left while the user swipes between weeks.
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-function TimeColumnInner() {
+function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
+  const from = Math.max(0, Math.min(23, Math.floor(startHour)));
+  const to = Math.max(from + 1, Math.min(24, Math.ceil(endHour)));
+  const visibleHours = HOURS.slice(from, to);
   return (
     <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)]">
       {/* Header spacer must match DayColumn header exactly, else hour
           labels drift vs the grid rows under pinch-zoom. */}
       <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
 
-      {HOURS.map((hour) => (
+      {visibleHours.map((hour) => (
         <div
           key={hour}
           className="border-b border-[var(--separator)] flex items-start justify-end pr-1.5 lg:pr-2"

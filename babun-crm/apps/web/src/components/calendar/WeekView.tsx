@@ -31,6 +31,9 @@ interface WeekViewProps {
   /** Sprint 033: settings.cities list so custom tags render in the
    *  user-picked colour instead of neutral grey. */
   cityLookup?: City[];
+  /** Sprint 033: visible hour window (brigade calendar clipping). */
+  windowStart?: number;
+  windowEnd?: number;
 }
 
 export default function WeekView({
@@ -52,6 +55,8 @@ export default function WeekView({
   dragEnabled = false,
   teamColorFor,
   cityLookup,
+  windowStart,
+  windowEnd,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -104,6 +109,8 @@ export default function WeekView({
             dragEnabled={dragEnabled}
             teamColorFor={teamColorFor}
             cityLookup={cityLookup}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
           />
         );
       })}

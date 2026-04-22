@@ -38,6 +38,12 @@ interface DayColumnProps {
    *  matching City has a `color`, we derive a CityConfig from it.
    *  Falls back to the legacy hardcoded CITIES dict. */
   cityLookup?: City[];
+  /** Sprint 033: visible hour window. Everything outside [windowStart,
+   *  windowEnd) is clipped from the grid so a brigade can run a
+   *  tighter 06:00–23:30 calendar without scrolling past empty hours.
+   *  Defaults to 0..24 = full day. */
+  windowStart?: number;
+  windowEnd?: number;
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
@@ -54,7 +60,13 @@ interface DayColumnProps {
 // Expressions used for vertical positioning. They reference the live
 // --hh CSS variable set on the outer scroller during pinch-zoom, so
 // layout updates without any React re-render.
-const mins = (m: number) => `calc(var(--hh) * ${m / 60})`;
+// Convert minutes-from-midnight to a CSS `calc()` height in hour units.
+// Accepts an optional `offsetMin` so the caller can render a subset of
+// the day (see Sprint 033: brigade calendar window — only 06:00–23:30
+// is visible, everything else is clipped).
+const minsOffset = (m: number, offsetMin: number): string =>
+  `calc(var(--hh) * ${(m - offsetMin) / 60})`;
+const mins = (m: number) => minsOffset(m, 0);
 
 // Compute side-by-side columns for overlapping appointments.
 // Returns a Map of aptId → { col: 0-based column, total: columns in group }.
@@ -121,7 +133,14 @@ function DayColumnInner({
   dragEnabled = false,
   teamColorFor,
   cityLookup,
+  windowStart = 0,
+  windowEnd = 24,
 }: DayColumnProps) {
+  const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
+  const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
+  const windowDurationMin = Math.max(60, windowEndMin - windowStartMin); // at least 1 hour
+  const windowedMins = (m: number) => minsOffset(m, windowStartMin);
+  void mins; // keep reference to please tsc until the few legacy callers are ported
   const dateKeyFromDate = formatDateKey(date);
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `col-${dateKeyFromDate}`,
@@ -182,11 +201,13 @@ function DayColumnInner({
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickY = e.clientY - rect.top;
-    // Total column height is 24 hours — derive pxPerMinute from the live
-    // rendered height rather than a prop, so it stays accurate during zoom.
+    // The column spans `windowDurationMin` minutes — derive pxPerMinute
+    // from the live rendered height rather than a prop, so it stays
+    // accurate during zoom. Offset by windowStartMin so the first
+    // rendered hour still maps to the real calendar time.
     const totalHeight = rect.height;
-    const pxPerMinute = totalHeight / (24 * 60);
-    const totalMinutes = clickY / pxPerMinute;
+    const pxPerMinute = totalHeight / windowDurationMin;
+    const totalMinutes = windowStartMin + clickY / pxPerMinute;
     // STORY-005: тап по ячейке всегда даёт начало часа — диспетчер не
     // попадает в 16:15 случайно. Длительность рассчитывается отдельно
     // из выбранных услуг.
@@ -313,7 +334,7 @@ function DayColumnInner({
         onClick={handleColumnClick}
         onContextMenu={(e) => e.preventDefault()}
         style={{
-          height: "calc(var(--hh) * 24)",
+          height: `calc(var(--hh) * ${windowDurationMin / 60})`,
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
           // Sprint 030.1: 3-px coloured top stripe per city — visible
@@ -337,21 +358,21 @@ function DayColumnInner({
           contain: "layout paint",
         }}
       >
-        {/* Out-of-hours overlay: BEFORE work start */}
-        {workStart > 0 && (
+        {/* Out-of-hours overlay: BEFORE work start (but only within window) */}
+        {workStart > windowStartMin && (
           <div
             className="absolute left-0 right-0 top-0 bg-[var(--fill-tertiary)] pointer-events-none"
-            style={{ height: mins(workStart) }}
+            style={{ height: windowedMins(Math.max(workStart, windowStartMin)) }}
           />
         )}
 
-        {/* Out-of-hours overlay: AFTER work end */}
-        {workEnd < 24 * 60 && (
+        {/* Out-of-hours overlay: AFTER work end (but only within window) */}
+        {workEnd < windowEndMin && (
           <div
             className="absolute left-0 right-0 bg-[var(--fill-tertiary)] pointer-events-none"
             style={{
-              top: mins(workEnd),
-              height: `calc(var(--hh) * ${(24 * 60 - workEnd) / 60})`,
+              top: windowedMins(Math.max(workEnd, windowStartMin)),
+              height: `calc(var(--hh) * ${(windowEndMin - Math.max(workEnd, windowStartMin)) / 60})`,
             }}
           />
         )}
@@ -362,22 +383,29 @@ function DayColumnInner({
             const bs = timeToMinutes(br.start);
             const be = timeToMinutes(br.end);
             if (be <= bs) return null;
+            // Clip breaks to the visible window.
+            const visibleStart = Math.max(bs, windowStartMin);
+            const visibleEnd = Math.min(be, windowEndMin);
+            if (visibleEnd <= visibleStart) return null;
             return (
               <div
                 key={i}
                 className="absolute left-0 right-0 bg-[var(--fill-secondary)] pointer-events-none border-y border-[var(--separator)]"
-                style={{ top: mins(bs), height: mins(be - bs) }}
+                style={{
+                  top: windowedMins(visibleStart),
+                  height: `calc(var(--hh) * ${(visibleEnd - visibleStart) / 60})`,
+                }}
               >
                 <div className="text-[12px] text-[var(--label-secondary)] pl-1">Перерыв</div>
               </div>
             );
           })}
 
-        {/* Current time indicator */}
-        {isToday && (
+        {/* Current time indicator — hide if outside the window. */}
+        {isToday && currentTimeMinutes >= windowStartMin && currentTimeMinutes <= windowEndMin && (
           <div
             className="absolute left-0 right-0 z-20 pointer-events-none"
-            style={{ top: mins(currentTimeMinutes) }}
+            style={{ top: windowedMins(currentTimeMinutes) }}
           >
             <div className="flex items-center">
               <div className="w-2 h-2 bg-[var(--system-red)] rounded-full -ml-1" />
@@ -416,6 +444,7 @@ function DayColumnInner({
                 // этого дня". Если город известен — он побеждает team-color.
                 // Per-appointment color_override всё ещё выигрывает.
                 teamColor={cityHex ?? teamColorFor?.(apt) ?? null}
+                windowStartMin={windowStartMin}
                 onClick={onAppointmentClick}
                 onLongPress={onAppointmentLongPress}
                 draggable={dragEnabled}

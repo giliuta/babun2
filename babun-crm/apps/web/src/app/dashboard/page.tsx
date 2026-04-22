@@ -193,6 +193,25 @@ function DashboardPageInner() {
   const hourHeightRef = useRef(HOUR_HEIGHT_DEFAULT);
 
   const stepDays = STEP_DAYS[viewMode];
+
+  // Sprint 033 — brigade calendar window. Must be computed BEFORE any
+  // effect that reads it (scroll-to-time sits near the top of the
+  // component). teams array is already captured above.
+  const windowBounds = useMemo(() => {
+    const parseHour = (s: string | undefined | null): number | null => {
+      if (!s || !/^\d{1,2}:\d{2}$/.test(s)) return null;
+      const [h, m] = s.split(":").map(Number);
+      const val = h + m / 60;
+      return val >= 0 && val <= 24 ? val : null;
+    };
+    const at = teams.find((t) => t.id === activeTeamId);
+    const ws = parseHour(at?.calendar_window_start) ?? 0;
+    const weRaw = parseHour(at?.calendar_window_end) ?? 24;
+    const we = Math.max(ws + 1, Math.min(24, weRaw));
+    return { windowStart: ws, windowEnd: we };
+  }, [teams, activeTeamId]);
+  const { windowStart, windowEnd } = windowBounds;
+
   const activeSchedule = useMemo(
     () => getTeamSchedule(activeTeamId, schedules),
     [activeTeamId, schedules]
@@ -238,26 +257,30 @@ function DashboardPageInner() {
     rangeEnd.setDate(rangeEnd.getDate() + stepDays);
     const todayVisible = now >= currentMonday && now < rangeEnd;
     const hh = hourHeightRef.current;
-    let targetTop = calendarSettings.startHour * hh;
+    // Absolute-hour → grid-offset helper. With a brigade window the
+    // grid starts at windowStart hours, so visual top = (hour - windowStart) * hh.
+    const toTop = (hourValue: number) =>
+      Math.max(0, (hourValue - windowStart) * hh);
+    let targetTop = toTop(Math.max(calendarSettings.startHour, windowStart));
 
     // Brigade-level override takes priority.
-    const activeTeam = teams.find((t) => t.id === activeTeamId);
-    const brigadeScroll = activeTeam?.default_scroll_time;
+    const activeTeamLocal = teams.find((t) => t.id === activeTeamId);
+    const brigadeScroll = activeTeamLocal?.default_scroll_time;
     if (brigadeScroll && /^\d{1,2}:\d{2}$/.test(brigadeScroll)) {
       const [bh, bm] = brigadeScroll.split(":").map(Number);
       const brigadeHours = bh + bm / 60;
       const viewportOffset = el.clientHeight * 0.15;
-      targetTop = Math.max(0, brigadeHours * hh - viewportOffset);
+      targetTop = Math.max(0, toTop(brigadeHours) - viewportOffset);
     } else if (todayVisible) {
       const hoursNow = now.getHours() + now.getMinutes() / 60;
       const inWorkHours =
         hoursNow >= calendarSettings.startHour - 0.5 &&
         hoursNow <= calendarSettings.endHour;
-      if (inWorkHours) {
-        const nowTop = hoursNow * hh;
+      if (inWorkHours && hoursNow >= windowStart && hoursNow <= windowEnd) {
+        const nowTop = toTop(hoursNow);
         const viewportOffset = el.clientHeight * 0.3;
         targetTop = Math.max(
-          calendarSettings.startHour * hh,
+          toTop(calendarSettings.startHour),
           nowTop - viewportOffset
         );
       }
@@ -266,7 +289,7 @@ function DashboardPageInner() {
       el.scrollTop = targetTop;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, activeTeamId]);
+  }, [viewMode, activeTeamId, windowStart, windowEnd]);
 
   const { zoomBy, handleZoomIn, handleZoomOut } = useCalendarGestures({
     outerScrollerRef,
@@ -795,6 +818,8 @@ function DashboardPageInner() {
           extrasForDate={extrasForDate}
           teamColorFor={teamColorFor}
           cityLookup={cities}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
           dragEnabled
         />
       );
@@ -817,6 +842,9 @@ function DashboardPageInner() {
       handleDayHeaderTap,
       extrasForDate,
       teamColorFor,
+      cities,
+      windowStart,
+      windowEnd,
     ]
   );
 
@@ -947,7 +975,7 @@ function DashboardPageInner() {
               contain: "paint",
             }}
           >
-            <TimeColumn />
+            <TimeColumn startHour={windowStart} endHour={windowEnd} />
             <SwipeableCalendar
               renderPage={renderPage}
               onSwipeLeft={handleNextWeek}

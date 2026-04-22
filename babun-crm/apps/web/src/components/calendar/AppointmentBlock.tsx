@@ -18,6 +18,11 @@ interface AppointmentBlockProps {
   teamColor?: string | null;
   /** Override left/width for side-by-side overlap display. */
   overlapStyle?: { left: string; width: string };
+  /** Sprint 033: brigade calendar window — minutes from midnight that
+   *  correspond to the top pixel of the parent column. Needed so the
+   *  block's top expression maps to the right hour even when the grid
+   *  starts at 06:00 instead of 00:00. Default 0 = full-day grid. */
+  windowStartMin?: number;
   onClick: (appointment: Appointment) => void;
   onLongPress?: (appointment: Appointment) => void;
   draggable?: boolean;
@@ -30,6 +35,7 @@ function AppointmentBlockInner({
   services,
   teamColor,
   overlapStyle,
+  windowStartMin = 0,
   onClick,
   onLongPress,
   draggable = false,
@@ -69,7 +75,10 @@ function AppointmentBlockInner({
   // Positions are expressed in CSS `calc(var(--hh) * N)` so they follow the
   // live hour-height variable without triggering any React re-render during
   // pinch-zoom.
-  const topExpr = `calc(var(--hh) * ${startMinutes / 60})`;
+  // Offset the top so appointments in a windowed grid (e.g. brigade
+  // shows only 06:00–23:30) sit at the right hour. windowStartMin = 0
+  // for the default full-day grid, which makes this a no-op.
+  const topExpr = `calc(var(--hh) * ${(startMinutes - windowStartMin) / 60})`;
   const heightExpr = `max(calc(var(--hh) * ${durationMinutes / 60}), 18px)`;
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
