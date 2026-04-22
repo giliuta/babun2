@@ -23,19 +23,12 @@
 
 import { use, useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { haptic } from "@/lib/haptics";
-import {
-  useAppointments,
-  useMasters,
-  useTeams,
-} from "@/app/dashboard/layout";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useTeams } from "@/app/dashboard/layout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   TEAM_COLORS,
   generateId,
-  type Master,
   type Team,
 } from "@/lib/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
@@ -61,11 +54,7 @@ interface RouteParams {
 export default function BrigadeInfoPage({ params }: RouteParams) {
   const { id } = use(params);
   const isNew = id === "new";
-  const router = useRouter();
-  const confirm = useConfirm();
-  const { teams, upsertTeam, deleteTeam } = useTeams();
-  const { masters, setMasters } = useMasters();
-  const { appointments, upsertAppointment } = useAppointments();
+  const { teams, upsertTeam } = useTeams();
 
   const existing = teams.find((t) => t.id === id);
   const initial: Team = isNew
@@ -130,40 +119,8 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     return true;
   };
 
-  // ── delete (existing only) ──────────────────────────────────────
-  const handleDelete = async () => {
-    if (!existing) return;
-    const orphanCount = appointments.filter(
-      (a) => a.team_id === existing.id,
-    ).length;
-    const extra =
-      orphanCount > 0
-        ? `У ${orphanCount} записей сбросится привязка к бригаде (сами записи останутся).`
-        : "Эта бригада нигде не используется.";
-    const ok = await confirm({
-      title: `Удалить бригаду «${existing.name}»?`,
-      message: extra,
-      confirmLabel: "Удалить",
-    });
-    if (!ok) return;
-    haptic("warning");
-    deleteTeam(existing.id);
-    setMasters(
-      masters.map<Master>((m) =>
-        m.team_id === existing.id ? { ...m, team_id: null } : m,
-      ),
-    );
-    for (const apt of appointments) {
-      if (apt.team_id === existing.id) {
-        upsertAppointment({
-          ...apt,
-          team_id: null,
-          updated_at: new Date().toISOString(),
-        });
-      }
-    }
-    router.push("/dashboard/teams");
-  };
+  // Delete lives on the brigade index page (row with trash icon) — no
+  // need to duplicate it here. Removed 2026-04-22 per user feedback.
 
   const sharedShellProps = isNew
     ? {
@@ -171,7 +128,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
         canSave: name.trim().length > 0,
         onSave: handleCreate,
       }
-    : { hideSave: true, onDelete: handleDelete, deleteLabel: "Удалить бригаду" };
+    : { hideSave: true };
 
   return (
     <BrigadeSectionShell
