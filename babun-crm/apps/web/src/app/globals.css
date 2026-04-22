@@ -1,86 +1,85 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────
-   Babun CRM — Telegram design language (Sprint 031)
-   Full restyle from iOS HIG to Telegram. Tokens keep their HIG-era
-   names (--surface-grouped, --label, --accent…) so components don't
-   break, but values now map to Telegram's light-first grouped-list
-   palette with dark as secondary.
+   Babun CRM — Old Money Telegram (Sprint 032, Phase 0)
+   Keeps the Telegram structural DNA from Sprint 031 (ListGroup,
+   ListRow, SheetShell, BottomTabBar, pill buttons, colored tiles)
+   but swaps the palette to warm creams + muted Hermes-forest-green
+   accent. Light only — dark auto-switch intentionally removed.
    ──────────────────────────────────────────────────────────────── */
 
 :root {
   /* Surfaces ──────────────────────────────────────────────────
-     Telegram iOS uses a two-level grouped-list: the screen uses
-     a soft grey (`systemGroupedBackground`-ish) and cards on top
-     are pure white. */
-  --surface-grouped: #EFEFF4;
-  --surface-card: #FFFFFF;
-  --surface-card-secondary: #F2F2F7;
-  --surface-overlay: rgba(0, 0, 0, 0.4);
-  --surface-nav-blur: rgba(255, 255, 255, 0.92);
-  --surface-tint-accent: rgba(62, 136, 247, 0.12);
+     Warm ivory screen with cream paper cards on top. Two levels
+     give us enough depth without the cold grey of Telegram. */
+  --surface-grouped: #F4EEE3;
+  --surface-card: #FBF7EC;
+  --surface-card-secondary: #F0E9DB;
+  --surface-overlay: rgba(40, 32, 22, 0.45);
+  --surface-nav-blur: rgba(251, 247, 236, 0.88);
+  --surface-tint-accent: rgba(45, 74, 61, 0.08);
 
-  /* Separators (hairlines) — Telegram uses a slightly cooler grey
-     than iOS, and inset 56px from the left to clear tile icons. */
-  --separator: rgba(60, 60, 67, 0.10);
-  --separator-opaque: #E6E7E8;
+  /* Separators (hairlines) — warm taupe instead of cool grey.
+     Inset 56px from left to clear the tile column in ListRow. */
+  --separator: rgba(42, 32, 22, 0.09);
+  --separator-opaque: #E2DACC;
 
-  /* Text hierarchy (labels) ────────────────────────────────── */
-  --label: #000000;
-  --label-secondary: #8E8E93;
-  --label-tertiary: rgba(60, 60, 67, 0.3);
-  --label-quaternary: rgba(60, 60, 67, 0.18);
-  --label-on-accent: #FFFFFF;
+  /* Text hierarchy (labels) — warm charcoal, never pure black. */
+  --label: #2A241D;
+  --label-secondary: #86796A;
+  --label-tertiary: rgba(42, 32, 22, 0.45);
+  --label-quaternary: rgba(42, 32, 22, 0.25);
+  --label-on-accent: #FBF7EC;
 
   /* Fills (background for interactive elements at rest) ────── */
-  --fill-primary: rgba(120, 120, 128, 0.16);
-  --fill-secondary: rgba(120, 120, 128, 0.12);
-  --fill-tertiary: rgba(118, 118, 128, 0.08);
-  --fill-quaternary: rgba(116, 116, 128, 0.06);
+  --fill-primary: rgba(134, 118, 90, 0.16);
+  --fill-secondary: rgba(134, 118, 90, 0.11);
+  --fill-tertiary: rgba(134, 118, 90, 0.07);
+  --fill-quaternary: rgba(134, 118, 90, 0.04);
 
-  /* System semantic colours ────────────────────────────────── */
-  --system-red: #FF3B30;
-  --system-orange: #FF9500;
-  --system-yellow: #FFCC00;
-  --system-green: #34C759;
-  --system-mint: #00C7BE;
-  --system-teal: #30B0C7;
-  --system-cyan: #32ADE6;
-  --system-blue: #3E88F7;
-  --system-indigo: #5E72E4;
-  --system-purple: #AF52DE;
-  --system-pink: #FF2D55;
+  /* System semantic colours — Old Money versions.
+     Red = burgundy (not neon), Green = muted sage, Blue = dusty
+     navy, Orange = warm gold, Yellow = mustard. */
+  --system-red: #8C3F38;
+  --system-orange: #B07A36;
+  --system-yellow: #C9A74B;
+  --system-green: #5E7D5E;
+  --system-mint: #6D8C7F;
+  --system-teal: #517E7C;
+  --system-cyan: #5E8AA8;
+  --system-blue: #3F5A76;
+  --system-indigo: #4F5478;
+  --system-purple: #6B4B74;
+  --system-pink: #9A6277;
 
-  /* Accent — Telegram brand blue. Used for primary buttons, active
+  /* Accent — Hermes forest green. Used for primary buttons, active
      nav state, switches, links, selection, and colored tiles that
      don't map to a semantic category. */
-  --accent: #3E88F7;
-  --accent-pressed: #2D7BE5;
-  --accent-tint: rgba(62, 136, 247, 0.12);
-  --accent-on: #FFFFFF;
+  --accent: #2D4A3D;
+  --accent-pressed: #1F3A2F;
+  --accent-tint: rgba(45, 74, 61, 0.10);
+  --accent-on: #FBF7EC;
 
-  /* Tile palette — colored 28×28 rounded squares placed to the left
-     of ListRow items. Each Telegram settings row uses one. */
-  --tile-red: #F5483F;
-  --tile-orange: #F59E0B;
-  --tile-yellow: #F4C430;
-  --tile-green: #4CAF50;
-  --tile-mint: #10B981;
-  --tile-teal: #14B8A6;
-  --tile-cyan: #3EB8E5;
-  --tile-blue: #3E88F7;
-  --tile-indigo: #5E72E4;
-  --tile-purple: #9B59B6;
-  --tile-pink: #EC407A;
-  --tile-gray: #8E8E93;
+  /* Tile palette — muted Old Money 28×28 rounded squares placed
+     to the left of ListRow items. Each settings row uses one. */
+  --tile-red: #A55A50;
+  --tile-orange: #B0814E;
+  --tile-yellow: #C9A860;
+  --tile-green: #6C8A68;
+  --tile-mint: #7CA08A;
+  --tile-teal: #6C8B89;
+  --tile-cyan: #6B87A0;
+  --tile-blue: #5D7A94;
+  --tile-indigo: #6A6E8D;
+  --tile-purple: #87688B;
+  --tile-pink: #A47888;
+  --tile-gray: #948A7C;
 
-  /* Legacy — kept for a handful of surfaces that still read these
-     directly. New code should prefer the semantic names above. */
-  --background: #ffffff;
-  --foreground: #111827;
+  /* Legacy — kept for surfaces that still read these directly. */
+  --background: #F4EEE3;
+  --foreground: #2A241D;
 
-  /* Typography scale (kept from HIG era — sizes are identical,
-     letter-spacing is flatter below). */
+  /* Typography scale — sizes identical to Sprint 031. */
   --font-size-large-title: 34px;
   --font-size-title-1: 28px;
   --font-size-title-2: 22px;
@@ -104,81 +103,19 @@
   --radius-tile: 7px;         /* colored icon tiles */
   --radius-pill: 9999px;      /* primary buttons, chips, avatar */
 
-  /* Shadow — Telegram cards have almost no shadow, just a
-     whisper. Sheets lift a bit more. */
-  --shadow-card: 0 0 0 0.5px rgba(15, 23, 42, 0.04);
-  --shadow-sheet: 0 -4px 24px -8px rgba(0, 0, 0, 0.18);
-  --shadow-float: 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+  /* Shadow — warm-tinted, subtle. Sheets lift a bit more. */
+  --shadow-card: 0 0 0 0.5px rgba(42, 32, 22, 0.05),
+                 0 1px 2px rgba(42, 32, 22, 0.04);
+  --shadow-sheet: 0 -6px 32px -12px rgba(42, 32, 22, 0.18);
+  --shadow-float: 0 10px 28px -14px rgba(42, 32, 22, 0.20);
 }
 
-/* Dark theme — activates automatically via prefers-color-scheme or
-   manually via <html class="theme-dark">. */
-@media (prefers-color-scheme: dark) {
-  :root:not(.theme-light) {
-    --surface-grouped: #000000;
-    --surface-card: #1C1C1E;
-    --surface-card-secondary: #2C2C2E;
-    --surface-overlay: rgba(0, 0, 0, 0.6);
-    --surface-nav-blur: rgba(28, 28, 30, 0.92);
-    --surface-tint-accent: rgba(71, 163, 255, 0.18);
-
-    --separator: rgba(255, 255, 255, 0.10);
-    --separator-opaque: #2C2C2E;
-
-    --label: #FFFFFF;
-    --label-secondary: #8E8E93;
-    --label-tertiary: rgba(235, 235, 245, 0.3);
-    --label-quaternary: rgba(235, 235, 245, 0.18);
-
-    --fill-primary: rgba(118, 118, 128, 0.24);
-    --fill-secondary: rgba(118, 118, 128, 0.18);
-    --fill-tertiary: rgba(118, 118, 128, 0.12);
-    --fill-quaternary: rgba(118, 118, 128, 0.08);
-
-    --accent: #47A3FF;
-    --accent-pressed: #3E88F7;
-    --accent-tint: rgba(71, 163, 255, 0.18);
-
-    --background: #000000;
-    --foreground: #FFFFFF;
-
-    --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.04);
-    --shadow-sheet: 0 -4px 24px -8px rgba(0, 0, 0, 0.60);
-    --shadow-float: 0 8px 24px -12px rgba(0, 0, 0, 0.60);
-  }
-}
-
+/* Dark theme — STRUCTURAL HOOK ONLY (Sprint 032 is light-canonical).
+   The class name stays so anyone who set <html class="theme-dark">
+   in localStorage won't crash into undefined vars, but the values
+   mirror light. Dark mode is a future sprint. */
 html.theme-dark {
-  --surface-grouped: #000000;
-  --surface-card: #1C1C1E;
-  --surface-card-secondary: #2C2C2E;
-  --surface-overlay: rgba(0, 0, 0, 0.6);
-  --surface-nav-blur: rgba(28, 28, 30, 0.92);
-  --surface-tint-accent: rgba(71, 163, 255, 0.18);
-
-  --separator: rgba(255, 255, 255, 0.10);
-  --separator-opaque: #2C2C2E;
-
-  --label: #FFFFFF;
-  --label-secondary: #8E8E93;
-  --label-tertiary: rgba(235, 235, 245, 0.3);
-  --label-quaternary: rgba(235, 235, 245, 0.18);
-
-  --fill-primary: rgba(118, 118, 128, 0.24);
-  --fill-secondary: rgba(118, 118, 128, 0.18);
-  --fill-tertiary: rgba(118, 118, 128, 0.12);
-  --fill-quaternary: rgba(118, 118, 128, 0.08);
-
-  --accent: #47A3FF;
-  --accent-pressed: #3E88F7;
-  --accent-tint: rgba(71, 163, 255, 0.18);
-
-  --background: #000000;
-  --foreground: #FFFFFF;
-
-  --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.04);
-  --shadow-sheet: 0 -4px 24px -8px rgba(0, 0, 0, 0.60);
-  --shadow-float: 0 8px 24px -12px rgba(0, 0, 0, 0.60);
+  /* Intentionally empty in Sprint 032. Light stays canonical. */
 }
 
 @theme inline {
@@ -237,8 +174,7 @@ html.theme-dark {
   --radius-tile: var(--radius-tile);
   --radius-pill: var(--radius-pill);
 
-  /* Font stack — SF Pro first on Apple devices, then Inter from
-     next/font for Windows/Linux. */
+  /* Font stack — SF Pro first on Apple devices, Inter fallback. */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text",
                "SF Pro Display", var(--font-inter), "Segoe UI",
                Roboto, Helvetica, Arial, system-ui, sans-serif;
@@ -260,7 +196,7 @@ body {
      payroll rows line up glyph-for-glyph. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  /* Telegram uses neutral tracking — no tightening like iOS HIG. */
+  /* Neutral tracking — no tightening like iOS HIG. */
   letter-spacing: 0;
 }
 
@@ -295,7 +231,7 @@ h1, h2, h3,
 .stagger-children > *:nth-child(5) { animation-delay: 140ms; }
 .stagger-children > *:nth-child(n+6) { animation-delay: 160ms; }
 
-/* Skeleton shimmer — retint per theme via surface-card-secondary. */
+/* Skeleton shimmer — retint via surface-card-secondary. */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
@@ -313,8 +249,7 @@ h1, h2, h3,
   animation: shimmer 1.6s linear infinite;
 }
 
-/* Nav / floating surface — Telegram is nearly opaque (no heavy
-   blur like iOS), just a top hairline. */
+/* Nav / floating surface — cream with light blur, hairline top. */
 .glass-surface {
   background: var(--surface-nav-blur);
   backdrop-filter: saturate(150%) blur(12px);
@@ -326,8 +261,8 @@ h1, h2, h3,
 .hairline-top { box-shadow: 0 -0.5px 0 0 var(--separator); }
 .hairline-bottom { box-shadow: 0 0.5px 0 0 var(--separator); }
 
-/* Grouped list row separator — Telegram insets the hairline 56px
-   from the left so it clears the tile icon column. */
+/* Grouped list row separator — inset 56px from left so it clears
+   the tile icon column. */
 .row-separator {
   position: relative;
 }
@@ -352,6 +287,6 @@ h1, h2, h3,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #FFFFFF;
+  color: #FBF7EC;
   flex-shrink: 0;
 }
