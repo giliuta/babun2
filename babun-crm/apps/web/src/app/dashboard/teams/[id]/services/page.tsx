@@ -1,9 +1,18 @@
 "use client";
 
-// Sprint 033 Phase H — Brigade services subroute.
+// Sprint 033 Phase H2 — Brigade services subroute, polished.
+//
+// Improvements over Phase H (user request: "давай улучшим этот блок"):
+//  - Sticky top summary: "Выбрано X · все услуги" | "Выбрано X из Y"
+//    + bulk «Все» / «Снять все» toggle in one tap.
+//  - Search field — filters across all categories instantly.
+//  - Category header becomes a row: name + Выбрать-все chip so the
+//    user can attach a whole category (Чистка, Установка) in one tap.
+//  - Compact row (py-2.5), bigger target on edit pencil (40×40).
+//  - Empty-state hint when nothing is selected.
 
-import { use, useState } from "react";
-import { Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { use, useMemo, useState } from "react";
+import { Check, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
@@ -14,6 +23,10 @@ import BrigadeSectionShell, {
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/ё/g, "е");
 }
 
 export default function BrigadeServicesPage({ params }: RouteParams) {
@@ -36,6 +49,20 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
   const [editMin, setEditMin] = useState(60);
   const [editPrice, setEditPrice] = useState(0);
 
+  const [query, setQuery] = useState("");
+
+  // All active services — filtered by search + grouped by category.
+  const activeAll = useMemo(
+    () => services.filter((s) => s.is_active !== false),
+    [services],
+  );
+
+  const filtered = useMemo(() => {
+    const q = normalize(query.trim());
+    if (!q) return activeAll;
+    return activeAll.filter((s) => normalize(s.name).includes(q));
+  }, [activeAll, query]);
+
   if (!team) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Услуги" onSave={() => true}>
@@ -49,16 +76,33 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
   }
 
   const hasService = (svc: Service) => svc.brigade_ids.includes(team.id);
+  const selectedCount = activeAll.filter(hasService).length;
+  const totalCount = activeAll.length;
 
   const toggle = (svc: Service) => {
     haptic("tap");
-    const next: Service = {
+    upsertService({
       ...svc,
       brigade_ids: hasService(svc)
         ? svc.brigade_ids.filter((b) => b !== team.id)
         : [...svc.brigade_ids, team.id],
-    };
-    upsertService(next);
+    });
+  };
+
+  // Bulk attach/detach every service in the given list. `attach=true`
+  // means every service gets this brigade's id added; `false` removes.
+  const bulkSet = (list: Service[], attach: boolean) => {
+    haptic("tap");
+    for (const svc of list) {
+      if (attach && !hasService(svc)) {
+        upsertService({ ...svc, brigade_ids: [...svc.brigade_ids, team.id] });
+      } else if (!attach && hasService(svc)) {
+        upsertService({
+          ...svc,
+          brigade_ids: svc.brigade_ids.filter((b) => b !== team.id),
+        });
+      }
+    }
   };
 
   const addNew = () => {
@@ -102,7 +146,10 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     const usedElsewhere = svc.brigade_ids.filter((b) => b !== team.id).length > 0;
     if (usedElsewhere) {
       haptic("tap");
-      upsertService({ ...svc, brigade_ids: svc.brigade_ids.filter((b) => b !== team.id) });
+      upsertService({
+        ...svc,
+        brigade_ids: svc.brigade_ids.filter((b) => b !== team.id),
+      });
       setEditId(null);
       return;
     }
@@ -116,11 +163,63 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     setEditId(null);
   };
 
+  const allSelected = selectedCount === totalCount && totalCount > 0;
+
   return (
-    <BrigadeSectionShell brigadeId={id} title="Услуги" onSave={() => true} saveLabel="Готово">
-      <SectionCard subtitle="Какие услуги делает бригада. При записи клиента показываются только они. Не выбрано ничего — доступны все.">
+    <BrigadeSectionShell
+      brigadeId={id}
+      title="Услуги"
+      onSave={() => true}
+      saveLabel="Готово"
+    >
+      {/* ── Summary banner ─────────────────────────────────────────── */}
+      <SectionCard>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[15px] font-semibold text-[var(--label)]">
+              {selectedCount === 0
+                ? "Доступны все услуги"
+                : selectedCount === totalCount
+                  ? "Все услуги у этой бригады"
+                  : `Выбрано ${selectedCount} из ${totalCount}`}
+            </div>
+            <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+              {selectedCount === 0
+                ? "Ничего не отмечено — при записи клиента видны все."
+                : "При записи клиента в эту бригаду видны только отмеченные."}
+            </div>
+          </div>
+          {totalCount > 0 && (
+            <button
+              type="button"
+              onClick={() => bulkSet(activeAll, !allSelected)}
+              className="shrink-0 h-9 px-3 rounded-full text-[13px] font-medium press-scale bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
+            >
+              {allSelected ? "Снять все" : "Выбрать все"}
+            </button>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* ── Search + add ───────────────────────────────────────────── */}
+      <SectionCard>
+        <div className="relative">
+          <Search
+            size={16}
+            strokeWidth={2}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] pointer-events-none"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск по названию"
+            className="w-full h-11 pl-9 pr-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          />
+        </div>
+
         {adding ? (
-          <div className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3">
+          <div className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3 mt-3">
             <input
               autoFocus
               type="text"
@@ -135,89 +234,248 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
             />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">Длительность</div>
+                <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">
+                  Длительность
+                </div>
                 <div className="flex items-center gap-1.5">
-                  <input type="number" min={1} step={5} value={newMin} onChange={(e) => setNewMin(Number(e.target.value) || 0)} className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+                  <input
+                    type="number"
+                    min={1}
+                    step={5}
+                    value={newMin}
+                    onChange={(e) => setNewMin(Number(e.target.value) || 0)}
+                    className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
                   <span className="text-[14px] text-[var(--label-secondary)]">мин</span>
                 </div>
               </div>
               <div>
-                <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">Цена</div>
+                <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">
+                  Цена
+                </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[15px] text-[var(--label-secondary)]">€</span>
-                  <input type="number" min={0} step={1} value={newPrice} onChange={(e) => setNewPrice(Number(e.target.value) || 0)} className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(Number(e.target.value) || 0)}
+                    className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
                 </div>
               </div>
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale">Отмена</button>
-              <button type="button" onClick={addNew} disabled={!newName.trim()} className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40">Добавить</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdding(false);
+                  setNewName("");
+                }}
+                className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={addNew}
+                disabled={!newName.trim()}
+                className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+              >
+                Добавить
+              </button>
             </div>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="w-full h-11 flex items-center justify-center gap-2 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[14px] font-semibold press-scale"
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[14px] font-semibold press-scale mt-3"
           >
             <Plus size={16} strokeWidth={2.5} />
             Добавить услугу
           </button>
         )}
+      </SectionCard>
 
-        {categories.map((cat) => {
-          const catSvcs = services.filter(
+      {/* ── Category-grouped list ─────────────────────────────────── */}
+      {totalCount === 0 ? (
+        <SectionCard>
+          <div className="text-[13px] text-[var(--label-tertiary)] py-6 text-center">
+            Пока нет услуг. Добавьте первую выше.
+          </div>
+        </SectionCard>
+      ) : (
+        categories.map((cat) => {
+          const catSvcs = filtered.filter(
             (s) => s.category_id === cat.id && s.is_active !== false,
           );
           if (catSvcs.length === 0) return null;
+          const catSelected = catSvcs.filter(hasService).length;
+          const catAll = catSelected === catSvcs.length;
           return (
-            <div key={cat.id} className="mt-3 first:mt-0">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-                {cat.name}
+            <SectionCard key={cat.id}>
+              {/* Category header with bulk toggle */}
+              <div className="flex items-center justify-between gap-2 -mx-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: cat.color }}
+                  />
+                  <div className="text-[13px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">
+                    {cat.name}
+                  </div>
+                  <div className="text-[12px] text-[var(--label-tertiary)] tabular-nums shrink-0">
+                    {catSelected}/{catSvcs.length}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => bulkSet(catSvcs, !catAll)}
+                  className="shrink-0 h-7 px-2.5 rounded-full text-[12px] font-medium press-scale bg-[var(--fill-tertiary)] text-[var(--label)]"
+                >
+                  {catAll ? "Снять" : "Выбрать все"}
+                </button>
               </div>
-              <div className="flex flex-col divide-y divide-[var(--separator)]">
+
+              <div className="flex flex-col divide-y divide-[var(--separator)] -mx-1">
                 {catSvcs.map((s) => {
                   const checked = hasService(s);
                   if (editId === s.id) {
                     return (
-                      <div key={s.id} className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3 my-1">
-                        <input autoFocus type="text" value={editName} onChange={(e) => setEditName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveEdit(s); if (e.key === "Escape") setEditId(null); }} placeholder="Название услуги" className="w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+                      <div
+                        key={s.id}
+                        className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3 my-1 mx-1"
+                      >
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit(s);
+                            if (e.key === "Escape") setEditId(null);
+                          }}
+                          placeholder="Название услуги"
+                          className="w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                        />
                         <div className="grid grid-cols-2 gap-2">
                           <div className="flex items-center gap-1.5">
-                            <input type="number" min={1} step={5} value={editMin} onChange={(e) => setEditMin(Number(e.target.value) || 0)} className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+                            <input
+                              type="number"
+                              min={1}
+                              step={5}
+                              value={editMin}
+                              onChange={(e) => setEditMin(Number(e.target.value) || 0)}
+                              className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                            />
                             <span className="text-[14px] text-[var(--label-secondary)]">мин</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[15px] text-[var(--label-secondary)]">€</span>
-                            <input type="number" min={0} step={1} value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value) || 0)} className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+                            <input
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={editPrice}
+                              onChange={(e) => setEditPrice(Number(e.target.value) || 0)}
+                              className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                            />
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => del(s)} className="h-10 px-3 rounded-[10px] bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[14px] font-medium press-scale flex items-center gap-1"><Trash2 size={14} strokeWidth={2} />Удалить</button>
-                          <button type="button" onClick={() => setEditId(null)} className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale">Отмена</button>
-                          <button type="button" onClick={() => saveEdit(s)} disabled={!editName.trim()} className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40">Сохранить</button>
+                          <button
+                            type="button"
+                            onClick={() => del(s)}
+                            className="h-10 px-3 rounded-[10px] bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[14px] font-medium press-scale flex items-center gap-1"
+                          >
+                            <Trash2 size={14} strokeWidth={2} />
+                            Удалить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditId(null)}
+                            className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale"
+                          >
+                            Отмена
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(s)}
+                            disabled={!editName.trim()}
+                            className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                          >
+                            Сохранить
+                          </button>
                         </div>
                       </div>
                     );
                   }
                   return (
-                    <div key={s.id} className="flex items-center gap-3 py-3">
-                      <button type="button" onClick={() => toggle(s)} aria-label={checked ? "Убрать из бригады" : "Добавить в бригаду"} className={`w-6 h-6 rounded-md flex items-center justify-center press-scale shrink-0 ${checked ? "bg-[var(--accent)]" : "border-2 border-[var(--separator-opaque)]"}`}>
-                        {checked && <Check size={14} className="text-[var(--label-on-accent)]" strokeWidth={3} />}
+                    <div
+                      key={s.id}
+                      className={`flex items-center gap-3 py-2.5 px-1 rounded-[8px] ${
+                        checked ? "bg-[var(--accent-tint)]" : ""
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggle(s)}
+                        aria-label={checked ? "Убрать из бригады" : "Добавить в бригаду"}
+                        className={`w-6 h-6 rounded-md flex items-center justify-center press-scale shrink-0 ${
+                          checked
+                            ? "bg-[var(--accent)]"
+                            : "border-2 border-[var(--separator-opaque)]"
+                        }`}
+                      >
+                        {checked && (
+                          <Check size={14} className="text-[var(--label-on-accent)]" strokeWidth={3} />
+                        )}
                       </button>
-                      <button type="button" onClick={() => beginEdit(s)} className="flex-1 min-w-0 text-left active:opacity-70">
-                        <div className="text-[15px] text-[var(--label)] truncate">{s.name}</div>
-                        <div className="text-[12px] text-[var(--label-secondary)]">{s.duration_minutes} мин · €{s.price}</div>
+                      <button
+                        type="button"
+                        onClick={() => toggle(s)}
+                        className="flex-1 min-w-0 text-left active:opacity-70"
+                      >
+                        <div
+                          className={`text-[15px] truncate ${
+                            checked
+                              ? "font-medium text-[var(--accent)]"
+                              : "text-[var(--label)]"
+                          }`}
+                        >
+                          {s.name}
+                        </div>
+                        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
+                          {s.duration_minutes} мин · €{s.price}
+                        </div>
                       </button>
-                      <button type="button" onClick={() => beginEdit(s)} aria-label="Редактировать" className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"><Pencil size={16} strokeWidth={2} /></button>
+                      <button
+                        type="button"
+                        onClick={() => beginEdit(s)}
+                        aria-label="Редактировать"
+                        className="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale shrink-0"
+                      >
+                        <Pencil size={16} strokeWidth={2} />
+                      </button>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </SectionCard>
           );
-        })}
-      </SectionCard>
+        })
+      )}
+
+      {/* Empty search state */}
+      {totalCount > 0 && filtered.length === 0 && (
+        <SectionCard>
+          <div className="text-[13px] text-[var(--label-tertiary)] py-6 text-center">
+            Ничего не найдено по запросу «{query}».
+          </div>
+        </SectionCard>
+      )}
     </BrigadeSectionShell>
   );
 }
