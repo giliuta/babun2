@@ -95,7 +95,7 @@ export default function GlobalDiscountForm({
             type="button"
             onClick={() => setType("fixed")}
             className={`px-3 py-1 rounded-md ${
-              type === "fixed" ? "bg-[var(--surface-card)] shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
+              type === "fixed" ? "bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[var(--label)]" : "text-[var(--label-secondary)]"
             }`}
           >
             € Сумма
@@ -104,7 +104,7 @@ export default function GlobalDiscountForm({
             type="button"
             onClick={() => setType("percent")}
             className={`px-3 py-1 rounded-md ${
-              type === "percent" ? "bg-[var(--surface-card)] shadow-sm text-[var(--label)]" : "text-[var(--label-secondary)]"
+              type === "percent" ? "bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[var(--label)]" : "text-[var(--label-secondary)]"
             }`}
           >
             % Процент

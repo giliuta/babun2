@@ -33,7 +33,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[var(--surface-card)] rounded-xl shadow-lg w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--surface-card)] rounded-xl shadow-[var(--shadow-sheet)] w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[var(--accent)] text-[var(--label-on-accent)] px-4 py-3">
           <div className="relative">
@@ -47,7 +47,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
               </svg>
             </button>
             {showPeriodMenu && (
-              <div className="absolute top-full left-0 mt-1 bg-[var(--surface-card)] rounded-lg shadow-lg py-1 z-10 min-w-[200px]">
+              <div className="absolute top-full left-0 mt-1 bg-[var(--surface-card)] rounded-lg shadow-[var(--shadow-sheet)] py-1 z-10 min-w-[200px]">
                 {PERIODS.map((p) => (
                   <button
                     key={p}
@@ -139,7 +139,7 @@ export default function ExpensesDialog({ open, onClose }: ExpensesDialogProps) {
         </div>
 
         {/* FAB */}
-        <button className="absolute bottom-20 right-8 w-12 h-12 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[var(--accent-pressed)] transition-colors">
+        <button className="absolute bottom-20 right-8 w-12 h-12 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-full shadow-[var(--shadow-sheet)] flex items-center justify-center text-2xl hover:bg-[var(--accent-pressed)] transition-colors">
           +
         </button>
       </div>

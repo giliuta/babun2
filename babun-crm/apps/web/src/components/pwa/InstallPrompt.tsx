@@ -85,7 +85,7 @@ export function InstallPrompt() {
         bottom: "calc(env(safe-area-inset-bottom, 8px) + 78px)",
       }}
     >
-      <div className="bg-[var(--surface-card)] rounded-2xl shadow-2xl border border-[var(--separator)] p-4 flex items-start gap-3">
+      <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] border border-[var(--separator)] p-4 flex items-start gap-3">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-violet-500 flex items-center justify-center text-[var(--label-on-accent)] font-bold text-2xl shrink-0">
           B
         </div>

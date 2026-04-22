@@ -67,7 +67,7 @@ export default function ClientActionMenu({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl overflow-hidden"
+        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-3 border-b border-[var(--separator)]">

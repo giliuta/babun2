@@ -54,7 +54,7 @@ export default function PhotoPicker({ open, onClose, onPick }: PhotoPickerProps)
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 pt-4 pb-2 text-center text-[15px] font-semibold text-[var(--label)]">

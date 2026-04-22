@@ -433,7 +433,7 @@ export default function AppointmentSheet({
       onClick={attemptClose}
     >
       <div
-        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col"
+        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -449,7 +449,7 @@ export default function AppointmentSheet({
                   onClick={() => setKind(k)}
                   className={`px-4 py-1.5 rounded-[8px] transition ${
                     kind === k
-                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm"
+                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
                       : "text-[var(--label-secondary)]"
                   }`}
                 >
@@ -851,7 +851,7 @@ export default function AppointmentSheet({
           onClick={() => setCloseConfirm(false)}
         >
           <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl p-4"
+            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
@@ -904,7 +904,7 @@ export default function AppointmentSheet({
           onClick={() => setAskClientFirst(false)}
         >
           <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl p-4"
+            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center text-[15px] text-[var(--label)] py-2 px-1 leading-snug">
@@ -1089,7 +1089,7 @@ export default function AppointmentSheet({
           onClick={() => setClientProfileOpen(false)}
         >
           <div
-            className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
+            className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
             style={{ height: "92vh" }}
             onClick={(e) => e.stopPropagation()}
           >

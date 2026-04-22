@@ -110,7 +110,7 @@ export default function ServicesPage() {
           {grouped.map(([catKey, svcList]) => {
             const cat = categoryById.get(catKey);
             return (
-              <section key={catKey} className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+              <section key={catKey} className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[var(--shadow-card)] overflow-hidden">
                 <div
                   className="px-4 py-2 text-sm font-semibold border-b border-[var(--separator)] flex items-center gap-2"
                   style={{ backgroundColor: cat ? `${cat.color}15` : undefined }}
@@ -248,7 +248,7 @@ function CategoriesEditor({
   };
 
   return (
-    <section className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] p-4 space-y-3">
+    <section className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[var(--shadow-card)] p-4 space-y-3">
       {categories.map((c, i) => (
         <div key={c.id} className="flex items-center gap-2">
           <input

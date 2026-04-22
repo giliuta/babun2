@@ -43,7 +43,7 @@ export default function DialogModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
         style={{ maxHeight: "min(85vh, 720px)" }}
         onClick={(e) => e.stopPropagation()}
       >

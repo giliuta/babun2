@@ -139,7 +139,7 @@ export default function FinancesPage() {
             />
           </div>
 
-          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden">
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[var(--shadow-card)] overflow-hidden">
             <div className="px-4 py-3 border-b border-[var(--separator)] relative flex items-center justify-between">
               <button
                 type="button"
@@ -161,7 +161,7 @@ export default function FinancesPage() {
                 Зарплата {totalPayroll > 0 && `· ${formatEUR(totalPayroll)}`}
               </button>
               {showPeriodMenu && (
-                <div className="absolute top-full left-4 mt-1 bg-[var(--surface-card)] rounded-lg shadow-lg py-1 z-10 min-w-[200px] border border-[var(--separator)]">
+                <div className="absolute top-full left-4 mt-1 bg-[var(--surface-card)] rounded-lg shadow-[var(--shadow-sheet)] py-1 z-10 min-w-[200px] border border-[var(--separator)]">
                   {PERIODS.map((p) => (
                     <button
                       key={p.key}

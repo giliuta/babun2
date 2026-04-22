@@ -201,7 +201,7 @@ function IncomePopup({
       onClick={attemptClose}
     >
       <div
-        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-2xl flex flex-col"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
         style={{ maxHeight: "85vh" }}
         onClick={(e) => e.stopPropagation()}
       >

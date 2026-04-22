@@ -310,7 +310,7 @@ export default function MasterSheet({
       onClick={onCancel}
     >
       <div
-        className="bg-[var(--surface-card)] rounded-2xl shadow-2xl w-full max-w-lg flex flex-col"
+        className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] w-full max-w-lg flex flex-col"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -709,7 +709,7 @@ export default function MasterSheet({
                     onClick={() => setBrigadeVisibility(k)}
                     className={`flex-1 h-8 rounded-lg text-[12px] font-semibold transition ${
                       brigadeVisibility === k
-                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm"
+                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
                         : "text-[var(--label-secondary)]"
                     }`}
                   >
@@ -940,7 +940,7 @@ function PasswordShowOnce({
   };
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[var(--surface-card)] rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+      <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] w-full max-w-sm p-5 space-y-4">
         <div>
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
             Пароль создан
@@ -1075,7 +1075,7 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-[var(--surface-card)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04)] overflow-hidden">
+    <div className="rounded-2xl bg-[var(--surface-card)] shadow-[var(--shadow-card)] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -1126,7 +1126,7 @@ function ToggleSwitch({
       }`}
     >
       <span
-        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[var(--shadow-card)] transition-transform ${
           checked ? "translate-x-[18px]" : "translate-x-0"
         }`}
       />

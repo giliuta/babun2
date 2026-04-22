@@ -29,7 +29,7 @@ export default function MapNavPopup({ open, onClose, input }: MapNavPopupProps) 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-2xl shadow-2xl p-4"
+        className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center text-[14px] font-semibold text-[var(--label)] py-2">

@@ -272,7 +272,7 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
       }}
       className={`flex-1 h-8 px-3 rounded-[7px] text-[13px] font-semibold whitespace-nowrap select-none transition ${
         active
-          ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_0_rgba(0,0,0,0.1)]"
+          ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
           : "text-[var(--label-secondary)]"
       }`}
     >

@@ -156,7 +156,7 @@ function ModeBtn({
       type="button"
       onClick={onClick}
       className={`px-3 py-1 rounded-md transition ${
-        active ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
+        active ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]" : "text-[var(--label-secondary)]"
       }`}
     >
       {label}

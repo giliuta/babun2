@@ -188,7 +188,7 @@ export default function ServiceRow({
           }}
         >
           <div
-            className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl shadow-2xl"
+            className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 pt-3 pb-2 text-[13px] font-semibold text-[var(--label)] truncate">

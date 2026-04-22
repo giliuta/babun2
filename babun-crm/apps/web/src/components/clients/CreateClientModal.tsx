@@ -90,7 +90,7 @@ export default function CreateClientModal({
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-[var(--surface-card)] lg:items-center lg:justify-center lg:bg-black/40">
-      <div className="flex flex-col h-full lg:h-auto lg:max-h-[85vh] lg:w-[480px] lg:rounded-2xl lg:bg-[var(--surface-card)] lg:shadow-2xl lg:overflow-hidden">
+      <div className="flex flex-col h-full lg:h-auto lg:max-h-[85vh] lg:w-[480px] lg:rounded-2xl lg:bg-[var(--surface-card)] lg:shadow-[var(--shadow-sheet)] lg:overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[var(--separator)]">
           <button
@@ -224,7 +224,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       type="button"
       onClick={onClick}
       className={`flex-1 h-11 rounded-lg text-[14px] font-semibold transition ${
-        active ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm" : "text-[var(--label-secondary)]"
+        active ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]" : "text-[var(--label-secondary)]"
       }`}
     >
       {children}

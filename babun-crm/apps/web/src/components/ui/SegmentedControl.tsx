@@ -36,7 +36,7 @@ export default function SegmentedControl<T extends string>({
             onClick={() => onChange(o.value)}
             className={`flex-1 h-8 rounded-[7px] text-[13px] font-semibold transition ${
               active
-                ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_0_rgba(0,0,0,0.08)]"
+                ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
                 : "text-[var(--label-secondary)]"
             }`}
           >

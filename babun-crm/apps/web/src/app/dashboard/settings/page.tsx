@@ -223,7 +223,7 @@ function Group({
       <div className="px-4 pb-2 text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
         {title}
       </div>
-      <div className="bg-[var(--surface-card)] rounded-2xl overflow-hidden shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]">
+      <div className="bg-[var(--surface-card)] rounded-2xl overflow-hidden shadow-[var(--shadow-card)]">
         {children}
       </div>
       {footer && (
@@ -263,7 +263,7 @@ function ToggleRow({
         } ${disabled ? "cursor-not-allowed" : ""}`}
       >
         <span
-          className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition-transform ${
+          className={`absolute top-[2px] left-[2px] w-6 h-6 bg-[var(--surface-card)] rounded-full shadow-[var(--shadow-card)] transition-transform ${
             checked ? "translate-x-[18px]" : "translate-x-0"
           }`}
         />

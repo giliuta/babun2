@@ -53,10 +53,10 @@ export default function SuccessOverlay({
       onClick={onDone}
     >
       <div
-        className="w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl p-6 flex flex-col items-center"
+        className="w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-6 flex flex-col items-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-16 h-16 rounded-full bg-[var(--system-green)] flex items-center justify-center mb-3 shadow-lg shadow-[rgba(52,199,89,0.4)]">
+        <div className="w-16 h-16 rounded-full bg-[var(--system-green)] flex items-center justify-center mb-3 shadow-[var(--shadow-sheet)] shadow-[rgba(52,199,89,0.4)]">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>

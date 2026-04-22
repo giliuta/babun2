@@ -47,7 +47,7 @@ export default function RepeatReminderSheet({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[360px] bg-[var(--surface-card)] rounded-[20px] shadow-2xl overflow-hidden"
+        className="w-full max-w-[360px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-4 pb-3 border-b border-[var(--separator)]">

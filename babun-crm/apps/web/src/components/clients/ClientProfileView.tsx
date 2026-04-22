@@ -341,7 +341,7 @@ export default function ClientProfileView({
           onClick={() => setMenuOpen(false)}
         >
           <div
-            className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-2xl overflow-hidden"
+            className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 border-b border-[var(--separator)] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">

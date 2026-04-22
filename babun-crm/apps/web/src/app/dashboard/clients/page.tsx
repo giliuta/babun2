@@ -444,7 +444,7 @@ export default function ClientsPage() {
         type="button"
         onClick={() => setCreating(true)}
         aria-label="Добавить клиента"
-        className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-[0_12px_28px_-12px_rgba(42,171,238,0.65)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
+        className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-[var(--shadow-fab)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
         style={{
           bottom:
             "calc(env(safe-area-inset-bottom, 12px) + 76px)",

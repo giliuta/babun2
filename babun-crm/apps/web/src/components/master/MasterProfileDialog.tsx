@@ -98,7 +98,7 @@ export default function MasterProfileDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
-      <div className="bg-[var(--surface-card)] rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--surface-card)] rounded-xl shadow-[var(--shadow-sheet)] w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[var(--accent)] text-[var(--label-on-accent)] px-4 py-3 flex items-center gap-2">
           <h2 className="flex-1 text-base font-semibold">РџСЂРѕС„РёР»СЊ РјР°СЃС‚РµСЂР°</h2>

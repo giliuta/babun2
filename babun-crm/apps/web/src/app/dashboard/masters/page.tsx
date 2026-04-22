@@ -219,7 +219,7 @@ function ListGroup({
       <div className="text-xs font-semibold text-[var(--label-secondary)] uppercase tracking-wide px-1 mb-2">
         {title}
       </div>
-      <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[0_1px_2px_0_rgba(15,23,42,0.04),0_1px_3px_0_rgba(15,23,42,0.06)] overflow-hidden divide-y divide-[var(--separator)]">
+      <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
         {children}
       </div>
     </div>

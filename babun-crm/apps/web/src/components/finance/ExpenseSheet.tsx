@@ -74,7 +74,7 @@ export default function ExpenseSheet({
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-2xl flex flex-col max-h-[90vh]"
+        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grabber */}
@@ -111,7 +111,7 @@ export default function ExpenseSheet({
                     type="button"
                     onClick={() => setCategory(key)}
                     className={`flex items-center gap-2 px-3 py-3 min-h-[48px] rounded-[14px] border transition active:scale-[0.98] ${
-                      active ? "shadow-sm" : "border-[var(--separator)] bg-[var(--surface-card)]"
+                      active ? "shadow-[var(--shadow-card)]" : "border-[var(--separator)] bg-[var(--surface-card)]"
                     }`}
                     style={
                       active

@@ -605,7 +605,7 @@ function ChatDetailView({
         {headerMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
-            <div className="absolute right-2 top-full mt-1 bg-[var(--surface-card)] rounded-xl shadow-2xl border border-[var(--separator)] py-1 z-50 min-w-[200px]">
+            <div className="absolute right-2 top-full mt-1 bg-[var(--surface-card)] rounded-xl shadow-[var(--shadow-sheet)] border border-[var(--separator)] py-1 z-50 min-w-[200px]">
               <MenuItem label={chat.is_pinned ? "Открепить" : "Закрепить"} onClick={onTogglePin} />
               {linkedClient && (
                 <MenuItem
@@ -655,7 +655,7 @@ function ChatDetailView({
           {groupedMessages.map((group) => (
             <div key={group.date}>
               <div className="flex justify-center my-3">
-                <span className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-[12px] font-medium text-[var(--label-secondary)] shadow-sm">
+                <span className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-[12px] font-medium text-[var(--label-secondary)] shadow-[var(--shadow-card)]">
                   {formatDateLabel(group.date)}
                 </span>
               </div>
@@ -667,7 +667,7 @@ function ChatDetailView({
                   <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"} ${prevSame ? "mt-0.5" : "mt-2"}`}>
                     <div
                       className={`relative max-w-[75%] px-2.5 py-1.5 text-[14px] leading-relaxed ${
-                        isOut ? "bg-[var(--accent)] text-[var(--label-on-accent)] rounded-2xl rounded-br-sm" : "bg-[var(--surface-card)] text-[var(--label)] rounded-2xl rounded-bl-sm shadow-sm"
+                        isOut ? "bg-[var(--accent)] text-[var(--label-on-accent)] rounded-2xl rounded-br-sm" : "bg-[var(--surface-card)] text-[var(--label)] rounded-2xl rounded-bl-sm shadow-[var(--shadow-card)]"
                       }`}
                       onContextMenu={(e) => { e.preventDefault(); haptic("select"); setMsgMenu(msg); }}
                     >
@@ -695,7 +695,7 @@ function ChatDetailView({
         {/* Message context menu */}
         {msgMenu && (
           <div className="fixed inset-0 z-[80]" onClick={() => setMsgMenu(null)}>
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[var(--surface-card)] rounded-2xl shadow-2xl border border-[var(--separator)] overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] border border-[var(--separator)] overflow-hidden min-w-[180px]" onClick={(e) => e.stopPropagation()}>
               <MenuItem label="Ответить" onClick={() => { setReplyTo(msgMenu); setMsgMenu(null); }} icon={<CornerUpLeft size={14} />} />
               <MenuItem label="Копировать" onClick={() => onCopyMessage(msgMenu.text)} icon={<Copy size={14} />} border />
               <MenuItem

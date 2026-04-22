@@ -51,7 +51,7 @@ export default function PaymentSheet({
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-2xl pb-4"
+        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-[var(--shadow-sheet)] pb-4"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 16px)" }}
         onClick={(e) => e.stopPropagation()}
       >
