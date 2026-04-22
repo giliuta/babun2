@@ -1127,14 +1127,16 @@ function DashboardPageInner() {
         onClose={() => setUndoToast(null)}
       />
 
-      {/* Desktop-only FAB — mobile uses the centre action in BottomTabBar */}
+      {/* FAB — iOS-style floating pill, present on all breakpoints.
+          Mobile: sits above the BottomTabBar + iOS safe-area inset.
+          Desktop: pinned to the bottom-right as a tertiary quick-add. */}
       <button
         type="button"
         onClick={() => openNewAppointmentInline(null, null, "work")}
         aria-label="Новая запись"
-        className="hidden lg:flex fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-lg items-center justify-center active:scale-95 transition z-30 hover:bg-[var(--accent-pressed)]"
+        className="fab-accent fixed right-4 lg:right-6 bottom-[calc(env(safe-area-inset-bottom)+74px)] lg:bottom-6 w-14 h-14 rounded-full flex items-center justify-center z-30"
       >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>

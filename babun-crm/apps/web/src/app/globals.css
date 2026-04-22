@@ -1,85 +1,88 @@
 @import "tailwindcss";
+/* v229-ios-bright */
 
 /* ──────────────────────────────────────────────────────────────────
-   Babun CRM — Old Money Telegram (Sprint 032, Phase 0)
-   Keeps the Telegram structural DNA from Sprint 031 (ListGroup,
-   ListRow, SheetShell, BottomTabBar, pill buttons, colored tiles)
-   but swaps the palette to warm creams + muted Hermes-forest-green
-   accent. Light only — dark auto-switch intentionally removed.
+   Babun CRM — iOS bright palette + Telegram structure (Sprint 032 P2)
+   Pivot from Old Money muted back to bright iOS system colours while
+   keeping Telegram's grouped-list DNA (ListGroup, ListRow, SheetShell,
+   BottomTabBar, floating pills, colored tiles). Light canonical —
+   dark mode deferred.
+
+   Why the pivot: Old Money muted pastels failed the daylight-readability
+   test on a live iPhone. "Давит на глаза, плохо читаемое." iOS system
+   colours give us the punch while the Telegram chrome provides the
+   familiar mobile-first structure.
    ──────────────────────────────────────────────────────────────── */
 
 :root {
   /* Surfaces ──────────────────────────────────────────────────
-     Warm ivory screen with cream paper cards on top. Two levels
-     give us enough depth without the cold grey of Telegram. */
-  --surface-grouped: #F4EEE3;
-  --surface-card: #FBF7EC;
-  --surface-card-secondary: #F0E9DB;
-  --surface-overlay: rgba(40, 32, 22, 0.45);
-  --surface-nav-blur: rgba(251, 247, 236, 0.88);
-  --surface-tint-accent: rgba(45, 74, 61, 0.08);
+     iOS HIG grouped-list: soft cool grey screen with pure white
+     cards on top — that classic "Settings-app" depth. */
+  --surface-grouped: #F2F2F7;
+  --surface-card: #FFFFFF;
+  --surface-card-secondary: #F2F2F7;
+  --surface-overlay: rgba(0, 0, 0, 0.45);
+  --surface-nav-blur: rgba(255, 255, 255, 0.88);
+  --surface-tint-accent: rgba(0, 122, 255, 0.12);
 
-  /* Separators (hairlines) — warm taupe instead of cool grey.
-     Inset 56px from left to clear the tile column in ListRow. */
-  --separator: rgba(42, 32, 22, 0.09);
-  --separator-opaque: #E2DACC;
+  /* Separators (hairlines) — cool neutral, inset 56px from the left
+     in ListRow so it clears the tile icon column. */
+  --separator: rgba(60, 60, 67, 0.12);
+  --separator-opaque: #E5E5EA;
 
-  /* Text hierarchy (labels) — warm charcoal, never pure black. */
-  --label: #2A241D;
-  --label-secondary: #86796A;
-  --label-tertiary: rgba(42, 32, 22, 0.45);
-  --label-quaternary: rgba(42, 32, 22, 0.25);
-  --label-on-accent: #FBF7EC;
+  /* Text hierarchy (labels) — iOS HIG label levels. */
+  --label: #000000;
+  --label-secondary: #3C3C4399;   /* with alpha baked for contrast */
+  --label-tertiary: rgba(60, 60, 67, 0.30);
+  --label-quaternary: rgba(60, 60, 67, 0.18);
+  --label-on-accent: #FFFFFF;
 
   /* Fills (background for interactive elements at rest) ────── */
-  --fill-primary: rgba(134, 118, 90, 0.16);
-  --fill-secondary: rgba(134, 118, 90, 0.11);
-  --fill-tertiary: rgba(134, 118, 90, 0.07);
-  --fill-quaternary: rgba(134, 118, 90, 0.04);
+  --fill-primary: rgba(120, 120, 128, 0.20);
+  --fill-secondary: rgba(120, 120, 128, 0.16);
+  --fill-tertiary: rgba(118, 118, 128, 0.12);
+  --fill-quaternary: rgba(116, 116, 128, 0.08);
 
-  /* System semantic colours — Old Money versions.
-     Red = burgundy (not neon), Green = muted sage, Blue = dusty
-     navy, Orange = warm gold, Yellow = mustard. */
-  --system-red: #8C3F38;
-  --system-orange: #B07A36;
-  --system-yellow: #C9A74B;
-  --system-green: #5E7D5E;
-  --system-mint: #6D8C7F;
-  --system-teal: #517E7C;
-  --system-cyan: #5E8AA8;
-  --system-blue: #3F5A76;
-  --system-indigo: #4F5478;
-  --system-purple: #6B4B74;
-  --system-pink: #9A6277;
+  /* iOS system semantic colours — bright, functional, high-contrast. */
+  --system-red: #FF3B30;
+  --system-orange: #FF9500;
+  --system-yellow: #FFCC00;
+  --system-green: #34C759;
+  --system-mint: #00C7BE;
+  --system-teal: #30B0C7;
+  --system-cyan: #32ADE6;
+  --system-blue: #007AFF;
+  --system-indigo: #5E5CE6;
+  --system-purple: #AF52DE;
+  --system-pink: #FF2D55;
+  --system-brown: #A2845E;
 
-  /* Accent — Hermes forest green. Used for primary buttons, active
-     nav state, switches, links, selection, and colored tiles that
-     don't map to a semantic category. */
-  --accent: #2D4A3D;
-  --accent-pressed: #1F3A2F;
-  --accent-tint: rgba(45, 74, 61, 0.10);
-  --accent-on: #FBF7EC;
+  /* Accent — iOS systemBlue. Bright, familiar, readable. */
+  --accent: #007AFF;
+  --accent-pressed: #0062CC;
+  --accent-tint: rgba(0, 122, 255, 0.15);
+  --accent-on: #FFFFFF;
 
-  /* Tile palette — muted Old Money 28×28 rounded squares placed
-     to the left of ListRow items. Each settings row uses one. */
-  --tile-red: #A55A50;
-  --tile-orange: #B0814E;
-  --tile-yellow: #C9A860;
-  --tile-green: #6C8A68;
-  --tile-mint: #7CA08A;
-  --tile-teal: #6C8B89;
-  --tile-cyan: #6B87A0;
-  --tile-blue: #5D7A94;
-  --tile-indigo: #6A6E8D;
-  --tile-purple: #87688B;
-  --tile-pink: #A47888;
-  --tile-gray: #948A7C;
+  /* Tile palette — bright iOS system colours used in settings-style
+     28×28 coloured squares on the left of ListRow items. */
+  --tile-red: #FF3B30;
+  --tile-orange: #FF9500;
+  --tile-yellow: #FFCC00;
+  --tile-green: #34C759;
+  --tile-mint: #00C7BE;
+  --tile-teal: #30B0C7;
+  --tile-cyan: #32ADE6;
+  --tile-blue: #007AFF;
+  --tile-indigo: #5E5CE6;
+  --tile-purple: #AF52DE;
+  --tile-pink: #FF2D55;
+  --tile-gray: #8E8E93;
 
   /* Legacy — kept for surfaces that still read these directly. */
-  --background: #F4EEE3;
-  --foreground: #2A241D;
+  --background: #F2F2F7;
+  --foreground: #000000;
 
-  /* Typography scale — sizes identical to Sprint 031. */
+  /* Typography scale — iOS HIG sizes. */
   --font-size-large-title: 34px;
   --font-size-title-1: 28px;
   --font-size-title-2: 22px;
@@ -103,19 +106,27 @@
   --radius-tile: 7px;         /* colored icon tiles */
   --radius-pill: 9999px;      /* primary buttons, chips, avatar */
 
-  /* Shadow — warm-tinted, subtle. Sheets lift a bit more. */
-  --shadow-card: 0 0 0 0.5px rgba(42, 32, 22, 0.05),
-                 0 1px 2px rgba(42, 32, 22, 0.04);
-  --shadow-sheet: 0 -6px 32px -12px rgba(42, 32, 22, 0.18);
-  --shadow-float: 0 10px 28px -14px rgba(42, 32, 22, 0.20);
+  /* Shadow — iOS cards lift very little, sheets lift more. */
+  --shadow-card: 0 0 0 0.5px rgba(0, 0, 0, 0.04),
+                 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sheet: 0 -6px 32px -12px rgba(0, 0, 0, 0.22);
+  --shadow-float: 0 10px 28px -14px rgba(0, 0, 0, 0.22);
+  --shadow-fab: 0 6px 16px -2px rgba(0, 122, 255, 0.35),
+                0 2px 6px rgba(0, 0, 0, 0.12);
+
+  /* iOS-style easings — spring-ish via cubic-bezier. */
+  --ease-ios: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-ios-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-sheet: 320ms;
 }
 
-/* Dark theme — STRUCTURAL HOOK ONLY (Sprint 032 is light-canonical).
-   The class name stays so anyone who set <html class="theme-dark">
-   in localStorage won't crash into undefined vars, but the values
-   mirror light. Dark mode is a future sprint. */
+/* Dark theme — STRUCTURAL HOOK ONLY. Sprint 032 is light-canonical.
+   The class name stays so a future sprint can fill it; left empty so
+   anyone who set <html class="theme-dark"> won't crash. */
 html.theme-dark {
-  /* Intentionally empty in Sprint 032. Light stays canonical. */
+  /* Intentionally empty in Sprint 032. */
 }
 
 @theme inline {
@@ -196,7 +207,7 @@ body {
      payroll rows line up glyph-for-glyph. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  /* Neutral tracking — no tightening like iOS HIG. */
+  /* iOS HIG: subtle tracking on headings, neutral on body. */
   letter-spacing: 0;
 }
 
@@ -213,16 +224,31 @@ h1, h2, h3,
   display: none;
 }
 
-/* Stagger entrance */
+/* ──────────────────────────────────────────────────────────────
+   iOS-style motion — small, springy, satisfying.
+   ────────────────────────────────────────────────────────────── */
+
+/* Press feedback — drop 3% + slight opacity. Applied as an
+   explicit class since :active on <button> fires in more cases. */
+.press-scale {
+  transition: transform var(--dur-fast) var(--ease-ios),
+              opacity var(--dur-fast) var(--ease-ios);
+}
+.press-scale:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* Fade-in-up — entrance for cards/lists. */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }
 }
 .animate-fade-in-up {
-  animation: fadeInUp 250ms ease both;
+  animation: fadeInUp var(--dur-base) var(--ease-ios) both;
 }
 .stagger-children > * {
-  animation: fadeInUp 250ms ease both;
+  animation: fadeInUp var(--dur-base) var(--ease-ios) both;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 20ms; }
 .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
@@ -230,6 +256,36 @@ h1, h2, h3,
 .stagger-children > *:nth-child(4) { animation-delay: 110ms; }
 .stagger-children > *:nth-child(5) { animation-delay: 140ms; }
 .stagger-children > *:nth-child(n+6) { animation-delay: 160ms; }
+
+/* Sheet slide-up — iOS modal sheet entrance. Spring overshoot on the
+   way up gives it the Telegram-iOS feel. */
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-sheet-up {
+  animation: sheetSlideUp var(--dur-sheet) var(--ease-ios-spring) both;
+}
+
+/* Backdrop fade — companion to sheet slide-up. */
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-backdrop-in {
+  animation: backdropFade var(--dur-base) var(--ease-ios) both;
+}
+
+/* Pill-tab hop — BottomTabBar active state crossfade. The active tab
+   pill grows from the new tab position. */
+@keyframes pillHop {
+  0%   { transform: scale(0.92); opacity: 0.6; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.animate-pill-hop {
+  animation: pillHop var(--dur-base) var(--ease-ios-spring) both;
+}
 
 /* Skeleton shimmer — retint via surface-card-secondary. */
 @keyframes shimmer {
@@ -249,11 +305,11 @@ h1, h2, h3,
   animation: shimmer 1.6s linear infinite;
 }
 
-/* Nav / floating surface — cream with light blur, hairline top. */
+/* Nav / floating surface — iOS nav bar blur. */
 .glass-surface {
   background: var(--surface-nav-blur);
-  backdrop-filter: saturate(150%) blur(12px);
-  -webkit-backdrop-filter: saturate(150%) blur(12px);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-top: 0.5px solid var(--separator);
 }
 
@@ -261,7 +317,7 @@ h1, h2, h3,
 .hairline-top { box-shadow: 0 -0.5px 0 0 var(--separator); }
 .hairline-bottom { box-shadow: 0 0.5px 0 0 var(--separator); }
 
-/* Grouped list row separator — inset 56px from left so it clears
+/* Grouped list row separator — iOS inset 56px from left so it clears
    the tile icon column. */
 .row-separator {
   position: relative;
@@ -287,6 +343,19 @@ h1, h2, h3,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #FBF7EC;
+  color: #FFFFFF;
   flex-shrink: 0;
+}
+
+/* Floating Action Button — iOS-flavoured with accent glow. */
+.fab-accent {
+  background: var(--accent);
+  color: var(--accent-on);
+  box-shadow: var(--shadow-fab);
+  transition: transform var(--dur-fast) var(--ease-ios),
+              box-shadow var(--dur-base) var(--ease-ios);
+}
+.fab-accent:active {
+  transform: scale(0.94);
+  box-shadow: 0 2px 8px -2px rgba(0, 122, 255, 0.28);
 }

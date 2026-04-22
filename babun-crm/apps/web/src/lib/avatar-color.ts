@@ -1,22 +1,21 @@
 // Deterministic avatar colour from a name — each client gets a unique
-// hue so the list isn't a wall of the same colour. Old Money tile
-// palette (Sprint 032): muted, warm, nothing neon. Mirrors the 12
-// --tile-* tokens in globals.css so avatars sit in the same palette
-// as settings ListRow icons.
+// hue so the list isn't a wall of the same colour. Mirrors the 12
+// iOS system colours exposed via --tile-* tokens in globals.css so
+// avatars share the palette with settings ListRow icons.
 
 const COLORS = [
-  "#A55A50", // tile-red      muted terracotta
-  "#B0814E", // tile-orange   burnt sienna
-  "#C9A860", // tile-yellow   antique gold
-  "#6C8A68", // tile-green    olive
-  "#7CA08A", // tile-mint     sage
-  "#6C8B89", // tile-teal     muted teal
-  "#6B87A0", // tile-cyan     steel blue
-  "#5D7A94", // tile-blue     dusty navy
-  "#6A6E8D", // tile-indigo   slate blue
-  "#87688B", // tile-purple   plum
-  "#A47888", // tile-pink     dusty rose
-  "#948A7C", // tile-gray     warm taupe
+  "#FF3B30", // tile-red      systemRed
+  "#FF9500", // tile-orange   systemOrange
+  "#FFCC00", // tile-yellow   systemYellow
+  "#34C759", // tile-green    systemGreen
+  "#00C7BE", // tile-mint     systemMint
+  "#30B0C7", // tile-teal     systemTeal
+  "#32ADE6", // tile-cyan     systemCyan
+  "#007AFF", // tile-blue     systemBlue
+  "#5E5CE6", // tile-indigo   systemIndigo
+  "#AF52DE", // tile-purple   systemPurple
+  "#FF2D55", // tile-pink     systemPink
+  "#A2845E", // tile-brown    systemBrown
 ];
 
 export function getAvatarColor(name: string): string {
