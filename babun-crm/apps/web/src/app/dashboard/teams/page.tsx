@@ -1,22 +1,46 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+// Sprint 033 Phase I13 — Brigades list redesign.
+//
+// Goals (from iPhone walkthrough):
+//  · Shrink each card. Previously every brigade took ~half a screen;
+//    now it's a 64-px row inside a shared iOS-style card.
+//  · Kill inline edit (pencil) + delete (trash) icons. They were
+//    loud AND dangerous: one wrong tap on the red trash deleted a
+//    brigade and cascaded to appointments. Now: tap = open detail,
+//    swipe-left = red Удалить (with confirm), long-press = menu.
+//  · Subtitle summarises: lead name · cities. Missing info reads as
+//    a single short line ("Нужно настроить"), not two ghost rows.
+//  · Inactive/archived brigades dim inline; no separate section yet
+//    (add it when a tenant has >3 archives).
+
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, ChevronRight, AlertTriangle } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Users,
+} from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { Button, IOSSwitch, Input } from "@/components/ui";
-import { useAppointments, useMasters, useTeams } from "@/app/dashboard/layout";
+import ContextMenu, {
+  type ContextMenuOption,
+} from "@/components/ui/ContextMenu";
+import SwipeableRow from "@/components/ui/SwipeableRow";
+import { haptic } from "@/lib/haptics";
 import {
-  TEAM_COLORS,
-  generateId,
-  getInitials,
+  useAppointments,
+  useMasters,
+  useTeams,
+} from "@/app/dashboard/layout";
+import {
   getTeamMembers,
   type Master,
   type Team,
 } from "@/lib/masters";
-
-// ─── Page ────────────────────────────────────────────────────────────────
 
 export default function TeamsPage() {
   const router = useRouter();
@@ -25,446 +49,350 @@ export default function TeamsPage() {
   const { appointments, upsertAppointment } = useAppointments();
   const confirm = useConfirm();
 
-  // Sprint 033: brigade editing moved to the full-page route
-  // /dashboard/teams/[id]. The modal was fine for a 4-field form; now
-  // the brigade is the central hub (cities, services, members,
-  // calendar window, scroll-to-time, ЗП) so we need the real estate.
-  const _unusedEditing: Team | null = null;
-  void _unusedEditing;
+  const [menu, setMenu] = useState<{
+    team: Team;
+    anchor: { x: number; y: number };
+  } | null>(null);
 
-  // Group masters by their team_id so the "Мастера" section below can
-  // render them clustered with the team they belong to (plus a
-  // "Без бригады" bucket for unassigned ones).
-  const mastersByTeam = useMemo(() => {
-    const groups = new Map<string | null, Master[]>();
-    for (const m of masters) {
-      const key = m.team_id ?? null;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(m);
-    }
-    return groups;
-  }, [masters]);
-
-  const unassignedMasters = mastersByTeam.get(null) ?? [];
+  // Active first, archived last. Stable within each bucket.
+  const sortedTeams = useMemo(() => {
+    return teams.slice().sort((a, b) => {
+      const aActive = a.active !== false ? 0 : 1;
+      const bActive = b.active !== false ? 0 : 1;
+      return aActive - bActive;
+    });
+  }, [teams]);
 
   const openNew = () => router.push("/dashboard/teams/new");
-  const openEdit = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
+  const openTeam = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
+
+  const toggleArchived = (team: Team) => {
+    haptic("tap");
+    upsertTeam({ ...team, active: team.active === false });
+  };
 
   const handleDelete = async (team: Team) => {
-    const orphanCount = appointments.filter((a) => a.team_id === team.id).length;
+    const orphanCount = appointments.filter(
+      (a) => a.team_id === team.id,
+    ).length;
     const extra =
       orphanCount > 0
-        ? `У ${orphanCount} записей сбросится привязка к бригаде (записи останутся, team_id будет пустым).`
+        ? `У ${orphanCount} записей сбросится привязка к бригаде (сами записи останутся).`
         : "Эта бригада нигде не используется.";
     const ok = await confirm({
       title: `Удалить бригаду «${team.name}»?`,
       message: extra,
+      confirmLabel: "Удалить",
     });
     if (!ok) return;
+    haptic("warning");
     deleteTeam(team.id);
-    // Clear team_id on any master that was in this team
-    const updatedMasters = masters.map<Master>((m) =>
-      m.team_id === team.id ? { ...m, team_id: null } : m,
+    // Clear team_id on any master that was in this team.
+    setMasters(
+      masters.map<Master>((m) =>
+        m.team_id === team.id ? { ...m, team_id: null } : m,
+      ),
     );
-    setMasters(updatedMasters);
-    // Cascade to appointments so route/calendar don't show orphans
+    // Cascade to appointments so the calendar doesn't show orphans.
     for (const apt of appointments) {
       if (apt.team_id === team.id) {
-        upsertAppointment({ ...apt, team_id: null, updated_at: new Date().toISOString() });
+        upsertAppointment({
+          ...apt,
+          team_id: null,
+          updated_at: new Date().toISOString(),
+        });
       }
     }
   };
 
+  const menuOptions: ContextMenuOption[] = menu
+    ? [
+        {
+          label: "Открыть",
+          icon: <ChevronRight size={18} strokeWidth={2} />,
+          onSelect: () => openTeam(menu.team),
+        },
+        {
+          label: menu.team.active === false ? "Вернуть из архива" : "В архив",
+          icon:
+            menu.team.active === false ? (
+              <ArchiveRestore size={18} strokeWidth={2} />
+            ) : (
+              <Archive size={18} strokeWidth={2} />
+            ),
+          onSelect: () => toggleArchived(menu.team),
+        },
+        {
+          label: "Удалить",
+          icon: <Trash2 size={18} strokeWidth={2} />,
+          danger: true,
+          onSelect: () => handleDelete(menu.team),
+        },
+      ]
+    : [];
+
   return (
     <>
-      <PageHeader
-        title="Бригады"
-        subtitle={`${teams.length} ${teams.length === 1 ? "бригада" : "бригад"}`}
-        rightContent={
-          <button
-            type="button"
-            onClick={openNew}
-            aria-label="Добавить бригаду"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-tertiary)]"
-          >
-            <Plus size={20} strokeWidth={2.5} />
-          </button>
-        }
-      />
+      <PageHeader title="Бригады" />
 
-      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] relative">
-        <div className="max-w-3xl mx-auto px-4 py-4 space-y-5 stagger-children">
-          {teams.length === 0 && (
-            <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
-              Нет бригад. Нажмите «+» чтобы создать.
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">
+          {teams.length === 0 ? (
+            <EmptyState onAdd={openNew} />
+          ) : (
+            <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
+              {sortedTeams.map((team) => (
+                <SwipeableRow
+                  key={team.id}
+                  leftActions={[
+                    {
+                      label:
+                        team.active === false
+                          ? "Вернуть"
+                          : "В архив",
+                      color: "bg-[var(--system-yellow)]",
+                      icon:
+                        team.active === false ? (
+                          <ArchiveRestore size={16} strokeWidth={2} />
+                        ) : (
+                          <Archive size={16} strokeWidth={2} />
+                        ),
+                      onSelect: () => toggleArchived(team),
+                    },
+                  ]}
+                  rightActions={[
+                    {
+                      label: "Удалить",
+                      color: "bg-[var(--system-red)]",
+                      icon: <Trash2 size={16} strokeWidth={2} />,
+                      onSelect: () => handleDelete(team),
+                    },
+                  ]}
+                >
+                  <BrigadeRow
+                    team={team}
+                    masters={masters}
+                    onTap={() => openTeam(team)}
+                    onLongPress={(anchor) => setMenu({ team, anchor })}
+                  />
+                </SwipeableRow>
+              ))}
+              <button
+                type="button"
+                onClick={openNew}
+                className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left active:bg-[var(--fill-quaternary)] transition press-scale"
+              >
+                <span className="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--accent-tint)] text-[var(--accent)] shrink-0">
+                  <Plus size={18} strokeWidth={2.5} />
+                </span>
+                <span className="flex-1 text-[15px] font-medium text-[var(--accent)]">
+                  Новая бригада
+                </span>
+              </button>
             </div>
           )}
 
-          <div className="px-4 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-            Бригады
-          </div>
-          <div className="space-y-3">
-            {teams.map((team) => {
-              const { lead, helpers } = getTeamMembers(team, masters);
-              return (
-                <div
-                  key={team.id}
-                  className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4"
-                >
-                  {/* Top row: color circle + name/region + actions */}
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-sm shrink-0"
-                      style={{ backgroundColor: team.color }}
-                    >
-                      {team.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-semibold text-[var(--label)] truncate">
-                        {team.name}
-                      </div>
-                      <div className="text-[13px] text-[var(--label-secondary)] truncate">
-                        {team.region || "—"}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(team)}
-                        aria-label="Редактировать"
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)]"
-                      >
-                        <Pencil size={16} strokeWidth={2} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(team)}
-                        aria-label="Удалить"
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)]"
-                      >
-                        <Trash2 size={16} strokeWidth={2} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Lead row */}
-                  <div className="mt-3 flex items-center gap-2">
-                    {lead ? (
-                      <>
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--label-on-accent)] text-[12px] font-semibold shrink-0"
-                          style={{ backgroundColor: team.color }}
-                        >
-                          {getInitials(lead.full_name)}
-                        </div>
-                        <div className="text-[13px] text-[var(--label-secondary)] whitespace-nowrap">
-                          Бригадир:{" "}
-                          <span className="font-medium text-[var(--label)]">
-                            {lead.full_name}
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-[13px] text-[var(--label-tertiary)]">
-                        Бригадир не назначен
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Helpers row */}
-                  {helpers.length > 0 && (
-                    <div className="mt-2 flex items-start gap-2">
-                      <div className="text-[13px] text-[var(--label-secondary)] shrink-0 pt-0.5">
-                        Помощники:
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {helpers.map((h) => (
-                          <span
-                            key={h.id}
-                            className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[12px] whitespace-nowrap"
-                          >
-                            {h.full_name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Status chip */}
-                  <div className="mt-3">
-                    <span
-                      className={`inline-block text-[12px] px-2 py-0.5 rounded-full ${
-                        team.active
-                          ? "bg-[rgba(52,199,89,0.15)] text-[var(--system-green)]"
-                          : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
-                      }`}
-                    >
-                      {team.active ? "Активна" : "Неактивна"}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Big, visible "+ Новая бригада" CTA. Sprint 033 — the small
-              pencil-next-to-plus pair in the top bar was hard to spot
-              on phones; a full-width card-style button under the list
-              is impossible to miss. */}
-          <button
-            type="button"
-            onClick={openNew}
-            className="w-full h-14 rounded-2xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[16px] font-semibold shadow-[var(--shadow-fab)] flex items-center justify-center gap-2 press-scale active:bg-[var(--accent-pressed)]"
-          >
-            <Plus size={20} strokeWidth={2.5} />
-            Новая бригада
-          </button>
+          {teams.length > 0 && (
+            <div className="px-4 text-[12px] leading-snug text-[var(--label-tertiary)]">
+              Тап — открыть. Свайп влево —{" "}
+              <span className="text-[var(--system-red)] font-medium">
+                удалить
+              </span>
+              . Долгое нажатие — меню.
+            </div>
+          )}
         </div>
-
       </div>
 
+      <ContextMenu
+        open={!!menu}
+        onClose={() => setMenu(null)}
+        anchor={menu?.anchor ?? null}
+        title={menu?.team.name}
+        options={menuOptions}
+      />
     </>
   );
 }
 
-// ─── Team Form Modal ────────────────────────────────────────────────────
+// ─── Empty state ───────────────────────────────────────────────────────
 
-function TeamFormModal({
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="px-6 pt-10 pb-4 flex flex-col items-center text-center gap-3">
+      <span className="w-16 h-16 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
+        <Users size={28} strokeWidth={2} />
+      </span>
+      <div>
+        <div className="text-[17px] font-semibold text-[var(--label)]">
+          Пока нет ни одной бригады
+        </div>
+        <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
+          Бригада — это команда мастеров, которая вместе работает и появляется на&nbsp;календаре своим цветом.
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
+      >
+        Создать бригаду
+      </button>
+    </div>
+  );
+}
+
+// ─── Brigade row ───────────────────────────────────────────────────────
+
+function BrigadeRow({
   team,
   masters,
-  onCancel,
-  onSave,
+  onTap,
+  onLongPress,
 }: {
-  team: Team | null;
+  team: Team;
   masters: Master[];
-  onCancel: () => void;
-  onSave: (team: Team, leadId: string | null, helperIds: string[]) => void;
+  onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
 }) {
-  const [name, setName] = useState(team?.name ?? "");
-  const [region, setRegion] = useState(team?.region ?? "");
-  const [defaultCity, setDefaultCity] = useState(team?.default_city ?? "");
-  const [color, setColor] = useState(team?.color ?? TEAM_COLORS[0].value);
-  const [leadId, setLeadId] = useState<string | null>(team?.lead_id ?? null);
-  const [helperIds, setHelperIds] = useState<string[]>(team?.helper_ids ?? []);
-  const [active, setActive] = useState(team?.active ?? true);
-  const [payoutPercentage, setPayoutPercentage] = useState<number>(
-    team?.payout_percentage ?? 30
-  );
+  const handlers = useLongPressOrTap({ onTap, onLongPress });
+  const { lead, helpers } = getTeamMembers(team, masters);
+  const memberCount = (lead ? 1 : 0) + helpers.length;
+  const archived = team.active === false;
 
-  // Close on Escape
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
-
-  const activeMasters = useMemo(
-    () => masters.filter((m) => m.is_active),
-    [masters],
-  );
-
-  // Helpers can't include the lead
-  const availableHelpers = useMemo(
-    () => activeMasters.filter((m) => m.id !== leadId),
-    [activeMasters, leadId],
-  );
-
-  // If lead changes and was in helper list → remove from helpers
-  useEffect(() => {
-    if (leadId && helperIds.includes(leadId)) {
-      setHelperIds((prev) => prev.filter((id) => id !== leadId));
-    }
-  }, [leadId, helperIds]);
-
-  const toggleHelper = (id: string) => {
-    setHelperIds((prev) =>
-      prev.includes(id) ? prev.filter((h) => h !== id) : [...prev, id],
-    );
-  };
-
-  const handleSubmit = () => {
-    if (!name.trim()) {
-      window.alert("Введите название бригады");
-      return;
-    }
-
-    const nowIso = new Date().toISOString();
-    const nextTeam: Team = {
-      id: team?.id ?? generateId("team"),
-      name: name.trim(),
-      region: region.trim(),
-      default_city: defaultCity.trim(),
-      color,
-      lead_id: leadId,
-      helper_ids: helperIds,
-      payout_percentage: Math.max(0, Math.min(100, payoutPercentage || 0)),
-      active,
-      created_at: team?.created_at ?? nowIso,
-    };
-
-    onSave(nextTeam, leadId, helperIds);
-  };
-
-  const masterTeamLabel = (m: Master): string => {
-    if (!m.team_id) return "без бригады";
-    return "";
-  };
+  const subtitle = buildSubtitle({ team, lead, memberCount });
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-[var(--surface-overlay)] backdrop-blur-[2px] flex items-center justify-center p-2"
-      onClick={onCancel}
+      {...handlers}
+      className={`flex items-center gap-3 px-4 min-h-[64px] py-2 cursor-pointer select-none active:bg-[var(--fill-quaternary)] transition ${
+        archived ? "opacity-60" : ""
+      }`}
+      style={{
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}
     >
-      <div
-        className="bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+      <span
+        className={`w-9 h-9 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[14px] shrink-0 ${
+          archived ? "grayscale" : ""
+        }`}
+        style={{ backgroundColor: team.color }}
       >
-        <h2 className="text-[17px] font-semibold text-[var(--label)] mb-4 tracking-tight">
-          {team ? "Редактировать бригаду" : "Новая бригада"}
-        </h2>
-
-        <div className="space-y-4">
-          {/* Name */}
-          <Input
-            label="Название"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-
-          {/* Region */}
-          <Input
-            label="Регион"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            placeholder="Например: Пафос, Лимассол"
-          />
-
-          {/* Default city */}
-          <Input
-            label="Базовый город"
-            value={defaultCity}
-            onChange={(e) => setDefaultCity(e.target.value)}
-            placeholder="Например: Пафос"
-            hint="Ставится дефолтом на каждый день в календаре. Можно переопределить тапом по дню."
-          />
-
-          {/* Payout percentage */}
-          <div>
-            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-              Зарплата (% от чистого дохода)
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={payoutPercentage}
-                onChange={(e) => setPayoutPercentage(Number(e.target.value) || 0)}
-                className="w-24 h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition tabular-nums"
-              />
-              <span className="text-[15px] text-[var(--label-secondary)]">%</span>
-            </div>
-            <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5 leading-snug">
-              Применяется к (доход − расход бригады) за выбранный период.
-              Используется на странице Финансы → Зарплата.
-            </div>
-          </div>
-
-          {/* Color */}
-          <div>
-            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
-              Цвет
-            </div>
-            <div className="grid grid-cols-8 gap-2">
-              {TEAM_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setColor(c.value)}
-                  aria-label={c.name}
-                  className={`w-8 h-8 rounded-full transition-all ${
-                    color === c.value
-                      ? "ring-2 ring-[var(--accent)] ring-offset-2"
-                      : ""
-                  }`}
-                  style={{ backgroundColor: c.value }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Lead */}
-          <div>
-            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-              Бригадир (Лид)
-            </div>
-            <select
-              value={leadId ?? ""}
-              onChange={(e) => setLeadId(e.target.value || null)}
-              className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
-            >
-              <option value="">— Не выбран —</option>
-              {activeMasters.map((m) => {
-                const suffix = masterTeamLabel(m);
-                return (
-                  <option key={m.id} value={m.id}>
-                    {m.full_name}
-                    {suffix ? ` (${suffix})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {/* Helpers */}
-          <div>
-            <div className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
-              Помощники
-            </div>
-            <div className="space-y-1 max-h-48 overflow-y-auto border border-[var(--separator)] rounded-[10px] p-2">
-              {availableHelpers.length === 0 && (
-                <div className="text-[13px] text-[var(--label-tertiary)] px-2 py-1">
-                  Нет доступных мастеров
-                </div>
-              )}
-              {availableHelpers.map((m) => {
-                const checked = helperIds.includes(m.id);
-                return (
-                  <label
-                    key={m.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--fill-quaternary)] cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleHelper(m.id)}
-                      className="w-4 h-4 accent-[var(--accent)]"
-                    />
-                    <span className="text-[15px] text-[var(--label)]">{m.full_name}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Active toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-[15px] text-[var(--label)]">Активна</span>
-            <IOSSwitch checked={active} onChange={setActive} ariaLabel="Активна" />
-          </div>
+        {team.name.charAt(0).toUpperCase() || "?"}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[15px] font-semibold text-[var(--label)] truncate">
+            {team.name}
+          </span>
+          {archived && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--fill-tertiary)] text-[var(--label-secondary)] shrink-0">
+              архив
+            </span>
+          )}
         </div>
-
-        <div className="mt-6 flex items-center justify-end gap-2">
-          <Button variant="secondary" size="md" onClick={onCancel}>
-            Отмена
-          </Button>
-          <Button variant="primary" size="md" onClick={handleSubmit}>
-            Сохранить
-          </Button>
+        <div className="text-[13px] text-[var(--label-secondary)] truncate">
+          {subtitle}
         </div>
       </div>
+      <ChevronRight
+        size={18}
+        strokeWidth={2}
+        className="text-[var(--label-quaternary)] shrink-0"
+      />
     </div>
   );
+}
+
+// Subtitle composer — keeps the row to a single line of secondary
+// text. Priority: lead · cities · (only on empty) member count.
+function buildSubtitle({
+  team,
+  lead,
+  memberCount,
+}: {
+  team: Team;
+  lead: Master | null;
+  memberCount: number;
+}): string {
+  const parts: string[] = [];
+  if (lead) parts.push(lead.full_name);
+  const cities = (team.cities ?? []).filter(Boolean);
+  if (cities.length > 0) {
+    if (cities.length <= 2) parts.push(cities.join(", "));
+    else parts.push(`${cities.slice(0, 2).join(", ")} +${cities.length - 2}`);
+  }
+  if (parts.length === 0) {
+    return memberCount > 0
+      ? `${memberCount} ${plural(memberCount, ["мастер", "мастера", "мастеров"])} · метки не заданы`
+      : "Нужно настроить";
+  }
+  return parts.join(" · ");
+}
+
+function plural(n: number, forms: [string, string, string]): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1];
+  return forms[2];
+}
+
+// ─── Long-press + tap hook ────────────────────────────────────────────
+
+function useLongPressOrTap({
+  onTap,
+  onLongPress,
+  delay = 500,
+}: {
+  onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
+  delay?: number;
+}) {
+  const timer = useRef<number | null>(null);
+  const triggered = useRef(false);
+  const origin = useRef<{ x: number; y: number } | null>(null);
+
+  const cancel = () => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      triggered.current = false;
+      origin.current = { x: e.clientX, y: e.clientY };
+      timer.current = window.setTimeout(() => {
+        triggered.current = true;
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate?.(12);
+        }
+        if (origin.current) onLongPress(origin.current);
+      }, delay);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!origin.current || timer.current == null) return;
+      const dx = Math.abs(e.clientX - origin.current.x);
+      const dy = Math.abs(e.clientY - origin.current.y);
+      if (dx > 10 || dy > 10) cancel();
+    },
+    onPointerUp: cancel,
+    onPointerCancel: cancel,
+    onPointerLeave: cancel,
+    onClick: (e: React.MouseEvent) => {
+      if (triggered.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        triggered.current = false;
+        return;
+      }
+      onTap();
+    },
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+    },
+  };
 }
