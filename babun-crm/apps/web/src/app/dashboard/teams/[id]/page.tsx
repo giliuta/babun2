@@ -12,7 +12,7 @@
 
 import { use, useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Trash2, Check, X, Plus } from "lucide-react";
+import { ChevronLeft, Trash2, Check, X, Plus, Pencil } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useMasters, useTeams, useServices, useAppointments, useCities, useSchedules } from "@/app/dashboard/layout";
@@ -154,6 +154,14 @@ export default function BrigadePage({ params }: RouteParams) {
   const [newServicePrice, setNewServicePrice] = useState(0);
   const [addingService, setAddingService] = useState(false);
 
+  // Inline edit-service state — which service is being edited, plus
+  // the draft values. Matches the add-form fields so there's no extra
+  // UI to learn.
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [editServiceName, setEditServiceName] = useState("");
+  const [editServiceMinutes, setEditServiceMinutes] = useState(60);
+  const [editServicePrice, setEditServicePrice] = useState(0);
+
   // If teams list arrives after mount (async hydrate in some cases),
   // rehydrate the draft from the stored team so the form isn't stuck
   // on the blank snapshot.
@@ -252,6 +260,58 @@ export default function BrigadePage({ params }: RouteParams) {
     setNewServiceMinutes(60);
     setNewServicePrice(0);
     setAddingService(false);
+  };
+
+  const beginEditService = (svc: Service) => {
+    haptic("tap");
+    setEditingServiceId(svc.id);
+    setEditServiceName(svc.name);
+    setEditServiceMinutes(svc.duration_minutes);
+    setEditServicePrice(svc.price);
+  };
+
+  const cancelEditService = () => {
+    setEditingServiceId(null);
+    setEditServiceName("");
+  };
+
+  const saveEditService = (svc: Service) => {
+    const name = editServiceName.trim();
+    if (!name) return;
+    haptic("tap");
+    upsertService({
+      ...svc,
+      name,
+      duration_minutes: Math.max(1, editServiceMinutes),
+      price: Math.max(0, editServicePrice),
+    });
+    cancelEditService();
+  };
+
+  const deleteServiceFromBrigade = async (svc: Service) => {
+    if (!draft.id) return;
+    // If the service is used by other brigades, just unpin from ours.
+    // If we're its only brigade (or it belongs to no one), ask for a
+    // stronger confirm since deleting kills it everywhere.
+    const usedElsewhere =
+      svc.brigade_ids.filter((bid) => bid !== draft.id).length > 0;
+    if (usedElsewhere) {
+      haptic("tap");
+      upsertService({
+        ...svc,
+        brigade_ids: svc.brigade_ids.filter((bid) => bid !== draft.id),
+      });
+      return;
+    }
+    const ok = await confirm({
+      title: `Удалить услугу «${svc.name}»?`,
+      message:
+        "Услуга используется только этой бригадой — будет удалена полностью, вместе со статистикой по ней.",
+      confirmLabel: "Удалить",
+    });
+    if (!ok) return;
+    upsertService({ ...svc, is_active: false, brigade_ids: [] });
+    cancelEditService();
   };
 
   // Services-to-brigade relation lives on Service.brigade_ids. Toggle
@@ -722,7 +782,9 @@ export default function BrigadePage({ params }: RouteParams) {
               </div>
             ) : (
               serviceCategories.map((cat) => {
-                const catServices = services.filter((s) => s.category_id === cat.id);
+                const catServices = services.filter(
+                  (s) => s.category_id === cat.id && s.is_active !== false,
+                );
                 if (catServices.length === 0) return null;
                 return (
                   <div key={cat.id} className="mt-3 first:mt-0">
@@ -732,31 +794,120 @@ export default function BrigadePage({ params }: RouteParams) {
                     <div className="flex flex-col divide-y divide-[var(--separator)]">
                       {catServices.map((s) => {
                         const checked = serviceHasThisBrigade(s);
+                        const isEditing = editingServiceId === s.id;
+                        if (isEditing) {
+                          // Inline edit form — fills the row, same fields
+                          // as the add-service form for muscle-memory.
+                          return (
+                            <div key={s.id} className="bg-[var(--fill-tertiary)] rounded-[10px] p-3 space-y-3 my-1">
+                              <input
+                                autoFocus
+                                type="text"
+                                value={editServiceName}
+                                onChange={(e) => setEditServiceName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEditService(s);
+                                  if (e.key === "Escape") cancelEditService();
+                                }}
+                                placeholder="Название услуги"
+                                className="w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">
+                                    Длительность
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      step={5}
+                                      value={editServiceMinutes}
+                                      onChange={(e) => setEditServiceMinutes(Number(e.target.value) || 0)}
+                                      className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                                    />
+                                    <span className="text-[14px] text-[var(--label-secondary)]">мин</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1">
+                                    Цена
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[15px] text-[var(--label-secondary)]">€</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={1}
+                                      value={editServicePrice}
+                                      onChange={(e) => setEditServicePrice(Number(e.target.value) || 0)}
+                                      className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => deleteServiceFromBrigade(s)}
+                                  className="h-10 px-3 rounded-[10px] bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[14px] font-medium press-scale flex items-center gap-1"
+                                >
+                                  <Trash2 size={14} strokeWidth={2} />
+                                  Удалить
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelEditService}
+                                  className="flex-1 h-10 rounded-[10px] bg-[var(--fill-secondary)] text-[14px] font-medium text-[var(--label)] press-scale"
+                                >
+                                  Отмена
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => saveEditService(s)}
+                                  disabled={!editServiceName.trim()}
+                                  className="flex-1 h-10 rounded-[10px] bg-[var(--accent)] text-[14px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                                >
+                                  Сохранить
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
                         return (
-                          <label
+                          <div
                             key={s.id}
-                            className="flex items-center gap-3 py-3 cursor-pointer"
+                            className="flex items-center gap-3 py-3"
                           >
-                            <div
-                              className={`w-6 h-6 rounded-md flex items-center justify-center press-scale ${
+                            <button
+                              type="button"
+                              onClick={() => toggleService(s)}
+                              aria-label={checked ? "Убрать из бригады" : "Добавить в бригаду"}
+                              className={`w-6 h-6 rounded-md flex items-center justify-center press-scale shrink-0 ${
                                 checked ? "bg-[var(--accent)]" : "border-2 border-[var(--separator-opaque)]"
                               }`}
                             >
                               {checked && <Check size={14} className="text-[var(--label-on-accent)]" strokeWidth={3} />}
-                            </div>
-                            <div className="flex-1 min-w-0">
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => beginEditService(s)}
+                              className="flex-1 min-w-0 text-left active:opacity-70"
+                            >
                               <div className="text-[15px] text-[var(--label)] truncate">{s.name}</div>
                               <div className="text-[12px] text-[var(--label-secondary)]">
                                 {s.duration_minutes} мин · €{s.price}
                               </div>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleService(s)}
-                              className="sr-only"
-                            />
-                          </label>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => beginEditService(s)}
+                              aria-label="Редактировать услугу"
+                              className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+                            >
+                              <Pencil size={16} strokeWidth={2} />
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
