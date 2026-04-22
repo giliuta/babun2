@@ -47,12 +47,21 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
         </div>
       ))}
 
-      {/* The separator itself. 1 device pixel, spans the full height
-          of the column, sits on top of any child borders. */}
+      {/* The separator — structurally more important than the inter-
+          day borders (which are rgba ~0.10) and the hour hairlines
+          (rgba ~0.12). Time/grid boundary is a SEMANTIC axis divide,
+          not just another grid rule, so it must dominate visually.
+          Width 1.5 px (≈3 device pixels on retina) + ~26 % alpha
+          lands at ~2.6× the weight of the inter-day lines — clearly
+          visible without looking heavy. Sits on z-10 above child
+          borders so hour-row border-b can't chop it. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-0 right-0 bottom-0 bg-[var(--separator-opaque)] z-10"
-        style={{ width: "0.5px" }}
+        className="pointer-events-none absolute top-0 right-0 bottom-0 z-10"
+        style={{
+          width: "1.5px",
+          backgroundColor: "rgba(60, 60, 67, 0.26)",
+        }}
       />
     </div>
   );
