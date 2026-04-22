@@ -981,17 +981,11 @@ function DashboardPageInner() {
               onSwipeLeft={handleNextWeek}
               onSwipeRight={handlePrevWeek}
             />
-            {/* Stable vertical rule separating the time column from the
-                day columns. Positioned absolutely at the scroller's right
-                edge of the time column (48 px mobile / 64 px lg), stretched
-                top→bottom so it always spans the full scrollable content
-                height. Decoupled from var(--hh), so pinch-zoom doesn't
-                make it jitter. pointer-events:none keeps taps passing
-                through to the day grid. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute top-0 bottom-0 left-12 lg:left-16 w-[2px] bg-[var(--fill-primary)] z-10"
-            />
+            {/* Sprint 033 Phase I17 — removed absolute-positioned 2-px
+                "stable vertical rule" that was drifting visibly during
+                pinch-zoom. The separator now lives as border-right on
+                TimeColumn itself (see TimeColumn.tsx), so it's
+                physically part of the time column and can't shift. */}
           </div>
         )}
       </DndContext>

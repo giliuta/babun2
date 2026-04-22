@@ -20,7 +20,13 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
   const to = Math.max(from + 1, Math.min(24, Math.ceil(endHour)));
   const visibleHours = HOURS.slice(from, to);
   return (
-    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)]">
+    // Sprint 033 Phase I17 — vertical separator moved from an absolutely-
+    // positioned sibling (left-12, w-[2px]) to a native border-right on
+    // this column. Reason: the absolute line was decoupled from TimeColumn
+    // width and drifted visibly during iOS pinch-zoom at non-integer
+    // hour-height values. Now the line is physically part of TimeColumn
+    // and can't shift relative to it.
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)] border-r border-[var(--separator-opaque)]">
       {/* Header spacer must match DayColumn header exactly, else hour
           labels drift vs the grid rows under pinch-zoom. */}
       <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
