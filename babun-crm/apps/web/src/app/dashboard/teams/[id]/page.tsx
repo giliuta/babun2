@@ -230,7 +230,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             <NavRow
               icon={<MapPin size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-red)]"
-              title="Города / Филиалы"
+              title="Метки"
               value={citiesPreview}
               onClick={() => router.push(`/dashboard/teams/${team.id}/cities`)}
             />

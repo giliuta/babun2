@@ -84,7 +84,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Города / Филиалы" hideSave>
+      <BrigadeSectionShell brigadeId={id} title="Метки" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Бригада не найдена.
         </div>
@@ -202,22 +202,30 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
 
   const listEmpty = rows.length === 0;
 
-  // All global cities this brigade hasn't added yet — used to populate
-  // the Add modal's quick-pick section.
-  const unpickedFromLibrary = cities
-    .filter(
-      (c) =>
-        c.isActive &&
-        !brigadeCityNames.some(
-          (n) => n.toLowerCase() === c.name.toLowerCase(),
-        ),
-    )
-    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  // Suggestions for the Add modal — only tags the user ALREADY added
+  // somewhere else in this account (other brigades of this tenant).
+  // SaaS-correct: no universal "справочник", only my own history.
+  const usedInOtherBrigades = useMemo(() => {
+    const inUse = new Set<string>();
+    teams.forEach((t) => {
+      if (t.id === id) return;
+      (t.cities ?? []).forEach((n) => inUse.add(n));
+    });
+    return cities
+      .filter(
+        (c) =>
+          inUse.has(c.name) &&
+          !brigadeCityNames.some(
+            (n) => n.toLowerCase() === c.name.toLowerCase(),
+          ),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  }, [cities, teams, id, brigadeCityNames]);
 
   return (
     <BrigadeSectionShell
       brigadeId={id}
-      title="Города / Филиалы"
+      title="Метки"
       hideSave
     >
       {listEmpty ? (
@@ -227,10 +235,10 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
           </span>
           <div>
             <div className="text-[17px] font-semibold text-[var(--label)]">
-              Бригада пока никуда не ездит
+              У бригады пока нет меток
             </div>
             <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-              Добавьте первый город — он станет основным и появится в&nbsp;календаре.
+              Добавьте первую — она станет основной и появится в&nbsp;календаре своим цветом.
             </div>
           </div>
           <button
@@ -238,7 +246,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
             onClick={() => setAddOpen(true)}
             className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
           >
-            Добавить город
+            Добавить метку
           </button>
         </div>
       ) : (
@@ -294,7 +302,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
                 <Plus size={18} strokeWidth={2.5} />
               </span>
               <span className="flex-1 text-[15px] font-medium text-[var(--accent)]">
-                Новый город или тег
+                Новая метка
               </span>
             </button>
           </div>
@@ -317,7 +325,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
         onClose={() => setAddOpen(false)}
         onPickExisting={(name) => addCity(name, "#8E8E93")}
         onCreateNew={(name, color) => addCity(name, color)}
-        unpickedFromLibrary={unpickedFromLibrary}
+        suggestions={usedInOtherBrigades}
       />
 
       <ContextMenu
@@ -471,13 +479,16 @@ function AddCityModal({
   onClose,
   onPickExisting,
   onCreateNew,
-  unpickedFromLibrary,
+  suggestions,
 }: {
   open: boolean;
   onClose: () => void;
   onPickExisting: (name: string) => void;
   onCreateNew: (name: string, color: string) => void;
-  unpickedFromLibrary: City[];
+  /** Tags the user already added for OTHER brigades in this account.
+   *  Replaces the old "справочник" language — SaaS-correct source of
+   *  truth: only your own history, not a universal catalogue. */
+  suggestions: City[];
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(CITY_COLOR_PRESETS[0].value);
@@ -508,15 +519,15 @@ function AddCityModal({
   }, [open, onClose]);
 
   const trimmed = name.trim();
-  const matchingExisting = useMemo(
+  const matchingSuggestions = useMemo(
     () =>
-      unpickedFromLibrary.filter((c) => {
+      suggestions.filter((c) => {
         if (!trimmed) return true;
         return normalize(c.name).includes(normalize(trimmed));
       }),
-    [unpickedFromLibrary, trimmed],
+    [suggestions, trimmed],
   );
-  const exactMatch = unpickedFromLibrary.find(
+  const exactMatch = suggestions.find(
     (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
   );
   const canCreate = trimmed.length > 0 && !exactMatch;
@@ -539,10 +550,10 @@ function AddCityModal({
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Добавить город
+            Новая метка
           </div>
           <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
-            Выберите из справочника или создайте свой тег — «Германия», «День ног».
+            Город, район, направление — что угодно. Появится в&nbsp;календаре в&nbsp;выбранном цвете.
           </div>
         </div>
 
@@ -565,7 +576,7 @@ function AddCityModal({
                   else if (canCreate) submit();
                 }
               }}
-              placeholder="Название города или тега"
+              placeholder="Название метки"
               className="w-full h-11 pl-9 pr-9 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               maxLength={40}
             />
@@ -581,14 +592,15 @@ function AddCityModal({
             )}
           </div>
 
-          {/* Library quick-pick. Hidden when the library has nothing to offer. */}
-          {matchingExisting.length > 0 && (
+          {/* Suggestions pulled from OTHER brigades of this account.
+              Hidden when you have no brigades that already use tags. */}
+          {matchingSuggestions.length > 0 && (
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
-                Из справочника
+                Уже используется
               </div>
               <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)] max-h-[230px] overflow-y-auto">
-                {matchingExisting.map((c) => (
+                {matchingSuggestions.map((c) => (
                   <button
                     key={c.id}
                     type="button"
