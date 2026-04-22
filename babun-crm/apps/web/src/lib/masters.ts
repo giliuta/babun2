@@ -824,6 +824,19 @@ export function getTeamLeadIds(team: Team): string[] {
 }
 
 export function getTeamDisplayName(team: Team, masters: Master[]): string {
+  // Sprint 033 E2 (user report): if the user has named the brigade
+  // explicitly (поле «Название»), respect that name — don't silently
+  // overwrite it with an auto-composed "Юра + Даня · Пафос". The
+  // earlier behaviour hid the user's chosen "Y&D" behind a generated
+  // label that drifted every time a lead was reassigned.
+  //
+  // Order:
+  //   1. team.name if the user set one
+  //   2. composed from lead + helper (legacy auto-label)
+  //   3. fallback to the raw record name
+  const trimmedName = team.name?.trim();
+  if (trimmedName) return trimmedName;
+
   const firstName = (full: string) => full.trim().split(/\s+/)[0].replace(/[()]/g, "");
   const leadIds = getTeamLeadIds(team);
   const leads = leadIds
@@ -832,8 +845,6 @@ export function getTeamDisplayName(team: Team, masters: Master[]): string {
   const helpers = team.helper_ids
     .map((id) => masters.find((m) => m.id === id))
     .filter((m): m is Master => Boolean(m));
-  // Display: up to 2 people — first lead + first helper, or first two leads
-  // if there's no helper. Keeps the "Юра + Даня · Пафос" rhythm stable.
   const picked: Master[] = [];
   if (leads[0]) picked.push(leads[0]);
   if (helpers[0]) picked.push(helpers[0]);
