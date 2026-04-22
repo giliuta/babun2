@@ -295,17 +295,20 @@ function DashboardPageInner() {
       }
     }
 
-    // Double-rAF: the first frame commits scrollTop; the second re-
-    // asserts it in case a sibling effect (day columns re-mount on
-    // brigade swap, windowStart change, etc.) nudged the scroller in
-    // between. Without this, switching brigades with different
-    // calendar windows sometimes lost the scroll after the initial
-    // write. Explicit set + clamp against scrollHeight so an over-
-    // shoot on a shorter grid still lands cleanly.
+    // Belt-and-suspenders scroll commit. iOS Safari can swallow a
+    // single scrollTop write during layout shifts triggered by
+    // DayColumn re-mounting on brigade swap. We write it:
+    //   1. synchronously (current paint frame)
+    //   2. one rAF later (after React finishes child effects)
+    //   3. two rAFs later (covers the case where --hh or window
+    //      bounds were still mid-application)
+    // Each write clamps against the live scrollHeight so a newly-
+    // narrowed brigade grid doesn't land us past the end.
     const assertScroll = () => {
       const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
       el.scrollTop = Math.min(targetTop, maxTop);
     };
+    assertScroll();
     requestAnimationFrame(() => {
       assertScroll();
       requestAnimationFrame(assertScroll);

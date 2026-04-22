@@ -45,17 +45,22 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     );
   }
 
-  const commitWindow = () => {
+  // Commit on every change (not just on blur). iOS Safari time pickers
+  // don't always fire blur cleanly — user can dismiss the picker and
+  // tap the back arrow before blur bubbles up, losing the edit.
+  // Writing on change guarantees persistence the instant the native
+  // picker commits a new value.
+  const commitWindow = (startVal: string, endVal: string) => {
     upsertTeam({
       ...team,
-      calendar_window_start: wStart.trim() || undefined,
-      calendar_window_end: wEnd.trim() || undefined,
+      calendar_window_start: startVal.trim() || undefined,
+      calendar_window_end: endVal.trim() || undefined,
     });
   };
-  const commitScroll = () => {
+  const commitScroll = (v: string) => {
     upsertTeam({
       ...team,
-      default_scroll_time: scroll.trim() || undefined,
+      default_scroll_time: v.trim() || undefined,
     });
   };
 
@@ -70,14 +75,18 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
             <TimePair
               prefix="с"
               value={wStart}
-              onChange={setWStart}
-              onBlur={commitWindow}
+              onChange={(v) => {
+                setWStart(v);
+                commitWindow(v, wEnd);
+              }}
             />
             <TimePair
               prefix="по"
               value={wEnd}
-              onChange={setWEnd}
-              onBlur={commitWindow}
+              onChange={(v) => {
+                setWEnd(v);
+                commitWindow(wStart, v);
+              }}
             />
           </div>
         </div>
@@ -91,8 +100,11 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
           <input
             type="time"
             value={scroll}
-            onChange={(e) => setScroll(e.target.value)}
-            onBlur={commitScroll}
+            onChange={(e) => {
+              const v = e.target.value;
+              setScroll(v);
+              commitScroll(v);
+            }}
             step={1800}
             className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
@@ -132,12 +144,10 @@ function TimePair({
   prefix,
   value,
   onChange,
-  onBlur,
 }: {
   prefix: string;
   value: string;
   onChange: (v: string) => void;
-  onBlur?: () => void;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -148,7 +158,6 @@ function TimePair({
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
         step={1800}
         className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
       />

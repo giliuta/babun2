@@ -20,13 +20,17 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
   const to = Math.max(from + 1, Math.min(24, Math.ceil(endHour)));
   const visibleHours = HOURS.slice(from, to);
   return (
-    // Sprint 033 Phase I17 — vertical separator moved from an absolutely-
-    // positioned sibling (left-12, w-[2px]) to a native border-right on
-    // this column. Reason: the absolute line was decoupled from TimeColumn
-    // width and drifted visibly during iOS pinch-zoom at non-integer
-    // hour-height values. Now the line is physically part of TimeColumn
-    // and can't shift relative to it.
-    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)] border-r border-[var(--separator-opaque)]">
+    // Sprint 033 Phase I19 — vertical separator is a self-contained
+    // absolutely-positioned 1-px line INSIDE TimeColumn (relative
+    // parent). Previous attempts:
+    //  · Absolute line OUTSIDE TimeColumn — drifted at sub-pixel zoom.
+    //  · border-right on TimeColumn — showed tiny gaps at every hour
+    //    row boundary because the per-row border-b anti-aliased
+    //    against the column's border-r corner.
+    // By putting the line as a child of TimeColumn, pointer-events-
+    // none, painted ON TOP of the hour rows, it's a single solid
+    // stroke that can't be interrupted by child borders.
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)] relative">
       {/* Header spacer must match DayColumn header exactly, else hour
           labels drift vs the grid rows under pinch-zoom. */}
       <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
@@ -42,6 +46,14 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
           </span>
         </div>
       ))}
+
+      {/* The separator itself. 1 device pixel, spans the full height
+          of the column, sits on top of any child borders. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-0 right-0 bottom-0 bg-[var(--separator-opaque)] z-10"
+        style={{ width: "0.5px" }}
+      />
     </div>
   );
 }
