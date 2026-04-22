@@ -156,6 +156,17 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Мастера" hideSave>
+      {/* 2026-04-22 — parked. User wants masters to be pulled from the
+          main /dashboard/masters page instead of this separate gesture-
+          based UI. This screen will be rebuilt once that page gets a
+          full redesign. Keeping the current flow functional so the
+          brigade is still editable in the meantime. */}
+      <div className="flex items-start gap-2 px-3 py-2.5 bg-[var(--accent-tint)] rounded-[10px] text-[12px] leading-snug text-[var(--label)]">
+        <span className="text-[14px] shrink-0 leading-none mt-[1px]">🚧</span>
+        <span>
+          Временная страница. Будет переделана после редизайна раздела Мастера — мастера станут подтягиваться оттуда, без отдельных жестов здесь.
+        </span>
+      </div>
       {masters.filter((m) => m.is_active).length === 0 ? (
         <EmptyState onOpenMasters={() => router.push("/dashboard/masters")} />
       ) : availableMasters.length === 0 ? (
