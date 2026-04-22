@@ -131,10 +131,15 @@ function DayColumnInner({
   const cityCfg = cityLabel ? getCityConfig(cityLabel) : null;
   const cityBg = cityLabel ? getCityBg(cityLabel, isToday) : null;
   const cityHex = cityCfg?.color ?? null;
-  // Короткое имя города для заголовка: длинные обрезаются до 5 букв + точка.
+  // Narrow week-view columns (≈56-64 px on iPhone 14) can't fit even
+  // a 5-char uppercase Cyrillic label — "ЛАРНА." / "ЛИМАС." got clipped
+  // by the column right edge in v231 (user report, Sprint 032 P5). So
+  // we drop to a 3-letter code: "ПАФ", "ЛАР", "ЛИМ", "НИК". Short
+  // names (≤ 3 chars) keep their form. Full name still lives in the
+  // CityPickerModal and tap-hint, this is just the header chip.
   const cityShort = cityLabel
-    ? cityLabel.length > 5
-      ? `${cityLabel.slice(0, 5)}.`
+    ? cityLabel.length > 3
+      ? cityLabel.slice(0, 3)
       : cityLabel
     : "";
 
@@ -257,11 +262,12 @@ function DayColumnInner({
           </span>
 
           {/* City pill — main visual anchor of the header. Tinted card
-              that uses the city's brand palette. "+ город" fallback
-              sits on fill-tertiary when no city is set. */}
+              that uses the city's brand palette. 3-letter uppercase
+              code (ПАФ / ЛАР / ЛИМ) guarantees it fits even the
+              narrowest week-view column. */}
           {cityShort ? (
             <span
-              className="inline-flex items-center h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide truncate max-w-full"
+              className="inline-flex items-center justify-center h-[18px] px-1 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
               style={{
                 background: cityCfg?.bg ?? "var(--fill-tertiary)",
                 color: cityCfg?.color ?? "var(--label-secondary)",
@@ -270,8 +276,8 @@ function DayColumnInner({
               {cityShort}
             </span>
           ) : (
-            <span className="inline-flex items-center h-[18px] px-1.5 rounded-full text-[12px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)]">
-              + город
+            <span className="inline-flex items-center justify-center h-[18px] px-1 rounded-full text-[12px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap">
+              + гор
             </span>
           )}
         </div>
