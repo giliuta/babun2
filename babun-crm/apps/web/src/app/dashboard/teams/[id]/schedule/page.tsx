@@ -1,6 +1,15 @@
 "use client";
 
-// Sprint 033 Phase H — Brigade work schedule subroute (Bumpix-style).
+// Sprint 033 Phase I16 — Brigade schedule, iOS-Settings redesign.
+//
+// Instant save everywhere (hideSave). Grouped cards:
+//  · ВРЕМЯ РАБОТЫ — two time fields in one card
+//  · ПЕРЕРЫВ — toggle row; the time inputs only appear under it
+//    when the switch is on
+//  · ВЫХОДНЫЕ ДНИ — 7 day chips as selectable toggles
+//
+// Footer explainer replaced the intro paragraph (no more mid-card
+// wall of grey text).
 
 import { use } from "react";
 import { haptic } from "@/lib/haptics";
@@ -14,9 +23,7 @@ import {
   type WeekdayKey,
 } from "@/lib/schedule";
 import IOSSwitch from "@/components/ui/IOSSwitch";
-import BrigadeSectionShell, {
-  SectionCard,
-} from "@/components/teams/BrigadeSectionShell";
+import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -33,12 +40,10 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Расписание" onSave={() => true}>
-        <SectionCard>
-          <div className="text-[13px] text-[var(--label-tertiary)] py-4 text-center">
-            Бригада не найдена.
-          </div>
-        </SectionCard>
+      <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
+          Бригада не найдена.
+        </div>
       </BrigadeSectionShell>
     );
   }
@@ -87,83 +92,60 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   };
 
   return (
-    <BrigadeSectionShell
-      brigadeId={id}
-      title="Расписание"
-      saveLabel="Готово"
-      onSave={() => true}
-    >
-      <SectionCard subtitle="График работы. В эти часы колонки календаря подсвечиваются светлее.">
-        <div>
-          <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
-            Время работы
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[12px] text-[var(--label-tertiary)]">с</span>
-              <input
-                type="time"
-                value={schedule.start ?? "09:00"}
-                onChange={(e) => updateBase("start", e.target.value)}
-                step={1800}
-                className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[12px] text-[var(--label-tertiary)]">до</span>
-              <input
-                type="time"
-                value={schedule.end ?? "18:00"}
-                onChange={(e) => updateBase("end", e.target.value)}
-                step={1800}
-                className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
-            </div>
-          </div>
-        </div>
+    <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
+      {/* ── Working hours ─────────────────────────────────────── */}
+      <Group title="Время работы">
+        <TimeRangeCard
+          start={schedule.start ?? "09:00"}
+          end={schedule.end ?? "18:00"}
+          onStartChange={(v) => updateBase("start", v)}
+          onEndChange={(v) => updateBase("end", v)}
+        />
+      </Group>
 
-        <div>
-          <div className="flex items-center justify-between py-1">
-            <div className="text-[15px] font-medium text-[var(--label)]">Перерыв</div>
+      {/* ── Break ─────────────────────────────────────────────── */}
+      <Group title="Перерыв">
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+          <div className="flex items-center gap-3 px-4 min-h-[52px]">
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] text-[var(--label)]">
+                Включить перерыв
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
+                {firstBreak
+                  ? `${firstBreak.start}–${firstBreak.end}. Вставка в график.`
+                  : "Без перерыва."}
+              </div>
+            </div>
             <IOSSwitch
               checked={firstBreak !== null}
               onChange={toggleBreak}
               ariaLabel="Включить перерыв"
             />
           </div>
-          {firstBreak ? (
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] text-[var(--label-tertiary)]">с</span>
-                <input
-                  type="time"
+          {firstBreak && (
+            <div className="border-t border-[var(--separator)] px-4 py-3">
+              <div className="grid grid-cols-2 gap-2">
+                <TimePair
+                  prefix="с"
                   value={firstBreak.start}
-                  onChange={(e) => updateBreak("start", e.target.value)}
-                  step={1800}
-                  className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  onChange={(v) => updateBreak("start", v)}
                 />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] text-[var(--label-tertiary)]">до</span>
-                <input
-                  type="time"
+                <TimePair
+                  prefix="до"
                   value={firstBreak.end}
-                  onChange={(e) => updateBreak("end", e.target.value)}
-                  step={1800}
-                  className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  onChange={(v) => updateBreak("end", v)}
                 />
               </div>
             </div>
-          ) : (
-            <div className="text-[13px] text-[var(--label-tertiary)]">Без перерыва</div>
           )}
         </div>
+      </Group>
 
-        <div>
-          <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-secondary)] mb-1.5">
-            Выходные дни
-          </div>
-          <div className="flex flex-wrap gap-2">
+      {/* ── Weekends ──────────────────────────────────────────── */}
+      <Group title="Выходные дни" footer="Отмеченные дни бригада не работает.">
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
+          <div className="grid grid-cols-7 gap-1.5">
             {WEEKDAY_KEYS.map((k) => {
               const off = isDayOff(k);
               return (
@@ -171,7 +153,7 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                   key={k}
                   type="button"
                   onClick={() => toggleDayOff(k)}
-                  className={`inline-flex items-center justify-center h-9 min-w-[44px] px-3 rounded-full text-[14px] font-medium press-scale transition ${
+                  className={`h-10 rounded-[10px] text-[13px] font-semibold press-scale transition ${
                     off
                       ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
@@ -182,11 +164,80 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
               );
             })}
           </div>
-          <div className="text-[12px] text-[var(--label-tertiary)] mt-1.5">
-            Отмеченные дни бригада не работает.
-          </div>
         </div>
-      </SectionCard>
+      </Group>
     </BrigadeSectionShell>
+  );
+}
+
+// ─── Shared building blocks ──────────────────────────────────────
+
+function Group({
+  title,
+  footer,
+  children,
+}: {
+  title: string;
+  footer?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+        {title}
+      </div>
+      {children}
+      {footer && (
+        <div className="px-4 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
+          {footer}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimeRangeCard({
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+}: {
+  start: string;
+  end: string;
+  onStartChange: (v: string) => void;
+  onEndChange: (v: string) => void;
+}) {
+  return (
+    <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
+      <div className="grid grid-cols-2 gap-2">
+        <TimePair prefix="с" value={start} onChange={onStartChange} />
+        <TimePair prefix="до" value={end} onChange={onEndChange} />
+      </div>
+    </div>
+  );
+}
+
+function TimePair({
+  prefix,
+  value,
+  onChange,
+}: {
+  prefix: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[12px] text-[var(--label-tertiary)] w-6 text-right shrink-0">
+        {prefix}
+      </span>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        step={1800}
+        className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+      />
+    </div>
   );
 }
