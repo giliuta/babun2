@@ -109,7 +109,7 @@ export default function CityPickerModal({
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)]">
           <h2 className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Куда едет бригада?
+            Метка
           </h2>
           {dateLabel && (
             <p className="text-[13px] text-[var(--label-secondary)] capitalize mt-0.5">

@@ -48,6 +48,10 @@ interface DayColumnProps {
   /** Phase I36 — snap granularity for empty-cell taps, minutes.
    *  Also used as the created appointment duration. Default 60. */
   snapMinutes?: number;
+  /** Phase I38 — show the per-day label chip only if the brigade has
+   *  any labels configured. When false the chip disappears entirely
+   *  and the day header shows just weekday + number. */
+  hasLabels?: boolean;
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
@@ -140,6 +144,7 @@ function DayColumnInner({
   windowStart = 0,
   windowEnd = 24,
   snapMinutes = 60,
+  hasLabels = true,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
   const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
@@ -272,6 +277,7 @@ function DayColumnInner({
         aria-label={`${cityShort || "Без города"}, ${dayName} ${date.getDate()} ${monthShort} — сменить город`}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
+          if (!hasLabels) return;
           onCityTap?.(dateKey);
         }}
         onContextMenu={(e) => {
@@ -314,27 +320,26 @@ function DayColumnInner({
             )}
           </span>
 
-          {/* City pill — main visual anchor of the header. Fully
-              filled with the city's accent colour so it reads as a
-              hard "label" on the column, not a tinted hint (user
-              ask, Sprint 033 Phase I4). 3-letter uppercase code
-              (ПАФ / ЛАР / ЛИМ) fits even the narrowest week-view
-              column. */}
-          {cityShort ? (
-            <span
-              className="inline-flex items-center justify-center h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
-              style={{
-                background: cityCfg?.color ?? "var(--fill-primary)",
-                color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
-              }}
-            >
-              {cityShort}
-            </span>
-          ) : (
-            <span className="inline-flex items-center justify-center h-[18px] px-1 rounded-full text-[12px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap">
-              + гор
-            </span>
-          )}
+          {/* Label pill — main visual anchor of the header.
+              Phase I38: hide entirely when the brigade has no labels
+              configured — nothing to offer, the day header falls back
+              to just weekday + number. */}
+          {hasLabels &&
+            (cityShort ? (
+              <span
+                className="inline-flex items-center justify-center h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+                style={{
+                  background: cityCfg?.color ?? "var(--fill-primary)",
+                  color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
+                }}
+              >
+                {cityShort}
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-center h-[18px] px-1.5 rounded-full text-[11px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap">
+                + метка
+              </span>
+            ))}
         </div>
 
         {dayAppointments.length > 0 && (

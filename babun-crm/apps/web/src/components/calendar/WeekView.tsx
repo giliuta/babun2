@@ -37,6 +37,9 @@ interface WeekViewProps {
   /** Phase I36 — snap granularity for empty-cell taps, minutes. Also
    *  the default duration of appointments created this way. 15/30/60. */
   snapMinutes?: number;
+  /** Phase I38 — whether the brigade has any labels configured. When
+   *  false, day headers skip the per-day label chip entirely. */
+  hasLabels?: boolean;
 }
 
 export default function WeekView({
@@ -61,6 +64,7 @@ export default function WeekView({
   windowStart,
   windowEnd,
   snapMinutes,
+  hasLabels,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -158,6 +162,7 @@ export default function WeekView({
             windowStart={windowStart}
             windowEnd={windowEnd}
             snapMinutes={snapMinutes}
+            hasLabels={hasLabels}
           />
         );
       })}

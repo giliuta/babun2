@@ -872,6 +872,14 @@ function DashboardPageInner() {
   const [cityPickerDateKey, setCityPickerDateKey] = useState<string | null>(null);
   const activeTeam = teams.find((t) => t.id === activeTeamId);
   const teamDefaultCity = activeTeam?.default_city ?? "";
+  // Phase I38 — brigade has any labels configured?
+  // Empty list AND empty default → DayColumn hides the per-day chip
+  // entirely (nothing to pick, no confusion for SaaS tenants that
+  // don't use region tags at all).
+  const brigadeHasLabels = Boolean(
+    activeTeam?.default_city?.trim() ||
+      (activeTeam?.cities?.length ?? 0) > 0,
+  );
 
   const cityForDate = useCallback(
     (dateKey: string) => getCityFor(activeTeamId || null, dateKey, teamDefaultCity),
@@ -924,6 +932,7 @@ function DashboardPageInner() {
           windowStart={windowStart}
           windowEnd={windowEnd}
           snapMinutes={activeSlotMinutes}
+          hasLabels={brigadeHasLabels}
           dragEnabled
         />
       );
@@ -950,6 +959,7 @@ function DashboardPageInner() {
       windowStart,
       windowEnd,
       activeSlotMinutes,
+      brigadeHasLabels,
     ]
   );
 
