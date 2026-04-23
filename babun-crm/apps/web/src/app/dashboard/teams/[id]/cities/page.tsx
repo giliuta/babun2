@@ -92,19 +92,18 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
     );
   }
 
-  // Effective base city (what the user sees as gold-starred):
-  // explicit default_city, or — if none — the first city in the list.
+  // Phase I40 — the base city is NO LONGER auto-assigned. The user
+  // explicitly stars one (swipe right) or leaves every row unstarred
+  // — in which case the calendar shows a grey «+ метка» chip per day
+  // instead of auto-painting one label under every date.
   const effectiveBase =
-    defaultCity && brigadeCityNames.includes(defaultCity)
-      ? defaultCity
-      : brigadeCityNames[0] ?? "";
+    defaultCity && brigadeCityNames.includes(defaultCity) ? defaultCity : "";
 
-  // Rule: every non-empty brigade must have exactly one base city.
-  // Resolver keeps default_city aligned with that invariant.
   const resolveBase = (nextCities: string[], prevBase: string): string => {
-    if (nextCities.length === 0) return "";
+    // Keep prevBase if still valid; otherwise drop to "" (no forced
+    // first-element fallback).
     if (prevBase && nextCities.includes(prevBase)) return prevBase;
-    return nextCities[0];
+    return "";
   };
 
   const persistBrigade = (nextCities: string[], prevBase: string) => {
@@ -160,37 +159,41 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
   };
 
   const setBase = (cityName: string) => {
-    if (defaultCity === cityName) return; // no-op on the current base
     haptic("tap");
-    upsertTeam({ ...team, default_city: cityName });
+    // Phase I40 — toggle: swipe right on the starred row unsets
+    // primary (default_city becomes ""). Swipe right on an unstarred
+    // row makes it the new primary.
+    const nextBase = defaultCity === cityName ? "" : cityName;
+    upsertTeam({ ...team, default_city: nextBase });
   };
 
   const openMenu = (cityName: string, anchor: { x: number; y: number }) => {
     setMenu({ cityName, anchor });
   };
 
-  // Context menu: only 2 actions per user's spec.
-  // The "Сделать основным" option is hidden when the row is already
-  // the base — the system always has exactly one base, so the only
-  // way to change it is to pick a different city.
+  // Context menu — toggle «Сделать основным» / «Снять основной»,
+  // plus destructive «Удалить».
   const menuOptions: ContextMenuOption[] = menu
     ? [
-        ...(effectiveBase === menu.cityName
-          ? []
-          : [
-              {
-                label: "Сделать основным",
-                icon: (
-                  <Star
-                    size={18}
-                    strokeWidth={2}
-                    fill="var(--system-yellow)"
-                    className="text-[var(--system-yellow)]"
-                  />
-                ),
-                onSelect: () => setBase(menu.cityName),
-              },
-            ]),
+        {
+          label:
+            effectiveBase === menu.cityName
+              ? "Снять основной"
+              : "Сделать основным",
+          icon: (
+            <Star
+              size={18}
+              strokeWidth={2}
+              fill={
+                effectiveBase === menu.cityName
+                  ? "none"
+                  : "var(--system-yellow)"
+              }
+              className="text-[var(--system-yellow)]"
+            />
+          ),
+          onSelect: () => setBase(menu.cityName),
+        },
         {
           label: "Удалить",
           icon: <Trash2 size={18} strokeWidth={2} />,
@@ -238,7 +241,9 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
               У бригады пока нет меток
             </div>
             <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-              Добавьте первую — она станет основной и появится в&nbsp;календаре своим цветом.
+              Добавьте пару меток и пометьте одну как основную — тогда
+              она автоматически появится под каждой датой своим цветом.
+              Без основной под датой будет серая иконка выбора.
             </div>
           </div>
           <button
@@ -255,24 +260,20 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
             {rows.map((c) => (
               <SwipeableRow
                 key={c.id}
-                leftActions={
-                  effectiveBase === c.name
-                    ? []
-                    : [
-                        {
-                          label: "Основной",
-                          color: "bg-[var(--system-yellow)]",
-                          icon: (
-                            <Star
-                              size={16}
-                              strokeWidth={2}
-                              fill="white"
-                            />
-                          ),
-                          onSelect: () => setBase(c.name),
-                        },
-                      ]
-                }
+                leftActions={[
+                  {
+                    label: effectiveBase === c.name ? "Снять" : "Основной",
+                    color: "bg-[var(--system-yellow)]",
+                    icon: (
+                      <Star
+                        size={16}
+                        strokeWidth={2}
+                        fill={effectiveBase === c.name ? "none" : "white"}
+                      />
+                    ),
+                    onSelect: () => setBase(c.name),
+                  },
+                ]}
                 rightActions={[
                   {
                     label: "Удалить",
@@ -312,11 +313,17 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
             Свайп вправо —{" "}
             <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
               основной
-            </span>
-            . Свайп влево —{" "}
+            </span>{" "}
+            (повторно — снять). Свайп влево —{" "}
             <span className="text-[var(--system-red)] font-medium">удалить</span>
             . Долгое нажатие — меню.
           </div>
+          {!effectiveBase && (
+            <div className="px-4 pt-2 text-[12px] leading-snug text-[var(--label-tertiary)]">
+              Нет основной — под каждой датой серая плашка выбора метки.
+              Выделите одну звездой, чтобы она появилась автоматом.
+            </div>
+          )}
         </>
       )}
 
