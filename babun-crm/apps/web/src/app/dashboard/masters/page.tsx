@@ -1,9 +1,12 @@
 "use client";
 
-// Sprint 033 Phase I30 — /dashboard/masters list page, iOS Settings
-// redesign so it matches Бригады / Метки / Инвентарь rather than
-// looking like a relic from Sprint 026. Keeps MasterSheet as the
-// editor (will be redesigned in a later pass).
+// Sprint 033 Phase I31 — /dashboard/masters list page.
+//  · I30 introduced the iOS Settings redesign of the list itself.
+//  · I31 rewires tap and "Редактировать" / "Новый сотрудник" to push
+//    the new /dashboard/masters/[id] detail hub, so the legacy
+//    7-section MasterSheet stops being the primary editor. The sheet
+//    is retained only for the ?edit=<id> deep-link (used by older
+//    back-references that we haven't hunted down yet).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -63,8 +66,7 @@ export default function MastersPage() {
     if (!editId) return;
     const master = masters.find((m) => m.id === editId);
     if (master) {
-      setEditing(master);
-      setShowForm(true);
+      openEditSheet(master);
     }
     router.replace("/dashboard/masters");
   }, [masters, router]);
@@ -91,11 +93,17 @@ export default function MastersPage() {
   }, [filtered]);
 
   const openNew = () => {
-    setEditing(null);
-    setShowForm(true);
+    haptic("tap");
+    router.push("/dashboard/masters/new");
   };
 
-  const openEdit = (master: Master) => {
+  const openDetail = (master: Master) => {
+    haptic("tap");
+    router.push(`/dashboard/masters/${master.id}`);
+  };
+
+  // Legacy edit opener used ONLY by the ?edit=<id> deep-link below.
+  const openEditSheet = (master: Master) => {
     setEditing(master);
     setShowForm(true);
   };
@@ -162,9 +170,9 @@ export default function MastersPage() {
   const menuOptions: ContextMenuOption[] = menu
     ? [
         {
-          label: "Редактировать",
+          label: "Открыть",
           icon: <Pencil size={18} strokeWidth={2} />,
-          onSelect: () => openEdit(menu.master),
+          onSelect: () => openDetail(menu.master),
         },
         {
           label: "Дублировать",
@@ -263,7 +271,7 @@ export default function MastersPage() {
                             ? (teams.find((t) => t.id === m.team_id) ?? null)
                             : null
                         }
-                        onTap={() => openEdit(m)}
+                        onTap={() => openDetail(m)}
                         onLongPress={(anchor) => setMenu({ master: m, anchor })}
                       />
                     </SwipeableRow>
@@ -284,7 +292,7 @@ export default function MastersPage() {
               )}
 
               <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
-                Тап — редактировать. Свайп вправо —{" "}
+                Тап — открыть. Свайп вправо —{" "}
                 <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
                   в архив
                 </span>
