@@ -47,6 +47,7 @@ import {
   useSidebar,
   useSchedules,
   useTeams,
+  useCurrentMaster,
   useMasters,
   useAppointments,
   useFormSettings,
@@ -135,17 +136,36 @@ function DashboardPageInner() {
   const { services, categories: serviceCategories } = useServices();
   const { clients } = useClients();
   const { masters } = useMasters();
+  const { currentMasterId } = useCurrentMaster();
+
+  // Sprint 033 Phase I37 — sentinel tab id for the current master's
+  // personal calendar. Lives alongside real team ids on `teamTabs`.
+  const PERSONAL_TAB_ID = "__personal__";
+  const currentMaster = useMemo(
+    () => masters.find((m) => m.id === currentMasterId) ?? null,
+    [masters, currentMasterId],
+  );
 
   // Header tabs need a stable shape: { id, name }. Sprint 025 (STORY-009):
   // show "Юра + Даня · Пафос" rather than the terse codename "Y&D" — the
   // dispatcher recognises faces, the tabs are rarely read by anyone else.
-  const teamTabs = useMemo(
-    () =>
-      teams
-        .filter((t) => t.active)
-        .map((t) => ({ id: t.id, name: getTeamDisplayName(t, masters) })),
-    [teams, masters]
-  );
+  const teamTabs = useMemo(() => {
+    const brigadeTabs = teams
+      .filter((t) => t.active)
+      .map((t) => ({ id: t.id, name: getTeamDisplayName(t, masters) }));
+    // Personal tab comes first so new users find it quickly. Name
+    // comes from master.personal_calendar_name; falls back to «Мой
+    // календарь».
+    if (currentMaster) {
+      const personalName =
+        currentMaster.personal_calendar_name?.trim() || "Мой календарь";
+      return [
+        { id: PERSONAL_TAB_ID, name: personalName },
+        ...brigadeTabs,
+      ];
+    }
+    return brigadeTabs;
+  }, [teams, masters, currentMaster]);
   // SSR-safe: start on a deterministic epoch Monday, then move to today
   // in useEffect after mount. Previous `getMonday(new Date())` in the
   // initializer caused a hydration mismatch (Vercel's build clock vs
@@ -413,11 +433,22 @@ function DashboardPageInner() {
     window.localStorage.setItem(SEED_KEY, "1");
   }, []);
 
-  // Filter appointments by active team
-  const visibleAppointments = useMemo(
-    () => appointments.filter((a) => a.team_id === activeTeamId),
-    [appointments, activeTeamId]
-  );
+  // Filter appointments by active tab. Personal tab shows only this
+  // master's private events (master_id === current, team_id falsy).
+  // Brigade tabs show that brigade's appointments, and deliberately
+  // exclude personal ones so no-one else sees them.
+  const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
+  const visibleAppointments = useMemo(() => {
+    if (isPersonalTab) {
+      if (!currentMasterId) return [];
+      return appointments.filter(
+        (a) => a.master_id === currentMasterId && !a.team_id,
+      );
+    }
+    return appointments.filter(
+      (a) => a.team_id === activeTeamId && !a.master_id,
+    );
+  }, [appointments, activeTeamId, isPersonalTab, currentMasterId]);
 
   // Build clientsById map. STORY-007: Draft clients removed —
   // layout.tsx keeps `clients` fresh via the babun:clients-changed
@@ -677,14 +708,20 @@ function DashboardPageInner() {
   // client/location state the user just picked.
   const bookingAppointment = useMemo(() => {
     if (!booking) return null;
-    return createBlankAppointment({
+    // Personal tab → event for the current master, no team.
+    // Brigade tab → work appointment, no master.
+    const personal = activeTeamId === PERSONAL_TAB_ID;
+    const base = createBlankAppointment({
       date: booking.dateKey,
       time_start: booking.timeStart,
       time_end: booking.timeEnd,
-      team_id: activeTeamId || null,
-      kind: "work",
+      team_id: personal ? null : activeTeamId || null,
+      kind: personal ? "event" : "work",
     });
-  }, [booking, activeTeamId]);
+    return personal
+      ? { ...base, master_id: currentMasterId ?? null }
+      : base;
+  }, [booking, activeTeamId, currentMasterId]);
 
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
@@ -1083,8 +1120,10 @@ function DashboardPageInner() {
       />
 
       {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
-          (тап по пустому слоту). Внутри sheet — segment Клиент/Событие. */}
-      {booking && activeTeam && bookingAppointment && (
+          (тап по пустому слоту). Внутри sheet — segment Клиент/Событие.
+          Phase I37 — also opens on personal tab (activeTeam is null
+          for PERSONAL_TAB_ID). */}
+      {booking && bookingAppointment && (activeTeam || isPersonalTab) && (
         <AppointmentSheet
           open={booking !== null}
           onClose={() => setBooking(null)}
@@ -1093,7 +1132,8 @@ function DashboardPageInner() {
           clients={clients}
           recentClientIds={recentInChats}
           teams={teams}
-          activeTeam={activeTeam}
+          activeTeam={activeTeam ?? null}
+          personalMode={isPersonalTab}
           masters={masters}
           catalog={services}
           categories={serviceCategories}
@@ -1281,7 +1321,7 @@ function DashboardPageInner() {
           appointment is instant. */}
       {/* STORY-002-FINAL: view/done режимы единого sheet открываются
           по тапу на существующую запись (handleAppointmentClick). */}
-      {inlineSheet && activeTeam && (
+      {inlineSheet && (activeTeam || inlineSheet.initial.master_id) && (
         <AppointmentSheet
           open
           onClose={() => setInlineSheet(null)}
@@ -1290,7 +1330,8 @@ function DashboardPageInner() {
           clients={clients}
           recentClientIds={recentInChats}
           teams={teams}
-          activeTeam={activeTeam}
+          activeTeam={activeTeam ?? null}
+          personalMode={Boolean(inlineSheet.initial.master_id)}
           masters={masters}
           catalog={services}
           categories={serviceCategories}

@@ -364,6 +364,14 @@ export interface Master {
   /** Trailing audit trail (capped at 100). Admin reads this to see
    *  who changed what. */
   audit?: AuditEvent[];
+
+  // ── Sprint 033 Phase I37 — Personal calendar ────────────────────
+  /** Display name of the master's personal calendar (shown on the
+   *  brigade-tabs as a chip and in the /settings/calendar page).
+   *  If empty — falls back to «Мой календарь». */
+  personal_calendar_name?: string;
+  /** Tint of the personal calendar in the tab / event block. Hex. */
+  personal_calendar_color?: string;
 }
 
 export interface Team {

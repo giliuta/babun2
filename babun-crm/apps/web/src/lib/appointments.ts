@@ -83,6 +83,10 @@ export interface Appointment {
    *  клиент не выбран или у клиента один объект. */
   location_id: string | null;
   team_id: string | null;
+  /** Sprint 033 Phase I37 — private / personal calendar owner. When
+   *  set AND team_id is null, this is a personal event visible only
+   *  to this master. Team events keep master_id null. */
+  master_id?: string | null;
   service_ids: string[];
 
   // Финансы

@@ -130,6 +130,29 @@ export function useMasters() {
   return ctx;
 }
 
+// Sprint 033 Phase I37 — Current master context. Until Supabase Auth
+// lands, `currentMasterId` is a stub: first admin / dispatcher found
+// in the masters list. Gives the personal-calendar feature a stable
+// owner so we can ship the UX before the auth layer.
+interface CurrentMasterContextValue {
+  currentMasterId: string | null;
+  /** Dev-only setter — the settings page exposes a switcher so a
+   *  single-tenant dev account can preview how each master sees
+   *  their personal calendar. */
+  setCurrentMasterId: (id: string | null) => void;
+}
+
+const CurrentMasterContext = createContext<CurrentMasterContextValue | null>(
+  null,
+);
+
+export function useCurrentMaster() {
+  const ctx = useContext(CurrentMasterContext);
+  if (!ctx)
+    throw new Error("useCurrentMaster must be used within DashboardLayout");
+  return ctx;
+}
+
 interface TeamsContextValue {
   teams: Team[];
   setTeams: (next: Team[]) => void;
@@ -342,6 +365,14 @@ export default function DashboardLayout({
   const [cities, setCitiesState] = useState<City[]>([]);
   const [equipment, setEquipmentState] = useState<Equipment[]>([]);
   const [locationLabels, setLocationLabelsState] = useState<LocationLabel[]>([]);
+  // Phase I37 — stubbed "current master". Seeded lazily from the
+  // masters list when it loads. Persisted in localStorage for dev so
+  // you stay logged in as the same master across reloads.
+  const CURRENT_MASTER_KEY = "babun2:current-master";
+  const [currentMasterId, setCurrentMasterIdState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem(CURRENT_MASTER_KEY);
+  });
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -357,6 +388,36 @@ export default function DashboardLayout({
     require_address: false,
     require_comment: false,
   });
+
+  // Seed currentMasterId once masters are loaded. Defaults to first
+  // admin, then first dispatcher, then any active master — whichever
+  // is found first. Writes-through to localStorage so the setter is
+  // persistent.
+  useEffect(() => {
+    if (currentMasterId && masters.some((m) => m.id === currentMasterId)) {
+      return;
+    }
+    const pick =
+      masters.find((m) => m.is_active && m.role === "admin") ??
+      masters.find((m) => m.is_active && m.role === "dispatcher") ??
+      masters.find((m) => m.is_active) ??
+      masters[0];
+    if (pick) {
+      setCurrentMasterIdState(pick.id);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(CURRENT_MASTER_KEY, pick.id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masters]);
+
+  const setCurrentMasterId = useCallback((id: string | null) => {
+    setCurrentMasterIdState(id);
+    if (typeof window !== "undefined") {
+      if (id) window.localStorage.setItem(CURRENT_MASTER_KEY, id);
+      else window.localStorage.removeItem(CURRENT_MASTER_KEY);
+    }
+  }, []);
 
   // Load all persisted state from localStorage on mount
   useEffect(() => {
@@ -730,8 +791,14 @@ export default function DashboardLayout({
     deleteEquipment,
   };
 
+  const currentMasterValue: CurrentMasterContextValue = {
+    currentMasterId,
+    setCurrentMasterId,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
+      <CurrentMasterContext.Provider value={currentMasterValue}>
       <MastersContext.Provider value={mastersValue}>
       <TeamsContext.Provider value={teamsValue}>
       <AppointmentsContext.Provider value={appointmentsValue}>
@@ -791,6 +858,7 @@ export default function DashboardLayout({
       </AppointmentsContext.Provider>
       </TeamsContext.Provider>
       </MastersContext.Provider>
+      </CurrentMasterContext.Provider>
     </SidebarContext.Provider>
   );
 }

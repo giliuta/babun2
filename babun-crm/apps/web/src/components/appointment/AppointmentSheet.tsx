@@ -93,6 +93,10 @@ interface AppointmentSheetProps {
   onReschedule?: (apt: Appointment) => void;
   /** Sprint 025 STORY-005: header ✓ button triggers parent's PaymentSheet. */
   onCompleteQuick?: (apt: Appointment) => void;
+  /** Sprint 033 Phase I37 — personal-calendar mode. Forces kind="event",
+   *  hides the Клиент/Событие segment toggle, and tells inner blocks
+   *  this is a private note (client/services sections are irrelevant). */
+  personalMode?: boolean;
 }
 
 type Kind = "work" | "event";
@@ -123,6 +127,7 @@ export default function AppointmentSheet({
   onCancelAppointment,
   onReschedule,
   onCompleteQuick,
+  personalMode = false,
 }: AppointmentSheetProps) {
   const router = useRouter();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
@@ -132,9 +137,11 @@ export default function AppointmentSheet({
   useEffect(() => setLiveMode(mode), [mode, appointment.id]);
 
   const [kind, setKind] = useState<Kind>(
-    appointment.kind === "event" || appointment.kind === "personal"
+    personalMode ||
+      appointment.kind === "event" ||
+      appointment.kind === "personal"
       ? "event"
-      : "work"
+      : "work",
   );
   const [timeStart, setTimeStart] = useState(appointment.time_start);
   const [timeEnd, setTimeEnd] = useState(appointment.time_end);
@@ -441,22 +448,29 @@ export default function AppointmentSheet({
         {/* Header */}
         <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
           {liveMode === "create" ? (
-            <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
-              {(["work", "event"] as Kind[]).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setKind(k)}
-                  className={`px-4 py-1.5 rounded-[8px] transition ${
-                    kind === k
-                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-                      : "text-[var(--label-secondary)]"
-                  }`}
-                >
-                  {k === "work" ? "Клиент" : "Событие"}
-                </button>
-              ))}
-            </div>
+            personalMode ? (
+              // Personal calendar — always event; no segment toggle.
+              <div className="inline-flex items-center h-8 px-3 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold">
+                Личное событие
+              </div>
+            ) : (
+              <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
+                {(["work", "event"] as Kind[]).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setKind(k)}
+                    className={`px-4 py-1.5 rounded-[8px] transition ${
+                      kind === k
+                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
+                        : "text-[var(--label-secondary)]"
+                    }`}
+                  >
+                    {k === "work" ? "Клиент" : "Событие"}
+                  </button>
+                ))}
+              </div>
+            )
           ) : liveMode === "edit" ? (
             <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
               Редактирование

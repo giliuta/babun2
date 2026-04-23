@@ -2,24 +2,57 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
 import IOSSwitch from "@/components/ui/IOSSwitch";
-import { useCalendarSettings } from "@/app/dashboard/layout";
+import {
+  useCalendarSettings,
+  useCurrentMaster,
+  useMasters,
+} from "@/app/dashboard/layout";
 import {
   validateCalendarSettings,
   TIMEZONE_OPTIONS,
   type CalendarSettings,
 } from "@/lib/calendar-settings";
+import { PRESET_COLORS } from "@/lib/colors";
 
 const HOURS_0_23 = Array.from({ length: 24 }, (_, i) => i);
 const HOURS_1_24 = Array.from({ length: 24 }, (_, i) => i + 1);
 
 export default function CalendarSettingsPage() {
   const { calendarSettings, setCalendarSettings } = useCalendarSettings();
+  const { currentMasterId } = useCurrentMaster();
+  const { masters, upsertMaster } = useMasters();
+  const currentMaster = masters.find((m) => m.id === currentMasterId) ?? null;
   const [draft, setDraft] = useState<CalendarSettings>({ ...calendarSettings });
   const [saved, setSaved] = useState(false);
+
+  // Personal-calendar name + colour live on the master record itself
+  // (not on CalendarSettings) because these settings *belong to the
+  // master*. The rest of this page — grid hours, buffer, etc. — still
+  // uses global CalendarSettings and will be migrated into per-master
+  // settings in a later pass.
+  const personalName = currentMaster?.personal_calendar_name ?? "";
+  const personalColor = currentMaster?.personal_calendar_color ?? "";
+  const commitPersonalName = (next: string) => {
+    if (!currentMaster) return;
+    const trimmed = next.trim();
+    if (trimmed === (currentMaster.personal_calendar_name ?? "")) return;
+    upsertMaster({
+      ...currentMaster,
+      personal_calendar_name: trimmed || undefined,
+    });
+  };
+  const commitPersonalColor = (next: string) => {
+    if (!currentMaster) return;
+    if (next === (currentMaster.personal_calendar_color ?? "")) return;
+    upsertMaster({
+      ...currentMaster,
+      personal_calendar_color: next || undefined,
+    });
+  };
 
   const error = validateCalendarSettings(draft);
 
@@ -42,7 +75,7 @@ export default function CalendarSettingsPage() {
   return (
     <>
       <PageHeader
-        title="Настройки календаря"
+        title="Мой календарь"
         leftContent={
           <Link
             href="/dashboard/settings"
@@ -56,6 +89,71 @@ export default function CalendarSettingsPage() {
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-lg mx-auto px-4 py-4 space-y-5 pb-24">
+
+          {/* Personal calendar identity (Sprint 033 Phase I37) */}
+          {currentMaster && (
+            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-4">
+              <div>
+                <div className="text-[15px] font-semibold text-[var(--label)]">
+                  Личный календарь
+                </div>
+                <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5 leading-snug">
+                  Эти записи видите только вы. В календарной ленте
+                  переключается тапом на вкладку рядом с бригадами.
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+                  Название
+                </label>
+                <input
+                  type="text"
+                  defaultValue={personalName}
+                  onBlur={(e) => commitPersonalName(e.target.value)}
+                  placeholder={currentMaster.full_name || "Мой календарь"}
+                  maxLength={40}
+                  className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
+                />
+                <div className="text-[11px] text-[var(--label-tertiary)] mt-1">
+                  Пусто — покажется «Мой календарь».
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+                  Цвет
+                </label>
+                <div className="grid grid-cols-7 gap-2">
+                  {PRESET_COLORS.map((c) => {
+                    const picked = c.value === personalColor;
+                    return (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => commitPersonalColor(c.value)}
+                        aria-label={c.name}
+                        className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
+                        style={{ backgroundColor: c.value }}
+                      >
+                        {picked && (
+                          <Check
+                            size={16}
+                            strokeWidth={3}
+                            className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-[11px] text-[var(--label-tertiary)] mt-2 leading-snug">
+                  Подсвечивает события вашего личного календаря и вкладку
+                  в шапке.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Time range */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-4">
