@@ -12,6 +12,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useTeams } from "@/app/dashboard/layout";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 
 interface RouteParams {
@@ -71,6 +72,25 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     upsertTeam({
       ...team,
       default_slot_minutes: v && v > 0 ? v : undefined,
+    });
+  };
+  // Phase I39 — behaviour knobs, mirror /settings/calendar.
+  const commitBuffer = (m: number) => {
+    upsertTeam({
+      ...team,
+      buffer_minutes: m > 0 ? m : undefined,
+    });
+  };
+  const commitHideCancelled = (next: boolean) => {
+    upsertTeam({
+      ...team,
+      hide_cancelled: next || undefined,
+    });
+  };
+  const commitAllowOvertime = (next: boolean) => {
+    upsertTeam({
+      ...team,
+      allow_overtime: next || undefined,
     });
   };
 
@@ -160,6 +180,78 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
               </button>
             );
           })}
+        </div>
+      </Group>
+
+      {/* Phase I39 — behaviour knobs for this brigade. Overrides the
+          global «Мой календарь» values when this brigade is active. */}
+      <Group
+        title="Поведение календаря"
+        footer="Действует только для этой бригады. Если пусто / выкл — подтягивается глобальный вариант из «Мой календарь»."
+      >
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+          {/* Buffer between appointments */}
+          <div className="px-4 py-3">
+            <div className="text-[15px] text-[var(--label)]">
+              Перерыв между записями
+            </div>
+            <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+              Автоматический буфер после каждого визита — дорога, уборка инструмента.
+            </div>
+            <div className="flex gap-1.5 mt-2.5">
+              {[0, 10, 15, 20, 30, 45, 60].map((m) => {
+                const picked = (team.buffer_minutes ?? 0) === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => commitBuffer(m)}
+                    className={`flex-1 h-9 rounded-[10px] text-[12px] font-medium press-scale transition-colors ${
+                      picked
+                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                        : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                    }`}
+                  >
+                    {m === 0 ? "нет" : `${m}м`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Hide cancelled */}
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] text-[var(--label)]">
+                Скрыть отменённые записи
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                Выключено — отменённые остаются на сетке зачёркнутыми.
+              </div>
+            </div>
+            <IOSSwitch
+              checked={team.hide_cancelled ?? false}
+              onChange={commitHideCancelled}
+              ariaLabel="Скрыть отменённые"
+            />
+          </div>
+
+          {/* Allow overtime */}
+          <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] text-[var(--label)]">
+                Разрешить продлить рабочий день
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                Последний визит может закончиться после конца рабочего дня без ошибки.
+              </div>
+            </div>
+            <IOSSwitch
+              checked={team.allow_overtime ?? false}
+              onChange={commitAllowOvertime}
+              ariaLabel="Разрешить продлить рабочий день"
+            />
+          </div>
         </div>
       </Group>
     </BrigadeSectionShell>

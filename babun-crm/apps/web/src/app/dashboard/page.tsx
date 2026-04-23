@@ -880,6 +880,13 @@ function DashboardPageInner() {
     activeTeam?.default_city?.trim() ||
       (activeTeam?.cities?.length ?? 0) > 0,
   );
+  // Phase I39 — effective «behaviour» for the active calendar.
+  // Brigade value wins over the global «Мой календарь» one. Personal
+  // tab (no activeTeam) falls back to global.
+  const effectiveHideCancelled =
+    activeTeam?.hide_cancelled ?? calendarSettings.hideCancelled ?? false;
+  const effectiveBufferMinutes =
+    activeTeam?.buffer_minutes ?? calendarSettings.bufferMinutes ?? 0;
 
   const cityForDate = useCallback(
     (dateKey: string) => getCityFor(activeTeamId || null, dateKey, teamDefaultCity),
@@ -933,6 +940,8 @@ function DashboardPageInner() {
           windowEnd={windowEnd}
           snapMinutes={activeSlotMinutes}
           hasLabels={brigadeHasLabels}
+          hideCancelled={effectiveHideCancelled}
+          bufferMinutes={effectiveBufferMinutes}
           dragEnabled
         />
       );
@@ -960,6 +969,8 @@ function DashboardPageInner() {
       windowEnd,
       activeSlotMinutes,
       brigadeHasLabels,
+      effectiveHideCancelled,
+      effectiveBufferMinutes,
     ]
   );
 

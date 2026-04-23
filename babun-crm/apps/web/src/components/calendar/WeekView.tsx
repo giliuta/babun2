@@ -40,6 +40,9 @@ interface WeekViewProps {
   /** Phase I38 — whether the brigade has any labels configured. When
    *  false, day headers skip the per-day label chip entirely. */
   hasLabels?: boolean;
+  /** Phase I39 — effective «behaviour» resolved by the parent. */
+  hideCancelled?: boolean;
+  bufferMinutes?: number;
 }
 
 export default function WeekView({
@@ -65,6 +68,8 @@ export default function WeekView({
   windowEnd,
   snapMinutes,
   hasLabels,
+  hideCancelled,
+  bufferMinutes,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -163,6 +168,8 @@ export default function WeekView({
             windowEnd={windowEnd}
             snapMinutes={snapMinutes}
             hasLabels={hasLabels}
+            hideCancelled={hideCancelled}
+            bufferMinutes={bufferMinutes}
           />
         );
       })}

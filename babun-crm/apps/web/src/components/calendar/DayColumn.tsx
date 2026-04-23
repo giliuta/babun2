@@ -16,7 +16,6 @@ import {
 } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
 import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
-import { useCalendarSettings } from "@/app/dashboard/layout";
 import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
@@ -52,6 +51,10 @@ interface DayColumnProps {
    *  any labels configured. When false the chip disappears entirely
    *  and the day header shows just weekday + number. */
   hasLabels?: boolean;
+  /** Phase I39 — effective «behaviour» resolved by the parent:
+   *  brigade value overrides global when provided. */
+  hideCancelled?: boolean;
+  bufferMinutes?: number;
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
@@ -145,6 +148,8 @@ function DayColumnInner({
   windowEnd = 24,
   snapMinutes = 60,
   hasLabels = true,
+  hideCancelled = false,
+  bufferMinutes = 0,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
   const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
@@ -160,9 +165,9 @@ function DayColumnInner({
   const isToday = isSameDay(date, today);
   const dateKey = formatDateKey(date);
 
-  // Phase I35 — filter cancelled from grid when hideCancelled is on.
-  const { calendarSettings } = useCalendarSettings();
-  const hideCancelled = calendarSettings.hideCancelled ?? false;
+  // Phase I35/I39 — filter cancelled from grid when hideCancelled is
+  // on. Value resolved by the parent: brigade-level override wins
+  // over global «Мой календарь».
   const dayAppointments = appointments.filter((a) => {
     if (a.date !== dateKey) return false;
     if (hideCancelled && a.status === "cancelled") return false;
@@ -430,15 +435,16 @@ function DayColumnInner({
             to today's column (Phase I22). Rendering both left a
             visible duplicate/stub when scrolled near the now-line. */}
 
-        {/* Phase I35 — buffer bands after each live appointment.
+        {/* Phase I35/I39 — buffer bands after each live appointment.
             Hatched grey stripe = «забронировано под дорогу / уборку».
             Rendered BEFORE appointment blocks so colour cards sit on
-            top. Skipped for cancelled. */}
-        {(calendarSettings.bufferMinutes ?? 0) > 0 &&
+            top. Skipped for cancelled. Value resolved by parent
+            (brigade-level override wins over global). */}
+        {bufferMinutes > 0 &&
           dayAppointments.map((apt) => {
             if (apt.status === "cancelled") return null;
             const endMin = timeToMinutes(apt.time_end);
-            const bufferMin = calendarSettings.bufferMinutes ?? 0;
+            const bufferMin = bufferMinutes;
             return (
               <div
                 key={`buffer-${apt.id}`}

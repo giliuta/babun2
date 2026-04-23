@@ -423,6 +423,13 @@ export interface Team {
    *  column to create a blank appointment. Undefined = fall back
    *  to global calendarSettings.gridStep. */
   default_slot_minutes?: number;
+  /** Sprint 033 Phase I39 — per-brigade overrides of the global
+   *  «Поведение календаря». Undefined = inherit from global
+   *  `CalendarSettings`. Mirror the three fields on the global type
+   *  so brigade preview is just a swap of the resolved value. */
+  buffer_minutes?: number;
+  hide_cancelled?: boolean;
+  allow_overtime?: boolean;
 }
 
 // ─── Default permissions per role ──────────────────────────────────────
