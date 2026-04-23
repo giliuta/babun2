@@ -139,13 +139,8 @@ export default function ServicesPage() {
                           style={{ backgroundColor: s.color }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-[var(--label)] truncate flex items-center gap-2">
-                            <span className="truncate">{s.name || "Без названия"}</span>
-                            {!s.is_countable && (
-                              <span className="text-[12px] bg-[var(--fill-secondary)] text-[var(--label-secondary)] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide flex-shrink-0">
-                                ×1
-                              </span>
-                            )}
+                          <div className="text-sm font-semibold text-[var(--label)] truncate">
+                            {s.name || "Без названия"}
                           </div>
                           <div className="text-xs text-[var(--label-secondary)] flex flex-wrap gap-2">
                             <span>{s.duration_minutes} мин/шт</span>
@@ -420,33 +415,10 @@ function ServiceEditorSheet({
             </div>
           </div>
 
-          {/* MEGA-UPDATE — countable toggle */}
-          <div className="flex items-center justify-between bg-[var(--fill-tertiary)] rounded-lg px-3 py-2.5">
-            <div>
-              <div className="text-sm font-semibold text-[var(--label)]">
-                Количество регулируется
-              </div>
-              <div className="text-xs text-[var(--label-secondary)]">
-                Степпер [− N +] в записи. Выключите для ремонта / диагностики.
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                setDraft({ ...draft, is_countable: !draft.is_countable })
-              }
-              className={`w-11 h-6 rounded-full relative transition-colors ${
-                draft.is_countable ? "bg-[var(--accent)]" : "bg-[var(--fill-primary)]"
-              }`}
-              aria-pressed={draft.is_countable}
-            >
-              <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--surface-card)] transition-transform ${
-                  draft.is_countable ? "translate-x-[22px]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-          </div>
+          {/* Sprint 033 Phase I23 — is_countable toggle retired.
+              All services expose a qty stepper in the appointment
+              form now. Data field is kept on Service for backward
+              compat but no longer exposed here. */}
 
           {/* Bulk pricing */}
           <div className="grid grid-cols-2 gap-3">

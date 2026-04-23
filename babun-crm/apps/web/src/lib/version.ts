@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v268-duration-tiers-and-ctx-menu";
+export const BUILD_VERSION = "v269-drop-countable-toggle";

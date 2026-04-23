@@ -59,7 +59,11 @@ export default function ServiceRow({
     });
   };
 
-  const isCountable = service?.is_countable ?? true;
+  // Sprint 033 Phase I23 — is_countable toggle retired; every service
+  // supports a quantity stepper. Legacy records with is_countable=false
+  // from earlier versions are ignored so old data doesn't lock users
+  // out of the stepper.
+  const isCountable = true;
   const bulkHint =
     service &&
     service.bulk_threshold > 0 &&

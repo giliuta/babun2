@@ -64,7 +64,6 @@ import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import ContextMenu, {
   type ContextMenuOption,
 } from "@/components/ui/ContextMenu";
-import IOSSwitch from "@/components/ui/IOSSwitch";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 
 interface RouteParams {
@@ -635,7 +634,6 @@ function ServiceFormModal({
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
   const [durationTiers, setDurationTiers] = useState<DurationTier[]>([]);
   const [materialCosts, setMaterialCosts] = useState<ServiceMaterialCost[]>([]);
-  const [isCountable, setIsCountable] = useState(true);
   const [showTiers, setShowTiers] = useState(false);
   const [showDurationTiers, setShowDurationTiers] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
@@ -661,7 +659,6 @@ function ServiceFormModal({
       setColorManuallyPicked(true); // don't stomp existing colour
       setMin(service.duration_minutes);
       setPrice(service.price);
-      setIsCountable(service.is_countable ?? true);
       // Load tiers — migration in loadServices() may have already
       // turned a legacy bulk_threshold/bulk_price pair into the
       // single-entry price_tiers array.
@@ -684,7 +681,6 @@ function ServiceFormModal({
       setPriceTiers([]);
       setDurationTiers([]);
       setMaterialCosts([]);
-      setIsCountable(true);
       setShowTiers(false);
       setShowDurationTiers(false);
       setShowMaterials(false);
@@ -757,7 +753,7 @@ function ServiceFormModal({
         bulk_price: 0,
         material_costs: cleanMaterials,
         cost_per_unit: sumCostPerUnit,
-        is_countable: isCountable,
+        is_countable: true,
       });
     } else {
       onSubmit(
@@ -771,7 +767,7 @@ function ServiceFormModal({
           duration_tiers: cleanDurationTiers.length > 0 ? cleanDurationTiers : undefined,
           material_costs: cleanMaterials,
           cost_per_unit: sumCostPerUnit,
-          is_countable: isCountable,
+          is_countable: true,
           brigade_ids: [brigadeId],
         }),
       );
@@ -1242,22 +1238,6 @@ function ServiceFormModal({
             </button>
           </ExtraSection>
 
-          {/* 7. IS-COUNTABLE — inline row */}
-          <div className="bg-[var(--surface-card)] rounded-[10px] px-4 py-2.5 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] text-[var(--label)]">
-                Можно делать несколько
-              </div>
-              <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
-                «× 3» в одной записи. Если услуга уникальная — выключите.
-              </div>
-            </div>
-            <IOSSwitch
-              checked={isCountable}
-              onChange={setIsCountable}
-              ariaLabel="Можно делать несколько"
-            />
-          </div>
         </div>
 
         <div className="px-4 pb-4 pt-1 flex gap-2 shrink-0">
