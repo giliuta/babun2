@@ -1,33 +1,46 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+// Sprint 033 Phase I30 — /dashboard/masters list page, iOS Settings
+// redesign so it matches Бригады / Метки / Инвентарь rather than
+// looking like a relic from Sprint 026. Keeps MasterSheet as the
+// editor (will be redesigned in a later pass).
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AlertTriangle,
+  ArchiveRestore,
+  Archive,
+  ChevronRight,
+  Copy,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UserCircle2,
+  X,
+} from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import ContextMenu, {
+  type ContextMenuOption,
+} from "@/components/ui/ContextMenu";
+import SwipeableRow from "@/components/ui/SwipeableRow";
+import { haptic } from "@/lib/haptics";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
-  ACCOUNT_STATUS_LABELS,
-  ACCOUNT_STATUS_TONE,
   ROLE_LABELS,
-  SALARY_MODEL_LABELS,
-  SALARY_UNIT,
+  generateId,
   getInitials,
   type Master,
-  type MasterRole,
   type Team,
 } from "@/lib/masters";
 import MasterSheet from "./MasterSheet";
 
-const ROLE_COLORS: Record<MasterRole, string> = {
-  admin: "bg-[var(--system-red)]",
-  dispatcher: "bg-[var(--system-orange)]",
-  lead: "bg-[var(--accent)]",
-  helper: "bg-[var(--fill-primary)]",
-};
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/ё/g, "е");
+}
 
-// Sprint 026: Мастера is its own page now — sibling to Бригады, not
-// a subsection. Adding a new row opens MasterSheet which covers all
-// employment fields (salary, permissions, documents, notes).
 export default function MastersPage() {
   const router = useRouter();
   const { masters, upsertMaster, deleteMaster } = useMasters();
@@ -37,10 +50,12 @@ export default function MastersPage() {
   const [editing, setEditing] = useState<Master | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState("");
+  const [menu, setMenu] = useState<{
+    master: Master;
+    anchor: { x: number; y: number };
+  } | null>(null);
 
-  // Deep-link ?edit=<id> opens the sheet for that master — used by
-  // other surfaces (e.g. the brigade detail card) without forcing a
-  // second tap to find them in the list.
+  // Deep-link ?edit=<id> opens the sheet for that master.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -55,21 +70,24 @@ export default function MastersPage() {
   }, [masters, router]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalize(query.trim());
     if (!q) return masters;
     return masters.filter(
       (m) =>
-        m.full_name.toLowerCase().includes(q) ||
-        m.phone.toLowerCase().includes(q) ||
-        (m.email?.toLowerCase().includes(q) ?? false)
+        normalize(m.full_name).includes(q) ||
+        (m.phone && normalize(m.phone).includes(q)) ||
+        (m.email && normalize(m.email).includes(q)),
     );
   }, [masters, query]);
 
-  const { active, inactive } = useMemo(() => {
-    const a: Master[] = [];
-    const i: Master[] = [];
-    filtered.forEach((m) => (m.is_active ? a.push(m) : i.push(m)));
-    return { active: a, inactive: i };
+  // Active first by name; archived go to the bottom.
+  const sorted = useMemo(() => {
+    return filtered.slice().sort((a, b) => {
+      const aAct = a.is_active ? 0 : 1;
+      const bAct = b.is_active ? 0 : 1;
+      if (aAct !== bAct) return aAct - bAct;
+      return a.full_name.localeCompare(b.full_name, "ru");
+    });
   }, [filtered]);
 
   const openNew = () => {
@@ -92,12 +110,34 @@ export default function MastersPage() {
     closeForm();
   };
 
+  const toggleArchived = (master: Master) => {
+    haptic("tap");
+    upsertMaster({ ...master, is_active: !master.is_active });
+  };
+
+  const duplicateMaster = (master: Master) => {
+    haptic("tap");
+    upsertMaster({
+      ...master,
+      id: generateId("master"),
+      full_name: `${master.full_name} (копия)`,
+      created_at: new Date().toISOString(),
+      // login email is per-person; don't clone
+      login_email: undefined,
+      credentials_set: false,
+      invite_sent_at: undefined,
+      last_login_at: undefined,
+    });
+  };
+
   const handleDelete = async (master: Master) => {
     const ok = await confirm({
       title: `Удалить сотрудника «${master.full_name}»?`,
       message: "Будет удалён из всех бригад где состоял. Отменить нельзя.",
+      confirmLabel: "Удалить",
     });
     if (!ok) return;
+    haptic("warning");
     deleteMaster(master.id);
 
     const updatedTeams = teams.map<Team>((t) => {
@@ -112,84 +152,150 @@ export default function MastersPage() {
         nextHelperIds = t.helper_ids.filter((id) => id !== master.id);
         changed = true;
       }
-      return changed ? { ...t, lead_id: nextLeadId, helper_ids: nextHelperIds } : t;
+      return changed
+        ? { ...t, lead_id: nextLeadId, helper_ids: nextHelperIds }
+        : t;
     });
     setTeams(updatedTeams);
-    closeForm();
   };
+
+  const menuOptions: ContextMenuOption[] = menu
+    ? [
+        {
+          label: "Редактировать",
+          icon: <Pencil size={18} strokeWidth={2} />,
+          onSelect: () => openEdit(menu.master),
+        },
+        {
+          label: "Дублировать",
+          icon: <Copy size={18} strokeWidth={2} />,
+          onSelect: () => duplicateMaster(menu.master),
+        },
+        {
+          label: menu.master.is_active ? "В архив" : "Вернуть из архива",
+          icon: menu.master.is_active ? (
+            <Archive size={18} strokeWidth={2} />
+          ) : (
+            <ArchiveRestore size={18} strokeWidth={2} />
+          ),
+          onSelect: () => toggleArchived(menu.master),
+        },
+        {
+          label: "Удалить",
+          icon: <Trash2 size={18} strokeWidth={2} />,
+          danger: true,
+          onSelect: () => handleDelete(menu.master),
+        },
+      ]
+    : [];
 
   return (
     <>
-      <PageHeader
-        title="Мастера"
-        subtitle={`${masters.length} ${masters.length === 1 ? "сотрудник" : "сотрудников"}`}
-        rightContent={
-          <button
-            type="button"
-            onClick={openNew}
-            aria-label="Добавить сотрудника"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] lg:text-[var(--label)] hover:bg-[var(--accent)] lg:hover:bg-[var(--fill-primary)]"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        }
-      />
+      <PageHeader title="Мастера" />
 
-      <div className="flex-1 overflow-y-auto bg-[var(--fill-tertiary)] relative">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-4">
-          {/* Search */}
-          <div>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск по имени, телефону или email"
-              className="w-full h-11 px-3 rounded-xl bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            />
-          </div>
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">
+          {masters.length === 0 ? (
+            <EmptyState onAdd={openNew} />
+          ) : (
+            <>
+              {masters.length > 6 && (
+                <div className="relative">
+                  <Search
+                    size={16}
+                    strokeWidth={2}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] pointer-events-none"
+                  />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Поиск по имени, телефону, email"
+                    className="w-full h-10 pl-9 pr-9 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      aria-label="Очистить"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--fill-secondary)] text-[var(--label-tertiary)] press-scale"
+                    >
+                      <X size={12} strokeWidth={2.5} />
+                    </button>
+                  )}
+                </div>
+              )}
 
-          <ListGroup title={`Активные (${active.length})`}>
-            {active.length === 0 ? (
-              <Empty>
-                {query ? "Ничего не найдено" : "Нет активных сотрудников"}
-              </Empty>
-            ) : (
-              active.map((m) => (
-                <MasterRow
-                  key={m.id}
-                  master={m}
-                  team={m.team_id ? teams.find((t) => t.id === m.team_id) ?? null : null}
-                  onOpen={() => openEdit(m)}
-                />
-              ))
-            )}
-          </ListGroup>
+              {sorted.length === 0 && query ? (
+                <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-5 text-center text-[13px] text-[var(--label-tertiary)]">
+                  Ничего не найдено по запросу «{query}».
+                </div>
+              ) : (
+                <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
+                  {sorted.map((m) => (
+                    <SwipeableRow
+                      key={m.id}
+                      leftActions={[
+                        {
+                          label: m.is_active ? "В архив" : "Вернуть",
+                          color: "bg-[var(--system-yellow)]",
+                          icon: m.is_active ? (
+                            <Archive size={16} strokeWidth={2} />
+                          ) : (
+                            <ArchiveRestore size={16} strokeWidth={2} />
+                          ),
+                          onSelect: () => toggleArchived(m),
+                        },
+                      ]}
+                      rightActions={[
+                        {
+                          label: "Удалить",
+                          color: "bg-[var(--system-red)]",
+                          icon: <Trash2 size={16} strokeWidth={2} />,
+                          onSelect: () => handleDelete(m),
+                        },
+                      ]}
+                    >
+                      <MasterRow
+                        master={m}
+                        team={
+                          m.team_id
+                            ? (teams.find((t) => t.id === m.team_id) ?? null)
+                            : null
+                        }
+                        onTap={() => openEdit(m)}
+                        onLongPress={(anchor) => setMenu({ master: m, anchor })}
+                      />
+                    </SwipeableRow>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={openNew}
+                    className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left active:bg-[var(--fill-quaternary)] transition press-scale"
+                  >
+                    <span className="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--accent-tint)] text-[var(--accent)] shrink-0">
+                      <Plus size={18} strokeWidth={2.5} />
+                    </span>
+                    <span className="flex-1 text-[15px] font-medium text-[var(--accent)]">
+                      Новый сотрудник
+                    </span>
+                  </button>
+                </div>
+              )}
 
-          <ListGroup title={`Неактивные (${inactive.length})`}>
-            {inactive.length === 0 ? (
-              <Empty>Нет неактивных</Empty>
-            ) : (
-              inactive.map((m) => (
-                <MasterRow
-                  key={m.id}
-                  master={m}
-                  team={m.team_id ? teams.find((t) => t.id === m.team_id) ?? null : null}
-                  onOpen={() => openEdit(m)}
-                />
-              ))
-            )}
-          </ListGroup>
+              <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
+                Тап — редактировать. Свайп вправо —{" "}
+                <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
+                  в архив
+                </span>
+                . Свайп влево —{" "}
+                <span className="text-[var(--system-red)] font-medium">
+                  удалить
+                </span>
+                . Долгое нажатие — меню.
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -203,106 +309,181 @@ export default function MastersPage() {
           onDelete={handleDelete}
         />
       )}
+
+      <ContextMenu
+        open={!!menu}
+        onClose={() => setMenu(null)}
+        anchor={menu?.anchor ?? null}
+        title={menu?.master.full_name}
+        options={menuOptions}
+      />
     </>
   );
 }
 
-function ListGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+// ─── Empty state ──────────────────────────────────────────────────
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div>
-      <div className="text-xs font-semibold text-[var(--label-secondary)] uppercase tracking-wide px-1 mb-2">
-        {title}
+    <div className="px-6 pt-10 pb-4 flex flex-col items-center text-center gap-3">
+      <span className="w-16 h-16 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
+        <UserCircle2 size={28} strokeWidth={2} />
+      </span>
+      <div>
+        <div className="text-[17px] font-semibold text-[var(--label)]">
+          Пока нет сотрудников
+        </div>
+        <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
+          Добавьте первого — потом сможете закрепить его за&nbsp;бригадой и настроить доступы.
+        </div>
       </div>
-      <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-        {children}
-      </div>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
+      >
+        Новый сотрудник
+      </button>
     </div>
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-center text-[var(--label-tertiary)] py-8 text-sm">{children}</div>
-  );
-}
+// ─── Master row ───────────────────────────────────────────────────
 
 function MasterRow({
   master,
   team,
-  onOpen,
+  onTap,
+  onLongPress,
 }: {
   master: Master;
   team: Team | null;
-  onOpen: () => void;
+  onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
 }) {
-  const salaryLabel = master.salary
-    ? master.salary.model === "percent_of_team"
-      ? "через бригаду"
-      : `${master.salary.value} ${SALARY_UNIT[master.salary.model]} · ${SALARY_MODEL_LABELS[master.salary.model]}`
-    : "ЗП не задана";
+  const handlers = useLongPressOrTap({ onTap, onLongPress });
+  const archived = !master.is_active;
+  const tile = team?.color ?? "#8E8E93";
+
+  // Single-line subtitle: Role + team (or "без бригады") + phone.
+  const pieces: string[] = [];
+  pieces.push(ROLE_LABELS[master.role]);
+  if (team) pieces.push(team.name);
+  else pieces.push("без бригады");
+  if (master.phone) pieces.push(master.phone);
+  const subtitle = pieces.join(" · ");
+
+  // Warning when the record is missing critical data.
+  const needsSetup = !master.phone || !master.team_id;
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--fill-tertiary)] text-left"
+    <div
+      {...handlers}
+      className={`flex items-center gap-3 px-4 min-h-[60px] py-2 cursor-pointer select-none active:bg-[var(--fill-quaternary)] transition ${
+        archived ? "opacity-60" : ""
+      }`}
+      style={{
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}
     >
-      <div
-        className={`w-10 h-10 rounded-full text-[var(--label-on-accent)] flex items-center justify-center font-bold text-[12px] shrink-0 ${ROLE_COLORS[master.role]}`}
+      <span
+        className={`w-9 h-9 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[13px] shrink-0 ${
+          archived ? "grayscale" : ""
+        }`}
+        style={{ backgroundColor: tile }}
       >
         {getInitials(master.full_name)}
-      </div>
+      </span>
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-semibold text-[var(--label)] truncate">
-          {master.full_name}
-        </div>
-        <div className="text-[12px] text-[var(--label-secondary)] truncate">
-          {ROLE_LABELS[master.role]}
-          {team ? (
-            <>
-              {" · "}
-              <span style={{ color: team.color }} className="font-semibold">
-                {team.name}
-              </span>
-            </>
-          ) : (
-            " · без бригады"
+        <div className="flex items-center gap-1.5">
+          <span className="text-[15px] font-semibold text-[var(--label)] truncate">
+            {master.full_name}
+          </span>
+          {archived && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--fill-tertiary)] text-[var(--label-secondary)] shrink-0">
+              архив
+            </span>
           )}
         </div>
-        <div className="text-[12px] text-[var(--label-tertiary)] truncate tabular-nums">
-          {master.phone || "—"}
-          {master.email ? ` · ${master.email}` : ""}
+        <div
+          className={`text-[13px] truncate flex items-center gap-1 ${
+            needsSetup
+              ? "text-[color:var(--system-yellow-strong,#B78600)] font-medium"
+              : "text-[var(--label-secondary)]"
+          }`}
+        >
+          {needsSetup && (
+            <AlertTriangle
+              size={12}
+              strokeWidth={2.5}
+              className="shrink-0 text-[var(--system-yellow)] fill-[var(--system-yellow)]"
+            />
+          )}
+          <span className="truncate">{subtitle}</span>
         </div>
       </div>
-      <div className="shrink-0 flex flex-col items-end gap-1">
-        {master.account_status && (
-          <span
-            className={`text-[12px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${ACCOUNT_STATUS_TONE[master.account_status]}`}
-          >
-            {ACCOUNT_STATUS_LABELS[master.account_status]}
-          </span>
-        )}
-        <span className="text-[12px] font-semibold text-[var(--label-secondary)] bg-[var(--fill-primary)] rounded-full px-2 py-0.5 whitespace-nowrap">
-          {salaryLabel}
-        </span>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          className="text-[var(--label-quaternary)]"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </div>
-    </button>
+      <ChevronRight
+        size={18}
+        strokeWidth={2}
+        className="text-[var(--label-quaternary)] shrink-0"
+      />
+    </div>
   );
+}
+
+// ─── Long-press + tap hook ────────────────────────────────────────
+
+function useLongPressOrTap({
+  onTap,
+  onLongPress,
+  delay = 500,
+}: {
+  onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
+  delay?: number;
+}) {
+  const timer = useRef<number | null>(null);
+  const triggered = useRef(false);
+  const origin = useRef<{ x: number; y: number } | null>(null);
+  const cancel = () => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      triggered.current = false;
+      origin.current = { x: e.clientX, y: e.clientY };
+      timer.current = window.setTimeout(() => {
+        triggered.current = true;
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate?.(12);
+        }
+        if (origin.current) onLongPress(origin.current);
+      }, delay);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!origin.current || timer.current == null) return;
+      const dx = Math.abs(e.clientX - origin.current.x);
+      const dy = Math.abs(e.clientY - origin.current.y);
+      if (dx > 10 || dy > 10) cancel();
+    },
+    onPointerUp: cancel,
+    onPointerCancel: cancel,
+    onPointerLeave: cancel,
+    onClick: (e: React.MouseEvent) => {
+      if (triggered.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        triggered.current = false;
+        return;
+      }
+      onTap();
+    },
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+    },
+  };
 }
