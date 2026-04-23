@@ -86,7 +86,6 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Service | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
   // Services belonging to this brigade (either explicitly listed or
   // legacy entries with empty brigade_ids = all brigades).
@@ -220,61 +219,42 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     });
   };
 
-  const createCategory = (name: string, color: string) => {
-    if (!name.trim()) return;
-    haptic("tap");
-    setCategories([
-      ...categories,
-      { id: generateId("cat"), name: name.trim(), color },
-    ]);
-    setAddCategoryOpen(false);
-  };
-
   const totalCount = brigadeServices.length;
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Услуги" hideSave>
       {totalCount === 0 && !query ? (
-        <EmptyState
-          onAddService={() => setAddOpen(true)}
-          onAddCategory={() => setAddCategoryOpen(true)}
-        />
+        <EmptyState onAddService={() => setAddOpen(true)} />
       ) : (
         <>
-          {/* Search + top-level create actions */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <Search
-                size={16}
-                strokeWidth={2}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] pointer-events-none"
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск по названию"
-                className="w-full h-10 pl-9 pr-9 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--accent)]"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  aria-label="Очистить"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--fill-secondary)] text-[var(--label-tertiary)] press-scale"
-                >
-                  <X size={12} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setAddCategoryOpen(true)}
-              aria-label="Новая группа"
-              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)] press-scale"
-            >
-              <FolderPlus size={18} strokeWidth={2} />
-            </button>
+          {/* Search only — group creation lives inside the service
+              form modal now. Dedicated "Новая группа" action was
+              removed 2026-04-22 per user feedback: groups are an
+              internal detail of service creation, not a first-class
+              entry point. */}
+          <div className="relative">
+            <Search
+              size={16}
+              strokeWidth={2}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] pointer-events-none"
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по названию"
+              className="w-full h-10 pl-9 pr-9 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--accent)]"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Очистить"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--fill-secondary)] text-[var(--label-tertiary)] press-scale"
+              >
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
 
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -373,11 +353,6 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
           setCategories([...categories, cat]);
           return cat.id;
         }}
-      />
-      <CategoryFormModal
-        open={addCategoryOpen}
-        onClose={() => setAddCategoryOpen(false)}
-        onSubmit={createCategory}
       />
     </BrigadeSectionShell>
   );
@@ -520,10 +495,8 @@ function SortableServiceRow({
 
 function EmptyState({
   onAddService,
-  onAddCategory,
 }: {
   onAddService: () => void;
-  onAddCategory: () => void;
 }) {
   return (
     <div className="px-6 pt-10 pb-4 flex flex-col items-center text-center gap-3">
@@ -535,26 +508,16 @@ function EmptyState({
           Пока нет услуг
         </div>
         <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-          Сначала сделайте группу (Чистка, Ремонт…), потом добавляйте услуги. Или просто добавьте первую.
+          Добавьте первую — группу можно создать в&nbsp;самой форме услуги.
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onAddCategory}
-          className="h-11 px-4 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[14px] font-medium press-scale flex items-center gap-1.5"
-        >
-          <FolderPlus size={16} strokeWidth={2} />
-          Новая группа
-        </button>
-        <button
-          type="button"
-          onClick={onAddService}
-          className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
-        >
-          Новая услуга
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onAddService}
+        className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
+      >
+        Новая услуга
+      </button>
     </div>
   );
 }
@@ -857,7 +820,7 @@ function ServiceFormModal({
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
               }}
-              placeholder="Напр. Чистка кондиционера"
+              placeholder="Название услуги"
               className="mt-1 w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               maxLength={80}
             />
@@ -953,7 +916,7 @@ function ServiceFormModal({
             title="Оптовая цена"
             hint={
               priceTiers.length === 0
-                ? "Скидки за объём. «3 шт — €45» значит при 3+ штуках каждая идёт по €45."
+                ? "Скидки за объём — при определённом количестве цена за штуку снижается."
                 : undefined
             }
           >
@@ -1030,7 +993,7 @@ function ServiceFormModal({
             title="Расход материалов"
             hint={
               materialCosts.length === 0
-                ? "Что уходит на одну штуку услуги — химия, фреон, расходники. Сумма вычитается из выручки в финансах."
+                ? "Что уходит на одну штуку услуги. Сумма вычитается из выручки в финансах."
                 : undefined
             }
           >
@@ -1042,7 +1005,7 @@ function ServiceFormModal({
                   onChange={(e) =>
                     updateMaterial(m.id, { name: e.target.value })
                   }
-                  placeholder="Напр. Фреон R410"
+                  placeholder="Название расхода"
                   className="flex-1 min-w-0 h-9 px-3 rounded-[8px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   maxLength={40}
                 />
@@ -1092,7 +1055,7 @@ function ServiceFormModal({
                 Можно делать несколько
               </div>
               <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
-                «× 3» в одной записи. Для диагностики / ремонта обычно выключено.
+                «× 3» в одной записи. Если услуга уникальная — выключите.
               </div>
             </div>
             <IOSSwitch
@@ -1194,9 +1157,6 @@ function CategoryFormModal({
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
             Новая группа
           </div>
-          <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
-            Например «Чистка», «Ремонт», «Монтаж».
-          </div>
         </div>
 
         <div className="p-4 space-y-4">
@@ -1212,7 +1172,7 @@ function CategoryFormModal({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && canSubmit) onSubmit(trimmed, color);
               }}
-              placeholder="Чистка"
+              placeholder="Название группы"
               className="mt-1 w-full h-11 px-3 rounded-[10px] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               maxLength={40}
             />
