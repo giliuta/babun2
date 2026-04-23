@@ -26,12 +26,16 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   const [wStart, setWStart] = useState(team?.calendar_window_start ?? "");
   const [wEnd, setWEnd] = useState(team?.calendar_window_end ?? "");
   const [scroll, setScroll] = useState(team?.default_scroll_time ?? "");
+  const [slotMin, setSlotMin] = useState<number | null>(
+    team?.default_slot_minutes ?? null,
+  );
 
   useEffect(() => {
     if (team) {
       setWStart(team.calendar_window_start ?? "");
       setWEnd(team.calendar_window_end ?? "");
       setScroll(team.default_scroll_time ?? "");
+      setSlotMin(team.default_slot_minutes ?? null);
     }
   }, [team]);
 
@@ -63,6 +67,14 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       default_scroll_time: v.trim() || undefined,
     });
   };
+  const commitSlot = (v: number | null) => {
+    upsertTeam({
+      ...team,
+      default_slot_minutes: v && v > 0 ? v : undefined,
+    });
+  };
+
+  const SLOT_PRESETS = [15, 30, 45, 60, 90, 120];
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Календарь" hideSave>
@@ -108,6 +120,50 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
             step={1800}
             className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
+        </div>
+      </Group>
+
+      <Group
+        title="Длительность слота по умолчанию"
+        footer="Сколько минут займёт новая запись при тапе по пустой клетке. Дальше длительность пересчитается по услугам."
+      >
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setSlotMin(null);
+                commitSlot(null);
+              }}
+              className={`h-9 px-3 rounded-full text-[13px] font-medium press-scale flex items-center transition ${
+                slotMin === null
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                  : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+              }`}
+            >
+              Авто
+            </button>
+            {SLOT_PRESETS.map((m) => {
+              const picked = slotMin === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setSlotMin(m);
+                    commitSlot(m);
+                  }}
+                  className={`h-9 px-3 rounded-full text-[13px] font-medium press-scale flex items-center transition tabular-nums ${
+                    picked
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                      : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                  }`}
+                >
+                  {m} мин
+                </button>
+              );
+            })}
+          </div>
         </div>
       </Group>
     </BrigadeSectionShell>

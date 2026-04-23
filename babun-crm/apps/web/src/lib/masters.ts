@@ -272,6 +272,11 @@ export interface Team {
    *  sort after those that have one (treated as Infinity). Reordered
    *  via drag-and-drop on /dashboard/teams. */
   sort_order?: number;
+  /** Sprint 033 Phase I28 — default duration (minutes) when the
+   *  dispatcher taps an empty calendar slot on this brigade's
+   *  column to create a blank appointment. Undefined = fall back
+   *  to global calendarSettings.gridStep. */
+  default_slot_minutes?: number;
 }
 
 // ─── Default permissions per role ──────────────────────────────────────

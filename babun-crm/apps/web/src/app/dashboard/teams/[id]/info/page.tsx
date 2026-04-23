@@ -1,31 +1,20 @@
 "use client";
 
-// Sprint 033 Phase I15 — Brigade Info subroute, iOS Settings redesign.
-//
-// Changes vs previous:
-//  · Split one fat card into grouped cards, iOS-style: name, colour,
-//    status toggle, destructive action at bottom.
-//  · Instant save for existing brigades — text commits on blur, colour
-//    + toggle commit on tap. No top-right Save pill. Consistent with
-//    Метки / Мастера subroutes.
-//  · NEW brigade still has a "Создать" button (record has to be born
-//    first; name required).
-//  · Removed the "Описание" field (backing `region`). It duplicated
-//    the purpose of Метки and was the main source of confusion in
-//    the screenshot — users typed city names into it. Legacy `region`
-//    left in the data model but no longer edited here.
-//  · Status is a proper IOSSwitch row instead of a pill that toggles
-//    on tap. Matches the archive gesture on the brigades list.
-//  · Delete button at the bottom of the page (existing brigades only)
-//    with the same cascade-to-masters+appointments semantics as the
-//    list page. Gives users a single natural destructive spot on the
-//    detail screen.
+// Sprint 033 Phase I28 — Brigade Info, third pass.
+//  · Colour grid: 14 swatches in 7×2 (was grid-cols-5 giving
+//    5+5+3+1). Matches the unified palette elsewhere.
+//  · Status toggle dropped — it's already on the brigade detail
+//    page as an inline IOSSwitch; duplicating here made the page
+//    redundantly clickable in two places.
+//  · NEW: "Описание" textarea — freeform memo for the tenant
+//    themself (internal notes, accents, heads-ups). Reuses the
+//    Team.region field in the data model (repurposed from its old
+//    "city tag" meaning, which became Метки).
 
 import { use, useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useTeams } from "@/app/dashboard/layout";
-import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   TEAM_COLORS,
   generateId,
@@ -62,14 +51,14 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     : existing ?? BLANK_TEAM;
 
   const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.region ?? "");
   const [color, setColor] = useState(initial.color);
-  const [active, setActive] = useState(initial.active);
 
   useEffect(() => {
     if (!isNew && existing) {
       setName(existing.name);
+      setDescription(existing.region ?? "");
       setColor(existing.color);
-      setActive(existing.active);
     }
   }, [existing, isNew]);
 
@@ -90,17 +79,17 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     if (!trimmed || trimmed === existing.name) return;
     upsertTeam({ ...existing, name: trimmed });
   };
+  const commitDescription = (next: string) => {
+    if (!existing) return;
+    const trimmed = next.trim();
+    if ((existing.region ?? "") === trimmed) return;
+    upsertTeam({ ...existing, region: trimmed });
+  };
   const commitColor = (next: string) => {
     if (!existing) return;
     if (next === existing.color) return;
     haptic("tap");
     upsertTeam({ ...existing, color: next });
-  };
-  const commitActive = (next: boolean) => {
-    if (!existing) return;
-    if (next === existing.active) return;
-    haptic("tap");
-    upsertTeam({ ...existing, active: next });
   };
 
   // ── new-brigade create flow ──────────────────────────────────────
@@ -113,14 +102,11 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     upsertTeam({
       ...initial,
       name: name.trim(),
+      region: description.trim(),
       color,
-      active,
     });
     return true;
   };
-
-  // Delete lives on the brigade index page (row with trash icon) — no
-  // need to duplicate it here. Removed 2026-04-22 per user feedback.
 
   const sharedShellProps = isNew
     ? {
@@ -149,9 +135,29 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
             onBlur={(e) => {
               if (!isNew) commitName(e.target.value);
             }}
-            placeholder="Напр. Юра + Даня"
+            placeholder="Название бригады"
             className="w-full h-11 bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
             maxLength={60}
+          />
+        </div>
+      </div>
+
+      {/* ── Description ─────────────────────────────────────────── */}
+      <div>
+        <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+          Описание
+        </div>
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-2">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onBlur={(e) => {
+              if (!isNew) commitDescription(e.target.value);
+            }}
+            placeholder="Для себя — любые заметки о бригаде"
+            rows={2}
+            maxLength={300}
+            className="w-full bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none py-1.5 leading-snug"
           />
         </div>
       </div>
@@ -162,7 +168,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
           Цвет бригады
         </div>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-4">
-          <div className="grid grid-cols-5 gap-3 sm:grid-cols-6">
+          <div className="grid grid-cols-7 gap-2">
             {TEAM_COLORS.map((c) => {
               const picked = c.value === color;
               return (
@@ -179,15 +185,9 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
                 >
                   {picked && (
                     <Check
-                      size={18}
+                      size={16}
                       strokeWidth={3}
                       className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
-                    />
-                  )}
-                  {picked && (
-                    <span
-                      className="absolute -inset-[3px] rounded-full border-2 pointer-events-none"
-                      style={{ borderColor: c.value }}
                     />
                   )}
                 </button>
@@ -196,35 +196,6 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
           </div>
           <div className="mt-3 text-[12px] text-[var(--label-tertiary)] leading-snug">
             Этот цвет показывает записи бригады в календаре и метит её аватарку в списке.
-          </div>
-        </div>
-      </div>
-
-      {/* ── Status toggle ──────────────────────────────────────── */}
-      <div>
-        <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
-          Статус
-        </div>
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="flex items-center gap-3 px-4 min-h-[52px]">
-            <div className="flex-1 min-w-0">
-              <div className="text-[15px] text-[var(--label)]">
-                Бригада активна
-              </div>
-              <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
-                {active
-                  ? "Показывается в списках, в календаре и в выборе."
-                  : "Скрыта из календаря и выбора. Можно вернуть из архива."}
-              </div>
-            </div>
-            <IOSSwitch
-              checked={active}
-              onChange={(v) => {
-                setActive(v);
-                commitActive(v);
-              }}
-              ariaLabel="Активна"
-            />
           </div>
         </div>
       </div>

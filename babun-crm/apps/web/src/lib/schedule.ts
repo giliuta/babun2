@@ -26,6 +26,17 @@ export interface TeamSchedule {
   // over weekday overrides. Used for vacations, special events, day-off
   // swaps — Bumpix's "Режим особого расписания".
   date_overrides?: Record<string, DaySchedule>;
+  /** Sprint 033 Phase I28 — named date-range blackouts. Each entry
+   *  marks every date in [start..end] inclusive as non-working,
+   *  regardless of weekday overrides. Displayed as a clean list in
+   *  the schedule editor. */
+  vacations?: VacationRange[];
+}
+
+export interface VacationRange {
+  start: string; // YYYY-MM-DD inclusive
+  end: string; // YYYY-MM-DD inclusive
+  reason?: string;
 }
 
 export type WeekdayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -124,9 +135,31 @@ export function getDayScheduleForDate(
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const dd = String(date.getDate()).padStart(2, "0");
   const dateKey = `${yyyy}-${mm}-${dd}`;
+  // Vacations win over every other rule — brigade simply isn't
+  // available that day.
+  if (isInVacation(schedule, dateKey)) {
+    return {
+      is_working: false,
+      start: schedule.start,
+      end: schedule.end,
+      breaks: [],
+    };
+  }
   const dayOverride = schedule.date_overrides?.[dateKey];
   if (dayOverride) return dayOverride;
   return getDaySchedule(schedule, date.getDay());
+}
+
+/** Check if a YYYY-MM-DD key falls inside ANY vacation range. */
+export function isInVacation(
+  schedule: TeamSchedule,
+  dateKey: string,
+): boolean {
+  const list = schedule.vacations ?? [];
+  for (const v of list) {
+    if (dateKey >= v.start && dateKey <= v.end) return true;
+  }
+  return false;
 }
 
 export function setDateOverride(
