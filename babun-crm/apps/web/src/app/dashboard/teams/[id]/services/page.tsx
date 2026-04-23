@@ -715,8 +715,11 @@ function ServiceFormModal({
   if (!open) return null;
 
   const hasCategories = visibleCategories.length > 0;
-  const canSubmit =
-    name.trim().length > 0 && min > 0 && categoryId.length > 0;
+  // Sprint 033 Phase I24 — duration and price can be 0. Some services
+  // don't charge (in-scope repair under warranty) or don't block
+  // calendar time (phone consultation). Only name and group are
+  // hard-required.
+  const canSubmit = name.trim().length > 0 && categoryId.length > 0;
 
   const submit = () => {
     if (!canSubmit) return;
@@ -726,7 +729,7 @@ function ServiceFormModal({
       .filter((t) => t.min_qty > 1 && t.price_per_unit >= 0)
       .sort((a, b) => a.min_qty - b.min_qty);
     const cleanDurationTiers = durationTiers
-      .filter((t) => t.min_qty > 1 && t.duration_minutes >= 1)
+      .filter((t) => t.min_qty > 1 && t.duration_minutes >= 0)
       .sort((a, b) => a.min_qty - b.min_qty);
     // Clean up materials: drop unnamed / zero items.
     const cleanMaterials = materialCosts.filter(
@@ -744,7 +747,7 @@ function ServiceFormModal({
         ...service,
         name: name.trim(),
         color,
-        duration_minutes: Math.max(1, min),
+        duration_minutes: Math.max(0, min),
         price: Math.max(0, price),
         category_id: categoryId,
         price_tiers: cleanPriceTiers.length > 0 ? cleanPriceTiers : undefined,
@@ -760,7 +763,7 @@ function ServiceFormModal({
         createBlankService({
           name: name.trim(),
           color,
-          duration_minutes: Math.max(1, min),
+          duration_minutes: Math.max(0, min),
           price: Math.max(0, price),
           category_id: categoryId,
           price_tiers: cleanPriceTiers.length > 0 ? cleanPriceTiers : undefined,
@@ -973,7 +976,7 @@ function ServiceFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Длительность <span className="text-[var(--system-red)]">*</span>
+                Длительность
               </label>
               <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pr-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
                 <input
@@ -995,7 +998,7 @@ function ServiceFormModal({
             </div>
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Цена <span className="text-[var(--system-red)]">*</span>
+                Цена
               </label>
               <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pl-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
                 <span className="text-[15px] text-[var(--label-secondary)]">
