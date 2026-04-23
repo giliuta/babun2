@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Info,
   MapPin,
+  Package,
   Users as UsersIcon,
   Wrench,
   CalendarDays,
@@ -39,6 +40,7 @@ import {
   useServices,
   useAppointments,
   useCities,
+  useEquipment,
   useSchedules,
 } from "@/app/dashboard/layout";
 import {
@@ -67,6 +69,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const { services } = useServices();
   const { appointments, upsertAppointment } = useAppointments();
   const { cities } = useCities();
+  const { equipment } = useEquipment();
   const { schedules } = useSchedules();
 
   // Freshly created brigades first hit /dashboard/teams/new. Since the
@@ -132,6 +135,15 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
       return { text: "не заданы — доступны все", warning: false };
     return { text: `${count} ${serviceWord(count)}`, warning: false };
   }, [team, services]);
+
+  const equipmentPreview = useMemo((): { text: string; warning: boolean } => {
+    if (!team) return { text: "", warning: false };
+    const count = equipment.filter(
+      (e) => e.is_active !== false && e.assigned_team_id === team.id,
+    ).length;
+    if (count === 0) return { text: "не закреплено", warning: false };
+    return { text: `${count} ${equipmentWord(count)}`, warning: false };
+  }, [team, equipment]);
 
   const calendarPreview = useMemo(() => {
     if (!team) return "";
@@ -262,6 +274,14 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               warning={servicesPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/services`)}
             />
+            <NavRow
+              icon={<Package size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-mint)]"
+              title="Оборудование"
+              value={equipmentPreview.text}
+              warning={equipmentPreview.warning}
+              onClick={() => router.push(`/dashboard/teams/${team.id}/equipment`)}
+            />
           </ListGroup>
 
           <ListGroup>
@@ -333,6 +353,12 @@ function serviceWord(n: number): string {
   if (n === 1) return "услуга";
   if (n >= 2 && n <= 4) return "услуги";
   return "услуг";
+}
+
+function equipmentWord(n: number): string {
+  if (n === 1) return "предмет";
+  if (n >= 2 && n <= 4) return "предмета";
+  return "предметов";
 }
 
 // ─── Layout primitives (local — tiny and brigade-specific) ────────────

@@ -78,6 +78,11 @@ import {
 } from "@/lib/calendar-settings";
 import { loadCities, saveCities, type City } from "@/lib/cities";
 import {
+  loadEquipment,
+  saveEquipment,
+  type Equipment,
+} from "@/lib/equipment";
+import {
   loadLocationLabels,
   saveLocationLabels,
   type LocationLabel,
@@ -180,6 +185,19 @@ interface ServicesContextValue {
 }
 
 const ServicesContext = createContext<ServicesContextValue | null>(null);
+
+interface EquipmentContextValue {
+  equipment: Equipment[];
+  setEquipment: (next: Equipment[]) => void;
+  upsertEquipment: (e: Equipment) => void;
+  deleteEquipment: (id: string) => void;
+}
+const EquipmentContext = createContext<EquipmentContextValue | null>(null);
+export function useEquipment() {
+  const ctx = useContext(EquipmentContext);
+  if (!ctx) throw new Error("useEquipment must be used within DashboardLayout");
+  return ctx;
+}
 
 export function useServices() {
   const ctx = useContext(ServicesContext);
@@ -322,6 +340,7 @@ export default function DashboardLayout({
     return loadCalendarSettings();
   });
   const [cities, setCitiesState] = useState<City[]>([]);
+  const [equipment, setEquipmentState] = useState<Equipment[]>([]);
   const [locationLabels, setLocationLabelsState] = useState<LocationLabel[]>([]);
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
@@ -355,6 +374,7 @@ export default function DashboardLayout({
     setDayExtrasState(loadDayExtras());
     setCalendarSettingsState(loadCalendarSettings());
     setCitiesState(loadCities());
+    setEquipmentState(loadEquipment());
     setLocationLabelsState(loadLocationLabels());
     setFieldVisibilityState(loadFieldVisibility());
     setRequiredFieldsState(loadRequiredFields());
@@ -681,6 +701,35 @@ export default function DashboardLayout({
     setLocationLabels: handleLocationLabelsChange,
   };
 
+  const handleEquipmentChange = useCallback((next: Equipment[]) => {
+    setEquipmentState(next);
+    saveEquipment(next);
+  }, []);
+  const upsertEquipment = useCallback(
+    (e: Equipment) => {
+      setEquipmentState((prev) => {
+        const idx = prev.findIndex((x) => x.id === e.id);
+        const next = idx >= 0 ? prev.map((x, i) => (i === idx ? e : x)) : [...prev, e];
+        saveEquipment(next);
+        return next;
+      });
+    },
+    [],
+  );
+  const deleteEquipment = useCallback((id: string) => {
+    setEquipmentState((prev) => {
+      const next = prev.filter((e) => e.id !== id);
+      saveEquipment(next);
+      return next;
+    });
+  }, []);
+  const equipmentValue: EquipmentContextValue = {
+    equipment,
+    setEquipment: handleEquipmentChange,
+    upsertEquipment,
+    deleteEquipment,
+  };
+
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <MastersContext.Provider value={mastersValue}>
@@ -695,6 +744,7 @@ export default function DashboardLayout({
       <DayExtrasContext.Provider value={dayExtrasValue}>
       <CalendarSettingsContext.Provider value={calendarSettingsValue}>
       <CitiesContext.Provider value={citiesValue}>
+      <EquipmentContext.Provider value={equipmentValue}>
       <LocationLabelsContext.Provider value={locationLabelsValue}>
       <SchedulesContext.Provider value={schedulesValue}>
       <ConfirmProvider>
@@ -728,6 +778,7 @@ export default function DashboardLayout({
       </ConfirmProvider>
       </SchedulesContext.Provider>
       </LocationLabelsContext.Provider>
+      </EquipmentContext.Provider>
       </CitiesContext.Provider>
       </CalendarSettingsContext.Provider>
       </DayExtrasContext.Provider>

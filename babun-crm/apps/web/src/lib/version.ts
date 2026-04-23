@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v272-brigade-detail-polish";
+export const BUILD_VERSION = "v273-inventory-mvp";

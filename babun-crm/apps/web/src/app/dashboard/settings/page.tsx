@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   MapPin,
+  Package,
   Users as UsersIcon,
   UserCircle2,
   MessageSquare,
@@ -98,6 +99,13 @@ const NAV_SECTIONS: NavSection[] = [
     tone: "bg-[var(--tile-purple)]",
     title: "Услуги и категории",
     desc: "Каталог услуг, цены, длительность",
+  },
+  {
+    href: "/dashboard/inventory",
+    icon: Package,
+    tone: "bg-[var(--tile-mint)]",
+    title: "Оборудование",
+    desc: "Инструмент, машины, приборы — закрепление за бригадами",
   },
   {
     href: "/dashboard/settings/company",
