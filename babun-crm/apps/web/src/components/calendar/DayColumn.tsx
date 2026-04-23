@@ -403,19 +403,10 @@ function DayColumnInner({
             );
           })}
 
-        {/* Current time dot — just the red dot on today's column. The
-            full-width horizontal line is rendered one level up in
-            WeekView so it spans every day instead of looking like a
-            2 px stub stranded on a single column (user report,
-            Sprint 033 Phase I4). */}
-        {isToday && currentTimeMinutes >= windowStartMin && currentTimeMinutes <= windowEndMin && (
-          <div
-            className="absolute left-0 z-20 pointer-events-none"
-            style={{ top: `calc(${windowedMins(currentTimeMinutes)} - 4px)` }}
-          >
-            <div className="w-2 h-2 bg-[var(--system-red)] rounded-full -ml-1" />
-          </div>
-        )}
+        {/* Sprint 033 Phase I27 — removed the per-column red dot.
+            WeekView now renders a single stripe + anchor dot scoped
+            to today's column (Phase I22). Rendering both left a
+            visible duplicate/stub when scrolled near the now-line. */}
 
         {/* Appointment blocks — with overlap detection.
             When 2+ appointments overlap in time, they display
