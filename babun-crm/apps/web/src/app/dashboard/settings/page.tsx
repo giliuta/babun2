@@ -8,7 +8,6 @@ import {
   Users as UsersIcon,
   UserCircle2,
   MessageSquare,
-  Wrench,
   Building2,
   ChevronRight,
 } from "lucide-react";
@@ -92,13 +91,6 @@ const NAV_SECTIONS: NavSection[] = [
     tone: "bg-[var(--tile-mint)]",
     title: "Шаблоны SMS",
     desc: "Тексты напоминаний и подтверждений",
-  },
-  {
-    href: "/dashboard/services",
-    icon: Wrench,
-    tone: "bg-[var(--tile-purple)]",
-    title: "Услуги и категории",
-    desc: "Каталог услуг, цены, длительность",
   },
   {
     href: "/dashboard/inventory",

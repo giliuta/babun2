@@ -8,7 +8,6 @@ import {
   UserCircle2,
   RotateCcw,
   Wallet,
-  Wrench,
   MessageSquare,
   Settings as SettingsIcon,
   LogOut,
@@ -217,13 +216,12 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
                 active={isActive("masters")}
                 onClick={() => handleNav("masters")}
               />
-              <NavRow
-                icon={Wrench}
-                tone="purple"
-                label="Услуги"
-                active={isActive("services")}
-                onClick={() => handleNav("services")}
-              />
+              {/* Sprint 033 Phase I29 — "Услуги" sidebar link removed
+                  per user feedback. Services are now per-brigade only
+                  (edited inside /teams/[id]/services). The global
+                  /dashboard/services page file stays on disk for
+                  now (in case we bring it back as an admin view)
+                  but it's unlinked from navigation. */}
               <NavRow
                 icon={MessageSquare}
                 tone="mint"
