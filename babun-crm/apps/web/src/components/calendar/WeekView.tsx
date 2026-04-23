@@ -34,6 +34,9 @@ interface WeekViewProps {
   /** Sprint 033: visible hour window (brigade calendar clipping). */
   windowStart?: number;
   windowEnd?: number;
+  /** Phase I36 — snap granularity for empty-cell taps, minutes. Also
+   *  the default duration of appointments created this way. 15/30/60. */
+  snapMinutes?: number;
 }
 
 export default function WeekView({
@@ -57,6 +60,7 @@ export default function WeekView({
   cityLookup,
   windowStart,
   windowEnd,
+  snapMinutes,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
@@ -153,6 +157,7 @@ export default function WeekView({
             cityLookup={cityLookup}
             windowStart={windowStart}
             windowEnd={windowEnd}
+            snapMinutes={snapMinutes}
           />
         );
       })}

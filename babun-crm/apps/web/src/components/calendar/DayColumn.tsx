@@ -45,6 +45,9 @@ interface DayColumnProps {
    *  Defaults to 0..24 = full day. */
   windowStart?: number;
   windowEnd?: number;
+  /** Phase I36 — snap granularity for empty-cell taps, minutes.
+   *  Also used as the created appointment duration. Default 60. */
+  snapMinutes?: number;
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
@@ -136,6 +139,7 @@ function DayColumnInner({
   cityLookup,
   windowStart = 0,
   windowEnd = 24,
+  snapMinutes = 60,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
   const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
@@ -217,11 +221,15 @@ function DayColumnInner({
     const totalHeight = rect.height;
     const pxPerMinute = totalHeight / windowDurationMin;
     const totalMinutes = windowStartMin + clickY / pxPerMinute;
-    // STORY-005: тап по ячейке всегда даёт начало часа — диспетчер не
-    // попадает в 16:15 случайно. Длительность рассчитывается отдельно
-    // из выбранных услуг.
-    const hours = Math.floor(totalMinutes / 60);
-    const mm = 0;
+    // Phase I36 — snap to multiples of `snapMinutes` (бригадная
+    // настройка 15/30/60). 15 → 11:00/11:15/11:30/11:45; 30 → 11:00/
+    // 11:30/12:00; 60 → 11:00/12:00. Floor so тап в 11:27 при 30 мин
+    // ложится на 11:00, а не на 11:30 (user picks the start of the
+    // slot where their finger landed).
+    const snap = Math.max(5, Math.min(60, snapMinutes));
+    const snapped = Math.max(0, Math.floor(totalMinutes / snap) * snap);
+    const hours = Math.floor(snapped / 60);
+    const mm = snapped % 60;
 
     if (hours >= 0 && hours < 24) {
       const timeStr = `${String(hours).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;

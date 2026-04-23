@@ -282,6 +282,16 @@ function DashboardPageInner() {
     return t?.default_scroll_time ?? "";
   }, [teams, activeTeamId]);
 
+  // Phase I36 — snap + default-duration for empty-cell taps. Reads
+  // brigade.default_slot_minutes (15/30/60); falls back to 30 as a
+  // sensible middle ground when the brigade has never set one.
+  const activeSlotMinutes = useMemo<number>(() => {
+    const t = teams.find((x) => x.id === activeTeamId);
+    const raw = t?.default_slot_minutes;
+    if (raw === 15 || raw === 30 || raw === 60) return raw;
+    return 30;
+  }, [teams, activeTeamId]);
+
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
@@ -700,15 +710,21 @@ function DashboardPageInner() {
   );
 
   // Tap on empty slot → BookingSheet (STORY-002). Компонент сам
-  // даёт выбор «Клиент/Событие» в сегмент-контроле.
-  const handleEmptySlotClick = useCallback((date: string, time: string) => {
-    const [h, m] = time.split(":").map(Number);
-    const endMin = h * 60 + m + 60;
-    const endH = Math.floor(endMin / 60) % 24;
-    const endM = endMin % 60;
-    const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
-    setBooking({ dateKey: date, timeStart: time, timeEnd });
-  }, []);
+  // даёт выбор «Клиент/Событие» в сегмент-контроле. Phase I36 —
+  // длительность новой записи = слот-настройка активной бригады
+  // (15/30/60), так же как и шаг снэпа. Дальше пересчитается по
+  // выбранным услугам.
+  const handleEmptySlotClick = useCallback(
+    (date: string, time: string) => {
+      const [h, m] = time.split(":").map(Number);
+      const endMin = h * 60 + m + activeSlotMinutes;
+      const endH = Math.floor(endMin / 60) % 24;
+      const endM = endMin % 60;
+      const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+      setBooking({ dateKey: date, timeStart: time, timeEnd });
+    },
+    [activeSlotMinutes],
+  );
 
   // BottomTabBar / FAB navigates here with ?new=1 while we're already
   // on /dashboard. Previous implementation read `window.location.search`
@@ -870,6 +886,7 @@ function DashboardPageInner() {
           cityLookup={cities}
           windowStart={windowStart}
           windowEnd={windowEnd}
+          snapMinutes={activeSlotMinutes}
           dragEnabled
         />
       );
@@ -895,6 +912,7 @@ function DashboardPageInner() {
       cities,
       windowStart,
       windowEnd,
+      activeSlotMinutes,
     ]
   );
 

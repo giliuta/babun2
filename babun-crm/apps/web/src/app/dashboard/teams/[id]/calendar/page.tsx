@@ -74,7 +74,11 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     });
   };
 
-  const SLOT_PRESETS = [15, 30, 45, 60, 90, 120];
+  // Phase I36 — reduced to three — 15/30/60. This value now doubles
+  // as the snap grid for tap-to-create: если выбрано 30, тап на
+  // 11:27 → ставим 11:30; на 11:43 → ставим 11:30 (ближайшее снизу
+  // кратное). Новая запись наследует эту же длительность.
+  const SLOT_PRESETS = [15, 30, 60];
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Календарь" hideSave>
@@ -124,46 +128,38 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       </Group>
 
       <Group
-        title="Длительность слота по умолчанию"
-        footer="Сколько минут займёт новая запись при тапе по пустой клетке. Дальше длительность пересчитается по услугам."
+        title="Шаг при тапе на календарь"
+        footer={
+          "Тап по пустой клетке создаёт запись, округлённую до выбранного шага. " +
+          "15 мин — время ляжет на 11:00 / 11:15 / 11:30 / 11:45. " +
+          "30 мин — только на 11:00 / 11:30 / 12:00. " +
+          "60 мин — ровно 11:00 / 12:00 / 13:00. " +
+          "Длительность новой записи равна этому же шагу; дальше пересчитывается по выбранным услугам."
+        }
       >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setSlotMin(null);
-                commitSlot(null);
-              }}
-              className={`h-9 px-3 rounded-full text-[13px] font-medium press-scale flex items-center transition ${
-                slotMin === null
-                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                  : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-              }`}
-            >
-              Авто
-            </button>
-            {SLOT_PRESETS.map((m) => {
-              const picked = slotMin === m;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => {
-                    setSlotMin(m);
-                    commitSlot(m);
-                  }}
-                  className={`h-9 px-3 rounded-full text-[13px] font-medium press-scale flex items-center transition tabular-nums ${
-                    picked
-                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                      : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                  }`}
-                >
-                  {m} мин
-                </button>
-              );
-            })}
-          </div>
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-2 grid grid-cols-3 gap-2">
+          {SLOT_PRESETS.map((m) => {
+            // Если слот ни разу не выставлен — подсвечиваем 30 как
+            // дефолт, чтобы пилюли всегда показывали активное состояние.
+            const picked = (slotMin ?? 30) === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setSlotMin(m);
+                  commitSlot(m);
+                }}
+                className={`h-10 rounded-[10px] text-[14px] font-medium press-scale transition-colors tabular-nums ${
+                  picked
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                    : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                }`}
+              >
+                {m} мин
+              </button>
+            );
+          })}
         </div>
       </Group>
     </BrigadeSectionShell>
