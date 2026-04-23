@@ -19,6 +19,7 @@
 import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Info,
@@ -28,11 +29,10 @@ import {
   CalendarDays,
   Clock,
   Trash2,
-  Check,
-  X,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   useMasters,
   useTeams,
@@ -62,7 +62,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const isNew = id === "new";
   const router = useRouter();
   const confirm = useConfirm();
-  const { teams, deleteTeam } = useTeams();
+  const { teams, upsertTeam, deleteTeam } = useTeams();
   const { masters, setMasters } = useMasters();
   const { services } = useServices();
   const { appointments, upsertAppointment } = useAppointments();
@@ -88,16 +88,22 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
     return parts.filter(Boolean).join(" · ");
   }, [team]);
 
-  const citiesPreview = useMemo(() => {
-    if (!team) return "";
+  // Previews now also return a `warning` flag so the row can tint its
+  // subtitle yellow + show a ⚠ icon when the subsection isn't set up.
+  // Consistent with the brigades-list row treatment.
+  const citiesPreview = useMemo((): { text: string; warning: boolean } => {
+    if (!team) return { text: "", warning: false };
     const list = team.cities ?? [];
-    if (list.length === 0) return "не заданы";
-    if (list.length <= 3) return list.join(", ");
-    return `${list.slice(0, 2).join(", ")} и ещё ${list.length - 2}`;
+    if (list.length === 0) return { text: "не заданы", warning: true };
+    const text =
+      list.length <= 3
+        ? list.join(", ")
+        : `${list.slice(0, 2).join(", ")} и ещё ${list.length - 2}`;
+    return { text, warning: false };
   }, [team]);
 
-  const mastersPreview = useMemo(() => {
-    if (!team) return "";
+  const mastersPreview = useMemo((): { text: string; warning: boolean } => {
+    if (!team) return { text: "", warning: false };
     const leadIds = getTeamLeadIds(team);
     const leadNames = leadIds
       .map((lid) => masters.find((m) => m.id === lid)?.full_name ?? "")
@@ -109,17 +115,22 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
         : leadNames.length === 1
           ? leadNames[0]
           : `${leadNames[0]} и ещё ${leadNames.length - 1}`;
-    const helperPart = helperCount > 0 ? ` · ${helperCount} ${helperWord(helperCount)}` : "";
-    return `${leadPart}${helperPart}`;
+    const helperPart =
+      helperCount > 0 ? ` · ${helperCount} ${helperWord(helperCount)}` : "";
+    const warning = leadNames.length === 0 && helperCount === 0;
+    return { text: `${leadPart}${helperPart}`, warning };
   }, [team, masters]);
 
-  const servicesPreview = useMemo(() => {
-    if (!team) return "";
+  const servicesPreview = useMemo((): { text: string; warning: boolean } => {
+    if (!team) return { text: "", warning: false };
     const count = services.filter(
       (s) => s.is_active !== false && s.brigade_ids.includes(team.id),
     ).length;
-    if (count === 0) return "не заданы — доступны все";
-    return `${count} ${serviceWord(count)}`;
+    if (count === 0)
+      // Intentionally NOT a warning — zero-services reads as "доступны все"
+      // which is a valid brigade setup.
+      return { text: "не заданы — доступны все", warning: false };
+    return { text: `${count} ${serviceWord(count)}`, warning: false };
   }, [team, services]);
 
   const calendarPreview = useMemo(() => {
@@ -231,21 +242,24 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               icon={<MapPin size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-red)]"
               title="Метки"
-              value={citiesPreview}
+              value={citiesPreview.text}
+              warning={citiesPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/cities`)}
             />
             <NavRow
               icon={<UsersIcon size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
               title="Мастера"
-              value={mastersPreview}
+              value={mastersPreview.text}
+              warning={mastersPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/masters`)}
             />
             <NavRow
               icon={<Wrench size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-purple)]"
               title="Услуги"
-              value={servicesPreview}
+              value={servicesPreview.text}
+              warning={servicesPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/services`)}
             />
           </ListGroup>
@@ -267,22 +281,28 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             />
           </ListGroup>
 
-          {/* Status toggle — not worth its own subroute */}
+          {/* Status toggle — lives inline so one tap flips active/archive
+              without leaving this page. */}
           <ListGroup>
-            <div className="flex items-center justify-between px-4 py-3 min-h-[48px]">
-              <div className="flex items-center gap-2">
-                {team.active ? (
-                  <span className="inline-flex items-center gap-1 text-[15px] text-[var(--label)]">
-                    <Check size={14} className="text-[var(--system-green)]" strokeWidth={3} />
-                    Бригада активна
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[15px] text-[var(--label-secondary)]">
-                    <X size={14} strokeWidth={2.5} />
-                    В архиве
-                  </span>
-                )}
+            <div className="flex items-center gap-3 px-4 min-h-[56px]">
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] text-[var(--label)]">
+                  Бригада активна
+                </div>
+                <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
+                  {team.active
+                    ? "Показывается в списках, календаре и выборе."
+                    : "Скрыта — можно вернуть из архива в любой момент."}
+                </div>
               </div>
+              <IOSSwitch
+                checked={team.active !== false}
+                onChange={(next) => {
+                  haptic("tap");
+                  upsertTeam({ ...team, active: next });
+                }}
+                ariaLabel="Активна"
+              />
             </div>
           </ListGroup>
 
@@ -330,12 +350,16 @@ function NavRow({
   tone,
   title,
   value,
+  warning,
   onClick,
 }: {
   icon: React.ReactNode;
   tone: string;
   title: string;
   value: string;
+  /** When true, subtitle tints yellow and gets a ⚠ icon — signals
+   *  that this subsection isn't set up yet. */
+  warning?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -357,8 +381,21 @@ function NavRow({
           {title}
         </span>
         {value && (
-          <span className="block text-[13px] text-[var(--label-secondary)] truncate mt-0.5">
-            {value}
+          <span
+            className={`text-[13px] truncate mt-0.5 flex items-center gap-1 ${
+              warning
+                ? "text-[color:var(--system-yellow-strong,#B78600)] font-medium"
+                : "text-[var(--label-secondary)]"
+            }`}
+          >
+            {warning && (
+              <AlertTriangle
+                size={12}
+                strokeWidth={2.5}
+                className="shrink-0 text-[var(--system-yellow)] fill-[var(--system-yellow)]"
+              />
+            )}
+            <span className="truncate">{value}</span>
           </span>
         )}
       </span>
