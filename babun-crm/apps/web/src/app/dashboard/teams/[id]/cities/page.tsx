@@ -23,6 +23,7 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   MapPin,
+  Pencil,
   Plus,
   Search,
   Star,
@@ -52,11 +53,16 @@ function normalize(s: string): string {
 
 export default function BrigadeCitiesPage({ params }: RouteParams) {
   const { id } = use(params);
-  const { teams, upsertTeam } = useTeams();
+  const { teams, upsertTeam, setTeams } = useTeams();
   const { cities, setCities } = useCities();
   const team = teams.find((t) => t.id === id);
 
   const [addOpen, setAddOpen] = useState(false);
+  // Phase I40 — edit mode for an existing label; null when not editing.
+  const [editing, setEditing] = useState<{
+    name: string;
+    color: string;
+  } | null>(null);
   const [menu, setMenu] = useState<{
     cityName: string;
     anchor: { x: number; y: number };
@@ -167,12 +173,71 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
     upsertTeam({ ...team, default_city: nextBase });
   };
 
+  // Phase I40 — edit an existing label (rename + colour). The label
+  // name lives in three places: the global library (City), every
+  // brigade's cities[] array that references it, and default_city
+  // fields when this label is a brigade's primary. We cascade the
+  // rename through all three so no brigade is left with a dangling
+  // reference. dayCities (per-date overrides) are intentionally left
+  // alone — their user-visible colour comes from a library lookup by
+  // name, so when the library entry renames, the dashboard picker's
+  // dangling entries just stop resolving (UX: user re-taps to
+  // re-assign). Cascading those too would require touching another
+  // context; defer.
+  const editCity = (oldName: string, newName: string, color: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    haptic("tap");
+
+    // 1. Library — find the City by the OLD name, update its name
+    //    and color. If a different City with the new name already
+    //    exists, we merge: drop the old one, keep the new.
+    const existingWithNewName =
+      trimmed.toLowerCase() !== oldName.toLowerCase() &&
+      cities.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+    let nextLibrary: City[];
+    if (existingWithNewName) {
+      nextLibrary = cities
+        .filter((c) => c.name !== oldName)
+        .map((c) =>
+          c.id === existingWithNewName.id ? { ...c, color } : c,
+        );
+    } else {
+      nextLibrary = cities.map((c) =>
+        c.name === oldName ? { ...c, name: trimmed, color } : c,
+      );
+    }
+    setCities(nextLibrary);
+
+    // 2. Every brigade that references the old name: replace in
+    //    cities[] and fix default_city if it matches.
+    if (oldName !== trimmed) {
+      const nextTeams = teams.map((t) => {
+        const usesOld = (t.cities ?? []).includes(oldName);
+        const baseWasOld = t.default_city === oldName;
+        if (!usesOld && !baseWasOld) return t;
+        const nextCities = (t.cities ?? []).map((n) =>
+          n === oldName ? trimmed : n,
+        );
+        // Dedup in case the brigade already had both.
+        const deduped = Array.from(new Set(nextCities));
+        return {
+          ...t,
+          cities: deduped,
+          default_city: baseWasOld ? trimmed : t.default_city,
+        };
+      });
+      setTeams(nextTeams);
+    }
+
+    setEditing(null);
+  };
+
   const openMenu = (cityName: string, anchor: { x: number; y: number }) => {
     setMenu({ cityName, anchor });
   };
 
-  // Context menu — toggle «Сделать основным» / «Снять основной»,
-  // plus destructive «Удалить».
+  // Context menu — toggle primary, edit, delete.
   const menuOptions: ContextMenuOption[] = menu
     ? [
         {
@@ -193,6 +258,17 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
             />
           ),
           onSelect: () => setBase(menu.cityName),
+        },
+        {
+          label: "Редактировать",
+          icon: <Pencil size={18} strokeWidth={2} />,
+          onSelect: () => {
+            const libraryCity = cities.find((c) => c.name === menu.cityName);
+            setEditing({
+              name: menu.cityName,
+              color: libraryCity?.color ?? "#8E8E93",
+            });
+          },
         },
         {
           label: "Удалить",
@@ -328,10 +404,15 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
       )}
 
       <AddCityModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
+        open={addOpen || editing !== null}
+        onClose={() => {
+          setAddOpen(false);
+          setEditing(null);
+        }}
         onPickExisting={(name) => addCity(name, "#8E8E93")}
         onCreateNew={(name, color) => addCity(name, color)}
+        onUpdate={editCity}
+        initial={editing}
         suggestions={usedInOtherBrigades}
       />
 
@@ -486,30 +567,44 @@ function AddCityModal({
   onClose,
   onPickExisting,
   onCreateNew,
+  onUpdate,
+  initial,
   suggestions,
 }: {
   open: boolean;
   onClose: () => void;
   onPickExisting: (name: string) => void;
   onCreateNew: (name: string, color: string) => void;
+  /** When `initial` is provided the modal goes into edit mode: title
+   *  changes, suggestions are hidden, and submit calls `onUpdate`. */
+  onUpdate?: (oldName: string, newName: string, color: string) => void;
+  initial?: { name: string; color: string } | null;
   /** Tags the user already added for OTHER brigades in this account.
    *  Replaces the old "справочник" language — SaaS-correct source of
    *  truth: only your own history, not a universal catalogue. */
   suggestions: City[];
 }) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<string>(CITY_COLOR_PRESETS[0].value);
+  const isEdit = Boolean(initial);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [color, setColor] = useState<string>(
+    initial?.color ?? CITY_COLOR_PRESETS[0].value,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) {
       setName("");
       setColor(CITY_COLOR_PRESETS[0].value);
+    } else if (initial) {
+      setName(initial.name);
+      setColor(initial.color);
     } else {
+      setName("");
+      setColor(CITY_COLOR_PRESETS[0].value);
       const t = window.setTimeout(() => inputRef.current?.focus(), 40);
       return () => window.clearTimeout(t);
     }
-  }, [open]);
+  }, [open, initial]);
 
   useEffect(() => {
     if (!open) return;
@@ -527,22 +622,34 @@ function AddCityModal({
 
   const trimmed = name.trim();
   const matchingSuggestions = useMemo(
-    () =>
-      suggestions.filter((c) => {
+    () => {
+      if (isEdit) return [];
+      return suggestions.filter((c) => {
         if (!trimmed) return true;
         return normalize(c.name).includes(normalize(trimmed));
-      }),
-    [suggestions, trimmed],
+      });
+    },
+    [suggestions, trimmed, isEdit],
   );
-  const exactMatch = suggestions.find(
-    (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
-  );
-  const canCreate = trimmed.length > 0 && !exactMatch;
+  const exactMatch =
+    !isEdit &&
+    suggestions.find(
+      (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+  // In edit mode the trimmed name is allowed to stay the same — user
+  // might just be changing the colour.
+  const canSubmit = isEdit
+    ? trimmed.length > 0
+    : trimmed.length > 0 && !exactMatch;
 
   if (!open) return null;
 
   const submit = () => {
-    if (!canCreate) return;
+    if (!canSubmit) return;
+    if (isEdit && initial && onUpdate) {
+      onUpdate(initial.name, trimmed, color);
+      return;
+    }
     onCreateNew(trimmed, color);
   };
 
@@ -557,10 +664,12 @@ function AddCityModal({
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Новая метка
+            {isEdit ? "Редактировать метку" : "Новая метка"}
           </div>
           <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
-            Город, район, направление — что угодно. Появится в&nbsp;календаре в&nbsp;выбранном цвете.
+            {isEdit
+              ? "Поменяйте название или цвет. Применится во всех бригадах, где используется эта метка."
+              : "Город, район, направление — что угодно. Появится в календаре в выбранном цвете."}
           </div>
         </div>
 
@@ -580,7 +689,7 @@ function AddCityModal({
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   if (exactMatch) onPickExisting(exactMatch.name);
-                  else if (canCreate) submit();
+                  else if (canSubmit) submit();
                 }
               }}
               placeholder="Название метки"
@@ -634,11 +743,14 @@ function AddCityModal({
             </div>
           )}
 
-          {/* Create-new flow — only when the typed name doesn't already exist. */}
-          {canCreate && (
+          {/* Create-new / edit flow. In edit mode the suggestion list
+              is hidden (isEdit blocks matchingSuggestions), so this
+              panel is always shown. In create mode it appears only
+              when the typed name doesn't already exist in the library. */}
+          {(isEdit || canSubmit) && (
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
-                Создать новый
+                {isEdit ? "Цвет и название" : "Создать новый"}
               </div>
               <div className="bg-[var(--surface-card)] rounded-[10px] p-3 space-y-3">
                 <div>
@@ -706,10 +818,14 @@ function AddCityModal({
           <button
             type="button"
             onClick={submit}
-            disabled={!canCreate}
+            disabled={!canSubmit}
             className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
           >
-            {canCreate ? `Создать «${trimmed}»` : "Создать"}
+            {isEdit
+              ? "Сохранить"
+              : canSubmit
+                ? `Создать «${trimmed}»`
+                : "Создать"}
           </button>
         </div>
       </div>
