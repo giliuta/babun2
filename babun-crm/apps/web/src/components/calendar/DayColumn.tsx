@@ -372,12 +372,21 @@ function DayColumnInner({
           borderTop: cityCfg
             ? `3px solid ${cityCfg.color}`
             : "3px solid transparent",
-          backgroundColor: isToday
-            ? "rgba(124,58,237,0.04)"
-            : isWeekend
-              ? "rgba(60,60,67,0.02)"
-              : cityCfg
-                ? `${cityCfg.bg}60` // ~38% tint of the city background
+          // Phase I41 — label colour paints the whole day column
+          // lightly. cityCfg.bg / bgToday are already rgba(…,0.08) /
+          // rgba(…,0.16) from cityConfigFromColor, so using them
+          // directly gives a consistent, subtle hue regardless of
+          // whether the label is a hardcoded city or a tenant-
+          // created tag. When no label is picked the column falls
+          // back to today's purple / weekend grey / plain white.
+          backgroundColor: cityCfg
+            ? isToday
+              ? cityCfg.bgToday
+              : cityCfg.bg
+            : isToday
+              ? "rgba(124,58,237,0.04)"
+              : isWeekend
+                ? "rgba(60,60,67,0.02)"
                 : "#FFFFFF",
           // Hourly grid — hairlines at each hour line, softer at half-hour.
           backgroundImage: [
@@ -387,6 +396,40 @@ function DayColumnInner({
           contain: "layout paint",
         }}
       >
+        {/* Phase I41 — past-time tint. Past days get the whole column
+            slightly darker so the dispatcher scanning a week sees at
+            a glance what's already behind. On today's column we tint
+            only up to the now-line. Sits above the base background
+            but below out-of-hours / appointment layers. */}
+        {(() => {
+          const todayYmd = formatDateKey(today);
+          const isPastDay = !isToday && dateKey < todayYmd;
+          const isFutureDay = !isToday && dateKey > todayYmd;
+          if (isFutureDay) return null;
+          if (isPastDay) {
+            return (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: "rgba(60,60,67,0.06)" }}
+              />
+            );
+          }
+          // Today — overlay from top of the window to the current minute.
+          if (currentTimeMinutes <= windowStartMin) return null;
+          const height = windowedMins(
+            Math.min(currentTimeMinutes, windowEndMin),
+          );
+          return (
+            <div
+              className="absolute left-0 right-0 top-0 pointer-events-none"
+              style={{
+                height,
+                background: "rgba(60,60,67,0.05)",
+              }}
+            />
+          );
+        })()}
+
         {/* Out-of-hours overlay: BEFORE work start (but only within window) */}
         {workStart > windowStartMin && (
           <div
