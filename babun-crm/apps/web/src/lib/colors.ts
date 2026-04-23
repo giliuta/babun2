@@ -1,11 +1,7 @@
 // Unified colour palette used everywhere a user picks a colour —
 // brigade tile, city/Метка tile, service-group tile, service tile.
-// Previously each domain had its own ad-hoc palette (TEAM_COLORS at
-// Tailwind hexes, CITY_COLOR_PRESETS at iOS system hexes, etc.),
-// which looked inconsistent and broke when the user asked to "use
-// the same colours everywhere". Single source of truth → 13 iOS
-// system colours covering the rainbow, each with a Russian label
-// for a11y.
+// 14 iOS system colours laid out as a clean 7×2 grid. Each carries
+// a Russian label for a11y.
 
 export interface ColorPreset {
   name: string;
@@ -26,6 +22,7 @@ export const PRESET_COLORS: ColorPreset[] = [
   { name: "Мята",        value: "#00C7BE" },
   { name: "Бирюзовый",   value: "#30B0C7" },
   { name: "Коричневый",  value: "#A2845E" },
+  { name: "Серый",       value: "#8E8E93" },
 ];
 
 export const PRESET_COLOR_VALUES: string[] = PRESET_COLORS.map((c) => c.value);

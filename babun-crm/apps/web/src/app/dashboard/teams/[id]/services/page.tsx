@@ -600,6 +600,15 @@ function ServiceFormModal({
   const [showMaterials, setShowMaterials] = useState(false);
 
   const [inlineCatOpen, setInlineCatOpen] = useState(false);
+  // Sprint 033 Phase I21 — groups created inline during this modal
+  // session aren't in the scoped `categories` prop yet (brigade-
+  // scoped list requires at least 1 service in the brigade using
+  // the group). To give the user immediate feedback that their
+  // new group exists AND is selected, we stash just-created
+  // categories locally and render them alongside the prop list.
+  // They vanish on modal close — but the service they just created
+  // pulls the group into `brigadeCategories` on next open anyway.
+  const [pendingCategories, setPendingCategories] = useState<ServiceCategory[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -634,11 +643,20 @@ function ServiceFormModal({
       setShowTiers(false);
       setShowMaterials(false);
     }
+    // Reset pending cats whenever the modal (re)opens so we don't
+    // carry orphans from a previous cancelled session.
+    setPendingCategories([]);
     const t = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
   });
 
   useEscClose(open, onClose);
+
+  // Union of scoped-from-brigade + just-created-here. Shown as pills.
+  const visibleCategories = useMemo(
+    () => [...categories, ...pendingCategories],
+    [categories, pendingCategories],
+  );
 
   // When user picks a group and hasn't manually overridden the colour,
   // the service adopts the group's colour. This is the common case —
@@ -647,14 +665,14 @@ function ServiceFormModal({
     haptic("tap");
     setCategoryId(id);
     if (!colorManuallyPicked) {
-      const cat = categories.find((c) => c.id === id);
+      const cat = visibleCategories.find((c) => c.id === id);
       if (cat) setColor(cat.color);
     }
   };
 
   if (!open) return null;
 
-  const hasCategories = categories.length > 0;
+  const hasCategories = visibleCategories.length > 0;
   const canSubmit =
     name.trim().length > 0 && min > 0 && categoryId.length > 0;
 
@@ -775,7 +793,7 @@ function ServiceFormModal({
             </label>
             {hasCategories ? (
               <div className="mt-1 flex flex-wrap gap-1.5">
-                {categories.map((c) => {
+                {visibleCategories.map((c) => {
                   const picked = c.id === categoryId;
                   return (
                     <button
@@ -888,11 +906,15 @@ function ServiceFormModal({
               </label>
               <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pr-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
                 <input
-                  type="number"
-                  min={1}
-                  step={5}
-                  value={min}
-                  onChange={(e) => setMin(Number(e.target.value) || 0)}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={min === 0 ? "" : String(min)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setMin(digits === "" ? 0 : parseInt(digits, 10));
+                  }}
+                  placeholder="60"
                   className="flex-1 min-w-0 h-11 pl-3 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
                 />
                 <span className="text-[13px] text-[var(--label-secondary)]">
@@ -909,11 +931,15 @@ function ServiceFormModal({
                   €
                 </span>
                 <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value) || 0)}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={price === 0 ? "" : String(price)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setPrice(digits === "" ? 0 : parseInt(digits, 10));
+                  }}
+                  placeholder="0"
                   className="flex-1 min-w-0 h-11 pr-3 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
                 />
               </div>
@@ -938,15 +964,17 @@ function ServiceFormModal({
                 </span>
                 <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
                   <input
-                    type="number"
-                    min={2}
-                    step={1}
-                    value={tier.min_qty}
-                    onChange={(e) =>
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={tier.min_qty === 0 ? "" : String(tier.min_qty)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
                       updateTier(idx, {
-                        min_qty: Math.max(2, Number(e.target.value) || 2),
-                      })
-                    }
+                        min_qty: digits === "" ? 0 : parseInt(digits, 10),
+                      });
+                    }}
+                    placeholder="2"
                     className="w-10 h-9 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
                   />
                   <span className="text-[12px] text-[var(--label-secondary)]">
@@ -961,15 +989,17 @@ function ServiceFormModal({
                     €
                   </span>
                   <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={tier.price_per_unit}
-                    onChange={(e) =>
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={tier.price_per_unit === 0 ? "" : String(tier.price_per_unit)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
                       updateTier(idx, {
-                        price_per_unit: Math.max(0, Number(e.target.value) || 0),
-                      })
-                    }
+                        price_per_unit: digits === "" ? 0 : parseInt(digits, 10),
+                      });
+                    }}
+                    placeholder="0"
                     className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
                   />
                 </div>
@@ -1021,15 +1051,17 @@ function ServiceFormModal({
                     €
                   </span>
                   <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={m.amount}
-                    onChange={(e) =>
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={m.amount === 0 ? "" : String(m.amount)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
                       updateMaterial(m.id, {
-                        amount: Math.max(0, Number(e.target.value) || 0),
-                      })
-                    }
+                        amount: digits === "" ? 0 : parseInt(digits, 10),
+                      });
+                    }}
+                    placeholder="0"
                     className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
                   />
                 </div>
@@ -1097,8 +1129,15 @@ function ServiceFormModal({
         onClose={() => setInlineCatOpen(false)}
         onSubmit={(n, c) => {
           const id = onCreateCategory(n, c);
+          // Mirror the brand-new category into the local pill list so
+          // the user sees it as an immediately-selectable pill and
+          // the empty-state prompt goes away even though the brigade-
+          // scoped `categories` prop hasn't re-scoped yet.
+          setPendingCategories((prev) => [
+            ...prev,
+            { id, name: n.trim(), color: c },
+          ]);
           setInlineCatOpen(false);
-          // Auto-select the brand-new category.
           setCategoryId(id);
           if (!colorManuallyPicked) setColor(c);
         }}
