@@ -4,16 +4,17 @@
 // Instant commit on blur. Some fields (hybrid %) show only when their
 // parent model is selected, to keep the page compact.
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useMasters } from "@/app/dashboard/layout";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   PAYMENT_METHOD_LABELS,
   SALARY_MODEL_HINTS,
   SALARY_MODEL_LABELS,
   SALARY_PERIOD_LABELS,
   SALARY_UNIT,
-  type Master,
+  appendAudit,
   type MasterSalary,
   type PaymentMethod,
   type SalaryModel,
@@ -68,7 +69,17 @@ export default function MasterSalaryPage({ params }: RouteParams) {
   const commitModel = (next: SalaryModel) => {
     if (next === salary.model) return;
     haptic("tap");
-    patch({ model: next });
+    const before = SALARY_MODEL_LABELS[salary.model];
+    const after = SALARY_MODEL_LABELS[next];
+    upsertMaster(
+      appendAudit(
+        { ...master, salary: { ...salary, model: next } as MasterSalary },
+        {
+          action: "salary_changed",
+          summary: `Модель ЗП: «${before}» → «${after}»`,
+        },
+      ),
+    );
   };
   const commitPeriod = (next: SalaryPeriod) => {
     if (next === (salary.period ?? "monthly")) return;
@@ -237,7 +248,80 @@ export default function MasterSalaryPage({ params }: RouteParams) {
           </div>
         </Section>
       )}
+
+      {/* ── БАНК / РЕКВИЗИТЫ ─────────────────────────────────────── */}
+      <Section
+        title="Банк и реквизиты"
+        footer="IBAN / TIN хранятся на сотруднике. Резидент Кипра — флажок, влияющий на VAT 19% в payroll."
+      >
+        <TextFieldRow
+          label="IBAN"
+          value={salary.iban ?? ""}
+          placeholder="CY__ ____ ____ ____"
+          onCommit={(v) => patch({ iban: v.trim() || undefined })}
+        />
+        <TextFieldRow
+          label="Банк"
+          value={salary.bank_name ?? ""}
+          placeholder="Bank of Cyprus / Hellenic / Revolut"
+          onCommit={(v) => patch({ bank_name: v.trim() || undefined })}
+        />
+        <TextFieldRow
+          label="TIN / АФМ"
+          value={salary.tax_number ?? ""}
+          placeholder="Налоговый номер"
+          onCommit={(v) => patch({ tax_number: v.trim() || undefined })}
+        />
+        <div className="flex items-center gap-3 min-h-[48px] px-4 border-t border-[var(--separator)]">
+          <span className="text-[15px] text-[var(--label)] flex-1">
+            Резидент Кипра
+          </span>
+          <span className="text-[12px] text-[var(--label-tertiary)]">
+            {salary.tax_resident ? "применять VAT 19%" : "не применять"}
+          </span>
+          <IOSSwitch
+            checked={salary.tax_resident ?? false}
+            onChange={(next) => patch({ tax_resident: next })}
+            ariaLabel="Резидент Кипра"
+          />
+        </div>
+      </Section>
     </MasterSectionShell>
+  );
+}
+
+function TextFieldRow({
+  label,
+  value,
+  placeholder,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onCommit: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+  return (
+    <label className="flex items-center gap-3 min-h-[44px] px-4 border-t border-[var(--separator)] first:border-t-0">
+      <span className="text-[15px] text-[var(--label)] w-[100px] shrink-0">
+        {label}
+      </span>
+      <input
+        type="text"
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={(e) => {
+          if (e.target.value !== value) onCommit(e.target.value);
+        }}
+        placeholder={placeholder}
+        className="flex-1 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] text-right focus:outline-none"
+        maxLength={80}
+      />
+    </label>
   );
 }
 

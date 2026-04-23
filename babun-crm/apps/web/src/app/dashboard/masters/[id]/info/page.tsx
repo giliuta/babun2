@@ -19,18 +19,31 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Eye, EyeOff, KeyRound, RefreshCw, UserMinus } from "lucide-react";
+import {
+  Copy,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Paperclip,
+  Plus,
+  RefreshCw,
+  Trash2,
+  UserMinus,
+  X,
+} from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useMasters } from "@/app/dashboard/layout";
 import {
   ACCOUNT_STATUS_LABELS,
   ACCOUNT_STATUS_TONE,
+  appendAudit,
   defaultPermissionsForRole,
   generateId,
   generatePassword,
   getInitials,
   type AccountStatus,
   type Master,
+  type MasterDocument,
 } from "@/lib/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 
@@ -86,6 +99,10 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Territory + Documents (local chip/row editors)
+  const [cityInput, setCityInput] = useState("");
+  const [newDocOpen, setNewDocOpen] = useState(false);
+
   useEffect(() => {
     if (!isNew && existing) {
       setFullName(existing.full_name);
@@ -122,7 +139,28 @@ export default function MasterInfoPage({ params }: RouteParams) {
     const trimmed = next.trim();
     const current = (existing[field] as string | undefined) ?? "";
     if (trimmed === current) return;
-    patch({ [field]: optional ? trimmed || undefined : trimmed } as Partial<Master>);
+    // Audit log the change for fields we care about — name/title
+    // changes are business-relevant; contact-field nibbling isn't.
+    const LOGGED: Partial<Record<keyof Master, true>> = {
+      full_name: true,
+      title: true,
+    };
+    let nextMaster: Master = {
+      ...existing,
+      [field]: optional ? trimmed || undefined : trimmed,
+    } as Master;
+    if (LOGGED[field]) {
+      nextMaster = appendAudit(nextMaster, {
+        action: field === "title" ? "title_changed" : "other",
+        summary:
+          field === "full_name"
+            ? `Имя: «${current}» → «${trimmed}»`
+            : field === "title"
+              ? `Должность: «${current || "—"}» → «${trimmed || "—"}»`
+              : `${String(field)} изменено`,
+      });
+    }
+    upsertMaster(nextMaster);
   };
 
   // ── Babun account actions ────────────────────────────────────────
@@ -136,24 +174,43 @@ export default function MasterInfoPage({ params }: RouteParams) {
     setGeneratedPassword(pwd);
     setShowPassword(true);
     haptic("tap");
+    const wasSet = existing.credentials_set ?? false;
     const nextStatus: AccountStatus = "invited";
-    patch({
-      login_email: loginEmail.trim(),
-      credentials_set: true,
-      invite_sent_at: new Date().toISOString(),
-      account_status: nextStatus,
-    });
+    const nextMaster = appendAudit(
+      {
+        ...existing,
+        login_email: loginEmail.trim(),
+        credentials_set: true,
+        invite_sent_at: new Date().toISOString(),
+        account_status: nextStatus,
+      },
+      {
+        action: wasSet ? "credentials_reset" : "credentials_issued",
+        summary: wasSet
+          ? `Пароль сброшен · ${loginEmail.trim()}`
+          : `Выдан доступ · ${loginEmail.trim()}`,
+      },
+    );
+    upsertMaster(nextMaster);
   };
 
   const revokeCredentials = () => {
     if (!existing) return;
     haptic("warning");
     setGeneratedPassword(null);
-    patch({
-      credentials_set: false,
-      account_status: "terminated",
-      terminated_at: new Date().toISOString().slice(0, 10),
-    });
+    const nextMaster = appendAudit(
+      {
+        ...existing,
+        credentials_set: false,
+        account_status: "terminated",
+        terminated_at: new Date().toISOString().slice(0, 10),
+      },
+      {
+        action: "credentials_revoked",
+        summary: "Доступ отозван",
+      },
+    );
+    upsertMaster(nextMaster);
   };
 
   const copyPassword = async () => {
@@ -164,6 +221,55 @@ export default function MasterInfoPage({ params }: RouteParams) {
     } catch {
       // Clipboard may be blocked; user can select text manually.
     }
+  };
+
+  // ── Territory cities (chip editor) ──────────────────────────────
+  const addCity = () => {
+    if (!existing) return;
+    const v = cityInput.trim();
+    if (!v) return;
+    const current = existing.cities ?? [];
+    if (current.includes(v)) {
+      setCityInput("");
+      return;
+    }
+    haptic("tap");
+    upsertMaster({ ...existing, cities: [...current, v] });
+    setCityInput("");
+  };
+  const removeCity = (city: string) => {
+    if (!existing) return;
+    const current = existing.cities ?? [];
+    haptic("tap");
+    upsertMaster({
+      ...existing,
+      cities: current.filter((c) => c !== city),
+    });
+  };
+
+  // ── Documents ────────────────────────────────────────────────────
+  const addDoc = (doc: MasterDocument) => {
+    if (!existing) return;
+    const current = existing.documents ?? [];
+    upsertMaster({ ...existing, documents: [...current, doc] });
+    setNewDocOpen(false);
+  };
+  const updateDoc = (doc: MasterDocument) => {
+    if (!existing) return;
+    const current = existing.documents ?? [];
+    upsertMaster({
+      ...existing,
+      documents: current.map((d) => (d.id === doc.id ? doc : d)),
+    });
+  };
+  const removeDoc = (docId: string) => {
+    if (!existing) return;
+    const current = existing.documents ?? [];
+    haptic("tap");
+    upsertMaster({
+      ...existing,
+      documents: current.filter((d) => d.id !== docId),
+    });
   };
 
   // ── New-master create flow ───────────────────────────────────────
@@ -436,7 +542,394 @@ export default function MasterInfoPage({ params }: RouteParams) {
           </div>
         </Section>
       )}
+
+      {/* ── ТЕРРИТОРИЯ ────────────────────────────────────────────── */}
+      {!isNew && existing && (
+        <Section
+          title="Территория"
+          footer="Личные города. Если пусто — наследует города из бригад."
+        >
+          {(existing.cities ?? []).length === 0 ? (
+            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
+              Пока не указано.
+            </div>
+          ) : (
+            <div className="px-3 py-2 flex flex-wrap gap-1.5">
+              {(existing.cities ?? []).map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-[var(--fill-tertiary)] text-[13px] text-[var(--label)]"
+                >
+                  {c}
+                  <button
+                    type="button"
+                    onClick={() => removeCity(c)}
+                    className="w-5 h-5 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
+                    aria-label={`Убрать ${c}`}
+                  >
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--separator)]">
+            <input
+              type="text"
+              value={cityInput}
+              onChange={(e) => setCityInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCity();
+                }
+              }}
+              placeholder="Добавить город"
+              className="flex-1 h-9 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
+              maxLength={60}
+            />
+            <button
+              type="button"
+              onClick={addCity}
+              disabled={!cityInput.trim()}
+              className="w-9 h-9 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center press-scale disabled:opacity-40"
+              aria-label="Добавить"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+            </button>
+          </div>
+        </Section>
+      )}
+
+      {/* ── ДОКУМЕНТЫ ─────────────────────────────────────────────── */}
+      {!isNew && existing && (
+        <Section
+          title="Документы"
+          footer="Прикрепить скан можно будет когда подключим облако (Supabase Storage). Сейчас хранится имя файла и мета."
+        >
+          {(existing.documents ?? []).length === 0 && !newDocOpen && (
+            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
+              Пока не загружено.
+            </div>
+          )}
+          {(existing.documents ?? []).map((d, i) => (
+            <DocRow
+              key={d.id}
+              doc={d}
+              onChange={updateDoc}
+              onRemove={() => removeDoc(d.id)}
+              last={
+                i === (existing.documents ?? []).length - 1 && !newDocOpen
+              }
+            />
+          ))}
+          {newDocOpen && (
+            <DocEditor
+              onSubmit={addDoc}
+              onCancel={() => setNewDocOpen(false)}
+            />
+          )}
+          {!newDocOpen && (
+            <button
+              type="button"
+              onClick={() => setNewDocOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 min-h-[48px] text-left active:bg-[var(--fill-quaternary)] transition border-t border-[var(--separator)]"
+            >
+              <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <Plus size={15} strokeWidth={2.5} />
+              </span>
+              <span className="text-[14px] font-medium text-[var(--accent)]">
+                Добавить документ
+              </span>
+            </button>
+          )}
+        </Section>
+      )}
+
+      {/* ── ИСТОРИЯ ВХОДОВ ────────────────────────────────────────── */}
+      {!isNew && existing && (
+        <Section
+          title="История входов"
+          footer="Когда подключим Supabase Auth, сюда посыпятся реальные записи — время, устройство, IP."
+        >
+          {(existing.login_history ?? []).length === 0 ? (
+            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
+              Пока нет входов.
+            </div>
+          ) : (
+            (existing.login_history ?? [])
+              .slice()
+              .reverse()
+              .slice(0, 10)
+              .map((ev, i, arr) => (
+                <div
+                  key={`${ev.timestamp}-${i}`}
+                  className={`flex items-center gap-3 px-4 min-h-[44px] ${
+                    i === arr.length - 1 ? "" : "border-b border-[var(--separator)]"
+                  }`}
+                >
+                  <span className="text-[13px] text-[var(--label)] flex-1 tabular-nums">
+                    {formatEventTime(ev.timestamp)}
+                  </span>
+                  <span className="text-[12px] text-[var(--label-tertiary)] truncate max-w-[50%]">
+                    {ev.user_agent ?? ev.ip ?? "—"}
+                  </span>
+                </div>
+              ))
+          )}
+        </Section>
+      )}
+
+      {/* ── ЖУРНАЛ ИЗМЕНЕНИЙ ─────────────────────────────────────── */}
+      {!isNew && existing && (
+        <Section
+          title="Журнал изменений"
+          footer="Кто и когда правил карточку. Показаны последние 20 записей."
+        >
+          {(existing.audit ?? []).length === 0 ? (
+            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
+              Пока пусто.
+            </div>
+          ) : (
+            (existing.audit ?? [])
+              .slice()
+              .reverse()
+              .slice(0, 20)
+              .map((ev, i, arr) => (
+                <div
+                  key={ev.id}
+                  className={`flex items-start gap-3 px-4 py-2 min-h-[44px] ${
+                    i === arr.length - 1 ? "" : "border-b border-[var(--separator)]"
+                  }`}
+                >
+                  <span className="text-[11px] text-[var(--label-tertiary)] w-[72px] shrink-0 tabular-nums mt-0.5">
+                    {formatEventTime(ev.timestamp)}
+                  </span>
+                  <span className="text-[13px] text-[var(--label)] flex-1 leading-snug">
+                    {ev.summary}
+                  </span>
+                </div>
+              ))
+          )}
+        </Section>
+      )}
     </MasterSectionShell>
+  );
+}
+
+function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
+  if (sameDay) {
+    return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  }
+  return d.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ─── Document row + editor ────────────────────────────────────────
+
+function DocRow({
+  doc,
+  onChange,
+  onRemove,
+  last,
+}: {
+  doc: MasterDocument;
+  onChange: (d: MasterDocument) => void;
+  onRemove: () => void;
+  last?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const expires = doc.expires_at ? new Date(doc.expires_at) : null;
+  const now = new Date();
+  const isExpired = expires && expires < now;
+  const isSoon =
+    expires &&
+    !isExpired &&
+    expires.getTime() - now.getTime() < 1000 * 60 * 60 * 24 * 30;
+  return (
+    <div
+      className={`${last ? "" : "border-b border-[var(--separator)]"}`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        className="w-full flex items-center gap-3 px-4 py-3 min-h-[48px] text-left active:bg-[var(--fill-quaternary)] transition"
+      >
+        <span className="flex-1 min-w-0">
+          <span className="block text-[14px] font-medium text-[var(--label)] truncate">
+            {doc.kind || "Документ"}
+          </span>
+          <span className="block text-[12px] text-[var(--label-tertiary)] truncate">
+            {doc.value || "номер не указан"}
+            {doc.file_name ? ` · 📎 ${doc.file_name}` : ""}
+          </span>
+        </span>
+        {(isExpired || isSoon) && (
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+              isExpired
+                ? "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)]"
+                : "bg-[rgba(255,149,0,0.1)] text-[var(--system-orange)]"
+            }`}
+          >
+            {isExpired ? "истёк" : "скоро"}
+          </span>
+        )}
+      </button>
+      {open && (
+        <DocEditor
+          initial={doc}
+          onSubmit={(d) => {
+            onChange(d);
+            setOpen(false);
+          }}
+          onCancel={() => setOpen(false)}
+          onRemove={() => {
+            onRemove();
+            setOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DocEditor({
+  initial,
+  onSubmit,
+  onCancel,
+  onRemove,
+}: {
+  initial?: MasterDocument;
+  onSubmit: (d: MasterDocument) => void;
+  onCancel: () => void;
+  onRemove?: () => void;
+}) {
+  const [kind, setKind] = useState(initial?.kind ?? "");
+  const [value, setValue] = useState(initial?.value ?? "");
+  const [expiresAt, setExpiresAt] = useState(initial?.expires_at ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
+  const [fileName, setFileName] = useState(initial?.file_name);
+  const [fileSize, setFileSize] = useState(initial?.file_size);
+
+  const save = () => {
+    if (!kind.trim()) return;
+    onSubmit({
+      id: initial?.id ?? generateId("doc"),
+      kind: kind.trim(),
+      value: value.trim(),
+      expires_at: expiresAt || undefined,
+      note: note.trim() || undefined,
+      file_name: fileName,
+      file_size: fileSize,
+    });
+  };
+
+  return (
+    <div className="px-4 py-3 bg-[var(--fill-tertiary)] border-t border-[var(--separator)] space-y-2">
+      <input
+        type="text"
+        value={kind}
+        onChange={(e) => setKind(e.target.value)}
+        placeholder="Тип · Паспорт / Права / Work permit"
+        className="w-full h-10 px-3 rounded-[10px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
+        maxLength={60}
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Номер / серия"
+        className="w-full h-10 px-3 rounded-[10px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
+        maxLength={80}
+      />
+      <div className="flex items-center gap-2">
+        <span className="text-[13px] text-[var(--label-secondary)] shrink-0">
+          Срок
+        </span>
+        <input
+          type="date"
+          value={expiresAt}
+          onChange={(e) => setExpiresAt(e.target.value)}
+          className="flex-1 h-10 px-3 rounded-[10px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] focus:outline-none tabular-nums"
+        />
+      </div>
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Заметка (опционально)"
+        rows={2}
+        maxLength={200}
+        className="w-full px-3 py-2 rounded-[10px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none"
+      />
+      <label className="flex items-center gap-2 h-10 px-3 rounded-[10px] bg-[var(--surface-card)] cursor-pointer">
+        <Paperclip size={14} className="text-[var(--label-secondary)]" />
+        <span className="text-[13px] text-[var(--label-secondary)] flex-1 truncate">
+          {fileName ? fileName : "Прикрепить скан (имя файла запомнится)"}
+        </span>
+        {fileName && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setFileName(undefined);
+              setFileSize(undefined);
+            }}
+            className="text-[12px] text-[var(--system-red)]"
+          >
+            убрать
+          </button>
+        )}
+        <input
+          type="file"
+          className="hidden"
+          accept="image/*,application/pdf"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setFileName(f.name);
+            setFileSize(f.size);
+          }}
+        />
+      </label>
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={save}
+          disabled={!kind.trim()}
+          className="flex-1 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:opacity-40"
+        >
+          Сохранить
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-10 px-4 rounded-full bg-[var(--fill-primary)] text-[var(--label)] text-[14px] press-scale"
+        >
+          Отмена
+        </button>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="h-10 w-10 rounded-full bg-[var(--fill-primary)] text-[var(--system-red)] flex items-center justify-center press-scale"
+            aria-label="Удалить"
+          >
+            <Trash2 size={15} strokeWidth={2} />
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -27,7 +27,11 @@ import {
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import IOSSwitch from "@/components/ui/IOSSwitch";
-import { useMasters, useTeams } from "@/app/dashboard/layout";
+import {
+  useAppointments,
+  useMasters,
+  useTeams,
+} from "@/app/dashboard/layout";
 import {
   ACCOUNT_STATUS_LABELS,
   PERMISSION_GROUPS,
@@ -51,6 +55,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
   const confirm = useConfirm();
   const { masters, upsertMaster, deleteMaster } = useMasters();
   const { teams, setTeams } = useTeams();
+  const { appointments } = useAppointments();
 
   const master = masters.find((m) => m.id === id);
 
@@ -137,6 +142,35 @@ export default function MasterDetailPage({ params }: RouteParams) {
     }
     return { text: `${on} из ${total} включено`, warning: false };
   }, [master]);
+
+  // Performance — count / revenue for appointments inside this
+  // master's assigned brigades, current calendar month. Computed on
+  // the fly from the `appointments` context so it is always fresh
+  // (no cache to invalidate).
+  const performance = useMemo(() => {
+    if (!master || assignedTeams.length === 0) {
+      return { total: 0, completed: 0, cancelled: 0, revenue: 0 };
+    }
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const teamIds = new Set(assignedTeams.map((t) => t.id));
+    let total = 0;
+    let completed = 0;
+    let cancelled = 0;
+    let revenue = 0;
+    for (const a of appointments) {
+      if (!a.team_id || !teamIds.has(a.team_id)) continue;
+      if (!a.date.startsWith(ym)) continue;
+      total += 1;
+      if (a.status === "completed") {
+        completed += 1;
+        revenue += a.total_amount ?? 0;
+      } else if (a.status === "cancelled") {
+        cancelled += 1;
+      }
+    }
+    return { total, completed, cancelled, revenue };
+  }, [master, assignedTeams, appointments]);
 
   const notesPreview = useMemo((): { text: string; warning: boolean } => {
     if (!master) return { text: "", warning: false };
@@ -288,6 +322,37 @@ export default function MasterDetailPage({ params }: RouteParams) {
             </div>
           </ListGroup>
 
+          {/* Мини-сводка за текущий месяц — считается из визитов в
+              бригадах, где участвует мастер. Не отображается если
+              нет ни одной бригады. */}
+          {assignedTeams.length > 0 && (
+            <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-3">
+              <div className="text-[12px] font-semibold uppercase tracking-wide text-[var(--label-secondary)] mb-2">
+                За этот месяц
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <PerfTile
+                  label="Визитов"
+                  value={String(performance.total)}
+                />
+                <PerfTile
+                  label="Закрыто"
+                  value={String(performance.completed)}
+                />
+                <PerfTile
+                  label="Выручка"
+                  value={`${Math.round(performance.revenue)} €`}
+                />
+              </div>
+              <div className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+                Считается по всем бригадам, где участвует сотрудник.
+                {performance.cancelled > 0 && (
+                  <> Отменённых: {performance.cancelled}.</>
+                )}
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleDelete}
@@ -303,6 +368,19 @@ export default function MasterDetailPage({ params }: RouteParams) {
 }
 
 // ─── Layout primitives ────────────────────────────────────────────────
+
+function PerfTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[10px] bg-[var(--fill-tertiary)] px-2 py-2">
+      <div className="text-[18px] font-semibold text-[var(--label)] tabular-nums leading-none">
+        {value}
+      </div>
+      <div className="text-[11px] text-[var(--label-tertiary)] uppercase tracking-wide mt-1">
+        {label}
+      </div>
+    </div>
+  );
+}
 
 function ListGroup({ children }: { children: React.ReactNode }) {
   return (

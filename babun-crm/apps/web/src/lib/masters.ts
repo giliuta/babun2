@@ -111,6 +111,15 @@ export interface MasterSalary {
   /** Optional free-text clause shown on payroll review ("авансы по
    *  средам", "минус наличные"). */
   note?: string;
+  // ── Sprint 033 Phase I33 — banking details for direct-deposit
+  //    payouts. All optional; empty = pay in cash as per `method`.
+  iban?: string;
+  bank_name?: string;
+  /** Local tax number (TIN / АФМ / ИНН). */
+  tax_number?: string;
+  /** Cyprus-resident flag — used to decide if VAT 19% applies on
+   *  invoices emitted to this master's payroll entries. */
+  tax_resident?: boolean;
 }
 
 export interface MasterDocument {
@@ -119,7 +128,111 @@ export interface MasterDocument {
   kind: string;
   /** Номер / серия / expiry in one free-text line for v1. */
   value: string;
+  /** Expiry date (YYYY-MM-DD). Used to badge "скоро истекает". */
+  expires_at?: string;
+  /** Scan attachment. Phase 1 stores just filename + size for UX
+   *  completeness; real bytes land in Supabase Storage later. */
+  file_name?: string;
+  file_size?: number;
   note?: string;
+}
+
+// ─── Skills & certifications (Sprint 033 Phase I33) ──────────────────
+
+/** Canonical certification kinds that SaaS targets across service
+ *  businesses. `other` lets the tenant type anything. */
+export type CertificationKind =
+  | "fgas"
+  | "electrical"
+  | "driving"
+  | "medical"
+  | "work_permit"
+  | "language"
+  | "other";
+
+export const CERTIFICATION_LABELS: Record<CertificationKind, string> = {
+  fgas: "F-Gas / фреон",
+  electrical: "Электрика",
+  driving: "Водительские права",
+  medical: "Мед. книжка",
+  work_permit: "Разрешение на работу",
+  language: "Языковой сертификат",
+  other: "Другое",
+};
+
+export interface Certification {
+  id: string;
+  kind: CertificationKind;
+  /** Freeform label; used for kind === "other" primarily. */
+  label?: string;
+  number?: string;
+  issued_at?: string; // YYYY-MM-DD
+  expires_at?: string; // YYYY-MM-DD
+  file_name?: string;
+  file_size?: number;
+  note?: string;
+}
+
+// ─── Leaves / отпуск (Sprint 033 Phase I33) ─────────────────────────
+
+export type LeaveKind = "vacation" | "sick" | "personal" | "unpaid";
+
+export const LEAVE_LABELS: Record<LeaveKind, string> = {
+  vacation: "Отпуск",
+  sick: "Больничный",
+  personal: "По личным",
+  unpaid: "Без содержания",
+};
+
+export interface MasterLeave {
+  id: string;
+  /** Inclusive YYYY-MM-DD. */
+  start: string;
+  end: string;
+  kind: LeaveKind;
+  /** If false, this period is excluded from payroll calculations
+   *  (ЗП не начисляется). UI toggles per-leave. */
+  paid: boolean;
+  /** Optional replacement master id — works in this master's
+   *  brigades while they are out. Any active master can stand in,
+   *  not restricted to the same brigade. */
+  substitute_master_id?: string | null;
+  note?: string;
+}
+
+// ─── Login history & audit (Sprint 033 Phase I33) ───────────────────
+
+export interface LoginEvent {
+  timestamp: string;
+  user_agent?: string;
+  ip?: string;
+}
+
+export type AuditAction =
+  | "created"
+  | "role_changed"
+  | "title_changed"
+  | "salary_changed"
+  | "credentials_issued"
+  | "credentials_reset"
+  | "credentials_revoked"
+  | "archived"
+  | "unarchived"
+  | "team_changed"
+  | "leave_added"
+  | "leave_removed"
+  | "certification_changed"
+  | "other";
+
+export interface AuditEvent {
+  id: string;
+  timestamp: string;
+  action: AuditAction;
+  /** Human-readable one-liner shown in the /info audit log. */
+  summary: string;
+  /** Optional actor id — we don't have auth context yet, so most
+   *  events record just "ты сам это сделал". */
+  actor_id?: string;
 }
 
 export type ContractType = "full_time" | "part_time" | "contractor" | "trial";
@@ -233,6 +346,24 @@ export interface Master {
   // Misc.
   documents?: MasterDocument[];
   notes?: string;
+
+  // ── Sprint 033 Phase I33 — SaaS-completeness additions ──────────
+  /** Free-text skills / expertise ("Установка", "F-gas", "Чиллеры"). */
+  skills?: string[];
+  /** Certifications with optional expiry and attached scan. */
+  certifications?: Certification[];
+  /** Personal cities — overrides the brigade defaults for this
+   *  master when computing "кого отправить в этот район". */
+  cities?: string[];
+  /** Holiday / sick / personal leave periods with paid flag and
+   *  optional substitute. Not yet integrated into payroll. */
+  leaves?: MasterLeave[];
+  /** Last N login events. Populated by the Supabase Auth hook once
+   *  we wire it; empty in the localStorage build. */
+  login_history?: LoginEvent[];
+  /** Trailing audit trail (capped at 100). Admin reads this to see
+   *  who changed what. */
+  audit?: AuditEvent[];
 }
 
 export interface Team {
@@ -882,4 +1013,34 @@ export function getTeamMembers(team: Team, masters: Master[]): {
 
 export function generateId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// ─── Audit log helper ──────────────────────────────────────────────
+
+const AUDIT_CAP = 100;
+
+/** Returns a copy of `master` with one new audit entry appended and
+ *  the trailing log trimmed to the cap. Use before calling
+ *  `upsertMaster` when the change is significant enough to log
+ *  (role / salary / credentials / archive / leave). */
+export function appendAudit(
+  master: Master,
+  ev: Omit<AuditEvent, "id" | "timestamp">,
+): Master {
+  const entry: AuditEvent = {
+    ...ev,
+    id: generateId("aud"),
+    timestamp: new Date().toISOString(),
+  };
+  const next = [...(master.audit ?? []), entry];
+  const capped = next.length > AUDIT_CAP ? next.slice(-AUDIT_CAP) : next;
+  return { ...master, audit: capped };
+}
+
+/** Appends a fake login event. Used in dev to exercise the UI before
+ *  Supabase Auth is wired. In production the login hook will do this. */
+export function appendLoginEvent(master: Master, ev: LoginEvent): Master {
+  const next = [...(master.login_history ?? []), ev];
+  const capped = next.length > AUDIT_CAP ? next.slice(-AUDIT_CAP) : next;
+  return { ...master, login_history: capped, last_login_at: ev.timestamp };
 }
