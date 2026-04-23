@@ -157,10 +157,35 @@ function DashboardPageInner() {
     setCurrentMonday(getMonday(new Date()));
   }, []);
 
-  // When teams load (or change), make sure the active team is still valid
+  // When teams load (or change), make sure the active team is still
+  // valid. Sprint 033 Phase I25 — also honour `?team=<id>` from the
+  // URL the first time we see a matching tab, so /dashboard/teams's
+  // "Открыть календарь" deep-link lands on the right brigade.
+  const pendingTeamParamRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const teamParam = sp.get("team");
+    if (teamParam) {
+      pendingTeamParamRef.current = teamParam;
+    }
+  }, []);
   useEffect(() => {
     if (teamTabs.length === 0) {
       setActiveTeamId("");
+      return;
+    }
+    const pending = pendingTeamParamRef.current;
+    if (pending && teamTabs.some((t) => t.id === pending)) {
+      setActiveTeamId(pending);
+      pendingTeamParamRef.current = null;
+      // Strip the param from the URL so the user can refresh without
+      // getting stuck on this brigade.
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("team");
+        window.history.replaceState({}, "", url.toString());
+      }
       return;
     }
     if (!teamTabs.some((t) => t.id === activeTeamId)) {

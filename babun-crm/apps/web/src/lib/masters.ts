@@ -267,6 +267,11 @@ export interface Team {
   calendar_window_start?: string;
   /** Calendar grid end ("23:30"). Undefined = 24:00. */
   calendar_window_end?: string;
+  /** Sprint 033 Phase I25 — explicit display order on the brigades
+   *  list AND on the calendar-tabs header. Records without a value
+   *  sort after those that have one (treated as Infinity). Reordered
+   *  via drag-and-drop on /dashboard/teams. */
+  sort_order?: number;
 }
 
 // ─── Default permissions per role ──────────────────────────────────────

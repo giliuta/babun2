@@ -17,9 +17,27 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  AlertTriangle,
   Archive,
   ArchiveRestore,
+  CalendarDays,
   ChevronRight,
+  Copy,
+  GripVertical,
   Plus,
   Trash2,
   Users,
@@ -37,6 +55,7 @@ import {
   useTeams,
 } from "@/app/dashboard/layout";
 import {
+  generateId,
   getTeamMembers,
   type Master,
   type Team,
@@ -54,21 +73,71 @@ export default function TeamsPage() {
     anchor: { x: number; y: number };
   } | null>(null);
 
-  // Active first, archived last. Stable within each bucket.
+  // Active first, archived last. Within each bucket sort by
+  // sort_order asc (records without a value sink to the end).
   const sortedTeams = useMemo(() => {
     return teams.slice().sort((a, b) => {
       const aActive = a.active !== false ? 0 : 1;
       const bActive = b.active !== false ? 0 : 1;
-      return aActive - bActive;
+      if (aActive !== bActive) return aActive - bActive;
+      const aOrd = a.sort_order ?? Number.POSITIVE_INFINITY;
+      const bOrd = b.sort_order ?? Number.POSITIVE_INFINITY;
+      if (aOrd !== bOrd) return aOrd - bOrd;
+      return (a.created_at ?? "").localeCompare(b.created_at ?? "");
     });
   }, [teams]);
 
+  // DnD — activate drag after 500 ms hold with <6 px movement, so
+  // taps and horizontal swipes still belong to SwipeableRow.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 500, tolerance: 6 },
+    }),
+  );
+
   const openNew = () => router.push("/dashboard/teams/new");
   const openTeam = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
+  const openCalendarForTeam = (team: Team) => {
+    // /dashboard reads the `?team=<id>` param and hydrates
+    // activeTeamId from it on first render.
+    router.push(`/dashboard?team=${encodeURIComponent(team.id)}`);
+  };
 
   const toggleArchived = (team: Team) => {
     haptic("tap");
     upsertTeam({ ...team, active: team.active === false });
+  };
+
+  const duplicateTeam = (team: Team) => {
+    haptic("tap");
+    upsertTeam({
+      ...team,
+      id: generateId("team"),
+      name: `${team.name} (копия)`,
+      sort_order: undefined, // land at the end
+      created_at: new Date().toISOString(),
+    });
+  };
+
+  // Drop handler — reorders sortedTeams (within the active or
+  // archived bucket) and persists sort_order in steps of 10.
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    haptic("tap");
+    const activeTeam = teams.find((t) => t.id === active.id);
+    if (!activeTeam) return;
+    const bucket = sortedTeams.filter(
+      (t) => (t.active !== false) === (activeTeam.active !== false),
+    );
+    const oldIdx = bucket.findIndex((t) => t.id === active.id);
+    const newIdx = bucket.findIndex((t) => t.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(bucket, oldIdx, newIdx);
+    reordered.forEach((t, i) => {
+      const next = (i + 1) * 10;
+      if (t.sort_order !== next) upsertTeam({ ...t, sort_order: next });
+    });
   };
 
   const handleDelete = async (team: Team) => {
@@ -113,6 +182,16 @@ export default function TeamsPage() {
           onSelect: () => openTeam(menu.team),
         },
         {
+          label: "Открыть календарь",
+          icon: <CalendarDays size={18} strokeWidth={2} />,
+          onSelect: () => openCalendarForTeam(menu.team),
+        },
+        {
+          label: "Дублировать",
+          icon: <Copy size={18} strokeWidth={2} />,
+          onSelect: () => duplicateTeam(menu.team),
+        },
+        {
           label: menu.team.active === false ? "Вернуть из архива" : "В архив",
           icon:
             menu.team.active === false ? (
@@ -141,42 +220,24 @@ export default function TeamsPage() {
             <EmptyState onAdd={openNew} />
           ) : (
             <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-              {sortedTeams.map((team) => (
-                <SwipeableRow
-                  key={team.id}
-                  leftActions={[
-                    {
-                      label:
-                        team.active === false
-                          ? "Вернуть"
-                          : "В архив",
-                      color: "bg-[var(--system-yellow)]",
-                      icon:
-                        team.active === false ? (
-                          <ArchiveRestore size={16} strokeWidth={2} />
-                        ) : (
-                          <Archive size={16} strokeWidth={2} />
-                        ),
-                      onSelect: () => toggleArchived(team),
-                    },
-                  ]}
-                  rightActions={[
-                    {
-                      label: "Удалить",
-                      color: "bg-[var(--system-red)]",
-                      icon: <Trash2 size={16} strokeWidth={2} />,
-                      onSelect: () => handleDelete(team),
-                    },
-                  ]}
+              <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={sortedTeams.map((t) => t.id)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <BrigadeRow
-                    team={team}
-                    masters={masters}
-                    onTap={() => openTeam(team)}
-                    onLongPress={(anchor) => setMenu({ team, anchor })}
-                  />
-                </SwipeableRow>
-              ))}
+                  {sortedTeams.map((team) => (
+                    <SortableBrigadeRow
+                      key={team.id}
+                      team={team}
+                      masters={masters}
+                      onTap={() => openTeam(team)}
+                      onLongPress={(anchor) => setMenu({ team, anchor })}
+                      onArchive={() => toggleArchived(team)}
+                      onDelete={() => handleDelete(team)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
               <button
                 type="button"
                 onClick={openNew}
@@ -194,11 +255,15 @@ export default function TeamsPage() {
 
           {teams.length > 0 && (
             <div className="px-4 text-[12px] leading-snug text-[var(--label-tertiary)]">
-              Тап — открыть. Свайп влево —{" "}
+              Тап — открыть. Свайп вправо —{" "}
+              <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
+                в архив
+              </span>
+              . Свайп влево —{" "}
               <span className="text-[var(--system-red)] font-medium">
                 удалить
               </span>
-              . Долгое нажатие — меню.
+              . Долгое нажатие — меню. Потяните за ручку&nbsp;☰ — переместить.
             </div>
           )}
         </div>
@@ -242,6 +307,81 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+// ─── Sortable brigade row ──────────────────────────────────────────────
+
+function SortableBrigadeRow({
+  team,
+  masters,
+  onTap,
+  onLongPress,
+  onArchive,
+  onDelete,
+}: {
+  team: Team;
+  masters: Master[];
+  onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: team.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    position: "relative",
+    boxShadow: isDragging
+      ? "0 10px 24px rgba(0,0,0,0.18)"
+      : undefined,
+    background: isDragging ? "var(--surface-card)" : undefined,
+    opacity: isDragging ? 0.95 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <SwipeableRow
+        leftActions={[
+          {
+            label: team.active === false ? "Вернуть" : "В архив",
+            color: "bg-[var(--system-yellow)]",
+            icon:
+              team.active === false ? (
+                <ArchiveRestore size={16} strokeWidth={2} />
+              ) : (
+                <Archive size={16} strokeWidth={2} />
+              ),
+            onSelect: onArchive,
+          },
+        ]}
+        rightActions={[
+          {
+            label: "Удалить",
+            color: "bg-[var(--system-red)]",
+            icon: <Trash2 size={16} strokeWidth={2} />,
+            onSelect: onDelete,
+          },
+        ]}
+      >
+        <BrigadeRow
+          team={team}
+          masters={masters}
+          onTap={onTap}
+          onLongPress={onLongPress}
+          dragListeners={listeners}
+        />
+      </SwipeableRow>
+    </div>
+  );
+}
+
 // ─── Brigade row ───────────────────────────────────────────────────────
 
 function BrigadeRow({
@@ -249,18 +389,29 @@ function BrigadeRow({
   masters,
   onTap,
   onLongPress,
+  dragListeners,
 }: {
   team: Team;
   masters: Master[];
   onTap: () => void;
   onLongPress: (anchor: { x: number; y: number }) => void;
+  dragListeners?: Record<string, unknown>;
 }) {
-  const handlers = useLongPressOrTap({ onTap, onLongPress });
+  const handlers = useLongPressOrTap({
+    onTap,
+    onLongPress,
+    isInsideDragHandle: (t) =>
+      !!(t as HTMLElement | null)?.closest?.("[data-drag-handle]"),
+  });
   const { lead, helpers } = getTeamMembers(team, masters);
   const memberCount = (lead ? 1 : 0) + helpers.length;
   const archived = team.active === false;
 
-  const subtitle = buildSubtitle({ team, lead, memberCount });
+  const { text: subtitle, needsSetup } = buildSubtitle({
+    team,
+    lead,
+    memberCount,
+  });
 
   return (
     <div
@@ -292,10 +443,36 @@ function BrigadeRow({
             </span>
           )}
         </div>
-        <div className="text-[13px] text-[var(--label-secondary)] truncate">
-          {subtitle}
+        <div
+          className={`text-[13px] truncate flex items-center gap-1 ${
+            needsSetup
+              ? "text-[color:var(--system-yellow-strong,#B78600)] font-medium"
+              : "text-[var(--label-secondary)]"
+          }`}
+        >
+          {needsSetup && (
+            <AlertTriangle
+              size={12}
+              strokeWidth={2.5}
+              className="shrink-0 text-[var(--system-yellow)] fill-[var(--system-yellow)]"
+            />
+          )}
+          <span className="truncate">{subtitle}</span>
         </div>
       </div>
+      {/* Drag handle — dnd-kit listeners live here only. The long-
+          press hook bails out via isInsideDragHandle when the user
+          grabs this element, so the two gestures don't fight. */}
+      {dragListeners && (
+        <span
+          {...(dragListeners as Record<string, (e: React.PointerEvent) => void>)}
+          data-drag-handle
+          aria-label="Перетащить"
+          className="shrink-0 w-10 h-10 flex items-center justify-center text-[var(--label-quaternary)] touch-none"
+        >
+          <GripVertical size={18} strokeWidth={2} />
+        </span>
+      )}
       <ChevronRight
         size={18}
         strokeWidth={2}
@@ -305,8 +482,9 @@ function BrigadeRow({
   );
 }
 
-// Subtitle composer — keeps the row to a single line of secondary
-// text. Priority: lead · cities · (only on empty) member count.
+// Subtitle composer — returns the display string + a flag so the
+// row can tint itself yellow and show a warning icon when the
+// brigade isn't fully set up.
 function buildSubtitle({
   team,
   lead,
@@ -315,7 +493,7 @@ function buildSubtitle({
   team: Team;
   lead: Master | null;
   memberCount: number;
-}): string {
+}): { text: string; needsSetup: boolean } {
   const parts: string[] = [];
   if (lead) parts.push(lead.full_name);
   const cities = (team.cities ?? []).filter(Boolean);
@@ -324,11 +502,15 @@ function buildSubtitle({
     else parts.push(`${cities.slice(0, 2).join(", ")} +${cities.length - 2}`);
   }
   if (parts.length === 0) {
-    return memberCount > 0
-      ? `${memberCount} ${plural(memberCount, ["мастер", "мастера", "мастеров"])} · метки не заданы`
-      : "Нужно настроить";
+    if (memberCount > 0) {
+      return {
+        text: `${memberCount} ${plural(memberCount, ["мастер", "мастера", "мастеров"])} · метки не заданы`,
+        needsSetup: true,
+      };
+    }
+    return { text: "Нужно настроить", needsSetup: true };
   }
-  return parts.join(" · ");
+  return { text: parts.join(" · "), needsSetup: false };
 }
 
 function plural(n: number, forms: [string, string, string]): string {
@@ -344,10 +526,14 @@ function plural(n: number, forms: [string, string, string]): string {
 function useLongPressOrTap({
   onTap,
   onLongPress,
+  isInsideDragHandle,
   delay = 500,
 }: {
   onTap: () => void;
   onLongPress: (anchor: { x: number; y: number }) => void;
+  /** Optional target guard — return true to bail out so the drag
+   *  handle element retains exclusive ownership of the gesture. */
+  isInsideDragHandle?: (target: EventTarget | null) => boolean;
   delay?: number;
 }) {
   const timer = useRef<number | null>(null);
@@ -363,6 +549,10 @@ function useLongPressOrTap({
 
   return {
     onPointerDown: (e: React.PointerEvent) => {
+      if (isInsideDragHandle?.(e.target)) {
+        origin.current = null;
+        return;
+      }
       triggered.current = false;
       origin.current = { x: e.clientX, y: e.clientY };
       timer.current = window.setTimeout(() => {
