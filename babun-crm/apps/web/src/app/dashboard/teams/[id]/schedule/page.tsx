@@ -135,22 +135,143 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   // Per-day expansion state for the inline editor.
   const [expandedDay, setExpandedDay] = useState<WeekdayKey | null>(null);
 
+  // ── Weekly pattern detection (Каждый день / Будни / Свой) ──
+  // Не пресет времени (те мы выпилили) — это форма недели, чтобы
+  // один тап проставлял/убирал выходные сразу.
+  type WeekPattern = "every" | "weekdays" | "custom";
+
+  const WEEKEND_KEYS: WeekdayKey[] = ["sat", "sun"];
+  const weekdayDays: WeekdayKey[] = WEEKDAY_KEYS.filter(
+    (k) => !WEEKEND_KEYS.includes(k),
+  );
+
+  const currentPattern: WeekPattern = (() => {
+    const offDays = WEEKDAY_KEYS.filter((k) => {
+      const ov = dayOverride(k);
+      return !!ov && !ov.is_working;
+    });
+    const hasCustomTime = WEEKDAY_KEYS.some((k) => {
+      const ov = dayOverride(k);
+      return !!ov && ov.is_working;
+    });
+    if (hasCustomTime) return "custom";
+    if (offDays.length === 0) return "every";
+    if (
+      offDays.length === 2 &&
+      offDays.includes("sat") &&
+      offDays.includes("sun")
+    ) {
+      return "weekdays";
+    }
+    return "custom";
+  })();
+
+  const applyPattern = (p: WeekPattern) => {
+    if (p === currentPattern) return;
+    haptic("tap");
+    const overrides = { ...(schedule.overrides ?? {}) };
+    if (p === "every") {
+      // Убираем выходные; custom-time overrides не трогаем
+      for (const k of WEEKDAY_KEYS) {
+        const ov = overrides[k];
+        if (ov && !ov.is_working) delete overrides[k];
+      }
+    } else if (p === "weekdays") {
+      // Выходные Сб+Вс, остальные очищаем от "off"
+      for (const k of weekdayDays) {
+        const ov = overrides[k];
+        if (ov && !ov.is_working) delete overrides[k];
+      }
+      for (const k of WEEKEND_KEYS) {
+        overrides[k] = {
+          is_working: false,
+          start: schedule.start,
+          end: schedule.end,
+          breaks: [],
+        };
+      }
+    }
+    // "custom" — кнопка-индикатор, ничего не меняем
+    persist({ ...schedule, overrides });
+  };
+
+  // Read-only summary of off days for the general header
+  const offDaysList = WEEKDAY_KEYS.filter((k) => {
+    const ov = dayOverride(k);
+    return !!ov && !ov.is_working;
+  })
+    .map((k) => WEEKDAY_NAMES[k])
+    .join(", ");
+
   return (
     <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
+      {/* ── Weekly pattern (shape of the week) ─────────── */}
+      <Group
+        title="Рабочий график"
+        footer={
+          currentPattern === "custom"
+            ? "Настроено вручную по дням ниже. Нажмите «Каждый день» или «Будни», чтобы пересобрать одним движением."
+            : "Это только форма недели. Время начала и окончания — ниже."
+        }
+      >
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-2 grid grid-cols-3 gap-2">
+          {(
+            [
+              { v: "every", label: "Каждый день" },
+              { v: "weekdays", label: "Будни" },
+              { v: "custom", label: "Свой график" },
+            ] as const
+          ).map((opt) => {
+            const picked = currentPattern === opt.v;
+            return (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => applyPattern(opt.v)}
+                disabled={opt.v === "custom"}
+                className={`h-10 rounded-[10px] text-[13px] font-medium press-scale transition-colors ${
+                  picked
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                    : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                } ${opt.v === "custom" && !picked ? "opacity-50 cursor-default" : ""}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </Group>
+
       {/* ── Working hours (general) ─────────────────────── */}
       <Group title="Время работы">
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
-          <div className="grid grid-cols-2 gap-2">
-            <TimePair
-              prefix="с"
-              value={schedule.start ?? "09:00"}
-              onChange={(v) => updateBase("start", v)}
-            />
-            <TimePair
-              prefix="до"
-              value={schedule.end ?? "18:00"}
-              onChange={(v) => updateBase("end", v)}
-            />
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+          <div className="px-3 py-3">
+            <div className="grid grid-cols-2 gap-2">
+              <TimePair
+                prefix="с"
+                value={schedule.start ?? "09:00"}
+                onChange={(v) => updateBase("start", v)}
+              />
+              <TimePair
+                prefix="до"
+                value={schedule.end ?? "18:00"}
+                onChange={(v) => updateBase("end", v)}
+              />
+            </div>
+          </div>
+          <div className="border-t border-[var(--separator)] px-4 py-2.5 flex items-center gap-2">
+            <span className="text-[13px] text-[var(--label-secondary)]">
+              Выходные:
+            </span>
+            <span
+              className={`text-[13px] ${
+                offDaysList
+                  ? "text-[var(--label)] font-medium"
+                  : "text-[var(--label-tertiary)]"
+              }`}
+            >
+              {offDaysList || "нет"}
+            </span>
           </div>
         </div>
       </Group>
@@ -255,6 +376,11 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                     >
                       {stateText}
                     </span>
+                    {isCustom && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--accent-tint)] text-[var(--accent)] shrink-0">
+                        своё
+                      </span>
+                    )}
                     {!isOff && (
                       <ChevronDown
                         size={14}
