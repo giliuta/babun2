@@ -38,7 +38,10 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ChevronDown,
   Check,
+  Copy,
   FolderPlus,
+  GripVertical,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -49,6 +52,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
 import {
   createBlankService,
+  type DurationTier,
   type PriceTier,
   type Service,
   type ServiceCategory,
@@ -57,6 +61,9 @@ import {
 import { PRESET_COLOR_VALUES } from "@/lib/colors";
 import { generateId } from "@/lib/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
+import ContextMenu, {
+  type ContextMenuOption,
+} from "@/components/ui/ContextMenu";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 
@@ -86,6 +93,10 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Service | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [menu, setMenu] = useState<{
+    service: Service;
+    anchor: { x: number; y: number };
+  } | null>(null);
 
   // Services belonging to this brigade (either explicitly listed or
   // legacy entries with empty brigade_ids = all brigades).
@@ -192,6 +203,19 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     upsertService({ ...svc, is_active: false, brigade_ids: [] });
   };
 
+  // Duplicate — copy the service under a new id with "(копия)"
+  // suffix. Exposed from the long-press context menu.
+  const duplicateService = (svc: Service) => {
+    haptic("tap");
+    upsertService({
+      ...svc,
+      id: generateId("svc"),
+      name: `${svc.name} (копия)`,
+      sort_order: undefined, // sit at the end
+      created_at: new Date().toISOString(),
+    });
+  };
+
   // Drop handler — reorders services within one category by writing
   // sort_order on the new sequence. Persists via upsertService.
   const handleDragEnd = (event: DragEndEvent) => {
@@ -264,6 +288,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
                 cat={cat}
                 list={list}
                 onTap={(svc) => setEditing(svc)}
+                onLongPress={(svc, anchor) => setMenu({ service: svc, anchor })}
                 onRemove={removeFromBrigade}
                 onAddService={() => {
                   setAddOpen(true);
@@ -281,6 +306,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
                 }}
                 list={orphanServices}
                 onTap={(svc) => setEditing(svc)}
+                onLongPress={(svc, anchor) => setMenu({ service: svc, anchor })}
                 onRemove={removeFromBrigade}
                 onAddService={() => setAddOpen(true)}
               />
@@ -308,7 +334,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
           )}
 
           <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
-            Тап — редактировать. Долгое нажатие — перетащить. Свайп влево — удалить.
+            Тап — редактировать. Долгое нажатие — меню. Потяните за ручку&nbsp;☰ — переместить. Свайп влево — удалить.
           </div>
         </>
       )}
@@ -354,6 +380,34 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
           return cat.id;
         }}
       />
+      <ContextMenu
+        open={!!menu}
+        onClose={() => setMenu(null)}
+        anchor={menu?.anchor ?? null}
+        title={menu?.service.name}
+        options={
+          menu
+            ? [
+                {
+                  label: "Редактировать",
+                  icon: <Pencil size={18} strokeWidth={2} />,
+                  onSelect: () => setEditing(menu.service),
+                },
+                {
+                  label: "Дублировать",
+                  icon: <Copy size={18} strokeWidth={2} />,
+                  onSelect: () => duplicateService(menu.service),
+                },
+                {
+                  label: "Удалить",
+                  icon: <Trash2 size={18} strokeWidth={2} />,
+                  danger: true,
+                  onSelect: () => removeFromBrigade(menu.service),
+                },
+              ] as ContextMenuOption[]
+            : []
+        }
+      />
     </BrigadeSectionShell>
   );
 }
@@ -364,12 +418,14 @@ function CategorySection({
   cat,
   list,
   onTap,
+  onLongPress,
   onRemove,
   onAddService,
 }: {
   cat: ServiceCategory;
   list: Service[];
   onTap: (svc: Service) => void;
+  onLongPress: (svc: Service, anchor: { x: number; y: number }) => void;
   onRemove: (svc: Service) => void;
   onAddService: () => void;
 }) {
@@ -403,6 +459,7 @@ function CategorySection({
               service={s}
               cat={cat}
               onTap={() => onTap(s)}
+              onLongPress={(a) => onLongPress(s, a)}
               onRemove={() => onRemove(s)}
             />
           ))}
@@ -418,11 +475,13 @@ function SortableServiceRow({
   service,
   cat,
   onTap,
+  onLongPress,
   onRemove,
 }: {
   service: Service;
   cat: ServiceCategory;
   onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
   onRemove: () => void;
 }) {
   const {
@@ -446,6 +505,17 @@ function SortableServiceRow({
     opacity: isDragging ? 0.95 : 1,
   };
 
+  const gestures = useLongPressOrTap({
+    onTap,
+    onLongPress,
+    // Skip timer when the user taps the drag handle — that gesture
+    // belongs to dnd-kit. We identify it via a data-attribute on
+    // the handle element so we don't have to wrestle with event
+    // propagation.
+    isInsideDragHandle: (t) =>
+      !!(t as HTMLElement | null)?.closest("[data-drag-handle]"),
+  });
+
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <SwipeableRow
@@ -459,13 +529,7 @@ function SortableServiceRow({
         ]}
       >
         <div
-          {...listeners}
-          onClick={(e) => {
-            // dnd-kit steals pointerup when an actual drag happened;
-            // plain clicks fall through to us — treat as "open edit".
-            if (!isDragging) onTap();
-            else e.preventDefault();
-          }}
+          {...gestures}
           className="flex items-center gap-3 px-4 min-h-[56px] py-2 cursor-pointer select-none active:bg-[var(--fill-quaternary)] transition"
           style={{
             WebkitUserSelect: "none",
@@ -485,6 +549,18 @@ function SortableServiceRow({
               {service.duration_minutes} мин · €{service.price}
             </div>
           </div>
+          {/* Drag handle — dnd-kit listeners live HERE only, so long-
+              press elsewhere in the row goes to the context-menu
+              hook instead of drag. data-drag-handle lets the hook
+              bail out on taps that land on this element. */}
+          <span
+            {...listeners}
+            data-drag-handle
+            aria-label="Перетащить"
+            className="shrink-0 w-10 h-10 -mr-2 flex items-center justify-center text-[var(--label-quaternary)] touch-none"
+          >
+            <GripVertical size={18} strokeWidth={2} />
+          </span>
         </div>
       </SwipeableRow>
     </div>
@@ -557,9 +633,11 @@ function ServiceFormModal({
   // materialCosts replaces the single cost_per_unit number with a
   // full list of named expense items.
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
+  const [durationTiers, setDurationTiers] = useState<DurationTier[]>([]);
   const [materialCosts, setMaterialCosts] = useState<ServiceMaterialCost[]>([]);
   const [isCountable, setIsCountable] = useState(true);
   const [showTiers, setShowTiers] = useState(false);
+  const [showDurationTiers, setShowDurationTiers] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
 
   const [inlineCatOpen, setInlineCatOpen] = useState(false);
@@ -590,6 +668,9 @@ function ServiceFormModal({
       const tiers = service.price_tiers ?? [];
       setPriceTiers(tiers);
       setShowTiers(tiers.length > 0);
+      const dTiers = service.duration_tiers ?? [];
+      setDurationTiers(dTiers);
+      setShowDurationTiers(dTiers.length > 0);
       const costs = service.material_costs ?? [];
       setMaterialCosts(costs);
       setShowMaterials(costs.length > 0);
@@ -601,9 +682,11 @@ function ServiceFormModal({
       setMin(60);
       setPrice(0);
       setPriceTiers([]);
+      setDurationTiers([]);
       setMaterialCosts([]);
       setIsCountable(true);
       setShowTiers(false);
+      setShowDurationTiers(false);
       setShowMaterials(false);
     }
     // Reset pending cats whenever the modal (re)opens so we don't
@@ -643,8 +726,11 @@ function ServiceFormModal({
     if (!canSubmit) return;
     haptic("tap");
     // Clean up tiers: drop incomplete ones, sort by qty asc.
-    const cleanTiers = priceTiers
+    const cleanPriceTiers = priceTiers
       .filter((t) => t.min_qty > 1 && t.price_per_unit >= 0)
+      .sort((a, b) => a.min_qty - b.min_qty);
+    const cleanDurationTiers = durationTiers
+      .filter((t) => t.min_qty > 1 && t.duration_minutes >= 1)
       .sort((a, b) => a.min_qty - b.min_qty);
     // Clean up materials: drop unnamed / zero items.
     const cleanMaterials = materialCosts.filter(
@@ -665,7 +751,8 @@ function ServiceFormModal({
         duration_minutes: Math.max(1, min),
         price: Math.max(0, price),
         category_id: categoryId,
-        price_tiers: cleanTiers.length > 0 ? cleanTiers : undefined,
+        price_tiers: cleanPriceTiers.length > 0 ? cleanPriceTiers : undefined,
+        duration_tiers: cleanDurationTiers.length > 0 ? cleanDurationTiers : undefined,
         bulk_threshold: 0,
         bulk_price: 0,
         material_costs: cleanMaterials,
@@ -680,7 +767,8 @@ function ServiceFormModal({
           duration_minutes: Math.max(1, min),
           price: Math.max(0, price),
           category_id: categoryId,
-          price_tiers: cleanTiers.length > 0 ? cleanTiers : undefined,
+          price_tiers: cleanPriceTiers.length > 0 ? cleanPriceTiers : undefined,
+          duration_tiers: cleanDurationTiers.length > 0 ? cleanDurationTiers : undefined,
           material_costs: cleanMaterials,
           cost_per_unit: sumCostPerUnit,
           is_countable: isCountable,
@@ -710,6 +798,30 @@ function ServiceFormModal({
   const removeTier = (idx: number) => {
     haptic("warning");
     setPriceTiers(priceTiers.filter((_, i) => i !== idx));
+  };
+
+  // ── Duration-tier handlers ─────────────────────────────────────
+  const addDurationTier = () => {
+    haptic("tap");
+    const last =
+      durationTiers.length > 0
+        ? durationTiers[durationTiers.length - 1].min_qty
+        : 1;
+    const suggestedQty = Math.max(2, last + 1);
+    // Seed with base duration × qty as a sensible starting point.
+    setDurationTiers([
+      ...durationTiers,
+      { min_qty: suggestedQty, duration_minutes: Math.max(1, min * suggestedQty) },
+    ]);
+  };
+  const updateDurationTier = (idx: number, patch: Partial<DurationTier>) => {
+    setDurationTiers(
+      durationTiers.map((t, i) => (i === idx ? { ...t, ...patch } : t)),
+    );
+  };
+  const removeDurationTier = (idx: number) => {
+    haptic("warning");
+    setDurationTiers(durationTiers.filter((_, i) => i !== idx));
   };
 
   // ── Material-cost handlers ─────────────────────────────────────
@@ -979,6 +1091,88 @@ function ServiceFormModal({
             <button
               type="button"
               onClick={addTier}
+              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              Добавить ступень
+            </button>
+          </ExtraSection>
+
+          {/* 5b. DURATION TIERS — ladder for total minutes per qty. */}
+          <ExtraSection
+            open={showDurationTiers}
+            onToggle={() => setShowDurationTiers(!showDurationTiers)}
+            title="Длительность от объёма"
+            hint={
+              durationTiers.length === 0
+                ? "Если бригада укладывается быстрее при партии — укажите, сколько минут занимает от N штук."
+                : undefined
+            }
+          >
+            {durationTiers.map((tier, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-[12px] text-[var(--label-tertiary)]">
+                  от
+                </span>
+                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={tier.min_qty === 0 ? "" : String(tier.min_qty)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      updateDurationTier(idx, {
+                        min_qty: digits === "" ? 0 : parseInt(digits, 10),
+                      });
+                    }}
+                    placeholder="2"
+                    className="w-10 h-9 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                  />
+                  <span className="text-[12px] text-[var(--label-secondary)]">
+                    шт.
+                  </span>
+                </div>
+                <span className="text-[12px] text-[var(--label-tertiary)]">
+                  по
+                </span>
+                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 flex-1 min-w-0">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={
+                      tier.duration_minutes === 0
+                        ? ""
+                        : String(tier.duration_minutes)
+                    }
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      updateDurationTier(idx, {
+                        duration_minutes:
+                          digits === "" ? 0 : parseInt(digits, 10),
+                      });
+                    }}
+                    placeholder="90"
+                    className="flex-1 min-w-0 h-9 pr-1 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                  />
+                  <span className="text-[12px] text-[var(--label-secondary)] pr-2.5">
+                    мин
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeDurationTier(idx)}
+                  aria-label="Удалить ступень"
+                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+                >
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addDurationTier}
               className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
             >
               <Plus size={14} strokeWidth={2.5} />
@@ -1276,6 +1470,72 @@ function ExtraSection({
       )}
     </div>
   );
+}
+
+// ─── Long-press + tap hook (same shape as cities / masters) ────
+
+function useLongPressOrTap({
+  onTap,
+  onLongPress,
+  isInsideDragHandle,
+  delay = 500,
+}: {
+  onTap: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
+  /** Optional target guard — return true to bail out entirely so the
+   *  drag handle element retains exclusive ownership of the gesture. */
+  isInsideDragHandle?: (target: EventTarget | null) => boolean;
+  delay?: number;
+}) {
+  const timer = useRef<number | null>(null);
+  const triggered = useRef(false);
+  const origin = useRef<{ x: number; y: number } | null>(null);
+
+  const cancel = () => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (isInsideDragHandle?.(e.target)) {
+        origin.current = null;
+        return;
+      }
+      triggered.current = false;
+      origin.current = { x: e.clientX, y: e.clientY };
+      timer.current = window.setTimeout(() => {
+        triggered.current = true;
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate?.(12);
+        }
+        if (origin.current) onLongPress(origin.current);
+      }, delay);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!origin.current || timer.current == null) return;
+      const dx = Math.abs(e.clientX - origin.current.x);
+      const dy = Math.abs(e.clientY - origin.current.y);
+      if (dx > 10 || dy > 10) cancel();
+    },
+    onPointerUp: cancel,
+    onPointerCancel: cancel,
+    onPointerLeave: cancel,
+    onClick: (e: React.MouseEvent) => {
+      if (triggered.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        triggered.current = false;
+        return;
+      }
+      onTap();
+    },
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+    },
+  };
 }
 
 // ─── Tiny hook helpers ────────────────────────────────────────────

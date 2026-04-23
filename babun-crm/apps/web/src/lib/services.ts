@@ -47,6 +47,11 @@ export interface Service {
    *  on load. Tiers are sorted by min_qty asc; the tier with the
    *  highest min_qty ≤ current qty wins. */
   price_tiers?: PriceTier[];
+  /** Sprint 033 Phase I22 — duration LADDER. Same mechanic as
+   *  price_tiers but for minutes per unit. E.g. «от 3 шт — 30 мин»,
+   *  «от 5 шт — 25 мин» reflects crew efficiency on repeated work.
+   *  Tier with the highest min_qty ≤ current qty wins. */
+  duration_tiers?: DurationTier[];
 }
 
 export interface PriceTier {
@@ -55,6 +60,16 @@ export interface PriceTier {
   min_qty: number;
   /** Price per single unit when the tier applies. */
   price_per_unit: number;
+}
+
+export interface DurationTier {
+  /** Minimum quantity for this tier to apply. Must be ≥ 2 (qty=1
+   *  always uses the base Service.duration_minutes). */
+  min_qty: number;
+  /** Total minutes when the tier applies (e.g. «5 кондиционеров за
+   *  120 мин суммарно»). UI input is minutes; display can format
+   *  as HH:MM. */
+  duration_minutes: number;
 }
 
 export interface ServiceCategory {

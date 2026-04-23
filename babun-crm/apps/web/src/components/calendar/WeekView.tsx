@@ -79,24 +79,28 @@ export default function WeekView({
     visibleDates = weekDates;
   }
 
-  // Sprint 033 Phase I4 — full-width now-line stretched across every
-  // visible day. The per-column DayColumn still draws a red dot on
-  // today's column so you can tell which day you're on, but the
-  // horizontal stripe lives here so zooming doesn't leave a 2-px stub.
+  // Sprint 033 Phase I22 — now-line scoped to TODAY'S column only.
+  // Previous full-width stripe (I4) made the current time blur across
+  // the entire week grid — confusing when Monday's events look like
+  // they're at "now". A per-day stripe scoped to today keeps the
+  // semantics ("this is now on this day") without polluting other
+  // columns. We keep the stripe rendered at the WeekView level
+  // (not DayColumn) so it's decoupled from --hh pinch-zoom rounding.
   const windowStartMin = Math.max(0, Math.min(24, windowStart ?? 0)) * 60;
   const windowEndMin =
     Math.max(windowStartMin / 60 + 1, Math.min(24, windowEnd ?? 24)) * 60;
-  const todayIsVisible = visibleDates.some(
+  const todayIdx = visibleDates.findIndex(
     (d) =>
       d.getFullYear() === now.getFullYear() &&
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate(),
   );
   const nowLineVisible =
-    todayIsVisible &&
+    todayIdx >= 0 &&
     currentTimeMinutes >= windowStartMin &&
     currentTimeMinutes <= windowEndMin;
   const nowLineTop = `calc(var(--hh) * ${(currentTimeMinutes - windowStartMin) / 60})`;
+  const colPct = visibleDates.length > 0 ? 100 / visibleDates.length : 0;
 
   // Offset below the day-header (height hardcoded in DayColumn:
   // h-[82px] lg:h-[82px]). We replicate it here so the line sits
@@ -106,10 +110,17 @@ export default function WeekView({
     <div className="relative flex w-full">
       {nowLineVisible && (
         <div
-          className="absolute left-0 right-0 z-[15] pointer-events-none"
-          style={{ top: `calc(${HEADER_PX}px + ${nowLineTop})` }}
+          className="absolute z-[15] pointer-events-none"
+          style={{
+            top: `calc(${HEADER_PX}px + ${nowLineTop})`,
+            left: `${todayIdx * colPct}%`,
+            width: `${colPct}%`,
+          }}
         >
-          <div className="h-[1.5px] bg-[var(--system-red)] opacity-80" />
+          {/* Red dot anchor + stripe covering today's column only. */}
+          <div className="relative h-[1.5px] bg-[var(--system-red)] opacity-85">
+            <div className="absolute -left-[3px] -top-[3px] w-[7px] h-[7px] rounded-full bg-[var(--system-red)]" />
+          </div>
         </div>
       )}
       {visibleDates.map((date) => {
