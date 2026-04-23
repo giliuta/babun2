@@ -26,6 +26,9 @@ interface AppointmentBlockProps {
   onClick: (appointment: Appointment) => void;
   onLongPress?: (appointment: Appointment) => void;
   draggable?: boolean;
+  /** Sprint 033 Phase I35 — past appointments render at 50% opacity
+   *  so the dispatcher visually separates history from upcoming. */
+  dimmed?: boolean;
 }
 
 function AppointmentBlockInner({
@@ -39,6 +42,7 @@ function AppointmentBlockInner({
   onClick,
   onLongPress,
   draggable = false,
+  dimmed = false,
 }: AppointmentBlockProps) {
   // Long-press detection — 550 ms hold without moving fires onLongPress and
   // suppresses the subsequent click. TouchSensor in dnd-kit uses a longer
@@ -146,7 +150,7 @@ function AppointmentBlockInner({
       className={`absolute ${overlapStyle ? "" : "left-0 right-0"} ${
         appointment.color_override ? "" : `${colors.bg} ${colors.text}`
       } text-left overflow-hidden touch-none will-change-transform ${
-        isDragging ? "opacity-70 z-30" : ""
+        isDragging ? "opacity-70 z-30" : dimmed ? "opacity-50" : ""
       }`}
       style={{
         top: topExpr,

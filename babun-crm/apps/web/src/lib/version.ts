@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v282-schedule-pattern-selector";
+export const BUILD_VERSION = "v283-schedule-breaks-per-day-calendar-behavior";

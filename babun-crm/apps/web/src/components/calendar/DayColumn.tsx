@@ -16,6 +16,7 @@ import {
 } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
 import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
+import { useCalendarSettings } from "@/app/dashboard/layout";
 import type { Service } from "@/lib/services";
 import { getServiceMaterialCost } from "@/lib/services";
 import type { Client } from "@/lib/clients";
@@ -149,7 +150,15 @@ function DayColumnInner({
   });
   const isToday = isSameDay(date, today);
   const dateKey = formatDateKey(date);
-  const dayAppointments = appointments.filter((a) => a.date === dateKey);
+
+  // Phase I35 — filter cancelled from grid when hideCancelled is on.
+  const { calendarSettings } = useCalendarSettings();
+  const hideCancelled = calendarSettings.hideCancelled ?? false;
+  const dayAppointments = appointments.filter((a) => {
+    if (a.date !== dateKey) return false;
+    if (hideCancelled && a.status === "cancelled") return false;
+    return true;
+  });
   const dayName = getDayNameShort(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const monthShort = getMonthNameShort(date.getMonth());
@@ -408,6 +417,29 @@ function DayColumnInner({
             to today's column (Phase I22). Rendering both left a
             visible duplicate/stub when scrolled near the now-line. */}
 
+        {/* Phase I35 — buffer bands after each live appointment.
+            Hatched grey stripe = «забронировано под дорогу / уборку».
+            Rendered BEFORE appointment blocks so colour cards sit on
+            top. Skipped for cancelled. */}
+        {(calendarSettings.bufferMinutes ?? 0) > 0 &&
+          dayAppointments.map((apt) => {
+            if (apt.status === "cancelled") return null;
+            const endMin = timeToMinutes(apt.time_end);
+            const bufferMin = calendarSettings.bufferMinutes ?? 0;
+            return (
+              <div
+                key={`buffer-${apt.id}`}
+                className="absolute left-0 right-0 pointer-events-none"
+                style={{
+                  top: windowedMins(endMin),
+                  height: `calc(var(--hh) * ${bufferMin / 60})`,
+                  background:
+                    "repeating-linear-gradient(-45deg, rgba(60,60,67,0.08) 0 4px, transparent 4px 8px)",
+                }}
+              />
+            );
+          })}
+
         {/* Appointment blocks — with overlap detection.
             When 2+ appointments overlap in time, they display
             side-by-side (each gets a fraction of the width) so
@@ -415,6 +447,10 @@ function DayColumnInner({
         {(() => {
           // Compute column layout for overlapping appointments
           const layout = computeOverlapLayout(dayAppointments);
+          // Phase I35 — appointments whose end time has passed get
+          // rendered at reduced opacity so the dispatcher sees the
+          // present/future stand out.
+          const nowMs = Date.now();
           return dayAppointments.map((apt) => {
             const validation = validateApt(apt);
             const client = apt.client_id ? clientsById[apt.client_id] : null;
@@ -427,6 +463,9 @@ function DayColumnInner({
             const pos = layout.get(apt.id) ?? { col: 0, total: 1 };
             const widthPct = 100 / pos.total;
             const leftPct = pos.col * widthPct;
+            const endIso = `${apt.date}T${apt.time_end}:00`;
+            const endMs = Date.parse(endIso);
+            const isPast = Number.isFinite(endMs) && endMs < nowMs;
             return (
               <AppointmentBlock
                 key={apt.id}
@@ -442,6 +481,7 @@ function DayColumnInner({
                 onClick={onAppointmentClick}
                 onLongPress={onAppointmentLongPress}
                 draggable={dragEnabled}
+                dimmed={isPast}
                 overlapStyle={
                   pos.total > 1
                     ? { left: `${leftPct}%`, width: `${widthPct}%` }

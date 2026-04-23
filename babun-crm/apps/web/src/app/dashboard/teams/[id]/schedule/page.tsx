@@ -44,7 +44,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   const team = teams.find((t) => t.id === id);
 
   const schedule: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
-  const breaks = schedule.breaks ?? [];
   const vacations = schedule.vacations ?? [];
 
   if (!team) {
@@ -64,23 +63,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   // ── General time ───────────────────────────────────────────────
   const updateBase = (key: "start" | "end", value: string) => {
     persist({ ...schedule, [key]: value });
-  };
-
-  // ── Breaks ─────────────────────────────────────────────────────
-  const addBreak = () => {
-    haptic("tap");
-    const fallback: ScheduleBreak = { start: "13:00", end: "14:00" };
-    persist({ ...schedule, breaks: [...breaks, fallback] });
-  };
-  const updateBreak = (idx: number, patch: Partial<ScheduleBreak>) => {
-    persist({
-      ...schedule,
-      breaks: breaks.map((b, i) => (i === idx ? { ...b, ...patch } : b)),
-    });
-  };
-  const removeBreak = (idx: number) => {
-    haptic("warning");
-    persist({ ...schedule, breaks: breaks.filter((_, i) => i !== idx) });
   };
 
   // ── Per-weekday overrides ──────────────────────────────────────
@@ -135,66 +117,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   // Per-day expansion state for the inline editor.
   const [expandedDay, setExpandedDay] = useState<WeekdayKey | null>(null);
 
-  // ── Weekly pattern detection (Каждый день / Будни / Свой) ──
-  // Не пресет времени (те мы выпилили) — это форма недели, чтобы
-  // один тап проставлял/убирал выходные сразу.
-  type WeekPattern = "every" | "weekdays" | "custom";
-
-  const WEEKEND_KEYS: WeekdayKey[] = ["sat", "sun"];
-  const weekdayDays: WeekdayKey[] = WEEKDAY_KEYS.filter(
-    (k) => !WEEKEND_KEYS.includes(k),
-  );
-
-  const currentPattern: WeekPattern = (() => {
-    const offDays = WEEKDAY_KEYS.filter((k) => {
-      const ov = dayOverride(k);
-      return !!ov && !ov.is_working;
-    });
-    const hasCustomTime = WEEKDAY_KEYS.some((k) => {
-      const ov = dayOverride(k);
-      return !!ov && ov.is_working;
-    });
-    if (hasCustomTime) return "custom";
-    if (offDays.length === 0) return "every";
-    if (
-      offDays.length === 2 &&
-      offDays.includes("sat") &&
-      offDays.includes("sun")
-    ) {
-      return "weekdays";
-    }
-    return "custom";
-  })();
-
-  const applyPattern = (p: WeekPattern) => {
-    if (p === currentPattern) return;
-    haptic("tap");
-    const overrides = { ...(schedule.overrides ?? {}) };
-    if (p === "every") {
-      // Убираем выходные; custom-time overrides не трогаем
-      for (const k of WEEKDAY_KEYS) {
-        const ov = overrides[k];
-        if (ov && !ov.is_working) delete overrides[k];
-      }
-    } else if (p === "weekdays") {
-      // Выходные Сб+Вс, остальные очищаем от "off"
-      for (const k of weekdayDays) {
-        const ov = overrides[k];
-        if (ov && !ov.is_working) delete overrides[k];
-      }
-      for (const k of WEEKEND_KEYS) {
-        overrides[k] = {
-          is_working: false,
-          start: schedule.start,
-          end: schedule.end,
-          breaks: [],
-        };
-      }
-    }
-    // "custom" — кнопка-индикатор, ничего не меняем
-    persist({ ...schedule, overrides });
-  };
-
   // Read-only summary of off days for the general header
   const offDaysList = WEEKDAY_KEYS.filter((k) => {
     const ov = dayOverride(k);
@@ -205,43 +127,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
-      {/* ── Weekly pattern (shape of the week) ─────────── */}
-      <Group
-        title="Рабочий график"
-        footer={
-          currentPattern === "custom"
-            ? "Настроено вручную по дням ниже. Нажмите «Каждый день» или «Будни», чтобы пересобрать одним движением."
-            : "Это только форма недели. Время начала и окончания — ниже."
-        }
-      >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-2 grid grid-cols-3 gap-2">
-          {(
-            [
-              { v: "every", label: "Каждый день" },
-              { v: "weekdays", label: "Будни" },
-              { v: "custom", label: "Свой график" },
-            ] as const
-          ).map((opt) => {
-            const picked = currentPattern === opt.v;
-            return (
-              <button
-                key={opt.v}
-                type="button"
-                onClick={() => applyPattern(opt.v)}
-                disabled={opt.v === "custom"}
-                className={`h-10 rounded-[10px] text-[13px] font-medium press-scale transition-colors ${
-                  picked
-                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                    : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                } ${opt.v === "custom" && !picked ? "opacity-50 cursor-default" : ""}`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </Group>
-
       {/* ── Working hours (general) ─────────────────────── */}
       <Group title="Время работы">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
@@ -276,61 +161,10 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
         </div>
       </Group>
 
-      {/* ── Breaks (multiple) ───────────────────────────── */}
-      <Group
-        title="Перерывы"
-        footer="Обед, полдник и всё остальное — просто добавьте ряд для каждого."
-      >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
-          {breaks.length === 0 && (
-            <div className="px-4 py-2.5 text-[13px] text-[var(--label-tertiary)]">
-              Без перерывов.
-            </div>
-          )}
-          {breaks.map((b, idx) => (
-            <div
-              key={idx}
-              className={`px-3 py-3 ${idx > 0 ? "border-t border-[var(--separator)]" : ""}`}
-            >
-              <div className="flex items-center gap-2">
-                <div className="grid grid-cols-2 gap-2 flex-1">
-                  <TimePair
-                    prefix="с"
-                    value={b.start}
-                    onChange={(v) => updateBreak(idx, { start: v })}
-                  />
-                  <TimePair
-                    prefix="до"
-                    value={b.end}
-                    onChange={(v) => updateBreak(idx, { end: v })}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeBreak(idx)}
-                  aria-label="Удалить"
-                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
-                >
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addBreak}
-            className="w-full h-10 border-t border-[var(--separator)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            Добавить перерыв
-          </button>
-        </div>
-      </Group>
-
       {/* ── Per-weekday list ────────────────────────────── */}
       <Group
         title="Дни недели"
-        footer="Тумблер справа — сделать день выходным. Тап на строку — раскрыть редактор своего времени и перерывов для этого дня."
+        footer="Тумблер справа — сделать день выходным. Под строкой — перерывы этого дня (обед, полдник и т.п.). Тап по времени — задать своё время для дня."
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
           {WEEKDAY_KEYS.map((k) => {
@@ -342,16 +176,14 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
             const dayBreaks = isCustom ? ov.breaks : [];
             const expanded = expandedDay === k;
 
-            const stateText = isOff
-              ? "выходной"
-              : `${dayStart}–${dayEnd}${
-                  isCustom && dayBreaks.length > 0
-                    ? ` · перерыв${dayBreaks.length > 1 ? "ы" : ""}`
-                    : ""
-                }`;
+            const writeDay = (patch: Partial<DaySchedule>) => {
+              const base = ensureOverride(k);
+              setDayOverride(k, { ...base, is_working: true, ...patch });
+            };
 
             return (
               <div key={k}>
+                {/* Main row: day name · time state · «своё» chip · chevron · toggle */}
                 <div className="flex items-center gap-3 px-4 min-h-[52px]">
                   <button
                     type="button"
@@ -374,7 +206,7 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                             : "text-[var(--label-secondary)]"
                       }`}
                     >
-                      {stateText}
+                      {isOff ? "выходной" : `${dayStart}–${dayEnd}`}
                     </span>
                     {isCustom && (
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--accent-tint)] text-[var(--accent)] shrink-0">
@@ -396,8 +228,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                     onChange={(next) => {
                       haptic("tap");
                       if (next) {
-                        // Включаем день → сбрасываем override полностью,
-                        // работает как общее время.
                         setDayOverride(k, null);
                       } else {
                         setExpandedDay(null);
@@ -413,6 +243,7 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                   />
                 </div>
 
+                {/* Per-day time editor — expands on tap */}
                 {expanded && !isOff && (
                   <div className="bg-[var(--fill-tertiary)] border-t border-[var(--separator)] px-3 py-3 space-y-2">
                     <div className="text-[11px] uppercase tracking-wide font-semibold text-[var(--label-tertiary)] px-1">
@@ -422,36 +253,14 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                       <TimePair
                         prefix="с"
                         value={dayStart}
-                        onChange={(v) =>
-                          setDayOverride(k, {
-                            ...ensureOverride(k),
-                            is_working: true,
-                            start: v,
-                          })
-                        }
+                        onChange={(v) => writeDay({ start: v })}
                       />
                       <TimePair
                         prefix="до"
                         value={dayEnd}
-                        onChange={(v) =>
-                          setDayOverride(k, {
-                            ...ensureOverride(k),
-                            is_working: true,
-                            end: v,
-                          })
-                        }
+                        onChange={(v) => writeDay({ end: v })}
                       />
                     </div>
-                    <PerDayBreaks
-                      breaks={dayBreaks}
-                      onChange={(bb) =>
-                        setDayOverride(k, {
-                          ...ensureOverride(k),
-                          is_working: true,
-                          breaks: bb,
-                        })
-                      }
-                    />
                     {isCustom && (
                       <button
                         type="button"
@@ -465,6 +274,16 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                         Сбросить к общему
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* Per-day breaks — ALWAYS visible under each working day */}
+                {!isOff && (
+                  <div className="border-t border-[var(--separator)] px-4 py-2">
+                    <PerDayBreaks
+                      breaks={dayBreaks}
+                      onChange={(bb) => writeDay({ breaks: bb })}
+                    />
                   </div>
                 )}
               </div>
@@ -565,14 +384,21 @@ function TimePair({
   prefix,
   value,
   onChange,
+  compact,
 }: {
   prefix: string;
   value: string;
   onChange: (v: string) => void;
+  /** Smaller pill for dense contexts (per-day breaks). */
+  compact?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[12px] text-[var(--label-tertiary)] w-6 text-right shrink-0">
+      <span
+        className={`text-[var(--label-tertiary)] shrink-0 text-right ${
+          compact ? "text-[11px] w-4" : "text-[12px] w-6"
+        }`}
+      >
         {prefix}
       </span>
       <input
@@ -580,7 +406,9 @@ function TimePair({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         step={1800}
-        className="flex-1 min-w-0 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        className={`flex-1 min-w-0 rounded-[8px] bg-[var(--fill-tertiary)] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+          compact ? "h-8 px-2 text-[13px]" : "h-11 px-3 text-[15px]"
+        }`}
       />
     </div>
   );
@@ -630,16 +458,16 @@ function PerDayBreaks({
       <button
         type="button"
         onClick={add}
-        className="w-full h-9 rounded-[10px] bg-[var(--surface-card)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
+        className="w-full h-8 rounded-[8px] bg-[var(--fill-tertiary)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[12px] font-medium press-scale"
       >
-        <Plus size={14} strokeWidth={2.5} />
+        <Plus size={12} strokeWidth={2.5} />
         Добавить перерыв
       </button>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {breaks.map((b, idx) => (
         <div
           key={idx}
@@ -650,29 +478,31 @@ function PerDayBreaks({
               prefix="с"
               value={b.start}
               onChange={(v) => update(idx, { start: v })}
+              compact
             />
             <TimePair
               prefix="до"
               value={b.end}
               onChange={(v) => update(idx, { end: v })}
+              compact
             />
           </div>
           <button
             type="button"
             onClick={() => remove(idx)}
             aria-label="Удалить"
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--surface-card)] text-[var(--system-red)] press-scale"
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[var(--fill-tertiary)] text-[var(--system-red)] press-scale"
           >
-            <Trash2 size={14} strokeWidth={2} />
+            <Trash2 size={13} strokeWidth={2} />
           </button>
         </div>
       ))}
       <button
         type="button"
         onClick={add}
-        className="w-full h-9 rounded-[10px] bg-[var(--surface-card)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
+        className="w-full h-8 rounded-[8px] bg-[var(--fill-tertiary)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[12px] font-medium press-scale"
       >
-        <Plus size={14} strokeWidth={2.5} />
+        <Plus size={12} strokeWidth={2.5} />
         Ещё перерыв
       </button>
     </div>

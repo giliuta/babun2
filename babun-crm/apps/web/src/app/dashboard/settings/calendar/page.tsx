@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Home } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import { useCalendarSettings } from "@/app/dashboard/layout";
 import {
   validateCalendarSettings,
@@ -163,6 +164,85 @@ export default function CalendarSettingsPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Buffer + toggles (Sprint 033 Phase I35) */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-4 pt-3.5 pb-2">
+              <div className="text-[15px] font-semibold text-[var(--label)]">
+                Поведение календаря
+              </div>
+              <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5 leading-snug">
+                Действуют на всех бригадах.
+              </div>
+            </div>
+
+            {/* Buffer between appointments */}
+            <div className="px-4 py-3 border-t border-[var(--separator)]">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px] text-[var(--label)]">
+                    Перерыв между записями
+                  </div>
+                  <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                    Автоматический буфер после каждого визита — дорога, уборка инструмента.
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-1.5 mt-2.5">
+                {[0, 10, 15, 20, 30, 45, 60].map((m) => {
+                  const picked = (draft.bufferMinutes ?? 0) === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => patch({ bufferMinutes: m })}
+                      className={`flex-1 h-9 rounded-[10px] text-[12px] font-medium press-scale transition-colors ${
+                        picked
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                          : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                      }`}
+                    >
+                      {m === 0 ? "нет" : `${m}м`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hide cancelled */}
+            <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] text-[var(--label)]">
+                  Скрыть отменённые записи
+                </div>
+                <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                  Выключено — отменённые остаются на сетке зачёркнутыми.
+                </div>
+              </div>
+              <IOSSwitch
+                checked={draft.hideCancelled ?? false}
+                onChange={(next) => patch({ hideCancelled: next })}
+                ariaLabel="Скрыть отменённые"
+              />
+            </div>
+
+            {/* Allow overtime */}
+            <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] text-[var(--label)]">
+                  Разрешить продлить рабочий день
+                </div>
+                <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                  Последний визит может закончиться после {String(draft.endHour).padStart(2, "0")}:00 без ошибки.
+                </div>
+              </div>
+              <IOSSwitch
+                checked={draft.allowOvertime ?? false}
+                onChange={(next) => patch({ allowOvertime: next })}
+                ariaLabel="Разрешить продлить рабочий день"
+              />
+            </div>
           </div>
 
           {/* Save */}

@@ -7,6 +7,14 @@ export interface CalendarSettings {
   gridStep: 15 | 30 | 60;    // minutes, default 30
   weekStart: "monday" | "sunday";
   timezone: string;           // default "Europe/Nicosia"
+  // Sprint 033 Phase I35 — Bumpix-inspired calendar toggles.
+  /** Minutes reserved after every appointment for travel / cleanup.
+   *  New bookings can't land inside this buffer. 0 = off. */
+  bufferMinutes?: number;
+  /** Hide status=cancelled appointments from the calendar grid. */
+  hideCancelled?: boolean;
+  /** Allow an appointment to end past endHour (overflow). */
+  allowOvertime?: boolean;
 }
 
 const STORAGE_KEY = "babun2:settings:calendar";
@@ -17,6 +25,9 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   gridStep: 30,
   weekStart: "monday",
   timezone: "Europe/Nicosia",
+  bufferMinutes: 0,
+  hideCancelled: false,
+  allowOvertime: false,
 };
 
 export const TIMEZONE_OPTIONS: string[] = [
