@@ -1,22 +1,23 @@
 "use client";
 
-// Sprint 033 Phase I28 — Schedule, full pass.
+// Sprint 033 Phase I34 — Schedule redesign.
 //
-// Added everything the user asked for in one go:
-//  · Multiple breaks in the base schedule (add / remove rows).
-//  · Per-weekday overrides — tap a weekday chip, set its own time
-//    range and its own breaks; tap the chip again to revert to
-//    general.
-//  · Vacations — list of date ranges that make the brigade
-//    unavailable on every day inside them.
-//  · Presets — three quick templates (09–18 будни, 08–22 без
-//    выходных, 10–19 с обедом) to stamp the base schedule in one
-//    tap.
+// Dropped «Быстрые шаблоны» (никогда не пригождалось) и переделал
+// «Дни недели» в iOS-grouped-list с одной строкой на день:
+//   · Слева — Пн/Вт/…/Вс
+//   · По центру — состояние: «09:00–18:00» или «выходной»
+//     (синим, если у дня СВОЁ время)
+//   · Справа — тумблер «выходной»
+//   · Тап по строке (если день рабочий) — раскрывает inline-
+//     редактор: своё время начала/конца, свои перерывы, кнопка
+//     «сбросить к общему».
 //
-// Everything still instant-save via setSchedules. No Save button.
+// Отдельных «Особое время · СР» блоков больше нет — всё внутри
+// своей же строки. Пустое поле — значит день работает по общему
+// времени выше.
 
-import { use, useMemo } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { use, useState } from "react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useSchedules, useTeams } from "@/app/dashboard/layout";
 import {
@@ -35,46 +36,6 @@ import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
-
-const PRESETS: Array<{
-  label: string;
-  subtitle: string;
-  schedule: TeamSchedule;
-}> = [
-  {
-    label: "9–18 · будни",
-    subtitle: "Сб / Вс выходной",
-    schedule: {
-      start: "09:00",
-      end: "18:00",
-      breaks: [],
-      overrides: {
-        sat: { is_working: false, start: "00:00", end: "00:00", breaks: [] },
-        sun: { is_working: false, start: "00:00", end: "00:00", breaks: [] },
-      },
-    },
-  },
-  {
-    label: "8–22 · без выходных",
-    subtitle: "Длинный день, работает всегда",
-    schedule: {
-      start: "08:00",
-      end: "22:00",
-      breaks: [],
-      overrides: {},
-    },
-  },
-  {
-    label: "10–19 · с обедом",
-    subtitle: "Перерыв 13:00–14:00",
-    schedule: {
-      start: "10:00",
-      end: "19:00",
-      breaks: [{ start: "13:00", end: "14:00" }],
-      overrides: {},
-    },
-  },
-];
 
 export default function BrigadeSchedulePage({ params }: RouteParams) {
   const { id } = use(params);
@@ -141,21 +102,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
     persist({ ...schedule, overrides });
   };
 
-  const toggleDayOff = (k: WeekdayKey) => {
-    haptic("tap");
-    const cur = dayOverride(k);
-    if (cur && !cur.is_working) {
-      setDayOverride(k, null); // was day-off → revert to general
-    } else {
-      setDayOverride(k, {
-        is_working: false,
-        start: schedule.start,
-        end: schedule.end,
-        breaks: [],
-      });
-    }
-  };
-
   // ── Vacations ──────────────────────────────────────────────────
   const addVacation = () => {
     haptic("tap");
@@ -186,68 +132,11 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
     });
   };
 
-  // ── Presets ────────────────────────────────────────────────────
-  const applyPreset = (p: (typeof PRESETS)[number]) => {
-    haptic("tap");
-    persist({
-      ...schedule,
-      start: p.schedule.start,
-      end: p.schedule.end,
-      breaks: p.schedule.breaks,
-      overrides: p.schedule.overrides,
-    });
-  };
-
-  // Subtitle for each weekday chip in the override list.
-  const daySubtitle = (k: WeekdayKey): string => {
-    const ov = dayOverride(k);
-    if (!ov) return "как обычно";
-    if (!ov.is_working) return "выходной";
-    return `${ov.start}–${ov.end}${
-      ov.breaks.length > 0 ? ` · перерыв` : ""
-    }`;
-  };
-
-  // Days that currently have a custom override so we can show edit
-  // blocks for them below the weekday strip.
-  const overriddenDays = useMemo<WeekdayKey[]>(
-    () =>
-      WEEKDAY_KEYS.filter((k) => {
-        const ov = dayOverride(k);
-        return !!ov && ov.is_working; // day-offs render as the chip itself; only working-day overrides get the per-day editor
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [schedule.overrides],
-  );
+  // Per-day expansion state for the inline editor.
+  const [expandedDay, setExpandedDay] = useState<WeekdayKey | null>(null);
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
-      {/* ── Presets ─────────────────────────────────────── */}
-      <Group title="Быстрые шаблоны">
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => applyPreset(p)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 min-h-[52px] text-left active:bg-[var(--fill-quaternary)] transition press-scale"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-medium text-[var(--label)] truncate">
-                  {p.label}
-                </div>
-                <div className="text-[12px] text-[var(--label-tertiary)] truncate">
-                  {p.subtitle}
-                </div>
-              </div>
-              <span className="text-[13px] text-[var(--accent)] font-medium">
-                применить
-              </span>
-            </button>
-          ))}
-        </div>
-      </Group>
-
       {/* ── Working hours (general) ─────────────────────── */}
       <Group title="Время работы">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
@@ -317,108 +206,146 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
         </div>
       </Group>
 
-      {/* ── Per-weekday ─────────────────────────────────── */}
+      {/* ── Per-weekday list ────────────────────────────── */}
       <Group
         title="Дни недели"
-        footer="Тап по дню — сделать выходным. Для особого времени в конкретный день — откройте блок ниже."
+        footer="Тумблер справа — сделать день выходным. Тап на строку — раскрыть редактор своего времени и перерывов для этого дня."
       >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
-          <div className="grid grid-cols-7 gap-1.5">
-            {WEEKDAY_KEYS.map((k) => {
-              const ov = dayOverride(k);
-              const off = !!ov && !ov.is_working;
-              const customWorking = !!ov && ov.is_working;
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => toggleDayOff(k)}
-                  className={`h-10 rounded-[10px] text-[13px] font-semibold press-scale transition ${
-                    off
-                      ? "bg-[var(--system-red)] text-white"
-                      : customWorking
-                        ? "bg-[var(--accent-tint)] text-[var(--accent)]"
-                        : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
-                  }`}
-                >
-                  {WEEKDAY_NAMES[k]}
-                </button>
-              );
-            })}
-          </div>
-          {/* Quick-add per-day custom time */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {WEEKDAY_KEYS.map((k) => {
-              const ov = dayOverride(k);
-              const customWorking = !!ov && ov.is_working;
-              if (customWorking) return null;
-              if (ov && !ov.is_working) return null;
-              return (
-                <button
-                  key={`add-${k}`}
-                  type="button"
-                  onClick={() =>
-                    setDayOverride(k, ensureOverride(k))
-                  }
-                  className="h-8 px-2.5 rounded-full text-[12px] font-medium press-scale bg-[var(--fill-tertiary)] text-[var(--label)] flex items-center gap-1"
-                >
-                  <Plus size={12} strokeWidth={2.5} />
-                  {WEEKDAY_NAMES[k]} — своё время
-                </button>
-              );
-            })}
-          </div>
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
+          {WEEKDAY_KEYS.map((k) => {
+            const ov = dayOverride(k);
+            const isOff = !!ov && !ov.is_working;
+            const isCustom = !!ov && ov.is_working;
+            const dayStart = isCustom ? ov.start : schedule.start;
+            const dayEnd = isCustom ? ov.end : schedule.end;
+            const dayBreaks = isCustom ? ov.breaks : [];
+            const expanded = expandedDay === k;
+
+            const stateText = isOff
+              ? "выходной"
+              : `${dayStart}–${dayEnd}${
+                  isCustom && dayBreaks.length > 0
+                    ? ` · перерыв${dayBreaks.length > 1 ? "ы" : ""}`
+                    : ""
+                }`;
+
+            return (
+              <div key={k}>
+                <div className="flex items-center gap-3 px-4 min-h-[52px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isOff) return;
+                      setExpandedDay(expanded ? null : k);
+                    }}
+                    disabled={isOff}
+                    className="flex items-center gap-3 flex-1 min-w-0 py-2 text-left active:opacity-70 disabled:active:opacity-100"
+                  >
+                    <span className="w-8 text-[15px] font-semibold text-[var(--label)] shrink-0">
+                      {WEEKDAY_NAMES[k]}
+                    </span>
+                    <span
+                      className={`flex-1 text-[13px] truncate ${
+                        isOff
+                          ? "text-[var(--label-tertiary)]"
+                          : isCustom
+                            ? "text-[var(--accent)] font-medium"
+                            : "text-[var(--label-secondary)]"
+                      }`}
+                    >
+                      {stateText}
+                    </span>
+                    {!isOff && (
+                      <ChevronDown
+                        size={14}
+                        strokeWidth={2}
+                        className={`text-[var(--label-quaternary)] transition-transform shrink-0 ${
+                          expanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    )}
+                  </button>
+                  <IOSSwitch
+                    checked={!isOff}
+                    onChange={(next) => {
+                      haptic("tap");
+                      if (next) {
+                        // Включаем день → сбрасываем override полностью,
+                        // работает как общее время.
+                        setDayOverride(k, null);
+                      } else {
+                        setExpandedDay(null);
+                        setDayOverride(k, {
+                          is_working: false,
+                          start: schedule.start,
+                          end: schedule.end,
+                          breaks: [],
+                        });
+                      }
+                    }}
+                    ariaLabel={`Рабочий день ${WEEKDAY_NAMES[k]}`}
+                  />
+                </div>
+
+                {expanded && !isOff && (
+                  <div className="bg-[var(--fill-tertiary)] border-t border-[var(--separator)] px-3 py-3 space-y-2">
+                    <div className="text-[11px] uppercase tracking-wide font-semibold text-[var(--label-tertiary)] px-1">
+                      Своё время на {WEEKDAY_NAMES[k]}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <TimePair
+                        prefix="с"
+                        value={dayStart}
+                        onChange={(v) =>
+                          setDayOverride(k, {
+                            ...ensureOverride(k),
+                            is_working: true,
+                            start: v,
+                          })
+                        }
+                      />
+                      <TimePair
+                        prefix="до"
+                        value={dayEnd}
+                        onChange={(v) =>
+                          setDayOverride(k, {
+                            ...ensureOverride(k),
+                            is_working: true,
+                            end: v,
+                          })
+                        }
+                      />
+                    </div>
+                    <PerDayBreaks
+                      breaks={dayBreaks}
+                      onChange={(bb) =>
+                        setDayOverride(k, {
+                          ...ensureOverride(k),
+                          is_working: true,
+                          breaks: bb,
+                        })
+                      }
+                    />
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          haptic("tap");
+                          setDayOverride(k, null);
+                          setExpandedDay(null);
+                        }}
+                        className="w-full h-9 rounded-[10px] bg-[var(--surface-card)] text-[13px] text-[var(--accent)] font-medium press-scale"
+                      >
+                        Сбросить к общему
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Group>
-
-      {/* ── Day override editors ────────────────────────── */}
-      {overriddenDays.map((k) => {
-        const ov = ensureOverride(k);
-        return (
-          <Group
-            key={`override-${k}`}
-            title={`Особое время · ${WEEKDAY_NAMES[k].toUpperCase()}`}
-          >
-            <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
-              <div className="flex items-center gap-3 px-4 min-h-[52px]">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[14px] text-[var(--label)]">
-                    Использовать своё время
-                  </div>
-                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
-                    {daySubtitle(k)}
-                  </div>
-                </div>
-                <IOSSwitch
-                  checked
-                  onChange={() => setDayOverride(k, null)}
-                  ariaLabel="Сбросить к общему"
-                />
-              </div>
-              <div className="border-t border-[var(--separator)] px-3 py-3 grid grid-cols-2 gap-2">
-                <TimePair
-                  prefix="с"
-                  value={ov.start}
-                  onChange={(v) =>
-                    setDayOverride(k, { ...ov, start: v })
-                  }
-                />
-                <TimePair
-                  prefix="до"
-                  value={ov.end}
-                  onChange={(v) =>
-                    setDayOverride(k, { ...ov, end: v })
-                  }
-                />
-              </div>
-              <PerDayBreaks
-                breaks={ov.breaks}
-                onChange={(bb) => setDayOverride(k, { ...ov, breaks: bb })}
-              />
-            </div>
-          </Group>
-        );
-      })}
 
       {/* ── Vacations ───────────────────────────────────── */}
       <Group
@@ -577,7 +504,7 @@ function PerDayBreaks({
       <button
         type="button"
         onClick={add}
-        className="w-full h-10 border-t border-[var(--separator)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
+        className="w-full h-9 rounded-[10px] bg-[var(--surface-card)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
       >
         <Plus size={14} strokeWidth={2.5} />
         Добавить перерыв
@@ -586,11 +513,11 @@ function PerDayBreaks({
   }
 
   return (
-    <div>
+    <div className="space-y-2">
       {breaks.map((b, idx) => (
         <div
           key={idx}
-          className="border-t border-[var(--separator)] px-3 py-3 flex items-center gap-2"
+          className="flex items-center gap-2"
         >
           <div className="grid grid-cols-2 gap-2 flex-1">
             <TimePair
@@ -608,7 +535,7 @@ function PerDayBreaks({
             type="button"
             onClick={() => remove(idx)}
             aria-label="Удалить"
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--surface-card)] text-[var(--system-red)] press-scale"
           >
             <Trash2 size={14} strokeWidth={2} />
           </button>
@@ -617,7 +544,7 @@ function PerDayBreaks({
       <button
         type="button"
         onClick={add}
-        className="w-full h-10 border-t border-[var(--separator)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
+        className="w-full h-9 rounded-[10px] bg-[var(--surface-card)] flex items-center justify-center gap-1.5 text-[var(--accent)] text-[13px] font-medium press-scale"
       >
         <Plus size={14} strokeWidth={2.5} />
         Ещё перерыв
