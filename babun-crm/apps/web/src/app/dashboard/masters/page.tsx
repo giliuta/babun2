@@ -35,10 +35,10 @@ import {
   ROLE_LABELS,
   generateId,
   getInitials,
+  getTeamLeadIds,
   type Master,
   type Team,
 } from "@/lib/masters";
-import MasterSheet from "./MasterSheet";
 
 function normalize(s: string): string {
   return s.toLowerCase().replace(/ё/g, "е");
@@ -50,26 +50,20 @@ export default function MastersPage() {
   const { teams, setTeams } = useTeams();
   const confirm = useConfirm();
 
-  const [editing, setEditing] = useState<Master | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{
     master: Master;
     anchor: { x: number; y: number };
   } | null>(null);
 
-  // Deep-link ?edit=<id> opens the sheet for that master.
+  // Legacy deep-link ?edit=<id> → redirect to the new detail hub.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const editId = params.get("edit");
     if (!editId) return;
-    const master = masters.find((m) => m.id === editId);
-    if (master) {
-      openEditSheet(master);
-    }
-    router.replace("/dashboard/masters");
-  }, [masters, router]);
+    router.replace(`/dashboard/masters/${editId}`);
+  }, [router]);
 
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
@@ -100,22 +94,6 @@ export default function MastersPage() {
   const openDetail = (master: Master) => {
     haptic("tap");
     router.push(`/dashboard/masters/${master.id}`);
-  };
-
-  // Legacy edit opener used ONLY by the ?edit=<id> deep-link below.
-  const openEditSheet = (master: Master) => {
-    setEditing(master);
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditing(null);
-  };
-
-  const handleSave = (master: Master) => {
-    upsertMaster(master);
-    closeForm();
   };
 
   const toggleArchived = (master: Master) => {
@@ -266,11 +244,7 @@ export default function MastersPage() {
                     >
                       <MasterRow
                         master={m}
-                        team={
-                          m.team_id
-                            ? (teams.find((t) => t.id === m.team_id) ?? null)
-                            : null
-                        }
+                        teams={teams}
                         onTap={() => openDetail(m)}
                         onLongPress={(anchor) => setMenu({ master: m, anchor })}
                       />
@@ -306,17 +280,6 @@ export default function MastersPage() {
           )}
         </div>
       </div>
-
-      {showForm && (
-        <MasterSheet
-          key={editing?.id ?? "new"}
-          master={editing}
-          teams={teams}
-          onCancel={closeForm}
-          onSave={handleSave}
-          onDelete={handleDelete}
-        />
-      )}
 
       <ContextMenu
         open={!!menu}
@@ -360,29 +323,51 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 function MasterRow({
   master,
-  team,
+  teams,
   onTap,
   onLongPress,
 }: {
   master: Master;
-  team: Team | null;
+  teams: Team[];
   onTap: () => void;
   onLongPress: (anchor: { x: number; y: number }) => void;
 }) {
   const handlers = useLongPressOrTap({ onTap, onLongPress });
   const archived = !master.is_active;
-  const tile = team?.color ?? "#8E8E93";
 
-  // Single-line subtitle: Role + team (or "без бригады") + phone.
+  // Union of primary team_id and brigades where master appears in
+  // lead_ids / helper_ids. Avatar tint comes from the first match.
+  const assignedTeams: Team[] = (() => {
+    const seen = new Map<string, Team>();
+    if (master.team_id) {
+      const t = teams.find((x) => x.id === master.team_id);
+      if (t) seen.set(t.id, t);
+    }
+    for (const t of teams) {
+      const leadIds = getTeamLeadIds(t);
+      if (leadIds.includes(master.id) || t.helper_ids.includes(master.id)) {
+        if (!seen.has(t.id)) seen.set(t.id, t);
+      }
+    }
+    return Array.from(seen.values());
+  })();
+
+  const tile = assignedTeams[0]?.color ?? "#8E8E93";
+
+  // Subtitle: role (+ custom title) · brigade(s) · phone.
   const pieces: string[] = [];
-  pieces.push(ROLE_LABELS[master.role]);
-  if (team) pieces.push(team.name);
-  else pieces.push("без бригады");
+  const roleBit = master.title
+    ? `${ROLE_LABELS[master.role]} · ${master.title}`
+    : ROLE_LABELS[master.role];
+  pieces.push(roleBit);
+  if (assignedTeams.length === 0) pieces.push("без бригады");
+  else if (assignedTeams.length === 1) pieces.push(assignedTeams[0].name);
+  else pieces.push(`${assignedTeams.length} бригады`);
   if (master.phone) pieces.push(master.phone);
   const subtitle = pieces.join(" · ");
 
   // Warning when the record is missing critical data.
-  const needsSetup = !master.phone || !master.team_id;
+  const needsSetup = !master.phone || assignedTeams.length === 0;
 
   return (
     <div

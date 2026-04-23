@@ -1,20 +1,17 @@
 "use client";
 
-// Sprint 033 Phase I31 — /dashboard/masters/[id] detail hub.
+// Sprint 033 Phase I32 — /dashboard/masters/[id] detail hub.
 //
-// Mirrors /dashboard/teams/[id]: the detail page is a compact list of
-// nav rows (one per section) instead of one long accordion. Each row
-// jumps to a full-page editor.
+// After v279 each row has its own iOS-style subroute:
+//   /info          — identity + contacts + Babun account (mega)
+//   /employment    — role + brigade + contract + schedule
+//   /salary        — pay model + amount + period + method
+//   /access        — permissions matrix + brigade visibility
+//   /notes         — freeform memo
 //
-// Subroutes on disk today:
-//   /dashboard/masters/:id/info   — name · role · phone · email · birthday
-//   /dashboard/masters/:id/notes  — freeform notes
-//
-// Remaining 4 rows (Контакты / Бригада / ЗП / Доступы) don't have their
-// own subroute files yet — they open the legacy MasterSheet overlay
-// locally on this page as a bridge until each one gets its own editor.
+// The hub stays a compact list of nav rows. No more MasterSheet overlay.
 
-import { use, useMemo, useState } from "react";
+import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -23,7 +20,6 @@ import {
   ChevronRight,
   FileText,
   Info,
-  Phone,
   ShieldCheck,
   Trash2,
   Wallet,
@@ -35,23 +31,19 @@ import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   ACCOUNT_STATUS_LABELS,
   PERMISSION_GROUPS,
-  PERMISSION_LABELS,
   ROLE_LABELS,
   SALARY_MODEL_LABELS,
   SALARY_UNIT,
   getInitials,
+  getTeamLeadIds,
   mergePermissions,
-  type Master,
   type MasterPermissions,
   type Team,
 } from "@/lib/masters";
-import MasterSheet from "../MasterSheet";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
-
-type SheetSection = "contacts" | "job" | "salary" | "permissions";
 
 export default function MasterDetailPage({ params }: RouteParams) {
   const { id } = use(params);
@@ -61,53 +53,78 @@ export default function MasterDetailPage({ params }: RouteParams) {
   const { teams, setTeams } = useTeams();
 
   const master = masters.find((m) => m.id === id);
-  // Opened when one of the not-yet-extracted rows is tapped.
-  const [sheetOpen, setSheetOpen] = useState<SheetSection | null>(null);
 
-  const team = useMemo<Team | null>(() => {
-    if (!master?.team_id) return null;
-    return teams.find((t) => t.id === master.team_id) ?? null;
+  // Teams this master is part of — union of primary team_id and every
+  // brigade with them in lead_ids/helper_ids. Used for preview +
+  // avatar tinting. Primary is preferred for the avatar colour.
+  const assignedTeams = useMemo<Team[]>(() => {
+    if (!master) return [];
+    const seen = new Map<string, Team>();
+    if (master.team_id) {
+      const t = teams.find((x) => x.id === master.team_id);
+      if (t) seen.set(t.id, t);
+    }
+    for (const t of teams) {
+      const leadIds = getTeamLeadIds(t);
+      if (leadIds.includes(master.id) || t.helper_ids.includes(master.id)) {
+        if (!seen.has(t.id)) seen.set(t.id, t);
+      }
+    }
+    return Array.from(seen.values());
   }, [master, teams]);
+
+  const primaryTeam = assignedTeams[0] ?? null;
 
   // ── Previews ────────────────────────────────────────────────────────
   const infoPreview = useMemo((): { text: string; warning: boolean } => {
     if (!master) return { text: "", warning: false };
+    const parts: string[] = [];
+    if (master.phone) parts.push(master.phone);
+    else parts.push("телефон не указан");
+    const contactBits: string[] = [];
+    if (master.whatsapp) contactBits.push("WhatsApp");
+    if (master.telegram) contactBits.push("Telegram");
+    if (master.email) contactBits.push("email");
+    if (contactBits.length > 0) parts.push(contactBits.join(", "));
+    if (master.credentials_set && master.account_status) {
+      parts.push(ACCOUNT_STATUS_LABELS[master.account_status].toLowerCase());
+    }
+    return {
+      text: parts.join(" · "),
+      warning: !master.phone,
+    };
+  }, [master]);
+
+  const employmentPreview = useMemo((): { text: string; warning: boolean } => {
+    if (!master) return { text: "", warning: false };
     const role = ROLE_LABELS[master.role];
-    const parts = [role];
-    if (!master.is_active) parts.push("архив");
-    return { text: parts.join(" · "), warning: false };
-  }, [master]);
-
-  const contactsPreview = useMemo((): { text: string; warning: boolean } => {
-    if (!master) return { text: "", warning: false };
-    if (!master.phone) return { text: "телефон не указан", warning: true };
-    const extra: string[] = [];
-    if (master.email) extra.push("email");
-    if (master.whatsapp) extra.push("WhatsApp");
-    if (master.telegram) extra.push("Telegram");
-    const suffix = extra.length > 0 ? ` · ${extra.join(", ")}` : "";
-    return { text: `${master.phone}${suffix}`, warning: false };
-  }, [master]);
-
-  const teamPreview = useMemo((): { text: string; warning: boolean } => {
-    if (!master) return { text: "", warning: false };
-    if (!team) return { text: "не закреплён", warning: true };
-    return { text: team.name, warning: false };
-  }, [master, team]);
+    const titleBit = master.title ? ` · ${master.title}` : "";
+    if (assignedTeams.length === 0) {
+      return { text: `${role} · без бригады`, warning: true };
+    }
+    if (assignedTeams.length === 1) {
+      return { text: `${role}${titleBit} · ${assignedTeams[0].name}`, warning: false };
+    }
+    return {
+      text: `${role}${titleBit} · ${assignedTeams.length} бригады`,
+      warning: false,
+    };
+  }, [master, assignedTeams]);
 
   const salaryPreview = useMemo((): { text: string; warning: boolean } => {
     if (!master) return { text: "", warning: false };
     const s = master.salary;
     if (!s) return { text: "не настроена", warning: true };
     const model = SALARY_MODEL_LABELS[s.model];
-    if (s.model === "percent_of_team") return { text: model, warning: false };
-    if (s.model === "none") return { text: model, warning: false };
+    if (s.model === "percent_of_team" || s.model === "none") {
+      return { text: model, warning: false };
+    }
     const unit = SALARY_UNIT[s.model];
     const valueBit = s.value ? ` · ${s.value}${unit}` : "";
     return { text: `${model}${valueBit}`, warning: false };
   }, [master]);
 
-  const permissionsPreview = useMemo((): { text: string; warning: boolean } => {
+  const accessPreview = useMemo((): { text: string; warning: boolean } => {
     if (!master) return { text: "", warning: false };
     const merged: MasterPermissions = mergePermissions(master.role, master.permissions);
     let on = 0;
@@ -118,7 +135,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
         if (merged[p as keyof MasterPermissions]) on += 1;
       }
     }
-    void PERMISSION_LABELS;
     return { text: `${on} из ${total} включено`, warning: false };
   }, [master]);
 
@@ -149,10 +165,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
     );
   }
 
-  const tile = team?.color ?? "#8E8E93";
-  const statusLabel = master.account_status
-    ? ACCOUNT_STATUS_LABELS[master.account_status]
-    : null;
+  const tile = primaryTeam?.color ?? "#8E8E93";
 
   const handleDelete = async () => {
     const ok = await confirm({
@@ -185,7 +198,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
 
   return (
     <div className="flex flex-col h-full bg-[var(--surface-grouped)]">
-      {/* iOS-style flat nav bar */}
       <div className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] h-12 flex items-center px-2 relative">
         <button
           type="button"
@@ -218,20 +230,14 @@ export default function MasterDetailPage({ params }: RouteParams) {
               onClick={() => router.push(`/dashboard/masters/${master.id}/info`)}
             />
             <NavRow
-              icon={<Phone size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-green)]"
-              title="Контакты"
-              value={contactsPreview.text}
-              warning={contactsPreview.warning}
-              onClick={() => setSheetOpen("contacts")}
-            />
-            <NavRow
               icon={<Briefcase size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
-              title="Бригада и роль"
-              value={teamPreview.text}
-              warning={teamPreview.warning}
-              onClick={() => setSheetOpen("job")}
+              title="Трудоустройство"
+              value={employmentPreview.text}
+              warning={employmentPreview.warning}
+              onClick={() =>
+                router.push(`/dashboard/masters/${master.id}/employment`)
+              }
             />
             <NavRow
               icon={<Wallet size={18} strokeWidth={2} />}
@@ -239,15 +245,15 @@ export default function MasterDetailPage({ params }: RouteParams) {
               title="Зарплата"
               value={salaryPreview.text}
               warning={salaryPreview.warning}
-              onClick={() => setSheetOpen("salary")}
+              onClick={() => router.push(`/dashboard/masters/${master.id}/salary`)}
             />
             <NavRow
               icon={<ShieldCheck size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-red)]"
               title="Доступы"
-              value={permissionsPreview.text}
-              warning={permissionsPreview.warning}
-              onClick={() => setSheetOpen("permissions")}
+              value={accessPreview.text}
+              warning={accessPreview.warning}
+              onClick={() => router.push(`/dashboard/masters/${master.id}/access`)}
             />
             <NavRow
               icon={<FileText size={18} strokeWidth={2} />}
@@ -259,7 +265,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
             />
           </ListGroup>
 
-          {/* Status toggle — flips is_active inline. Mirrors brigade detail. */}
           <ListGroup>
             <div className="flex items-center gap-3 px-4 min-h-[56px]">
               <div className="flex-1 min-w-0">
@@ -283,15 +288,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
             </div>
           </ListGroup>
 
-          {statusLabel && (
-            <div className="px-4 text-[12px] text-[var(--label-tertiary)]">
-              Учётная запись:{" "}
-              <span className="text-[var(--label-secondary)] font-medium">
-                {statusLabel}
-              </span>
-            </div>
-          )}
-
           <button
             type="button"
             onClick={handleDelete}
@@ -302,23 +298,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
           </button>
         </div>
       </div>
-
-      {sheetOpen && (
-        <MasterSheet
-          key={master.id}
-          master={master}
-          teams={teams}
-          onCancel={() => setSheetOpen(null)}
-          onSave={(next) => {
-            upsertMaster(next);
-            setSheetOpen(null);
-          }}
-          onDelete={() => {
-            setSheetOpen(null);
-            void handleDelete();
-          }}
-        />
-      )}
     </div>
   );
 }

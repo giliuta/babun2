@@ -183,6 +183,13 @@ export interface Master {
   permissions: MasterPermissions;
   created_at: string; // ISO date
 
+  /** Custom job title the tenant writes themselves ("Старший техник",
+   *  "Инженер-холодильщик", "Менеджер по городу"). Free text, no
+   *  taxonomy — the system role (admin/dispatcher/lead/helper) owns
+   *  permissions; this is pure display. Shown in the master card and
+   *  optionally on client-facing blocks. */
+  title?: string;
+
   // Contact & personal (all optional — legacy records stay valid).
   email?: string;
   whatsapp?: string;
