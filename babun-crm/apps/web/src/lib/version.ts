@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v290-day-tint-past-shading";
+export const BUILD_VERSION = "v291-brigade-appt-blocks-permissions";

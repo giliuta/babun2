@@ -20,16 +20,18 @@ import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  FileEdit,
   Info,
   MapPin,
   Package,
+  ShieldCheck,
+  Trash2,
   Users as UsersIcon,
   Wrench,
-  CalendarDays,
-  Clock,
-  Trash2,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -170,6 +172,23 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
     return `${hours}${breakBit}${offBit}`;
   }, [schedule]);
 
+  const appointmentBlocksPreview = useMemo(() => {
+    if (!team) return "";
+    const blocks = team.appointment_blocks;
+    if (!blocks) return "стандартные блоки";
+    const overrides = Object.keys(blocks).length;
+    if (overrides === 0) return "стандартные блоки";
+    return `${overrides} настроек изменено`;
+  }, [team]);
+
+  const permissionsPreview = useMemo(() => {
+    if (!team) return "";
+    const count =
+      getTeamLeadIds(team).length + (team.helper_ids?.length ?? 0);
+    if (count === 0) return "нет участников";
+    return `${count} ${count === 1 ? "мастер" : count <= 4 ? "мастера" : "мастеров"} · скоро настройки`;
+  }, [team]);
+
   const activeCities = cities.filter((c) => c.isActive);
   void activeCities;
 
@@ -267,6 +286,15 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               onClick={() => router.push(`/dashboard/teams/${team.id}/masters`)}
             />
             <NavRow
+              icon={<ShieldCheck size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-red)]"
+              title="Доступы"
+              value={permissionsPreview}
+              onClick={() =>
+                router.push(`/dashboard/teams/${team.id}/permissions`)
+              }
+            />
+            <NavRow
               icon={<Wrench size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-purple)]"
               title="Услуги"
@@ -298,6 +326,15 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               title="Расписание"
               value={schedulePreview}
               onClick={() => router.push(`/dashboard/teams/${team.id}/schedule`)}
+            />
+            <NavRow
+              icon={<FileEdit size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-yellow)]"
+              title="Запись"
+              value={appointmentBlocksPreview}
+              onClick={() =>
+                router.push(`/dashboard/teams/${team.id}/appointment-blocks`)
+              }
             />
           </ListGroup>
 

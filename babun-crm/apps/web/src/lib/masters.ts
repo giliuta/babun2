@@ -430,6 +430,29 @@ export interface Team {
   buffer_minutes?: number;
   hide_cancelled?: boolean;
   allow_overtime?: boolean;
+
+  // ── Sprint 033 Phase I42 — per-brigade AppointmentSheet layout ──
+  /** Which optional blocks show up in the create/edit sheet when the
+   *  user is working in this brigade's calendar. Client + services
+   *  sections are mandatory — their flags aren't here. Undefined =
+   *  inherit from the tenant-wide FormFieldVisibility. */
+  appointment_blocks?: BrigadeAppointmentBlocks;
+}
+
+// ─── Brigade appointment-sheet visibility (Sprint 033 Phase I42) ─
+
+/** Optional blocks the dispatcher can toggle per brigade. Mandatory
+ *  blocks (client, services) are hard-coded as always-visible. */
+export interface BrigadeAppointmentBlocks {
+  show_address?: boolean;
+  show_address_note?: boolean;
+  show_comment?: boolean;
+  show_photos?: boolean;
+  show_prepaid?: boolean;
+  show_payment?: boolean;
+  show_expenses?: boolean;
+  show_reminder?: boolean;
+  show_source?: boolean;
 }
 
 // ─── Default permissions per role ──────────────────────────────────────
