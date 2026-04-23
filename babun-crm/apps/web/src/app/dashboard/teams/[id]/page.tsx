@@ -109,21 +109,32 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
 
   const mastersPreview = useMemo((): { text: string; warning: boolean } => {
     if (!team) return { text: "", warning: false };
-    const leadIds = getTeamLeadIds(team);
-    const leadNames = leadIds
-      .map((lid) => masters.find((m) => m.id === lid)?.full_name ?? "")
-      .filter(Boolean);
-    const helperCount = team.helper_ids.length;
-    const leadPart =
-      leadNames.length === 0
-        ? "нет бригадиров"
-        : leadNames.length === 1
-          ? leadNames[0]
-          : `${leadNames[0]} и ещё ${leadNames.length - 1}`;
-    const helperPart =
-      helperCount > 0 ? ` · ${helperCount} ${helperWord(helperCount)}` : "";
-    const warning = leadNames.length === 0 && helperCount === 0;
-    return { text: `${leadPart}${helperPart}`, warning };
+    // Phase I43 — prefer new `members` shape when defined; fall back
+    // to legacy lead/helper split otherwise.
+    const memberCount = team.members
+      ? team.members.length
+      : getTeamLeadIds(team).length + (team.helper_ids?.length ?? 0);
+    if (memberCount === 0) {
+      return { text: "нет участников", warning: true };
+    }
+    // Show first two names, then "и ещё N".
+    const ids = team.members
+      ? team.members.map((m) => m.master_id)
+      : [...getTeamLeadIds(team), ...(team.helper_ids ?? [])];
+    const names = ids
+      .map((mid) => masters.find((m) => m.id === mid)?.full_name)
+      .filter((n): n is string => Boolean(n));
+    if (names.length === 0) {
+      return { text: "нет участников", warning: true };
+    }
+    if (names.length === 1) return { text: names[0], warning: false };
+    if (names.length === 2) {
+      return { text: `${names[0]} · ${names[1]}`, warning: false };
+    }
+    return {
+      text: `${names[0]} и ещё ${names.length - 1}`,
+      warning: false,
+    };
   }, [team, masters]);
 
   const servicesPreview = useMemo((): { text: string; warning: boolean } => {
@@ -380,11 +391,9 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
 
 // ─── Small utilities ──────────────────────────────────────────────────
 
-function helperWord(n: number): string {
-  if (n === 1) return "помощник";
-  if (n >= 2 && n <= 4) return "помощника";
-  return "помощников";
-}
+// helperWord removed in Phase I43 — mastersPreview no longer splits
+// leads / helpers since members live in a single list with custom
+// roles now.
 
 function serviceWord(n: number): string {
   if (n === 1) return "услуга";

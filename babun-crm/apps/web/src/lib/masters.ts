@@ -437,7 +437,45 @@ export interface Team {
    *  sections are mandatory — their flags aren't here. Undefined =
    *  inherit from the tenant-wide FormFieldVisibility. */
   appointment_blocks?: BrigadeAppointmentBlocks;
+
+  // ── Sprint 033 Phase I43 — custom roles + explicit membership ──
+  /** Tenant-authored role taxonomy for THIS brigade. Each member
+   *  below holds one of these. Defaults to [Бригадир, Помощник]
+   *  on first write from a legacy lead_ids/helper_ids brigade. */
+  roles?: BrigadeRole[];
+  /** Who's in this brigade and with what role. When defined this
+   *  supersedes lead_ids/helper_ids as the source of truth; legacy
+   *  fields are still written for downstream readers that haven't
+   *  been ported. */
+  members?: BrigadeMember[];
 }
+
+// ─── Brigade custom roles & members (Sprint 033 Phase I43) ──────
+
+/** A brigade can define its own role taxonomy — «Бригадир»,
+ *  «Установщик», «Электрик», whatever the tenant thinks in. Unlike
+ *  the system-level MasterRole (admin/dispatcher/lead/helper) these
+ *  are display-only labels without permission semantics. */
+export interface BrigadeRole {
+  id: string;
+  name: string;
+  color?: string;
+}
+
+/** Master ↔ brigade membership with the role the master holds in
+ *  this particular brigade. One master can sit in multiple brigades
+ *  with different roles. */
+export interface BrigadeMember {
+  master_id: string;
+  role_id: string | null; // null = без роли
+}
+
+// Default roles auto-created during the lead_ids/helper_ids → members
+// migration on first read of a legacy brigade.
+export const DEFAULT_BRIGADE_ROLES: BrigadeRole[] = [
+  { id: "role-lead", name: "Бригадир", color: "#FFCC00" },
+  { id: "role-helper", name: "Помощник", color: "#8E8E93" },
+];
 
 // ─── Brigade appointment-sheet visibility (Sprint 033 Phase I42) ─
 
