@@ -243,10 +243,19 @@ export default function MasterDetailPage({ params }: RouteParams) {
         </button>
         <h1 className="absolute left-1/2 -translate-x-1/2 text-[17px] font-semibold text-[var(--label)] tracking-tight truncate max-w-[55%] text-center flex items-center gap-2">
           <span
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[11px] shrink-0"
-            style={{ backgroundColor: tile }}
+            className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[11px] shrink-0"
+            style={{ backgroundColor: master.avatar_url ? "transparent" : tile }}
           >
-            {getInitials(master.full_name)}
+            {master.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={master.avatar_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              getInitials(master.full_name)
+            )}
           </span>
           <span className="truncate">{master.full_name || "Сотрудник"}</span>
         </h1>

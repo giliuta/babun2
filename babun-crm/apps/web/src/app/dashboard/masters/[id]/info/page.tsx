@@ -46,6 +46,8 @@ import {
   type MasterDocument,
 } from "@/lib/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
+import AvatarPickerSheet from "@/components/masters/AvatarPickerSheet";
+import { isAvatarSet } from "@/lib/avatars";
 
 const BLANK_MASTER: Master = {
   id: "",
@@ -102,6 +104,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
   // Territory + Documents (local chip/row editors)
   const [cityInput, setCityInput] = useState("");
   const [newDocOpen, setNewDocOpen] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!isNew && existing) {
@@ -326,106 +329,37 @@ export default function MasterInfoPage({ params }: RouteParams) {
       title={isNew ? "Новый сотрудник" : "Информация"}
       {...sharedShellProps}
     >
-      {/* Avatar preview */}
+      {/* Avatar — tap to open picker (14 presets + upload + remove).
+          For a brand-new card (before Create) editing is disabled —
+          the popup on the masters list already captured a photo. */}
       <div className="flex flex-col items-center pt-1 pb-2 gap-1.5">
-        <div className="w-20 h-20 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] flex items-center justify-center text-[26px] font-semibold">
-          {avatarInitials}
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (isNew) return;
+            setAvatarPickerOpen(true);
+          }}
+          disabled={isNew}
+          aria-label="Сменить фото"
+          className="w-20 h-20 rounded-full overflow-hidden bg-[var(--fill-tertiary)] flex items-center justify-center active:scale-[0.98] transition disabled:active:scale-100"
+        >
+          {isAvatarSet(existing?.avatar_url) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={existing!.avatar_url!}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-[26px] font-semibold text-[var(--label-secondary)]">
+              {avatarInitials}
+            </span>
+          )}
+        </button>
         <div className="text-[13px] text-[var(--label-tertiary)]">
-          {isNew ? "Новая карточка" : "Фото появится в v2"}
+          {isNew ? "Новая карточка" : "Тап — сменить фото"}
         </div>
       </div>
-
-      {/* ── ОСНОВНОЕ ──────────────────────────────────────────────── */}
-      <Section
-        title="Основное"
-        footer="Должность — свободное описание роли внутри компании. На права в Babun не влияет (за права отвечает раздел «Доступы»)."
-      >
-        <TextRow
-          label="Имя"
-          value={fullName}
-          setValue={setFullName}
-          onCommit={(v) => commitStr("full_name", v)}
-          placeholder="Имя Фамилия"
-          maxLength={60}
-          required
-        />
-        <TextRow
-          label="Должность"
-          value={title}
-          setValue={setTitle}
-          onCommit={(v) => commitStr("title", v, true)}
-          placeholder="Напр. «Старший техник»"
-          maxLength={80}
-        />
-        <DateRow
-          label="День рождения"
-          value={birthday}
-          setValue={setBirthday}
-          onCommit={(v) => {
-            if (!existing) return;
-            if (v === (existing.birthday ?? "")) return;
-            patch({ birthday: v || undefined });
-          }}
-          last
-        />
-      </Section>
-
-      {/* ── КОНТАКТЫ ──────────────────────────────────────────────── */}
-      <Section title="Контакты" footer="Как с сотрудником связаться вне Babun">
-        <TextRow
-          label="Телефон"
-          value={phone}
-          setValue={setPhone}
-          onCommit={(v) => commitStr("phone", v)}
-          placeholder="+357 …"
-          type="tel"
-          maxLength={32}
-        />
-        <TextRow
-          label="WhatsApp"
-          value={whatsapp}
-          setValue={setWhatsapp}
-          onCommit={(v) => commitStr("whatsapp", v, true)}
-          placeholder="если отличается"
-          type="tel"
-          maxLength={32}
-        />
-        <TextRow
-          label="Telegram"
-          value={telegram}
-          setValue={setTelegram}
-          onCommit={(v) => commitStr("telegram", v, true)}
-          placeholder="@username"
-          maxLength={32}
-        />
-        <TextRow
-          label="Email"
-          value={email}
-          setValue={setEmail}
-          onCommit={(v) => commitStr("email", v, true)}
-          placeholder="personal@example.com"
-          type="email"
-          maxLength={120}
-        />
-        <TextRow
-          label="Адрес"
-          value={address}
-          setValue={setAddress}
-          onCommit={(v) => commitStr("address", v, true)}
-          placeholder="Пафос, улица…"
-          maxLength={120}
-        />
-        <TextRow
-          label="Экстр. контакт"
-          value={emergencyContact}
-          setValue={setEmergencyContact}
-          onCommit={(v) => commitStr("emergency_contact", v, true)}
-          placeholder="Имя · телефон"
-          maxLength={120}
-          last
-        />
-      </Section>
 
       {/* ── УЧЁТКА В BABUN ────────────────────────────────────────── */}
       {!isNew && (
@@ -542,6 +476,97 @@ export default function MasterInfoPage({ params }: RouteParams) {
           </div>
         </Section>
       )}
+
+      {/* ── ОСНОВНОЕ ──────────────────────────────────────────────── */}
+      <Section
+        title="Основное"
+        footer="Должность — свободное описание роли внутри компании. На права в Babun не влияет (за права отвечает раздел «Доступы»)."
+      >
+        <TextRow
+          label="Имя"
+          value={fullName}
+          setValue={setFullName}
+          onCommit={(v) => commitStr("full_name", v)}
+          placeholder="Имя Фамилия"
+          maxLength={60}
+          required
+        />
+        <TextRow
+          label="Должность"
+          value={title}
+          setValue={setTitle}
+          onCommit={(v) => commitStr("title", v, true)}
+          placeholder="Напр. «Старший техник»"
+          maxLength={80}
+        />
+        <DateRow
+          label="День рождения"
+          value={birthday}
+          setValue={setBirthday}
+          onCommit={(v) => {
+            if (!existing) return;
+            if (v === (existing.birthday ?? "")) return;
+            patch({ birthday: v || undefined });
+          }}
+          last
+        />
+      </Section>
+
+      {/* ── КОНТАКТЫ ──────────────────────────────────────────────── */}
+      <Section title="Контакты" footer="Как с сотрудником связаться вне Babun">
+        <TextRow
+          label="Телефон"
+          value={phone}
+          setValue={setPhone}
+          onCommit={(v) => commitStr("phone", v)}
+          placeholder="+357 …"
+          type="tel"
+          maxLength={32}
+        />
+        <TextRow
+          label="WhatsApp"
+          value={whatsapp}
+          setValue={setWhatsapp}
+          onCommit={(v) => commitStr("whatsapp", v, true)}
+          placeholder="если отличается"
+          type="tel"
+          maxLength={32}
+        />
+        <TextRow
+          label="Telegram"
+          value={telegram}
+          setValue={setTelegram}
+          onCommit={(v) => commitStr("telegram", v, true)}
+          placeholder="@username"
+          maxLength={32}
+        />
+        <TextRow
+          label="Email"
+          value={email}
+          setValue={setEmail}
+          onCommit={(v) => commitStr("email", v, true)}
+          placeholder="personal@example.com"
+          type="email"
+          maxLength={120}
+        />
+        <TextRow
+          label="Адрес"
+          value={address}
+          setValue={setAddress}
+          onCommit={(v) => commitStr("address", v, true)}
+          placeholder="Пафос, улица…"
+          maxLength={120}
+        />
+        <TextRow
+          label="Экстр. контакт"
+          value={emergencyContact}
+          setValue={setEmergencyContact}
+          onCommit={(v) => commitStr("emergency_contact", v, true)}
+          placeholder="Имя · телефон"
+          maxLength={120}
+          last
+        />
+      </Section>
 
       {/* ── ТЕРРИТОРИЯ ────────────────────────────────────────────── */}
       {!isNew && existing && (
@@ -713,6 +738,13 @@ export default function MasterInfoPage({ params }: RouteParams) {
           )}
         </Section>
       )}
+
+      <AvatarPickerSheet
+        open={avatarPickerOpen}
+        value={existing?.avatar_url ?? null}
+        onSelect={(next) => patch({ avatar_url: next })}
+        onClose={() => setAvatarPickerOpen(false)}
+      />
     </MasterSectionShell>
   );
 }

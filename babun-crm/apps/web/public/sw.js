@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v299";
+const CACHE_VERSION = "babun-v300";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -61,10 +61,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Cache-first for static assets + DiceBear avatar SVGs (used for
+  // master profile presets; URL has no file extension so we match
+  // by hostname).
   if (
     url.pathname.startsWith("/_next/static/") ||
-    url.pathname.match(/\.(svg|png|jpg|jpeg|gif|woff2?|css|js|ico)$/)
+    url.pathname.match(/\.(svg|png|jpg|jpeg|gif|woff2?|css|js|ico)$/) ||
+    url.hostname === "api.dicebear.com"
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {

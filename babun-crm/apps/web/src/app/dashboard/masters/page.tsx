@@ -39,6 +39,7 @@ import {
   type Master,
   type Team,
 } from "@/lib/masters";
+import NewMasterPopup from "@/components/masters/NewMasterPopup";
 
 function normalize(s: string): string {
   return s.toLowerCase().replace(/ё/g, "е");
@@ -51,6 +52,7 @@ export default function MastersPage() {
   const confirm = useConfirm();
 
   const [query, setQuery] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
   const [menu, setMenu] = useState<{
     master: Master;
     anchor: { x: number; y: number };
@@ -88,7 +90,7 @@ export default function MastersPage() {
 
   const openNew = () => {
     haptic("tap");
-    router.push("/dashboard/masters/new");
+    setNewOpen(true);
   };
 
   const openDetail = (master: Master) => {
@@ -288,6 +290,16 @@ export default function MastersPage() {
         title={menu?.master.full_name}
         options={menuOptions}
       />
+
+      <NewMasterPopup
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        onCreated={(master) => {
+          upsertMaster(master);
+          setNewOpen(false);
+          router.push(`/dashboard/masters/${master.id}/info`);
+        }}
+      />
     </>
   );
 }
@@ -381,12 +393,21 @@ function MasterRow({
       }}
     >
       <span
-        className={`w-9 h-9 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[13px] shrink-0 ${
+        className={`w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[13px] shrink-0 ${
           archived ? "grayscale" : ""
         }`}
-        style={{ backgroundColor: tile }}
+        style={{ backgroundColor: master.avatar_url ? "transparent" : tile }}
       >
-        {getInitials(master.full_name)}
+        {master.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={master.avatar_url}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          getInitials(master.full_name)
+        )}
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
