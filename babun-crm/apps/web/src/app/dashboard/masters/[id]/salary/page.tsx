@@ -1,46 +1,57 @@
 "use client";
 
-// Salary page — rewritten v305 for max convenience.
+// Salary page — v306 per-brigade rules.
 //
-// Layout goals:
-//  · Big summary pill at the top that translates the config into one
-//    line the owner can read at a glance («30% от прибыли · раз в
-//    месяц · нал»), plus a rough monthly money estimate when we have
-//    the data to compute one.
-//  · Core config collapsed into ONE card: model (tap → picker sheet),
-//    amount, period, method. No cascading sub-sections.
-//  · Бонусы / удержания / примечание stay on the same page but in
-//    one compact «Ещё» card.
-//  · Банк и реквизиты appear only when method = «Банковский перевод»
-//    — 90% of small-biz payouts are cash, no reason to see IBAN/TIN.
+// Layout:
+//  1. Totals pill: all rules summed (current-month estimate)
+//  2. Per-brigade cards — one per SalaryRule. Tap opens editor.
+//     Warning row for brigades the master is in without a rule.
+//     Warning row for rules whose brigade was removed (orphans).
+//  3. Bank / tax details (one set per master, shown when any rule
+//     pays electronically).
 
-import { use, useEffect, useMemo, useState } from "react";
-import { ChevronRight, Wallet } from "lucide-react";
+import { use, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  Plus,
+  Wallet,
+} from "lucide-react";
 import { haptic } from "@/lib/haptics";
-import { useAppointments, useMasters, useTeams } from "@/app/dashboard/layout";
+import {
+  useAppointments,
+  useMasters,
+  useTeams,
+} from "@/app/dashboard/layout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   PAYMENT_METHOD_LABELS,
-  SALARY_MODEL_LABELS,
   SALARY_PERIOD_LABELS,
-  SALARY_UNIT,
   appendAudit,
+  blankSalaryRule,
+  describeRule,
+  estimateRuleMonthly,
   getTeamLeadIds,
-  type MasterSalary,
-  type PaymentMethod,
-  type SalaryModel,
-  type SalaryPeriod,
+  isRuleConfigured,
+  type Master,
+  type RuleEstimateContext,
+  type SalaryRule,
   type Team,
 } from "@/lib/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
-import SalaryModelPickerSheet from "@/components/masters/SalaryModelPickerSheet";
+import SalaryRuleEditor from "@/components/masters/SalaryRuleEditor";
 import { formatEUR } from "@/lib/money";
-
-const PERIOD_ORDER: SalaryPeriod[] = ["weekly", "biweekly", "monthly"];
-const METHOD_ORDER: PaymentMethod[] = ["cash", "card", "bank_transfer", "other"];
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+interface RuleCard {
+  rule: SalaryRule;
+  brigade: Team | null;
+  orphan: boolean;
+  estimate: number;
+  ctx: RuleEstimateContext;
 }
 
 export default function MasterSalaryPage({ params }: RouteParams) {
@@ -48,12 +59,11 @@ export default function MasterSalaryPage({ params }: RouteParams) {
   const { masters, upsertMaster } = useMasters();
   const { teams } = useTeams();
   const { appointments } = useAppointments();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<SalaryRule | null>(null);
 
   const master = masters.find((m) => m.id === id);
 
-  // Teams this master is a member of — needed for `percent_of_team`
-  // preview. Uses the same logic as the hub page.
   const assignedTeams = useMemo<Team[]>(() => {
     if (!master) return [];
     const seen = new Map<string, Team>();
@@ -70,50 +80,86 @@ export default function MasterSalaryPage({ params }: RouteParams) {
     return Array.from(seen.values());
   }, [master, teams]);
 
-  const salary: MasterSalary = master?.salary ?? {
-    model: "percent_of_team",
-    value: 0,
-  };
-
-  // Rough monthly-earnings estimate from current-month completed
-  // visits. Not a contractual number — just a sanity check so the
-  // owner sees «≈ 850 €/мес» next to whatever they typed.
-  const monthlyEstimate = useMemo(() => {
-    if (!master) return null;
+  // Current-month revenue snapshots per brigade — fed into each
+  // rule's monthly estimate.
+  const monthCtxByBrigade = useMemo(() => {
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const teamIds = new Set(assignedTeams.map((t) => t.id));
-    let personalRevenue = 0;
-    let teamRevenue = 0;
-    let visits = 0;
+    const map = new Map<string, RuleEstimateContext>();
+    if (!master) return map;
+    for (const t of teams) {
+      map.set(t.id, {
+        ownGross: 0,
+        teamGross: 0,
+        ownExpenses: 0,
+        teamExpenses: 0,
+        visitsThisMonth: 0,
+      });
+    }
     for (const a of appointments) {
       if (a.status !== "completed") continue;
       if (!a.date.startsWith(ym)) continue;
-      if (!a.team_id || !teamIds.has(a.team_id)) continue;
-      teamRevenue += a.total_amount ?? 0;
+      if (!a.team_id) continue;
+      const bucket = map.get(a.team_id);
+      if (!bucket) continue;
+      const expensesTotal = (a.expenses ?? []).reduce(
+        (s, e) => s + (e.amount || 0),
+        0,
+      );
+      bucket.teamGross += a.total_amount ?? 0;
+      bucket.teamExpenses += expensesTotal;
       if (a.master_id === master.id) {
-        personalRevenue += a.total_amount ?? 0;
-        visits += 1;
+        bucket.ownGross += a.total_amount ?? 0;
+        bucket.ownExpenses += expensesTotal;
+        bucket.visitsThisMonth += 1;
       }
     }
-    const base =
-      salary.model === "monthly"
-        ? salary.value
-        : salary.model === "per_visit"
-          ? salary.value * visits
-          : salary.model === "percent_of_own"
-            ? personalRevenue * (salary.value / 100)
-            : salary.model === "percent_of_team"
-              ? teamRevenue * (salary.value / 100)
-              : salary.model === "hybrid"
-                ? salary.value + personalRevenue * ((salary.hybrid_percent ?? 0) / 100)
-                : 0;
-    const delta = (salary.fixed_bonus ?? 0) - (salary.deduction ?? 0);
-    const total = Math.max(0, Math.round(base + delta));
-    if (salary.model === "none" || salary.model === "hourly") return null;
-    if (total === 0) return null;
-    return total;
-  }, [appointments, assignedTeams, master, salary]);
+    return map;
+  }, [appointments, master, teams]);
+
+  const emptyCtx: RuleEstimateContext = {
+    ownGross: 0,
+    teamGross: 0,
+    ownExpenses: 0,
+    teamExpenses: 0,
+    visitsThisMonth: 0,
+  };
+
+  const ruleCards = useMemo<RuleCard[]>(() => {
+    if (!master) return [];
+    const rules = master.salary_rules ?? [];
+    return rules.map((r) => {
+      const brigade = r.brigade_id
+        ? (teams.find((t) => t.id === r.brigade_id) ?? null)
+        : null;
+      const ctx = r.brigade_id
+        ? (monthCtxByBrigade.get(r.brigade_id) ?? emptyCtx)
+        : emptyCtx;
+      const orphan = r.brigade_id !== null && brigade === null;
+      return {
+        rule: r,
+        brigade,
+        orphan,
+        estimate: estimateRuleMonthly(r, ctx),
+        ctx,
+      };
+    });
+  }, [master, teams, monthCtxByBrigade, emptyCtx]);
+
+  // Brigades the master is in but has no rule for — yellow CTA rows.
+  const unconfiguredBrigades = useMemo(() => {
+    if (!master) return [] as Team[];
+    const rules = master.salary_rules ?? [];
+    const coveredIds = new Set(
+      rules.map((r) => r.brigade_id).filter((x): x is string => !!x),
+    );
+    return assignedTeams.filter((t) => !coveredIds.has(t.id));
+  }, [master, assignedTeams]);
+
+  const totalEstimate = ruleCards.reduce((s, c) => s + c.estimate, 0);
+  const showBank = (master?.salary_rules ?? []).some(
+    (r) => r.method === "bank_transfer" || r.method === "card",
+  );
 
   if (!master) {
     return (
@@ -125,332 +171,323 @@ export default function MasterSalaryPage({ params }: RouteParams) {
     );
   }
 
-  const patch = (diff: Partial<MasterSalary>) => {
-    upsertMaster({
-      ...master,
-      salary: { ...salary, ...diff } as MasterSalary,
-    });
+  const patchMaster = (diff: Partial<Master>) => {
+    upsertMaster({ ...master, ...diff });
   };
 
-  const commitModel = (next: SalaryModel) => {
-    if (next === salary.model) return;
-    const before = SALARY_MODEL_LABELS[salary.model];
-    const after = SALARY_MODEL_LABELS[next];
+  const saveRule = (next: SalaryRule) => {
+    const rules = master.salary_rules ?? [];
+    const exists = rules.some((r) => r.id === next.id);
+    const updated = exists
+      ? rules.map((r) => (r.id === next.id ? next : r))
+      : [...rules, next];
+    const brigadeName =
+      teams.find((t) => t.id === next.brigade_id)?.name ?? "общее";
     upsertMaster(
       appendAudit(
-        { ...master, salary: { ...salary, model: next } as MasterSalary },
+        { ...master, salary_rules: updated },
         {
           action: "salary_changed",
-          summary: `Модель ЗП: «${before}» → «${after}»`,
+          summary: exists
+            ? `ЗП-правило обновлено · ${brigadeName} · ${describeRule(next)}`
+            : `ЗП-правило добавлено · ${brigadeName} · ${describeRule(next)}`,
         },
       ),
     );
+    setEditorOpen(false);
+    setEditingRule(null);
   };
 
-  const period: SalaryPeriod = salary.period ?? "monthly";
-  const method: PaymentMethod = salary.method ?? "cash";
-  const showValue = salary.model !== "none";
-  const valueUnit = SALARY_UNIT[salary.model];
-  const showBank = method === "bank_transfer" || method === "card";
+  const deleteRule = (ruleId: string) => {
+    const rules = master.salary_rules ?? [];
+    const target = rules.find((r) => r.id === ruleId);
+    if (!target) return;
+    const brigadeName =
+      teams.find((t) => t.id === target.brigade_id)?.name ?? "общее";
+    upsertMaster(
+      appendAudit(
+        { ...master, salary_rules: rules.filter((r) => r.id !== ruleId) },
+        {
+          action: "salary_changed",
+          summary: `ЗП-правило удалено · ${brigadeName}`,
+        },
+      ),
+    );
+    setEditorOpen(false);
+    setEditingRule(null);
+  };
 
-  // Summary line translating current config into plain Russian.
-  const summaryLine = (() => {
-    const parts: string[] = [];
-    if (salary.model === "none") {
-      parts.push("Без ЗП в Babun");
-    } else if (salary.model === "percent_of_team") {
-      parts.push(
-        salary.value > 0
-          ? `${salary.value}% прибыли бригады`
-          : SALARY_MODEL_LABELS[salary.model],
-      );
-    } else if (salary.model === "percent_of_own") {
-      parts.push(
-        salary.value > 0 ? `${salary.value}% своих работ` : "% своих работ",
-      );
-    } else if (salary.model === "per_visit") {
-      parts.push(
-        salary.value > 0
-          ? `${formatEUR(salary.value)} за визит`
-          : "за каждый визит",
-      );
-    } else if (salary.model === "monthly") {
-      parts.push(
-        salary.value > 0 ? `${formatEUR(salary.value)}/мес` : "оклад в месяц",
-      );
-    } else if (salary.model === "hourly") {
-      parts.push(
-        salary.value > 0 ? `${formatEUR(salary.value)}/ч` : "почасовая",
-      );
-    } else if (salary.model === "hybrid") {
-      const base = salary.value > 0 ? `${formatEUR(salary.value)}/мес` : "оклад";
-      const hp = salary.hybrid_percent ?? 0;
-      parts.push(hp > 0 ? `${base} + ${hp}% своих` : base);
-    }
-    if (salary.model !== "none") {
-      parts.push(SALARY_PERIOD_LABELS[period].toLowerCase());
-      parts.push(PAYMENT_METHOD_LABELS[method].toLowerCase());
-    }
-    return parts.join(" · ");
-  })();
+  const openExistingRule = (rule: SalaryRule) => {
+    haptic("tap");
+    setEditingRule(rule);
+    setEditorOpen(true);
+  };
+
+  const openNewRuleFor = (brigadeId: string | null) => {
+    haptic("tap");
+    setEditingRule(blankSalaryRule(brigadeId));
+    setEditorOpen(true);
+  };
+
+  const editingBrigade = editingRule
+    ? (teams.find((t) => t.id === editingRule.brigade_id) ?? null)
+    : null;
 
   return (
     <MasterSectionShell masterId={id} title="Зарплата" hideSave>
-      {/* ── Summary pill ───────────────────────────────────────── */}
+      {/* ── Totals pill ─────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-[var(--accent-tint)] to-[var(--surface-card)] border border-[var(--accent-tint)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-3 flex items-start gap-3">
         <span className="w-10 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center shrink-0">
           <Wallet size={18} strokeWidth={2} />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[15px] font-semibold text-[var(--label)] leading-tight">
-            {summaryLine}
-          </div>
-          {monthlyEstimate !== null && (
-            <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 tabular-nums">
-              ≈ {formatEUR(monthlyEstimate)} за этот месяц · по факту визитов
-            </div>
-          )}
-          {monthlyEstimate === null && salary.model !== "none" && (
-            <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
-              Оценка посчитается когда появятся закрытые визиты
-            </div>
+          {ruleCards.length === 0 ? (
+            <>
+              <div className="text-[15px] font-semibold text-[var(--label)] leading-tight">
+                ЗП ещё не настроена
+              </div>
+              <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
+                Добавь правило для бригады ниже
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-[15px] font-semibold text-[var(--label)] leading-tight">
+                {ruleCards.length === 1
+                  ? "1 правило"
+                  : `${ruleCards.length} правил${pluralSuffix(ruleCards.length)}`}
+                {totalEstimate > 0 && (
+                  <span className="text-[var(--label-secondary)] font-medium">
+                    {" · ≈ "}
+                    <span className="tabular-nums text-[var(--label)] font-semibold">
+                      {formatEUR(totalEstimate)}
+                    </span>
+                  </span>
+                )}
+              </div>
+              <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
+                {totalEstimate > 0
+                  ? "оценка за этот месяц по факту визитов"
+                  : "оценка появится когда пойдут закрытые визиты"}
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* ── Main config: model + amount + period + method ──────── */}
-      <Section title="Оплата">
+      {/* ── Rules list ──────────────────────────────────────── */}
+      {ruleCards.length > 0 && (
+        <div className="space-y-2">
+          {ruleCards.map(({ rule, brigade, orphan, estimate }) => (
+            <RuleCardView
+              key={rule.id}
+              rule={rule}
+              brigade={brigade}
+              orphan={orphan}
+              estimate={estimate}
+              onClick={() => openExistingRule(rule)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Add-rule CTAs for brigades without a rule ──────── */}
+      {unconfiguredBrigades.length > 0 && (
+        <div>
+          <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+            Бригады без правила
+          </div>
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
+            {unconfiguredBrigades.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => openNewRuleFor(t.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] active:bg-[var(--fill-quaternary)] transition"
+              >
+                <span
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: `${t.color}22` }}
+                >
+                  <AlertTriangle
+                    size={16}
+                    strokeWidth={2}
+                    className="text-[var(--system-yellow)] fill-[var(--system-yellow)]"
+                  />
+                </span>
+                <span className="flex-1 text-left min-w-0">
+                  <span className="block text-[14px] font-semibold text-[var(--label)] truncate">
+                    {t.name}
+                  </span>
+                  <span className="block text-[12px] text-[var(--label-secondary)] mt-0.5">
+                    Правило не настроено — тап, чтобы создать
+                  </span>
+                </span>
+                <Plus size={16} strokeWidth={2.5} className="text-[var(--accent)] shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── «+ Правило без бригады» — only if master has no brigades
+              (admin / universal). Otherwise always go through unconfigured
+              list above for brigade-bound rules. */}
+      {assignedTeams.length === 0 && (
         <button
           type="button"
-          onClick={() => {
-            haptic("tap");
-            setPickerOpen(true);
-          }}
-          className="w-full flex items-center gap-3 min-h-[48px] px-4 active:bg-[var(--fill-quaternary)] transition"
+          onClick={() => openNewRuleFor(null)}
+          className="w-full h-12 flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--fill-quaternary)]"
         >
-          <span className="text-[15px] text-[var(--label)] flex-1 text-left">
-            Модель
-          </span>
-          <span className="text-[14px] text-[var(--label-secondary)] text-right truncate max-w-[60%]">
-            {SALARY_MODEL_LABELS[salary.model]}
-          </span>
-          <ChevronRight
-            size={16}
-            strokeWidth={2}
-            className="text-[var(--label-quaternary)] shrink-0"
-          />
+          <Plus size={16} strokeWidth={2.5} />
+          Добавить правило
         </button>
-
-        {showValue && salary.model !== "percent_of_team" && (
-          <NumberRow
-            label={salary.model === "hybrid" ? "Оклад" : "Значение"}
-            value={salary.value}
-            unit={valueUnit}
-            onCommit={(n) => patch({ value: n })}
-          />
-        )}
-
-        {salary.model === "percent_of_team" && (
-          <NumberRow
-            label="Процент"
-            value={salary.value}
-            unit="%"
-            onCommit={(n) => patch({ value: n })}
-          />
-        )}
-
-        {salary.model === "hybrid" && (
-          <NumberRow
-            label="% своих работ"
-            value={salary.hybrid_percent ?? 0}
-            unit="%"
-            onCommit={(n) => patch({ hybrid_percent: n })}
-          />
-        )}
-
-        {salary.model !== "none" && (
-          <>
-            <div className="px-4 py-2 border-t border-[var(--separator)]">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-                Когда
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {PERIOD_ORDER.map((p) => {
-                  const picked = period === p;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => {
-                        if (picked) return;
-                        haptic("tap");
-                        patch({ period: p });
-                      }}
-                      className={`h-9 rounded-[10px] text-[12px] font-semibold press-scale transition-colors ${
-                        picked
-                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                          : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                      }`}
-                    >
-                      {SALARY_PERIOD_LABELS[p]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="px-4 py-2 border-t border-[var(--separator)]">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-                Чем
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {METHOD_ORDER.map((m) => {
-                  const picked = method === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => {
-                        if (picked) return;
-                        haptic("tap");
-                        patch({ method: m });
-                      }}
-                      className={`h-9 rounded-[10px] text-[13px] font-semibold press-scale transition-colors ${
-                        picked
-                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                          : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                      }`}
-                    >
-                      {PAYMENT_METHOD_LABELS[m]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
-      </Section>
-
-      {/* ── Bonus / deduction / note ─────────────────────────── */}
-      {salary.model !== "none" && (
-        <Section
-          title="Бонусы, удержания, примечание"
-          footer="Все поля опциональны. Применяются поверх основной модели."
-        >
-          <NumberRow
-            label="Фикс. бонус"
-            value={salary.fixed_bonus ?? 0}
-            unit="€"
-            onCommit={(n) => patch({ fixed_bonus: n || undefined })}
-          />
-          <NumberRow
-            label="Удержание"
-            value={salary.deduction ?? 0}
-            unit="€"
-            onCommit={(n) => patch({ deduction: n || undefined })}
-          />
-          <div className="px-4 py-2 border-t border-[var(--separator)]">
-            <textarea
-              value={salary.note ?? ""}
-              onChange={(e) =>
-                upsertMaster({
-                  ...master,
-                  salary: { ...salary, note: e.target.value } as MasterSalary,
-                })
-              }
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v === (salary.note ?? "")) return;
-                patch({ note: v || undefined });
-              }}
-              placeholder="Напр. «авансы по средам» или «минус 50€ за аренду инструмента»"
-              rows={2}
-              maxLength={400}
-              className="w-full bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none leading-snug"
-            />
-          </div>
-        </Section>
       )}
 
-      {/* ── Bank details — only for electronic payouts ─────────── */}
+      {/* ── Bank / tax (only when any rule pays electronically) ─ */}
       {showBank && (
-        <Section
-          title="Банк и реквизиты"
-          footer="Появляются только для безнала. «Резидент Кипра» влияет на VAT в payroll."
-        >
-          <TextFieldRow
-            label="IBAN"
-            value={salary.iban ?? ""}
-            placeholder="CY__ ____ ____ ____"
-            onCommit={(v) => patch({ iban: v.trim() || undefined })}
-          />
-          <TextFieldRow
-            label="Банк"
-            value={salary.bank_name ?? ""}
-            placeholder="Bank of Cyprus / Hellenic / Revolut"
-            onCommit={(v) => patch({ bank_name: v.trim() || undefined })}
-          />
-          <TextFieldRow
-            label="TIN / АФМ"
-            value={salary.tax_number ?? ""}
-            placeholder="Налоговый номер"
-            onCommit={(v) => patch({ tax_number: v.trim() || undefined })}
-          />
-          <div className="flex items-center gap-3 min-h-[44px] px-4 border-t border-[var(--separator)]">
-            <span className="text-[15px] text-[var(--label)] flex-1">
-              Резидент Кипра
-            </span>
-            <span className="text-[12px] text-[var(--label-tertiary)]">
-              {salary.tax_resident ? "VAT 19%" : "не применять"}
-            </span>
-            <IOSSwitch
-              checked={salary.tax_resident ?? false}
-              onChange={(next) => patch({ tax_resident: next })}
-              ariaLabel="Резидент Кипра"
-            />
+        <div>
+          <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+            Банк и реквизиты
           </div>
-        </Section>
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+            <BankTextRow
+              label="IBAN"
+              value={master.iban ?? ""}
+              placeholder="CY__ ____ ____ ____"
+              onCommit={(v) => patchMaster({ iban: v.trim() || undefined })}
+            />
+            <BankTextRow
+              label="Банк"
+              value={master.bank_name ?? ""}
+              placeholder="Bank of Cyprus / Hellenic / Revolut"
+              onCommit={(v) => patchMaster({ bank_name: v.trim() || undefined })}
+            />
+            <BankTextRow
+              label="TIN / АФМ"
+              value={master.tax_number ?? ""}
+              placeholder="Налоговый номер"
+              onCommit={(v) =>
+                patchMaster({ tax_number: v.trim() || undefined })
+              }
+            />
+            <div className="flex items-center gap-3 min-h-[44px] px-4 border-t border-[var(--separator)]">
+              <span className="text-[14px] text-[var(--label)] flex-1">
+                Резидент Кипра
+              </span>
+              <span className="text-[12px] text-[var(--label-tertiary)]">
+                {master.tax_resident ? "VAT 19%" : "не применять"}
+              </span>
+              <IOSSwitch
+                checked={master.tax_resident ?? false}
+                onChange={(next) => patchMaster({ tax_resident: next })}
+                ariaLabel="Резидент Кипра"
+              />
+            </div>
+          </div>
+          <div className="px-4 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
+            Реквизиты общие для сотрудника. «Резидент Кипра» влияет на VAT в payroll.
+          </div>
+        </div>
       )}
 
-      <SalaryModelPickerSheet
-        open={pickerOpen}
-        value={salary.model}
-        onSelect={commitModel}
-        onClose={() => setPickerOpen(false)}
+      <SalaryRuleEditor
+        open={editorOpen}
+        rule={editingRule}
+        brigade={editingBrigade}
+        onSave={saveRule}
+        onDelete={
+          editingRule &&
+          (master.salary_rules ?? []).some((r) => r.id === editingRule.id)
+            ? () => deleteRule(editingRule.id)
+            : undefined
+        }
+        onClose={() => {
+          setEditorOpen(false);
+          setEditingRule(null);
+        }}
       />
     </MasterSectionShell>
   );
 }
 
-// ─── Section + Row primitives ───────────────────────────────────
-
-function Section({
-  title,
-  footer,
-  children,
+function RuleCardView({
+  rule,
+  brigade,
+  orphan,
+  estimate,
+  onClick,
 }: {
-  title: string;
-  footer?: string;
-  children: React.ReactNode;
+  rule: SalaryRule;
+  brigade: Team | null;
+  orphan: boolean;
+  estimate: number;
+  onClick: () => void;
 }) {
+  const configured = isRuleConfigured(rule);
+  const period = rule.period ?? "monthly";
+  const method = rule.method ?? "cash";
   return (
-    <div>
-      <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
-        {title}
-      </div>
-      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
-        {children}
-      </div>
-      {footer && (
-        <div className="px-4 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
-          {footer}
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-3 flex items-start gap-3 active:bg-[var(--fill-quaternary)] transition"
+    >
+      <span
+        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+        style={{
+          background: brigade
+            ? `${brigade.color}22`
+            : "var(--fill-tertiary)",
+        }}
+      >
+        <span
+          className="w-3 h-3 rounded-full"
+          style={{ background: brigade?.color ?? "var(--label-tertiary)" }}
+        />
+      </span>
+      <div className="flex-1 min-w-0 text-left">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[15px] font-semibold text-[var(--label)] truncate">
+            {brigade?.name ?? "Без бригады"}
+          </span>
+          {orphan && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-red)] bg-[rgba(255,59,48,0.1)] px-1.5 py-0.5 rounded">
+              бригада удалена
+            </span>
+          )}
+          {!configured && !orphan && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--system-yellow-strong,#B78600)] bg-[rgba(255,149,0,0.1)] px-1.5 py-0.5 rounded">
+              пусто
+            </span>
+          )}
         </div>
-      )}
-    </div>
+        <div className="text-[13px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+          {describeRule(rule)}
+        </div>
+        <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
+          {SALARY_PERIOD_LABELS[period].toLowerCase()} ·{" "}
+          {PAYMENT_METHOD_LABELS[method].toLowerCase()}
+          {estimate > 0 && (
+            <span className="text-[var(--label-secondary)]">
+              {" · ≈ "}
+              <span className="tabular-nums font-semibold">
+                {formatEUR(estimate)}/мес
+              </span>
+            </span>
+          )}
+        </div>
+      </div>
+      <ChevronRight
+        size={16}
+        strokeWidth={2}
+        className="text-[var(--label-quaternary)] shrink-0 mt-2"
+      />
+    </button>
   );
 }
 
-function TextFieldRow({
+function BankTextRow({
   label,
   value,
   placeholder,
@@ -462,9 +499,6 @@ function TextFieldRow({
   onCommit: (v: string) => void;
 }) {
   const [local, setLocal] = useState(value);
-  useEffect(() => {
-    setLocal(value);
-  }, [value]);
   return (
     <label className="flex items-center gap-3 min-h-[44px] px-4 border-t border-[var(--separator)] first:border-t-0">
       <span className="text-[14px] text-[var(--label)] w-[100px] shrink-0">
@@ -485,45 +519,10 @@ function TextFieldRow({
   );
 }
 
-function NumberRow({
-  label,
-  value,
-  unit,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  unit: string;
-  onCommit: (n: number) => void;
-}) {
-  return (
-    <label className="flex items-center gap-3 min-h-[44px] px-4 border-t border-[var(--separator)] first:border-t-0">
-      <span className="text-[14px] text-[var(--label)] flex-1">{label}</span>
-      <input
-        type="text"
-        inputMode="decimal"
-        pattern="[0-9]*[.,]?[0-9]*"
-        value={value === 0 ? "" : String(value)}
-        onChange={(e) => {
-          const raw = e.target.value.replace(",", ".");
-          const parsed = raw === "" ? 0 : Number(raw);
-          if (!Number.isFinite(parsed)) return;
-          onCommit(parsed);
-        }}
-        onBlur={(e) => {
-          const raw = e.target.value.replace(",", ".");
-          const parsed = raw === "" ? 0 : Number(raw);
-          if (!Number.isFinite(parsed)) return;
-          onCommit(parsed);
-        }}
-        placeholder="0"
-        className="w-24 bg-transparent text-[15px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-      />
-      {unit && (
-        <span className="text-[13px] text-[var(--label-secondary)] w-8 text-right shrink-0">
-          {unit}
-        </span>
-      )}
-    </label>
-  );
+function pluralSuffix(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "о";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "а";
+  return "";
 }

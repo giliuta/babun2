@@ -34,10 +34,10 @@ import {
 import {
   ACCOUNT_STATUS_LABELS,
   PERMISSION_GROUPS,
-  SALARY_MODEL_LABELS,
-  SALARY_UNIT,
+  describeRule,
   getInitials,
   getTeamLeadIds,
+  isRuleConfigured,
   mergePermissions,
   type MasterPermissions,
   type Team,
@@ -100,15 +100,18 @@ export default function MasterDetailPage({ params }: RouteParams) {
 
   const salaryPreview = useMemo((): { text: string; warning: boolean } => {
     if (!master) return { text: "", warning: false };
-    const s = master.salary;
-    if (!s) return { text: "не настроена", warning: true };
-    const model = SALARY_MODEL_LABELS[s.model];
-    if (s.model === "percent_of_team" || s.model === "none") {
-      return { text: model, warning: false };
+    const rules = master.salary_rules ?? [];
+    if (rules.length === 0) return { text: "не настроена", warning: true };
+    if (rules.length === 1) {
+      const r = rules[0];
+      if (!isRuleConfigured(r)) return { text: "не настроена", warning: true };
+      return { text: describeRule(r), warning: false };
     }
-    const unit = SALARY_UNIT[s.model];
-    const valueBit = s.value ? ` · ${s.value}${unit}` : "";
-    return { text: `${model}${valueBit}`, warning: false };
+    const configured = rules.filter(isRuleConfigured).length;
+    return {
+      text: `${configured} из ${rules.length} правил настроено`,
+      warning: configured < rules.length,
+    };
   }, [master]);
 
   const accessPreview = useMemo((): { text: string; warning: boolean } => {

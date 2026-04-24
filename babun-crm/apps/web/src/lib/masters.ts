@@ -122,6 +122,63 @@ export interface MasterSalary {
   tax_resident?: boolean;
 }
 
+// ─── SalaryRule (v306, replaces flat MasterSalary) ────────────────────
+//
+// A SalaryRule describes how one employee is paid for work done inside
+// one specific brigade. A master in N brigades can have up to N rules
+// (one per brigade). Rules are additive — base + percent + per-visit +
+// hourly all stack onto one payout. Legacy MasterSalary is migrated
+// into a single-rule array on load; old readers still compile via the
+// deprecated `Master.salary` field.
+
+/** % of WHAT revenue stream the percent_rate applies to. */
+export type PercentSource = "team" | "own";
+
+/** WHICH figure counts as revenue. Gross = sum of completed
+ *  appointment total_amount. Net = gross minus
+ *  sum(appointment.expenses[].amount) (materials, fuel, etc). */
+export type RevenueBasis = "gross" | "net";
+
+export interface SalaryRule {
+  id: string;
+  /** Brigade this rule applies to. null = tenant-wide fallback
+   *  (admins / universal roles without brigade attachment). */
+  brigade_id: string | null;
+  /** Fixed base paid every period (€), regardless of workload. */
+  base_amount: number;
+  /** Percent of revenue (0–100). Applied on top of base. */
+  percent_rate: number;
+  /** Whose revenue fuels the percent — team turnover or master's own
+   *  closed appointments. Defaults to "team" when percent_rate > 0. */
+  percent_source: PercentSource;
+  /** Gross revenue or net-of-expenses. Defaults to "gross". */
+  percent_of: RevenueBasis;
+  /** Flat € per completed visit (the master's own visit). */
+  per_visit: number;
+  /** € per hour worked. Not tracked automatically yet — future use. */
+  hourly_rate: number;
+  /** Fixed monthly bonus (KPI / seniority top-up, free-form). */
+  fixed_bonus?: number;
+  /** Fixed monthly deduction (advance, tool rental, etc). */
+  deduction?: number;
+  /** Payout cadence. Default "monthly". */
+  period?: SalaryPeriod;
+  /** Payout channel. Default "cash". */
+  method?: PaymentMethod;
+  /** Free-text note shown on payroll review. */
+  note?: string;
+}
+
+export const PERCENT_SOURCE_LABELS: Record<PercentSource, string> = {
+  team: "от оборота бригады",
+  own: "от своих визитов",
+};
+
+export const REVENUE_BASIS_LABELS: Record<RevenueBasis, string> = {
+  gross: "валовый оборот",
+  net: "чистая прибыль",
+};
+
 export interface MasterDocument {
   id: string;
   /** "Паспорт", "Водительские права", "ИНН" */
@@ -320,7 +377,23 @@ export interface Master {
   work_schedule?: WorkSchedule;
 
   // Compensation.
+  /** DEPRECATED — kept for legacy records until the next clean-up
+   *  pass. New code reads `salary_rules`. loadMasters() migrates
+   *  this into a single-rule array on first load. */
   salary?: MasterSalary;
+  /** v306 — per-brigade payment rules. A master in several brigades
+   *  has one rule per brigade (additive base + percent + per-visit +
+   *  hourly inside each rule). */
+  salary_rules?: SalaryRule[];
+
+  // Banking details (moved from salary to master in v306 — one set
+  // per employee, not per rule).
+  iban?: string;
+  bank_name?: string;
+  /** Local tax number (TIN / АФМ / ИНН). */
+  tax_number?: string;
+  /** Cyprus-resident flag — drives VAT 19% on payroll entries. */
+  tax_resident?: boolean;
 
   // ── Sprint 027: Babun account (login credentials) ─────────────
   /** Login email. Same as `email` by default but kept separate so
@@ -851,6 +924,98 @@ export function defaultWorkSchedule(): WorkSchedule {
   };
 }
 
+// ─── Salary rule helpers (v306) ─────────────────────────────────────
+
+export interface RuleEstimateContext {
+  /** Current-month gross revenue of this master's own closed visits
+   *  in the rule's brigade. */
+  ownGross: number;
+  /** Current-month gross revenue of the whole brigade. */
+  teamGross: number;
+  /** Sum of expenses on this master's closed visits in the brigade. */
+  ownExpenses: number;
+  /** Sum of expenses across the whole brigade's closed visits. */
+  teamExpenses: number;
+  /** How many visits this master closed in the brigade this month. */
+  visitsThisMonth: number;
+}
+
+/** Compute a rough monthly payout for a single rule given current-month
+ *  revenue snapshots. Does not include hourly (no hours tracking) or
+ *  future-period scaling. */
+export function estimateRuleMonthly(
+  rule: SalaryRule,
+  ctx: RuleEstimateContext,
+): number {
+  let total = rule.base_amount || 0;
+  if (rule.percent_rate > 0) {
+    const src =
+      rule.percent_source === "team"
+        ? rule.percent_of === "net"
+          ? Math.max(0, ctx.teamGross - ctx.teamExpenses)
+          : ctx.teamGross
+        : rule.percent_of === "net"
+          ? Math.max(0, ctx.ownGross - ctx.ownExpenses)
+          : ctx.ownGross;
+    total += src * (rule.percent_rate / 100);
+  }
+  if (rule.per_visit > 0) {
+    total += rule.per_visit * ctx.visitsThisMonth;
+  }
+  total += rule.fixed_bonus ?? 0;
+  total -= rule.deduction ?? 0;
+  return Math.max(0, Math.round(total));
+}
+
+/** One-liner plain-Russian summary of a rule for a card / list view. */
+export function describeRule(rule: SalaryRule): string {
+  const parts: string[] = [];
+  if (rule.base_amount > 0) {
+    parts.push(`${Math.round(rule.base_amount)}€/мес`);
+  }
+  if (rule.percent_rate > 0) {
+    const src = PERCENT_SOURCE_LABELS[rule.percent_source];
+    const basis = rule.percent_of === "net" ? " (чистая)" : "";
+    parts.push(`${rule.percent_rate}% ${src}${basis}`);
+  }
+  if (rule.per_visit > 0) {
+    parts.push(`${Math.round(rule.per_visit)}€/визит`);
+  }
+  if (rule.hourly_rate > 0) {
+    parts.push(`${Math.round(rule.hourly_rate)}€/час`);
+  }
+  if (parts.length === 0) return "не настроено";
+  return parts.join(" + ");
+}
+
+/** True when at least one pay component is set. */
+export function isRuleConfigured(rule: SalaryRule): boolean {
+  return (
+    rule.base_amount > 0 ||
+    rule.percent_rate > 0 ||
+    rule.per_visit > 0 ||
+    rule.hourly_rate > 0
+  );
+}
+
+/** Factory for a fresh rule attached to a brigade. */
+export function blankSalaryRule(
+  brigadeId: string | null,
+): SalaryRule {
+  return {
+    id: `salrule_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    brigade_id: brigadeId,
+    base_amount: 0,
+    percent_rate: 0,
+    percent_source: "team",
+    percent_of: "gross",
+    per_visit: 0,
+    hourly_rate: 0,
+    period: "monthly",
+    method: "cash",
+  };
+}
+
 /** Generates a readable 12-character password (4-letter blocks + digit
  *  so the CEO can dictate it over the phone without "a-or-e" confusion.
  *  Ambiguous letters (0 / O / l / 1) are stripped. */
@@ -977,10 +1142,64 @@ export function loadMasters(): Master[] {
     const raw = window.localStorage.getItem(MASTERS_KEY);
     if (!raw) return DEFAULT_MASTERS;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_MASTERS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_MASTERS;
+    return (parsed as Master[]).map(migrateMasterSalaryShape);
   } catch {
     return DEFAULT_MASTERS;
   }
+}
+
+/** v306 — convert legacy `Master.salary` (single flat object) into
+ *  `Master.salary_rules[]`. Idempotent: if salary_rules already
+ *  exists it is returned as-is. Legacy banking fields on salary are
+ *  lifted to the master level. */
+export function migrateMasterSalaryShape(m: Master): Master {
+  if (m.salary_rules && m.salary_rules.length > 0) {
+    return m;
+  }
+  const legacy = m.salary;
+  if (!legacy || legacy.model === "none") {
+    return m;
+  }
+  const rule: SalaryRule = {
+    id: `salrule_${m.id}_init`,
+    brigade_id: m.team_id ?? null,
+    base_amount:
+      legacy.model === "monthly" || legacy.model === "hybrid"
+        ? legacy.value
+        : 0,
+    percent_rate:
+      legacy.model === "percent_of_team" || legacy.model === "percent_of_own"
+        ? legacy.value
+        : legacy.model === "hybrid"
+          ? legacy.hybrid_percent ?? 0
+          : 0,
+    percent_source:
+      legacy.model === "percent_of_team"
+        ? "team"
+        : legacy.model === "percent_of_own"
+          ? "own"
+          : legacy.model === "hybrid"
+            ? "own"
+            : "team",
+    percent_of: "gross",
+    per_visit: legacy.model === "per_visit" ? legacy.value : 0,
+    hourly_rate: legacy.model === "hourly" ? legacy.value : 0,
+    fixed_bonus: legacy.fixed_bonus,
+    deduction: legacy.deduction,
+    period: legacy.period,
+    method: legacy.method,
+    note: legacy.note,
+  };
+  return {
+    ...m,
+    salary_rules: [rule],
+    // Lift banking details up to the master.
+    iban: m.iban ?? legacy.iban,
+    bank_name: m.bank_name ?? legacy.bank_name,
+    tax_number: m.tax_number ?? legacy.tax_number,
+    tax_resident: m.tax_resident ?? legacy.tax_resident,
+  };
 }
 
 export function saveMasters(masters: Master[]): void {
