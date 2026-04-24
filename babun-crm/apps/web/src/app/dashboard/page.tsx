@@ -417,6 +417,7 @@ function DashboardPageInner() {
         address_lng: null,
         source: null,
         is_online_booking: false,
+        cancel_reason: null,
         kind: isEvent ? "event" : "work",
         photos: [],
         consent_given: true,

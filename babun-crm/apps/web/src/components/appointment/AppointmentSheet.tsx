@@ -28,6 +28,7 @@ import type {
   AppointmentPayment,
   AppointmentPhoto,
   AppointmentService,
+  AppointmentSource,
   Discount,
 } from "@/lib/appointments";
 import { loadAppointments } from "@/lib/appointments";
@@ -54,6 +55,7 @@ import ServicesBlock from "./ServicesBlock";
 import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
 import PhotoBlock from "./PhotoBlock";
+import SourceBlock from "./SourceBlock";
 import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
 import ClientProfileView from "@/components/clients/ClientProfileView";
@@ -157,6 +159,8 @@ export default function AppointmentSheet({
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
+  const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
+  const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
   const [photos, setPhotos] = useState<AppointmentPhoto[]>(appointment.photos ?? []);
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
@@ -197,6 +201,8 @@ export default function AppointmentSheet({
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
     setCancelFlag(appointment.status === "cancelled");
+    setCancelReason(appointment.cancel_reason ?? "");
+    setSource(appointment.source ?? null);
     setPhotos(appointment.photos ?? []);
     setEventLabel(appointment.comment || "");
     setSmsEnabled(appointment.reminder_enabled);
@@ -390,6 +396,8 @@ export default function AppointmentSheet({
       address,
       address_note: addressNote.trim(),
       photos,
+      source,
+      cancel_reason: cancelFlag ? (cancelReason.trim() || null) : null,
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
       kind: "work",
       // Cancel toggle wins over everything else. When the dispatcher
@@ -674,6 +682,12 @@ export default function AppointmentSheet({
             </div>
           ) : (
             <>
+              <SourceBlock
+                value={source}
+                readonly={readonly}
+                onChange={setSource}
+              />
+
               <ClientBlock
                 client={client}
                 readonly={readonly}
@@ -730,26 +744,86 @@ export default function AppointmentSheet({
                 />
               </div>
 
+              {/* Readonly cancellation reason in view/done mode when
+                  record is already cancelled. Reuses the same red tint
+                  as the editable version below. */}
+              {!isEditable && appointment.status === "cancelled" && (
+                <div className="px-4 pt-3">
+                  <div className="px-3 py-2 rounded-[14px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] text-[var(--label)]">
+                    <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] mb-0.5">
+                      Запись отменена
+                    </div>
+                    <div>
+                      {appointment.cancel_reason?.trim() || "Причина не указана"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Cancel-appointment toggle — always visible when the
                   appointment isn't already completed. Flipping on
                   marks status as cancelled on save; flipping off in
                   edit restores the previous status. */}
               {appointment.status !== "completed" && isEditable && (
-                <div className="px-4 pt-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-[15px] font-semibold text-[var(--label)]">
-                      Запись отменена
+                <>
+                  <div className="px-4 pt-3 flex items-center justify-between">
+                    <div>
+                      <div className="text-[15px] font-semibold text-[var(--label)]">
+                        Запись отменена
+                      </div>
+                      <div className="text-[12px] text-[var(--label-secondary)]">
+                        Клиент отказался от услуги
+                      </div>
                     </div>
-                    <div className="text-[12px] text-[var(--label-secondary)]">
-                      Клиент отказался от услуги
-                    </div>
+                    <IOSSwitch
+                      checked={cancelFlag}
+                      onChange={setCancelFlag}
+                      ariaLabel="Запись отменена"
+                    />
                   </div>
-                  <IOSSwitch
-                    checked={cancelFlag}
-                    onChange={setCancelFlag}
-                    ariaLabel="Запись отменена"
-                  />
-                </div>
+                  {cancelFlag && (
+                    <div className="px-4 pt-2">
+                      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] mb-1.5">
+                        Причина отмены
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {[
+                          "Клиент перенёс",
+                          "Не дозвонились",
+                          "Погода",
+                          "Нет материала",
+                          "Клиент не на месте",
+                          "Другое",
+                        ].map((preset) => {
+                          const active = cancelReason === preset;
+                          return (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() =>
+                                setCancelReason(active ? "" : preset)
+                              }
+                              className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
+                                active
+                                  ? "bg-[var(--system-red)] text-white"
+                                  : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                              }`}
+                            >
+                              {preset}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        type="text"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Или своя причина…"
+                        className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               {/* SMS toggle только в create */}

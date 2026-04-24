@@ -51,6 +51,31 @@ export interface AppointmentService {
 
 export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
 
+/** Откуда пришла заявка. Совмещена со списком клиента
+ *  (AcquisitionSource в lib/clients), но отдельный тип потому что у
+ *  заявки может быть «phone» (позвонили напрямую), а у клиента этой
+ *  опции нет. */
+export type AppointmentSource =
+  | "instagram"
+  | "whatsapp"
+  | "online"
+  | "phone"
+  | "referral"
+  | "repeat"
+  | "walk_in"
+  | "other";
+
+export const APPOINTMENT_SOURCE_LABELS: Record<AppointmentSource, string> = {
+  instagram: "Instagram",
+  whatsapp: "WhatsApp",
+  online: "Сайт",
+  phone: "Звонок",
+  referral: "Рекомендация",
+  repeat: "Повторный",
+  walk_in: "Проездом",
+  other: "Другое",
+};
+
 export type PhotoKind = "before" | "after" | "other";
 
 export interface AppointmentPhoto {
@@ -120,8 +145,11 @@ export interface Appointment {
   address_lat: number | null;
   address_lng: number | null;
 
-  source: string | null; // 'instagram' | 'whatsapp' | 'online' | null
+  source: AppointmentSource | null; // канал обращения клиента
   is_online_booking: boolean; // true — клиент записался сам через онлайн-форму
+  /** Причина отмены — заполняется когда status="cancelled". null если
+   *  ещё не отменили или диспетчер не указал. */
+  cancel_reason: string | null;
   kind: AppointmentKind; // 'event' / 'personal' = не услуга, а личное событие
   photos: AppointmentPhoto[]; // фото до/после работы
   /** Client agreed to photos being taken. Default true for AirFix
@@ -189,6 +217,8 @@ export function loadAppointments(): Appointment[] {
       services: p.services ?? [],
       global_discount: p.global_discount ?? null,
       total_duration: p.total_duration ?? 0,
+      cancel_reason: p.cancel_reason ?? null,
+      source: (p.source ?? null) as AppointmentSource | null,
       // Migrate legacy payments[] → payment (single object). Sum up
       // cash / card payments; anything else collapses to invoice.
       payment:
@@ -540,6 +570,7 @@ export function createBlankAppointment(overrides: Partial<Appointment> = {}): Ap
     address_lng: null,
     source: null,
     is_online_booking: false,
+    cancel_reason: null,
     kind: "work",
     photos: [],
     consent_given: true,
