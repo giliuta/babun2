@@ -468,6 +468,10 @@ export interface BrigadeRole {
 export interface BrigadeMember {
   master_id: string;
   role_id: string | null; // null = без роли
+  /** Sprint 033 Phase I47 — granular per-brigade permissions. Undef
+   *  = full access (backward compat). See lib/brigade-permissions.ts
+   *  for the type (avoids a circular import). */
+  permissions?: import("./brigade-permissions").BrigadeMemberPermissions;
 }
 
 // NOTE: no default roles are auto-created for a fresh brigade — the
