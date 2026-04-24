@@ -470,12 +470,12 @@ export interface BrigadeMember {
   role_id: string | null; // null = без роли
 }
 
-// Default roles auto-created during the lead_ids/helper_ids → members
-// migration on first read of a legacy brigade.
-export const DEFAULT_BRIGADE_ROLES: BrigadeRole[] = [
-  { id: "role-lead", name: "Бригадир", color: "#FFCC00" },
-  { id: "role-helper", name: "Помощник", color: "#8E8E93" },
-];
+// NOTE: no default roles are auto-created for a fresh brigade — the
+// tenant authors them explicitly. Legacy migration (see the masters
+// page) is the only place these IDs still appear, and only for
+// buckets that actually have members.
+export const LEGACY_LEAD_ROLE_ID = "role-lead";
+export const LEGACY_HELPER_ROLE_ID = "role-helper";
 
 // ─── Brigade appointment-sheet visibility (Sprint 033 Phase I42) ─
 
