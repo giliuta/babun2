@@ -36,17 +36,22 @@ import { useMasters } from "@/app/dashboard/layout";
 import {
   ACCOUNT_STATUS_LABELS,
   ACCOUNT_STATUS_TONE,
+  INCIDENT_LABELS,
+  INCIDENT_TONE,
   appendAudit,
   defaultPermissionsForRole,
   generateId,
   generatePassword,
   getInitials,
   type AccountStatus,
+  type IncidentCategory,
   type Master,
   type MasterDocument,
+  type MasterIncident,
 } from "@/lib/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 import AvatarPickerSheet from "@/components/masters/AvatarPickerSheet";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import { isAvatarSet } from "@/lib/avatars";
 
 const BLANK_MASTER: Master = {
@@ -85,6 +90,11 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [birthday, setBirthday] = useState(initial.birthday ?? "");
   const [hireDate, setHireDate] = useState(initial.hire_date ?? "");
 
+  // Bank / tax (moved from salary in v307)
+  const [iban, setIban] = useState(initial.iban ?? "");
+  const [bankName, setBankName] = useState(initial.bank_name ?? "");
+  const [taxNumber, setTaxNumber] = useState(initial.tax_number ?? "");
+
   // Contacts
   const [phone, setPhone] = useState(initial.phone);
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp ?? "");
@@ -99,9 +109,10 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Documents row editor + avatar picker
+  // Documents row editor + avatar picker + incident editor
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [newIncidentOpen, setNewIncidentOpen] = useState(false);
 
   useEffect(() => {
     if (!isNew && existing) {
@@ -114,6 +125,9 @@ export default function MasterInfoPage({ params }: RouteParams) {
       setTelegram(existing.telegram ?? "");
       setEmail(existing.email ?? "");
       setAddress(existing.address ?? "");
+      setIban(existing.iban ?? "");
+      setBankName(existing.bank_name ?? "");
+      setTaxNumber(existing.tax_number ?? "");
       setLoginEmail(existing.login_email ?? existing.email ?? "");
     }
   }, [existing, isNew]);
@@ -245,6 +259,24 @@ export default function MasterInfoPage({ params }: RouteParams) {
     upsertMaster({
       ...existing,
       documents: current.filter((d) => d.id !== docId),
+    });
+  };
+
+  // ── Incidents (HR journal) ───────────────────────────────────────
+  const addIncident = (ev: MasterIncident) => {
+    if (!existing) return;
+    haptic("tap");
+    const current = existing.incidents ?? [];
+    upsertMaster({ ...existing, incidents: [...current, ev] });
+    setNewIncidentOpen(false);
+  };
+  const removeIncident = (idToRemove: string) => {
+    if (!existing) return;
+    haptic("warning");
+    const current = existing.incidents ?? [];
+    upsertMaster({
+      ...existing,
+      incidents: current.filter((ev) => ev.id !== idToRemove),
     });
   };
 
@@ -543,6 +575,66 @@ export default function MasterInfoPage({ params }: RouteParams) {
         />
       </Section>
 
+      {/* ── БАНК И РЕКВИЗИТЫ ─────────────────────────────────────── */}
+      {!isNew && existing && (
+        <Section
+          title="Банк и реквизиты"
+          footer="Хранятся на сотруднике. «Резидент Кипра» влияет на VAT 19% при расчёте ЗП."
+        >
+          <TextRow
+            label="IBAN"
+            value={iban}
+            setValue={setIban}
+            onCommit={(v) => {
+              if (!existing) return;
+              const trimmed = v.trim();
+              if (trimmed === (existing.iban ?? "")) return;
+              patch({ iban: trimmed || undefined });
+            }}
+            placeholder="CY__ ____ ____ ____"
+            maxLength={60}
+          />
+          <TextRow
+            label="Банк"
+            value={bankName}
+            setValue={setBankName}
+            onCommit={(v) => {
+              if (!existing) return;
+              const trimmed = v.trim();
+              if (trimmed === (existing.bank_name ?? "")) return;
+              patch({ bank_name: trimmed || undefined });
+            }}
+            placeholder="Bank of Cyprus / Revolut / …"
+            maxLength={80}
+          />
+          <TextRow
+            label="TIN / АФМ"
+            value={taxNumber}
+            setValue={setTaxNumber}
+            onCommit={(v) => {
+              if (!existing) return;
+              const trimmed = v.trim();
+              if (trimmed === (existing.tax_number ?? "")) return;
+              patch({ tax_number: trimmed || undefined });
+            }}
+            placeholder="Налоговый номер"
+            maxLength={40}
+          />
+          <div className="flex items-center gap-3 min-h-[48px] px-4 border-t border-[var(--separator)]">
+            <span className="text-[15px] text-[var(--label)] flex-1">
+              Резидент Кипра
+            </span>
+            <span className="text-[12px] text-[var(--label-tertiary)]">
+              {existing.tax_resident ? "VAT 19%" : "не применять"}
+            </span>
+            <IOSSwitch
+              checked={existing.tax_resident ?? false}
+              onChange={(next) => patch({ tax_resident: next })}
+              ariaLabel="Резидент Кипра"
+            />
+          </div>
+        </Section>
+      )}
 
       {/* ── ДОКУМЕНТЫ ─────────────────────────────────────────────── */}
       {!isNew && existing && (
@@ -583,6 +675,51 @@ export default function MasterInfoPage({ params }: RouteParams) {
               </span>
               <span className="text-[14px] font-medium text-[var(--accent)]">
                 Добавить документ
+              </span>
+            </button>
+          )}
+        </Section>
+      )}
+
+      {/* ── ЖУРНАЛ ЗАМЕЧАНИЙ ─────────────────────────────────────── */}
+      {!isNew && existing && (
+        <Section
+          title="Журнал замечаний"
+          footer="Опоздания, жалобы, предупреждения, благодарности. Накапливаются с датой — при увольнении или премировании всё под рукой."
+        >
+          {(existing.incidents ?? []).length === 0 && !newIncidentOpen && (
+            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
+              Пока пусто.
+            </div>
+          )}
+          {(existing.incidents ?? [])
+            .slice()
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .map((ev, i, arr) => (
+              <IncidentRow
+                key={ev.id}
+                ev={ev}
+                onRemove={() => removeIncident(ev.id)}
+                last={i === arr.length - 1 && !newIncidentOpen}
+              />
+            ))}
+          {newIncidentOpen && (
+            <IncidentEditor
+              onSubmit={addIncident}
+              onCancel={() => setNewIncidentOpen(false)}
+            />
+          )}
+          {!newIncidentOpen && (
+            <button
+              type="button"
+              onClick={() => setNewIncidentOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 min-h-[48px] text-left active:bg-[var(--fill-quaternary)] transition border-t border-[var(--separator)]"
+            >
+              <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <Plus size={15} strokeWidth={2.5} />
+              </span>
+              <span className="text-[14px] font-medium text-[var(--accent)]">
+                Добавить запись
               </span>
             </button>
           )}
@@ -752,6 +889,146 @@ function DocRow({
       )}
     </div>
   );
+}
+
+// ─── Incident row + editor ────────────────────────────────────────
+
+function IncidentRow({
+  ev,
+  onRemove,
+  last,
+}: {
+  ev: MasterIncident;
+  onRemove: () => void;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-start gap-3 px-4 py-3 min-h-[48px] ${
+        last ? "" : "border-b border-[var(--separator)]"
+      }`}
+    >
+      <span
+        className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${INCIDENT_TONE[ev.category]}`}
+      >
+        {INCIDENT_LABELS[ev.category]}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[11px] text-[var(--label-tertiary)] tabular-nums">
+          {formatIncidentDate(ev.date)}
+        </div>
+        <div className="text-[13px] text-[var(--label)] leading-snug mt-0.5 whitespace-pre-wrap">
+          {ev.text}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="w-7 h-7 flex items-center justify-center rounded-full text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)] shrink-0"
+        aria-label="Удалить запись"
+      >
+        <Trash2 size={14} strokeWidth={2} />
+      </button>
+    </div>
+  );
+}
+
+function IncidentEditor({
+  onSubmit,
+  onCancel,
+}: {
+  onSubmit: (ev: MasterIncident) => void;
+  onCancel: () => void;
+}) {
+  const [category, setCategory] = useState<IncidentCategory>("late");
+  const [date, setDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [text, setText] = useState("");
+
+  const categories: IncidentCategory[] = [
+    "late",
+    "complaint",
+    "warning",
+    "kudos",
+    "other",
+  ];
+
+  const save = () => {
+    if (!text.trim()) return;
+    onSubmit({
+      id: generateId("inc"),
+      date,
+      category,
+      text: text.trim(),
+      created_at: new Date().toISOString(),
+    });
+  };
+
+  return (
+    <div className="px-4 py-3 border-t border-[var(--separator)] bg-[var(--fill-tertiary)] space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {categories.map((c) => {
+          const active = category === c;
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={`px-2.5 h-7 rounded-full text-[11px] font-semibold transition active:scale-[0.97] ${
+                active
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                  : "bg-[var(--surface-card)] text-[var(--label)]"
+              }`}
+            >
+              {INCIDENT_LABELS[c]}
+            </button>
+          );
+        })}
+      </div>
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="w-full h-10 px-3 rounded-[10px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] focus:outline-none tabular-nums"
+      />
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Что произошло…"
+        rows={2}
+        maxLength={400}
+        className="w-full px-3 py-2 rounded-[10px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none leading-snug"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={save}
+          disabled={!text.trim()}
+          className="flex-1 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:opacity-40"
+        >
+          Добавить
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-10 px-4 rounded-full bg-[var(--fill-primary)] text-[var(--label)] text-[14px] press-scale"
+        >
+          Отмена
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function formatIncidentDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function DocEditor({

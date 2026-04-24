@@ -3,29 +3,33 @@
 // Sprint 033 Phase I32 — /dashboard/masters/[id] detail hub.
 //
 // Each row has its own iOS-style subroute:
-//   /info          — identity + contacts + Babun account (mega)
-//   /salary        — pay model + amount + period + method
+//   /info          — identity + contacts + Babun account + bank (mega)
 //   /access        — permissions matrix
+//   /schedule      — this master's appointments filtered from calendar
+//   /stats         — performance drill-down
 //
 // Brigade membership lives here on the hub as read-only plashki
-// (edits on the brigade side). /employment and /notes subroutes
-// were removed as redundant — brigades + hire date + notes were
-// either unused or better shown inline.
+// (edits on the brigade side). /employment, /notes and /salary
+// subroutes were removed — brigades + hire date + notes were either
+// unused or shown inline; salary is moving to the Finances module.
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  BarChart3,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Info,
   ShieldCheck,
   Trash2,
-  Wallet,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import IOSSwitch from "@/components/ui/IOSSwitch";
+import MasterContactMenu from "@/components/masters/MasterContactMenu";
+import { isAvatarSet } from "@/lib/avatars";
 import {
   useAppointments,
   useMasters,
@@ -34,10 +38,8 @@ import {
 import {
   ACCOUNT_STATUS_LABELS,
   PERMISSION_GROUPS,
-  describeRule,
   getInitials,
   getTeamLeadIds,
-  isRuleConfigured,
   mergePermissions,
   type MasterPermissions,
   type Team,
@@ -54,6 +56,8 @@ export default function MasterDetailPage({ params }: RouteParams) {
   const { masters, upsertMaster, deleteMaster } = useMasters();
   const { teams, setTeams } = useTeams();
   const { appointments } = useAppointments();
+
+  const [contactOpen, setContactOpen] = useState(false);
 
   const master = masters.find((m) => m.id === id);
 
@@ -95,22 +99,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
     return {
       text: parts.join(" · "),
       warning: !master.phone,
-    };
-  }, [master]);
-
-  const salaryPreview = useMemo((): { text: string; warning: boolean } => {
-    if (!master) return { text: "", warning: false };
-    const rules = master.salary_rules ?? [];
-    if (rules.length === 0) return { text: "не настроена", warning: true };
-    if (rules.length === 1) {
-      const r = rules[0];
-      if (!isRuleConfigured(r)) return { text: "не настроена", warning: true };
-      return { text: describeRule(r), warning: false };
-    }
-    const configured = rules.filter(isRuleConfigured).length;
-    return {
-      text: `${configured} из ${rules.length} правил настроено`,
-      warning: configured < rules.length,
     };
   }, [master]);
 
@@ -241,6 +229,51 @@ export default function MasterDetailPage({ params }: RouteParams) {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-5">
+          {/* Profile card — big avatar + name + title. Avatar is a
+              tap target that opens the quick-contact menu
+              (call / WhatsApp / Telegram / внутренний чат). */}
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-4 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setContactOpen(true);
+              }}
+              aria-label="Связаться"
+              className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[22px] active:scale-[0.97] transition"
+              style={{ backgroundColor: isAvatarSet(master.avatar_url) ? "transparent" : tile }}
+            >
+              {isAvatarSet(master.avatar_url) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={master.avatar_url!}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                getInitials(master.full_name)
+              )}
+            </button>
+            <div className="text-[17px] font-semibold text-[var(--label)] text-center tracking-tight leading-tight">
+              {master.full_name || "Сотрудник"}
+            </div>
+            {master.title && (
+              <div className="text-[13px] text-[var(--label-secondary)] text-center -mt-1.5">
+                {master.title}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setContactOpen(true);
+              }}
+              className="mt-1 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold active:scale-[0.97]"
+            >
+              Связаться
+            </button>
+          </div>
+
           {/* Brigade membership — read-only plashki. Tap opens the
               brigade hub. Edit flow lives on the brigade side
               («Команда» → добавить участника). */}
@@ -293,20 +326,34 @@ export default function MasterDetailPage({ params }: RouteParams) {
               onClick={() => router.push(`/dashboard/masters/${master.id}/info`)}
             />
             <NavRow
-              icon={<Wallet size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-yellow)]"
-              title="Зарплата"
-              value={salaryPreview.text}
-              warning={salaryPreview.warning}
-              onClick={() => router.push(`/dashboard/masters/${master.id}/salary`)}
-            />
-            <NavRow
               icon={<ShieldCheck size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-red)]"
               title="Доступы"
               value={accessPreview.text}
               warning={accessPreview.warning}
               onClick={() => router.push(`/dashboard/masters/${master.id}/access`)}
+            />
+            <NavRow
+              icon={<CalendarDays size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-indigo)]"
+              title="Расписание"
+              value={
+                performance.total > 0
+                  ? `${performance.total} ${pluralVisits(performance.total)} в этом месяце`
+                  : "нет визитов в этом месяце"
+              }
+              onClick={() => router.push(`/dashboard/masters/${master.id}/schedule`)}
+            />
+            <NavRow
+              icon={<BarChart3 size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-mint)]"
+              title="Статистика"
+              value={
+                performance.completed > 0
+                  ? `${performance.completed} закрыто · ${Math.round(performance.revenue)} €`
+                  : "пока без данных"
+              }
+              onClick={() => router.push(`/dashboard/masters/${master.id}/stats`)}
             />
           </ListGroup>
 
@@ -334,12 +381,25 @@ export default function MasterDetailPage({ params }: RouteParams) {
           </ListGroup>
 
           {/* Мини-сводка за текущий месяц — считается из визитов в
-              бригадах, где участвует мастер. Не отображается если
-              нет ни одной бригады. */}
+              бригадах, где участвует мастер. Тап по карточке уводит
+              на полный экран «Статистика». */}
           {assignedTeams.length > 0 && (
-            <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wide text-[var(--label-secondary)] mb-2">
-                За этот месяц
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                router.push(`/dashboard/masters/${master.id}/stats`);
+              }}
+              className="w-full text-left bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-3 active:scale-[0.995] active:bg-[var(--fill-quaternary)] transition"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[12px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+                  За этот месяц
+                </div>
+                <span className="text-[12px] text-[var(--accent)] font-semibold inline-flex items-center gap-0.5">
+                  Подробнее
+                  <ChevronRight size={14} strokeWidth={2.5} />
+                </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <PerfTile
@@ -361,7 +421,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
                   <> Отменённых: {performance.cancelled}.</>
                 )}
               </div>
-            </div>
+            </button>
           )}
 
           <button
@@ -374,8 +434,22 @@ export default function MasterDetailPage({ params }: RouteParams) {
           </button>
         </div>
       </div>
+
+      <MasterContactMenu
+        open={contactOpen}
+        master={master}
+        onClose={() => setContactOpen(false)}
+      />
     </div>
   );
+}
+
+function pluralVisits(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "визит";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "визита";
+  return "визитов";
 }
 
 // ─── Layout primitives ────────────────────────────────────────────────

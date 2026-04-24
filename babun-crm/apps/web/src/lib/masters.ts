@@ -179,6 +179,45 @@ export const REVENUE_BASIS_LABELS: Record<RevenueBasis, string> = {
   net: "чистая прибыль",
 };
 
+// ─── Incidents (v307 — structured replacement for freeform notes) ───
+//
+// A dated log entry per HR-relevant event: late start, customer
+// complaint, formal warning, kudos. Stored on Master.incidents[] so
+// history survives the person's whole tenure in the company.
+
+export type IncidentCategory =
+  | "late" // опоздание
+  | "complaint" // жалоба клиента
+  | "warning" // предупреждение
+  | "kudos" // благодарность
+  | "other";
+
+export const INCIDENT_LABELS: Record<IncidentCategory, string> = {
+  late: "Опоздание",
+  complaint: "Жалоба клиента",
+  warning: "Предупреждение",
+  kudos: "Благодарность",
+  other: "Заметка",
+};
+
+export const INCIDENT_TONE: Record<IncidentCategory, string> = {
+  late: "bg-[rgba(255,149,0,0.1)] text-[var(--system-orange)]",
+  complaint: "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)]",
+  warning: "bg-[rgba(255,59,48,0.1)] text-[var(--system-red)]",
+  kudos: "bg-[rgba(52,199,89,0.1)] text-[var(--system-green)]",
+  other: "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]",
+};
+
+export interface MasterIncident {
+  id: string;
+  /** YYYY-MM-DD */
+  date: string;
+  category: IncidentCategory;
+  text: string;
+  /** ISO timestamp when the entry was recorded. Not editable. */
+  created_at: string;
+}
+
 export interface MasterDocument {
   id: string;
   /** "Паспорт", "Водительские права", "ИНН" */
@@ -419,6 +458,10 @@ export interface Master {
   // Misc.
   documents?: MasterDocument[];
   notes?: string;
+  /** v307 — structured incident log (late / complaint / warning /
+   *  kudos / other). Replaces the freeform `notes` field for
+   *  dated HR-relevant events. */
+  incidents?: MasterIncident[];
 
   // ── Sprint 033 Phase I33 — SaaS-completeness additions ──────────
   /** Free-text skills / expertise ("Установка", "F-gas", "Чиллеры"). */
