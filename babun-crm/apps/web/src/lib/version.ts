@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v293-brigade-roles-clean-slate-search";
+export const BUILD_VERSION = "v294-team-merged-access-appt-preview";

@@ -67,14 +67,14 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
   const [editingMember, setEditingMember] = useState<BrigadeMember | null>(
     null,
   );
+  // Tap on a member row opens the per-member detail sheet (role +
+  // access + remove). Replaces the old long-press-menu UX so the
+  // «Доступы» section can live alongside «Изменить роль» in one place.
+  const [memberDetail, setMemberDetail] = useState<BrigadeMember | null>(null);
   // null = not editing; { id: null } = creating a new role
   const [editingRole, setEditingRole] = useState<BrigadeRole | { id: null } | null>(
     null,
   );
-  const [memberMenu, setMemberMenu] = useState<{
-    member: BrigadeMember;
-    anchor: { x: number; y: number };
-  } | null>(null);
   const [roleMenu, setRoleMenu] = useState<{
     role: BrigadeRole;
     anchor: { x: number; y: number };
@@ -129,7 +129,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Мастера" hideSave>
+      <BrigadeSectionShell brigadeId={id} title="Команда" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Бригада не найдена.
         </div>
@@ -278,22 +278,6 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     (m) => m.is_active && !members.some((mm) => mm.master_id === m.id),
   );
 
-  const memberMenuOptions: ContextMenuOption[] = memberMenu
-    ? [
-        {
-          label: "Изменить роль",
-          icon: <Pencil size={18} strokeWidth={2} />,
-          onSelect: () => setEditingMember(memberMenu.member),
-        },
-        {
-          label: "Убрать из бригады",
-          icon: <UserMinus size={18} strokeWidth={2} />,
-          danger: true,
-          onSelect: () => removeMember(memberMenu.member.master_id),
-        },
-      ]
-    : [];
-
   const roleMenuOptions: ContextMenuOption[] = roleMenu
     ? [
         {
@@ -332,21 +316,17 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
           {/* Groups with members */}
           {roles.map((role) => {
             const people = grouped.get(role.id) ?? [];
-            // Render empty role groups too — shows the tenant what they
-            // already have so they can decide to delete or reuse.
             return (
               <RoleGroup
                 key={role.id}
                 role={role}
                 people={people}
                 team={team}
-                onLongPressMember={(master, anchor) =>
-                  setMemberMenu({
-                    member:
-                      members.find((m) => m.master_id === master.id) ??
+                onTapMember={(master) =>
+                  setMemberDetail(
+                    members.find((m) => m.master_id === master.id) ??
                       ({ master_id: master.id, role_id: role.id } as BrigadeMember),
-                    anchor,
-                  })
+                  )
                 }
                 onEditRole={() => setEditingRole(role)}
                 onLongPressRole={(anchor) => setRoleMenu({ role, anchor })}
@@ -359,13 +339,11 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
               role={null}
               people={grouped.get(null) ?? []}
               team={team}
-              onLongPressMember={(master, anchor) =>
-                setMemberMenu({
-                  member:
-                    members.find((m) => m.master_id === master.id) ??
+              onTapMember={(master) =>
+                setMemberDetail(
+                  members.find((m) => m.master_id === master.id) ??
                     ({ master_id: master.id, role_id: null } as BrigadeMember),
-                  anchor,
-                })
+                )
               }
             />
           )}
@@ -434,6 +412,29 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
         />
       )}
 
+      {/* Member detail sheet — role + access + remove, reopens on
+          role change so the sheet stays in sync. */}
+      {memberDetail && (
+        <MemberDetailSheet
+          member={memberDetail}
+          master={
+            masters.find((m) => m.id === memberDetail.master_id) ?? null
+          }
+          roles={roles}
+          team={team}
+          onChangeRole={() => {
+            setEditingMember(memberDetail);
+            setMemberDetail(null);
+          }}
+          onRemove={() => {
+            const mid = memberDetail.master_id;
+            setMemberDetail(null);
+            void removeMember(mid);
+          }}
+          onClose={() => setMemberDetail(null)}
+        />
+      )}
+
       {/* Role editor */}
       {editingRole && (
         <RoleEditor
@@ -460,18 +461,6 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
       )}
 
       <ContextMenu
-        open={!!memberMenu}
-        onClose={() => setMemberMenu(null)}
-        anchor={memberMenu?.anchor ?? null}
-        title={
-          memberMenu
-            ? masters.find((m) => m.id === memberMenu.member.master_id)
-                ?.full_name
-            : undefined
-        }
-        options={memberMenuOptions}
-      />
-      <ContextMenu
         open={!!roleMenu}
         onClose={() => setRoleMenu(null)}
         anchor={roleMenu?.anchor ?? null}
@@ -488,17 +477,14 @@ function RoleGroup({
   role,
   people,
   team,
-  onLongPressMember,
+  onTapMember,
   onEditRole,
   onLongPressRole,
 }: {
   role: BrigadeRole | null;
   people: Master[];
   team: Team;
-  onLongPressMember: (
-    master: Master,
-    anchor: { x: number; y: number },
-  ) => void;
+  onTapMember: (master: Master) => void;
   onEditRole?: () => void;
   onLongPressRole?: (anchor: { x: number; y: number }) => void;
 }) {
@@ -545,7 +531,7 @@ function RoleGroup({
               key={m.id}
               master={m}
               team={team}
-              onLongPress={(anchor) => onLongPressMember(m, anchor)}
+              onTap={() => onTapMember(m)}
             />
           ))}
         </div>
@@ -557,35 +543,16 @@ function RoleGroup({
 function MemberRow({
   master,
   team,
-  onLongPress,
+  onTap,
 }: {
   master: Master;
   team: Team;
-  onLongPress: (anchor: { x: number; y: number }) => void;
+  onTap: () => void;
 }) {
-  const pressedAt = { current: 0, x: 0, y: 0 } as {
-    current: number;
-    x: number;
-    y: number;
-  };
   return (
     <button
       type="button"
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onLongPress({ x: e.clientX, y: e.clientY });
-      }}
-      onPointerDown={(e) => {
-        pressedAt.current = Date.now();
-        pressedAt.x = e.clientX;
-        pressedAt.y = e.clientY;
-      }}
-      onPointerUp={() => {
-        const dt = Date.now() - pressedAt.current;
-        if (dt > 500) {
-          onLongPress({ x: pressedAt.x, y: pressedAt.y });
-        }
-      }}
+      onClick={onTap}
       className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] active:bg-[var(--fill-quaternary)] transition text-left"
     >
       <span
@@ -913,6 +880,172 @@ function EditMemberRolePicker({
 }
 
 // ─── Role editor (create / rename + colour + delete) ──────────
+
+// ─── Member detail sheet (role + access + remove) ────────────
+
+function MemberDetailSheet({
+  member,
+  master,
+  roles,
+  team,
+  onChangeRole,
+  onRemove,
+  onClose,
+}: {
+  member: BrigadeMember;
+  master: Master | null;
+  roles: BrigadeRole[];
+  team: Team;
+  onChangeRole: () => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const currentRole =
+    member.role_id === null
+      ? null
+      : roles.find((r) => r.id === member.role_id) ?? null;
+
+  // Phase I45 — placeholder access toggles. Real permissions matrix
+  // arrives later; for now we render 4 disabled rows with «скоро»
+  // badges so the section has visual mass and the tenant sees what's
+  // coming.
+  const plannedPermissions: Array<{ label: string; description: string }> = [
+    {
+      label: "Создавать записи",
+      description: "Мастер может открывать форму новой записи в этой бригаде.",
+    },
+    {
+      label: "Редактировать записи",
+      description: "Менять время, услуги, комментарии в существующих записях.",
+    },
+    {
+      label: "Менять метку дня",
+      description: "Проставлять и снимать метку (город / филиал / район) для даты.",
+    },
+    {
+      label: "Видеть финансы бригады",
+      description: "Сумма, аванс, способы оплаты внутри записи.",
+    },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[360px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)] max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header: avatar + name + role chip */}
+        <div className="px-5 pt-5 pb-4 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
+          <span
+            className="w-14 h-14 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[20px] mx-auto mb-2"
+            style={{ backgroundColor: team.color }}
+          >
+            {master ? getInitials(master.full_name) : "?"}
+          </span>
+          <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight truncate">
+            {master?.full_name ?? "Сотрудник"}
+          </div>
+          {currentRole ? (
+            <span
+              className="inline-flex items-center gap-1.5 h-6 px-2 mt-1 rounded-full bg-[var(--fill-tertiary)] text-[12px] font-medium text-[var(--label-secondary)]"
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ background: currentRole.color ?? "var(--label-tertiary)" }}
+              />
+              {currentRole.name}
+            </span>
+          ) : (
+            <span className="inline-flex items-center h-6 px-2 mt-1 rounded-full bg-[var(--fill-tertiary)] text-[12px] font-medium text-[var(--label-tertiary)]">
+              Без роли
+            </span>
+          )}
+        </div>
+
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+          {/* Role row */}
+          <section>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
+              Роль в бригаде
+            </div>
+            <button
+              type="button"
+              onClick={onChangeRole}
+              className="w-full flex items-center gap-3 px-4 py-3 min-h-[48px] rounded-[10px] bg-[var(--surface-card)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              <Pencil
+                size={15}
+                strokeWidth={2}
+                className="text-[var(--label-secondary)]"
+              />
+              <span className="flex-1 text-left text-[14px] text-[var(--label)]">
+                Изменить роль
+              </span>
+              <ChevronRight
+                size={14}
+                className="text-[var(--label-quaternary)]"
+              />
+            </button>
+          </section>
+
+          {/* Access placeholder */}
+          <section>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
+              Доступы в этой бригаде
+            </div>
+            <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
+              {plannedPermissions.map((p) => (
+                <div
+                  key={p.label}
+                  className="flex items-start gap-3 px-4 py-2.5 min-h-[52px] opacity-60"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] text-[var(--label)]">
+                      {p.label}
+                    </div>
+                    <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                      {p.description}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] shrink-0 self-center">
+                    скоро
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="px-4 pt-1.5 text-[11px] text-[var(--label-tertiary)] leading-snug">
+              Список пермишенов дорабатываем. Пока каждый участник
+              видит бригаду полностью.
+            </div>
+          </section>
+
+          {/* Remove */}
+          <button
+            type="button"
+            onClick={onRemove}
+            className="w-full h-12 rounded-[10px] bg-[var(--surface-card)] text-[var(--system-red)] text-[14px] font-medium press-scale active:bg-[rgba(255,59,48,0.08)] flex items-center justify-center gap-2"
+          >
+            <UserMinus size={15} strokeWidth={2} />
+            Убрать из бригады
+          </button>
+        </div>
+
+        <div className="px-4 pb-4 pt-1 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] press-scale"
+          >
+            Готово
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RoleEditor({
   initial,

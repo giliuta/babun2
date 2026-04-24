@@ -28,7 +28,6 @@ import {
   Info,
   MapPin,
   Package,
-  ShieldCheck,
   Trash2,
   Users as UsersIcon,
   Wrench,
@@ -192,13 +191,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
     return `${overrides} настроек изменено`;
   }, [team]);
 
-  const permissionsPreview = useMemo(() => {
-    if (!team) return "";
-    const count =
-      getTeamLeadIds(team).length + (team.helper_ids?.length ?? 0);
-    if (count === 0) return "нет участников";
-    return `${count} ${count === 1 ? "мастер" : count <= 4 ? "мастера" : "мастеров"} · скоро настройки`;
-  }, [team]);
 
   const activeCities = cities.filter((c) => c.isActive);
   void activeCities;
@@ -291,19 +283,10 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             <NavRow
               icon={<UsersIcon size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
-              title="Мастера"
+              title="Команда"
               value={mastersPreview.text}
               warning={mastersPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/masters`)}
-            />
-            <NavRow
-              icon={<ShieldCheck size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-red)]"
-              title="Доступы"
-              value={permissionsPreview}
-              onClick={() =>
-                router.push(`/dashboard/teams/${team.id}/permissions`)
-              }
             />
             <NavRow
               icon={<Wrench size={18} strokeWidth={2} />}
