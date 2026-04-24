@@ -19,14 +19,14 @@
 import { use, useEffect, useMemo, useState } from "react";
 import {
   Check,
+  ChevronLeft,
   ChevronRight,
   Pencil,
   Plus,
-  Search,
   Trash2,
+  User,
   UserMinus,
   Users,
-  X,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -174,7 +174,8 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
   };
 
   // ── Member actions ──────────────────────────────────────────
-  const addMember = (masterId: string, roleId: string | null) => {
+  // Role id is required now — picker disables Add when no role chosen.
+  const addMember = (masterId: string, roleId: string) => {
     if (members.some((m) => m.master_id === masterId)) return;
     haptic("tap");
     persist(roles, [...members, { master_id: masterId, role_id: roleId }]);
@@ -370,27 +371,13 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
         </div>
       )}
 
-      {/* Manage roles — compact footer link, always visible so tenant
-          can create roles without opening the add-master flow. */}
-      <button
-        type="button"
-        onClick={() => setEditingRole({ id: null })}
-        className="w-full flex items-center justify-center gap-2 h-10 text-[13px] text-[var(--accent)] font-medium press-scale"
-      >
-        <Plus size={14} strokeWidth={2.5} />
-        Новая роль
-      </button>
-
       {/* Picker */}
       {pickerOpen && (
         <AddMemberPicker
           availableMasters={availableMasters}
           roles={roles}
           onAdd={addMember}
-          onRequestNewRole={() => {
-            setPickerOpen(false);
-            setEditingRole({ id: null });
-          }}
+          onCreateRole={createRole}
           onClose={() => setPickerOpen(false)}
         />
       )}
@@ -404,10 +391,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
           }
           roles={roles}
           onPick={setMemberRole}
-          onRequestNewRole={() => {
-            setEditingMember(null);
-            setEditingRole({ id: null });
-          }}
+          onCreateRole={createRole}
           onClose={() => setEditingMember(null)}
         />
       )}
@@ -531,6 +515,7 @@ function RoleGroup({
               key={m.id}
               master={m}
               team={team}
+              roleColor={role?.color}
               onTap={() => onTapMember(m)}
             />
           ))}
@@ -543,10 +528,12 @@ function RoleGroup({
 function MemberRow({
   master,
   team,
+  roleColor,
   onTap,
 }: {
   master: Master;
   team: Team;
+  roleColor?: string;
   onTap: () => void;
 }) {
   return (
@@ -557,7 +544,13 @@ function MemberRow({
     >
       <span
         className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-semibold text-[13px] shrink-0"
-        style={{ backgroundColor: team.color }}
+        style={{
+          backgroundColor: team.color,
+          // Ring in role colour — surface (gap) + role-color (2-px ring).
+          boxShadow: roleColor
+            ? `0 0 0 2px var(--surface-card), 0 0 0 4px ${roleColor}`
+            : undefined,
+        }}
       >
         {getInitials(master.full_name)}
       </span>
@@ -578,30 +571,44 @@ function AddMemberPicker({
   availableMasters,
   roles,
   onAdd,
-  onRequestNewRole,
+  onCreateRole,
   onClose,
 }: {
   availableMasters: Master[];
   roles: BrigadeRole[];
-  onAdd: (masterId: string, roleId: string | null) => void;
-  onRequestNewRole: () => void;
+  onAdd: (masterId: string, roleId: string) => void;
+  onCreateRole: (name: string, color: string) => BrigadeRole;
   onClose: () => void;
 }) {
   const [masterId, setMasterId] = useState<string | null>(null);
+  // Role is required now — no «Без роли» path when adding.
   const [roleId, setRoleId] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  // Inline role creation state (like service groups)
+  const [inlineRoleOpen, setInlineRoleOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleColor, setNewRoleColor] = useState(PRESET_COLORS[0].value);
+  // View state — main form vs master selection popup
+  const [view, setView] = useState<"main" | "masters">("main");
 
-  const filtered = useMemo(() => {
-    const q = normalize(query.trim());
-    if (!q) return availableMasters;
-    return availableMasters.filter((m) => normalize(m.full_name).includes(q));
-  }, [availableMasters, query]);
-
-  const canAdd = masterId !== null;
+  const canAdd = masterId !== null && roleId !== null;
+  const pickedMaster = masterId
+    ? availableMasters.find((m) => m.id === masterId)
+    : null;
+  const pickedRole = roleId ? roles.find((r) => r.id === roleId) : null;
 
   const handleAdd = () => {
-    if (!canAdd) return;
+    if (!canAdd || !roleId || !masterId) return;
     onAdd(masterId, roleId);
+  };
+
+  const commitNewRole = () => {
+    const trimmed = newRoleName.trim();
+    if (!trimmed) return;
+    const created = onCreateRole(trimmed, newRoleColor);
+    setRoleId(created.id);
+    setNewRoleName("");
+    setNewRoleColor(PRESET_COLORS[0].value);
+    setInlineRoleOpen(false);
   };
 
   return (
@@ -613,143 +620,238 @@ function AddMemberPicker({
         className="w-full max-w-[360px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)] max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
-          <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Добавить мастера
-          </div>
-          <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
-            Выберите мастера из списка и назначьте роль в этой бригаде.
-          </div>
-        </div>
-
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          {/* Master list with search */}
-          <section>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
-              Мастер
+        {view === "main" ? (
+          <>
+            <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
+              <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
+                Добавить мастера
+              </div>
+              <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
+                Сначала роль — потом выберете мастера.
+              </div>
             </div>
-            <div className="relative mb-2">
-              <Search
-                size={14}
-                strokeWidth={2}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] pointer-events-none"
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск"
-                className="w-full h-9 pl-8 pr-8 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--accent)]"
-              />
-              {query && (
+
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              {/* Role picker (top, inline like service groups) */}
+              <section>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
+                  Роль в бригаде
+                </div>
+                <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
+                  {roles.map((r) => (
+                    <RolePickRow
+                      key={r.id}
+                      label={r.name}
+                      picked={roleId === r.id}
+                      onSelect={() => setRoleId(r.id)}
+                      color={r.color}
+                    />
+                  ))}
+                  {inlineRoleOpen ? (
+                    <div className="px-3 py-2.5 bg-[var(--fill-tertiary)] space-y-2">
+                      <input
+                        type="text"
+                        value={newRoleName}
+                        onChange={(e) => setNewRoleName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitNewRole();
+                          if (e.key === "Escape") {
+                            setInlineRoleOpen(false);
+                            setNewRoleName("");
+                          }
+                        }}
+                        placeholder="Название роли"
+                        autoFocus
+                        className="w-full h-9 px-3 rounded-[8px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                        maxLength={40}
+                      />
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {PRESET_COLORS.map((c) => {
+                          const picked = c.value === newRoleColor;
+                          return (
+                            <button
+                              key={c.value}
+                              type="button"
+                              onClick={() => setNewRoleColor(c.value)}
+                              aria-label={c.name}
+                              className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
+                              style={{ backgroundColor: c.value }}
+                            >
+                              {picked && (
+                                <Check
+                                  size={12}
+                                  strokeWidth={3}
+                                  className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={commitNewRole}
+                          disabled={!newRoleName.trim()}
+                          className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                        >
+                          Создать роль
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInlineRoleOpen(false);
+                            setNewRoleName("");
+                          }}
+                          className="h-9 px-3 rounded-[8px] bg-[var(--fill-secondary)] text-[13px] text-[var(--label)] press-scale"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setInlineRoleOpen(true)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 min-h-[44px] text-left active:bg-[var(--fill-quaternary)] transition"
+                    >
+                      <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                        <Plus size={14} strokeWidth={2.5} />
+                      </span>
+                      <span className="flex-1 text-[14px] font-medium text-[var(--accent)]">
+                        Новая роль
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </section>
+
+              {/* Master trigger — opens secondary popup */}
+              <section>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
+                  Мастер
+                </div>
                 <button
                   type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-[var(--fill-secondary)] text-[var(--label-tertiary)]"
-                  aria-label="Очистить"
+                  onClick={() => setView("masters")}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 min-h-[48px] rounded-[10px] bg-[var(--surface-card)] active:bg-[var(--fill-quaternary)] transition"
                 >
-                  <X size={10} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-            <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)] max-h-[260px] overflow-y-auto">
-              {filtered.length === 0 ? (
-                <div className="px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-                  {query ? "Ничего не найдено" : "Нет доступных мастеров"}
-                </div>
-              ) : (
-                filtered.map((m) => {
-                  const picked = masterId === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setMasterId(m.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 min-h-[48px] text-left transition ${
-                        picked
-                          ? "bg-[var(--accent-tint)]"
-                          : "active:bg-[var(--fill-quaternary)]"
-                      }`}
-                    >
+                  {pickedMaster ? (
+                    <>
                       <span className="w-7 h-7 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] flex items-center justify-center text-[11px] font-semibold shrink-0">
-                        {getInitials(m.full_name)}
+                        {getInitials(pickedMaster.full_name)}
                       </span>
-                      <span
-                        className={`flex-1 text-[14px] truncate ${
-                          picked
-                            ? "text-[var(--accent)] font-semibold"
-                            : "text-[var(--label)]"
-                        }`}
-                      >
-                        {m.full_name}
+                      <span className="flex-1 text-left text-[14px] text-[var(--label)] truncate">
+                        {pickedMaster.full_name}
                       </span>
-                      {picked && (
-                        <Check
-                          size={16}
-                          strokeWidth={2.5}
-                          className="text-[var(--accent)] shrink-0"
-                        />
-                      )}
-                    </button>
-                  );
-                })
-              )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-7 h-7 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] flex items-center justify-center shrink-0">
+                        <User size={14} strokeWidth={2} />
+                      </span>
+                      <span className="flex-1 text-left text-[14px] text-[var(--label-tertiary)]">
+                        Выберите мастера
+                      </span>
+                    </>
+                  )}
+                  <ChevronRight
+                    size={14}
+                    className="text-[var(--label-quaternary)]"
+                  />
+                </button>
+              </section>
             </div>
-          </section>
 
-          {/* Role picker */}
-          <section>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
-              Роль в бригаде
-            </div>
-            <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
-              <RolePickRow
-                label="Без роли"
-                picked={roleId === null}
-                onSelect={() => setRoleId(null)}
-              />
-              {roles.map((r) => (
-                <RolePickRow
-                  key={r.id}
-                  label={r.name}
-                  picked={roleId === r.id}
-                  onSelect={() => setRoleId(r.id)}
-                  color={r.color}
-                />
-              ))}
+            <div className="px-4 pb-4 pt-1 flex gap-2 shrink-0">
               <button
                 type="button"
-                onClick={onRequestNewRole}
-                className="w-full flex items-center gap-3 px-4 py-2.5 min-h-[44px] text-left active:bg-[var(--fill-quaternary)] transition"
+                onClick={onClose}
+                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] press-scale"
               >
-                <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
-                  <Plus size={14} strokeWidth={2.5} />
-                </span>
-                <span className="flex-1 text-[14px] font-medium text-[var(--accent)]">
-                  Новая роль
-                </span>
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={!canAdd}
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
+              >
+                Добавить
               </button>
             </div>
-          </section>
-        </div>
-
-        <div className="px-4 pb-4 pt-1 flex gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] press-scale"
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!canAdd}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
-          >
-            Добавить
-          </button>
-        </div>
+          </>
+        ) : (
+          // Secondary view: master list
+          <>
+            <div className="px-2 pt-3 pb-2 bg-[var(--surface-card)] border-b border-[var(--separator)] flex items-center shrink-0">
+              <button
+                type="button"
+                onClick={() => setView("main")}
+                aria-label="Назад"
+                className="w-10 h-10 flex items-center justify-center text-[var(--accent)] press-scale"
+              >
+                <ChevronLeft size={20} strokeWidth={2.5} />
+              </button>
+              <div className="flex-1 text-center text-[17px] font-semibold text-[var(--label)] tracking-tight">
+                Мастер
+              </div>
+              <span className="w-10 h-10" aria-hidden />
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              {availableMasters.length === 0 ? (
+                <div className="bg-[var(--surface-card)] rounded-[10px] px-4 py-8 text-center text-[13px] text-[var(--label-tertiary)]">
+                  Нет доступных мастеров. Все уже в этой бригаде.
+                </div>
+              ) : (
+                <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
+                  {availableMasters.map((m) => {
+                    const picked = masterId === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          setMasterId(m.id);
+                          setView("main");
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 min-h-[52px] text-left transition ${
+                          picked
+                            ? "bg-[var(--accent-tint)]"
+                            : "active:bg-[var(--fill-quaternary)]"
+                        }`}
+                      >
+                        <span className="w-9 h-9 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] flex items-center justify-center text-[12px] font-semibold shrink-0">
+                          {getInitials(m.full_name)}
+                        </span>
+                        <span
+                          className={`flex-1 text-[14px] truncate ${
+                            picked
+                              ? "text-[var(--accent)] font-semibold"
+                              : "text-[var(--label)]"
+                          }`}
+                        >
+                          {m.full_name}
+                        </span>
+                        {picked && (
+                          <Check
+                            size={16}
+                            strokeWidth={2.5}
+                            className="text-[var(--accent)] shrink-0"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {/* Current role indicator under header (when Main) */}
+        {view === "main" && pickedRole && (
+          <div className="sr-only" aria-label={`Выбрана роль ${pickedRole.name}`} />
+        )}
       </div>
     </div>
   );
@@ -803,16 +905,27 @@ function EditMemberRolePicker({
   master,
   roles,
   onPick,
-  onRequestNewRole,
+  onCreateRole,
   onClose,
 }: {
   member: BrigadeMember;
   master: Master | null;
   roles: BrigadeRole[];
   onPick: (masterId: string, roleId: string | null) => void;
-  onRequestNewRole: () => void;
+  onCreateRole: (name: string, color: string) => BrigadeRole;
   onClose: () => void;
 }) {
+  const [inlineOpen, setInlineOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState(PRESET_COLORS[0].value);
+
+  const commitNew = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const created = onCreateRole(trimmed, newColor);
+    onPick(member.master_id, created.id);
+  };
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
@@ -835,11 +948,6 @@ function EditMemberRolePicker({
 
         <div className="p-4 overflow-y-auto flex-1">
           <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
-            <RolePickRow
-              label="Без роли"
-              picked={member.role_id === null}
-              onSelect={() => onPick(member.master_id, null)}
-            />
             {roles.map((r) => (
               <RolePickRow
                 key={r.id}
@@ -849,18 +957,82 @@ function EditMemberRolePicker({
                 color={r.color}
               />
             ))}
-            <button
-              type="button"
-              onClick={onRequestNewRole}
-              className="w-full flex items-center gap-3 px-4 py-2.5 min-h-[44px] text-left active:bg-[var(--fill-quaternary)] transition"
-            >
-              <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
-                <Plus size={14} strokeWidth={2.5} />
-              </span>
-              <span className="flex-1 text-[14px] font-medium text-[var(--accent)]">
-                Новая роль
-              </span>
-            </button>
+            {inlineOpen ? (
+              <div className="px-3 py-2.5 bg-[var(--fill-tertiary)] space-y-2">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitNew();
+                    if (e.key === "Escape") {
+                      setInlineOpen(false);
+                      setNewName("");
+                    }
+                  }}
+                  placeholder="Название роли"
+                  autoFocus
+                  className="w-full h-9 px-3 rounded-[8px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  maxLength={40}
+                />
+                <div className="grid grid-cols-7 gap-1.5">
+                  {PRESET_COLORS.map((c) => {
+                    const picked = c.value === newColor;
+                    return (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setNewColor(c.value)}
+                        aria-label={c.name}
+                        className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
+                        style={{ backgroundColor: c.value }}
+                      >
+                        {picked && (
+                          <Check
+                            size={12}
+                            strokeWidth={3}
+                            className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={commitNew}
+                    disabled={!newName.trim()}
+                    className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                  >
+                    Создать и назначить
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInlineOpen(false);
+                      setNewName("");
+                    }}
+                    className="h-9 px-3 rounded-[8px] bg-[var(--fill-secondary)] text-[13px] text-[var(--label)] press-scale"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setInlineOpen(true)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 min-h-[44px] text-left active:bg-[var(--fill-quaternary)] transition"
+              >
+                <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                  <Plus size={14} strokeWidth={2.5} />
+                </span>
+                <span className="flex-1 text-[14px] font-medium text-[var(--accent)]">
+                  Новая роль
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
