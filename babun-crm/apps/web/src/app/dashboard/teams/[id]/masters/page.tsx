@@ -640,7 +640,6 @@ function AddMemberPicker({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Поиск"
                 className="w-full h-9 pl-8 pr-8 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--accent)]"
-                autoFocus
               />
               {query && (
                 <button
