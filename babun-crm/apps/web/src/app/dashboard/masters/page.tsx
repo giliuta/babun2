@@ -297,7 +297,7 @@ export default function MastersPage() {
         onCreated={(master) => {
           upsertMaster(master);
           setNewOpen(false);
-          router.push(`/dashboard/masters/${master.id}/info`);
+          router.push(`/dashboard/masters/${master.id}`);
         }}
       />
     </>

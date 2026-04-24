@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v301-7x7-avatar-required-credentials";
+export const BUILD_VERSION = "v302-empty-password-route-to-hub";

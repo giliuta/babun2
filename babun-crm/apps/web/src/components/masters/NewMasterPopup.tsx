@@ -48,14 +48,16 @@ export default function NewMasterPopup({
   const [loginError, setLoginError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
 
-  // Seed a fresh password when the dialog opens.
+  // Reset fields when the dialog opens. Password is deliberately
+  // empty — the user either types their own or taps the ↻ button to
+  // generate one. Pre-filling felt pushy per user feedback.
   useEffect(() => {
     if (!open) return;
     setAvatarUrl(null);
     setFullName("");
     setPhone("");
     setLoginEmail("");
-    setPassword(generatePassword());
+    setPassword("");
     setShowPassword(false);
     setNameError(false);
     setLoginError(false);
