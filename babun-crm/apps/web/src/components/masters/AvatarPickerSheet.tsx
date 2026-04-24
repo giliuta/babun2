@@ -83,47 +83,26 @@ export default function AvatarPickerSheet({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3">
-          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">
+        <div className="flex-1 overflow-y-auto px-3 py-3">
+          <div className="px-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">
             Выбрать аватар
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {presets.map((src) => {
-              const active = value === src;
-              return (
-                <button
-                  key={src}
-                  type="button"
-                  onClick={() => pick(src)}
-                  className={`relative aspect-square rounded-[14px] overflow-hidden bg-[var(--fill-tertiary)] active:scale-[0.97] transition ${
-                    active ? "ring-2 ring-[var(--accent)]" : ""
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={src}
-                    alt=""
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                  />
-                  {active && (
-                    <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center shadow">
-                      <Check size={12} strokeWidth={3} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 space-y-2">
+          {/* 7×7 grid: first tile is «upload your own», the remaining
+              48 are DiceBear preset characters. Tight gap so the whole
+              grid fits on a phone screen without scrolling past the
+              fold. */}
+          <div className="grid grid-cols-7 gap-1.5">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full h-11 flex items-center justify-center gap-2 rounded-[12px] bg-[var(--fill-tertiary)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--fill-secondary)]"
+              aria-label="Загрузить своё фото"
+              title="Загрузить своё фото"
+              className="relative aspect-square rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex flex-col items-center justify-center gap-0.5 active:scale-[0.95] transition border border-dashed border-[var(--accent)]"
             >
-              <Camera size={16} strokeWidth={2} />
-              Загрузить своё фото
+              <Camera size={18} strokeWidth={2} />
+              <span className="text-[9px] font-semibold leading-none">
+                Своё
+              </span>
             </button>
             <input
               ref={fileRef}
@@ -136,22 +115,49 @@ export default function AvatarPickerSheet({
                 e.target.value = "";
               }}
             />
-            {isAvatarSet(value) && (
-              <button
-                type="button"
-                onClick={() => pick(null)}
-                className="w-full h-11 flex items-center justify-center gap-2 rounded-[12px] bg-[var(--fill-tertiary)] text-[var(--system-red)] text-[14px] font-medium active:bg-[rgba(255,59,48,0.08)]"
-              >
-                <Trash2 size={15} strokeWidth={2} />
-                Убрать фото
-              </button>
-            )}
-            {error && (
-              <div className="text-[12px] text-[var(--system-red)] text-center">
-                {error}
-              </div>
-            )}
+            {presets.map((src) => {
+              const active = value === src;
+              return (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => pick(src)}
+                  className={`relative aspect-square rounded-[10px] overflow-hidden bg-[var(--fill-tertiary)] active:scale-[0.95] transition ${
+                    active ? "ring-2 ring-[var(--accent)]" : ""
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={src}
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
+                  {active && (
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center shadow">
+                      <Check size={10} strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
+
+          {isAvatarSet(value) && (
+            <button
+              type="button"
+              onClick={() => pick(null)}
+              className="mt-3 w-full h-11 flex items-center justify-center gap-2 rounded-[12px] bg-[var(--fill-tertiary)] text-[var(--system-red)] text-[14px] font-medium active:bg-[rgba(255,59,48,0.08)]"
+            >
+              <Trash2 size={15} strokeWidth={2} />
+              Убрать фото
+            </button>
+          )}
+          {error && (
+            <div className="mt-2 text-[12px] text-[var(--system-red)] text-center">
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -45,6 +45,8 @@ export default function NewMasterPopup({
   const [showPassword, setShowPassword] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [loginError, setLoginError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
 
   // Seed a fresh password when the dialog opens.
   useEffect(() => {
@@ -56,11 +58,19 @@ export default function NewMasterPopup({
     setPassword(generatePassword());
     setShowPassword(false);
     setNameError(false);
+    setLoginError(false);
+    setPasswordError(false);
     // Don't auto-focus — opens iOS keyboard before the user sees
     // the layout, which hides the avatar selection.
   }, [open]);
 
-  const canSubmit = useMemo(() => fullName.trim().length > 0, [fullName]);
+  const canSubmit = useMemo(
+    () =>
+      fullName.trim().length > 0 &&
+      loginEmail.trim().length > 0 &&
+      password.length > 0,
+    [fullName, loginEmail, password],
+  );
 
   if (!open) return null;
 
@@ -81,15 +91,19 @@ export default function NewMasterPopup({
   };
 
   const submit = () => {
-    if (!canSubmit) {
-      setNameError(true);
+    const nameBad = fullName.trim().length === 0;
+    const loginBad = loginEmail.trim().length === 0;
+    const passwordBad = password.length === 0;
+    if (nameBad || loginBad || passwordBad) {
+      setNameError(nameBad);
+      setLoginError(loginBad);
+      setPasswordError(passwordBad);
       haptic("warning");
-      firstInputRef.current?.focus();
+      if (nameBad) firstInputRef.current?.focus();
       return;
     }
     haptic("tap");
     const trimmedLogin = loginEmail.trim();
-    const hasCredentials = trimmedLogin.length > 0 && password.length > 0;
     const now = new Date().toISOString();
     const base: Master = {
       id: generateId("master"),
@@ -101,21 +115,16 @@ export default function NewMasterPopup({
       is_active: true,
       permissions: defaultPermissionsForRole("helper"),
       created_at: now,
-      ...(trimmedLogin ? { email: trimmedLogin, login_email: trimmedLogin } : {}),
-      ...(hasCredentials
-        ? {
-            credentials_set: true,
-            invite_sent_at: now,
-            account_status: "invited" as const,
-          }
-        : {}),
+      email: trimmedLogin,
+      login_email: trimmedLogin,
+      credentials_set: true,
+      invite_sent_at: now,
+      account_status: "invited" as const,
     };
-    const audited = hasCredentials
-      ? appendAudit(base, {
-          action: "credentials_issued",
-          summary: `Выдан доступ · ${trimmedLogin}`,
-        })
-      : base;
+    const audited = appendAudit(base, {
+      action: "credentials_issued",
+      summary: `Выдан доступ · ${trimmedLogin}`,
+    });
     onCreated(audited);
   };
 
@@ -177,9 +186,9 @@ export default function NewMasterPopup({
             {/* Name + phone */}
             <div className="bg-[var(--fill-tertiary)] rounded-[12px] overflow-hidden">
               <Row
-                label="Имя"
+                label="ФИО"
                 required
-                invalid={nameError && !canSubmit}
+                invalid={nameError && fullName.trim().length === 0}
               >
                 <input
                   ref={firstInputRef}
@@ -189,8 +198,8 @@ export default function NewMasterPopup({
                     setFullName(e.target.value);
                     if (nameError) setNameError(false);
                   }}
-                  placeholder="Имя Фамилия"
-                  maxLength={60}
+                  placeholder="Фамилия Имя Отчество"
+                  maxLength={80}
                   className="flex-1 bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none text-right"
                 />
               </Row>
@@ -213,23 +222,38 @@ export default function NewMasterPopup({
                 Учётная запись
               </div>
               <div className="bg-[var(--fill-tertiary)] rounded-[12px] overflow-hidden">
-                <Row label="Логин">
+                <Row
+                  label="Логин"
+                  required
+                  invalid={loginError && loginEmail.trim().length === 0}
+                >
                   <input
                     type="email"
                     inputMode="email"
                     autoCapitalize="none"
                     value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    onChange={(e) => {
+                      setLoginEmail(e.target.value);
+                      if (loginError) setLoginError(false);
+                    }}
                     placeholder="login@example.com"
                     maxLength={120}
                     className="flex-1 bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none text-right"
                   />
                 </Row>
-                <Row label="Пароль" last>
+                <Row
+                  label="Пароль"
+                  required
+                  invalid={passwordError && password.length === 0}
+                  last
+                >
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError(false);
+                    }}
                     placeholder="—"
                     maxLength={64}
                     className="flex-1 bg-transparent text-[15px] font-mono text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none text-right tabular-nums"
@@ -265,8 +289,8 @@ export default function NewMasterPopup({
                 </Row>
               </div>
               <div className="px-1 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
-                Пароль виден один раз — скопируйте и передайте сотруднику. Логин
-                можно пропустить и выдать позже на странице сотрудника.
+                Без логина и пароля учётка не создастся. Пароль виден один
+                раз — скопируйте и передайте сотруднику.
               </div>
             </div>
           </div>

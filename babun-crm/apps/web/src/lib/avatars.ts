@@ -8,9 +8,11 @@
 
 const DICEBEAR_BASE = "https://api.dicebear.com/9.x/avataaars/svg";
 
-// 14 hand-picked seeds that produce visually distinct faces (hair,
-// skin, clothes, accessories). Replace with your own art later —
-// the only contract is that getAvatarPreset(i) returns a stable URL.
+// 48 hand-picked seeds that produce visually distinct faces — hair,
+// skin, clothes, accessories. Together with the «Upload your own»
+// tile in the picker this makes a 7×7 grid (1 upload + 48 presets).
+// Replace with your own art later; the only contract is that
+// getAvatarPreset(i) returns a stable URL.
 const PRESET_SEEDS: readonly string[] = [
   "babun-1-felix",
   "babun-2-maya",
@@ -26,6 +28,40 @@ const PRESET_SEEDS: readonly string[] = [
   "babun-12-luna",
   "babun-13-theo",
   "babun-14-nora",
+  "babun-15-dima",
+  "babun-16-olya",
+  "babun-17-grisha",
+  "babun-18-vera",
+  "babun-19-max",
+  "babun-20-tanya",
+  "babun-21-pasha",
+  "babun-22-sonia",
+  "babun-23-boris",
+  "babun-24-lera",
+  "babun-25-anton",
+  "babun-26-nina",
+  "babun-27-vlad",
+  "babun-28-katya",
+  "babun-29-roman",
+  "babun-30-yana",
+  "babun-31-denis",
+  "babun-32-alina",
+  "babun-33-kostya",
+  "babun-34-oksana",
+  "babun-35-ilya",
+  "babun-36-polina",
+  "babun-37-gleb",
+  "babun-38-margo",
+  "babun-39-stas",
+  "babun-40-daria",
+  "babun-41-arthur",
+  "babun-42-vika",
+  "babun-43-petr",
+  "babun-44-ksyu",
+  "babun-45-egor",
+  "babun-46-uliana",
+  "babun-47-matvey",
+  "babun-48-liza",
 ];
 
 export const AVATAR_PRESET_COUNT = PRESET_SEEDS.length;
