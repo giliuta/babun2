@@ -480,7 +480,11 @@ export const LEGACY_HELPER_ROLE_ID = "role-helper";
 // ─── Brigade appointment-sheet visibility (Sprint 033 Phase I42) ─
 
 /** Optional blocks the dispatcher can toggle per brigade. Mandatory
- *  blocks (client, services) are hard-coded as always-visible. */
+ *  blocks (client, services) are hard-coded as always-visible.
+ *  Sprint 033 Phase I46 — `order` lets the tenant drag-to-reorder the
+ *  optional blocks; when undefined the default declaration order is
+ *  used. Entries must be keys of this interface minus the order
+ *  field itself. */
 export interface BrigadeAppointmentBlocks {
   show_address?: boolean;
   show_address_note?: boolean;
@@ -491,6 +495,9 @@ export interface BrigadeAppointmentBlocks {
   show_expenses?: boolean;
   show_reminder?: boolean;
   show_source?: boolean;
+  /** Ordered list of optional-block keys. Unknown or missing entries
+   *  fall back to the declaration order. */
+  order?: string[];
 }
 
 // ─── Default permissions per role ──────────────────────────────────────

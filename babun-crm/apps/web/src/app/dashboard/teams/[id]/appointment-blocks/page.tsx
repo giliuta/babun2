@@ -13,12 +13,13 @@
 // this page just persists the flags onto team.appointment_blocks so
 // the data structure is ready.
 
-import { use } from "react";
+import { use, useMemo } from "react";
 import {
   Bell,
   Camera,
   Check,
   CreditCard,
+  GripVertical,
   MapPin,
   MessageSquare,
   Receipt,
@@ -29,6 +30,20 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { haptic } from "@/lib/haptics";
 import { useTeams } from "@/app/dashboard/layout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
@@ -41,7 +56,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-type BlockKey = keyof BrigadeAppointmentBlocks;
+type BlockKey = Exclude<keyof BrigadeAppointmentBlocks, "order">;
 
 interface BlockMeta {
   key: BlockKey;
@@ -166,21 +181,67 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
   const isEnabled = (b: (typeof OPTIONAL_BLOCKS)[number]) =>
     blocks[b.key] ?? b.defaultOn;
 
+  // Phase I46 — resolve order. Apply saved order first; append any
+  // blocks that weren't in the saved list (new additions) in their
+  // declaration-order position.
+  const orderedBlocks: BlockMeta[] = useMemo(() => {
+    const saved = blocks.order ?? [];
+    const byKey = new Map<string, BlockMeta>();
+    for (const b of OPTIONAL_BLOCKS) byKey.set(b.key, b);
+    const result: BlockMeta[] = [];
+    for (const key of saved) {
+      const b = byKey.get(key);
+      if (b) {
+        result.push(b);
+        byKey.delete(key);
+      }
+    }
+    for (const b of OPTIONAL_BLOCKS) {
+      if (byKey.has(b.key)) result.push(b);
+    }
+    return result;
+  }, [blocks.order]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
+  );
+
+  const handleDragEnd = (ev: DragEndEvent) => {
+    const { active, over } = ev;
+    if (!over || active.id === over.id) return;
+    const keys = orderedBlocks.map((b) => b.key);
+    const oldIdx = keys.indexOf(active.id as BlockKey);
+    const newIdx = keys.indexOf(over.id as BlockKey);
+    if (oldIdx === -1 || newIdx === -1) return;
+    const nextOrder = arrayMove(keys, oldIdx, newIdx);
+    haptic("tap");
+    upsertTeam({
+      ...team,
+      appointment_blocks: {
+        ...blocks,
+        order: nextOrder,
+      },
+    });
+  };
+
   return (
     <BrigadeSectionShell brigadeId={id} title="Запись" hideSave>
-      {/* ── Мини-превью формы записи ─────────────────── */}
+      {/* ── Мини-превью формы записи (с drag-to-reorder) ───── */}
       <div>
         <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
           Форма записи выглядит так
         </div>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-3">
-          <PreviewStack
-            blocks={OPTIONAL_BLOCKS.filter((b) => isEnabled(b))}
+          <SortablePreview
+            orderedBlocks={orderedBlocks}
+            isEnabled={isEnabled}
+            sensors={sensors}
+            onDragEnd={handleDragEnd}
           />
         </div>
         <div className="px-4 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
-          Это то, что бригада увидит, когда откроет запись. Переключайте
-          тумблеры ниже — блоки пропадают из превью сразу.
+          Это то, что бригада увидит, когда откроет запись. Долгое
+          нажатие + перетаскивание — переставить блоки местами.
         </div>
       </div>
 
@@ -201,7 +262,7 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
         footer="Перестраивает форму записи только в этой бригаде. Например, одна команда фоткает работу до/после — включаем; другая никогда — отключаем, и блок перестанет маячить в глазах."
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-          {OPTIONAL_BLOCKS.map((b) => {
+          {orderedBlocks.map((b) => {
             const on = isEnabled(b);
             return (
               <div
@@ -265,10 +326,22 @@ function Group({
 }
 
 // Mini-preview: shows what the dispatcher will see on the sheet.
-// Base blocks (Клиент, Услуги) are always on top, then every enabled
-// optional block as a compact row. Gives instant visual feedback
-// when toggling settings below.
-function PreviewStack({ blocks }: { blocks: BlockMeta[] }) {
+// Base blocks (Клиент, Услуги) are always at the top and not
+// draggable — they're part of the schema. Optional blocks below can
+// be reordered via long-press-drag; invisible ones are rendered at
+// reduced opacity with a strike so the tenant still sees the slot
+// they turned off.
+function SortablePreview({
+  orderedBlocks,
+  isEnabled,
+  sensors,
+  onDragEnd,
+}: {
+  orderedBlocks: BlockMeta[];
+  isEnabled: (b: BlockMeta) => boolean;
+  sensors: ReturnType<typeof useSensors>;
+  onDragEnd: (ev: DragEndEvent) => void;
+}) {
   return (
     <div className="flex flex-col gap-1">
       <PreviewRow
@@ -283,14 +356,76 @@ function PreviewStack({ blocks }: { blocks: BlockMeta[] }) {
         tone="bg-[var(--tile-purple)]"
         required
       />
-      {blocks.map((b) => (
-        <PreviewRow
-          key={b.key}
-          icon={b.icon}
-          label={b.label}
-          tone={b.tone}
-        />
-      ))}
+      <DndContext
+        sensors={sensors}
+        onDragEnd={onDragEnd}
+      >
+        <SortableContext
+          items={orderedBlocks.map((b) => b.key)}
+          strategy={verticalListSortingStrategy}
+        >
+          {orderedBlocks.map((b) => (
+            <SortablePreviewRow
+              key={b.key}
+              block={b}
+              enabled={isEnabled(b)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
+function SortablePreviewRow({
+  block,
+  enabled,
+}: {
+  block: BlockMeta;
+  enabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: block.key });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : enabled ? 1 : 0.35,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 h-9 pl-1 pr-2.5 rounded-[10px] bg-[var(--fill-tertiary)] touch-none ${
+        isDragging ? "ring-2 ring-[var(--accent)]" : ""
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="w-6 h-9 flex items-center justify-center text-[var(--label-tertiary)] cursor-grab active:cursor-grabbing"
+        aria-label={`Перетащить ${block.label}`}
+      >
+        <GripVertical size={14} strokeWidth={2} />
+      </button>
+      <span
+        className={`w-6 h-6 rounded-md flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${block.tone}`}
+      >
+        <block.icon size={13} strokeWidth={2.2} />
+      </span>
+      <span
+        className={`flex-1 text-[13px] text-[var(--label)] truncate ${
+          enabled ? "" : "line-through"
+        }`}
+      >
+        {block.label}
+      </span>
+      {!enabled && (
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)]">
+          скрыт
+        </span>
+      )}
     </div>
   );
 }

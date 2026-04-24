@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v296-team-role-required-sub-popup";
+export const BUILD_VERSION = "v297-appt-blocks-reorder";
