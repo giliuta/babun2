@@ -6,11 +6,11 @@
 //   /info          — identity + contacts + Babun account (mega)
 //   /salary        — pay model + amount + period + method
 //   /access        — permissions matrix
-//   /notes         — freeform memo
 //
 // Brigade membership lives here on the hub as read-only plashki
-// (edits on the brigade side). /employment subroute was removed as
-// redundant — all it held was brigades + hire date + noise.
+// (edits on the brigade side). /employment and /notes subroutes
+// were removed as redundant — brigades + hire date + notes were
+// either unused or better shown inline.
 
 import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  FileText,
   Info,
   ShieldCheck,
   Trash2,
@@ -155,13 +154,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
     return { total, completed, cancelled, revenue };
   }, [master, assignedTeams, appointments]);
 
-  const notesPreview = useMemo((): { text: string; warning: boolean } => {
-    if (!master) return { text: "", warning: false };
-    const n = master.notes?.trim();
-    if (!n) return { text: "нет заметок", warning: false };
-    const clipped = n.length > 80 ? `${n.slice(0, 77)}…` : n;
-    return { text: clipped.replace(/\s+/g, " "), warning: false };
-  }, [master]);
 
   if (!master) {
     return (
@@ -312,14 +304,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
               value={accessPreview.text}
               warning={accessPreview.warning}
               onClick={() => router.push(`/dashboard/masters/${master.id}/access`)}
-            />
-            <NavRow
-              icon={<FileText size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-mint)]"
-              title="Заметки"
-              value={notesPreview.text}
-              warning={notesPreview.warning}
-              onClick={() => router.push(`/dashboard/masters/${master.id}/notes`)}
             />
           </ListGroup>
 
