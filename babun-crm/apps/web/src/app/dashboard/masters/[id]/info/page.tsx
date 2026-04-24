@@ -29,7 +29,6 @@ import {
   RefreshCw,
   Trash2,
   UserMinus,
-  X,
 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useMasters } from "@/app/dashboard/layout";
@@ -90,9 +89,6 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [telegram, setTelegram] = useState(initial.telegram ?? "");
   const [email, setEmail] = useState(initial.email ?? "");
   const [address, setAddress] = useState(initial.address ?? "");
-  const [emergencyContact, setEmergencyContact] = useState(
-    initial.emergency_contact ?? "",
-  );
 
   // Babun account
   const [loginEmail, setLoginEmail] = useState(
@@ -101,8 +97,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Territory + Documents (local chip/row editors)
-  const [cityInput, setCityInput] = useState("");
+  // Documents row editor + avatar picker
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
 
@@ -116,7 +111,6 @@ export default function MasterInfoPage({ params }: RouteParams) {
       setTelegram(existing.telegram ?? "");
       setEmail(existing.email ?? "");
       setAddress(existing.address ?? "");
-      setEmergencyContact(existing.emergency_contact ?? "");
       setLoginEmail(existing.login_email ?? existing.email ?? "");
     }
   }, [existing, isNew]);
@@ -226,30 +220,6 @@ export default function MasterInfoPage({ params }: RouteParams) {
     }
   };
 
-  // ── Territory cities (chip editor) ──────────────────────────────
-  const addCity = () => {
-    if (!existing) return;
-    const v = cityInput.trim();
-    if (!v) return;
-    const current = existing.cities ?? [];
-    if (current.includes(v)) {
-      setCityInput("");
-      return;
-    }
-    haptic("tap");
-    upsertMaster({ ...existing, cities: [...current, v] });
-    setCityInput("");
-  };
-  const removeCity = (city: string) => {
-    if (!existing) return;
-    const current = existing.cities ?? [];
-    haptic("tap");
-    upsertMaster({
-      ...existing,
-      cities: current.filter((c) => c !== city),
-    });
-  };
-
   // ── Documents ────────────────────────────────────────────────────
   const addDoc = (doc: MasterDocument) => {
     if (!existing) return;
@@ -292,7 +262,6 @@ export default function MasterInfoPage({ params }: RouteParams) {
       telegram: telegram.trim() || undefined,
       email: email.trim() || undefined,
       address: address.trim() || undefined,
-      emergency_contact: emergencyContact.trim() || undefined,
       login_email: loginEmail.trim() || undefined,
     });
     router.push(`/dashboard/masters/${initial.id}`);
@@ -556,75 +525,10 @@ export default function MasterInfoPage({ params }: RouteParams) {
           onCommit={(v) => commitStr("address", v, true)}
           placeholder="Пафос, улица…"
           maxLength={120}
-        />
-        <TextRow
-          label="Экстр. контакт"
-          value={emergencyContact}
-          setValue={setEmergencyContact}
-          onCommit={(v) => commitStr("emergency_contact", v, true)}
-          placeholder="Имя · телефон"
-          maxLength={120}
           last
         />
       </Section>
 
-      {/* ── ТЕРРИТОРИЯ ────────────────────────────────────────────── */}
-      {!isNew && existing && (
-        <Section
-          title="Территория"
-          footer="Личные города. Если пусто — наследует города из бригад."
-        >
-          {(existing.cities ?? []).length === 0 ? (
-            <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
-              Пока не указано.
-            </div>
-          ) : (
-            <div className="px-3 py-2 flex flex-wrap gap-1.5">
-              {(existing.cities ?? []).map((c) => (
-                <span
-                  key={c}
-                  className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-[var(--fill-tertiary)] text-[13px] text-[var(--label)]"
-                >
-                  {c}
-                  <button
-                    type="button"
-                    onClick={() => removeCity(c)}
-                    className="w-5 h-5 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
-                    aria-label={`Убрать ${c}`}
-                  >
-                    <X size={12} strokeWidth={2.5} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--separator)]">
-            <input
-              type="text"
-              value={cityInput}
-              onChange={(e) => setCityInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCity();
-                }
-              }}
-              placeholder="Добавить город"
-              className="flex-1 h-9 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
-              maxLength={60}
-            />
-            <button
-              type="button"
-              onClick={addCity}
-              disabled={!cityInput.trim()}
-              className="w-9 h-9 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center press-scale disabled:opacity-40"
-              aria-label="Добавить"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-            </button>
-          </div>
-        </Section>
-      )}
 
       {/* ── ДОКУМЕНТЫ ─────────────────────────────────────────────── */}
       {!isNew && existing && (
