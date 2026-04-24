@@ -2,20 +2,20 @@
 
 // Sprint 033 Phase I32 — /dashboard/masters/[id] detail hub.
 //
-// After v279 each row has its own iOS-style subroute:
+// Each row has its own iOS-style subroute:
 //   /info          — identity + contacts + Babun account (mega)
-//   /employment    — role + brigade + contract + schedule
 //   /salary        — pay model + amount + period + method
-//   /access        — permissions matrix + brigade visibility
+//   /access        — permissions matrix
 //   /notes         — freeform memo
 //
-// The hub stays a compact list of nav rows. No more MasterSheet overlay.
+// Brigade membership lives here on the hub as read-only plashki
+// (edits on the brigade side). /employment subroute was removed as
+// redundant — all it held was brigades + hire date + noise.
 
 import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  Briefcase,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -35,7 +35,6 @@ import {
 import {
   ACCOUNT_STATUS_LABELS,
   PERMISSION_GROUPS,
-  ROLE_LABELS,
   SALARY_MODEL_LABELS,
   SALARY_UNIT,
   getInitials,
@@ -99,22 +98,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
       warning: !master.phone,
     };
   }, [master]);
-
-  const employmentPreview = useMemo((): { text: string; warning: boolean } => {
-    if (!master) return { text: "", warning: false };
-    const role = ROLE_LABELS[master.role];
-    const titleBit = master.title ? ` · ${master.title}` : "";
-    if (assignedTeams.length === 0) {
-      return { text: `${role} · без бригады`, warning: true };
-    }
-    if (assignedTeams.length === 1) {
-      return { text: `${role}${titleBit} · ${assignedTeams[0].name}`, warning: false };
-    }
-    return {
-      text: `${role}${titleBit} · ${assignedTeams.length} бригады`,
-      warning: false,
-    };
-  }, [master, assignedTeams]);
 
   const salaryPreview = useMemo((): { text: string; warning: boolean } => {
     if (!master) return { text: "", warning: false };
@@ -262,7 +245,49 @@ export default function MasterDetailPage({ params }: RouteParams) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-6">
+        <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-5">
+          {/* Brigade membership — read-only plashki. Tap opens the
+              brigade hub. Edit flow lives on the brigade side
+              («Команда» → добавить участника). */}
+          {assignedTeams.length > 0 && (
+            <div>
+              <div className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+                В бригадах
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {assignedTeams.map((team) => (
+                  <button
+                    key={team.id}
+                    type="button"
+                    onClick={() => {
+                      haptic("tap");
+                      router.push(`/dashboard/teams/${team.id}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97] transition"
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: team.color }}
+                    />
+                    {team.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hire date summary — one-liner. Edited on /info alongside
+              День рождения; shown here as read-only context. */}
+          {master.hire_date && (
+            <div className="px-1 text-[12px] text-[var(--label-secondary)]">
+              Работает с {formatHireDate(master.hire_date)}
+              {(() => {
+                const t = formatTenure(master.hire_date);
+                return t ? ` · ${t}` : "";
+              })()}
+            </div>
+          )}
+
           <ListGroup>
             <NavRow
               icon={<Info size={18} strokeWidth={2} />}
@@ -271,16 +296,6 @@ export default function MasterDetailPage({ params }: RouteParams) {
               value={infoPreview.text}
               warning={infoPreview.warning}
               onClick={() => router.push(`/dashboard/masters/${master.id}/info`)}
-            />
-            <NavRow
-              icon={<Briefcase size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-indigo)]"
-              title="Трудоустройство"
-              value={employmentPreview.text}
-              warning={employmentPreview.warning}
-              onClick={() =>
-                router.push(`/dashboard/masters/${master.id}/employment`)
-              }
             />
             <NavRow
               icon={<Wallet size={18} strokeWidth={2} />}
@@ -397,6 +412,41 @@ function ListGroup({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+function formatHireDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatTenure(iso: string): string | null {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const start = new Date(y, m - 1, d);
+  const now = new Date();
+  let months =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) months -= 1;
+  if (months < 1) return null;
+  if (months < 12) return `${months} мес.`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem === 0 ? `${years} ${plural(years, "год", "года", "лет")}`
+    : `${years} ${plural(years, "год", "года", "лет")} ${rem} мес.`;
+}
+
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
 }
 
 function NavRow({

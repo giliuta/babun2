@@ -11,7 +11,8 @@
 //   · Учётка Babun:  login email, статус, последний вход, кнопка
 //                    выдать/сбросить пароль
 //
-// Role + brigade + schedule live on /employment now.
+// Brigade membership lives on the hub now (read-only plashki)
+// — edits happen on the brigade side («Команда»).
 //
 // Instant commit on blur for existing records; new-master flow shows
 // a top-right "Создать" pill that persists the draft and jumps to
@@ -82,6 +83,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [fullName, setFullName] = useState(initial.full_name);
   const [title, setTitle] = useState(initial.title ?? "");
   const [birthday, setBirthday] = useState(initial.birthday ?? "");
+  const [hireDate, setHireDate] = useState(initial.hire_date ?? "");
 
   // Contacts
   const [phone, setPhone] = useState(initial.phone);
@@ -106,6 +108,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
       setFullName(existing.full_name);
       setTitle(existing.title ?? "");
       setBirthday(existing.birthday ?? "");
+      setHireDate(existing.hire_date ?? "");
       setPhone(existing.phone);
       setWhatsapp(existing.whatsapp ?? "");
       setTelegram(existing.telegram ?? "");
@@ -258,6 +261,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
       title: title.trim() || undefined,
       phone: phone.trim(),
       birthday: birthday || undefined,
+      hire_date: hireDate || undefined,
       whatsapp: whatsapp.trim() || undefined,
       telegram: telegram.trim() || undefined,
       email: email.trim() || undefined,
@@ -476,6 +480,16 @@ export default function MasterInfoPage({ params }: RouteParams) {
             if (!existing) return;
             if (v === (existing.birthday ?? "")) return;
             patch({ birthday: v || undefined });
+          }}
+        />
+        <DateRow
+          label="Дата найма"
+          value={hireDate}
+          setValue={setHireDate}
+          onCommit={(v) => {
+            if (!existing) return;
+            if (v === (existing.hire_date ?? "")) return;
+            patch({ hire_date: v || undefined });
           }}
           last
         />
