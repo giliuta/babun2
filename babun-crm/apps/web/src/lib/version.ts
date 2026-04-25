@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v335-story034-card-header-quickactions";
+export const BUILD_VERSION = "v336-story034-blocks-objects-visits-finance";

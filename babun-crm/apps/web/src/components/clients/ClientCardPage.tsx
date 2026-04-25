@@ -24,12 +24,17 @@ import {
 import {
   useAppointments,
   useClients,
+  useServices,
 } from "@/app/dashboard/layout";
 import { buildStats } from "@/lib/client-stats";
+import { loadBlockConfig } from "@/lib/business-blocks";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
 import ClientHeader from "./ClientHeader";
 import ClientQuickActions from "./ClientQuickActions";
+import ObjectsBlock from "./blocks/ObjectsBlock";
+import VisitsBlock from "./blocks/VisitsBlock";
+import FinanceBlock from "./blocks/FinanceBlock";
 import { haptic } from "@/lib/haptics";
 
 interface ClientCardPageProps {
@@ -44,7 +49,9 @@ export default function ClientCardPage({
   const router = useRouter();
   const { clients, upsertClient, deleteClient } = useClients();
   const { appointments } = useAppointments();
+  const { services } = useServices();
   const confirm = useConfirm();
+  const blockConfig = loadBlockConfig();
 
   const client = useMemo(
     () => clients.find((c) => c.id === clientId),
@@ -134,13 +141,35 @@ export default function ClientCardPage({
         <div className="max-w-2xl mx-auto pb-24">
           <ClientQuickActions client={client} onAddNote={onAddNote} />
 
-          {/* v335 — Block scaffolding lands in Group 2 (v336): Objects /
-              Visits / Finance.  Group 3 (v337) ships the rest.  Until
-              then we render a soft placeholder so the page is never
-              blank for the dispatcher. */}
-          <div className="mx-3 my-3 px-4 py-6 rounded-[14px] bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[13px] text-[var(--label-tertiary)] text-center">
-            Блоки (объекты / визиты / финансы / заметки / контакты)
-            появятся в следующих коммитах STORY-034.
+          {/* v336 — Group 2 blocks.  Group 3 (v337) ships the rest
+              (Notes / Contacts / Personal / Meta). */}
+          <div className="mt-2">
+            {blockConfig.map((cfg) => {
+              switch (cfg.kind) {
+                case "objects":
+                  return <ObjectsBlock key={cfg.kind} client={client} />;
+                case "visits":
+                  return (
+                    <VisitsBlock
+                      key={cfg.kind}
+                      clientId={client.id}
+                      appointments={appointments}
+                      services={services}
+                    />
+                  );
+                case "finance":
+                  return (
+                    <FinanceBlock
+                      key={cfg.kind}
+                      clientId={client.id}
+                      stats={stats}
+                    />
+                  );
+                default:
+                  // notes / contacts / personal / meta land in Group 3.
+                  return null;
+              }
+            })}
           </div>
         </div>
       </div>
