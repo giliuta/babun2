@@ -51,6 +51,7 @@ import {
 } from "@/lib/client-stats";
 import ClientCardStats from "@/components/clients/ClientCardStats";
 import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
+import ClientQuickActionsSheet from "@/components/clients/ClientQuickActionsSheet";
 
 // v312 — tag chips are tenant-managed: read from useClients().tags.
 // Settings UI for creating/editing/deleting tags lands in Phase 2.
@@ -111,6 +112,9 @@ export default function ClientsPage() {
   } | null>(null);
   const [reminderFor, setReminderFor] = useState<Client | null>(null);
   const [singleConfirmDelete, setSingleConfirmDelete] = useState<Client | null>(null);
+  // v333 — long-press on the green phone icon opens this contact-
+  // channel picker (Звонок / WhatsApp / SMS / Telegram).
+  const [quickActionsFor, setQuickActionsFor] = useState<Client | null>(null);
   // v314 — search hidden above the fold, reveals on pull-down
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -681,6 +685,10 @@ export default function ClientsPage() {
                   picked={isPicked}
                   pinned={isPinned}
                   reminderAt={client.reminder_at ?? null}
+                  onPhoneLongPress={() => {
+                    haptic("medium");
+                    setQuickActionsFor(client);
+                  }}
                   onOpen={() => {
                     if (isSelecting) {
                       setSelectedIds((prev) => {
@@ -717,6 +725,17 @@ export default function ClientsPage() {
                       },
                     ]}
                     rightActions={[
+                      {
+                        label: "Записать",
+                        icon: <CalendarPlus size={18} strokeWidth={2.2} />,
+                        color: "bg-[var(--system-blue)]",
+                        onSelect: () => {
+                          haptic("tap");
+                          router.push(
+                            `/dashboard?new=1&client_id=${client.id}`,
+                          );
+                        },
+                      },
                       {
                         label: "Напомнить",
                         icon: <Clock size={18} strokeWidth={2.2} />,
@@ -1002,6 +1021,14 @@ export default function ClientsPage() {
           }}
         />
       )}
+
+      {/* v333 — long-press phone icon → contact channel picker */}
+      {quickActionsFor && (
+        <ClientQuickActionsSheet
+          client={quickActionsFor}
+          onClose={() => setQuickActionsFor(null)}
+        />
+      )}
     </>
   );
 }
@@ -1067,6 +1094,7 @@ function ClientCard({
   reminderAt,
   onOpen,
   onLongPress,
+  onPhoneLongPress,
 }: {
   client: Client;
   tags: ClientTag[];
@@ -1081,6 +1109,9 @@ function ClientCard({
   reminderAt: string | null;
   onOpen: () => void;
   onLongPress: (anchor: { x: number; y: number }) => void;
+  /** Fires when the green phone icon is held ≥500 ms.  Opens the
+   *  channel picker (Звонок / WhatsApp / SMS / Telegram). */
+  onPhoneLongPress: () => void;
 }) {
   const color = getAvatarColor(client.full_name);
   const initials = getInitials(client.full_name || "?");
@@ -1263,16 +1294,71 @@ function ClientCard({
       </div>
 
       {phoneDigits && !selectionMode && (
-        <a
-          href={`tel:${phoneDigits}`}
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Позвонить"
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-[rgba(52,199,89,0.12)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.24)] shrink-0 self-center"
-        >
-          <PhoneIcon size={17} strokeWidth={2.2} />
-        </a>
+        <PhoneActionButton
+          phoneDigits={phoneDigits}
+          onLongPress={onPhoneLongPress}
+        />
       )}
     </div>
+  );
+}
+
+// ─── Phone action button (tap = call, hold = channel picker) ───────
+
+function PhoneActionButton({
+  phoneDigits,
+  onLongPress,
+}: {
+  phoneDigits: string;
+  onLongPress: () => void;
+}) {
+  const timer = useRef<number | null>(null);
+  const fired = useRef(false);
+  const start = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    fired.current = false;
+    timer.current = window.setTimeout(() => {
+      fired.current = true;
+      onLongPress();
+    }, 500);
+  };
+  const cancel = () => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  return (
+    <a
+      href={`tel:${phoneDigits}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (fired.current) {
+          // Long-press already fired — swallow the click so we
+          // don't kick off a tel: navigation as well.
+          e.preventDefault();
+          fired.current = false;
+        }
+      }}
+      onPointerDown={start}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      onPointerLeave={cancel}
+      onPointerMove={(e) => {
+        if (Math.abs(e.movementX) > 4 || Math.abs(e.movementY) > 4) cancel();
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (!fired.current) {
+          fired.current = true;
+          onLongPress();
+        }
+      }}
+      aria-label="Позвонить · удержать для других каналов"
+      className="w-10 h-10 flex items-center justify-center rounded-full bg-[rgba(52,199,89,0.12)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.24)] shrink-0 self-center select-none"
+    >
+      <PhoneIcon size={17} strokeWidth={2.2} />
+    </a>
   );
 }
 
