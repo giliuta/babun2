@@ -563,7 +563,9 @@ export default function ClientsPage() {
               type="button"
               onClick={() => {
                 haptic("tap");
-                setDraft(createBlankClient());
+                // STORY-034 Group 4 — quick-create lives at its own
+                // route now; the inline draft view is gone.
+                router.push("/dashboard/clients/new");
               }}
               aria-label="Добавить клиента"
               className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
