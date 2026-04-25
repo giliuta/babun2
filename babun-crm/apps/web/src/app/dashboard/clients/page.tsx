@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Trash2,
@@ -19,12 +19,14 @@ import {
   MapPin,
   Wallet,
   X,
+  Send,
+  CheckSquare,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
-import { type Client, createBlankClient } from "@/lib/clients";
+import { type Client, type ClientTag, createBlankClient } from "@/lib/clients";
 import { getPaidAmount } from "@/lib/appointments";
 import { getAvatarColor, getInitials } from "@/lib/avatar-color";
 import { countWordRu } from "@/lib/pluralize";
@@ -32,13 +34,8 @@ import ClientPanel from "@/components/clients/ClientPanel";
 import { matchesClient } from "@/lib/client-search";
 import { haptic } from "@/lib/haptics";
 
-const TAG_CHIPS = [
-  { id: "tag-vip", label: "VIP", active: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" },
-  { id: "tag-b2b", label: "B2B", active: "bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)]" },
-  { id: "tag-regular", label: "Постоянный", active: "bg-purple-100 text-purple-700" },
-  { id: "tag-new", label: "Новый", active: "bg-[rgba(52,199,89,0.14)] text-[var(--system-green)]" },
-  { id: "tag-problem", label: "Проблемный", active: "bg-[rgba(255,59,48,0.14)] text-[var(--system-red)]" },
-];
+// v312 — tag chips are tenant-managed: read from useClients().tags.
+// Settings UI for creating/editing/deleting tags lands in Phase 2.
 
 type SortKey = "recent" | "name" | "revenue" | "equipment";
 
@@ -83,8 +80,13 @@ export default function ClientsPage() {
   const [sort, setSort] = useState<SortKey>("recent");
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState<Client | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
+  // v312 — multi-select mode + bulk actions
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false);
+  const [smsBlastOpen, setSmsBlastOpen] = useState(false);
 
   // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
   // Dima taps "Открыть карточку" in a chat and lands directly on the
@@ -326,29 +328,129 @@ export default function ClientsPage() {
     );
   }
 
-  // ─── Create new client ───
-  if (creating) {
-    return <CreateClientPage onSave={(c) => { upsertClient(c); setCreating(false); setSelectedId(c.id); }} onBack={() => setCreating(false)} />;
+  // ─── Create new client ─── full ClientPanel-based draft view.
+  if (draft) {
+    const canSave =
+      draft.full_name.trim().length > 0 && draft.phone.trim().length > 0;
+    return (
+      <>
+        <PageHeader
+          title="Новый клиент"
+          rightContent={
+            <button
+              type="button"
+              disabled={!canSave}
+              onClick={() => {
+                if (!canSave) return;
+                haptic("tap");
+                upsertClient(draft);
+                setSelectedId(draft.id);
+                setDraft(null);
+              }}
+              className={`h-9 px-3 rounded-full text-[14px] font-semibold transition ${
+                canSave
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)]"
+                  : "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] cursor-not-allowed"
+              }`}
+            >
+              Создать
+            </button>
+          }
+        />
+        {!canSave && (
+          <div className="bg-[rgba(255,149,0,0.1)] border-b border-[var(--separator)] px-4 py-2.5 flex items-center gap-2 text-[var(--system-orange)] text-[13px] font-semibold">
+            Имя и телефон обязательны для сохранения
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto bg-[var(--surface-card)]">
+          <div
+            className="max-w-3xl mx-auto"
+            style={{ paddingBottom: "5.5rem" }}
+          >
+            <ClientPanel
+              client={draft}
+              appointments={[]}
+              onUpdate={(updated) => setDraft(updated)}
+              onClose={() => setDraft(null)}
+            />
+          </div>
+        </div>
+      </>
+    );
   }
 
   // ─── Client list ───
   return (
     <>
       <PageHeader
-        title="Клиенты"
+        title={isSelecting ? `Выбрано ${selectedIds.size}` : "Клиенты"}
         rightContent={
-          <button
-            type="button"
-            onClick={() => {
-              haptic("tap");
-              setSortOpen(true);
-            }}
-            title={`Сортировка: ${SORT_LABELS[sort]}`}
-            className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] text-[13px] font-medium transition"
-          >
-            <ArrowUpDown size={14} strokeWidth={2} />
-            {SORT_LABELS[sort]}
-          </button>
+          isSelecting ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  if (selectedIds.size === filtered.length) {
+                    setSelectedIds(new Set());
+                  } else {
+                    setSelectedIds(new Set(filtered.map((c) => c.id)));
+                  }
+                }}
+                className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] text-[13px] font-semibold transition"
+              >
+                {selectedIds.size === filtered.length ? "Снять" : "Все"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setIsSelecting(false);
+                  setSelectedIds(new Set());
+                }}
+                className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--fill-quaternary)] text-[13px] font-semibold transition"
+              >
+                Готово
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setIsSelecting(true);
+                }}
+                aria-label="Выбрать"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--fill-quaternary)] transition"
+              >
+                <CheckSquare size={18} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setSortOpen(true);
+                }}
+                title={`Сортировка: ${SORT_LABELS[sort]}`}
+                className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--fill-quaternary)] text-[13px] font-medium transition"
+              >
+                <ArrowUpDown size={14} strokeWidth={2} />
+                {SORT_LABELS[sort]}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setDraft(createBlankClient());
+                }}
+                aria-label="Добавить клиента"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] transition"
+              >
+                <PencilLine size={18} strokeWidth={2} />
+              </button>
+            </div>
+          )
         }
       />
 
@@ -410,47 +512,18 @@ export default function ClientsPage() {
               <Ban size={12} strokeWidth={2.5} />
               ЧС
             </SegmentChip>
-            <span className="self-center text-[var(--separator)] px-1">·</span>
-            {TAG_CHIPS.map((t) => {
-              const on = activeTags.includes(t.id);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => toggleTag(t.id)}
-                  className={`inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold whitespace-nowrap transition shrink-0 ${
-                    on
-                      ? t.active
-                      : "bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
-                  }`}
-                >
-                  {on && <Check size={11} strokeWidth={2.5} />}
-                  {t.label}
-                </button>
-              );
-            })}
+            {tags.length > 0 && (
+              <span className="self-center text-[var(--separator)] px-1">·</span>
+            )}
+            {tags.map((t) => (
+              <TagChip
+                key={t.id}
+                tag={t}
+                active={activeTags.includes(t.id)}
+                onClick={() => toggleTag(t.id)}
+              />
+            ))}
           </div>
-
-          {/* Active filter readout — visible reset when something is on. */}
-          {(activeTags.length > 0 || segment !== "all" || search.trim()) && (
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-[var(--label-secondary)]">
-                {filtered.length} {countWordRu(filtered.length, "клиент", "клиента", "клиентов")} по фильтру
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTags([]);
-                  setSegment("all");
-                  setSearch("");
-                }}
-                className="inline-flex items-center gap-1 h-7 px-2 rounded-full text-[var(--accent)] font-semibold active:bg-[var(--accent-tint)]"
-              >
-                <X size={12} strokeWidth={2.5} />
-                Сбросить
-              </button>
-            </div>
-          )}
 
           {/* ── Client cards ─────────────────────────────────────── */}
           <div className="space-y-2">
@@ -467,11 +540,13 @@ export default function ClientsPage() {
                   ? Math.abs(client.balance)
                   : 0;
               const dd = daysUntilBirthday(client.birthday);
+              const isPicked = selectedIds.has(client.id);
 
               return (
                 <ClientCard
                   key={client.id}
                   client={client}
+                  tags={tags}
                   acTotal={acTotal}
                   debt={debt}
                   revenue={rev?.total ?? 0}
@@ -479,7 +554,26 @@ export default function ClientsPage() {
                   primaryAddress={primary?.address ?? ""}
                   birthdayInDays={dd}
                   phoneDigits={phoneDigits}
-                  onOpen={() => setSelectedId(client.id)}
+                  selectionMode={isSelecting}
+                  picked={isPicked}
+                  onOpen={() => {
+                    if (isSelecting) {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(client.id)) next.delete(client.id);
+                        else next.add(client.id);
+                        return next;
+                      });
+                    } else {
+                      setSelectedId(client.id);
+                    }
+                  }}
+                  onLongPress={() => {
+                    if (isSelecting) return;
+                    haptic("tap");
+                    setIsSelecting(true);
+                    setSelectedIds(new Set([client.id]));
+                  }}
                 />
               );
             })}
@@ -489,7 +583,7 @@ export default function ClientsPage() {
                 <div className="text-[14px] font-medium text-[var(--label-secondary)]">
                   По фильтру никого нет
                 </div>
-                <Button variant="tinted" size="sm" onClick={() => setCreating(true)}>
+                <Button variant="tinted" size="sm" onClick={() => setDraft(createBlankClient())}>
                   + Добавить клиента
                 </Button>
               </div>
@@ -541,21 +635,113 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* Telegram-style compose FAB — blue circle with a pencil, bottom
-          right above the BottomTabBar. The de-facto Telegram "new chat"
-          button, reused here for "new client". */}
-      <button
-        type="button"
-        onClick={() => setCreating(true)}
-        aria-label="Добавить клиента"
-        className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-[var(--shadow-fab)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
-        style={{
-          bottom:
-            "calc(env(safe-area-inset-bottom, 12px) + 76px)",
-        }}
-      >
-        <PencilLine size={22} strokeWidth={2} />
-      </button>
+      {/* Telegram-style compose FAB — hidden in selection mode. */}
+      {!isSelecting && (
+        <button
+          type="button"
+          onClick={() => setDraft(createBlankClient())}
+          aria-label="Добавить клиента"
+          className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-[var(--shadow-fab)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
+          style={{
+            bottom:
+              "calc(env(safe-area-inset-bottom, 12px) + 76px)",
+          }}
+        >
+          <PencilLine size={22} strokeWidth={2} />
+        </button>
+      )}
+
+      {/* Bulk action bar — shown while selection mode is active. */}
+      {isSelecting && (
+        <div
+          className="fixed left-0 right-0 z-[45] bg-[var(--surface-card)] border-t border-[var(--separator)] grid grid-cols-2 gap-1 px-2 py-2 lg:left-[240px]"
+          style={{
+            bottom: "var(--bottom-nav-height, 0px)",
+            paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedIds.size === 0) return;
+              haptic("tap");
+              setSmsBlastOpen(true);
+            }}
+            disabled={selectedIds.size === 0}
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-[var(--system-blue)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+          >
+            <Send size={16} strokeWidth={2.2} />
+            SMS всем · {selectedIds.size}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedIds.size === 0) return;
+              haptic("warning");
+              setBulkConfirmDelete(true);
+            }}
+            disabled={selectedIds.size === 0}
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+          >
+            <Trash2 size={16} strokeWidth={2.2} />
+            Удалить · {selectedIds.size}
+          </button>
+        </div>
+      )}
+
+      {/* Bulk delete confirm */}
+      {bulkConfirmDelete && (() => {
+        const targets = clients.filter((c) => selectedIds.has(c.id));
+        const linkedCount = appointments.filter((a) =>
+          a.client_id && selectedIds.has(a.client_id),
+        ).length;
+        return (
+          <ConfirmDialog
+            title={`Удалить ${targets.length} ${countWordRu(targets.length, "клиента", "клиентов", "клиентов")}?`}
+            message={
+              linkedCount === 0
+                ? "Связанных записей нет — удаление безопасно."
+                : `Связано ${linkedCount} ${countWordRu(linkedCount, "запись", "записи", "записей")}. Записи останутся в базе без клиента.`
+            }
+            confirmLabel={linkedCount === 0 ? "Удалить" : "Удалить и открепить"}
+            onConfirm={() => {
+              for (const apt of appointments) {
+                if (apt.client_id && selectedIds.has(apt.client_id)) {
+                  upsertAppointment({
+                    ...apt,
+                    client_id: null,
+                    comment:
+                      apt.comment ||
+                      targets.find((t) => t.id === apt.client_id)?.full_name ||
+                      "",
+                    updated_at: new Date().toISOString(),
+                  });
+                }
+              }
+              for (const id of selectedIds) {
+                deleteClient(id);
+              }
+              setBulkConfirmDelete(false);
+              setIsSelecting(false);
+              setSelectedIds(new Set());
+            }}
+            onClose={() => setBulkConfirmDelete(false)}
+          />
+        );
+      })()}
+
+      {/* Bulk SMS blast */}
+      {smsBlastOpen && (
+        <BulkSmsSheet
+          recipients={clients.filter((c) => selectedIds.has(c.id))}
+          onClose={() => setSmsBlastOpen(false)}
+          onAfterSend={() => {
+            setSmsBlastOpen(false);
+            setIsSelecting(false);
+            setSelectedIds(new Set());
+          }}
+        />
+      )}
     </>
   );
 }
@@ -607,6 +793,7 @@ function SegmentChip({
 
 function ClientCard({
   client,
+  tags,
   acTotal,
   debt,
   revenue,
@@ -614,9 +801,13 @@ function ClientCard({
   primaryAddress,
   birthdayInDays,
   phoneDigits,
+  selectionMode,
+  picked,
   onOpen,
+  onLongPress,
 }: {
   client: Client;
+  tags: ClientTag[];
   acTotal: number;
   debt: number;
   revenue: number;
@@ -624,7 +815,10 @@ function ClientCard({
   primaryAddress: string;
   birthdayInDays: number | null;
   phoneDigits: string;
+  selectionMode: boolean;
+  picked: boolean;
   onOpen: () => void;
+  onLongPress: () => void;
 }) {
   const color = getAvatarColor(client.full_name);
   const initials = getInitials(client.full_name || "?");
@@ -635,22 +829,78 @@ function ClientCard({
     birthdayInDays !== null && birthdayInDays >= 0 && birthdayInDays <= 14;
 
   const tagChips = client.tag_ids
-    .map((tid) => TAG_CHIPS.find((t) => t.id === tid))
-    .filter((t): t is (typeof TAG_CHIPS)[number] => Boolean(t));
+    .map((tid) => tags.find((t) => t.id === tid))
+    .filter((t): t is ClientTag => Boolean(t));
+
+  // Long-press detection — 500ms hold without movement.
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+
+  const startPress = (e: React.PointerEvent) => {
+    longPressFired.current = false;
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current);
+    }
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      onLongPress();
+    }, 500);
+  };
+  const cancelPress = () => {
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+  const handleClick = (e: React.MouseEvent) => {
+    if (longPressFired.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      longPressFired.current = false;
+      return;
+    }
+    onOpen();
+  };
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onOpen}
-      className="bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-card)] p-3 flex gap-3 active:scale-[0.995] active:bg-[var(--fill-quaternary)] transition cursor-pointer"
+      onClick={handleClick}
+      onPointerDown={startPress}
+      onPointerUp={cancelPress}
+      onPointerCancel={cancelPress}
+      onPointerLeave={cancelPress}
+      onPointerMove={(e) => {
+        if (Math.abs(e.movementX) > 4 || Math.abs(e.movementY) > 4) {
+          cancelPress();
+        }
+      }}
+      className={`bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-card)] p-3 flex gap-3 active:scale-[0.995] active:bg-[var(--fill-quaternary)] transition cursor-pointer select-none ${
+        picked
+          ? "ring-2 ring-[var(--accent)]"
+          : ""
+      }`}
+      style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
     >
-      <div
-        className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[14px] shrink-0"
-        style={{ backgroundColor: color }}
-      >
-        {initials}
-      </div>
+      {selectionMode ? (
+        <div
+          className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition ${
+            picked
+              ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+              : "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] border-2 border-[var(--separator)]"
+          }`}
+        >
+          {picked && <Check size={20} strokeWidth={3} />}
+        </div>
+      ) : (
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[14px] shrink-0"
+          style={{ backgroundColor: color }}
+        >
+          {initials}
+        </div>
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -716,19 +966,23 @@ function ClientCard({
                 {acTotal}
               </span>
             )}
-            {tagChips.map((chip) => (
+            {tagChips.map((tag) => (
               <span
-                key={chip.id}
-                className={`inline-flex items-center px-1.5 h-5 rounded-full text-[11px] font-semibold ${chip.active}`}
+                key={tag.id}
+                className="inline-flex items-center px-1.5 h-5 rounded-full text-[11px] font-semibold"
+                style={{
+                  background: tagAlpha(tag.color, 0.14),
+                  color: tag.color,
+                }}
               >
-                {chip.label}
+                {tag.name}
               </span>
             ))}
           </div>
         )}
       </div>
 
-      {phoneDigits && (
+      {phoneDigits && !selectionMode && (
         <a
           href={`tel:${phoneDigits}`}
           onClick={(e) => e.stopPropagation()}
@@ -742,73 +996,152 @@ function ClientCard({
   );
 }
 
-// ─── Create client page ─────────────────────────────────────────────
+// ─── Tag chip with dynamic color ────────────────────────────────────
 
-function CreateClientPage({ onSave, onBack }: { onSave: (c: Client) => void; onBack: () => void }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [comment, setComment] = useState("");
+function TagChip({
+  tag,
+  active,
+  onClick,
+}: {
+  tag: ClientTag;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const style = active
+    ? {
+        background: tagAlpha(tag.color, 0.14),
+        color: tag.color,
+        borderColor: tagAlpha(tag.color, 0.24),
+      }
+    : undefined;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={style}
+      className={`inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold whitespace-nowrap transition shrink-0 border ${
+        active
+          ? ""
+          : "bg-[var(--surface-card)] border-[var(--separator)] text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+      }`}
+    >
+      {active && <Check size={11} strokeWidth={2.5} />}
+      {tag.name}
+    </button>
+  );
+}
 
-  const handleSave = () => {
-    if (!name.trim()) return;
-    const client = createBlankClient({
-      full_name: name.trim(),
-      phone: phone.trim(),
-      comment: comment.trim(),
-    });
-    onSave(client);
+// Convert hex color (#RRGGBB) into rgba with given alpha for tag tints.
+function tagAlpha(hex: string, alpha: number): string {
+  const cleaned = hex.replace("#", "");
+  if (cleaned.length !== 6) return `rgba(124,124,128,${alpha})`;
+  const r = parseInt(cleaned.slice(0, 2), 16);
+  const g = parseInt(cleaned.slice(2, 4), 16);
+  const b = parseInt(cleaned.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ─── Bulk SMS sheet ─────────────────────────────────────────────────
+
+function BulkSmsSheet({
+  recipients,
+  onClose,
+  onAfterSend,
+}: {
+  recipients: Client[];
+  onClose: () => void;
+  onAfterSend: () => void;
+}) {
+  const [text, setText] = useState("");
+
+  const phones = recipients
+    .map((c) => c.phone.replace(/\D/g, ""))
+    .filter((p) => p.length > 0);
+
+  const sendSms = () => {
+    if (!text.trim() || phones.length === 0) return;
+    haptic("tap");
+    // iOS supports comma-separated numbers in sms: link with body=…
+    const url = `sms:${phones.join(",")}?body=${encodeURIComponent(text.trim())}`;
+    window.location.href = url;
+    onAfterSend();
+  };
+
+  const copyPhones = async () => {
+    try {
+      await navigator.clipboard.writeText(phones.join("\n"));
+      haptic("tap");
+    } catch {
+      // ignore
+    }
   };
 
   return (
-    <>
-      <PageHeader title="Новый клиент" />
-      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]" style={{ paddingBottom: "7rem" }}>
-        <div className="max-w-lg mx-auto p-4 space-y-4">
-          <Input
-            label="Имя *"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
-          <Input
-            label="Телефон"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            type="tel"
-          />
+    <div
+      className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[440px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
           <div>
-            <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-              Комментарий
+            <div className="text-[15px] font-semibold text-[var(--label)]">
+              SMS-рассылка
             </div>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              placeholder="Язык, предпочтения, особенности..."
-              className="w-full px-3.5 py-3 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
-            />
+            <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
+              {phones.length} {countWordRu(phones.length, "номер", "номера", "номеров")}
+              {phones.length < recipients.length && (
+                <> · {recipients.length - phones.length} без телефона пропущены</>
+              )}
+            </div>
           </div>
-          <p className="text-[12px] text-[var(--label-tertiary)] pt-1 leading-snug">
-            Адрес, кондиционеры и остальное добавите в первой записи — у
-            одного клиента может быть несколько объектов, поэтому всё это
-            живёт в заказе.
-          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+          >
+            <X size={16} strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="p-3 space-y-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Текст сообщения…"
+            rows={4}
+            maxLength={500}
+            className="w-full px-3 py-2 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none leading-snug"
+          />
+          <div className="text-[11px] text-[var(--label-tertiary)] leading-snug">
+            Откроется системное приложение SMS со всеми номерами и текстом —
+            подтверди отправку там. Если нужно через WhatsApp, скопируй номера.
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={sendSms}
+              disabled={!text.trim() || phones.length === 0}
+              className="flex-1 h-11 rounded-[10px] bg-[var(--system-blue)] text-white text-[14px] font-semibold press-scale disabled:opacity-40"
+            >
+              Открыть SMS
+            </button>
+            <button
+              type="button"
+              onClick={copyPhones}
+              disabled={phones.length === 0}
+              className="h-11 px-4 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[14px] press-scale disabled:opacity-40"
+            >
+              Скопировать номера
+            </button>
+          </div>
         </div>
       </div>
-      <div
-        className="fixed left-0 right-0 bottom-0 z-[60] bg-[var(--surface-card)] border-t border-[var(--separator)] px-4 pt-3"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 12px) + 12px)" }}
-      >
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={handleSave}
-          disabled={!name.trim()}
-        >
-          Создать клиента
-        </Button>
-      </div>
-    </>
+    </div>
   );
 }
+
+// CreateClientPage replaced v312 — new clients use the full ClientPanel
+// view in draft mode with required name+phone validation.
