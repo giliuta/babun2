@@ -854,14 +854,10 @@ export default function DashboardLayout({
               Lighthouse's `landmark-one-main` rule without breaking any
               existing layout. */}
           <main
-            className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 lg:pb-0"
+            className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[60px] lg:pb-0"
             style={{
               touchAction: "pan-y",
               overscrollBehaviorX: "none",
-              // v319 — bottom tab bar is now a floating pill capsule
-              // 6 px above the safe area + ~64 px tall, so we reserve
-              // ~80 px below content on mobile so nothing tucks under.
-              paddingBottom: "calc(env(safe-area-inset-bottom) + 80px)",
             }}
           >
             {children}

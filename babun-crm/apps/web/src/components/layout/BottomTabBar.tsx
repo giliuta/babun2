@@ -66,21 +66,12 @@ export default function BottomTabBar() {
     <>
       <nav
         aria-label="Главная навигация"
-        className="lg:hidden fixed left-0 right-0 z-40 flex justify-center px-3 pointer-events-none"
+        className="liquid-glass-bottom lg:hidden fixed bottom-0 left-0 right-0 z-40"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom) + 6px)",
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div
-          className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-full"
-          style={{
-            background: "var(--glass-bg)",
-            backdropFilter: "var(--glass-blur)",
-            WebkitBackdropFilter: "var(--glass-blur)",
-            boxShadow:
-              "0 8px 28px -10px rgba(15, 23, 42, 0.25), 0 0 0 0.5px rgba(15, 23, 42, 0.06)",
-          }}
-        >
+        <div className="flex items-center justify-around gap-0.5 px-2 h-[60px] pt-1">
           <TabButton
             label="Календарь"
             active={isCalendar}
@@ -115,6 +106,8 @@ export default function BottomTabBar() {
           />
         </div>
       </nav>
+      {/* Spacer for the FAB and any fixed action bars on inner pages so
+          they sit above the tab bar instead of overlapping it. */}
 
       <GlobalSearch
         open={searchOpen}
@@ -161,10 +154,10 @@ function TabButton({
     }
   };
 
-  // Active = a 38×38 round accent pill behind the icon (spring entrance
-  // via animate-pill-hop).  The label stays under the icon in accent
-  // colour.  Inactive tabs are plain icon+grey label.  Mirrors the
-  // Telegram iOS dock the user pointed at.
+  // iOS Tabs / Telegram-iOS feel — flat icon stack.  Active tab tints
+  // both icon and label to brand-blue and bumps font-weight.  No big
+  // pill behind the icon — the user said the floating capsule looked
+  // off (v319).  Press feedback is an accent-tint background.
   return (
     <button
       type="button"
@@ -184,30 +177,31 @@ function TabButton({
       }}
       aria-label={label}
       aria-pressed={active}
-      className="relative h-12 px-2 rounded-2xl flex flex-col items-center justify-center gap-0.5 press-scale active:bg-[var(--fill-tertiary)]"
-      style={{ minWidth: 56 }}
+      className={`relative flex-1 min-w-[44px] h-[52px] rounded-xl flex flex-col items-center justify-center gap-0.5 press-scale ${
+        active
+          ? "text-[var(--accent)]"
+          : "text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)]"
+      }`}
+      style={{
+        transition:
+          "color var(--dur-base) var(--ease-ios), background-color var(--dur-base) var(--ease-ios)",
+      }}
     >
       <span
-        className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-          active
-            ? "bg-[var(--accent)] text-[var(--label-on-accent)] animate-pill-hop"
-            : "text-[var(--label-secondary)]"
+        className={`relative flex items-center justify-center ${
+          active ? "animate-pill-hop" : ""
         }`}
-        style={{
-          transition:
-            "background-color var(--dur-base) var(--ease-ios), color var(--dur-base) var(--ease-ios)",
-        }}
       >
         {icon}
         {showCount && (
-          <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--glass-bg,white)]">
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--surface-card)]">
             {label9}
           </span>
         )}
       </span>
       <span
-        className={`text-[10px] leading-none font-semibold ${
-          active ? "text-[var(--accent)]" : "text-[var(--label-secondary)]"
+        className={`text-[10px] leading-none ${
+          active ? "font-semibold" : "font-medium"
         }`}
       >
         {label}
