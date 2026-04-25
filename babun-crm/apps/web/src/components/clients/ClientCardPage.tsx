@@ -1,0 +1,272 @@
+"use client";
+
+// STORY-034 — Redesigned client card page (replaces ClientProfileView).
+// Group 1 lays down the skeleton: sticky header + quick actions +
+// placeholder for blocks.  Groups 2-3 fill in the collapsible cards
+// (Objects / Visits / Finance / Notes / Contacts / Personal / Meta).
+//
+// Routing context: this is mounted by app/dashboard/clients/[id]/
+// page.tsx.  The legacy ClientProfileView stays in the repo as a
+// fallback (and remains used by /chats side-panel, see STORY-035).
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  ChevronLeft,
+  MessageSquare,
+  MessageCircle,
+  Share2,
+  Ban,
+  CheckCircle2,
+  Trash2,
+} from "lucide-react";
+import {
+  useAppointments,
+  useClients,
+} from "@/app/dashboard/layout";
+import { buildStats } from "@/lib/client-stats";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import SendMessagePopup from "@/components/appointment/SendMessagePopup";
+import ClientHeader from "./ClientHeader";
+import ClientQuickActions from "./ClientQuickActions";
+import { haptic } from "@/lib/haptics";
+
+interface ClientCardPageProps {
+  clientId: string;
+  onBack: () => void;
+}
+
+export default function ClientCardPage({
+  clientId,
+  onBack,
+}: ClientCardPageProps) {
+  const router = useRouter();
+  const { clients, upsertClient, deleteClient } = useClients();
+  const { appointments } = useAppointments();
+  const confirm = useConfirm();
+
+  const client = useMemo(
+    () => clients.find((c) => c.id === clientId),
+    [clients, clientId],
+  );
+
+  const stats = useMemo(
+    () => (client ? buildStats(client, appointments) : undefined),
+    [client, appointments],
+  );
+
+  const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sendMsgOpen, setSendMsgOpen] = useState(false);
+  // v335 — When the «+ Заметка» quick-action fires we just bump a
+  // counter; NotesBlock (Group 3) will read it and refocus its input.
+  // Counter rather than boolean so two consecutive taps both register.
+  const [, setNoteFocusToken] = useState(0);
+
+  // Default to the primary location once we have the client.
+  useEffect(() => {
+    if (!client) return;
+    if (activeLocationId) return;
+    const primary =
+      client.locations?.find((l) => l.isPrimary) ??
+      client.locations?.[0] ??
+      null;
+    if (primary) setActiveLocationId(primary.id);
+  }, [client, activeLocationId]);
+
+  if (!client) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[var(--surface-grouped)] p-6">
+        <div className="text-[14px] text-[var(--label-secondary)] mb-3">
+          Клиент не найден
+        </div>
+        <Link
+          href="/dashboard/clients"
+          className="h-10 px-4 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold flex items-center active:bg-[var(--accent-pressed)]"
+        >
+          ← К списку клиентов
+        </Link>
+      </div>
+    );
+  }
+
+  const update = (patch: Partial<typeof client>) =>
+    upsertClient({ ...client, ...patch });
+
+  const onAddNote = () => {
+    haptic("tap");
+    setNoteFocusToken((t) => t + 1);
+    // Group 3 — focus the input inside NotesBlock via a hash + dom
+    // lookup.  For now ensure the URL has #notes so a fresh deep-link
+    // also lands on the right block when blocks ship.
+    if (typeof window !== "undefined" && !window.location.hash) {
+      window.history.replaceState({}, "", `${window.location.pathname}#notes`);
+    }
+  };
+
+  const onDeleteClient = async () => {
+    setMenuOpen(false);
+    const ok = await confirm({
+      title: `Удалить ${client.full_name}?`,
+      message:
+        "Карточка клиента будет удалена. Связанные записи останутся, но привязка слетит.",
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    deleteClient(client.id);
+    onBack();
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-grouped)] h-full">
+      <ClientHeader
+        client={client}
+        stats={stats}
+        activeLocationId={activeLocationId}
+        onChangeLocation={setActiveLocationId}
+        onOpenMenu={() => setMenuOpen(true)}
+        onBack={onBack}
+      />
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto pb-24">
+          <ClientQuickActions client={client} onAddNote={onAddNote} />
+
+          {/* v335 — Block scaffolding lands in Group 2 (v336): Objects /
+              Visits / Finance.  Group 3 (v337) ships the rest.  Until
+              then we render a soft placeholder so the page is never
+              blank for the dispatcher. */}
+          <div className="mx-3 my-3 px-4 py-6 rounded-[14px] bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[13px] text-[var(--label-tertiary)] text-center">
+            Блоки (объекты / визиты / финансы / заметки / контакты)
+            появятся в следующих коммитах STORY-034.
+          </div>
+        </div>
+      </div>
+
+      {/* «…» menu — a centered popup per feedback_center_modals. */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div
+            className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] overflow-hidden animate-popup-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-[var(--separator)] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">
+              {client.full_name}
+            </div>
+            <MenuRow
+              icon={MessageSquare}
+              label="Отправить сообщение"
+              onClick={() => {
+                setMenuOpen(false);
+                setSendMsgOpen(true);
+              }}
+            />
+            <MenuRow
+              icon={MessageCircle}
+              label="Перейти в чат"
+              onClick={() => {
+                setMenuOpen(false);
+                router.push(`/dashboard/chats?client_id=${client.id}`);
+              }}
+            />
+            <MenuRow
+              icon={Share2}
+              label="Поделиться контактом"
+              onClick={async () => {
+                setMenuOpen(false);
+                const text = [client.full_name, client.phone]
+                  .filter(Boolean)
+                  .join(" · ");
+                if (typeof navigator !== "undefined" && navigator.share) {
+                  try {
+                    await navigator.share({ title: client.full_name, text });
+                  } catch {
+                    // user dismissed
+                  }
+                } else if (
+                  typeof navigator !== "undefined" &&
+                  navigator.clipboard
+                ) {
+                  await navigator.clipboard.writeText(text);
+                }
+              }}
+            />
+            <MenuRow
+              icon={client.blacklisted ? CheckCircle2 : Ban}
+              label={client.blacklisted ? "Убрать из ЧС" : "В чёрный список"}
+              onClick={() => {
+                update({ blacklisted: !client.blacklisted });
+                setMenuOpen(false);
+              }}
+              danger={!client.blacklisted}
+            />
+            {/* TODO(roles): hide for crew role */}
+            <MenuRow
+              icon={Trash2}
+              label="Удалить клиента"
+              onClick={onDeleteClient}
+              danger
+            />
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="w-full h-11 text-[13px] font-medium text-[var(--label-secondary)] border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
+
+      <SendMessagePopup
+        open={sendMsgOpen}
+        onClose={() => setSendMsgOpen(false)}
+        phone={client.phone ?? null}
+        clientName={client.full_name}
+      />
+    </div>
+  );
+}
+
+function MenuRow({
+  icon: Icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--fill-quaternary)] border-b border-[var(--separator)] last:border-0"
+    >
+      <span
+        className={`w-6 flex items-center justify-center ${
+          danger ? "text-[var(--system-red)]" : "text-[var(--label-secondary)]"
+        }`}
+      >
+        <Icon size={18} strokeWidth={2} />
+      </span>
+      <span
+        className={`text-[15px] font-medium flex-1 ${
+          danger ? "text-[var(--system-red)]" : "text-[var(--label)]"
+        }`}
+      >
+        {label}
+      </span>
+      <span className="text-[var(--label-tertiary)]">
+        <ChevronLeft size={14} strokeWidth={2.5} className="rotate-180" />
+      </span>
+    </button>
+  );
+}
