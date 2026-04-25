@@ -282,22 +282,41 @@ function DashboardPageInner() {
     writeHourHeight(hourHeightRef.current);
   }, [writeHourHeight, viewMode]);
 
-  // v325 — Kill iOS rubber-band overscroll on the calendar.
+  // v326 — Kill iOS rubber-band overscroll on the calendar.
   //
-  // CSS overscroll-behavior:contain only stops scroll chaining; iOS
-  // Safari still rubber-bands the scroller itself.  We listen on the
-  // *document* in capture phase so SwipeableCalendar's own touch
-  // handlers can't swallow the event before us, then cancel the
-  // touchmove when the user is already at the very top / bottom of
-  // the calendar scroller and is dragging further in that direction.
-  // Single-finger only — pinch-zoom must keep working.
+  // Two layered defenses, both required because iOS standalone PWA
+  // ignores `overscroll-behavior: none` on inner scrollers
+  // (WebKit bug 218809, open since 2020):
   //
-  // Track lastY between events so the delta we react to is the
-  // *most recent* finger movement, not the cumulative drag from
-  // touchstart (which can race against scroll updates).
+  //   1. Scroll-one-pixel-from-edge.  When scrollTop falls to 0 or
+  //      reaches the bottom, nudge it inward by 1 px.  This keeps
+  //      the scroller off the absolute edge, so iOS never enters
+  //      rubber-band mode in the first place.  Used in production
+  //      by Telegram WebApp, Twitter PWA, and several Apple Maps
+  //      embeds.  The 1 px shift is visually undetectable.
+  //
+  //   2. Document-level capture-phase touchmove preventDefault.
+  //      Belt-and-braces for the rare frame where scrollTop is 0
+  //      but the user has already started a downward pull.  We
+  //      cancel the gesture before SwipeableCalendar's own touch
+  //      handlers (capture: true) and only when the touch starts
+  //      inside our scroller.  Pinch-zoom (>1 finger) is skipped.
   useEffect(() => {
     const el = outerScrollerRef.current;
     if (!el) return;
+
+    // Layer 1 — scrollTop nudge.
+    const nudge = () => {
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 2) return;
+      if (el.scrollTop <= 0) el.scrollTop = 1;
+      else if (el.scrollTop >= max) el.scrollTop = max - 1;
+    };
+    // Initial nudge — without it the first frame still sits at 0.
+    queueMicrotask(nudge);
+    el.addEventListener("scroll", nudge, { passive: true });
+
+    // Layer 2 — touchmove preventDefault on edge.
     let lastY = 0;
     const within = (target: EventTarget | null) =>
       target instanceof Node && el.contains(target);
@@ -312,8 +331,7 @@ function DashboardPageInner() {
       lastY = y;
       const top = el.scrollTop;
       const max = el.scrollHeight - el.clientHeight;
-      // dy > 0 → finger moving down (pull from top). dy < 0 → up.
-      if ((top <= 0 && dy > 0) || (top >= max - 1 && dy < 0)) {
+      if ((top <= 1 && dy > 0) || (top >= max - 1 && dy < 0)) {
         e.preventDefault();
       }
     };
@@ -326,6 +344,7 @@ function DashboardPageInner() {
       capture: true,
     });
     return () => {
+      el.removeEventListener("scroll", nudge);
       document.removeEventListener("touchstart", onStart, true);
       document.removeEventListener("touchmove", onMove, true);
     };
