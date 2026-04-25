@@ -144,6 +144,12 @@ export interface Client {
   birthday: string;
   /** Блокировка: клиент в чёрном списке. */
   blacklisted: boolean;
+  /** v313 — закреплён вверху списка. ISO timestamp когда закрепили. */
+  pinned_at?: string | null;
+  /** v313 — отметка «напомнить про клиента» (ISO). Когда наступит,
+   *  должно сработать push-уведомление; для launch-MVP просто
+   *  отображается на карточке. */
+  reminder_at?: string | null;
   created_at: string;
 }
 
@@ -302,6 +308,8 @@ export function loadClients(): Client[] {
         notes: c.notes ?? [],
         birthday: c.birthday ?? "",
         blacklisted: c.blacklisted ?? false,
+        pinned_at: c.pinned_at ?? null,
+        reminder_at: c.reminder_at ?? null,
         phones: c.phones ?? [],
         whatsapp_phone: c.whatsapp_phone ?? "",
         locations: migratedLocations,
@@ -384,6 +392,8 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     notes: [],
     birthday: "",
     blacklisted: false,
+    pinned_at: null,
+    reminder_at: null,
     created_at: new Date().toISOString(),
     ...overrides,
   };

@@ -14,17 +14,22 @@ import {
   Check,
   Users,
   Ban,
-  PencilLine,
   Wind,
   MapPin,
   Wallet,
   X,
   Send,
-  CheckSquare,
+  Plus,
+  Pin,
+  Clock,
+  Eye,
+  ChevronRight,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
+import SwipeableRow from "@/components/ui/SwipeableRow";
+import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
 import { type Client, type ClientTag, createBlankClient } from "@/lib/clients";
 import { getPaidAmount } from "@/lib/appointments";
@@ -87,6 +92,13 @@ export default function ClientsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false);
   const [smsBlastOpen, setSmsBlastOpen] = useState(false);
+  // v313 — long-press context menu + reminder picker
+  const [ctxMenu, setCtxMenu] = useState<{
+    client: Client;
+    anchor: { x: number; y: number };
+  } | null>(null);
+  const [reminderFor, setReminderFor] = useState<Client | null>(null);
+  const [singleConfirmDelete, setSingleConfirmDelete] = useState<Client | null>(null);
 
   // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
   // Dima taps "Открыть карточку" in a chat and lands directly on the
@@ -174,8 +186,14 @@ export default function ClientsPage() {
       list = list.filter((c) => c.blacklisted);
     }
 
-    // Sort
+    // Sort — pinned clients always go first regardless of active sort.
     list = [...list].sort((a, b) => {
+      const aPinned = a.pinned_at ? 1 : 0;
+      const bPinned = b.pinned_at ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+      if (aPinned && bPinned) {
+        return (b.pinned_at ?? "").localeCompare(a.pinned_at ?? "");
+      }
       if (sort === "name") return a.full_name.localeCompare(b.full_name, "ru");
       if (sort === "revenue") {
         return (revenueMap.get(b.id)?.total ?? 0) - (revenueMap.get(a.id)?.total ?? 0);
@@ -194,6 +212,19 @@ export default function ClientsPage() {
     setActiveTags((prev) =>
       prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
     );
+  };
+
+  const togglePin = (client: Client) => {
+    haptic("tap");
+    upsertClient({
+      ...client,
+      pinned_at: client.pinned_at ? null : new Date().toISOString(),
+    });
+  };
+
+  const setReminder = (client: Client, iso: string | null) => {
+    haptic("tap");
+    upsertClient({ ...client, reminder_at: iso });
   };
 
   const selectedClient = selectedId ? clients.find((c) => c.id === selectedId) ?? null : null;
@@ -384,48 +415,42 @@ export default function ClientsPage() {
     <>
       <PageHeader
         title={isSelecting ? `Выбрано ${selectedIds.size}` : "Клиенты"}
+        showBack={false}
+        leftContent={
+          <button
+            type="button"
+            onClick={() => {
+              haptic("tap");
+              if (isSelecting) {
+                setIsSelecting(false);
+                setSelectedIds(new Set());
+              } else {
+                setIsSelecting(true);
+              }
+            }}
+            className="h-9 px-3 flex items-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
+          >
+            {isSelecting ? "Готово" : "Править"}
+          </button>
+        }
         rightContent={
           isSelecting ? (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  if (selectedIds.size === filtered.length) {
-                    setSelectedIds(new Set());
-                  } else {
-                    setSelectedIds(new Set(filtered.map((c) => c.id)));
-                  }
-                }}
-                className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] text-[13px] font-semibold transition"
-              >
-                {selectedIds.size === filtered.length ? "Снять" : "Все"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  setIsSelecting(false);
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                if (selectedIds.size === filtered.length) {
                   setSelectedIds(new Set());
-                }}
-                className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--fill-quaternary)] text-[13px] font-semibold transition"
-              >
-                Готово
-              </button>
-            </div>
+                } else {
+                  setSelectedIds(new Set(filtered.map((c) => c.id)));
+                }
+              }}
+              className="h-9 px-3 flex items-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
+            >
+              {selectedIds.size === filtered.length ? "Снять" : "Все"}
+            </button>
           ) : (
             <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  setIsSelecting(true);
-                }}
-                aria-label="Выбрать"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--fill-quaternary)] transition"
-              >
-                <CheckSquare size={18} strokeWidth={2} />
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -447,7 +472,7 @@ export default function ClientsPage() {
                 aria-label="Добавить клиента"
                 className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] transition"
               >
-                <PencilLine size={18} strokeWidth={2} />
+                <Plus size={20} strokeWidth={2.2} />
               </button>
             </div>
           )
@@ -541,10 +566,12 @@ export default function ClientsPage() {
                   : 0;
               const dd = daysUntilBirthday(client.birthday);
               const isPicked = selectedIds.has(client.id);
+              const isPinned = Boolean(client.pinned_at);
 
-              return (
+              // In selection mode swipe is disabled (multi-select takes
+              // priority and users tap cards to toggle).
+              const card = (
                 <ClientCard
-                  key={client.id}
                   client={client}
                   tags={tags}
                   acTotal={acTotal}
@@ -556,6 +583,8 @@ export default function ClientsPage() {
                   phoneDigits={phoneDigits}
                   selectionMode={isSelecting}
                   picked={isPicked}
+                  pinned={isPinned}
+                  reminderAt={client.reminder_at ?? null}
                   onOpen={() => {
                     if (isSelecting) {
                       setSelectedIds((prev) => {
@@ -568,13 +597,47 @@ export default function ClientsPage() {
                       setSelectedId(client.id);
                     }
                   }}
-                  onLongPress={() => {
+                  onLongPress={(anchor) => {
                     if (isSelecting) return;
                     haptic("tap");
-                    setIsSelecting(true);
-                    setSelectedIds(new Set([client.id]));
+                    setCtxMenu({ client, anchor });
                   }}
                 />
+              );
+
+              if (isSelecting) {
+                return <div key={client.id}>{card}</div>;
+              }
+
+              return (
+                <div key={client.id} className="rounded-[14px] overflow-hidden">
+                  <SwipeableRow
+                    leftActions={[
+                      {
+                        label: isPinned ? "Открепить" : "Закрепить",
+                        icon: <Pin size={18} strokeWidth={2.2} />,
+                        color: "bg-[var(--accent)]",
+                        onSelect: () => togglePin(client),
+                      },
+                    ]}
+                    rightActions={[
+                      {
+                        label: "Напомнить",
+                        icon: <Clock size={18} strokeWidth={2.2} />,
+                        color: "bg-[var(--system-orange)]",
+                        onSelect: () => setReminderFor(client),
+                      },
+                      {
+                        label: "Удалить",
+                        icon: <Trash2 size={18} strokeWidth={2.2} />,
+                        color: "bg-[var(--system-red)]",
+                        onSelect: () => setSingleConfirmDelete(client),
+                      },
+                    ]}
+                  >
+                    {card}
+                  </SwipeableRow>
+                </div>
               );
             })}
             {filtered.length === 0 && (
@@ -635,21 +698,105 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* Telegram-style compose FAB — hidden in selection mode. */}
-      {!isSelecting && (
-        <button
-          type="button"
-          onClick={() => setDraft(createBlankClient())}
-          aria-label="Добавить клиента"
-          className="fixed right-5 z-[45] w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] shadow-[var(--shadow-fab)] flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
-          style={{
-            bottom:
-              "calc(env(safe-area-inset-bottom, 12px) + 76px)",
+      {/* FAB removed v313 — header «+» button is the canonical entry. */}
+
+      {/* Long-press context menu — iOS-Recents style quick actions. */}
+      {ctxMenu &&
+        (() => {
+          const c = ctxMenu.client;
+          const phoneDigits = c.phone.replace(/\D/g, "");
+          const isPinned = Boolean(c.pinned_at);
+          const opts: ContextMenuOption[] = [];
+          if (phoneDigits) {
+            opts.push({
+              label: "Сообщение",
+              icon: <MessageSquare size={18} strokeWidth={2} />,
+              onSelect: () => {
+                window.location.href = `sms:${phoneDigits}`;
+              },
+            });
+            opts.push({
+              label: "Звонок",
+              icon: <PhoneIcon size={18} strokeWidth={2} />,
+              onSelect: () => {
+                window.location.href = `tel:${phoneDigits}`;
+              },
+            });
+          }
+          opts.push({
+            label: "Открыть карточку",
+            icon: <Eye size={18} strokeWidth={2} />,
+            onSelect: () => setSelectedId(c.id),
+          });
+          opts.push({
+            label: isPinned ? "Открепить" : "Закрепить",
+            icon: <Pin size={18} strokeWidth={2} />,
+            onSelect: () => togglePin(c),
+          });
+          opts.push({
+            label: "Напомнить",
+            icon: <Clock size={18} strokeWidth={2} />,
+            onSelect: () => setReminderFor(c),
+          });
+          opts.push({
+            label: "Удалить",
+            icon: <Trash2 size={18} strokeWidth={2} />,
+            danger: true,
+            onSelect: () => setSingleConfirmDelete(c),
+          });
+          return (
+            <ContextMenu
+              open
+              anchor={ctxMenu.anchor}
+              title={c.full_name || "Клиент"}
+              options={opts}
+              onClose={() => setCtxMenu(null)}
+            />
+          );
+        })()}
+
+      {/* Reminder picker — quick presets + clear */}
+      {reminderFor && (
+        <ReminderPicker
+          client={reminderFor}
+          onPick={(iso) => {
+            setReminder(reminderFor, iso);
+            setReminderFor(null);
           }}
-        >
-          <PencilLine size={22} strokeWidth={2} />
-        </button>
+          onClose={() => setReminderFor(null)}
+        />
       )}
+
+      {/* Single delete confirm (from swipe / context menu) */}
+      {singleConfirmDelete && (() => {
+        const linked = appointments.filter(
+          (a) => a.client_id === singleConfirmDelete.id,
+        );
+        return (
+          <ConfirmDialog
+            title={`Удалить ${singleConfirmDelete.full_name}?`}
+            message={
+              linked.length === 0
+                ? "Связанных записей нет — удаление безопасно."
+                : `У клиента ${linked.length} ${countWordRu(linked.length, "запись", "записи", "записей")}. Записи останутся в базе без клиента.`
+            }
+            confirmLabel={linked.length === 0 ? "Удалить" : "Удалить и открепить"}
+            onConfirm={() => {
+              for (const apt of linked) {
+                upsertAppointment({
+                  ...apt,
+                  client_id: null,
+                  comment: apt.comment || singleConfirmDelete.full_name,
+                  updated_at: new Date().toISOString(),
+                });
+              }
+              deleteClient(singleConfirmDelete.id);
+              setSingleConfirmDelete(null);
+            }}
+            onClose={() => setSingleConfirmDelete(null)}
+          />
+        );
+      })()}
 
       {/* Bulk action bar — shown while selection mode is active. */}
       {isSelecting && (
@@ -803,6 +950,8 @@ function ClientCard({
   phoneDigits,
   selectionMode,
   picked,
+  pinned,
+  reminderAt,
   onOpen,
   onLongPress,
 }: {
@@ -817,8 +966,10 @@ function ClientCard({
   phoneDigits: string;
   selectionMode: boolean;
   picked: boolean;
+  pinned: boolean;
+  reminderAt: string | null;
   onOpen: () => void;
-  onLongPress: () => void;
+  onLongPress: (anchor: { x: number; y: number }) => void;
 }) {
   const color = getAvatarColor(client.full_name);
   const initials = getInitials(client.full_name || "?");
@@ -841,9 +992,10 @@ function ClientCard({
     if (longPressTimer.current != null) {
       window.clearTimeout(longPressTimer.current);
     }
+    const anchor = { x: e.clientX, y: e.clientY };
     longPressTimer.current = window.setTimeout(() => {
       longPressFired.current = true;
-      onLongPress();
+      onLongPress(anchor);
     }, 500);
   };
   const cancelPress = () => {
@@ -905,6 +1057,14 @@ function ClientCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
+            {pinned && (
+              <span
+                title="Закреплён"
+                className="shrink-0 text-[var(--accent)]"
+              >
+                <Pin size={12} strokeWidth={2.5} />
+              </span>
+            )}
             <span className="text-[16px] font-semibold text-[var(--label)] truncate">
               {client.full_name || "Без имени"}
             </span>
@@ -924,6 +1084,14 @@ function ClientCard({
                 className="shrink-0 w-5 h-5 rounded-full bg-[rgba(255,149,0,0.12)] text-[var(--system-orange)] flex items-center justify-center"
               >
                 <Cake size={11} strokeWidth={2.5} />
+              </span>
+            )}
+            {reminderAt && (
+              <span
+                title={`Напомнить ${formatReminderShort(reminderAt)}`}
+                className="shrink-0 w-5 h-5 rounded-full bg-[rgba(255,149,0,0.12)] text-[var(--system-orange)] flex items-center justify-center"
+              >
+                <Clock size={11} strokeWidth={2.5} />
               </span>
             )}
           </div>
@@ -1145,3 +1313,154 @@ function BulkSmsSheet({
 
 // CreateClientPage replaced v312 — new clients use the full ClientPanel
 // view in draft mode with required name+phone validation.
+
+// ─── Reminder picker (iOS-Recents style presets) ────────────────────
+
+function ReminderPicker({
+  client,
+  onPick,
+  onClose,
+}: {
+  client: Client;
+  onPick: (iso: string | null) => void;
+  onClose: () => void;
+}) {
+  const presets: { label: string; subtitle: string; date: () => Date }[] = [
+    {
+      label: "Через 1 час",
+      subtitle: "",
+      date: () => {
+        const d = new Date();
+        d.setHours(d.getHours() + 1);
+        return d;
+      },
+    },
+    {
+      label: "Сегодня вечером",
+      subtitle: "в 19:00",
+      date: () => {
+        const d = new Date();
+        d.setHours(19, 0, 0, 0);
+        if (d <= new Date()) d.setDate(d.getDate() + 1);
+        return d;
+      },
+    },
+    {
+      label: "Завтра утром",
+      subtitle: "в 09:00",
+      date: () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(9, 0, 0, 0);
+        return d;
+      },
+    },
+    {
+      label: "Через неделю",
+      subtitle: "",
+      date: () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d;
+      },
+    },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[360px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
+          <div>
+            <div className="text-[15px] font-semibold text-[var(--label)] truncate">
+              Напомнить про {client.full_name || "клиента"}
+            </div>
+            {client.reminder_at && (
+              <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
+                Текущее: {formatReminderShort(client.reminder_at)}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+          >
+            <X size={16} strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="divide-y divide-[var(--separator)]">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => onPick(p.date().toISOString())}
+              className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[var(--fill-quaternary)] transition"
+            >
+              <span className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <Clock size={16} strokeWidth={2.2} />
+              </span>
+              <span className="flex-1">
+                <span className="block text-[15px] font-medium text-[var(--label)]">
+                  {p.label}
+                </span>
+                {p.subtitle && (
+                  <span className="block text-[12px] text-[var(--label-tertiary)] mt-0.5">
+                    {p.subtitle}
+                  </span>
+                )}
+              </span>
+              <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
+            </button>
+          ))}
+          {client.reminder_at && (
+            <button
+              type="button"
+              onClick={() => onPick(null)}
+              className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[rgba(255,59,48,0.08)] transition text-[var(--system-red)]"
+            >
+              <span className="w-8 h-8 rounded-full bg-[rgba(255,59,48,0.1)] flex items-center justify-center shrink-0">
+                <X size={16} strokeWidth={2.5} />
+              </span>
+              <span className="flex-1 text-[15px] font-medium">
+                Снять напоминание
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatReminderShort(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow =
+    d.getFullYear() === tomorrow.getFullYear() &&
+    d.getMonth() === tomorrow.getMonth() &&
+    d.getDate() === tomorrow.getDate();
+  const time = d.toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (sameDay) return `сегодня в ${time}`;
+  if (isTomorrow) return `завтра в ${time}`;
+  return `${d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })} в ${time}`;
+}

@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v312-clients-tenant-tags-bulk-create";
+export const BUILD_VERSION = "v313-clients-ios-recents-style";
