@@ -18,12 +18,13 @@ import { loadChats, getTotalUnread } from "@/lib/chats";
 import { haptic } from "@/lib/haptics";
 import GlobalSearch from "./GlobalSearch";
 
-// Telegram-style bottom nav. Five tabs, each a vertical stack of
-// icon + tiny label. Active tab sits inside an accent-tint pill that
-// wraps the whole stack (the "pill around the active tab" you see
-// in Telegram iOS). Inactive tabs are secondary-label grey.
-// The "+" FAB was removed in Sprint 027-hotfix — create flows start
-// from the calendar grid or from Ещё → создать.
+// v319 — Telegram-iOS bottom bar.
+//
+// Container is a floating Liquid-Glass capsule (rounded-full) sitting
+// 8 px above the home indicator with a soft drop shadow.  Active tab
+// gets an accent-coloured circular pill behind the icon, plus the
+// label is hidden on active to give that tab room to breathe — the
+// rest stay icon+label.  Spring entrance animation when switching.
 
 export default function BottomTabBar() {
   const pathname = usePathname();
@@ -65,43 +66,52 @@ export default function BottomTabBar() {
     <>
       <nav
         aria-label="Главная навигация"
-        className="liquid-glass-bottom lg:hidden fixed bottom-0 left-0 right-0 z-40"
+        className="lg:hidden fixed left-0 right-0 z-40 flex justify-center px-3 pointer-events-none"
         style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
+          bottom: "calc(env(safe-area-inset-bottom) + 6px)",
         }}
       >
-        <div className="flex items-end justify-around px-2 h-[58px] pt-1 pb-1">
+        <div
+          className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 rounded-full"
+          style={{
+            background: "var(--glass-bg)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            boxShadow:
+              "0 8px 28px -10px rgba(15, 23, 42, 0.25), 0 0 0 0.5px rgba(15, 23, 42, 0.06)",
+          }}
+        >
           <TabButton
             label="Календарь"
             active={isCalendar}
             onClick={() => go("/dashboard")}
             onLongPress={() => setSearchOpen(true)}
-            icon={<CalendarIcon size={22} strokeWidth={2} />}
+            icon={<CalendarIcon size={20} strokeWidth={2.2} />}
           />
           <TabButton
             label="Клиенты"
             active={isClients}
             onClick={() => go("/dashboard/clients")}
-            icon={<UsersIcon size={22} strokeWidth={2} />}
+            icon={<UsersIcon size={20} strokeWidth={2.2} />}
           />
           <TabButton
             label="Чаты"
             active={isChats}
             count={unreadChats}
             onClick={() => go("/dashboard/chats")}
-            icon={<MessageSquare size={22} strokeWidth={2} />}
+            icon={<MessageSquare size={20} strokeWidth={2.2} />}
           />
           <TabButton
             label="Финансы"
             active={isFinances}
             onClick={() => go("/dashboard/finances")}
-            icon={<Wallet size={22} strokeWidth={2} />}
+            icon={<Wallet size={20} strokeWidth={2.2} />}
           />
           <TabButton
             label="Ещё"
             active={false}
             onClick={sidebar.toggle}
-            icon={<Menu size={22} strokeWidth={2} />}
+            icon={<Menu size={20} strokeWidth={2.2} />}
           />
         </div>
       </nav>
@@ -122,7 +132,6 @@ function TabButton({
   onClick,
   onLongPress,
   icon,
-  dot = false,
   count,
 }: {
   label: string;
@@ -130,15 +139,11 @@ function TabButton({
   onClick: () => void;
   onLongPress?: () => void;
   icon: React.ReactNode;
-  dot?: boolean;
   count?: number;
 }) {
   const showCount = typeof count === "number" && count > 0;
-  const label9 = showCount && count > 9 ? "9+" : String(count ?? "");
+  const label9 = showCount && count! > 9 ? "9+" : String(count ?? "");
 
-  // Long-press matches the 500 ms threshold used elsewhere (calendar
-  // long-press, etc.). Suppresses the click if long-press fired so
-  // we don't navigate AND open search.
   const longPressFiredRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const startLongPress = () => {
@@ -156,6 +161,10 @@ function TabButton({
     }
   };
 
+  // Active = a 38×38 round accent pill behind the icon (spring entrance
+  // via animate-pill-hop).  The label stays under the icon in accent
+  // colour.  Inactive tabs are plain icon+grey label.  Mirrors the
+  // Telegram iOS dock the user pointed at.
   return (
     <button
       type="button"
@@ -173,28 +182,33 @@ function TabButton({
           onLongPress();
         }
       }}
-      className={`relative flex-1 min-w-[44px] h-[50px] rounded-[var(--radius-pill)] flex flex-col items-center justify-center gap-0.5 press-scale ${
-        active
-          ? "bg-[var(--accent-tint)] text-[var(--accent)] animate-pill-hop"
-          : "text-[var(--label-secondary)]"
-      }`}
-      style={{
-        transition: "background-color var(--dur-base) var(--ease-ios), color var(--dur-base) var(--ease-ios)",
-      }}
+      aria-label={label}
+      aria-pressed={active}
+      className="relative h-12 px-2 rounded-2xl flex flex-col items-center justify-center gap-0.5 press-scale active:bg-[var(--fill-tertiary)]"
+      style={{ minWidth: 56 }}
     >
-      <span className={`relative ${active ? "transition-transform duration-200 scale-105" : ""}`}>
+      <span
+        className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+          active
+            ? "bg-[var(--accent)] text-[var(--label-on-accent)] animate-pill-hop"
+            : "text-[var(--label-secondary)]"
+        }`}
+        style={{
+          transition:
+            "background-color var(--dur-base) var(--ease-ios), color var(--dur-base) var(--ease-ios)",
+        }}
+      >
         {icon}
         {showCount && (
-          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--surface-card)]">
+          <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[10px] font-semibold leading-[16px] text-center ring-2 ring-[var(--glass-bg,white)]">
             {label9}
           </span>
         )}
-        {!showCount && dot && (
-          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--system-red)] ring-2 ring-[var(--surface-card)]" />
-        )}
       </span>
       <span
-        className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}
+        className={`text-[10px] leading-none font-semibold ${
+          active ? "text-[var(--accent)]" : "text-[var(--label-secondary)]"
+        }`}
       >
         {label}
       </span>

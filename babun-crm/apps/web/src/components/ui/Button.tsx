@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { haptic } from "@/lib/haptics";
 
 type Variant = "primary" | "secondary" | "ghost" | "destructive" | "tinted";
 type Size = "md" | "lg" | "sm";
@@ -47,22 +48,33 @@ export default function Button({
 
   const variantCls = {
     primary:
-      "bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition",
+      "bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--accent-pressed)] press-spring shadow-[var(--shadow-fab)]",
     secondary:
-      "bg-[var(--fill-primary)] text-[var(--label)] font-medium rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] transition",
+      "bg-[var(--fill-tertiary)] text-[var(--label)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] press-spring",
     tinted:
-      "bg-[var(--accent-tint)] text-[var(--accent)] font-semibold rounded-[var(--radius-pill)] active:opacity-70 transition",
+      "bg-[var(--accent-tint)] text-[var(--accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] press-spring",
     ghost:
-      "text-[var(--accent)] font-medium rounded-[10px] active:bg-[var(--fill-quaternary)] transition",
+      "text-[var(--accent)] font-medium rounded-[10px] active:bg-[var(--fill-quaternary)] press-scale",
     destructive:
-      "text-[var(--system-red)] font-medium rounded-[10px] active:bg-[rgba(255,59,48,0.1)] transition",
+      "text-[var(--system-red)] font-semibold rounded-[10px] active:bg-[rgba(255,59,48,0.1)] press-scale",
   }[variant];
+
+  // v319 — haptic on every button press.  Variant maps to feedback
+  // strength so destructive actions feel chunkier than ghost taps.
+  const hapticOnTap: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+    if (rest.disabled) return;
+    if (variant === "destructive") haptic("warning");
+    else if (variant === "primary") haptic("medium");
+    else haptic("light");
+    rest.onClick?.(e);
+  };
 
   return (
     <button
       type="button"
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 ${sizeCls} ${variantCls} ${fullWidth ? "w-full" : ""} disabled:opacity-40 disabled:pointer-events-none ${className}`}
+      onClick={hapticOnTap}
+      className={`inline-flex items-center justify-center gap-2 ${sizeCls} ${variantCls} ${fullWidth ? "w-full" : ""} disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none ${className}`}
     >
       {leadingIcon}
       {children}

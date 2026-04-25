@@ -3,16 +3,19 @@
 import { ChevronDown, ChevronLeft, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/app/dashboard/layout";
+import { haptic } from "@/lib/haptics";
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  /** Show back arrow that navigates to `backHref`. */
+  /** Show back arrow that navigates back. */
   showBack?: boolean;
   /**
-   * Override the back-button destination. Default is `/dashboard`.
-   * Settings sub-pages should pass `/dashboard/settings` so back goes
-   * to the settings menu, not the calendar.
+   * Override the back-button destination.  When omitted (default) the
+   * arrow does `router.back()` — which is the natural iOS behaviour
+   * (whichever screen brought you here is where you go).  Pass a
+   * specific path only when you want to force a different parent
+   * (e.g. a deep-link landing page that has no real history).
    */
   backHref?: string;
   /** Custom left slot — replaces the default back/menu button. */
@@ -31,13 +34,29 @@ export default function PageHeader({
   title,
   subtitle,
   showBack = true,
-  backHref = "/dashboard",
+  backHref,
   leftContent,
   rightContent,
   onTitleClick,
 }: PageHeaderProps) {
   const router = useRouter();
   const sidebar = useSidebar();
+
+  // v319 — Smart back behavior.  iOS native pattern: arrow returns
+  // to whichever screen pushed you here.  Falls back to `backHref`
+  // (or /dashboard) when there is no history (cold deep-link).
+  const goBack = () => {
+    haptic("light");
+    if (backHref) {
+      router.push(backHref);
+      return;
+    }
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/dashboard");
+    }
+  };
 
   return (
     <header className="liquid-glass flex-shrink-0 z-30">
@@ -47,7 +66,7 @@ export default function PageHeader({
         ) : showBack ? (
           <button
             type="button"
-            onClick={() => router.push(backHref)}
+            onClick={goBack}
             aria-label="Назад"
             className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-tertiary)] shrink-0 transition press-scale"
           >

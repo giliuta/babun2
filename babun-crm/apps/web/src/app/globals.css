@@ -571,3 +571,117 @@ h1, h2, h3,
   border-radius: 9999px;
   background: var(--surface-card);
 }
+
+/* ──────────────────────────────────────────────────────────────
+   v319 — Unified motion + interaction polish
+   Pulls every interactive surface (cards, list rows, sheets, FABs)
+   onto the same spring curve and press feedback so the app feels
+   coherent at the touch level.
+   ────────────────────────────────────────────────────────────── */
+
+/* Spring press — slightly stronger than press-scale, for big targets
+   like primary CTAs and FABs.  Drops 4 % on tap with a quick spring
+   recovery curve. */
+.press-spring {
+  transition: transform 220ms var(--ease-ios-spring),
+              opacity 150ms var(--ease-ios);
+}
+.press-spring:active {
+  transform: scale(0.96);
+  opacity: 0.92;
+}
+
+/* Pop — rapid scale-in on mount.  Use on toast badges, count chips,
+   and any element that should announce its arrival. */
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: pop 280ms var(--ease-ios-spring) both;
+}
+
+/* Slide-in-right / slide-in-left — used by sheet shells when entering
+   detail screens.  Mirrors iOS push-navigation feel. */
+@keyframes slideInRight {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right {
+  animation: slideInRight 260ms var(--ease-ios) both;
+}
+
+/* Soft-lift — applied to cards on hover/active for a subtle hint of
+   interactivity without changing layout.  Combine with .section-card
+   for "tap me" affordance. */
+.soft-lift {
+  transition: box-shadow 180ms var(--ease-ios),
+              transform 180ms var(--ease-ios);
+}
+.soft-lift:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.soft-lift:active {
+  transform: scale(0.995);
+}
+
+/* Row tap — used on grouped list rows so they flash an ios-blue tint
+   on press, matching iOS Settings rows. */
+.row-tap {
+  transition: background-color 120ms var(--ease-ios);
+}
+.row-tap:active {
+  background-color: var(--fill-tertiary);
+}
+
+/* iOS large title row — collapsing variant.  Container shrinks to 0
+   line-height when the .scrolled flag is added by the page (typically
+   on scrollTop > 24).  Most pages don't bother — this is here for
+   pages that opt in. */
+.large-title-collapsing {
+  font-size: 34px;
+  line-height: 41px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--label);
+  padding: 8px 16px 12px;
+  transition: font-size 220ms var(--ease-ios), padding 220ms var(--ease-ios),
+              opacity 220ms var(--ease-ios);
+}
+.large-title-collapsing.scrolled {
+  font-size: 0;
+  padding: 0 16px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Backdrop — used by sheets.  Black 40% with backdrop-filter blur. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--surface-overlay);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: backdropFade var(--dur-base) var(--ease-ios) both;
+}
+
+/* Centered popup — modal that pops in from 92 % scale.  iOS modal
+   replacement for bottom sheet on small forms. */
+@keyframes popupIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-popup-in {
+  animation: popupIn 240ms var(--ease-ios-spring) both;
+}
+
+/* Ripple highlight — flash on row tap.  Used inside ListRow when we
+   want stronger feedback than .row-tap (e.g. destructive actions). */
+@keyframes ripple {
+  from { background-color: var(--fill-secondary); }
+  to { background-color: transparent; }
+}
+.animate-ripple {
+  animation: ripple 380ms var(--ease-ios) both;
+}

@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v318-haptics-iphone-audio-click-default-on";
+export const BUILD_VERSION = "v319-back-fix-floating-tabbar-motion";

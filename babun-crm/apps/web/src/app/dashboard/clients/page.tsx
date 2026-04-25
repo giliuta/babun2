@@ -24,6 +24,7 @@ import {
   Clock,
   Eye,
   ChevronRight,
+  ChevronLeft,
   Bell,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
@@ -250,13 +251,26 @@ export default function ClientsPage() {
       <>
         <PageHeader
           title={selectedClient.full_name}
+          leftContent={
+            <button
+              type="button"
+              onClick={() => {
+                haptic("light");
+                setSelectedId(null);
+              }}
+              aria-label="Назад к клиентам"
+              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-tertiary)] press-scale"
+            >
+              <ChevronLeft size={24} strokeWidth={2.5} />
+            </button>
+          }
           rightContent={
             <div className="flex gap-1">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(selectedClient)}
                 aria-label="Удалить клиента"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-quaternary)]"
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[var(--fill-quaternary)] press-scale"
               >
                 <Trash2 size={18} strokeWidth={2} />
               </button>
@@ -381,6 +395,19 @@ export default function ClientsPage() {
       <>
         <PageHeader
           title="Новый клиент"
+          leftContent={
+            <button
+              type="button"
+              onClick={() => {
+                haptic("light");
+                setDraft(null);
+              }}
+              aria-label="Отмена"
+              className="lg:hidden h-10 px-2 flex items-center text-[var(--accent)] text-[15px] font-medium active:opacity-70 press-scale"
+            >
+              Отмена
+            </button>
+          }
           rightContent={
             <button
               type="button"
