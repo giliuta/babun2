@@ -347,11 +347,10 @@ function ToggleRow({
   );
 }
 
-// v316 — User-controlled haptic feedback section.  Lives at the
-// bottom of Settings.  Two switches:
-//   * Тактильная отдача — flips both Android vibration and iOS
-//     Taptic switch trigger.  Default ON.
-//   * Звук кликов — opt-in audible click via Web Audio.  Default OFF.
+// v317 — User-controlled haptic feedback.  iPhone Safari gives web
+// apps no access to the Taptic Engine, so on iOS we fall back to a
+// short percussive audio "tk" click.  Default ON for both vibration
+// and the audio click on iOS, OFF on Android (real vibration).
 function HapticsSection() {
   const [enabled, setEnabledState] = useState(true);
   const [audio, setAudioState] = useState(false);
@@ -367,13 +366,13 @@ function HapticsSection() {
       title="Тактильная отдача"
       footer={
         enabled
-          ? "На Android — настоящая вибрация. На iPhone (iOS 17.4+) — лёгкий тактильный отклик через Taptic Engine. Если вибрации нет — проверь в «Настройки → Звуки и тактильные сигналы → Системная тактильная отдача»."
-          : "Все вибрации и тактильные клики выключены."
+          ? "На Android — настоящая вибрация. На iPhone Safari не даёт веб-приложениям доступ к Taptic Engine, поэтому подключён короткий звук-щелчок — звучит как клик в системных меню iOS. Если мешает — отключи второй тумблер."
+          : "Все вибрации и щелчки выключены."
       }
     >
       <div className="divide-y divide-[var(--separator)]">
         <ToggleRow
-          label="Вибрация при действиях"
+          label="Вибрация / тактильный отклик"
           checked={enabled}
           onChange={() => {
             const next = !enabled;
@@ -383,7 +382,7 @@ function HapticsSection() {
           }}
         />
         <ToggleRow
-          label="Звук кликов (для iPhone, если нет вибрации)"
+          label="Звук-щелчок (только iPhone)"
           checked={audio}
           onChange={() => {
             const next = !audio;

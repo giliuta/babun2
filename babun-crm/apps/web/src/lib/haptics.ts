@@ -41,6 +41,17 @@ const PATTERNS: Record<Pattern, number | number[]> = {
 const ENABLED_KEY = "babun:haptics:enabled";
 const AUDIO_KEY = "babun:haptics:audio";
 
+// ─── Platform detection ───────────────────────────────────────────
+
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  // iPadOS ≥ 13 reports as Mac with touch, hence the maxTouchPoints check.
+  return (
+    /iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 // ─── Settings ─────────────────────────────────────────────────────
 
 export function getHapticsEnabled(): boolean {
@@ -55,22 +66,18 @@ export function setHapticsEnabled(enabled: boolean): void {
 
 export function getHapticsAudio(): boolean {
   if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(AUDIO_KEY) === "1";
+  const v = window.localStorage.getItem(AUDIO_KEY);
+  // iOS Safari has no Vibration API and the <input switch> Taptic
+  // trick is unreliable in real-world testing.  So on iPhone we
+  // default the audio click ON — it's the only feedback that
+  // actually fires.  Android already has navigator.vibrate, no
+  // audio needed there.  The user can override in Settings.
+  if (v === null) return isIOS();
+  return v === "1";
 }
 export function setHapticsAudio(enabled: boolean): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(AUDIO_KEY, enabled ? "1" : "0");
-}
-
-// ─── Platform detection ───────────────────────────────────────────
-
-function isIOS(): boolean {
-  if (typeof navigator === "undefined") return false;
-  // iPadOS ≥ 13 reports as Mac with touch, hence the maxTouchPoints check.
-  return (
-    /iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
 }
 
 // ─── iOS Taptic via hidden <input type="checkbox" switch> ─────────
@@ -141,17 +148,25 @@ interface ClickConfig {
   vol: number;
   dur: number;
 }
+// Tuned for a feel close to the iOS Phone-app context-menu tick.
+// All clicks are <12 ms with very low volume — they read as a
+// tactile "tk" rather than a tone.  Lower-pitched for heavier
+// patterns (success/warning/error).
 const CLICK_CONFIGS: Record<Pattern, ClickConfig> = {
-  light: { freq: 180, vol: 0.03, dur: 0.018 },
-  tap: { freq: 200, vol: 0.04, dur: 0.022 },
-  select: { freq: 240, vol: 0.04, dur: 0.022 },
-  medium: { freq: 160, vol: 0.06, dur: 0.030 },
-  heavy: { freq: 80, vol: 0.10, dur: 0.040 },
-  success: { freq: 360, vol: 0.05, dur: 0.060 },
-  warning: { freq: 220, vol: 0.06, dur: 0.060 },
-  error: { freq: 90, vol: 0.10, dur: 0.080 },
+  light:   { freq: 1800, vol: 0.06, dur: 0.006 },
+  tap:     { freq: 1500, vol: 0.07, dur: 0.008 },
+  select:  { freq: 2000, vol: 0.06, dur: 0.006 },
+  medium:  { freq: 1200, vol: 0.10, dur: 0.010 },
+  heavy:   { freq: 900,  vol: 0.13, dur: 0.014 },
+  success: { freq: 1700, vol: 0.08, dur: 0.012 },
+  warning: { freq: 1100, vol: 0.10, dur: 0.014 },
+  error:   { freq: 700,  vol: 0.13, dur: 0.018 },
 };
 
+// Produces a percussive "tk" click by combining a short noise burst
+// with a triangle-wave envelope.  Pure sine waves sound like a beep;
+// triangle + noise reads as a tactile tick — much closer to the iOS
+// system click the user hears in Contacts → context menu.
 function playClick(pattern: Pattern): void {
   const c = ensureCtx();
   if (!c) return;
@@ -160,18 +175,35 @@ function playClick(pattern: Pattern): void {
   }
   const cfg = CLICK_CONFIGS[pattern];
   const now = c.currentTime;
+
+  // Triangle oscillator — gives the "click body".
   const osc = c.createOscillator();
-  const gain = c.createGain();
-  osc.type = "sine";
+  const oscGain = c.createGain();
+  osc.type = "triangle";
   osc.frequency.setValueAtTime(cfg.freq, now);
-  // Click envelope — fast attack, exponential decay.
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(cfg.vol, now + 0.002);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + cfg.dur);
-  osc.connect(gain);
-  gain.connect(c.destination);
+  oscGain.gain.setValueAtTime(0, now);
+  oscGain.gain.linearRampToValueAtTime(cfg.vol, now + 0.0008);
+  oscGain.gain.exponentialRampToValueAtTime(0.0001, now + cfg.dur);
+
+  // Tiny white-noise burst — gives the "tactile" attack.  Length is
+  // half the click duration so the body of the click is the tone.
+  const noiseLen = Math.max(64, Math.floor(c.sampleRate * cfg.dur * 0.5));
+  const buffer = c.createBuffer(1, noiseLen, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / noiseLen);
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buffer;
+  const noiseGain = c.createGain();
+  noiseGain.gain.value = cfg.vol * 0.6;
+
+  osc.connect(oscGain).connect(c.destination);
+  noise.connect(noiseGain).connect(c.destination);
   osc.start(now);
-  osc.stop(now + cfg.dur + 0.02);
+  noise.start(now);
+  osc.stop(now + cfg.dur + 0.01);
+  noise.stop(now + cfg.dur);
 }
 
 // ─── Public API ───────────────────────────────────────────────────
