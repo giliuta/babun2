@@ -35,6 +35,10 @@ import ClientQuickActions from "./ClientQuickActions";
 import ObjectsBlock from "./blocks/ObjectsBlock";
 import VisitsBlock from "./blocks/VisitsBlock";
 import FinanceBlock from "./blocks/FinanceBlock";
+import NotesBlock from "./blocks/NotesBlock";
+import ContactsBlock from "./blocks/ContactsBlock";
+import PersonalBlock from "./blocks/PersonalBlock";
+import MetaBlock from "./blocks/MetaBlock";
 import { haptic } from "@/lib/haptics";
 
 interface ClientCardPageProps {
@@ -69,7 +73,7 @@ export default function ClientCardPage({
   // v335 — When the «+ Заметка» quick-action fires we just bump a
   // counter; NotesBlock (Group 3) will read it and refocus its input.
   // Counter rather than boolean so two consecutive taps both register.
-  const [, setNoteFocusToken] = useState(0);
+  const [noteFocusToken, setNoteFocusToken] = useState(0);
 
   // Default to the primary location once we have the client.
   useEffect(() => {
@@ -165,8 +169,40 @@ export default function ClientCardPage({
                       stats={stats}
                     />
                   );
+                case "notes":
+                  return (
+                    <NotesBlock
+                      key={cfg.kind}
+                      client={client}
+                      onUpdate={(next) => upsertClient(next)}
+                      focusToken={noteFocusToken}
+                    />
+                  );
+                case "contacts":
+                  return (
+                    <ContactsBlock
+                      key={cfg.kind}
+                      client={client}
+                      onUpdate={(next) => upsertClient(next)}
+                    />
+                  );
+                case "personal":
+                  return (
+                    <PersonalBlock
+                      key={cfg.kind}
+                      client={client}
+                      onUpdate={(next) => upsertClient(next)}
+                    />
+                  );
+                case "meta":
+                  return (
+                    <MetaBlock
+                      key={cfg.kind}
+                      client={client}
+                      onUpdate={(next) => upsertClient(next)}
+                    />
+                  );
                 default:
-                  // notes / contacts / personal / meta land in Group 3.
                   return null;
               }
             })}

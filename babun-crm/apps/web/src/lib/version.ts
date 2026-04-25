@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v336-story034-blocks-objects-visits-finance";
+export const BUILD_VERSION = "v337-story034-blocks-notes-contacts-personal-meta";
