@@ -26,6 +26,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Bell,
+  Sparkles,
+  Star,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -42,6 +44,9 @@ import { haptic } from "@/lib/haptics";
 import {
   buildStatsMap,
   getClientDisplayState,
+  isLongSilence,
+  isLoyalClient,
+  isNewClient,
   type ClientStats,
 } from "@/lib/client-stats";
 import ClientCardStats from "@/components/clients/ClientCardStats";
@@ -58,13 +63,23 @@ const SORT_LABELS: Record<SortKey, string> = {
   equipment: "A/C",
 };
 
-type Segment = "all" | "debt" | "birthday" | "blacklist";
+type Segment =
+  | "all"
+  | "debt"
+  | "birthday"
+  | "blacklist"
+  | "silent"
+  | "new"
+  | "loyal";
 
 const SEGMENT_LABELS: Record<Segment, string> = {
   all: "Все",
   debt: "Должники",
-  birthday: "ДР скоро",
-  blacklist: "Чёрный список",
+  birthday: "ДР",
+  blacklist: "ЧС",
+  silent: "Давно не были",
+  new: "Новые",
+  loyal: "Постоянные",
 };
 
 // v329 — daysUntilBirthday moved into lib/client-stats.ts as part
@@ -137,14 +152,28 @@ export default function ClientsPage() {
     let debt = 0;
     let birthday = 0;
     let blacklist = 0;
+    let silent = 0;
+    let newClients = 0;
+    let loyal = 0;
     for (const c of clients) {
       const s = statsMap.get(c.id);
       if ((s?.debt ?? 0) > 0 || c.balance < 0) debt += 1;
       const dd = s?.birthdayInDays ?? null;
       if (dd !== null && dd <= 14) birthday += 1;
       if (c.blacklisted) blacklist += 1;
+      if (s && isLongSilence(s)) silent += 1;
+      if (s && isNewClient(s)) newClients += 1;
+      if (s && isLoyalClient(s)) loyal += 1;
     }
-    return { all: clients.length, debt, birthday, blacklist };
+    return {
+      all: clients.length,
+      debt,
+      birthday,
+      blacklist,
+      silent,
+      new: newClients,
+      loyal,
+    };
   }, [clients, statsMap]);
 
   // Equipment count is now per-location. Aggregate across locations
@@ -181,6 +210,21 @@ export default function ClientsPage() {
       });
     } else if (segment === "blacklist") {
       list = list.filter((c) => c.blacklisted);
+    } else if (segment === "silent") {
+      list = list.filter((c) => {
+        const s = statsMap.get(c.id);
+        return s ? isLongSilence(s) : false;
+      });
+    } else if (segment === "new") {
+      list = list.filter((c) => {
+        const s = statsMap.get(c.id);
+        return s ? isNewClient(s) : false;
+      });
+    } else if (segment === "loyal") {
+      list = list.filter((c) => {
+        const s = statsMap.get(c.id);
+        return s ? isLoyalClient(s) : false;
+      });
     }
 
     // Sort — pinned clients always go first regardless of active sort.
@@ -555,6 +599,42 @@ export default function ClientsPage() {
               <Ban size={12} strokeWidth={2.5} />
               ЧС
             </SegmentChip>
+            {/* v331 — smart filters: silence / new / loyal.  Each one
+                hides itself when the bucket is empty so the chip row
+                stays compact for fresh tenants. */}
+            {segmentCounts.silent > 0 && (
+              <SegmentChip
+                active={segment === "silent"}
+                count={segmentCounts.silent}
+                onClick={() => setSegment("silent")}
+                tone="warn"
+              >
+                <Clock size={12} strokeWidth={2.5} />
+                Давно не были
+              </SegmentChip>
+            )}
+            {segmentCounts.new > 0 && (
+              <SegmentChip
+                active={segment === "new"}
+                count={segmentCounts.new}
+                onClick={() => setSegment("new")}
+                tone="good"
+              >
+                <Sparkles size={12} strokeWidth={2.5} />
+                Новые
+              </SegmentChip>
+            )}
+            {segmentCounts.loyal > 0 && (
+              <SegmentChip
+                active={segment === "loyal"}
+                count={segmentCounts.loyal}
+                onClick={() => setSegment("loyal")}
+                tone="good"
+              >
+                <Star size={12} strokeWidth={2.5} />
+                Постоянные
+              </SegmentChip>
+            )}
             {tags.length > 0 && (
               <span className="self-center text-[var(--separator)] px-1">·</span>
             )}
@@ -936,7 +1016,7 @@ function SegmentChip({
 }: {
   active: boolean;
   count: number;
-  tone?: "default" | "warn" | "bad";
+  tone?: "default" | "warn" | "bad" | "good";
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -945,7 +1025,9 @@ function SegmentChip({
       ? "bg-[var(--system-red)] text-white"
       : tone === "warn"
         ? "bg-[var(--system-orange)] text-white"
-        : "bg-[var(--accent)] text-[var(--label-on-accent)]";
+        : tone === "good"
+          ? "bg-[var(--system-green)] text-white"
+          : "bg-[var(--accent)] text-[var(--label-on-accent)]";
   return (
     <button
       type="button"
