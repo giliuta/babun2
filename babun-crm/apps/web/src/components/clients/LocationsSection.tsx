@@ -28,6 +28,15 @@ export default function LocationsSection({
 
   const locations = client.locations ?? [];
 
+  // v327 — Treat objects with no address AND no equipment as "empty
+  // placeholders" (created automatically during migration) and hide
+  // them so the panel doesn't show a useless «адрес не указан / нет
+  // оборудования» card. The real promo button takes over instead.
+  const meaningful = locations.filter(
+    (l) => (l.address?.trim() ?? "") !== "" || (l.equipment?.length ?? 0) > 0,
+  );
+  const showAsEmpty = meaningful.length === 0;
+
   const openExisting = (loc: Location) => {
     haptic("tap");
     setEditing(loc);
@@ -73,14 +82,20 @@ export default function LocationsSection({
     closeEditor();
   };
 
+  // When the user taps the promo "+ Добавить объект" while an empty
+  // placeholder location already exists, edit that placeholder
+  // instead of stacking a second one.  Avoids the "two empty
+  // Основной cards" bug after migration.
   const editingLocation: Location | null = creating
-    ? {
-        id: generateId("loc"),
-        label: "Дом",
-        address: "",
-        isPrimary: locations.length === 0,
-        equipment: [],
-      }
+    ? showAsEmpty && locations[0]
+      ? locations[0]
+      : {
+          id: generateId("loc"),
+          label: "Дом",
+          address: "",
+          isPrimary: locations.length === 0,
+          equipment: [],
+        }
     : editing;
 
   return (
@@ -95,7 +110,7 @@ export default function LocationsSection({
           </span>
         </div>
 
-        {locations.length === 0 ? (
+        {showAsEmpty ? (
           <button
             type="button"
             onClick={openNew}
@@ -116,7 +131,7 @@ export default function LocationsSection({
         ) : (
           <>
             <div className="space-y-1.5">
-              {locations.map((loc) => (
+              {meaningful.map((loc) => (
                 <LocationCard
                   key={loc.id}
                   loc={loc}

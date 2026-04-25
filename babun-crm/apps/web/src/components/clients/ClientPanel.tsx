@@ -147,28 +147,30 @@ export default function ClientPanel({
     return map;
   }, [teams]);
 
+  // v327 — collapse tabs to two: «Профиль» (default) and «Активность».
+  // Activity is a single timeline that shows visits, history and
+  // reminders together, sorted by date.  Empty state replaces the
+  // four-zero placeholder we had before.  Reminders Center is folded
+  // into Activity automatically.
+  const totalActivity =
+    recordsCount + completedApts.length + remindersCount;
+
   return (
     <div className="flex flex-col bg-[var(--surface-card)]">
       {/* Hero card — avatar, name, city + source, key stats */}
       <ClientHero client={client} stats={heroStats} />
 
-      {/* Tabs bar */}
-      <div className="flex overflow-x-auto border-b border-[var(--separator)] bg-[var(--surface-card)] sticky top-0 z-10">
+      {/* Tabs bar — compact two-tab segmented control */}
+      <div className="flex border-b border-[var(--separator)] bg-[var(--surface-card)] sticky top-0 z-10">
         <TabBtn label="Профиль" active={tab === "profile"} onClick={() => setTab("profile")} />
         <TabBtn
-          label={`Записи (${recordsCount})`}
-          active={tab === "records"}
+          label={
+            totalActivity > 0
+              ? `Активность · ${totalActivity}`
+              : "Активность"
+          }
+          active={tab !== "profile"}
           onClick={() => setTab("records")}
-        />
-        <TabBtn
-          label={`История (${completedApts.length})`}
-          active={tab === "history"}
-          onClick={() => setTab("history")}
-        />
-        <TabBtn
-          label={`Центр напоминаний (${remindersCount})`}
-          active={tab === "reminders"}
-          onClick={() => setTab("reminders")}
         />
       </div>
 
@@ -177,25 +179,68 @@ export default function ClientPanel({
         {tab === "profile" && (
           <ProfileForm client={client} update={update} onUpdate={onUpdate} />
         )}
-        {tab === "records" && (
-          <RecordsTab
-            items={clientApts}
-            servicesById={servicesById}
-            teamsById={teamsById}
-          />
-        )}
-        {tab === "history" && (
-          <HistoryTab items={completedApts} teamsById={teamsById} />
-        )}
-        {tab === "reminders" && (
-          <RemindersTab
+        {tab !== "profile" && (
+          <ActivityTab
             client={client}
-            items={clientApts}
+            apts={clientApts}
+            servicesById={servicesById}
             teamsById={teamsById}
           />
         )}
       </div>
     </div>
+  );
+}
+
+// v327 — Unified activity timeline.  Replaces the three sparse tabs
+// (Записи / История / Центр напоминаний) with a single chronological
+// list. Visits, completed work and pending SMS reminders all flow
+// here in one pane.  Empty state shows a friendly hint with the
+// most useful next action ("Записать клиента →").
+function ActivityTab({
+  client,
+  apts,
+  servicesById,
+  teamsById,
+}: {
+  client: Client;
+  apts: Appointment[];
+  servicesById: Map<string, string>;
+  teamsById: Map<string, { name: string; color?: string }>;
+}) {
+  const router = useRouter();
+  if (apts.length === 0) {
+    return (
+      <div className="flex flex-col items-center text-center px-8 py-10 gap-3">
+        <div className="w-14 h-14 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center">
+          <CalendarPlus size={26} strokeWidth={2} />
+        </div>
+        <div className="text-[15px] font-semibold text-[var(--label)]">
+          Пока нет записей
+        </div>
+        <div className="text-[13px] text-[var(--label-secondary)] max-w-[260px] leading-snug">
+          Запиши клиента — визиты, оплаты и напоминания будут видны
+          здесь.
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            haptic("tap");
+            router.push(`/dashboard?new=1&client_id=${client.id}`);
+          }}
+          className="mt-1 h-10 px-4 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-spring"
+        >
+          + Записать
+        </button>
+      </div>
+    );
+  }
+  return (
+    <RecordsTab
+      items={apts}
+      servicesById={servicesById}
+      teamsById={teamsById}
+    />
   );
 }
 
@@ -503,45 +548,80 @@ function MessengersSection({
   client: Client;
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
 }) {
+  // v327 — show only filled messenger handles + a single «+ Добавить»
+  // expander.  Empty placeholder rows for Telegram/Instagram cluttered
+  // the card when the client only used WhatsApp.  WhatsApp default-
+  // phone row is hidden too (the Hero already has WhatsApp button).
+  const [showAll, setShowAll] = useState(false);
   const tg = client.telegram_username.replace(/^@/, "");
   const ig = client.instagram_username.replace(/^@/, "");
-  const waDigits = (client.whatsapp_phone || client.phone).replace(/\D/g, "");
+  const waDigits = (client.whatsapp_phone || "").replace(/\D/g, "");
+  const hasTg = !!client.telegram_username.trim();
+  const hasIg = !!client.instagram_username.trim();
+  const hasWa = !!client.whatsapp_phone.trim();
+  const filled = [hasTg, hasIg, hasWa].filter(Boolean).length;
+  const expand = showAll || filled > 0;
 
   return (
     <div className="px-4 pt-2 pb-2 space-y-1.5">
-      <div className="text-[12px] text-[var(--label-secondary)]">Мессенджеры</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[12px] text-[var(--label-secondary)]">Мессенджеры</div>
+        {expand && filled < 3 && !showAll && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="text-[11px] font-semibold text-[var(--accent)] active:opacity-70"
+          >
+            + ещё
+          </button>
+        )}
+      </div>
 
-      <MessengerRow
-        icon={<IconTelegram />}
-        color="bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)]"
-        label="Telegram"
-        value={client.telegram_username}
-        placeholder="Telegram @username"
-        onChange={(v) => update("telegram_username", v)}
-        openUrl={tg ? `https://t.me/${tg}` : undefined}
-      />
-
-      <MessengerRow
-        icon={<IconInstagram />}
-        color="bg-pink-100 text-pink-600"
-        label="Instagram"
-        value={client.instagram_username}
-        placeholder="Instagram @username"
-        onChange={(v) => update("instagram_username", v)}
-        openUrl={ig ? `https://instagram.com/${ig}` : undefined}
-      />
-
-      <MessengerRow
-        icon={<IconWhatsapp />}
-        color="bg-[rgba(52,199,89,0.14)] text-[var(--system-green)]"
-        label="WhatsApp"
-        value={client.whatsapp_phone}
-        placeholder={
-          client.phone ? `WhatsApp (по умолчанию ${client.phone})` : "WhatsApp номер"
-        }
-        onChange={(v) => update("whatsapp_phone", v)}
-        openUrl={waDigits ? `https://wa.me/${waDigits}` : undefined}
-      />
+      {!expand ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="w-full h-11 flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-[var(--separator)] text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)]"
+        >
+          + Telegram / Instagram / WhatsApp
+        </button>
+      ) : (
+        <>
+          {(hasTg || showAll) && (
+            <MessengerRow
+              icon={<IconTelegram />}
+              color="bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)]"
+              label="Telegram"
+              value={client.telegram_username}
+              placeholder="@username"
+              onChange={(v) => update("telegram_username", v)}
+              openUrl={tg ? `https://t.me/${tg}` : undefined}
+            />
+          )}
+          {(hasIg || showAll) && (
+            <MessengerRow
+              icon={<IconInstagram />}
+              color="bg-pink-100 text-pink-600"
+              label="Instagram"
+              value={client.instagram_username}
+              placeholder="@username"
+              onChange={(v) => update("instagram_username", v)}
+              openUrl={ig ? `https://instagram.com/${ig}` : undefined}
+            />
+          )}
+          {(hasWa || showAll) && (
+            <MessengerRow
+              icon={<IconWhatsapp />}
+              color="bg-[rgba(52,199,89,0.14)] text-[var(--system-green)]"
+              label="WhatsApp"
+              value={client.whatsapp_phone}
+              placeholder="отдельный номер для WhatsApp"
+              onChange={(v) => update("whatsapp_phone", v)}
+              openUrl={waDigits ? `https://wa.me/${waDigits}` : undefined}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1099,80 +1179,127 @@ function PersonalSection({
   client: Client;
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
 }) {
+  // v327 — render only fields with data; if everything is empty,
+  // collapse the whole section behind a single «+ Заполнить» pill.
+  const [showAll, setShowAll] = useState(false);
+  const hasCity = !!client.city?.trim();
+  const hasBirthday = !!client.birthday;
+  const hasEmail = !!client.email?.trim();
+  const hasLang = !!client.language;
+  const hasSource =
+    !!client.acquisition_source && client.acquisition_source !== "unknown";
+  const filledCount = [hasCity, hasBirthday, hasEmail, hasLang, hasSource]
+    .filter(Boolean).length;
+  const expand = showAll || filledCount > 0;
+
   return (
     <div className="px-4 pt-3 pb-3 space-y-2">
-      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-        Личное
+      <div className="flex items-center justify-between">
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          Личное
+        </div>
+        {expand && filledCount < 5 && !showAll && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="text-[11px] font-semibold text-[var(--accent)] active:opacity-70"
+          >
+            + ещё
+          </button>
+        )}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <CompactField label="Город">
-          <input
-            type="text"
-            value={client.city}
-            onChange={(e) => update("city", e.target.value)}
-            placeholder="Пафос"
-            className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
-            maxLength={60}
-          />
-        </CompactField>
-        <CompactField label="День рождения">
-          <input
-            type="date"
-            value={client.birthday}
-            onChange={(e) => update("birthday", e.target.value)}
-            className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none tabular-nums"
-          />
-        </CompactField>
-        <CompactField label="Email">
-          <input
-            type="email"
-            value={client.email}
-            onChange={(e) => update("email", e.target.value)}
-            placeholder="email@example.com"
-            className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
-            maxLength={120}
-          />
-        </CompactField>
-        <CompactField label="Язык">
-          <div className="flex gap-1">
-            {LANGUAGE_PRESETS.map((l) => {
-              const active = (client.language ?? "") === l;
-              return (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => update("language", active ? "" : l)}
-                  className={`px-2 h-6 rounded-full text-[11px] font-semibold transition active:scale-[0.97] ${
-                    active
-                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                      : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
-                  }`}
-                >
-                  {LANGUAGE_LABELS[l]}
-                </button>
-              );
-            })}
-          </div>
-        </CompactField>
-      </div>
-      <CompactField label="Источник обращения">
-        <select
-          value={client.acquisition_source}
-          onChange={(e) =>
-            update(
-              "acquisition_source",
-              e.target.value as AcquisitionSource,
-            )
-          }
-          className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+
+      {!expand ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="w-full h-11 flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-[var(--separator)] text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)]"
         >
-          {ACQ_ORDER.map((s) => (
-            <option key={s} value={s}>
-              {ACQUISITION_LABELS[s]}
-            </option>
-          ))}
-        </select>
-      </CompactField>
+          + Город / ДР / Email / Язык
+        </button>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {(hasCity || showAll) && (
+              <CompactField label="Город">
+                <input
+                  type="text"
+                  value={client.city}
+                  onChange={(e) => update("city", e.target.value)}
+                  placeholder="Пафос"
+                  className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+                  maxLength={60}
+                />
+              </CompactField>
+            )}
+            {(hasBirthday || showAll) && (
+              <CompactField label="День рождения">
+                <input
+                  type="date"
+                  value={client.birthday}
+                  onChange={(e) => update("birthday", e.target.value)}
+                  className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none tabular-nums"
+                />
+              </CompactField>
+            )}
+            {(hasEmail || showAll) && (
+              <CompactField label="Email">
+                <input
+                  type="email"
+                  value={client.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  placeholder="email@example.com"
+                  className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+                  maxLength={120}
+                />
+              </CompactField>
+            )}
+            {(hasLang || showAll) && (
+              <CompactField label="Язык">
+                <div className="flex gap-1">
+                  {LANGUAGE_PRESETS.map((l) => {
+                    const active = (client.language ?? "") === l;
+                    return (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => update("language", active ? "" : l)}
+                        className={`px-2 h-6 rounded-full text-[11px] font-semibold transition active:scale-[0.97] ${
+                          active
+                            ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                            : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                        }`}
+                      >
+                        {LANGUAGE_LABELS[l]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CompactField>
+            )}
+          </div>
+          {(hasSource || showAll) && (
+            <CompactField label="Источник обращения">
+              <select
+                value={client.acquisition_source}
+                onChange={(e) =>
+                  update(
+                    "acquisition_source",
+                    e.target.value as AcquisitionSource,
+                  )
+                }
+                className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+              >
+                {ACQ_ORDER.map((s) => (
+                  <option key={s} value={s}>
+                    {ACQUISITION_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </CompactField>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1845,28 +1972,91 @@ function GroupsPicker({
   active: string[];
   onChange: (next: string[]) => void;
 }) {
+  // v327 — by default render only assigned tags + a single "+ Тег"
+  // pill that opens the full picker.  The previous version showed
+  // every preset tag at once which made it look like a checkbox
+  // dump, hard to read, and didn't scale to user-defined tags.
+  const [picker, setPicker] = useState(false);
   const toggle = (id: string) => {
     haptic("tap");
     onChange(active.includes(id) ? active.filter((t) => t !== id) : [...active, id]);
   };
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {PRESET_GROUPS.map((g) => {
-        const on = active.includes(g.id);
-        return (
+  const remove = (id: string) => {
+    haptic("warning");
+    onChange(active.filter((t) => t !== id));
+  };
+
+  if (!picker) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {active.length === 0 ? (
           <button
-            key={g.id}
             type="button"
-            onClick={() => toggle(g.id)}
-            className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition ${
-              on ? g.class : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
-            }`}
+            onClick={() => setPicker(true)}
+            className="px-2.5 py-1 rounded-full text-[12px] font-semibold border border-dashed border-[var(--separator)] text-[var(--accent)] active:bg-[var(--accent-tint)]"
           >
-            {on && "✓ "}
-            {g.label}
+            + Тег
           </button>
-        );
-      })}
+        ) : (
+          <>
+            {active.map((id) => {
+              const g = PRESET_GROUPS.find((x) => x.id === id);
+              if (!g) return null;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => remove(id)}
+                  className={`px-2.5 py-1 rounded-full text-[12px] font-semibold inline-flex items-center gap-1 ${g.class}`}
+                  title="Тап — снять"
+                >
+                  {g.label}
+                  <span className="opacity-60 text-[10px]">✕</span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setPicker(true)}
+              className="px-2.5 py-1 rounded-full text-[12px] font-semibold border border-dashed border-[var(--separator)] text-[var(--accent)] active:bg-[var(--accent-tint)]"
+            >
+              + Тег
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {PRESET_GROUPS.map((g) => {
+          const on = active.includes(g.id);
+          return (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => toggle(g.id)}
+              className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition ${
+                on
+                  ? g.class
+                  : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
+              }`}
+            >
+              {on && "✓ "}
+              {g.label}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setPicker(false)}
+        className="text-[11px] font-semibold text-[var(--accent)] active:opacity-70"
+      >
+        Готово
+      </button>
     </div>
   );
 }
