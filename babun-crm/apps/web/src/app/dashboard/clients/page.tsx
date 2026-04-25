@@ -156,30 +156,58 @@ export default function ClientsPage() {
   const segmentCounts = useMemo(() => {
     let debt = 0;
     let birthday = 0;
+    let birthdayThisWeek = 0;
     let blacklist = 0;
     let silent = 0;
     let newClients = 0;
+    let newThisMonth = 0;
     let loyal = 0;
+    const monthIdx = new Date().getMonth();
+    const yearIdx = new Date().getFullYear();
     for (const c of clients) {
       const s = statsMap.get(c.id);
       if ((s?.debt ?? 0) > 0 || c.balance < 0) debt += 1;
       const dd = s?.birthdayInDays ?? null;
       if (dd !== null && dd <= 14) birthday += 1;
+      if (dd !== null && dd <= 7) birthdayThisWeek += 1;
       if (c.blacklisted) blacklist += 1;
       if (s && isLongSilence(s)) silent += 1;
       if (s && isNewClient(s)) newClients += 1;
       if (s && isLoyalClient(s)) loyal += 1;
+      // Hero strip "новых в этом месяце" — created_at falls in
+      // current calendar month.  Different from `isNewClient`
+      // (last 30 d window).
+      if (c.created_at) {
+        const cd = new Date(c.created_at);
+        if (
+          !Number.isNaN(cd.getTime()) &&
+          cd.getMonth() === monthIdx &&
+          cd.getFullYear() === yearIdx
+        ) {
+          newThisMonth += 1;
+        }
+      }
     }
     return {
       all: clients.length,
       debt,
       birthday,
+      birthdayThisWeek,
       blacklist,
       silent,
       new: newClients,
+      newThisMonth,
       loyal,
     };
   }, [clients, statsMap]);
+
+  const currentMonthRu = useMemo(
+    () =>
+      new Date()
+        .toLocaleDateString("ru-RU", { month: "long" })
+        .toLowerCase(),
+    [],
+  );
 
   // Equipment count is now per-location. Aggregate across locations
   // so sort by «A/C» still works.
@@ -551,6 +579,68 @@ export default function ClientsPage() {
         className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]"
       >
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
+          {/* v334 — Hero strip with three at-a-glance stats.  Each
+                  segment is a button that activates the matching
+                  segment filter.  Numbers come from segmentCounts,
+                  not hardcode. */}
+          <div className="flex items-center justify-center gap-1.5 h-8 -mt-1 text-[12px] text-[var(--label-secondary)] tabular-nums">
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setSegment("all");
+              }}
+              className="active:opacity-60 truncate"
+            >
+              {segmentCounts.all}{" "}
+              {countWordRu(segmentCounts.all, "клиент", "клиента", "клиентов")}
+            </button>
+            {segmentCounts.newThisMonth > 0 && (
+              <>
+                <span className="text-[var(--label-quaternary)]">·</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic("tap");
+                    setSegment("new");
+                  }}
+                  className="active:opacity-60 truncate"
+                >
+                  {segmentCounts.newThisMonth}{" "}
+                  {countWordRu(
+                    segmentCounts.newThisMonth,
+                    "новый",
+                    "новых",
+                    "новых",
+                  )}{" "}
+                  в&nbsp;{currentMonthRu}
+                </button>
+              </>
+            )}
+            {segmentCounts.birthdayThisWeek > 0 && (
+              <>
+                <span className="text-[var(--label-quaternary)]">·</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic("tap");
+                    setSegment("birthday");
+                  }}
+                  className="active:opacity-60 truncate text-[var(--system-orange)]"
+                >
+                  {segmentCounts.birthdayThisWeek}{" "}
+                  {countWordRu(
+                    segmentCounts.birthdayThisWeek,
+                    "ДР",
+                    "ДР",
+                    "ДР",
+                  )}{" "}
+                  на&nbsp;неделе
+                </button>
+              </>
+            )}
+          </div>
+
           {/* ── Search (hidden above the fold; pull list down to
                  reveal — iOS-Mail style) ────────────────────────── */}
           <div ref={searchRef} className="relative">
