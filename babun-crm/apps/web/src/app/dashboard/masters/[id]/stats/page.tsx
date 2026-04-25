@@ -22,14 +22,28 @@ import { useClients } from "@/app/dashboard/layout";
 import type { Appointment } from "@/lib/appointments";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 
-type Period = "week" | "month" | "quarter" | "year";
+type Period = "week" | "month" | "quarter" | "year" | "custom";
 
 const PERIOD_LABELS: Record<Period, string> = {
   week: "Неделя",
   month: "Месяц",
   quarter: "Квартал",
   year: "Год",
+  custom: "Свой",
 };
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function isoToDate(iso: string): Date | null {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const out = new Date(y, m - 1, d);
+  out.setHours(0, 0, 0, 0);
+  return out;
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -43,6 +57,12 @@ export default function MasterStatsPage({ params }: RouteParams) {
   const { clients } = useClients();
 
   const [period, setPeriod] = useState<Period>("month");
+  // Custom range — defaults to «начало месяца → сегодня».
+  const [customFrom, setCustomFrom] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [customTo, setCustomTo] = useState(() => todayKey());
 
   const master = masters.find((m) => m.id === id);
 
@@ -67,8 +87,12 @@ export default function MasterStatsPage({ params }: RouteParams) {
     [assignedTeams],
   );
 
-  // Filter appointments by period start.
-  const { start, end } = useMemo(() => periodWindow(period), [period]);
+  // Filter appointments by period window. Custom range uses the
+  // explicit from/to inputs; presets compute relative to today.
+  const { start, end } = useMemo(
+    () => periodWindow(period, customFrom, customTo),
+    [period, customFrom, customTo],
+  );
 
   const myApts = useMemo(() => {
     if (!master) return [] as Appointment[];
@@ -164,22 +188,41 @@ export default function MasterStatsPage({ params }: RouteParams) {
 
   return (
     <MasterSectionShell masterId={id} title="Статистика" hideSave>
-      {/* Period switch */}
-      <div className="grid grid-cols-4 gap-1.5">
-        {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => setPeriod(p)}
-            className={`h-9 rounded-[10px] text-[12px] font-semibold press-scale transition-colors ${
-              period === p
-                ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                : "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-            }`}
-          >
-            {PERIOD_LABELS[p]}
-          </button>
-        ))}
+      {/* Period switch — 5 chips. «Свой» reveals from/to inputs. */}
+      <div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={`h-9 rounded-[10px] text-[12px] font-semibold press-scale transition-colors ${
+                period === p
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                  : "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
+              }`}
+            >
+              {PERIOD_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        {period === "custom" && (
+          <div className="mt-2 bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+            <DateRangeRow
+              label="С"
+              value={customFrom}
+              onChange={setCustomFrom}
+              max={customTo}
+            />
+            <DateRangeRow
+              label="По"
+              value={customTo}
+              onChange={setCustomTo}
+              min={customFrom}
+              last
+            />
+          </div>
+        )}
       </div>
 
       {/* Big revenue card */}
@@ -237,7 +280,9 @@ export default function MasterStatsPage({ params }: RouteParams) {
 
       {/* Top clients */}
       {topClients.length > 0 && (
-        <Card title={`Топ клиентов за ${PERIOD_LABELS[period].toLowerCase()}`}>
+        <Card
+          title={`Топ клиентов · ${periodCaption(period, customFrom, customTo)}`}
+        >
           <div className="divide-y divide-[var(--separator)] -mx-4">
             {topClients.map((c, i) => (
               <div
@@ -261,7 +306,7 @@ export default function MasterStatsPage({ params }: RouteParams) {
 
       {stats.total === 0 && (
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          За {PERIOD_LABELS[period].toLowerCase()} визитов у сотрудника нет.
+          {periodCaption(period, customFrom, customTo)} — визитов нет.
         </div>
       )}
     </MasterSectionShell>
@@ -270,10 +315,14 @@ export default function MasterStatsPage({ params }: RouteParams) {
 
 // ─── Period math ────────────────────────────────────────────────────
 
-function periodWindow(period: Period): { start: Date; end: Date } {
+function periodWindow(
+  period: Period,
+  customFrom: string,
+  customTo: string,
+): { start: Date; end: Date } {
   const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   let start = new Date(now);
+  let end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   switch (period) {
     case "week":
       start.setDate(now.getDate() - 6);
@@ -289,12 +338,93 @@ function periodWindow(period: Period): { start: Date; end: Date } {
     case "year":
       start = new Date(now.getFullYear(), 0, 1);
       break;
+    case "custom": {
+      const from = isoToDate(customFrom);
+      const to = isoToDate(customTo);
+      if (from) start = from;
+      if (to) {
+        // Make end exclusive — include the «to» day fully.
+        end = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1);
+      }
+      // If user inverted from > to, swap silently rather than show empty.
+      if (start > end) {
+        const tmp = start;
+        start = new Date(
+          end.getFullYear(),
+          end.getMonth(),
+          end.getDate() - 1,
+        );
+        end = new Date(
+          tmp.getFullYear(),
+          tmp.getMonth(),
+          tmp.getDate() + 1,
+        );
+      }
+      break;
+    }
   }
   start.setHours(0, 0, 0, 0);
   return { start, end };
 }
 
+function periodCaption(
+  period: Period,
+  customFrom?: string,
+  customTo?: string,
+): string {
+  if (period !== "custom") {
+    return `за ${PERIOD_LABELS[period].toLowerCase()}`;
+  }
+  if (!customFrom || !customTo) return "за выбранный период";
+  return `${formatDateShort(customFrom)} — ${formatDateShort(customTo)}`;
+}
+
+function formatDateShort(iso: string): string {
+  const d = isoToDate(iso);
+  if (!d) return iso;
+  return d.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 // ─── Layout primitives ──────────────────────────────────────────────
+
+function DateRangeRow({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  last,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  min?: string;
+  max?: string;
+  last?: boolean;
+}) {
+  return (
+    <label
+      className={`flex items-center gap-3 min-h-[44px] px-4 ${
+        last ? "" : "border-b border-[var(--separator)]"
+      }`}
+    >
+      <span className="text-[14px] text-[var(--label)] w-[36px] shrink-0">
+        {label}
+      </span>
+      <input
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+      />
+    </label>
+  );
+}
 
 function StatBox({
   label,
