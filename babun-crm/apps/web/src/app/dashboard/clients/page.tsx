@@ -136,26 +136,6 @@ export default function ClientsPage() {
     return { all: clients.length, debt, birthday, blacklist };
   }, [clients, revenueMap]);
 
-  // ── Top-of-page stats banner ─────────────────────────────────────
-  const statsSummary = useMemo(() => {
-    let totalRevenue = 0;
-    let totalDebt = 0;
-    for (const v of revenueMap.values()) {
-      totalRevenue += v.total;
-      totalDebt += v.debt;
-    }
-    // Add legacy negative balances on top of derived debt for visibility.
-    for (const c of clients) {
-      if (c.balance < 0) totalDebt += Math.abs(c.balance);
-    }
-    return {
-      total: clients.length,
-      revenue: Math.round(totalRevenue),
-      debt: Math.round(totalDebt),
-      birthday: segmentCounts.birthday,
-    };
-  }, [clients, revenueMap, segmentCounts.birthday]);
-
   // Equipment count is now per-location. Aggregate across locations
   // so sort by «A/C» still works.
   const acCount = (c: Client): number =>
@@ -374,37 +354,9 @@ export default function ClientsPage() {
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
-          {/* ── Stats banner ─────────────────────────────────────── */}
-          <div className="grid grid-cols-4 gap-1.5">
-            <StatTile
-              label="Клиентов"
-              value={String(statsSummary.total)}
-              icon={<Users size={14} strokeWidth={2} />}
-            />
-            <StatTile
-              label="Доход"
-              value={
-                statsSummary.revenue > 0
-                  ? `€${statsSummary.revenue.toLocaleString("ru-RU")}`
-                  : "—"
-              }
-              tone={statsSummary.revenue > 0 ? "good" : "default"}
-              icon={<Wallet size={14} strokeWidth={2} />}
-            />
-            <StatTile
-              label="Долг"
-              value={
-                statsSummary.debt > 0 ? `€${statsSummary.debt}` : "—"
-              }
-              tone={statsSummary.debt > 0 ? "bad" : "default"}
-            />
-            <StatTile
-              label="ДР скоро"
-              value={String(statsSummary.birthday)}
-              tone={statsSummary.birthday > 0 ? "warn" : "default"}
-              icon={<Cake size={14} strokeWidth={2} />}
-            />
-          </div>
+          {/* Stats banner removed v311 — будет переосмыслен позже,
+              скорее всего как часть AI-инсайтов в /chats. На launch
+              страница начинается с поиска. */}
 
           {/* ── Search ───────────────────────────────────────────── */}
           <div className="relative">
@@ -605,42 +557,6 @@ export default function ClientsPage() {
         <PencilLine size={22} strokeWidth={2} />
       </button>
     </>
-  );
-}
-
-// ─── Stats tile (top banner) ────────────────────────────────────────
-
-function StatTile({
-  label,
-  value,
-  tone = "default",
-  icon,
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "good" | "bad" | "warn";
-  icon?: React.ReactNode;
-}) {
-  const valueColor =
-    tone === "good"
-      ? "text-[var(--system-green)]"
-      : tone === "bad"
-        ? "text-[var(--system-red)]"
-        : tone === "warn"
-          ? "text-[var(--system-orange)]"
-          : "text-[var(--label)]";
-  return (
-    <div className="rounded-[12px] bg-[var(--surface-card)] shadow-[var(--shadow-card)] px-2.5 py-2">
-      <div className="flex items-center gap-1 text-[var(--label-tertiary)]">
-        {icon}
-        <span className="text-[10px] uppercase tracking-wider font-semibold">
-          {label}
-        </span>
-      </div>
-      <div className={`text-[15px] font-bold tabular-nums leading-tight mt-0.5 ${valueColor}`}>
-        {value}
-      </div>
-    </div>
   );
 }
 

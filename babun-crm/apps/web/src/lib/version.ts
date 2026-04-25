@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v310-clients-list-redesign";
+export const BUILD_VERSION = "v311-clients-drop-stats-banner";
