@@ -1302,23 +1302,8 @@ function DashboardPageInner() {
         onClose={() => setUndoToast(null)}
       />
 
-      {/* FAB — iOS-style floating pill, present on all breakpoints.
-          Mobile: sits above the BottomTabBar + iOS safe-area inset.
-          Desktop: pinned to the bottom-right as a tertiary quick-add. */}
-      <button
-        type="button"
-        onClick={() => {
-          haptic("tap");
-          openNewAppointmentInline(null, null, "work");
-        }}
-        aria-label="Новая запись"
-        className="fab-accent fixed right-4 lg:right-6 bottom-[calc(env(safe-area-inset-bottom)+74px)] lg:bottom-6 w-14 h-14 rounded-full flex items-center justify-center z-30"
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
+      {/* v322 — FAB removed per user request.  New appointments are
+          created via tap-on-grid or long-press on the calendar. */}
 
       {/* Day finance modal */}
       {financeDateKey && (
