@@ -50,6 +50,7 @@ import {
   type ClientStats,
 } from "@/lib/client-stats";
 import ClientCardStats from "@/components/clients/ClientCardStats";
+import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
 
 // v312 — tag chips are tenant-managed: read from useClients().tags.
 // Settings UI for creating/editing/deleting tags lands in Phase 2.
@@ -1087,10 +1088,11 @@ function ClientCard({
   // more useful than "last visit date" at a glance — and the second
   // row carries the natural-language age now ("Был 3 дня назад").
   const ltv = Math.round(stats?.totalSpent ?? 0);
-  const birthdayInDays = stats?.birthdayInDays ?? null;
-  const birthdaySoon =
-    birthdayInDays !== null && birthdayInDays >= 0 && birthdayInDays <= 14;
   const displayState = stats ? getClientDisplayState(stats) : null;
+  // v332 — when there's a debt pill we bank one of the three icon
+  // slots, so ClientStatusBadges renders at most 2 extra icons.
+  const showDebtPill = debt > 0;
+  const iconBudget = showDebtPill ? 2 : 3;
 
   const tagChips = client.tag_ids
     .map((tid) => tags.find((t) => t.id === tid))
@@ -1181,24 +1183,19 @@ function ClientCard({
             <span className="text-[16px] font-semibold text-[var(--label)] truncate">
               {client.full_name || "Без имени"}
             </span>
-            {client.blacklisted && (
+            {showDebtPill && (
               <span
-                title="Чёрный список"
-                className="shrink-0 w-5 h-5 rounded-full bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] flex items-center justify-center"
+                title={`Долг €${debt}`}
+                className="shrink-0 inline-flex items-center px-1.5 h-5 rounded-full bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[11px] font-bold tabular-nums"
               >
-                <Ban size={11} strokeWidth={2.5} />
+                €{debt}
               </span>
             )}
-            {birthdaySoon && (
-              <span
-                title={
-                  birthdayInDays === 0 ? "Сегодня ДР!" : `Через ${birthdayInDays} дн.`
-                }
-                className="shrink-0 w-5 h-5 rounded-full bg-[rgba(255,149,0,0.12)] text-[var(--system-orange)] flex items-center justify-center"
-              >
-                <Cake size={11} strokeWidth={2.5} />
-              </span>
-            )}
+            <ClientStatusBadges
+              client={client}
+              stats={stats}
+              budget={iconBudget}
+            />
             {reminderAt && (
               <span
                 title={`Напомнить ${formatReminderShort(reminderAt)}`}
@@ -1239,14 +1236,10 @@ function ClientCard({
           </div>
         )}
 
-        {(debt > 0 || acTotal > 0 || tagChips.length > 0) && (
+        {/* v332 — debt pill moved up next to the name; this strip
+            now hosts non-urgent secondary chips only. */}
+        {(acTotal > 0 || tagChips.length > 0) && (
           <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-            {debt > 0 && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[11px] font-bold tabular-nums">
-                <Wallet size={10} strokeWidth={2.5} />
-                €{debt}
-              </span>
-            )}
             {acTotal > 0 && (
               <span className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] text-[11px] font-semibold tabular-nums">
                 <Wind size={10} strokeWidth={2.5} />
