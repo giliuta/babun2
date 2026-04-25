@@ -340,6 +340,42 @@ export function useLocationLabels() {
   return ctx;
 }
 
+// v328 — 16-px transparent strip pinned to the left or right edge of
+// <main>.  Captures touchstart with `touch-action: none` and
+// preventDefault, so iOS PWA's native swipe-back/-forward gesture
+// (the only thing the user-installed-PWA wrapper still listens to
+// on those edges) cannot fire.  Vertical scrolling, internal
+// SwipeableRow gestures, etc. happen further inside and are
+// untouched.  The strip is too narrow to interfere with content
+// (touch targets sit ≥ 12 px from the screen edge anyway).
+function EdgeGuard({ side }: { side: "left" | "right" }) {
+  return (
+    <div
+      aria-hidden
+      onTouchStart={(e) => {
+        // Only block when the touch *starts* in the edge strip.
+        // Don't preventDefault if the user is already mid-gesture
+        // and only their finger drifted into the edge.
+        if (e.touches.length === 1) e.preventDefault();
+      }}
+      style={{
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        [side]: 0,
+        width: 16,
+        zIndex: 50,
+        touchAction: "none",
+        // Pointer events must pass through to allow taps on UI
+        // that genuinely sits in the safe-area inset (rare).  The
+        // touchstart preventDefault still fires.
+        pointerEvents: "auto",
+        background: "transparent",
+      }}
+    />
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -859,13 +895,25 @@ export default function DashboardLayout({
               Lighthouse's `landmark-one-main` rule without breaking any
               existing layout. */}
           <main
-            className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[60px] lg:pb-0"
+            className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[60px] lg:pb-0 relative"
             style={{
               touchAction: "pan-y",
               overscrollBehaviorX: "none",
             }}
           >
             {children}
+
+            {/* v328 — Edge guards.  iOS standalone PWA fires the
+                native swipe-back / swipe-forward gesture from the
+                first 20 px of either screen edge, *ignoring* CSS
+                touch-action on inner elements (documented WebKit
+                behaviour).  These two strips capture the touch
+                first with `touch-action: none` and preventDefault
+                on touchstart so the gesture never starts.  They
+                sit above content (z-50) but only span 16 px wide —
+                no real UI lives there. */}
+            <EdgeGuard side="left" />
+            <EdgeGuard side="right" />
           </main>
 
           <BottomTabBar />

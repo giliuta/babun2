@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v327-client-card-cleanup-empty-states";
+export const BUILD_VERSION = "v328-edge-guards-kill-ios-pwa-swipe-back";
