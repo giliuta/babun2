@@ -241,15 +241,14 @@ export default function ChatsPage() {
 
   const chatListEl = (
     <div className="flex flex-col h-full bg-[var(--surface-card)]">
-      {/* Header — flat iOS nav bar, centred title, matches the rest
-          of the app (Clients, Finances, Settings use the same style).
-          The blue banner that was here lived from Sprint 031; it clashed
-          with every other page. */}
-      <div className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] h-12 flex items-center justify-center relative">
-        <h1 className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
+      {/* v316 — Liquid Glass nav, centred title with unread chip. */}
+      <div className="liquid-glass flex-shrink-0 h-12 flex items-center justify-center relative">
+        <h1 className="text-[17px] font-semibold text-[var(--label)] tracking-tight inline-flex items-center gap-2">
           Чаты
           {totalUnread > 0 && (
-            <span className="text-[var(--label-secondary)] font-normal"> ({totalUnread})</span>
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] text-[11px] font-semibold tabular-nums">
+              {totalUnread > 99 ? "99+" : totalUnread}
+            </span>
           )}
         </h1>
       </div>
@@ -383,12 +382,18 @@ export default function ChatsPage() {
           );
         })}
         {filtered.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--label-quaternary)]">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            <div className="text-[14px] font-medium text-[var(--label-secondary)]">Нет чатов</div>
-            <div className="text-[12px] text-[var(--label-tertiary)]">Сообщения появятся здесь</div>
+          <div className="empty-state">
+            <div className="empty-state-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </div>
+            <div className="empty-state-title">Нет чатов</div>
+            <div className="empty-state-body">
+              {filter === "all"
+                ? "Подключите WhatsApp / Instagram / Telegram чтобы вести переписку с клиентами в одном месте."
+                : "Попробуйте другой фильтр или обнулите поиск."}
+            </div>
           </div>
         )}
       </div>

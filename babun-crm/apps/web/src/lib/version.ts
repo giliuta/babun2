@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v315-clients-pan-y-visible-buttons-centered-popup";
+export const BUILD_VERSION = "v316-redesign-liquid-glass-hero-cards";

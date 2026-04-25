@@ -40,7 +40,7 @@ export default function PageHeader({
   const sidebar = useSidebar();
 
   return (
-    <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] z-30">
+    <header className="liquid-glass flex-shrink-0 z-30">
       <div className="px-3 lg:px-4 min-h-[44px] flex items-center gap-2">
         {leftContent ? (
           <div className="shrink-0">{leftContent}</div>
@@ -49,16 +49,16 @@ export default function PageHeader({
             type="button"
             onClick={() => router.push(backHref)}
             aria-label="Назад"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-[var(--fill-primary)] text-[var(--accent)] active:bg-[var(--fill-secondary)] shrink-0 transition"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-tertiary)] shrink-0 transition press-scale"
           >
-            <ChevronLeft size={22} strokeWidth={2.5} />
+            <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
         ) : (
           <button
             type="button"
             onClick={sidebar.toggle}
             aria-label="Меню"
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-[var(--fill-primary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)] shrink-0 transition"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)] shrink-0 transition press-scale"
           >
             <Menu size={20} strokeWidth={2} />
           </button>

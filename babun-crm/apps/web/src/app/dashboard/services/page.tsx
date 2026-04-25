@@ -77,15 +77,15 @@ export default function ServicesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-[var(--surface-card)] text-[var(--accent)] lg:bg-[var(--accent)] lg:text-[var(--label-on-accent)] rounded-lg text-sm font-semibold"
+            className="px-3 py-1.5 text-[var(--accent)] rounded-lg text-[13px] font-semibold active:opacity-70"
           >
             + Новая
           </button>
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-[var(--fill-tertiary)]">
-        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-24 space-y-4 stagger-children">
           <button
             type="button"
             onClick={() => setShowCategories((x) => !x)}

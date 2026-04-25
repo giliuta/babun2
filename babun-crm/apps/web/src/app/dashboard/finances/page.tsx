@@ -92,7 +92,7 @@ export default function FinancesPage() {
           <button
             type="button"
             onClick={() => setShowCategories(true)}
-            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] hover:bg-[var(--accent-pressed)] lg:hover:bg-[var(--fill-tertiary)] rounded-lg"
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg"
           >
             <SlidersHorizontal size={14} strokeWidth={2} />
             Категории
@@ -102,7 +102,17 @@ export default function FinancesPage() {
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] relative">
         <div className="max-w-3xl mx-auto p-3 lg:p-4 pb-8 space-y-3 stagger-children">
-          <div className="grid grid-cols-4 gap-1.5">
+          <ProfitHero
+            profit={profit}
+            income={totalIncome}
+            expense={totalExpense}
+            period={selectedPeriodLabel}
+            delta={comparableToPrev ? percentDelta(profit, prevProfit) : null}
+            onClick={() => setMode("summary")}
+            active={mode === "summary"}
+          />
+
+          <div className="grid grid-cols-3 gap-1.5">
             <SummaryCard
               label="Доход"
               amount={totalIncome}
@@ -119,16 +129,6 @@ export default function FinancesPage() {
               active={mode === "expenses"}
               onClick={() => setMode("expenses")}
               delta={comparableToPrev ? percentDelta(totalExpense, prevExpense) : null}
-            />
-            <SummaryCard
-              label="Прибыль"
-              amount={profit}
-              signed
-              color={profit >= 0 ? "indigo" : "rose"}
-              active={mode === "summary"}
-              onClick={() => setMode("summary")}
-              delta={comparableToPrev ? percentDelta(profit, prevProfit) : null}
-              deltaPositiveGood
             />
             <SummaryCard
               label="Долги"
@@ -277,6 +277,80 @@ export default function FinancesPage() {
 
 // ─── Local sub-components (UI only, no data logic) ─────────────────────────
 
+// Hero profit card — shows the dominant metric (profit) with a big
+// 32px tabular number and a coloured pill for delta.  Acts as the
+// primary visual hook on the page.
+function ProfitHero({
+  profit,
+  income,
+  expense,
+  period,
+  delta,
+  active,
+  onClick,
+}: {
+  profit: number;
+  income: number;
+  expense: number;
+  period: string;
+  delta: number | null;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const positive = profit >= 0;
+  const accentBg = positive
+    ? "linear-gradient(135deg, #34C759 0%, #00C7BE 100%)"
+    : "linear-gradient(135deg, #FF453A 0%, #FF9500 100%)";
+
+  let deltaEl: React.ReactNode = null;
+  if (delta !== null && Number.isFinite(delta)) {
+    const sign = delta > 0 ? "+" : "";
+    deltaEl = (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-white/20 text-white">
+        {sign}
+        {delta.toFixed(0)}%
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="w-full text-left rounded-2xl overflow-hidden p-4 active:scale-[0.99] transition"
+      style={{
+        background: accentBg,
+        boxShadow: active
+          ? "0 8px 24px -8px rgba(52,199,89,0.45), 0 0 0 2px rgba(255,255,255,0.5)"
+          : "0 8px 24px -10px rgba(52,199,89,0.35)",
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-white/85">
+            Прибыль · {period}
+          </div>
+          <div className="mt-1 text-[34px] font-bold tabular-nums text-white leading-none">
+            {formatEURSigned(profit)}
+          </div>
+        </div>
+        {deltaEl}
+      </div>
+      <div className="mt-3 flex items-center gap-4 text-[13px] text-white/90">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-white" />
+          Доход <strong className="font-semibold tabular-nums">{formatEUR(income)}</strong>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
+          Расход <strong className="font-semibold tabular-nums">{formatEUR(expense)}</strong>
+        </span>
+      </div>
+    </button>
+  );
+}
+
 function SummaryCard({
   label,
   amount,
@@ -305,6 +379,15 @@ function SummaryCard({
       ? "text-[var(--system-orange)]"
       : "text-[var(--accent)]";
 
+  const dotColor =
+    color === "emerald"
+      ? "bg-[var(--system-green)]"
+      : color === "rose"
+      ? "bg-[var(--system-red)]"
+      : color === "amber"
+      ? "bg-[var(--system-orange)]"
+      : "bg-[var(--accent)]";
+
   const body = signed ? formatEURSigned(amount) : formatEUR(amount);
 
   let deltaEl: React.ReactNode = null;
@@ -318,7 +401,7 @@ function SummaryCard({
         ? "text-[var(--system-green)]"
         : "text-[var(--system-red)]";
     deltaEl = (
-      <div className={`text-[12px] font-semibold tabular-nums ${deltaColor}`}>
+      <div className={`text-[11px] font-semibold tabular-nums ${deltaColor}`}>
         {formatPercentDelta(delta)}
       </div>
     );
@@ -328,16 +411,17 @@ function SummaryCard({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl border px-2 py-2 text-left transition active:scale-[0.98] ${
-        active
-          ? "bg-[var(--surface-card)] border-[var(--accent)] ring-1 ring-[var(--accent)]"
-          : "bg-[var(--surface-card)] border-[var(--separator)]"
+      className={`stat-tile text-left transition active:scale-[0.98] ${
+        active ? "ring-2 ring-[var(--accent)]" : ""
       }`}
     >
-      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-        {label}
+      <div className="flex items-center gap-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          {label}
+        </div>
       </div>
-      <div className={`text-[13px] font-bold tabular-nums mt-0.5 ${amountColor}`}>{body}</div>
+      <div className={`text-[16px] font-bold tabular-nums mt-1 ${amountColor}`}>{body}</div>
       {deltaEl}
     </button>
   );

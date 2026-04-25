@@ -1,18 +1,16 @@
 @import "tailwindcss";
-/* v245-tg-polish */
+/* v316-redesign */
 
 /* ──────────────────────────────────────────────────────────────────
-   Babun CRM — Telegram iOS light (Sprint 033 Phase I)
-   Full Telegram-iOS light-theme pivot per user request: "переделай
-   всю срм в стиль Telegram, светлая тема". Keeps the iOS system
-   colours for semantic status (green OK, red destructive, orange
-   warning) but swings the brand-accent, surfaces, shadows and
-   chrome back to Telegram's own palette:
-     - accent #3E88F7 (Telegram iOS 10+ brand blue)
-     - cooler grouped-grey screen + warmer separator hue
-     - shadows removed on cards (Telegram is flat — only hairline)
-     - pill primary 50 px, ghost secondary
-   Dark mode stays out — explicit user ask.
+   Babun CRM — iOS 26 Liquid Glass redesign (v316)
+   Full visual refresh built on Apple HIG iOS 26 principles:
+     - Liquid Glass nav/sheet surfaces (backdrop-blur + saturation)
+     - Gradient tiles (subtle 8% top-light) for SF-style depth
+     - Refined card shadow stack (hairline + soft drop)
+     - Larger title row (34px display, scroll-collapses)
+     - Spring-curve press feedback
+     - Telegram-iOS accent retained (#3E88F7) for brand continuity
+   Dark theme intentionally parked — explicit user ask.
    ──────────────────────────────────────────────────────────────── */
 
 :root {
@@ -106,14 +104,31 @@
   --radius-tile: 7px;         /* colored icon tiles */
   --radius-pill: 9999px;      /* primary buttons, chips, avatar */
 
-  /* Shadow — Telegram is almost flat. Cards have no lift, just a
-     hairline "ring" so they sit on the grouped-grey without bleeding
-     into it. Sheets still lift a bit so they read as modal. */
-  --shadow-card: 0 0 0 0.5px rgba(15, 23, 42, 0.04);
+  /* Shadow stack — refined for iOS 26 redesign. Cards now combine
+     hairline ring with a feather-soft drop so they pop a touch on
+     the grouped-grey, but stay flat enough for Telegram-iOS feel.
+     Sheets keep their modal lift; FAB glows brand-blue. */
+  --shadow-card: 0 0 0 0.5px rgba(15, 23, 42, 0.04),
+                 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 0 0 0.5px rgba(15, 23, 42, 0.06),
+                       0 4px 14px -4px rgba(15, 23, 42, 0.10);
   --shadow-sheet: 0 -4px 24px -8px rgba(0, 0, 0, 0.18);
   --shadow-float: 0 8px 24px -12px rgba(0, 0, 0, 0.18);
   --shadow-fab: 0 6px 16px -2px rgba(62, 136, 247, 0.35),
                 0 2px 6px rgba(0, 0, 0, 0.12);
+  --shadow-large-title: 0 1px 0 rgba(15, 23, 42, 0.04);
+
+  /* Liquid Glass — frosted-blur surface for nav bars & sheets, iOS 26.
+     The blur radius and saturation match SF Symbols / Apple HIG. */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-blur: saturate(180%) blur(20px);
+
+  /* Hero-tile gradient overlay — applied via ::before on .tile-grad
+     to give every colored icon tile a subtle highlight bevel. */
+  --tile-highlight: linear-gradient(180deg,
+                    rgba(255, 255, 255, 0.18) 0%,
+                    rgba(255, 255, 255, 0.00) 60%,
+                    rgba(0, 0, 0, 0.06) 100%);
 
   /* iOS-style easings — spring-ish via cubic-bezier. */
   --ease-ios: cubic-bezier(0.4, 0, 0.2, 1);
@@ -371,4 +386,188 @@ h1, h2, h3,
 .fab-accent:active {
   transform: scale(0.94);
   box-shadow: 0 2px 8px -2px rgba(0, 122, 255, 0.28);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   v316 — Liquid Glass surfaces (iOS 26)
+   Apple's new system surface for nav bars & sheets.  Slight tint,
+   strong blur, and a hairline at the bottom for separation.
+   ────────────────────────────────────────────────────────────── */
+.liquid-glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 0.5px solid var(--separator);
+}
+.liquid-glass-bottom {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 0.5px solid var(--separator);
+}
+
+/* Gradient tile — adds a soft highlight bevel to colored 28×28
+   tiles in settings rows.  Pair with .tile + bg-tile-* class. */
+.tile-grad {
+  position: relative;
+  overflow: hidden;
+}
+.tile-grad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tile-highlight);
+  pointer-events: none;
+}
+
+/* Section primitives — iOS HIG grouped list section.
+   .section-title is the 13px upper-case header above each card.
+   .section-card wraps the rows and uses the refined card shadow.
+   .section-footer is the 12px helper text below a card. */
+.section-title {
+  padding: 0 16px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--label-secondary);
+}
+.section-card {
+  background: var(--surface-card);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.section-footer {
+  padding: 6px 16px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--label-tertiary);
+}
+
+/* Large title — iOS 17+ navigation big title.  Lives at the top of
+   scrollable pages, collapses on scroll via JS scroll handler. */
+.large-title {
+  font-size: 34px;
+  line-height: 41px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--label);
+  padding: 8px 16px 12px;
+}
+
+/* Empty state primitive — used everywhere a list has 0 rows. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 56px 24px;
+  text-align: center;
+}
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+}
+.empty-state-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--label);
+}
+.empty-state-body {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--label-secondary);
+  max-width: 260px;
+}
+
+/* Pill primary — iOS 26 capsule button.  17pt semibold.  Use for
+   single primary CTA in sheets and toolbars. */
+.pill-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 50px;
+  padding: 0 24px;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--accent-on);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: var(--shadow-fab);
+  transition: transform var(--dur-fast) var(--ease-ios),
+              opacity var(--dur-fast) var(--ease-ios);
+}
+.pill-primary:active {
+  transform: scale(0.97);
+  opacity: 0.92;
+}
+.pill-primary:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.pill-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: var(--fill-tertiary);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform var(--dur-fast) var(--ease-ios),
+              background-color var(--dur-fast) var(--ease-ios);
+}
+.pill-secondary:active {
+  transform: scale(0.97);
+  background: var(--fill-secondary);
+}
+
+/* Stat tile — used on dashboard hubs.  18pt label, 28pt big number. */
+.stat-tile {
+  background: var(--surface-card);
+  border-radius: 14px;
+  padding: 14px 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+.stat-tile-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--label);
+  font-variant-numeric: tabular-nums;
+}
+.stat-tile-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--label-secondary);
+  margin-top: 2px;
+}
+
+/* Avatar — gradient ring helper.  Wraps an <img> so unverified avatars
+   still get the brand bevel. */
+.avatar-ring {
+  position: relative;
+  display: inline-flex;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--system-purple) 100%);
+  padding: 1.5px;
+}
+.avatar-ring > * {
+  border-radius: 9999px;
+  background: var(--surface-card);
 }

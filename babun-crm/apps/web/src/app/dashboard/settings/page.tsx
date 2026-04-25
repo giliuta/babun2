@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Building2,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/app/dashboard/layout";
@@ -18,12 +19,11 @@ import type {
   RequiredFields,
 } from "@/lib/appointments";
 
-// Sprint 028: redesigned in iOS grouped-list / Telegram settings style.
-// Monochrome lucide icons replace decorative emojis ("🗓📍👥🧑‍🔧💬🔧🏢"),
-// each icon sits in a tinted rounded-square tile. Typography follows
-// system-UI conventions: 17px row label, 13px caption, 12px uppercase
-// section header. The three settings cards below the nav use the same
-// divided rounded-rectangle pattern as the nav card.
+// v316 — iOS 26 redesign:
+//   * Large title under glass nav
+//   * Hero account card with gradient avatar
+//   * Sections split by theme (Каталог / Команда / Оформление / Запись)
+//   * Gradient tiles via .tile-grad utility
 
 const FIELD_VIS_LABELS: Record<keyof FormFieldVisibility, string> = {
   show_address: "Адрес",
@@ -56,55 +56,80 @@ interface NavSection {
   desc: string;
 }
 
-const NAV_SECTIONS: NavSection[] = [
+interface NavGroup {
+  title: string;
+  items: NavSection[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    href: "/dashboard/settings/calendar",
-    icon: CalendarDays,
-    tone: "bg-[var(--tile-orange)]",
-    title: "Календарь",
-    desc: "Часы работы, шаг сетки, часовой пояс",
+    title: "Команда",
+    items: [
+      {
+        href: "/dashboard/teams",
+        icon: UsersIcon,
+        tone: "bg-[var(--tile-blue)]",
+        title: "Бригады",
+        desc: "Состав команд, цвета, % зарплаты",
+      },
+      {
+        href: "/dashboard/masters",
+        icon: UserCircle2,
+        tone: "bg-[var(--tile-indigo)]",
+        title: "Мастера",
+        desc: "Сотрудники, контакты, доступы",
+      },
+    ],
   },
   {
-    href: "/dashboard/settings/cities",
-    icon: MapPin,
-    tone: "bg-[var(--tile-red)]",
-    title: "Города",
-    desc: "Справочник городов для клиентов и записей",
+    title: "Каталог",
+    items: [
+      {
+        href: "/dashboard/settings/cities",
+        icon: MapPin,
+        tone: "bg-[var(--tile-red)]",
+        title: "Города",
+        desc: "Справочник для клиентов и записей",
+      },
+      {
+        href: "/dashboard/inventory",
+        icon: Package,
+        tone: "bg-[var(--tile-mint)]",
+        title: "Оборудование",
+        desc: "Инструмент и приборы по бригадам",
+      },
+    ],
   },
   {
-    href: "/dashboard/teams",
-    icon: UsersIcon,
-    tone: "bg-[var(--tile-blue)]",
-    title: "Бригады",
-    desc: "Состав команд, цвета, дефолтный город, % ЗП",
+    title: "Записи",
+    items: [
+      {
+        href: "/dashboard/settings/calendar",
+        icon: CalendarDays,
+        tone: "bg-[var(--tile-orange)]",
+        title: "Календарь",
+        desc: "Часы работы, шаг, часовой пояс",
+      },
+      {
+        href: "/dashboard/sms-templates",
+        icon: MessageSquare,
+        tone: "bg-[var(--tile-green)]",
+        title: "Шаблоны SMS",
+        desc: "Тексты напоминаний и подтверждений",
+      },
+    ],
   },
   {
-    href: "/dashboard/masters",
-    icon: UserCircle2,
-    tone: "bg-[var(--tile-indigo)]",
-    title: "Мастера",
-    desc: "Сотрудники, контакты, зарплата, доступы, документы",
-  },
-  {
-    href: "/dashboard/sms-templates",
-    icon: MessageSquare,
-    tone: "bg-[var(--tile-mint)]",
-    title: "Шаблоны SMS",
-    desc: "Тексты напоминаний и подтверждений",
-  },
-  {
-    href: "/dashboard/inventory",
-    icon: Package,
-    tone: "bg-[var(--tile-mint)]",
-    title: "Оборудование",
-    desc: "Инструмент, машины, приборы — закрепление за бригадами",
-  },
-  {
-    href: "/dashboard/settings/company",
-    icon: Building2,
-    tone: "bg-[var(--system-indigo)]",
-    title: "Реквизиты и VAT",
-    desc: "Название, VAT-номер, режим 19% для счетов",
+    title: "Компания",
+    items: [
+      {
+        href: "/dashboard/settings/company",
+        icon: Building2,
+        tone: "bg-[var(--tile-purple)]",
+        title: "Реквизиты и VAT",
+        desc: "Название, VAT-номер, ставка 19%",
+      },
+    ],
   },
 ];
 
@@ -125,46 +150,44 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Настройки" />
 
-      <div className="flex-1 overflow-y-auto bg-[var(--fill-tertiary)]">
-        <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
-          <Group title="Разделы">
-            <div className="divide-y divide-[var(--separator)]">
-              {NAV_SECTIONS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <Link
-                    key={s.href}
-                    href={s.href}
-                    className="flex items-center gap-3 px-4 py-3 active:bg-[var(--fill-tertiary)] transition-colors"
-                  >
-                    <span
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${s.tone}`}
-                    >
-                      <Icon size={18} strokeWidth={2} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-medium text-[var(--label)] truncate">
-                        {s.title}
-                      </div>
-                      <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 truncate">
-                        {s.desc}
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
-                  </Link>
-                );
-              })}
-            </div>
-          </Group>
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+        <div className="max-w-3xl mx-auto px-4 py-4 space-y-6 stagger-children">
+          <h1 className="large-title">Настройки</h1>
 
-          <Group title="Учётная запись">
-            <div className="px-4 py-3 flex items-center justify-between">
-              <span className="text-[15px] text-[var(--label)]">Email</span>
-              <span className="text-[13px] text-[var(--label-secondary)] tabular-nums">
-                airfix.cy@gmail.com
-              </span>
-            </div>
-          </Group>
+          <AccountHero />
+
+          {NAV_GROUPS.map((group) => (
+            <Group key={group.title} title={group.title}>
+              <div className="divide-y divide-[var(--separator)]">
+                {group.items.map((s) => {
+                  const Icon = s.icon;
+                  return (
+                    <Link
+                      key={s.href}
+                      href={s.href}
+                      className="flex items-center gap-3 px-4 py-3 min-h-[58px] active:bg-[var(--fill-tertiary)] transition-colors press-scale"
+                    >
+                      <span
+                        className={`tile tile-grad ${s.tone}`}
+                        style={{ width: 30, height: 30 }}
+                      >
+                        <Icon size={18} strokeWidth={2.2} />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[15px] font-medium text-[var(--label)] truncate">
+                          {s.title}
+                        </div>
+                        <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 truncate">
+                          {s.desc}
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </Group>
+          ))}
 
           <Group
             title="Поля записи"
@@ -203,9 +226,56 @@ export default function SettingsPage() {
               ))}
             </div>
           </Group>
+
+          <button
+            type="button"
+            className="w-full section-card flex items-center justify-center gap-2 py-3.5 text-[15px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-tertiary)] transition press-scale"
+          >
+            <LogOut size={16} strokeWidth={2.2} />
+            Выйти из аккаунта
+          </button>
+
+          <div className="text-center text-[11px] text-[var(--label-quaternary)] py-2">
+            Babun · v316
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+function AccountHero() {
+  return (
+    <div className="section-card relative overflow-hidden">
+      <div
+        className="absolute inset-x-0 top-0 h-20 opacity-90"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--accent) 0%, var(--system-indigo) 70%, var(--system-purple) 100%)",
+        }}
+      />
+      <div className="relative px-4 pt-5 pb-4 flex items-center gap-3">
+        <div className="avatar-ring">
+          <div className="w-14 h-14 flex items-center justify-center text-[20px] font-bold text-[var(--label)]">
+            AF
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[17px] font-semibold text-[var(--label-on-accent)] truncate drop-shadow-sm">
+            AirFix Cyprus
+          </div>
+          <div className="text-[12px] text-[var(--label-on-accent)]/85 truncate">
+            airfix.cy@gmail.com
+          </div>
+        </div>
+        <Link
+          href="/dashboard/settings/company"
+          className="px-3 py-1.5 rounded-full bg-white/90 text-[13px] font-semibold text-[var(--accent)] active:scale-95 transition shrink-0"
+        >
+          Профиль
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -220,17 +290,9 @@ function Group({
 }) {
   return (
     <div>
-      <div className="px-4 pb-2 text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
-        {title}
-      </div>
-      <div className="bg-[var(--surface-card)] rounded-2xl overflow-hidden shadow-[var(--shadow-card)]">
-        {children}
-      </div>
-      {footer && (
-        <div className="px-4 pt-2 text-[12px] text-[var(--label-tertiary)] leading-snug">
-          {footer}
-        </div>
-      )}
+      <div className="section-title">{title}</div>
+      <div className="section-card">{children}</div>
+      {footer && <div className="section-footer">{footer}</div>}
     </div>
   );
 }

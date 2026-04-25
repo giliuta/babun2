@@ -79,9 +79,9 @@ export default function CalendarSettingsPage() {
         leftContent={
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-1 text-white/80 lg:text-[var(--accent)] text-[13px] px-1"
+            className="inline-flex items-center gap-1 text-[var(--accent)] text-[13px] font-medium px-2 py-2 active:opacity-70"
           >
-            <ChevronLeft size={16} strokeWidth={2.5} />
+            <ChevronLeft size={18} strokeWidth={2.5} />
             Настройки
           </Link>
         }

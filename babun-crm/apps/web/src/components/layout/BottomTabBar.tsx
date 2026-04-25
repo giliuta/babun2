@@ -65,7 +65,7 @@ export default function BottomTabBar() {
     <>
       <nav
         aria-label="Главная навигация"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-card)] border-t border-[var(--separator)]"
+        className="liquid-glass-bottom lg:hidden fixed bottom-0 left-0 right-0 z-40"
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
         }}

@@ -60,7 +60,7 @@ export default function SmsTemplatesPage() {
           <button
             type="button"
             onClick={handleNew}
-            className="px-3 py-1.5 bg-[var(--surface-card)] text-[var(--accent)] lg:bg-[var(--accent)] lg:text-[var(--label-on-accent)] rounded-[10px] text-[13px] font-semibold"
+            className="px-3 py-1.5 text-[var(--accent)] rounded-[10px] text-[13px] font-semibold active:opacity-70"
           >
             + Новый
           </button>
