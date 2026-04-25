@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Phone as PhoneIcon,
+  MessageSquare,
+  CalendarPlus,
+  MessageCircle,
+  Send,
+  Cake,
+  Wallet,
+  Wind,
+  Clock as ClockIcon,
+} from "lucide-react";
 import type { Client, PhoneEntry } from "@/lib/clients";
 import { ACQUISITION_LABELS, type AcquisitionSource } from "@/lib/clients";
 import LocationsSection from "./LocationsSection";
@@ -11,6 +23,11 @@ import { useServices, useTeams } from "@/app/dashboard/layout";
 import { loadChats, CHANNEL_LABELS, CHANNEL_COLORS, type Chat, type ChatChannel } from "@/lib/chats";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
+import {
+  whatsappUrl,
+  telegramUrl,
+  telUrl,
+} from "@/lib/messenger-links";
 
 interface ClientPanelProps {
   client: Client;
@@ -223,6 +240,9 @@ function ProfileForm({
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
   onUpdate: (next: Client) => void;
 }) {
+  // v321 — reordered: identity → contact → objects → activity → meta.
+  // Locations come above PersonalSection because for HVAC the object
+  // is the principal entity (one client / many villas).
   return (
     <div className="divide-y divide-[var(--separator)]">
       <FieldRow icon={<IconUser />} label="Имя и фамилия">
@@ -246,16 +266,6 @@ function ProfileForm({
 
       <ClientNotesSection client={client} update={update} />
 
-      <FieldRow icon={<IconChat />} label="Обращение в SMS напоминаниях">
-        <input
-          type="text"
-          value={client.sms_name}
-          onChange={(e) => update("sms_name", e.target.value)}
-          placeholder={client.full_name.split(" ")[0] || "Имя"}
-          className="w-full bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
-        />
-      </FieldRow>
-
       <FieldRow icon={<IconComment />} label="Комментарий">
         <AutoGrowTextarea
           value={client.comment}
@@ -271,24 +281,42 @@ function ProfileForm({
         />
       </FieldRow>
 
-      <FieldRow
-        icon={<IconBlock />}
-        label="Чёрный список"
-        right={
-          <Toggle
-            on={client.blacklisted}
-            onChange={(on) => update("blacklisted", on)}
-          />
-        }
-      >
-        {client.blacklisted ? (
-          <div className="text-[13px] text-[var(--system-red)] font-semibold">
-            Клиент заблокирован
-          </div>
-        ) : (
-          <div className="text-[13px] text-[var(--label-tertiary)]">—</div>
-        )}
-      </FieldRow>
+      <details className="px-4 py-3">
+        <summary className="text-[13px] font-medium text-[var(--label-secondary)] list-none cursor-pointer flex items-center justify-between">
+          Дополнительно
+          <span className="text-[var(--label-quaternary)] text-[12px]">▾</span>
+        </summary>
+        <div className="mt-3 divide-y divide-[var(--separator)]">
+          <FieldRow icon={<IconChat />} label="Обращение в SMS напоминаниях">
+            <input
+              type="text"
+              value={client.sms_name}
+              onChange={(e) => update("sms_name", e.target.value)}
+              placeholder={client.full_name.split(" ")[0] || "Имя"}
+              className="w-full bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
+            />
+          </FieldRow>
+
+          <FieldRow
+            icon={<IconBlock />}
+            label="Чёрный список"
+            right={
+              <Toggle
+                on={client.blacklisted}
+                onChange={(on) => update("blacklisted", on)}
+              />
+            }
+          >
+            {client.blacklisted ? (
+              <div className="text-[13px] text-[var(--system-red)] font-semibold">
+                Клиент заблокирован
+              </div>
+            ) : (
+              <div className="text-[13px] text-[var(--label-tertiary)]">—</div>
+            )}
+          </FieldRow>
+        </div>
+      </details>
     </div>
   );
 }
@@ -1340,6 +1368,13 @@ function ClientNotesSection({
 
 // ─── Client hero card (top of profile) ──────────────────────────────
 
+// v321 — Reworked Client Hero.
+//   * Avatar with optional gradient ring (VIP / blacklist).
+//   * Smart Insights pill — single actionable hint at a time
+//     (debt, birthday, silence, HVAC season).
+//   * Quick action row — 5 round buttons (Call · WA · SMS · Book · Chat).
+//   * Stat grid only when there's something to show (≥1 visit OR
+//     lifetime > 0 OR debt > 0).
 function ClientHero({
   client,
   stats,
@@ -1347,62 +1382,343 @@ function ClientHero({
   client: Client;
   stats: { visits: number; lifetime: number; debt: number; lastDate: string };
 }) {
+  const router = useRouter();
   const color = getAvatarColor(client.full_name);
-  const sourceLabel =
-    client.acquisition_source && client.acquisition_source !== "unknown"
-      ? ACQUISITION_LABELS[client.acquisition_source as AcquisitionSource]
-      : null;
-  const cityLabel = client.city?.trim();
-  const subParts: string[] = [];
-  if (cityLabel) subParts.push(cityLabel);
-  if (sourceLabel) subParts.push(sourceLabel);
+
+  const hasStats =
+    stats.visits > 0 ||
+    stats.lifetime > 0 ||
+    stats.debt > 0 ||
+    !!stats.lastDate;
+
+  const insight = useMemo(
+    () => buildInsight(client, stats),
+    [client, stats]
+  );
+
+  const tel = telUrl(client.phone);
+  const wa = whatsappUrl(client.whatsapp_phone || client.phone);
+  const tg = telegramUrl(client.telegram_username, client.phone);
+
+  const isVip = client.tag_ids?.some((t) => /vip/i.test(t)) ?? false;
 
   return (
     <div className="px-4 pt-3 pb-3 bg-gradient-to-b from-[var(--accent-tint)] to-transparent">
       <div className="flex items-center gap-3">
-        <div
-          className="w-14 h-14 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[18px] shrink-0"
-          style={{ backgroundColor: color }}
-        >
-          {getInitials(client.full_name || "?")}
-        </div>
+        {isVip ? (
+          <div className="avatar-ring shrink-0">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[18px]"
+              style={{ backgroundColor: color }}
+            >
+              {getInitials(client.full_name || "?")}
+            </div>
+          </div>
+        ) : (
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[18px] shrink-0"
+            style={{ backgroundColor: color }}
+          >
+            {getInitials(client.full_name || "?")}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
-          <div className="text-[18px] font-semibold text-[var(--label)] tracking-tight truncate">
+          <div className="text-[20px] font-semibold text-[var(--label)] tracking-tight truncate">
             {client.full_name || "Без имени"}
           </div>
-          {subParts.length > 0 && (
-            <div className="text-[12px] text-[var(--label-secondary)] truncate mt-0.5">
-              {subParts.join(" · ")}
-            </div>
-          )}
+          <ProfileChips client={client} />
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-4 gap-1.5">
-        <HeroStat
-          label="Визитов"
-          value={String(stats.visits)}
-          tone="default"
+
+      {/* Quick action row — 5 round 44px buttons.  Each button hides
+          itself when the corresponding link can't be built (no phone,
+          no Telegram handle, etc.). */}
+      <div className="mt-3 grid grid-cols-5 gap-1">
+        <QuickAction
+          icon={<PhoneIcon size={18} strokeWidth={2.2} />}
+          label="Звонок"
+          tone="green"
+          href={tel}
         />
-        <HeroStat
-          label="Доход"
-          value={
-            stats.lifetime > 0
-              ? `€${stats.lifetime.toLocaleString("ru-RU")}`
-              : "—"
-          }
-          tone={stats.lifetime > 0 ? "good" : "default"}
+        <QuickAction
+          icon={<MessageSquare size={18} strokeWidth={2.2} />}
+          label="SMS"
+          tone="blue"
+          href={tel ? `sms:${client.phone.replace(/\D/g, "")}` : null}
         />
-        <HeroStat
-          label="Долг"
-          value={stats.debt > 0 ? `€${stats.debt}` : "—"}
-          tone={stats.debt > 0 ? "bad" : "default"}
+        <QuickAction
+          icon={<Send size={18} strokeWidth={2.2} />}
+          label="WhatsApp"
+          tone="green"
+          href={wa}
+          external
         />
-        <HeroStat
-          label="Последний"
-          value={stats.lastDate ? formatDateShort(stats.lastDate) : "—"}
-          tone="default"
+        <QuickAction
+          icon={<CalendarPlus size={18} strokeWidth={2.2} />}
+          label="Записать"
+          tone="accent"
+          onClick={() => {
+            haptic("tap");
+            router.push(`/dashboard?new=1&client_id=${client.id}`);
+          }}
+        />
+        <QuickAction
+          icon={<MessageCircle size={18} strokeWidth={2.2} />}
+          label="Чат"
+          tone="indigo"
+          onClick={() => {
+            haptic("tap");
+            router.push(`/dashboard/chats?client_id=${client.id}`);
+          }}
         />
       </div>
+
+      {insight && <InsightPill {...insight} />}
+
+      {hasStats && (
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          <HeroStat
+            label="Визитов"
+            value={String(stats.visits)}
+            tone="default"
+          />
+          <HeroStat
+            label="Доход"
+            value={
+              stats.lifetime > 0
+                ? `€${stats.lifetime.toLocaleString("ru-RU")}`
+                : "—"
+            }
+            tone={stats.lifetime > 0 ? "good" : "default"}
+          />
+          <HeroStat
+            label="Долг"
+            value={stats.debt > 0 ? `€${stats.debt}` : "—"}
+            tone={stats.debt > 0 ? "bad" : "default"}
+          />
+          <HeroStat
+            label="Последний"
+            value={stats.lastDate ? formatDateShort(stats.lastDate) : "—"}
+            tone="default"
+          />
+        </div>
+      )}
+      {tg && (
+        <a
+          href={tg}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => haptic("tap")}
+          className="hidden"
+        >
+          tg
+        </a>
+      )}
+    </div>
+  );
+}
+
+// Compact city / language / source / source-tag chips under the name.
+// Keeps the hero from looking empty when only minimal data is filled.
+function ProfileChips({ client }: { client: Client }) {
+  const chips: { icon?: string; text: string }[] = [];
+  if (client.city?.trim()) chips.push({ icon: "📍", text: client.city.trim() });
+  if (client.language) {
+    const flag =
+      client.language === "ru"
+        ? "🇷🇺"
+        : client.language === "en"
+          ? "🇬🇧"
+          : client.language === "el"
+            ? "🇬🇷"
+            : "";
+    chips.push({ text: flag || client.language });
+  }
+  if (client.acquisition_source && client.acquisition_source !== "unknown") {
+    chips.push({
+      text: ACQUISITION_LABELS[
+        client.acquisition_source as AcquisitionSource
+      ],
+    });
+  }
+  if (chips.length === 0) {
+    return (
+      <div className="text-[12px] text-[var(--label-tertiary)] truncate mt-0.5">
+        Заполни профиль ниже
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1 mt-1">
+      {chips.map((c, i) => (
+        <span
+          key={i}
+          className="inline-flex items-center gap-0.5 text-[12px] text-[var(--label-secondary)]"
+        >
+          {c.icon && <span>{c.icon}</span>}
+          <span className="truncate">{c.text}</span>
+          {i < chips.length - 1 && (
+            <span className="text-[var(--label-quaternary)] ml-1">·</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  tone,
+  href,
+  external,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tone: "green" | "blue" | "accent" | "indigo";
+  href?: string | null;
+  external?: boolean;
+  onClick?: () => void;
+}) {
+  const enabled = !!href || !!onClick;
+  const toneCls = !enabled
+    ? "text-[var(--label-quaternary)] bg-[var(--fill-tertiary)]"
+    : tone === "green"
+      ? "text-[var(--system-green)] bg-[rgba(52,199,89,0.12)] active:bg-[rgba(52,199,89,0.20)]"
+      : tone === "blue"
+        ? "text-[var(--system-blue)] bg-[rgba(0,122,255,0.10)] active:bg-[rgba(0,122,255,0.18)]"
+        : tone === "indigo"
+          ? "text-[var(--system-indigo)] bg-[rgba(94,92,230,0.10)] active:bg-[rgba(94,92,230,0.18)]"
+          : "text-[var(--accent)] bg-[var(--accent-tint)] active:bg-[var(--accent-tint)]";
+
+  const inner = (
+    <>
+      <span
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition press-scale ${toneCls}`}
+      >
+        {icon}
+      </span>
+      <span
+        className={`text-[10px] font-medium leading-none ${
+          enabled ? "text-[var(--label-secondary)]" : "text-[var(--label-quaternary)]"
+        }`}
+      >
+        {label}
+      </span>
+    </>
+  );
+
+  const baseProps = {
+    className: "flex flex-col items-center gap-1 py-1",
+    onClick: () => {
+      if (!enabled) return;
+      haptic("tap");
+      onClick?.();
+    },
+  } as const;
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noreferrer" : undefined}
+        {...baseProps}
+      >
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <button type="button" disabled={!enabled} {...baseProps}>
+      {inner}
+    </button>
+  );
+}
+
+interface Insight {
+  tone: "warn" | "info" | "good";
+  icon: React.ReactNode;
+  text: string;
+}
+
+// Picks one insight to surface — order is by severity (debt > silence
+// > seasonal > birthday).  Returns null if nothing actionable.
+function buildInsight(
+  client: Client,
+  stats: { visits: number; lifetime: number; debt: number; lastDate: string }
+): Insight | null {
+  if (stats.debt > 0) {
+    return {
+      tone: "warn",
+      icon: <Wallet size={14} strokeWidth={2.2} />,
+      text: `Долг €${stats.debt} — стоит позвонить`,
+    };
+  }
+  // Birthday in the next 14 days?
+  if (client.birthday) {
+    const days = daysUntilBirthday(client.birthday);
+    if (days !== null && days >= 0 && days <= 14) {
+      return {
+        tone: "info",
+        icon: <Cake size={14} strokeWidth={2.2} />,
+        text:
+          days === 0
+            ? "День рождения сегодня"
+            : days === 1
+              ? "День рождения завтра"
+              : `День рождения через ${days} дн.`,
+      };
+    }
+  }
+  // Silence: completed visits but last one >120 days ago?
+  if (stats.lastDate && stats.visits > 0) {
+    const ageDays = daysSince(stats.lastDate);
+    if (ageDays >= 120) {
+      // HVAC season hint: chistka is May / October, suggest accordingly.
+      const month = new Date().getMonth();
+      const inSeason = month === 4 || month === 9; // May or October
+      return {
+        tone: "info",
+        icon: inSeason ? (
+          <Wind size={14} strokeWidth={2.2} />
+        ) : (
+          <ClockIcon size={14} strokeWidth={2.2} />
+        ),
+        text: inSeason
+          ? `Сезон чистки A/C — ${ageDays} дн. без визита`
+          : `${ageDays} дн. без визита — позвонить?`,
+      };
+    }
+  }
+  // No visits ever AND record is at least 30d old → cold lead reminder.
+  if (stats.visits === 0 && client.created_at) {
+    const ageDays = daysSince(client.created_at.slice(0, 10));
+    if (ageDays >= 30 && ageDays <= 365) {
+      return {
+        tone: "info",
+        icon: <ClockIcon size={14} strokeWidth={2.2} />,
+        text: `${ageDays} дн. в базе — не записан ни разу`,
+      };
+    }
+  }
+  return null;
+}
+
+function InsightPill({ tone, icon, text }: Insight) {
+  const cls =
+    tone === "warn"
+      ? "bg-[rgba(255,149,0,0.12)] text-[var(--system-orange)]"
+      : tone === "good"
+        ? "bg-[rgba(52,199,89,0.12)] text-[var(--system-green)]"
+        : "bg-[var(--accent-tint)] text-[var(--accent)]";
+  return (
+    <div
+      className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-[12px] text-[13px] font-semibold ${cls}`}
+    >
+      {icon}
+      <span className="truncate">{text}</span>
     </div>
   );
 }
@@ -1433,6 +1749,30 @@ function HeroStat({
         {label}
       </div>
     </div>
+  );
+}
+
+function daysSince(isoDate: string): number {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  if (!y || !m || !d) return 0;
+  const past = new Date(y, m - 1, d).getTime();
+  const now = Date.now();
+  return Math.max(0, Math.floor((now - past) / 86400000));
+}
+
+function daysUntilBirthday(isoDate: string): number | null {
+  const [, m, d] = isoDate.split("-").map(Number);
+  if (!m || !d) return null;
+  const now = new Date();
+  const thisYear = new Date(now.getFullYear(), m - 1, d);
+  const target =
+    thisYear < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      ? new Date(now.getFullYear() + 1, m - 1, d)
+      : thisYear;
+  return Math.floor(
+    (target.getTime() -
+      new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) /
+      86400000
   );
 }
 
