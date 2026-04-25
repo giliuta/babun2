@@ -840,6 +840,11 @@ export default function DashboardLayout({
             paddingLeft: "env(safe-area-inset-left)",
             paddingRight: "env(safe-area-inset-right)",
             paddingBottom: "env(safe-area-inset-bottom)",
+            // v322 — kill iOS edge-swipe back navigation at the root
+            // so swiping from the left edge of the Clients page no
+            // longer pulls the Calendar in from underneath.
+            touchAction: "pan-y",
+            overscrollBehaviorX: "none",
           }}
         >
           <Sidebar

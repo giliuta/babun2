@@ -210,6 +210,12 @@ html.theme-dark {
 html, body {
   height: 100%;
   overflow: hidden;
+  /* v322 — kill iOS edge-swipe back navigation everywhere.  Without
+     this, swiping from the left edge of any page pulls in whatever
+     was previous in history (e.g. Calendar bleeds in from under
+     Clients). */
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 body {
