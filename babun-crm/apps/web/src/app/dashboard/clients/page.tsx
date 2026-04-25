@@ -34,12 +34,17 @@ import SwipeableRow from "@/components/ui/SwipeableRow";
 import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
 import { type Client, type ClientTag, createBlankClient } from "@/lib/clients";
-import { getPaidAmount } from "@/lib/appointments";
 import { getAvatarColor, getInitials } from "@/lib/avatar-color";
 import { countWordRu } from "@/lib/pluralize";
 import ClientPanel from "@/components/clients/ClientPanel";
 import { matchesClient } from "@/lib/client-search";
 import { haptic } from "@/lib/haptics";
+import {
+  buildStatsMap,
+  getClientDisplayState,
+  type ClientStats,
+} from "@/lib/client-stats";
+import ClientCardStats from "@/components/clients/ClientCardStats";
 
 // v312 — tag chips are tenant-managed: read from useClients().tags.
 // Settings UI for creating/editing/deleting tags lands in Phase 2.
@@ -62,20 +67,9 @@ const SEGMENT_LABELS: Record<Segment, string> = {
   blacklist: "Чёрный список",
 };
 
-function daysUntilBirthday(iso: string): number | null {
-  if (!iso) return null;
-  const [, m, d] = iso.split("-").map(Number);
-  if (!m || !d) return null;
-  const now = new Date();
-  const thisYear = new Date(now.getFullYear(), m - 1, d);
-  thisYear.setHours(0, 0, 0, 0);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let target = thisYear;
-  if (target < today) {
-    target = new Date(now.getFullYear() + 1, m - 1, d);
-  }
-  return Math.round((target.getTime() - today.getTime()) / 86400000);
-}
+// v329 — daysUntilBirthday moved into lib/client-stats.ts as part
+// of the unified ClientStats roll-up (read via statsMap.get(id)
+// .birthdayInDays).  Local copy removed.
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -128,27 +122,15 @@ export default function ClientsPage() {
     }
   }, []);
 
-  // Compute revenue + debt per client in a single pass.
-  // Debt = sum over completed appointments of `max(0, total − paid)`.
-  // It's derived from the unified payment model; no ClientDebt table
-  // yet.
-  const revenueMap = useMemo(() => {
-    const map = new Map<
-      string,
-      { total: number; count: number; lastDate: string; debt: number }
-    >();
-    for (const a of appointments) {
-      if (!a.client_id || a.status !== "completed") continue;
-      const prev = map.get(a.client_id) ?? { total: 0, count: 0, lastDate: "", debt: 0 };
-      const paid = getPaidAmount(a);
-      prev.total += paid;
-      prev.debt += Math.max(0, a.total_amount - paid);
-      prev.count++;
-      if (a.date > prev.lastDate) prev.lastDate = a.date;
-      map.set(a.client_id, prev);
-    }
-    return map;
-  }, [appointments]);
+  // v329 — single source of truth for client roll-up stats.  Walks
+  // appointments once, returns Map<clientId, ClientStats>; the page
+  // reads visits / totalSpent / lastVisitDays / nextApt / debt /
+  // ageDays / birthdayInDays in O(1).  Replaces the older
+  // revenueMap and the inline daysUntilBirthday.
+  const statsMap = useMemo(
+    () => buildStatsMap(clients, appointments),
+    [clients, appointments]
+  );
 
   // ── Segment counts (auto-derived, not user tags) ─────────────────
   const segmentCounts = useMemo(() => {
@@ -156,14 +138,14 @@ export default function ClientsPage() {
     let birthday = 0;
     let blacklist = 0;
     for (const c of clients) {
-      const rev = revenueMap.get(c.id);
-      if ((rev?.debt ?? 0) > 0 || c.balance < 0) debt += 1;
-      const dd = daysUntilBirthday(c.birthday);
+      const s = statsMap.get(c.id);
+      if ((s?.debt ?? 0) > 0 || c.balance < 0) debt += 1;
+      const dd = s?.birthdayInDays ?? null;
       if (dd !== null && dd <= 14) birthday += 1;
       if (c.blacklisted) blacklist += 1;
     }
     return { all: clients.length, debt, birthday, blacklist };
-  }, [clients, revenueMap]);
+  }, [clients, statsMap]);
 
   // Equipment count is now per-location. Aggregate across locations
   // so sort by «A/C» still works.
@@ -189,12 +171,12 @@ export default function ClientsPage() {
     // Auto-segment filter
     if (segment === "debt") {
       list = list.filter((c) => {
-        const rev = revenueMap.get(c.id);
-        return (rev?.debt ?? 0) > 0 || c.balance < 0;
+        const s = statsMap.get(c.id);
+        return (s?.debt ?? 0) > 0 || c.balance < 0;
       });
     } else if (segment === "birthday") {
       list = list.filter((c) => {
-        const dd = daysUntilBirthday(c.birthday);
+        const dd = statsMap.get(c.id)?.birthdayInDays ?? null;
         return dd !== null && dd <= 14;
       });
     } else if (segment === "blacklist") {
@@ -211,17 +193,20 @@ export default function ClientsPage() {
       }
       if (sort === "name") return a.full_name.localeCompare(b.full_name, "ru");
       if (sort === "revenue") {
-        return (revenueMap.get(b.id)?.total ?? 0) - (revenueMap.get(a.id)?.total ?? 0);
+        return (
+          (statsMap.get(b.id)?.totalSpent ?? 0) -
+          (statsMap.get(a.id)?.totalSpent ?? 0)
+        );
       }
       if (sort === "equipment") return acCount(b) - acCount(a);
       // "recent" — by last order date desc, then created_at
-      const aDate = revenueMap.get(a.id)?.lastDate ?? a.created_at;
-      const bDate = revenueMap.get(b.id)?.lastDate ?? b.created_at;
+      const aDate = statsMap.get(a.id)?.lastVisitDate || a.created_at;
+      const bDate = statsMap.get(b.id)?.lastVisitDate || b.created_at;
       return bDate.localeCompare(aDate);
     });
 
     return list;
-  }, [clients, search, activeTags, segment, sort, revenueMap]);
+  }, [clients, search, activeTags, segment, sort, statsMap]);
 
   const toggleTag = (tagId: string) => {
     setActiveTags((prev) =>
@@ -586,18 +571,17 @@ export default function ClientsPage() {
           {/* ── Client cards ─────────────────────────────────────── */}
           <div className="space-y-2">
             {filtered.map((client) => {
-              const rev = revenueMap.get(client.id);
+              const stats = statsMap.get(client.id);
               const phoneDigits = client.phone.replace(/\D/g, "");
               const acTotal = acCount(client);
               const primary = (client.locations ?? []).find((l) => l.isPrimary)
                 ?? (client.locations ?? [])[0]
                 ?? null;
-              const debt = (rev?.debt ?? 0) > 0
-                ? rev!.debt
+              const debt = (stats?.debt ?? 0) > 0
+                ? stats!.debt
                 : client.balance < 0
                   ? Math.abs(client.balance)
                   : 0;
-              const dd = daysUntilBirthday(client.birthday);
               const isPicked = selectedIds.has(client.id);
               const isPinned = Boolean(client.pinned_at);
 
@@ -607,12 +591,10 @@ export default function ClientsPage() {
                 <ClientCard
                   client={client}
                   tags={tags}
+                  stats={stats}
                   acTotal={acTotal}
                   debt={debt}
-                  revenue={rev?.total ?? 0}
-                  lastDate={rev?.lastDate ?? ""}
                   primaryAddress={primary?.address ?? ""}
-                  birthdayInDays={dd}
                   phoneDigits={phoneDigits}
                   selectionMode={isSelecting}
                   picked={isPicked}
@@ -991,12 +973,10 @@ function SegmentChip({
 function ClientCard({
   client,
   tags,
+  stats,
   acTotal,
   debt,
-  revenue,
-  lastDate,
   primaryAddress,
-  birthdayInDays,
   phoneDigits,
   selectionMode,
   picked,
@@ -1007,12 +987,10 @@ function ClientCard({
 }: {
   client: Client;
   tags: ClientTag[];
+  stats: ClientStats | undefined;
   acTotal: number;
   debt: number;
-  revenue: number;
-  lastDate: string;
   primaryAddress: string;
-  birthdayInDays: number | null;
   phoneDigits: string;
   selectionMode: boolean;
   picked: boolean;
@@ -1023,11 +1001,14 @@ function ClientCard({
 }) {
   const color = getAvatarColor(client.full_name);
   const initials = getInitials(client.full_name || "?");
-  const lastDateLabel = lastDate
-    ? lastDate.split("-").reverse().join(".")
-    : null;
+  // v330 — LTV pill replaces the old DD.MM.YYYY label.  Money is
+  // more useful than "last visit date" at a glance — and the second
+  // row carries the natural-language age now ("Был 3 дня назад").
+  const ltv = Math.round(stats?.totalSpent ?? 0);
+  const birthdayInDays = stats?.birthdayInDays ?? null;
   const birthdaySoon =
     birthdayInDays !== null && birthdayInDays >= 0 && birthdayInDays <= 14;
+  const displayState = stats ? getClientDisplayState(stats) : null;
 
   const tagChips = client.tag_ids
     .map((tid) => tags.find((t) => t.id === tid))
@@ -1144,16 +1125,28 @@ function ClientCard({
               />
             )}
           </div>
-          {lastDateLabel && (
-            <span className="text-[11px] text-[var(--label-tertiary)] shrink-0 tabular-nums">
-              {lastDateLabel}
+          {ltv > 0 && (
+            <span
+              className="text-[11px] font-semibold text-[var(--label-secondary)] shrink-0 tabular-nums"
+              title="Сумма всех визитов"
+            >
+              €{ltv.toLocaleString("ru-RU")}
             </span>
           )}
         </div>
 
-        {client.phone && (
-          <div className="text-[12px] text-[var(--label-tertiary)] truncate tabular-nums mt-0.5">
-            {client.phone}
+        {/* v330 — phone + state line: «+357…  ·  Был 3 дня назад» */}
+        {(client.phone || displayState) && (
+          <div className="flex items-center gap-1.5 text-[12px] mt-0.5 truncate">
+            {client.phone && (
+              <span className="text-[var(--label-tertiary)] tabular-nums shrink-0">
+                {client.phone}
+              </span>
+            )}
+            {client.phone && displayState && (
+              <span className="text-[var(--label-quaternary)] shrink-0">·</span>
+            )}
+            {displayState && <ClientCardStats display={displayState} />}
           </div>
         )}
 
@@ -1164,17 +1157,12 @@ function ClientCard({
           </div>
         )}
 
-        {(debt > 0 || revenue > 0 || acTotal > 0 || tagChips.length > 0) && (
+        {(debt > 0 || acTotal > 0 || tagChips.length > 0) && (
           <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
             {debt > 0 && (
               <span className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[11px] font-bold tabular-nums">
                 <Wallet size={10} strokeWidth={2.5} />
                 €{debt}
-              </span>
-            )}
-            {revenue > 0 && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-[rgba(52,199,89,0.12)] text-[var(--system-green)] text-[11px] font-semibold tabular-nums">
-                €{Math.round(revenue)}
               </span>
             )}
             {acTotal > 0 && (
