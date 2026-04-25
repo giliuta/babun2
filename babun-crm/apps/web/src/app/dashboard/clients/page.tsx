@@ -24,6 +24,7 @@ import {
   Clock,
   Eye,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -99,6 +100,19 @@ export default function ClientsPage() {
   } | null>(null);
   const [reminderFor, setReminderFor] = useState<Client | null>(null);
   const [singleConfirmDelete, setSingleConfirmDelete] = useState<Client | null>(null);
+  // v314 — search hidden above the fold, reveals on pull-down
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Hide the search bar above the scroll fold on mount. User pulls
+  // the list DOWN (overscroll up) to reveal it. iOS-Mail style.
+  useEffect(() => {
+    if (!scrollRef.current || !searchRef.current) return;
+    if (search.trim()) return; // keep visible if typing
+    scrollRef.current.scrollTop =
+      searchRef.current.offsetHeight + 12;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
   // Dima taps "Открыть карточку" in a chat and lands directly on the
@@ -416,6 +430,12 @@ export default function ClientsPage() {
       <PageHeader
         title={isSelecting ? `Выбрано ${selectedIds.size}` : "Клиенты"}
         showBack={false}
+        onTitleClick={
+          isSelecting ? undefined : () => {
+            haptic("tap");
+            setSortOpen(true);
+          }
+        }
         leftContent={
           <button
             type="button"
@@ -450,43 +470,29 @@ export default function ClientsPage() {
               {selectedIds.size === filtered.length ? "Снять" : "Все"}
             </button>
           ) : (
-            <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  setSortOpen(true);
-                }}
-                title={`Сортировка: ${SORT_LABELS[sort]}`}
-                className="h-9 px-2.5 flex items-center gap-1 rounded-full text-[var(--label-on-accent)] lg:text-[var(--label-secondary)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--fill-quaternary)] text-[13px] font-medium transition"
-              >
-                <ArrowUpDown size={14} strokeWidth={2} />
-                {SORT_LABELS[sort]}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  haptic("tap");
-                  setDraft(createBlankClient());
-                }}
-                aria-label="Добавить клиента"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] transition"
-              >
-                <Plus size={20} strokeWidth={2.2} />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setDraft(createBlankClient());
+              }}
+              aria-label="Добавить клиента"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] transition"
+            >
+              <Plus size={20} strokeWidth={2.2} />
+            </button>
           )
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]"
+      >
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
-          {/* Stats banner removed v311 — будет переосмыслен позже,
-              скорее всего как часть AI-инсайтов в /chats. На launch
-              страница начинается с поиска. */}
-
-          {/* ── Search ───────────────────────────────────────────── */}
-          <div className="relative">
+          {/* ── Search (hidden above the fold; pull list down to
+                 reveal — iOS-Mail style) ────────────────────────── */}
+          <div ref={searchRef} className="relative">
             <Search
               size={16}
               strokeWidth={2}
@@ -1325,6 +1331,14 @@ function ReminderPicker({
   onPick: (iso: string | null) => void;
   onClose: () => void;
 }) {
+  const [customMode, setCustomMode] = useState(false);
+  const [customDate, setCustomDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customTime, setCustomTime] = useState("09:00");
+
   const presets: { label: string; subtitle: string; date: () => Date }[] = [
     {
       label: "Через 1 час",
@@ -1366,77 +1380,167 @@ function ReminderPicker({
     },
   ];
 
+  const submitCustom = () => {
+    const [y, mo, da] = customDate.split("-").map(Number);
+    const [h, mi] = customTime.split(":").map(Number);
+    if (!y || !mo || !da) return;
+    const d = new Date(y, mo - 1, da, h || 0, mi || 0, 0, 0);
+    if (Number.isNaN(d.getTime())) return;
+    onPick(d.toISOString());
+  };
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[360px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
+        className="w-full max-w-[380px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-[15px] font-semibold text-[var(--label)] truncate">
-              Напомнить про {client.full_name || "клиента"}
+              {customMode ? "Своё время" : `Напомнить про ${client.full_name || "клиента"}`}
             </div>
-            {client.reminder_at && (
-              <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
-                Текущее: {formatReminderShort(client.reminder_at)}
-              </div>
-            )}
+            <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+              Babun пришлёт push-уведомление, когда наступит время
+            </div>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
+            onClick={() => {
+              if (customMode) {
+                setCustomMode(false);
+              } else {
+                onClose();
+              }
+            }}
+            aria-label={customMode ? "Назад" : "Закрыть"}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
             <X size={16} strokeWidth={2.5} />
           </button>
         </div>
-        <div className="divide-y divide-[var(--separator)]">
-          {presets.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => onPick(p.date().toISOString())}
-              className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[var(--fill-quaternary)] transition"
-            >
-              <span className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
-                <Clock size={16} strokeWidth={2.2} />
-              </span>
-              <span className="flex-1">
-                <span className="block text-[15px] font-medium text-[var(--label)]">
-                  {p.label}
+
+        {customMode ? (
+          <div className="px-4 py-3 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-tertiary)]">
+                  Дата
                 </span>
-                {p.subtitle && (
-                  <span className="block text-[12px] text-[var(--label-tertiary)] mt-0.5">
-                    {p.subtitle}
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                  className="h-12 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none tabular-nums"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-tertiary)]">
+                  Время
+                </span>
+                <input
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  className="h-12 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none tabular-nums"
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-[var(--accent-tint)] text-[12px] text-[var(--accent)] font-semibold">
+              <Bell size={12} strokeWidth={2.2} />
+              Push-уведомление сработает в это время
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCustomMode(false)}
+                className="h-11 px-4 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[14px] font-medium press-scale"
+              >
+                Назад
+              </button>
+              <button
+                type="button"
+                onClick={submitCustom}
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale"
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {client.reminder_at && (
+              <div className="px-4 py-2 bg-[var(--fill-tertiary)] text-[12px] text-[var(--label-secondary)] flex items-center gap-1.5">
+                <Clock size={11} strokeWidth={2.2} />
+                Сейчас: {formatReminderShort(client.reminder_at)}
+              </div>
+            )}
+            <div className="divide-y divide-[var(--separator)]">
+              {presets.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => onPick(p.date().toISOString())}
+                  className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[var(--fill-quaternary)] transition"
+                >
+                  <span className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                    <Clock size={16} strokeWidth={2.2} />
                   </span>
-                )}
-              </span>
-              <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
-            </button>
-          ))}
-          {client.reminder_at && (
-            <button
-              type="button"
-              onClick={() => onPick(null)}
-              className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[rgba(255,59,48,0.08)] transition text-[var(--system-red)]"
-            >
-              <span className="w-8 h-8 rounded-full bg-[rgba(255,59,48,0.1)] flex items-center justify-center shrink-0">
-                <X size={16} strokeWidth={2.5} />
-              </span>
-              <span className="flex-1 text-[15px] font-medium">
-                Снять напоминание
-              </span>
-            </button>
-          )}
-        </div>
+                  <span className="flex-1">
+                    <span className="block text-[15px] font-medium text-[var(--label)]">
+                      {p.label}
+                    </span>
+                    {p.subtitle && (
+                      <span className="block text-[12px] text-[var(--label-tertiary)] mt-0.5">
+                        {p.subtitle}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCustomMode(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[var(--fill-quaternary)] transition"
+              >
+                <span className="w-8 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                  <CalendarPlus size={16} strokeWidth={2.2} />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-[15px] font-medium text-[var(--label)]">
+                    Своё время и дата
+                  </span>
+                  <span className="block text-[12px] text-[var(--label-tertiary)] mt-0.5">
+                    выбрать конкретный день и час
+                  </span>
+                </span>
+                <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
+              </button>
+              {client.reminder_at && (
+                <button
+                  type="button"
+                  onClick={() => onPick(null)}
+                  className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left active:bg-[rgba(255,59,48,0.08)] transition text-[var(--system-red)]"
+                >
+                  <span className="w-8 h-8 rounded-full bg-[rgba(255,59,48,0.1)] flex items-center justify-center shrink-0">
+                    <X size={16} strokeWidth={2.5} />
+                  </span>
+                  <span className="flex-1 text-[15px] font-medium">
+                    Снять напоминание
+                  </span>
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

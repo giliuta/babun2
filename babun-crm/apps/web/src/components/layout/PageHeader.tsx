@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Menu } from "lucide-react";
+import { ChevronDown, ChevronLeft, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/app/dashboard/layout";
 
@@ -18,6 +18,9 @@ interface PageHeaderProps {
   /** Custom left slot — replaces the default back/menu button. */
   leftContent?: React.ReactNode;
   rightContent?: React.ReactNode;
+  /** When set, the title becomes a tap target (e.g. opens sort sheet).
+   *  Adds a subtle chevron-down to hint at interactivity. */
+  onTitleClick?: () => void;
 }
 
 // Telegram-style navigation bar. 44 pt nav height, 17 pt semibold
@@ -31,6 +34,7 @@ export default function PageHeader({
   backHref = "/dashboard",
   leftContent,
   rightContent,
+  onTitleClick,
 }: PageHeaderProps) {
   const router = useRouter();
   const sidebar = useSidebar();
@@ -61,9 +65,24 @@ export default function PageHeader({
         )}
 
         <div className="flex-1 min-w-0 py-2 text-center lg:text-left">
-          <h1 className="text-[17px] font-semibold text-[var(--label)] truncate leading-tight">
-            {title}
-          </h1>
+          {onTitleClick ? (
+            <button
+              type="button"
+              onClick={onTitleClick}
+              className="inline-flex items-center gap-1 text-[17px] font-semibold text-[var(--label)] truncate leading-tight active:opacity-70 transition"
+            >
+              <span className="truncate">{title}</span>
+              <ChevronDown
+                size={15}
+                strokeWidth={2.5}
+                className="text-[var(--label-tertiary)] shrink-0"
+              />
+            </button>
+          ) : (
+            <h1 className="text-[17px] font-semibold text-[var(--label)] truncate leading-tight">
+              {title}
+            </h1>
+          )}
           {subtitle && (
             <p className="text-[12px] text-[var(--label-secondary)] truncate leading-tight mt-0.5">
               {subtitle}
