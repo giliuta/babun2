@@ -74,7 +74,10 @@ export interface ClientNote {
 
 // ─── Client locations (objects) ────────────────────────────────────────
 // Один клиент может иметь несколько объектов — дом, офис, вилла —
-// со своим адресом и своим количеством сплит-систем.
+// со своим адресом и **своим оборудованием**. v309: equipment
+// переехало с клиента на объект, потому что у одной семьи может
+// быть 3 кондея в квартире и 5 в офисе — это разное оборудование
+// одного и того же клиента.
 export interface Location {
   id: string;
   label: string;         // "Дом", "Офис", "Вилла"
@@ -85,6 +88,12 @@ export interface Location {
    *  google.com/maps/dir по текстовому адресу. */
   mapUrl?: string;
   isPrimary: boolean;    // первый объект для автовыбора
+  /** v309 — заметка к объекту, видна бригаде у порога:
+   *  «зелёная дверь, домофон 25», «снимать обувь», «собака во дворе». */
+  note?: string;
+  /** v309 — A/C юниты на этом объекте. До v309 хранилось на клиенте;
+   *  миграция переносит client.equipment → locations[primary].equipment. */
+  equipment?: ACUnit[];
 }
 
 export interface PhoneEntry {
@@ -92,6 +101,10 @@ export interface PhoneEntry {
   number: string;
   /** "Основной", "WhatsApp", "Жена", "Рабочий" etc. */
   label: string;
+  /** v309 — имя контакта на этом номере. Реальный сценарий: одна
+   *  карточка клиента, основной — муж, второй номер — «Жена · Мария».
+   *  Для отображения в строке и подстановки в SMS-обращение. */
+  name?: string;
 }
 
 export interface Client {
@@ -116,7 +129,12 @@ export interface Client {
   address: string;
   city: string;
   property_type: PropertyType | "";
+  /** DEPRECATED with v309 — equipment moved onto Location. Field kept
+   *  for legacy reads; `loadClients` migrates into the primary
+   *  location's `equipment` array on first load. */
   equipment: ACUnit[];
+  /** v309 — язык клиента для SMS-шаблонов (ru/en/el на Кипре чаще всего). */
+  language?: string;
   /** Объекты клиента (дом/офис/вилла) — новое поле для STORY-002.
    *  Если у клиента несколько объектов, при записи явно выбирается
    *  один. Legacy-поле `address` оставлено для миграции. */
@@ -228,27 +246,14 @@ export function loadClients(): Client[] {
       return MOCK_CLIENTS.map(mockToClient);
     }
     // Lightweight migration for fields added after records were stored
-    return parsed.map((c: Partial<Client>) => ({
-      ...c,
-      email: c.email ?? "",
-      telegram_username: c.telegram_username ?? "",
-      instagram_username: c.instagram_username ?? "",
-      property_type: c.property_type ?? "",
-      equipment: (c.equipment ?? []).map((u: Partial<ACUnit>) => ({
+    return parsed.map((c: Partial<Client>) => {
+      const equipmentLegacy = (c.equipment ?? []).map((u: Partial<ACUnit>) => ({
         ...u,
         ac_type: u.ac_type ?? "split",
-      })),
-      notes: c.notes ?? [],
-      birthday: c.birthday ?? "",
-      blacklisted: c.blacklisted ?? false,
-      phones: c.phones ?? [],
-      whatsapp_phone: c.whatsapp_phone ?? "",
+      })) as ACUnit[];
       // STORY-002 migration: legacy single-address clients get a
       // one-location array inferred from their stored address.
-      // Runs once per client; на последующих загрузках locations уже
-      // на месте и не перезаписывается. Stale acUnits на записанных
-      // locations игнорируется — TS отбрасывает лишние поля.
-      locations:
+      const baseLocations: Location[] =
         c.locations && c.locations.length > 0
           ? c.locations.map((l) => ({
               id: l.id,
@@ -256,6 +261,8 @@ export function loadClients(): Client[] {
               address: l.address,
               mapUrl: l.mapUrl,
               isPrimary: l.isPrimary,
+              note: l.note,
+              equipment: l.equipment,
             }))
           : [
               {
@@ -264,8 +271,42 @@ export function loadClients(): Client[] {
                 address: c.address ?? "",
                 isPrimary: true,
               },
-            ],
-    })) as Client[];
+            ];
+      // v309 migration: if any legacy equipment exists on the client
+      // and no location yet has equipment, move it onto the primary
+      // location. Subsequent loads see equipment already on locations
+      // and skip the move silently.
+      const anyLocHasEquipment = baseLocations.some(
+        (l) => (l.equipment ?? []).length > 0,
+      );
+      const migratedLocations = baseLocations.map((l) => ({
+        ...l,
+        equipment: l.equipment ?? [],
+      }));
+      if (!anyLocHasEquipment && equipmentLegacy.length > 0) {
+        const primaryIdx = migratedLocations.findIndex((l) => l.isPrimary);
+        const targetIdx = primaryIdx >= 0 ? primaryIdx : 0;
+        migratedLocations[targetIdx] = {
+          ...migratedLocations[targetIdx],
+          equipment: equipmentLegacy,
+        };
+      }
+      return {
+        ...c,
+        email: c.email ?? "",
+        telegram_username: c.telegram_username ?? "",
+        instagram_username: c.instagram_username ?? "",
+        property_type: c.property_type ?? "",
+        equipment: equipmentLegacy,
+        language: c.language ?? "",
+        notes: c.notes ?? [],
+        birthday: c.birthday ?? "",
+        blacklisted: c.blacklisted ?? false,
+        phones: c.phones ?? [],
+        whatsapp_phone: c.whatsapp_phone ?? "",
+        locations: migratedLocations,
+      };
+    }) as Client[];
   } catch {
     return MOCK_CLIENTS.map(mockToClient);
   }

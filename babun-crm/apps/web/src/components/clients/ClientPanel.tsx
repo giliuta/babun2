@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Client, PhoneEntry } from "@/lib/clients";
+import { ACQUISITION_LABELS, type AcquisitionSource } from "@/lib/clients";
+import LocationsSection from "./LocationsSection";
+import { getAvatarColor, getInitials } from "@/lib/avatar-color";
 import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@/lib/appointments";
 import { useServices, useTeams } from "@/app/dashboard/layout";
@@ -56,6 +59,26 @@ export default function ClientPanel({
     [clientApts]
   );
 
+  // Hero stats — lifetime money, debt, visits, last-visit date.
+  const heroStats = useMemo(() => {
+    let lifetime = 0;
+    let debt = 0;
+    let lastDate = "";
+    for (const a of clientApts) {
+      if (a.status !== "completed") continue;
+      const paid = getPaidAmount(a);
+      lifetime += paid;
+      debt += Math.max(0, a.total_amount - paid);
+      if (a.date > lastDate) lastDate = a.date;
+    }
+    return {
+      visits: clientApts.filter((a) => a.status === "completed").length,
+      lifetime: Math.round(lifetime),
+      debt: Math.round(debt),
+      lastDate,
+    };
+  }, [clientApts]);
+
   const update = <K extends keyof Client>(key: K, value: Client[K]) => {
     onUpdate({ ...client, [key]: value });
   };
@@ -109,6 +132,9 @@ export default function ClientPanel({
 
   return (
     <div className="flex flex-col bg-[var(--surface-card)]">
+      {/* Hero card — avatar, name, city + source, key stats */}
+      <ClientHero client={client} stats={heroStats} />
+
       {/* Tabs bar */}
       <div className="flex overflow-x-auto border-b border-[var(--separator)] bg-[var(--surface-card)] sticky top-0 z-10">
         <TabBtn label="Профиль" active={tab === "profile"} onClick={() => setTab("profile")} />
@@ -132,7 +158,7 @@ export default function ClientPanel({
       {/* Content */}
       <div className="flex-1">
         {tab === "profile" && (
-          <ProfileForm client={client} update={update} />
+          <ProfileForm client={client} update={update} onUpdate={onUpdate} />
         )}
         {tab === "records" && (
           <RecordsTab
@@ -191,9 +217,11 @@ function TabBtn({
 function ProfileForm({
   client,
   update,
+  onUpdate,
 }: {
   client: Client;
   update: <K extends keyof Client>(key: K, value: Client[K]) => void;
+  onUpdate: (next: Client) => void;
 }) {
   return (
     <div className="divide-y divide-[var(--separator)]">
@@ -210,7 +238,13 @@ function ProfileForm({
 
       <MessengersSection client={client} update={update} />
 
+      <LocationsSection client={client} onUpdate={onUpdate} />
+
       <ContactSourcesSection clientId={client.id} />
+
+      <PersonalSection client={client} update={update} />
+
+      <ClientNotesSection client={client} update={update} />
 
       <FieldRow icon={<IconChat />} label="Обращение в SMS напоминаниях">
         <input
@@ -305,7 +339,12 @@ function PhonesSection({
 
   return (
     <div className="px-4 pt-2 pb-2 space-y-1.5">
-      <div className="text-[12px] text-[var(--label-secondary)]">Телефоны</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[12px] text-[var(--label-secondary)]">Телефоны</div>
+        <span className="text-[11px] text-[var(--label-tertiary)]">
+          можно добавить жену / мужа на этой же карточке
+        </span>
+      </div>
       <PhoneRow
         number={client.phone}
         label="Основной"
@@ -317,8 +356,10 @@ function PhonesSection({
           key={p.id}
           number={p.number}
           label={p.label}
+          name={p.name ?? ""}
           onNumberChange={(v) => updatePhone(p.id, { number: v })}
           onLabelChange={(v) => updatePhone(p.id, { label: v })}
+          onNameChange={(v) => updatePhone(p.id, { name: v })}
           onRemove={() => removePhone(p.id)}
         />
       ))}
@@ -336,73 +377,90 @@ function PhonesSection({
 function PhoneRow({
   number,
   label,
+  name,
   onNumberChange,
   onLabelChange,
+  onNameChange,
   onRemove,
   primary,
 }: {
   number: string;
   label: string;
+  name?: string;
   onNumberChange: (v: string) => void;
   onLabelChange?: (v: string) => void;
+  onNameChange?: (v: string) => void;
   onRemove?: () => void;
   primary?: boolean;
 }) {
   const digits = number.replace(/\D/g, "");
+  const showNameInput = !primary && Boolean(onNameChange);
   return (
-    <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-lg px-2 py-1.5">
-      <div className="text-[var(--accent)] shrink-0">
-        <IconPhone />
+    <div className="bg-[var(--fill-tertiary)] rounded-lg px-2 py-1.5 space-y-1">
+      <div className="flex items-center gap-1.5">
+        <div className="text-[var(--accent)] shrink-0">
+          <IconPhone />
+        </div>
+        <input
+          type="tel"
+          value={number}
+          onChange={(e) => onNumberChange(e.target.value)}
+          placeholder="+357..."
+          className="w-[38%] min-w-0 bg-transparent text-[14px] text-[var(--label)] tabular-nums focus:outline-none"
+        />
+        {primary ? (
+          <span className="text-[12px] text-[var(--label-secondary)] px-1 shrink-0">{label}</span>
+        ) : (
+          <select
+            value={label}
+            onChange={(e) => onLabelChange?.(e.target.value)}
+            className="min-w-0 flex-1 h-7 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[12px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
+          >
+            {PHONE_LABEL_OPTIONS.concat(
+              PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
+            ).map((l) => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+        )}
+        {digits && (
+          <>
+            <a
+              href={`tel:${digits}`}
+              aria-label="Позвонить"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-[rgba(52,199,89,0.14)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.24)] shrink-0"
+            >
+              <IconPhone />
+            </a>
+            <a
+              href={`sms:${digits}`}
+              aria-label="Отправить SMS"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)] active:bg-[rgba(62,136,247,0.24)] shrink-0"
+            >
+              <IconChat />
+            </a>
+          </>
+        )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Удалить номер"
+            className="w-7 h-7 flex items-center justify-center text-[var(--label-tertiary)] active:text-[var(--system-red)] shrink-0"
+          >
+            ✕
+          </button>
+        )}
       </div>
-      <input
-        type="tel"
-        value={number}
-        onChange={(e) => onNumberChange(e.target.value)}
-        placeholder="+357..."
-        className="w-[38%] min-w-0 bg-transparent text-[14px] text-[var(--label)] tabular-nums focus:outline-none"
-      />
-      {primary ? (
-        <span className="text-[12px] text-[var(--label-secondary)] px-1 shrink-0">{label}</span>
-      ) : (
-        <select
-          value={label}
-          onChange={(e) => onLabelChange?.(e.target.value)}
-          className="min-w-0 flex-1 h-7 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[12px] text-[var(--label)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] px-1"
-        >
-          {PHONE_LABEL_OPTIONS.concat(
-            PHONE_LABEL_OPTIONS.includes(label) ? [] : [label]
-          ).map((l) => (
-            <option key={l} value={l}>{l}</option>
-          ))}
-        </select>
-      )}
-      {digits && (
-        <>
-          <a
-            href={`tel:${digits}`}
-            aria-label="Позвонить"
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-[rgba(52,199,89,0.14)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.24)] shrink-0"
-          >
-            <IconPhone />
-          </a>
-          <a
-            href={`sms:${digits}`}
-            aria-label="Отправить SMS"
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-[rgba(62,136,247,0.14)] text-[var(--system-blue)] active:bg-[rgba(62,136,247,0.24)] shrink-0"
-          >
-            <IconChat />
-          </a>
-        </>
-      )}
-      {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Удалить номер"
-          className="w-7 h-7 flex items-center justify-center text-[var(--label-tertiary)] active:text-[var(--system-red)] shrink-0"
-        >
-          ✕
-        </button>
+      {showNameInput && (
+        <input
+          type="text"
+          value={name ?? ""}
+          onChange={(e) => onNameChange?.(e.target.value)}
+          placeholder="Имя контакта (например, «Мария»)"
+          className="w-full h-7 px-2 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[12px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          maxLength={60}
+        />
       )}
     </div>
   );
@@ -984,6 +1042,408 @@ function renderReminder(
 }
 
 // ─── Field row primitive ─────────────────────────────────────────────────
+
+// ─── Personal info (city / birthday / email / source / language) ───
+
+const ACQ_ORDER: AcquisitionSource[] = [
+  "referral",
+  "instagram",
+  "whatsapp",
+  "google_maps",
+  "website",
+  "repeat",
+  "walk_in",
+  "other",
+  "unknown",
+];
+
+const LANGUAGE_PRESETS = ["ru", "en", "el"];
+const LANGUAGE_LABELS: Record<string, string> = {
+  ru: "Русский",
+  en: "English",
+  el: "Ελληνικά",
+};
+
+function PersonalSection({
+  client,
+  update,
+}: {
+  client: Client;
+  update: <K extends keyof Client>(key: K, value: Client[K]) => void;
+}) {
+  return (
+    <div className="px-4 pt-3 pb-3 space-y-2">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+        Личное
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <CompactField label="Город">
+          <input
+            type="text"
+            value={client.city}
+            onChange={(e) => update("city", e.target.value)}
+            placeholder="Пафос"
+            className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+            maxLength={60}
+          />
+        </CompactField>
+        <CompactField label="День рождения">
+          <input
+            type="date"
+            value={client.birthday}
+            onChange={(e) => update("birthday", e.target.value)}
+            className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none tabular-nums"
+          />
+        </CompactField>
+        <CompactField label="Email">
+          <input
+            type="email"
+            value={client.email}
+            onChange={(e) => update("email", e.target.value)}
+            placeholder="email@example.com"
+            className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+            maxLength={120}
+          />
+        </CompactField>
+        <CompactField label="Язык">
+          <div className="flex gap-1">
+            {LANGUAGE_PRESETS.map((l) => {
+              const active = (client.language ?? "") === l;
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => update("language", active ? "" : l)}
+                  className={`px-2 h-6 rounded-full text-[11px] font-semibold transition active:scale-[0.97] ${
+                    active
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                      : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                  }`}
+                >
+                  {LANGUAGE_LABELS[l]}
+                </button>
+              );
+            })}
+          </div>
+        </CompactField>
+      </div>
+      <CompactField label="Источник обращения">
+        <select
+          value={client.acquisition_source}
+          onChange={(e) =>
+            update(
+              "acquisition_source",
+              e.target.value as AcquisitionSource,
+            )
+          }
+          className="w-full bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
+        >
+          {ACQ_ORDER.map((s) => (
+            <option key={s} value={s}>
+              {ACQUISITION_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </CompactField>
+    </div>
+  );
+}
+
+function CompactField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-0.5 px-2.5 py-1.5 rounded-[10px] bg-[var(--fill-tertiary)] min-h-[46px]">
+      <span className="text-[10px] uppercase tracking-wider text-[var(--label-tertiary)] font-semibold">
+        {label}
+      </span>
+      <div className="text-[14px] text-[var(--label)] flex items-center min-h-[20px]">
+        {children}
+      </div>
+    </label>
+  );
+}
+
+// ─── Dated client notes (separate from textarea «Комментарий») ──────
+
+const NOTE_PRESETS = [
+  "Звонок",
+  "Встреча",
+  "Жалоба",
+  "Допродажа",
+  "Просто заметка",
+];
+
+function ClientNotesSection({
+  client,
+  update,
+}: {
+  client: Client;
+  update: <K extends keyof Client>(key: K, value: Client[K]) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  const [tag, setTag] = useState(NOTE_PRESETS[0]);
+  const [date, setDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+
+  const notes = (client.notes ?? [])
+    .slice()
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+  const cancel = () => {
+    setAdding(false);
+    setText("");
+    setTag(NOTE_PRESETS[0]);
+    setDate(new Date().toISOString().slice(0, 10));
+  };
+
+  const save = () => {
+    if (!text.trim()) return;
+    haptic("tap");
+    const stamp = new Date(date);
+    if (Number.isNaN(stamp.getTime())) return;
+    const created_at = stamp.toISOString();
+    const next = [
+      ...(client.notes ?? []),
+      {
+        id: generateId("note"),
+        text: `[${tag}] ${text.trim()}`,
+        created_at,
+      },
+    ];
+    update("notes", next);
+    cancel();
+  };
+
+  const remove = (id: string) => {
+    haptic("warning");
+    update("notes", (client.notes ?? []).filter((n) => n.id !== id));
+  };
+
+  return (
+    <div className="px-4 pt-3 pb-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          Заметки
+        </div>
+        <span className="text-[11px] text-[var(--label-tertiary)]">
+          датированный лог: звонки, встречи, особенности
+        </span>
+      </div>
+
+      {notes.length === 0 && !adding && (
+        <div className="text-[13px] text-[var(--label-tertiary)] py-1">
+          Пока пусто.
+        </div>
+      )}
+
+      {notes.map((n) => {
+        const ts = new Date(n.created_at);
+        const dateLabel = ts.toLocaleDateString("ru-RU", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        return (
+          <div
+            key={n.id}
+            className="flex items-start gap-2 px-3 py-2 rounded-[10px] bg-[var(--fill-tertiary)]"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] text-[var(--label-tertiary)] tabular-nums">
+                {dateLabel}
+              </div>
+              <div className="text-[13px] text-[var(--label)] leading-snug whitespace-pre-wrap">
+                {n.text}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => remove(n.id)}
+              aria-label="Удалить заметку"
+              className="w-6 h-6 flex items-center justify-center text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)] rounded-full shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+
+      {adding ? (
+        <div className="rounded-[10px] bg-[var(--fill-tertiary)] p-2 space-y-2">
+          <div className="flex flex-wrap gap-1">
+            {NOTE_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setTag(p)}
+                className={`px-2 h-6 rounded-full text-[11px] font-semibold transition ${
+                  tag === p
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                    : "bg-[var(--surface-card)] text-[var(--label)]"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full h-9 px-2.5 rounded-[8px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] focus:outline-none tabular-nums"
+          />
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Что произошло…"
+            rows={2}
+            maxLength={400}
+            className="w-full px-3 py-2 rounded-[8px] bg-[var(--surface-card)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none leading-snug"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={save}
+              disabled={!text.trim()}
+              className="flex-1 h-9 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold press-scale disabled:opacity-40"
+            >
+              Добавить
+            </button>
+            <button
+              type="button"
+              onClick={cancel}
+              className="h-9 px-3 rounded-full bg-[var(--surface-card)] text-[var(--label)] text-[13px] press-scale"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="w-full h-8 border border-dashed border-[var(--separator)] rounded-lg text-[12px] text-[var(--accent)] font-semibold active:bg-[var(--accent-tint)]"
+        >
+          + Добавить заметку
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Client hero card (top of profile) ──────────────────────────────
+
+function ClientHero({
+  client,
+  stats,
+}: {
+  client: Client;
+  stats: { visits: number; lifetime: number; debt: number; lastDate: string };
+}) {
+  const color = getAvatarColor(client.full_name);
+  const sourceLabel =
+    client.acquisition_source && client.acquisition_source !== "unknown"
+      ? ACQUISITION_LABELS[client.acquisition_source as AcquisitionSource]
+      : null;
+  const cityLabel = client.city?.trim();
+  const subParts: string[] = [];
+  if (cityLabel) subParts.push(cityLabel);
+  if (sourceLabel) subParts.push(sourceLabel);
+
+  return (
+    <div className="px-4 pt-3 pb-3 bg-gradient-to-b from-[var(--accent-tint)] to-transparent">
+      <div className="flex items-center gap-3">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[18px] shrink-0"
+          style={{ backgroundColor: color }}
+        >
+          {getInitials(client.full_name || "?")}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[18px] font-semibold text-[var(--label)] tracking-tight truncate">
+            {client.full_name || "Без имени"}
+          </div>
+          {subParts.length > 0 && (
+            <div className="text-[12px] text-[var(--label-secondary)] truncate mt-0.5">
+              {subParts.join(" · ")}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-1.5">
+        <HeroStat
+          label="Визитов"
+          value={String(stats.visits)}
+          tone="default"
+        />
+        <HeroStat
+          label="Доход"
+          value={
+            stats.lifetime > 0
+              ? `€${stats.lifetime.toLocaleString("ru-RU")}`
+              : "—"
+          }
+          tone={stats.lifetime > 0 ? "good" : "default"}
+        />
+        <HeroStat
+          label="Долг"
+          value={stats.debt > 0 ? `€${stats.debt}` : "—"}
+          tone={stats.debt > 0 ? "bad" : "default"}
+        />
+        <HeroStat
+          label="Последний"
+          value={stats.lastDate ? formatDateShort(stats.lastDate) : "—"}
+          tone="default"
+        />
+      </div>
+    </div>
+  );
+}
+
+function HeroStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "default" | "good" | "bad";
+}) {
+  const valueColor =
+    tone === "good"
+      ? "text-[var(--system-green)]"
+      : tone === "bad"
+        ? "text-[var(--system-red)]"
+        : "text-[var(--label)]";
+  return (
+    <div className="rounded-[10px] bg-[var(--surface-card)] shadow-[var(--shadow-card)] px-2 py-2">
+      <div
+        className={`text-[14px] font-bold tabular-nums leading-none ${valueColor}`}
+      >
+        {value}
+      </div>
+      <div className="text-[10px] text-[var(--label-tertiary)] uppercase tracking-wider mt-1">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function formatDateShort(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+  });
+}
 
 function FieldRow({
   icon,
