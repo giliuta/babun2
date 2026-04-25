@@ -282,33 +282,52 @@ function DashboardPageInner() {
     writeHourHeight(hourHeightRef.current);
   }, [writeHourHeight, viewMode]);
 
-  // v324 — Kill iOS rubber-band overscroll on the calendar.  The CSS
-  // `overscroll-behavior: contain` only stops chaining to the parent;
-  // iOS Safari still rubber-bands the scroller itself.  We cancel the
-  // touchmove explicitly when the user is already at the very top or
-  // bottom and pulling further in that direction.  Single-finger only
-  // — pinch-zoom must continue to work.
+  // v325 — Kill iOS rubber-band overscroll on the calendar.
+  //
+  // CSS overscroll-behavior:contain only stops scroll chaining; iOS
+  // Safari still rubber-bands the scroller itself.  We listen on the
+  // *document* in capture phase so SwipeableCalendar's own touch
+  // handlers can't swallow the event before us, then cancel the
+  // touchmove when the user is already at the very top / bottom of
+  // the calendar scroller and is dragging further in that direction.
+  // Single-finger only — pinch-zoom must keep working.
+  //
+  // Track lastY between events so the delta we react to is the
+  // *most recent* finger movement, not the cumulative drag from
+  // touchstart (which can race against scroll updates).
   useEffect(() => {
     const el = outerScrollerRef.current;
     if (!el) return;
-    let startY = 0;
+    let lastY = 0;
+    const within = (target: EventTarget | null) =>
+      target instanceof Node && el.contains(target);
     const onStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) startY = e.touches[0].clientY;
+      if (e.touches.length !== 1 || !within(e.target)) return;
+      lastY = e.touches[0].clientY;
     };
     const onMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const dy = e.touches[0].clientY - startY;
+      if (e.touches.length !== 1 || !within(e.target)) return;
+      const y = e.touches[0].clientY;
+      const dy = y - lastY;
+      lastY = y;
       const top = el.scrollTop;
       const max = el.scrollHeight - el.clientHeight;
-      if ((top <= 0 && dy > 0) || (top >= max && dy < 0)) {
+      // dy > 0 → finger moving down (pull from top). dy < 0 → up.
+      if ((top <= 0 && dy > 0) || (top >= max - 1 && dy < 0)) {
         e.preventDefault();
       }
     };
-    el.addEventListener("touchstart", onStart, { passive: true });
-    el.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchstart", onStart, {
+      passive: true,
+      capture: true,
+    });
+    document.addEventListener("touchmove", onMove, {
+      passive: false,
+      capture: true,
+    });
     return () => {
-      el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchstart", onStart, true);
+      document.removeEventListener("touchmove", onMove, true);
     };
   }, [viewMode]);
 
@@ -1122,7 +1141,7 @@ function DashboardPageInner() {
               overflowY: "auto",
               overflowX: "clip",
               touchAction: "pan-y",
-              overscrollBehavior: "contain",
+              overscrollBehavior: "none",
               // iOS momentum scrolling + GPU composition for butter-smooth
               // 120 Hz scrolling. transform forces a dedicated layer so the
               // compositor can scroll without touching the main thread.
