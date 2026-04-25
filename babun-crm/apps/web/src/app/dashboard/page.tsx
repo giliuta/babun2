@@ -282,6 +282,36 @@ function DashboardPageInner() {
     writeHourHeight(hourHeightRef.current);
   }, [writeHourHeight, viewMode]);
 
+  // v324 — Kill iOS rubber-band overscroll on the calendar.  The CSS
+  // `overscroll-behavior: contain` only stops chaining to the parent;
+  // iOS Safari still rubber-bands the scroller itself.  We cancel the
+  // touchmove explicitly when the user is already at the very top or
+  // bottom and pulling further in that direction.  Single-finger only
+  // — pinch-zoom must continue to work.
+  useEffect(() => {
+    const el = outerScrollerRef.current;
+    if (!el) return;
+    let startY = 0;
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) startY = e.touches[0].clientY;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const dy = e.touches[0].clientY - startY;
+      const top = el.scrollTop;
+      const max = el.scrollHeight - el.clientHeight;
+      if ((top <= 0 && dy > 0) || (top >= max && dy < 0)) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+    };
+  }, [viewMode]);
+
   // Scroll to startHour on mount and when view changes from month to day/week.
   // When the current day is actually visible in the range, anchor on the
   // now-line at ~30 % of viewport so the dispatcher sees "2 h ago plus
