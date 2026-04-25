@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -14,6 +15,13 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/app/dashboard/layout";
+import {
+  haptic,
+  getHapticsEnabled,
+  setHapticsEnabled,
+  getHapticsAudio,
+  setHapticsAudio,
+} from "@/lib/haptics";
 import type {
   FormFieldVisibility,
   RequiredFields,
@@ -227,6 +235,8 @@ export default function SettingsPage() {
             </div>
           </Group>
 
+          <HapticsSection />
+
           <button
             type="button"
             className="w-full section-card flex items-center justify-center gap-2 py-3.5 text-[15px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-tertiary)] transition press-scale"
@@ -317,7 +327,10 @@ function ToggleRow({
       <span className="text-[15px] text-[var(--label)] flex-1">{label}</span>
       <button
         type="button"
-        onClick={onChange}
+        onClick={() => {
+          if (!disabled) haptic("select");
+          onChange();
+        }}
         disabled={disabled}
         aria-label={label}
         className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
@@ -331,5 +344,56 @@ function ToggleRow({
         />
       </button>
     </div>
+  );
+}
+
+// v316 — User-controlled haptic feedback section.  Lives at the
+// bottom of Settings.  Two switches:
+//   * Тактильная отдача — flips both Android vibration and iOS
+//     Taptic switch trigger.  Default ON.
+//   * Звук кликов — opt-in audible click via Web Audio.  Default OFF.
+function HapticsSection() {
+  const [enabled, setEnabledState] = useState(true);
+  const [audio, setAudioState] = useState(false);
+
+  // Hydrate from localStorage after mount (avoids SSR mismatch).
+  useEffect(() => {
+    setEnabledState(getHapticsEnabled());
+    setAudioState(getHapticsAudio());
+  }, []);
+
+  return (
+    <Group
+      title="Тактильная отдача"
+      footer={
+        enabled
+          ? "На Android — настоящая вибрация. На iPhone (iOS 17.4+) — лёгкий тактильный отклик через Taptic Engine. Если вибрации нет — проверь в «Настройки → Звуки и тактильные сигналы → Системная тактильная отдача»."
+          : "Все вибрации и тактильные клики выключены."
+      }
+    >
+      <div className="divide-y divide-[var(--separator)]">
+        <ToggleRow
+          label="Вибрация при действиях"
+          checked={enabled}
+          onChange={() => {
+            const next = !enabled;
+            setHapticsEnabled(next);
+            setEnabledState(next);
+            if (next) haptic("medium");
+          }}
+        />
+        <ToggleRow
+          label="Звук кликов (для iPhone, если нет вибрации)"
+          checked={audio}
+          onChange={() => {
+            const next = !audio;
+            setHapticsAudio(next);
+            setAudioState(next);
+            if (next) haptic("tap");
+          }}
+          disabled={!enabled}
+        />
+      </div>
+    </Group>
   );
 }

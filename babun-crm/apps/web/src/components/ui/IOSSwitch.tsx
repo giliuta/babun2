@@ -1,5 +1,7 @@
 "use client";
 
+import { haptic } from "@/lib/haptics";
+
 interface IOSSwitchProps {
   checked: boolean;
   onChange: (next: boolean) => void;
@@ -23,7 +25,10 @@ export default function IOSSwitch({
       aria-checked={checked}
       aria-label={ariaLabel}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        haptic("select");
+        onChange(!checked);
+      }}
       className={`relative w-[46px] h-[28px] rounded-full transition-colors flex-shrink-0 ${
         checked ? "bg-[var(--accent)]" : "bg-[var(--fill-primary)]"
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}

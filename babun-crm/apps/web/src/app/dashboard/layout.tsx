@@ -87,6 +87,7 @@ import {
   saveLocationLabels,
   type LocationLabel,
 } from "@/lib/location-labels";
+import { warmUpHaptics } from "@/lib/haptics";
 
 interface SidebarContextValue {
   open: () => void;
@@ -346,6 +347,23 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // v316 — Prime the haptics audio context + iOS taptic switch on
+  // the first user gesture.  Without this, iOS Safari suspends the
+  // AudioContext and the very first haptic() call after launch is
+  // silent.  Listener is { once: true } so it self-removes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const prime = () => {
+      warmUpHaptics();
+    };
+    window.addEventListener("pointerdown", prime, { once: true });
+    window.addEventListener("touchstart", prime, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", prime);
+      window.removeEventListener("touchstart", prime);
+    };
+  }, []);
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);
