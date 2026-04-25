@@ -448,7 +448,7 @@ export default function ClientsPage() {
                 setIsSelecting(true);
               }
             }}
-            className="h-9 px-3 flex items-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
+            className="h-9 px-3 flex items-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
           >
             {isSelecting ? "Готово" : "Править"}
           </button>
@@ -465,7 +465,7 @@ export default function ClientsPage() {
                   setSelectedIds(new Set(filtered.map((c) => c.id)));
                 }
               }}
-              className="h-9 px-3 flex items-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
+              className="h-9 px-3 flex items-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
             >
               {selectedIds.size === filtered.length ? "Снять" : "Все"}
             </button>
@@ -477,7 +477,7 @@ export default function ClientsPage() {
                 setDraft(createBlankClient());
               }}
               aria-label="Добавить клиента"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-on-accent)] lg:text-[var(--accent)] active:bg-[var(--accent-pressed)] lg:active:bg-[var(--accent-tint)] transition"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
             >
               <Plus size={20} strokeWidth={2.2} />
             </button>
@@ -804,10 +804,12 @@ export default function ClientsPage() {
         );
       })()}
 
-      {/* Bulk action bar — shown while selection mode is active. */}
+      {/* Bulk action bar — shown while selection mode is active.
+          iOS-Recents inspired: «Выбрать всех» on the left, then SMS
+          and Удалить (last is destructive red). */}
       {isSelecting && (
         <div
-          className="fixed left-0 right-0 z-[45] bg-[var(--surface-card)] border-t border-[var(--separator)] grid grid-cols-2 gap-1 px-2 py-2 lg:left-[240px]"
+          className="fixed left-0 right-0 z-[45] bg-[var(--surface-card)] border-t border-[var(--separator)] grid grid-cols-3 gap-1 px-2 py-2 lg:left-[240px]"
           style={{
             bottom: "var(--bottom-nav-height, 0px)",
             paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
@@ -816,15 +818,30 @@ export default function ClientsPage() {
           <button
             type="button"
             onClick={() => {
+              haptic("tap");
+              if (selectedIds.size === filtered.length) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(filtered.map((c) => c.id)));
+              }
+            }}
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)]"
+          >
+            <Check size={16} strokeWidth={2.2} />
+            {selectedIds.size === filtered.length ? "Снять всех" : "Выбрать всех"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               if (selectedIds.size === 0) return;
               haptic("tap");
               setSmsBlastOpen(true);
             }}
             disabled={selectedIds.size === 0}
-            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-[var(--system-blue)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--system-blue)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
           >
             <Send size={16} strokeWidth={2.2} />
-            SMS всем · {selectedIds.size}
+            SMS · {selectedIds.size}
           </button>
           <button
             type="button"
@@ -834,7 +851,7 @@ export default function ClientsPage() {
               setBulkConfirmDelete(true);
             }}
             disabled={selectedIds.size === 0}
-            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
           >
             <Trash2 size={16} strokeWidth={2.2} />
             Удалить · {selectedIds.size}
@@ -1095,10 +1112,9 @@ function ClientCard({
             {reminderAt && (
               <span
                 title={`Напомнить ${formatReminderShort(reminderAt)}`}
-                className="shrink-0 w-5 h-5 rounded-full bg-[rgba(255,149,0,0.12)] text-[var(--system-orange)] flex items-center justify-center"
-              >
-                <Clock size={11} strokeWidth={2.5} />
-              </span>
+                className="shrink-0 w-2 h-2 rounded-full bg-[var(--system-orange)]"
+                aria-label="Активно напоминание"
+              />
             )}
           </div>
           {lastDateLabel && (
@@ -1369,15 +1385,6 @@ function ReminderPicker({
         return d;
       },
     },
-    {
-      label: "Через неделю",
-      subtitle: "",
-      date: () => {
-        const d = new Date();
-        d.setDate(d.getDate() + 7);
-        return d;
-      },
-    },
   ];
 
   const submitCustom = () => {
@@ -1391,14 +1398,11 @@ function ReminderPicker({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[380px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
-        style={{
-          paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
-        }}
+        className="w-full max-w-[380px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">

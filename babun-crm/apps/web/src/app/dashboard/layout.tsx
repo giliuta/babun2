@@ -835,7 +835,10 @@ export default function DashboardLayout({
               gets bottom padding for the tab bar. `<main>` satisfies
               Lighthouse's `landmark-one-main` rule without breaking any
               existing layout. */}
-          <main className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0">
+          <main
+            className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[72px] lg:pb-0"
+            style={{ touchAction: "pan-y", overscrollBehaviorX: "none" }}
+          >
             {children}
           </main>
 
