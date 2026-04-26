@@ -11,3 +11,4 @@
 // keep working.
 
 export type { Database, Json } from "./database.types";
+export { DEV_TENANT_ID } from "./constants";
