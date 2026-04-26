@@ -39,13 +39,22 @@ import {
   type ServiceCategory,
 } from "@babun/shared/local/services";
 import {
-  loadClients,
-  saveClients,
-  loadClientTags,
-  saveClientTags,
   type Client,
   type ClientTag,
 } from "@babun/shared/local/clients";
+import {
+  listClients,
+  getClient as getClientRepo,
+  createClient as createClientRepo,
+  updateClient as updateClientRepo,
+  deleteClient as deleteClientRepo,
+  listClientTags,
+  createClientTag,
+  updateClientTag,
+  deleteClientTag,
+} from "@babun/shared/db/repositories/clients";
+import { DEV_TENANT_ID } from "@babun/shared/db";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
   loadTemplates,
   saveTemplates,
@@ -232,11 +241,20 @@ export function useServices() {
 
 interface ClientsContextValue {
   clients: Client[];
+  /** True until the first listClients() resolves. Pages that show
+   *  the full list should render a skeleton while this is true. */
+  clientsLoading: boolean;
+  /** Last error message from a load. UI can show a retry banner. */
+  clientsError: string | null;
+  /** Manual refetch — used by retry buttons. */
+  reloadClients: () => Promise<void>;
   setClients: (next: Client[]) => void;
-  upsertClient: (c: Client) => void;
-  deleteClient: (id: string) => void;
+  upsertClient: (c: Client) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
   tags: ClientTag[];
   setTags: (next: ClientTag[]) => void;
+  upsertTag: (tag: ClientTag) => Promise<void>;
+  deleteTag: (id: string) => Promise<void>;
 }
 
 const ClientsContext = createContext<ClientsContextValue | null>(null);
@@ -407,8 +425,16 @@ export default function DashboardLayout({
   const [appointments, setAppointmentsState] = useState<Appointment[]>([]);
   const [services, setServicesState] = useState<Service[]>([]);
   const [serviceCategories, setServiceCategoriesState] = useState<ServiceCategory[]>([]);
+  // STORY-036 — clients vertical now lives in Supabase. The list is
+  // hydrated on mount via listClients(); other consumers see [] until
+  // hydration completes (~50–250 ms on warm Wi-Fi). Pages that need
+  // the loading state read `clientsLoading` from the context.
   const [clients, setClientsState] = useState<Client[]>([]);
+  const [clientsLoading, setClientsLoading] = useState<boolean>(true);
+  const [clientsError, setClientsError] = useState<string | null>(null);
   const [clientTags, setClientTagsState] = useState<ClientTag[]>([]);
+  const tenantId =
+    process.env.NEXT_PUBLIC_DEV_TENANT_ID ?? DEV_TENANT_ID;
   const [smsTemplates, setSmsTemplatesState] = useState<SmsTemplate[]>([]);
   const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
   const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
@@ -469,7 +495,9 @@ export default function DashboardLayout({
     else getStorage().remove(CURRENT_MASTER_KEY);
   }, []);
 
-  // Load all persisted state from localStorage on mount
+  // Load all persisted state from localStorage on mount.
+  // STORY-036: clients + tags moved to Supabase — they are loaded in
+  // a separate effect below so we can surface loading/error state.
   useEffect(() => {
     setSchedulesState(loadSchedules());
     setMastersState(loadMasters());
@@ -477,8 +505,6 @@ export default function DashboardLayout({
     setAppointmentsState(loadAppointments());
     setServicesState(loadServices());
     setServiceCategoriesState(loadCategories());
-    setClientsState(loadClients());
-    setClientTagsState(loadClientTags());
     setSmsTemplatesState(loadTemplates());
     setExpenseCategoriesState(loadExpenseCategories());
     setDayCitiesState(loadDayCities());
@@ -495,16 +521,44 @@ export default function DashboardLayout({
     getStorage().remove("babun-draft-clients");
   }, []);
 
-  // STORY-007: external `upsertClient` in lib/clients.ts dispatches
-  // babun:clients-changed after writing localStorage. Reload the
-  // context state when that fires so ClientPickerSheet's new clients
-  // reach consumers (AppointmentSheet, clients list) immediately.
+  // STORY-036 — fetch clients + tags from Supabase. Surfaces
+  // loading + error state via context so /dashboard/clients can
+  // render a skeleton + retry banner.
+  const reloadClients = useCallback(async () => {
+    setClientsError(null);
+    setClientsLoading(true);
+    try {
+      const supabase = getSupabaseBrowser();
+      const [list, tagList] = await Promise.all([
+        listClients(supabase, tenantId),
+        listClientTags(supabase, tenantId),
+      ]);
+      setClientsState(list);
+      setClientTagsState(tagList);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось загрузить клиентов";
+      setClientsError(msg);
+    } finally {
+      setClientsLoading(false);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    void reloadClients();
+  }, [reloadClients]);
+
+  // STORY-007 (legacy): components in appointments / chats still call
+  // `upsertClient` from @babun/shared/local/clients which writes to
+  // localStorage and dispatches babun:clients-changed. We listen and
+  // refetch from Supabase so the list page stays consistent. The
+  // localStorage write itself is a no-op for the canonical store
+  // until those verticals migrate (STORY-036b/c/d).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const reload = () => setClientsState(loadClients());
+    const reload = () => void reloadClients();
     window.addEventListener("babun:clients-changed", reload);
     return () => window.removeEventListener("babun:clients-changed", reload);
-  }, []);
+  }, [reloadClients]);
 
   const handleSchedulesChange = useCallback((next: ScheduleMap) => {
     setSchedulesState(next);
@@ -601,29 +655,73 @@ export default function DashboardLayout({
     saveCategories(next);
   }, []);
 
+  // STORY-036 — bulk replace is a no-op against Supabase. Kept on the
+  // context purely for API stability; nobody calls it externally today.
   const handleClientsChange = useCallback((next: Client[]) => {
     setClientsState(next);
-    saveClients(next);
   }, []);
-  const upsertClient = useCallback((client: Client) => {
-    setClientsState((prev) => {
-      const idx = prev.findIndex((c) => c.id === client.id);
-      const next = idx >= 0 ? prev.map((c, i) => (i === idx ? client : c)) : [...prev, client];
-      saveClients(next);
-      return next;
-    });
-  }, []);
-  const deleteClient = useCallback((id: string) => {
-    setClientsState((prev) => {
-      const next = prev.filter((c) => c.id !== id);
-      saveClients(next);
-      return next;
-    });
-  }, []);
+  const upsertClient = useCallback(
+    async (client: Client) => {
+      const supabase = getSupabaseBrowser();
+      const exists =
+        clients.some((c) => c.id === client.id) ||
+        Boolean(await getClientRepo(supabase, client.id, tenantId));
+      const saved = exists
+        ? await updateClientRepo(supabase, client.id, client, tenantId)
+        : await createClientRepo(supabase, client, tenantId);
+      setClientsState((prev) => {
+        const idx = prev.findIndex((c) => c.id === saved.id);
+        return idx >= 0
+          ? prev.map((c, i) => (i === idx ? saved : c))
+          : [...prev, saved];
+      });
+    },
+    [clients, tenantId],
+  );
+  const deleteClient = useCallback(
+    async (id: string) => {
+      const supabase = getSupabaseBrowser();
+      await deleteClientRepo(supabase, id, tenantId);
+      setClientsState((prev) => prev.filter((c) => c.id !== id));
+    },
+    [tenantId],
+  );
   const handleClientTagsChange = useCallback((next: ClientTag[]) => {
     setClientTagsState(next);
-    saveClientTags(next);
   }, []);
+  const upsertTag = useCallback(
+    async (tag: ClientTag) => {
+      const supabase = getSupabaseBrowser();
+      const exists = clientTags.some((t) => t.id === tag.id);
+      const saved = exists
+        ? await updateClientTag(
+            supabase,
+            tag.id,
+            { name: tag.name, color: tag.color },
+            tenantId,
+          )
+        : await createClientTag(
+            supabase,
+            { name: tag.name, color: tag.color },
+            tenantId,
+          );
+      setClientTagsState((prev) => {
+        const idx = prev.findIndex((t) => t.id === saved.id);
+        return idx >= 0
+          ? prev.map((t, i) => (i === idx ? saved : t))
+          : [...prev, saved];
+      });
+    },
+    [clientTags, tenantId],
+  );
+  const deleteTag = useCallback(
+    async (id: string) => {
+      const supabase = getSupabaseBrowser();
+      await deleteClientTag(supabase, id, tenantId);
+      setClientTagsState((prev) => prev.filter((t) => t.id !== id));
+    },
+    [tenantId],
+  );
 
   const handleSmsTemplatesChange = useCallback((next: SmsTemplate[]) => {
     setSmsTemplatesState(next);
@@ -713,11 +811,16 @@ export default function DashboardLayout({
 
   const clientsValue: ClientsContextValue = {
     clients,
+    clientsLoading,
+    clientsError,
+    reloadClients,
     setClients: handleClientsChange,
     upsertClient,
     deleteClient,
     tags: clientTags,
     setTags: handleClientTagsChange,
+    upsertTag,
+    deleteTag,
   };
 
   const smsTemplatesValue: SmsTemplatesContextValue = {

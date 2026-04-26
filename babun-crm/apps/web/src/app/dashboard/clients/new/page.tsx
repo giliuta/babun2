@@ -48,8 +48,11 @@ export default function NewClientPage() {
     trimmedPhone.length > 0 && trimmedPhone !== DEFAULT_PHONE_PREFIX.trim();
   const canSubmit = fullName.trim().length > 0 && phoneFilled;
 
-  const submit = () => {
-    if (!canSubmit) return;
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!canSubmit || saving) return;
     haptic("medium");
     const blank = createBlankClient({
       full_name: fullName.trim(),
@@ -57,8 +60,16 @@ export default function NewClientPage() {
       sms_name: fullName.trim().split(" ")[0] || "",
       locations: location ? [{ ...location, isPrimary: true }] : [],
     });
-    upsertClient(blank);
-    router.replace(`/dashboard/clients/${blank.id}`);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await upsertClient(blank);
+      router.replace(`/dashboard/clients/${blank.id}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось сохранить";
+      setSaveError(msg);
+      setSaving(false);
+    }
   };
 
   return (
@@ -82,10 +93,10 @@ export default function NewClientPage() {
           <Button
             variant="primary"
             size="sm"
-            onClick={submit}
-            disabled={!canSubmit}
+            onClick={() => void submit()}
+            disabled={!canSubmit || saving}
           >
-            Создать
+            {saving ? "Сохраняем…" : "Создать"}
           </Button>
         </div>
       </div>
@@ -159,6 +170,12 @@ export default function NewClientPage() {
               <Plus size={14} strokeWidth={2.5} />
               Добавить объект
             </button>
+          )}
+
+          {saveError && (
+            <div className="text-[13px] text-[var(--system-red)] text-center px-2 pt-1">
+              {saveError}
+            </div>
           )}
 
           <p className="text-[12px] text-[var(--label-tertiary)] text-center px-4 pt-2">

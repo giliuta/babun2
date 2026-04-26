@@ -52,6 +52,7 @@ import {
 import ClientCardStats from "@/components/clients/ClientCardStats";
 import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
 import ClientQuickActionsSheet from "@/components/clients/ClientQuickActionsSheet";
+import ClientsListSkeleton from "@/components/clients/ClientsListSkeleton";
 
 // v312 — tag chips are tenant-managed: read from useClients().tags.
 // Settings UI for creating/editing/deleting tags lands in Phase 2.
@@ -90,7 +91,15 @@ const SEGMENT_LABELS: Record<Segment, string> = {
 
 export default function ClientsPage() {
   const router = useRouter();
-  const { clients, upsertClient, deleteClient, tags } = useClients();
+  const {
+    clients,
+    clientsLoading,
+    clientsError,
+    reloadClients,
+    upsertClient,
+    deleteClient,
+    tags,
+  } = useClients();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -576,10 +585,64 @@ export default function ClientsPage() {
         }
       />
 
+      {/* STORY-036 — loading skeleton on first fetch from Supabase. */}
+      {clientsLoading && clients.length === 0 && (
+        <div className="flex-1 overflow-hidden">
+          <ClientsListSkeleton />
+        </div>
+      )}
+
+      {/* STORY-036 — error state on first fetch failure. */}
+      {!clientsLoading && clientsError && clients.length === 0 && (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-sm w-full bg-[var(--surface-card)] rounded-[var(--radius-card)] p-5 text-center shadow-[var(--shadow-card)]">
+            <div className="text-[15px] font-semibold text-[var(--label)] mb-1">
+              Не удалось загрузить клиентов
+            </div>
+            <div className="text-[13px] text-[var(--label-secondary)] mb-4">
+              {clientsError}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                void reloadClients();
+              }}
+              className="w-full h-11 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition"
+            >
+              Повторить
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]"
+        style={{
+          display:
+            (clientsLoading && clients.length === 0) ||
+            (clientsError && clients.length === 0)
+              ? "none"
+              : undefined,
+        }}
       >
+        {/* STORY-036 — non-fatal error banner above the (cached) list. */}
+        {clientsError && clients.length > 0 && (
+          <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-[var(--system-red-tint,rgba(255,59,48,0.12))] text-[13px] text-[var(--system-red)] flex items-center justify-between">
+            <span className="truncate">Список устарел: {clientsError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                void reloadClients();
+              }}
+              className="ml-2 shrink-0 px-2 h-7 rounded-md bg-[var(--surface-card)] text-[var(--system-red)] text-[12px] font-semibold"
+            >
+              Повторить
+            </button>
+          </div>
+        )}
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
           {/* v334 — Hero strip with three at-a-glance stats.  Each
                   segment is a button that activates the matching
