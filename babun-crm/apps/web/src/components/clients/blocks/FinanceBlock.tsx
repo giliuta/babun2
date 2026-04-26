@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { Wallet, ArrowUpRight } from "lucide-react";
-import type { ClientStats } from "@/lib/client-stats";
+import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import ClientCard from "../ClientCard";
 

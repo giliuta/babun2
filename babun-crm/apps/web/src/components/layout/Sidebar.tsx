@@ -13,8 +13,8 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
-import { loadRecurring, dueReminders } from "@/lib/recurring";
-import { loadChats, getTotalUnread } from "@/lib/chats";
+import { loadRecurring, dueReminders } from "@babun/shared/local/recurring";
+import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
 import { getStorage } from "@babun/shared/storage";

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Appointment } from "@/lib/appointments";
-import { getDebtAmount, getPaidAmount } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { getDebtAmount, getPaidAmount } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { pluralRecord } from "@babun/shared/common/utils/pluralize";
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Appointment } from "@/lib/appointments";
-import { getDebtAmount } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { getDebtAmount } from "@babun/shared/local/appointments";
 import { getStorage } from "@babun/shared/storage";
 
 interface EndOfDayBannerProps {

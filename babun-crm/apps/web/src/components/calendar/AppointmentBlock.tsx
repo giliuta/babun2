@@ -4,10 +4,10 @@ import { memo, useRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { AlertTriangle, Camera, Check, Clock } from "lucide-react";
-import type { Appointment, AppointmentColorKind } from "@/lib/appointments";
-import { COLOR_KIND_TAILWIND, getDebtAmount } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import type { Client } from "@/lib/clients";
+import type { Appointment, AppointmentColorKind } from "@babun/shared/local/appointments";
+import { COLOR_KIND_TAILWIND, getDebtAmount } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import type { Client } from "@babun/shared/local/clients";
 
 interface AppointmentBlockProps {
   appointment: Appointment;

@@ -13,15 +13,15 @@ import {
   Wind,
   Clock as ClockIcon,
 } from "lucide-react";
-import type { Client, PhoneEntry } from "@/lib/clients";
-import { ACQUISITION_LABELS, type AcquisitionSource } from "@/lib/clients";
+import type { Client, PhoneEntry } from "@babun/shared/local/clients";
+import { ACQUISITION_LABELS, type AcquisitionSource } from "@babun/shared/local/clients";
 import LocationsSection from "./LocationsSection";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
-import type { Appointment } from "@/lib/appointments";
-import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@babun/shared/local/appointments";
 import { useServices, useTeams } from "@/app/dashboard/layout";
-import { loadChats, CHANNEL_LABELS, CHANNEL_COLORS, type Chat, type ChatChannel } from "@/lib/chats";
-import { generateId } from "@/lib/masters";
+import { loadChats, CHANNEL_LABELS, CHANNEL_COLORS, type Chat, type ChatChannel } from "@babun/shared/local/chats";
+import { generateId } from "@babun/shared/local/masters";
 import { haptic } from "@/lib/haptics";
 import {
   whatsappUrl,

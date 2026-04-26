@@ -7,8 +7,8 @@ import {
   type ACType,
   type ACUnit,
   type Location,
-} from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+} from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import { haptic } from "@/lib/haptics";
 
 interface LocationEditorProps {

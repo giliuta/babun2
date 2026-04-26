@@ -1,10 +1,10 @@
 ﻿"use client";
 
 import { useState } from "react";
-import type { AppointmentService, Discount } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import { pricePerUnit } from "@/lib/services";
-import { lineTotal } from "@/lib/finance/appointment-calc";
+import type { AppointmentService, Discount } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import { pricePerUnit } from "@babun/shared/local/services";
+import { lineTotal } from "@babun/shared/local/finance/appointment-calc";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import PriceEditor from "./PriceEditor";
 import { useConfirm } from "@/components/ui/ConfirmProvider";

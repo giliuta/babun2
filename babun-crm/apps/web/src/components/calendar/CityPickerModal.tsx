@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo } from "react";
 import { Check, MapPin } from "lucide-react";
-import { CITIES, cityConfigFromColor } from "@/lib/day-cities";
-import type { City } from "@/lib/cities";
+import { CITIES, cityConfigFromColor } from "@babun/shared/local/day-cities";
+import type { City } from "@babun/shared/local/cities";
 
 interface CityPickerModalProps {
   open: boolean;

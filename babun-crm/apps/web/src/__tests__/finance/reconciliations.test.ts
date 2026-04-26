@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { buildReconciliationForBrigadeDay } from "@/lib/reconciliations";
+import { buildReconciliationForBrigadeDay } from "@babun/shared/local/reconciliations";
 
 const PAYMENTS_KEY = "babun2:finance:payments";
 

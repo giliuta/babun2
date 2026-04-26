@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import type { Discount } from "@/lib/appointments";
+import type { Discount } from "@babun/shared/local/appointments";
 
 interface PriceEditorProps {
   catalogPrice: number;

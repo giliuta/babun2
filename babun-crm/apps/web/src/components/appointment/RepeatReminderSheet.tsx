@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addMonthsYYYYMMDD } from "@/lib/recurring";
+import { addMonthsYYYYMMDD } from "@babun/shared/local/recurring";
 
 interface RepeatReminderSheetProps {
   open: boolean;

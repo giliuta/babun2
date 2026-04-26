@@ -1,8 +1,8 @@
 // 0001_seed_brigades: seed 3 finance brigades; backfill brigadeId on
 // existing appointments (default br_yd).
 
-import { seedBrigades } from "@/lib/brigades";
-import { loadAppointments, saveAppointments } from "@/lib/appointments";
+import { seedBrigades } from "@babun/shared/local/brigades";
+import { loadAppointments, saveAppointments } from "@babun/shared/local/appointments";
 
 export function migration0001SeedBrigades(): void {
   seedBrigades();

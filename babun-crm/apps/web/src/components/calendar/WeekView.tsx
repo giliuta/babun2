@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { getWeekDates, getCurrentCyprusTime, formatDateKey } from "@babun/shared/common/utils/date-utils";
-import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
-import type { Appointment, ValidationResult } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import type { Client } from "@/lib/clients";
-import type { City } from "@/lib/cities";
+import { type TeamSchedule, DEFAULT_SCHEDULE } from "@babun/shared/local/schedule";
+import type { Appointment, ValidationResult } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import type { Client } from "@babun/shared/local/clients";
+import type { City } from "@babun/shared/local/cities";
 import type { ViewMode } from "@/components/layout/Header";
 import DayColumn from "./DayColumn";
 

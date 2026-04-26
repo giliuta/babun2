@@ -10,7 +10,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import type { Client } from "@/lib/clients";
+import type { Client } from "@babun/shared/local/clients";
 
 interface ClientActionMenuProps {
   open: boolean;

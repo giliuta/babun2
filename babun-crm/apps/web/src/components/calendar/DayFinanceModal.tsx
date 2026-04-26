@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import DialogModal from "@/components/appointments/sheet/DialogModal";
-import type { Appointment } from "@/lib/appointments";
-import { getPaidAmount } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import { getServiceMaterialCost } from "@/lib/services";
-import type { DayExtra } from "@/lib/day-extras";
-import { sumExtras } from "@/lib/day-extras";
-import { generateId } from "@/lib/masters";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { getPaidAmount } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import { getServiceMaterialCost } from "@babun/shared/local/services";
+import type { DayExtra } from "@babun/shared/local/day-extras";
+import { sumExtras } from "@babun/shared/local/day-extras";
+import { generateId } from "@babun/shared/local/masters";
 
 interface DayFinanceModalProps {
   open: boolean;

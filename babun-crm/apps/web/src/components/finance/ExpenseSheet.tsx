@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ExpenseCategoryKey } from "@/lib/day-extras";
+import type { ExpenseCategoryKey } from "@babun/shared/local/day-extras";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_ORDER,
-} from "@/lib/finance/expense-categories";
+} from "@babun/shared/local/finance/expense-categories";
 import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface ExpenseSheetProps {

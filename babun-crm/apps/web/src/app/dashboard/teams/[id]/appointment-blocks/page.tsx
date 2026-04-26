@@ -50,7 +50,7 @@ import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import {
   type BrigadeAppointmentBlocks,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 
 interface RouteParams {
   params: Promise<{ id: string }>;

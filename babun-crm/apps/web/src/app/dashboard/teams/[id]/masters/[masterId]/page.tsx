@@ -36,7 +36,7 @@ import {
   type BrigadeRole,
   type Master,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import {
   BRIGADE_PERMISSION_GROUPS,
   DEFAULT_BRIGADE_MEMBER_PERMISSIONS,
@@ -46,7 +46,7 @@ import {
   type BrigadeMemberPermissions,
   type BrigadePermissionKey,
   type FlagRow,
-} from "@/lib/brigade-permissions";
+} from "@babun/shared/local/brigade-permissions";
 
 interface RouteParams {
   params: Promise<{ id: string; masterId: string }>;

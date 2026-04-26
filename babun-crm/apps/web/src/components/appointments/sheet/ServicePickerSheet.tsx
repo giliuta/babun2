@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Service, ServiceCategory } from "@/lib/services";
+import type { Service, ServiceCategory } from "@babun/shared/local/services";
 import DialogModal from "./DialogModal";
 
 interface ServicePickerSheetProps {

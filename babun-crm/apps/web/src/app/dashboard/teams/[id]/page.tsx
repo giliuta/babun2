@@ -48,13 +48,13 @@ import {
   getTeamLeadIds,
   type Master,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import {
   DEFAULT_SCHEDULE,
   WEEKDAY_KEYS,
   WEEKDAY_NAMES,
   type WeekdayKey,
-} from "@/lib/schedule";
+} from "@babun/shared/local/schedule";
 
 interface RouteParams {
   params: Promise<{ id: string }>;

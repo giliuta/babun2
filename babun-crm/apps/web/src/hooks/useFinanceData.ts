@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getDebtAmount, getPaidAmount, type Appointment } from "@/lib/appointments";
-import { type Service } from "@/lib/services";
-import type { Client } from "@/lib/clients";
-import type { Team } from "@/lib/masters";
-import type { DayExtra } from "@/lib/day-extras";
-import type { ExpenseCategory } from "@/lib/expense-categories";
+import { getDebtAmount, getPaidAmount, type Appointment } from "@babun/shared/local/appointments";
+import { type Service } from "@babun/shared/local/services";
+import type { Client } from "@babun/shared/local/clients";
+import type { Team } from "@babun/shared/local/masters";
+import type { DayExtra } from "@babun/shared/local/day-extras";
+import type { ExpenseCategory } from "@babun/shared/local/expense-categories";
 import {
   computeFinancials,
   type FinanceLine,
   type FinanceRange,
-} from "@/lib/finance/compute";
-import { loadPayments, type FinancePayment } from "@/lib/payments";
-import { loadExpenses, type Expense } from "@/lib/expenses";
+} from "@babun/shared/local/finance/compute";
+import { loadPayments, type FinancePayment } from "@babun/shared/local/payments";
+import { loadExpenses, type Expense } from "@babun/shared/local/expenses";
 
 // ─── Public types ──────────────────────────────────────────────────────────
 

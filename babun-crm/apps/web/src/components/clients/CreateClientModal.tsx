@@ -1,8 +1,8 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Client } from "@/lib/clients";
-import { createBlankClient } from "@/lib/clients";
+import type { Client } from "@babun/shared/local/clients";
+import { createBlankClient } from "@babun/shared/local/clients";
 import { haptic } from "@/lib/haptics";
 
 interface CreateClientModalProps {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
-import { createBlankClient, type Client } from "@/lib/clients";
+import { createBlankClient, type Client } from "@babun/shared/local/clients";
 import ClientPanel from "@/components/clients/ClientPanel";
 import CreateClientModal from "@/components/clients/CreateClientModal";
 import { useMediaQuery } from "@/lib/useMediaQuery";
@@ -16,12 +16,12 @@ import {
   CHANNEL_LABELS,
   CHANNEL_COLORS,
   getTotalUnread,
-} from "@/lib/chats";
-import { generateId } from "@/lib/masters";
+} from "@babun/shared/local/chats";
+import { generateId } from "@babun/shared/local/masters";
 import { haptic } from "@/lib/haptics";
 import { QUICK_REPLIES, LANG_LABELS, detectLanguage, type Lang } from "@babun/shared/common/utils/quick-replies";
 import { pluralizeAC } from "@babun/shared/common/utils/pluralize";
-import { PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
+import { PROPERTY_LABELS, type PropertyType } from "@babun/shared/local/clients";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import { Image as ImageIcon, Mic, MapPin, CornerUpLeft, Copy, Star, Trash2 } from "lucide-react";
 

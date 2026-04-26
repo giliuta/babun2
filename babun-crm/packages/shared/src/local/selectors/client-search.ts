@@ -12,7 +12,7 @@
 //     not the name.
 //   * Phone search ignores spaces, dashes, parentheses.
 
-import type { Client } from "./clients";
+import type { Client } from "../clients";
 
 const RU_TO_LAT: Record<string, string> = {
   а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z",

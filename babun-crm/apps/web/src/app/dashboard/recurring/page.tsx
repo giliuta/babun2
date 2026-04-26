@@ -12,7 +12,7 @@ import {
   markStatus,
   removeRecurring,
   type RecurringReminder,
-} from "@/lib/recurring";
+} from "@babun/shared/local/recurring";
 
 // Due-reminder inbox. Lists every recurring follow-up whose next_due_date
 // is within 14 days or already past. Tapping an item lets the dispatcher

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Client, Location } from "@/lib/clients";
-import { upsertClient } from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+import type { Client, Location } from "@babun/shared/local/clients";
+import { upsertClient } from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@babun/shared/common/utils/map-links";
 import { useLocationLabels } from "@/app/dashboard/layout";
 import { Navigation } from "lucide-react";

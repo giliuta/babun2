@@ -14,7 +14,7 @@ import {
   defaultPermissionsForRole,
   mergePermissions,
   type MasterPermissions,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 
 type VisibilityMode = "own" | "picked" | "all";

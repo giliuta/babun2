@@ -7,9 +7,9 @@ import { formatEUR, formatEURSigned } from "@babun/shared/common/utils/money";
 import {
   createBlankExpenseCategory,
   type ExpenseCategory,
-} from "@/lib/expense-categories";
-import type { Client } from "@/lib/clients";
-import type { Team } from "@/lib/masters";
+} from "@babun/shared/local/expense-categories";
+import type { Client } from "@babun/shared/local/clients";
+import type { Team } from "@babun/shared/local/masters";
 import { sum, type IncomeLine, type ExpenseLine, type DebtLine } from "@/hooks/useFinanceData";
 
 // ─── Income tab ───────────────────────────────────────────────────────────

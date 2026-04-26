@@ -8,7 +8,7 @@ import {
   getDayScheduleForDate,
   setDateOverride,
   QUARTER_HOUR_OPTIONS,
-} from "@/lib/schedule";
+} from "@babun/shared/local/schedule";
 import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 
 interface SpecialScheduleModalProps {

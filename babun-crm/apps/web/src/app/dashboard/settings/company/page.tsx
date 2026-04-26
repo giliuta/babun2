@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { loadCompany, saveCompany, type CompanyInfo, type VatMode } from "@/lib/finance/company";
+import { loadCompany, saveCompany, type CompanyInfo, type VatMode } from "@babun/shared/local/finance/company";
 
 // Company / VAT settings. Printed verbatim on every invoice PDF, so
 // typos here become typos on every client receipt — keep the form

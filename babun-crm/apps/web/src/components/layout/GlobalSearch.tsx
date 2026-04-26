@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, User as UserIcon, CalendarClock } from "lucide-react";
-import type { Client } from "@/lib/clients";
-import type { Appointment } from "@/lib/appointments";
-import { matchesClient } from "@/lib/client-search";
+import type { Client } from "@babun/shared/local/clients";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { matchesClient } from "@babun/shared/local/selectors/client-search";
 
 interface GlobalSearchProps {
   open: boolean;

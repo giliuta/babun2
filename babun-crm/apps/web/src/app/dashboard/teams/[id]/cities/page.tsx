@@ -36,7 +36,7 @@ import {
   CITY_COLOR_PRESETS,
   generateCityId,
   type City,
-} from "@/lib/cities";
+} from "@babun/shared/local/cities";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import ContextMenu, {
   type ContextMenuOption,

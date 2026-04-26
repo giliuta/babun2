@@ -3,7 +3,7 @@
 // Кипре: 20–50 EUR бензин, 10–30 еда, 15–60 расходники. Other —
 // без пресетов (freeform).
 
-import type { ExpenseCategoryKey } from "@/lib/day-extras";
+import type { ExpenseCategoryKey } from "../day-extras";
 
 export interface ExpenseCategoryConfig {
   label: string;

@@ -19,13 +19,13 @@ import {
   Ban,
   CheckCircle2,
 } from "lucide-react";
-import type { Client, ClientNote, Location } from "@/lib/clients";
-import { upsertClient, ACQUISITION_LABELS } from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+import type { Client, ClientNote, Location } from "@babun/shared/local/clients";
+import { upsertClient, ACQUISITION_LABELS } from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
-import type { Appointment } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
 import { Button } from "@/components/ui";
 

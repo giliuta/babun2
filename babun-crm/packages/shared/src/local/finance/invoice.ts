@@ -13,10 +13,10 @@
 //     or English can be pasted verbatim.
 
 import jsPDF from "jspdf";
-import type { Appointment } from "@/lib/appointments";
-import type { Client } from "@/lib/clients";
-import type { Service } from "@/lib/services";
-import type { Team } from "@/lib/masters";
+import type { Appointment } from "../appointments";
+import type { Client } from "../clients";
+import type { Service } from "../services";
+import type { Team } from "../masters";
 import type { CompanyInfo } from "./company";
 import { splitVat } from "./vat";
 import { appointmentTotal } from "./appointment-calc";

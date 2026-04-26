@@ -26,8 +26,8 @@ import {
   useClients,
   useServices,
 } from "@/app/dashboard/layout";
-import { buildStats } from "@/lib/client-stats";
-import { loadBlockConfig } from "@/lib/business-blocks";
+import { buildStats } from "@babun/shared/local/selectors/client-stats";
+import { loadBlockConfig } from "@babun/shared/local/business-blocks";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
 import ClientHeader from "./ClientHeader";

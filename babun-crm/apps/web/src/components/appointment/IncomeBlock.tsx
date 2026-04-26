@@ -4,15 +4,15 @@ import { useMemo, useState } from "react";
 import type {
   AppointmentService,
   Discount,
-} from "@/lib/appointments";
-import type { Service } from "@/lib/services";
+} from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
 import {
   appointmentTotal,
   globalDiscountAmount,
   lineTotal,
   subtotal,
   totalDuration,
-} from "@/lib/finance/appointment-calc";
+} from "@babun/shared/local/finance/appointment-calc";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Tag, X } from "lucide-react";

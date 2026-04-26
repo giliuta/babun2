@@ -13,14 +13,14 @@ import {
   getDayScheduleForDate,
   type TeamSchedule,
   DEFAULT_SCHEDULE,
-} from "@/lib/schedule";
-import type { Appointment, ValidationResult } from "@/lib/appointments";
-import { getAppointmentColorKind, getPaidAmount } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import { getServiceMaterialCost } from "@/lib/services";
-import type { Client } from "@/lib/clients";
-import { getCityConfig, getCityBg, cityConfigFromColor, type CityConfig } from "@/lib/day-cities";
-import type { City } from "@/lib/cities";
+} from "@babun/shared/local/schedule";
+import type { Appointment, ValidationResult } from "@babun/shared/local/appointments";
+import { getAppointmentColorKind, getPaidAmount } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import { getServiceMaterialCost } from "@babun/shared/local/services";
+import type { Client } from "@babun/shared/local/clients";
+import { getCityConfig, getCityBg, cityConfigFromColor, type CityConfig } from "@babun/shared/local/day-cities";
+import type { City } from "@babun/shared/local/cities";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {

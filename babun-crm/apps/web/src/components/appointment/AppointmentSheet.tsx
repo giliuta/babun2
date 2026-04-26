@@ -30,20 +30,20 @@ import type {
   AppointmentService,
   AppointmentSource,
   Discount,
-} from "@/lib/appointments";
-import { loadAppointments } from "@/lib/appointments";
-import type { Client, Location } from "@/lib/clients";
-import type { Master, Team } from "@/lib/masters";
-import { getTeamDisplayName } from "@/lib/masters";
-import type { Service, ServiceCategory } from "@/lib/services";
-import { pricePerUnit } from "@/lib/services";
+} from "@babun/shared/local/appointments";
+import { loadAppointments } from "@babun/shared/local/appointments";
+import type { Client, Location } from "@babun/shared/local/clients";
+import type { Master, Team } from "@babun/shared/local/masters";
+import { getTeamDisplayName } from "@babun/shared/local/masters";
+import type { Service, ServiceCategory } from "@babun/shared/local/services";
+import { pricePerUnit } from "@babun/shared/local/services";
 import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
-import { getCityColor, CITY_LIST } from "@/lib/day-cities";
+import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
   appointmentTotal,
   totalDuration as calcDuration,
-} from "@/lib/finance/appointment-calc";
+} from "@babun/shared/local/finance/appointment-calc";
 import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
 import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
 import { IOSSwitch } from "@/components/ui";
@@ -60,12 +60,12 @@ import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
 import ClientProfileView from "@/components/clients/ClientProfileView";
 import { useRouter } from "next/navigation";
-import { loadChats } from "@/lib/chats";
+import { loadChats } from "@babun/shared/local/chats";
 import PaymentBlock from "./PaymentBlock";
 import { buildShareUrl } from "@babun/shared/common/utils/share-link";
-import { createRecurring } from "@/lib/recurring";
+import { createRecurring } from "@babun/shared/local/recurring";
 import RepeatReminderSheet from "./RepeatReminderSheet";
-import { loadCompany } from "@/lib/finance/company";
+import { loadCompany } from "@babun/shared/local/finance/company";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
 // demand when the dispatcher actually taps "Скачать счёт" instead of
 // shipping the module in the main dashboard bundle.
@@ -1071,7 +1071,7 @@ export default function AppointmentSheet({
                   // initial bundle. First tap incurs a one-off chunk
                   // load; subsequent taps are cached.
                   const { generateInvoicePDF, downloadBlob } = await import(
-                    "@/lib/finance/invoice"
+                    "@babun/shared/local/finance/invoice"
                   );
                   const { blob, filename } = generateInvoicePDF({
                     appointment,

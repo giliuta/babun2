@@ -13,7 +13,7 @@ import {
   createBlankTemplate,
   type SmsTemplate,
   type TemplateKind,
-} from "@/lib/sms-templates";
+} from "@babun/shared/local/sms-templates";
 
 const SAMPLE_VARS: Record<string, string> = {
   Name: "Анастасия",

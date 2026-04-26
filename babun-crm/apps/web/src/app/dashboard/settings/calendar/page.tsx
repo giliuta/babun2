@@ -15,7 +15,7 @@ import {
   validateCalendarSettings,
   TIMEZONE_OPTIONS,
   type CalendarSettings,
-} from "@/lib/calendar-settings";
+} from "@babun/shared/local/calendar-settings";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 
 const HOURS_0_23 = Array.from({ length: 24 }, (_, i) => i);

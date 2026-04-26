@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Appointment } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
 
 interface RescheduleSheetProps {
   open: boolean;

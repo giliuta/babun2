@@ -10,7 +10,7 @@
 // The state is computed in lib/client-stats.ts via
 // getClientDisplayState() so the rendering is purely visual.
 
-import type { getClientDisplayState } from "@/lib/client-stats";
+import type { getClientDisplayState } from "@babun/shared/local/selectors/client-stats";
 
 type Display = ReturnType<typeof getClientDisplayState>;
 

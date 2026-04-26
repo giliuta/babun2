@@ -4,7 +4,7 @@ import { Smartphone } from "lucide-react";
 import {
   APPOINTMENT_SOURCE_LABELS,
   type AppointmentSource,
-} from "@/lib/appointments";
+} from "@babun/shared/local/appointments";
 
 interface SourceBlockProps {
   value: AppointmentSource | null;

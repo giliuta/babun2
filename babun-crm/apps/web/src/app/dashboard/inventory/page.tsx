@@ -44,9 +44,9 @@ import { useEquipment, useTeams } from "@/app/dashboard/layout";
 import {
   createBlankEquipment,
   type Equipment,
-} from "@/lib/equipment";
+} from "@babun/shared/local/equipment";
 import { PRESET_COLOR_VALUES } from "@babun/shared/common/utils/colors";
-import type { Team } from "@/lib/masters";
+import type { Team } from "@babun/shared/local/masters";
 
 function normalize(s: string): string {
   return s.toLowerCase().replace(/ё/g, "е");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MOCK_EXPENSES } from "@/lib/mock-data";
+import { MOCK_EXPENSES } from "@babun/shared/local/mock/seed";
 
 interface ExpensesDialogProps {
   open: boolean;

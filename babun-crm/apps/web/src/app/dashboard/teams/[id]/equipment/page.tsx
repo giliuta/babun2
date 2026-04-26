@@ -10,7 +10,7 @@ import { Package, Pencil, Plus, Trash2, UserMinus } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useEquipment, useTeams } from "@/app/dashboard/layout";
-import type { Equipment } from "@/lib/equipment";
+import type { Equipment } from "@babun/shared/local/equipment";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import ContextMenu, {
   type ContextMenuOption,

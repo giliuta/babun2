@@ -26,11 +26,11 @@
 // nicer "upsert on legacy_id" version is deferred to the next sprint.
 
 import type { Supabase } from "./client";
-import { loadAppointments } from "@/lib/appointments";
-import { loadClients, loadClientTags } from "@/lib/clients";
-import { loadMasters, loadTeams } from "@/lib/masters";
-import { loadServices, loadCategories as loadServiceCategories } from "@/lib/services";
-import { loadTemplates as loadSmsTemplates } from "@/lib/sms-templates";
+import { loadAppointments } from "@babun/shared/local/appointments";
+import { loadClients, loadClientTags } from "@babun/shared/local/clients";
+import { loadMasters, loadTeams } from "@babun/shared/local/masters";
+import { loadServices, loadCategories as loadServiceCategories } from "@babun/shared/local/services";
+import { loadTemplates as loadSmsTemplates } from "@babun/shared/local/sms-templates";
 
 export interface ImportProgress {
   stage: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { PhotoKind } from "@/lib/appointments";
+import type { PhotoKind } from "@babun/shared/local/appointments";
 
 interface PhotoPickerProps {
   open: boolean;

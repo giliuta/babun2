@@ -10,7 +10,7 @@ import {
   loadSchedules,
   saveSchedules,
   type ScheduleMap,
-} from "@/lib/schedule";
+} from "@babun/shared/local/schedule";
 import {
   loadMasters,
   saveMasters,
@@ -18,7 +18,7 @@ import {
   saveTeams,
   type Master,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import {
   loadAppointments,
   saveAppointments,
@@ -29,7 +29,7 @@ import {
   type Appointment,
   type FormFieldVisibility,
   type RequiredFields,
-} from "@/lib/appointments";
+} from "@babun/shared/local/appointments";
 import {
   loadServices,
   saveServices,
@@ -37,7 +37,7 @@ import {
   saveCategories,
   type Service,
   type ServiceCategory,
-} from "@/lib/services";
+} from "@babun/shared/local/services";
 import {
   loadClients,
   saveClients,
@@ -45,24 +45,24 @@ import {
   saveClientTags,
   type Client,
   type ClientTag,
-} from "@/lib/clients";
+} from "@babun/shared/local/clients";
 import {
   loadTemplates,
   saveTemplates,
   type SmsTemplate,
-} from "@/lib/sms-templates";
+} from "@babun/shared/local/sms-templates";
 import {
   loadExpenseCategories,
   saveExpenseCategories,
   type ExpenseCategory,
-} from "@/lib/expense-categories";
+} from "@babun/shared/local/expense-categories";
 import {
   loadDayCities,
   saveDayCities,
   setDayCity,
   getDayCity,
   type DayCityMap,
-} from "@/lib/day-cities";
+} from "@babun/shared/local/day-cities";
 import {
   loadDayExtras,
   saveDayExtras,
@@ -70,23 +70,23 @@ import {
   getDayExtras,
   type DayExtrasMap,
   type DayExtra,
-} from "@/lib/day-extras";
+} from "@babun/shared/local/day-extras";
 import {
   loadCalendarSettings,
   saveCalendarSettings,
   type CalendarSettings,
-} from "@/lib/calendar-settings";
-import { loadCities, saveCities, type City } from "@/lib/cities";
+} from "@babun/shared/local/calendar-settings";
+import { loadCities, saveCities, type City } from "@babun/shared/local/cities";
 import {
   loadEquipment,
   saveEquipment,
   type Equipment,
-} from "@/lib/equipment";
+} from "@babun/shared/local/equipment";
 import {
   loadLocationLabels,
   saveLocationLabels,
   type LocationLabel,
-} from "@/lib/location-labels";
+} from "@babun/shared/local/location-labels";
 import { warmUpHaptics } from "@/lib/haptics";
 import { getStorage } from "@babun/shared/storage";
 

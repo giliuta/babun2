@@ -15,8 +15,8 @@
 //   5. Sparkles (green) — new client (<30 days in DB)
 
 import { Ban, Cake, Calendar, Star, Sparkles } from "lucide-react";
-import type { Client } from "@/lib/clients";
-import type { ClientStats } from "@/lib/client-stats";
+import type { Client } from "@babun/shared/local/clients";
+import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 
 interface BadgeSlot {
   key: string;

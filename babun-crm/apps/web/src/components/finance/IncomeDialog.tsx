@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MOCK_INCOME } from "@/lib/mock-data";
+import { MOCK_INCOME } from "@babun/shared/local/mock/seed";
 
 interface IncomeDialogProps {
   open: boolean;

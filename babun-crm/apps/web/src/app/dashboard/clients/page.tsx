@@ -35,11 +35,11 @@ import { Button, Input } from "@/components/ui";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
-import { type Client, type ClientTag, createBlankClient } from "@/lib/clients";
+import { type Client, type ClientTag, createBlankClient } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
 import ClientPanel from "@/components/clients/ClientPanel";
-import { matchesClient } from "@/lib/client-search";
+import { matchesClient } from "@babun/shared/local/selectors/client-search";
 import { haptic } from "@/lib/haptics";
 import {
   buildStatsMap,
@@ -48,7 +48,7 @@ import {
   isLoyalClient,
   isNewClient,
   type ClientStats,
-} from "@/lib/client-stats";
+} from "@babun/shared/local/selectors/client-stats";
 import ClientCardStats from "@/components/clients/ClientCardStats";
 import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
 import ClientQuickActionsSheet from "@/components/clients/ClientQuickActionsSheet";

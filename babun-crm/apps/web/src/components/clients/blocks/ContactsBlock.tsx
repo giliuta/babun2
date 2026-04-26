@@ -7,8 +7,8 @@
 // block is for record-keeping.
 
 import { Phone as PhoneIcon, Send, Plus, X } from "lucide-react";
-import type { Client, PhoneEntry } from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+import type { Client, PhoneEntry } from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import {
   whatsappUrl,
   telegramUrl,

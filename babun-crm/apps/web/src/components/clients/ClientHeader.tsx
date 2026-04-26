@@ -21,8 +21,8 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Client, Location } from "@/lib/clients";
-import type { ClientStats } from "@/lib/client-stats";
+import type { Client, Location } from "@babun/shared/local/clients";
+import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import ClientStatusBadges from "./ClientStatusBadges";

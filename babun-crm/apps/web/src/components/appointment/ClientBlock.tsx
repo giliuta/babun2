@@ -1,6 +1,6 @@
 "use client";
 
-import type { Client } from "@/lib/clients";
+import type { Client } from "@babun/shared/local/clients";
 
 interface ClientBlockProps {
   client: Client | null;

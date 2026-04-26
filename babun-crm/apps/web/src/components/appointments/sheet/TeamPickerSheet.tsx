@@ -1,6 +1,6 @@
 "use client";
 
-import type { Team } from "@/lib/masters";
+import type { Team } from "@babun/shared/local/masters";
 import DialogModal from "./DialogModal";
 
 interface TeamPickerSheetProps {

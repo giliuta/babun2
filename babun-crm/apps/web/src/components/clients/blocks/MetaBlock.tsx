@@ -5,8 +5,8 @@
 // (DEFAULT_BLOCK_ORDER flag).
 
 import { Plus, X } from "lucide-react";
-import type { Client } from "@/lib/clients";
-import { ACQUISITION_LABELS, type AcquisitionSource } from "@/lib/clients";
+import type { Client } from "@babun/shared/local/clients";
+import { ACQUISITION_LABELS, type AcquisitionSource } from "@babun/shared/local/clients";
 import { useClients } from "@/app/dashboard/layout";
 import ClientCard from "../ClientCard";
 import { haptic } from "@/lib/haptics";

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   generateWeeklyPercent,
   isoWeekRange,
-} from "@/lib/payroll";
-import { DEFAULT_BRIGADE_MEMBERS } from "@/lib/brigades";
+} from "@babun/shared/local/payroll";
+import { DEFAULT_BRIGADE_MEMBERS } from "@babun/shared/local/brigades";
 
 // Payroll % calculation: Y&D week, revenue €1620 post-discount.
 // Lead (Юра, 10%): €162.00 = 16200 cents

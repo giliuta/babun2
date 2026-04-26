@@ -29,7 +29,7 @@ import {
   type TeamSchedule,
   type VacationRange,
   type WeekdayKey,
-} from "@/lib/schedule";
+} from "@babun/shared/local/schedule";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 

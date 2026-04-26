@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createExpense, filterExpenses, sumExpensesCents, brigadeExpensesTotal } from "@/lib/expenses";
+import { createExpense, filterExpenses, sumExpensesCents, brigadeExpensesTotal } from "@babun/shared/local/expenses";
 
 const EXPENSES_KEY = "babun2:finance:expenses";
 

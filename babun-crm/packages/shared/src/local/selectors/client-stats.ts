@@ -20,9 +20,9 @@
 //     visit at 18:00 Limassol counts as today even if UTC has rolled
 //     over.
 
-import type { Appointment } from "./appointments";
-import { getPaidAmount, getDebtAmount } from "./appointments";
-import type { Client } from "./clients";
+import type { Appointment } from "../appointments";
+import { getPaidAmount, getDebtAmount } from "../appointments";
+import type { Client } from "../clients";
 
 export interface ClientStats {
   /** Number of completed visits. */

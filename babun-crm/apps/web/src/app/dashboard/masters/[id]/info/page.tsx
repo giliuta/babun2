@@ -48,11 +48,11 @@ import {
   type Master,
   type MasterDocument,
   type MasterIncident,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 import AvatarPickerSheet from "@/components/masters/AvatarPickerSheet";
 import IOSSwitch from "@/components/ui/IOSSwitch";
-import { isAvatarSet } from "@/lib/avatars";
+import { isAvatarSet } from "@babun/shared/local/selectors/avatars";
 
 const BLANK_MASTER: Master = {
   id: "",

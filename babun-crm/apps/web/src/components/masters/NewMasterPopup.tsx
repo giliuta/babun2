@@ -16,8 +16,8 @@ import {
   generatePassword,
   getInitials,
   type Master,
-} from "@/lib/masters";
-import { isAvatarSet } from "@/lib/avatars";
+} from "@babun/shared/local/masters";
+import { isAvatarSet } from "@babun/shared/local/selectors/avatars";
 import { haptic } from "@/lib/haptics";
 import AvatarPickerSheet from "./AvatarPickerSheet";
 

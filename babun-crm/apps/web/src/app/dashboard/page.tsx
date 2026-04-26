@@ -18,15 +18,15 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { getMonday, addWeeks, addDays, formatDateLongRu } from "@babun/shared/common/utils/date-utils";
-import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@/lib/mock-data";
-import type { Client } from "@/lib/clients";
-import { getTeamSchedule, timeToMinutes, type TeamSchedule } from "@/lib/schedule";
+import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@babun/shared/local/mock/seed";
+import type { Client } from "@babun/shared/local/clients";
+import { getTeamSchedule, timeToMinutes, type TeamSchedule } from "@babun/shared/local/schedule";
 import {
   type Appointment,
   validateAppointment,
   duplicateAppointment,
   createBlankAppointment,
-} from "@/lib/appointments";
+} from "@babun/shared/local/appointments";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
@@ -58,14 +58,14 @@ import {
   useCalendarSettings,
   useCities,
 } from "./layout";
-import { getTeamDisplayName } from "@/lib/masters";
-import { sumExtras } from "@/lib/day-extras";
-import { loadChats } from "@/lib/chats";
+import { getTeamDisplayName } from "@babun/shared/local/masters";
+import { sumExtras } from "@babun/shared/local/day-extras";
+import { loadChats } from "@babun/shared/local/chats";
 import SuccessOverlay from "@/components/appointment/SuccessOverlay";
 import PaymentSheet from "@/components/finance/PaymentSheet";
 import ExpenseSheet from "@/components/finance/ExpenseSheet";
 import RescheduleSheet from "@/components/calendar/RescheduleSheet";
-import { EXPENSE_CATEGORIES } from "@/lib/finance/expense-categories";
+import { EXPENSE_CATEGORIES } from "@babun/shared/local/finance/expense-categories";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
 import MorningBriefing from "@/components/layout/MorningBriefing";

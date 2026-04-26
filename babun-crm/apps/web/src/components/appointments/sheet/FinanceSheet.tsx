@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AppointmentExpense } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import { generateId } from "@/lib/masters";
+import type { AppointmentExpense } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import { generateId } from "@babun/shared/local/masters";
 import DialogModal from "./DialogModal";
 
 interface FinanceSheetProps {

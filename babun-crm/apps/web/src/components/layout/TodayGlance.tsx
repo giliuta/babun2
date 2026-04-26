@@ -2,11 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import type { Appointment } from "@/lib/appointments";
-import type { Service } from "@/lib/services";
-import type { Team } from "@/lib/masters";
-import type { DayExtra } from "@/lib/day-extras";
-import { computeFinancials } from "@/lib/finance/compute";
+import type { Appointment } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
+import type { Team } from "@babun/shared/local/masters";
+import type { DayExtra } from "@babun/shared/local/day-extras";
+import { computeFinancials } from "@babun/shared/local/finance/compute";
 import { pluralRecord } from "@babun/shared/common/utils/pluralize";
 import { formatEUR } from "@babun/shared/common/utils/money";
 

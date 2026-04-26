@@ -6,7 +6,7 @@ import { ChevronLeft, Check, X, Pencil, Trash2 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button, IOSSwitch } from "@/components/ui";
 import { useCities } from "@/app/dashboard/layout";
-import { generateCityId, type City } from "@/lib/cities";
+import { generateCityId, type City } from "@babun/shared/local/cities";
 
 function CityRow({
   city,

@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { Appointment } from "@/lib/appointments";
-import { getPaidAmount } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { getPaidAmount } from "@babun/shared/local/appointments";
 
 interface MonthViewProps {
   currentDate: Date;

@@ -5,7 +5,7 @@ import { Check, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";
-import type { Team } from "@/lib/masters";
+import type { Team } from "@babun/shared/local/masters";
 import {
   createBlankService,
   getServiceMaterialCost,
@@ -14,8 +14,8 @@ import {
   type ServiceCategory,
   type ServiceMaterialCost,
   type Weekday,
-} from "@/lib/services";
-import { generateId } from "@/lib/masters";
+} from "@babun/shared/local/services";
+import { generateId } from "@babun/shared/local/masters";
 
 const PALETTE = [
   "#3b82f6",

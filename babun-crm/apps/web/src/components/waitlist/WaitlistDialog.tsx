@@ -1,6 +1,6 @@
 "use client";
 
-import { MOCK_WAITLIST } from "@/lib/mock-data";
+import { MOCK_WAITLIST } from "@babun/shared/local/mock/seed";
 
 interface WaitlistDialogProps {
   open: boolean;

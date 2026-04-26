@@ -9,7 +9,7 @@ import { useLocationLabels } from "@/app/dashboard/layout";
 import {
   generateLocationLabelId,
   type LocationLabel,
-} from "@/lib/location-labels";
+} from "@babun/shared/local/location-labels";
 
 function LabelRow({
   label,

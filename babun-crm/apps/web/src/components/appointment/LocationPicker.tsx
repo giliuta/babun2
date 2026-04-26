@@ -1,6 +1,6 @@
 "use client";
 
-import type { Location } from "@/lib/clients";
+import type { Location } from "@babun/shared/local/clients";
 
 interface LocationPickerProps {
   locations: Location[];

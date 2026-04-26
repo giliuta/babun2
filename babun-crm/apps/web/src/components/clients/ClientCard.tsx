@@ -11,7 +11,7 @@ import {
   getBlockOpen,
   setBlockOpen,
   type BlockKind,
-} from "@/lib/business-blocks";
+} from "@babun/shared/local/business-blocks";
 import { haptic } from "@/lib/haptics";
 
 interface ClientCardProps {

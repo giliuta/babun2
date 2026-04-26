@@ -25,7 +25,7 @@ import {
 import type {
   FormFieldVisibility,
   RequiredFields,
-} from "@/lib/appointments";
+} from "@babun/shared/local/appointments";
 
 // v316 — iOS 26 redesign:
 //   * Large title under glass nav

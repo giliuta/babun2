@@ -8,10 +8,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, StickyNote } from "lucide-react";
-import type { Client, ClientNote } from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+import type { Client, ClientNote } from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import ClientCard from "../ClientCard";
-import { setBlockOpen } from "@/lib/business-blocks";
+import { setBlockOpen } from "@babun/shared/local/business-blocks";
 import { haptic } from "@/lib/haptics";
 import { Button } from "@/components/ui";
 

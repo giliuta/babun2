@@ -7,7 +7,7 @@
 // primary).  Auto-opens when there's more than one usable location.
 
 import { Home, MapPin, ArrowUpRight } from "lucide-react";
-import type { Client, Location } from "@/lib/clients";
+import type { Client, Location } from "@babun/shared/local/clients";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import ClientCard from "../ClientCard";
 import { haptic } from "@/lib/haptics";

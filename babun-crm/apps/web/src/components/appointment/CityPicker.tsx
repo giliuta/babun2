@@ -1,6 +1,6 @@
 "use client";
 
-import { CITY_LIST } from "@/lib/day-cities";
+import { CITY_LIST } from "@babun/shared/local/day-cities";
 
 interface CityPickerProps {
   value: string;

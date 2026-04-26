@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { MOCK_SERVICES, MOCK_TEAMS, type MockService } from "@/lib/mock-data";
+import { MOCK_SERVICES, MOCK_TEAMS, type MockService } from "@babun/shared/local/mock/seed";
 import {
   type ScheduleMap,
   type TeamSchedule,
   DEFAULT_SCHEDULE,
   getTeamSchedule,
-} from "@/lib/schedule";
+} from "@babun/shared/local/schedule";
 
 interface MasterProfileDialogProps {
   open: boolean;

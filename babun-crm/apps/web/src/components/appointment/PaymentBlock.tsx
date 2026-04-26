@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Banknote, CreditCard, ArrowLeftRight, FileText } from "lucide-react";
-import type { AppointmentPayment } from "@/lib/appointments";
+import type { AppointmentPayment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface PaymentBlockProps {

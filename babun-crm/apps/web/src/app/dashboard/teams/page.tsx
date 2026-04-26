@@ -59,7 +59,7 @@ import {
   getTeamMembers,
   type Master,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 
 export default function TeamsPage() {
   const router = useRouter();

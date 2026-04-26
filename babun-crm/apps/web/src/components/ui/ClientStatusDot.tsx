@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClientSegment } from "@/lib/clients";
+import type { ClientSegment } from "@babun/shared/local/clients";
 
 interface ClientStatusDotProps {
   segments: ClientSegment[];

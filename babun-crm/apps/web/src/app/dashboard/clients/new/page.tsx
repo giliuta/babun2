@@ -21,8 +21,8 @@ import { useClients } from "@/app/dashboard/layout";
 import {
   createBlankClient,
   type Location,
-} from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+} from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import LocationEditor from "@/components/clients/LocationEditor";
 import { Button } from "@/components/ui";
 import { haptic } from "@/lib/haptics";

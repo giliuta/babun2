@@ -19,7 +19,7 @@ import {
   useMasters,
 } from "@/app/dashboard/layout";
 import { haptic } from "@/lib/haptics";
-import type { Appointment } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 
 interface RouteParams {

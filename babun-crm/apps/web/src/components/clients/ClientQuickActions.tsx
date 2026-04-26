@@ -21,7 +21,7 @@ import {
   MessageSquare,
   StickyNote,
 } from "lucide-react";
-import type { Client } from "@/lib/clients";
+import type { Client } from "@babun/shared/local/clients";
 import {
   whatsappUrl,
   telUrl,

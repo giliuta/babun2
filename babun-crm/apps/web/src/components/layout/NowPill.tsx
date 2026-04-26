@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Appointment } from "@/lib/appointments";
-import type { Client } from "@/lib/clients";
+import type { Appointment } from "@babun/shared/local/appointments";
+import type { Client } from "@babun/shared/local/clients";
 
 interface NowPillProps {
   appointments: Appointment[];

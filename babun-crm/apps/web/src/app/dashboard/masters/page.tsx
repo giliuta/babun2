@@ -38,7 +38,7 @@ import {
   getTeamLeadIds,
   type Master,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import NewMasterPopup from "@/components/masters/NewMasterPopup";
 
 function normalize(s: string): string {

@@ -4,7 +4,7 @@
 // Все функции чистые, не трогают DOM / localStorage. Поддерживают
 // легковесный unit-testing в будущем (пока без Vitest).
 
-import type { AppointmentService, Discount } from "@/lib/appointments";
+import type { AppointmentService, Discount } from "../appointments";
 
 /** Apply a discount to a number; clamped to [0, base]. */
 export function applyDiscount(base: number, discount?: Discount | null): number {

@@ -17,9 +17,9 @@ import {
   useMasters,
   useTeams,
 } from "@/app/dashboard/layout";
-import { getTeamLeadIds, type Team } from "@/lib/masters";
+import { getTeamLeadIds, type Team } from "@babun/shared/local/masters";
 import { useClients } from "@/app/dashboard/layout";
-import type { Appointment } from "@/lib/appointments";
+import type { Appointment } from "@babun/shared/local/appointments";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 
 type Period = "week" | "month" | "quarter" | "year" | "custom";

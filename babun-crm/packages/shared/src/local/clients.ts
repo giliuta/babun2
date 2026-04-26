@@ -2,7 +2,7 @@
 
 import { generateId } from "./masters";
 import type { Appointment } from "./appointments";
-import { MOCK_CLIENTS, type MockClient } from "./mock-data";
+import { MOCK_CLIENTS, type MockClient } from "./mock/seed";
 
 export interface ClientTag {
   id: string;

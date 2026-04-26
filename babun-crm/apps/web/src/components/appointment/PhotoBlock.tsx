@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Camera } from "lucide-react";
-import type { AppointmentPhoto, PhotoKind } from "@/lib/appointments";
-import { compressImage, generateCaption } from "@/lib/photos";
-import { generateId } from "@/lib/masters";
+import type { AppointmentPhoto, PhotoKind } from "@babun/shared/local/appointments";
+import { compressImage, generateCaption } from "@babun/shared/local/photos";
+import { generateId } from "@babun/shared/local/masters";
 import PhotoPicker from "./PhotoPicker";
 import PhotoViewer from "./PhotoViewer";
 

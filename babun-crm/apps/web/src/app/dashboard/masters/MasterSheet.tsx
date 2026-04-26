@@ -37,7 +37,7 @@ import {
   type SalaryPeriod,
   type Team,
   type WorkSchedule,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 
 // TODO(decomp): 600+ lines single-file. Acceptable for one cohesive
 // multi-section sheet; split into sub-sections if it grows past 800.

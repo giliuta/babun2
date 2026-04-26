@@ -4,7 +4,7 @@
 // inline-edit form; nothing here drives behavior, it's reference data
 // for SMS templates and birthday reminders.
 
-import type { Client } from "@/lib/clients";
+import type { Client } from "@babun/shared/local/clients";
 import ClientCard from "../ClientCard";
 
 interface PersonalBlockProps {

@@ -3,7 +3,7 @@
 // CRUD for NotificationTemplate + renderTemplate placeholder substitution.
 // Placeholders: {clientName} {serviceList} {date} {time} {address} {brigadeName} {totalEur}
 
-import { generateId } from "./masters";
+import { generateId } from "@babun/shared/local/masters";
 import type {
   NotificationTemplate,
   NotificationContext,

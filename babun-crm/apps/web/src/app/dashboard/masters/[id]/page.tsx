@@ -29,7 +29,7 @@ import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import MasterContactMenu from "@/components/masters/MasterContactMenu";
-import { isAvatarSet } from "@/lib/avatars";
+import { isAvatarSet } from "@babun/shared/local/selectors/avatars";
 import {
   useAppointments,
   useMasters,
@@ -43,7 +43,7 @@ import {
   mergePermissions,
   type MasterPermissions,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 
 interface RouteParams {
   params: Promise<{ id: string }>;

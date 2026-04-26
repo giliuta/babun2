@@ -19,7 +19,7 @@ import {
   TEAM_COLORS,
   generateId,
   type Team,
-} from "@/lib/masters";
+} from "@babun/shared/local/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 
 const BLANK_TEAM: Team = {

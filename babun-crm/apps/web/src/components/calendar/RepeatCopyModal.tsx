@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import DialogModal from "@/components/appointments/sheet/DialogModal";
-import { duplicateAppointment, type Appointment } from "@/lib/appointments";
+import { duplicateAppointment, type Appointment } from "@babun/shared/local/appointments";
 import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 
 interface RepeatCopyModalProps {

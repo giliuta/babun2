@@ -4,8 +4,8 @@ import {
   inFinanceRange,
   datesInFinanceRange,
   centsToEur,
-} from "@/lib/finance/compute";
-import type { Appointment } from "@/lib/appointments";
+} from "@babun/shared/local/finance/compute";
+import type { Appointment } from "@babun/shared/local/appointments";
 
 // Minimal Appointment factory — keep only what computeFinancials reads.
 // `as Appointment` cast is deliberate: the production type has many

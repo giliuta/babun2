@@ -21,10 +21,10 @@
 // The returned numbers are always euros (integer). formatEUR() can be
 // called on them verbatim.
 
-import { getPaidAmount, type Appointment } from "@/lib/appointments";
-import { getServiceMaterialCost, type Service } from "@/lib/services";
-import type { Team } from "@/lib/masters";
-import type { DayExtra } from "@/lib/day-extras";
+import { getPaidAmount, type Appointment } from "../appointments";
+import { getServiceMaterialCost, type Service } from "../services";
+import type { Team } from "../masters";
+import type { DayExtra } from "../day-extras";
 import type {
   FinancePayment,
   Expense as StandaloneExpense,

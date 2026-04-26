@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Client } from "@/lib/clients";
-import { createBlankClient, upsertClient } from "@/lib/clients";
-import { generateId } from "@/lib/masters";
+import type { Client } from "@babun/shared/local/clients";
+import { createBlankClient, upsertClient } from "@babun/shared/local/clients";
+import { generateId } from "@babun/shared/local/masters";
 import DialogModal from "./DialogModal";
-import { matchesClient, findDuplicateCandidates } from "@/lib/client-search";
+import { matchesClient, findDuplicateCandidates } from "@babun/shared/local/selectors/client-search";
 
 interface ClientPickerSheetProps {
   open: boolean;

@@ -14,7 +14,7 @@ import {
   useAppointments,
   useClients,
 } from "@/app/dashboard/layout";
-import { loadChats, getTotalUnread } from "@/lib/chats";
+import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { haptic } from "@/lib/haptics";
 import GlobalSearch from "./GlobalSearch";
 

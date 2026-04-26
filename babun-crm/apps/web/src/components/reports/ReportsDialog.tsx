@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MOCK_REPORTS } from "@/lib/mock-data";
+import { MOCK_REPORTS } from "@babun/shared/local/mock/seed";
 
 interface ReportsDialogProps {
   open: boolean;

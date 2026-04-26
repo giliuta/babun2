@@ -1,7 +1,7 @@
 // 0003_client_salutation: add optional salutation field to existing clients.
 // salutation defaults to sms_name if present, otherwise empty string.
 
-import { loadClients, saveClients } from "@/lib/clients";
+import { loadClients, saveClients } from "@babun/shared/local/clients";
 
 export function migration0003ClientSalutation(): void {
   const clients = loadClients();

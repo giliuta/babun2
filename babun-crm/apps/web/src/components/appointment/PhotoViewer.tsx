@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AppointmentPhoto, PhotoKind } from "@/lib/appointments";
-import { kindLabel } from "@/lib/photos";
+import type { AppointmentPhoto, PhotoKind } from "@babun/shared/local/appointments";
+import { kindLabel } from "@babun/shared/local/photos";
 
 interface PhotoViewerProps {
   open: boolean;
