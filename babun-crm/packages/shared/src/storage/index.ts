@@ -1,8 +1,10 @@
-// STORY-035 G0 — storage namespace placeholder.
+// STORY-035 G1 — storage namespace barrel.
 //
-// G1 fills this with the synchronous KVStorage abstraction:
-//   * types.ts    — interface KVStorage<T>
-//   * web.ts      — WebKVStorage (localStorage-backed)
-//   * memory.ts   — MemoryKVStorage (Map-backed, for tests / RN dev)
-//   * provider.ts — getStorage() / setStorage()
-export {};
+// Public API for `@babun/shared/storage`.  Stores call `getStorage()`;
+// app bootstrap may call `setStorage()`.  Implementations are also
+// exported so RN/tests can construct their own instances.
+
+export type { KVStorage } from "./types";
+export { WebKVStorage } from "./web";
+export { MemoryKVStorage } from "./memory";
+export { getStorage, setStorage } from "./provider";
