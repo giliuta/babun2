@@ -8,7 +8,8 @@
 // as $SUPABASE_ACCESS_TOKEN), run from apps/web:
 //   npm run db:types
 //
-// Project ref: rdtokosbqvgemicqeqwz (URL subdomain qvgemicqeqwz).
+// Project ref: rdtokosbqvgemicqeqwz
+// URL: https://rdtokosbqvgemicqeqwz.supabase.co
 
 export type Json =
   | string
