@@ -1,7 +1,7 @@
 // 0004_service_categories: seed FinanceServiceCategory records from the
 // Bumpix AirFix catalog. Idempotent — skips existing ids.
 
-import type { FinanceServiceCategory } from "@babun/shared/types/finance";
+import type { FinanceServiceCategory } from "@babun/shared/db/types/finance";
 
 const FIN_CATEGORIES_KEY = "babun2:finance:service_categories";
 

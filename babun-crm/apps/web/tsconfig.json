@@ -29,10 +29,7 @@
       "@babun/shared/db/*":       ["../../packages/shared/src/db/*"],
       "@babun/shared/storage":    ["../../packages/shared/src/storage"],
       "@babun/shared/storage/*":  ["../../packages/shared/src/storage/*"],
-      "@babun/shared/icons":      ["../../packages/shared/src/common/icons"],
-      "@babun/shared/types":      ["../../packages/shared/types"],
-      "@babun/shared/types/*":    ["../../packages/shared/types/*"],
-      "@babun/shared/lib/*":      ["../../packages/shared/lib/*"]
+      "@babun/shared/icons":      ["../../packages/shared/src/common/icons"]
     }
   },
   "include": [

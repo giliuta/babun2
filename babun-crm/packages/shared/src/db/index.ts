@@ -1,9 +1,6 @@
-// STORY-035 G0 — db namespace placeholder.
+// db namespace — Supabase-shape types and (future) client.
 //
-// G5 moves the existing Supabase-shape types here:
-//   * types/ ← packages/shared/types/
-//   * client/ ← packages/shared/lib/supabase.ts
-//
-// 9 known callers of `@babun/shared/types/finance` will be redirected
-// to `@babun/shared/db/types/finance` in the same G5 commit.
-export {};
+// Used for: future cloud sync (STORY-001).  Local prototype models live
+// in `@babun/shared/local/*` instead.
+
+export * from "./types";

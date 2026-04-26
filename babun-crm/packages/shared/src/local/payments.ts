@@ -5,7 +5,7 @@
 // backwards compat). This module owns the babun2:finance:payments namespace.
 
 import { generateId } from "./masters";
-import type { FinancePayment, FinancePaymentMethod } from "@babun/shared/types/finance";
+import type { FinancePayment, FinancePaymentMethod } from "@babun/shared/db/types/finance";
 
 export type { FinancePayment, FinancePaymentMethod };
 

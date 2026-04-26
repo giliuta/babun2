@@ -4,7 +4,7 @@
 
 import { generateId } from "@babun/shared/local/masters";
 import { loadAppointments } from "@babun/shared/local/appointments";
-import type { AppointmentFinance } from "@babun/shared/types/finance";
+import type { AppointmentFinance } from "@babun/shared/db/types/finance";
 
 const AF_KEY = "babun2:finance:appointment_finance";
 

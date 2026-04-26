@@ -4,7 +4,7 @@
 // buildReconciliationForBrigadeDay computes expected from finance payments.
 
 import { generateId } from "./masters";
-import type { DailyReconciliation } from "@babun/shared/types/finance";
+import type { DailyReconciliation } from "@babun/shared/db/types/finance";
 import { filterPayments, sumCashCents } from "./payments";
 
 export type { DailyReconciliation };

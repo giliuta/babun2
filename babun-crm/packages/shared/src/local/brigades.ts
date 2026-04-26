@@ -5,7 +5,7 @@
 // this module owns payroll identity, outsource cost, and brigade membership.
 
 import { generateId } from "./masters";
-import type { Brigade, BrigadeMember } from "@babun/shared/types/finance";
+import type { Brigade, BrigadeMember } from "@babun/shared/db/types/finance";
 
 export type { Brigade, BrigadeMember };
 

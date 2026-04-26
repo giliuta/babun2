@@ -9,7 +9,7 @@ import type {
   PayrollPeriod,
   PayrollLine,
   PayrollPeriodType,
-} from "@babun/shared/types/finance";
+} from "@babun/shared/db/types/finance";
 import { loadBrigadeMembers } from "./brigades";
 import { filterPayments, sumPaymentsCents } from "./payments";
 import { createExpense } from "./expenses";

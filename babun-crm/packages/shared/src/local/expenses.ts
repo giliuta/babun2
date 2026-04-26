@@ -4,7 +4,7 @@
 // appointment-level materials. Each scope subset can be queried independently.
 
 import { generateId } from "./masters";
-import type { Expense, ExpenseScope, ExpenseCategory } from "@babun/shared/types/finance";
+import type { Expense, ExpenseScope, ExpenseCategory } from "@babun/shared/db/types/finance";
 
 export type { Expense, ExpenseScope, ExpenseCategory };
 

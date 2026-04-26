@@ -9,7 +9,7 @@ import type {
   NotificationContext,
   NotificationKind,
   NotificationChannel,
-} from "@babun/shared/types/finance";
+} from "@babun/shared/db/types/finance";
 
 export type { NotificationTemplate, NotificationContext, NotificationKind, NotificationChannel };
 

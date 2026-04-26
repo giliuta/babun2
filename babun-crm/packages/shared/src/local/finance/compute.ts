@@ -28,7 +28,7 @@ import type { DayExtra } from "../day-extras";
 import type {
   FinancePayment,
   Expense as StandaloneExpense,
-} from "@babun/shared/types/finance";
+} from "@babun/shared/db/types/finance";
 
 export interface FinanceRange {
   /** YYYY-MM-DD inclusive. `null` means "all time". */
