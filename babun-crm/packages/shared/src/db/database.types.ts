@@ -1,0 +1,142 @@
+// Placeholder Database type for STORY-036.
+//
+// G3 of STORY-036 replaces this file with the output of:
+//   npm run db:types
+// (= `supabase gen types typescript --project-id qvgemicqeqwz`)
+//
+// Hand-written shape matches the SQL in
+// apps/web/supabase/migrations/20260427_001_init_clients.sql so tsc
+// compiles in the window between G1 and G3.
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export interface Database {
+  public: {
+    Tables: {
+      tenants: {
+        Row: {
+          id: string;
+          name: string;
+          vertical: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          vertical?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;
+        Relationships: [];
+      };
+      client_tags: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          name: string;
+          color: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          name: string;
+          color: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["client_tags"]["Insert"]>;
+        Relationships: [];
+      };
+      clients: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          full_name: string;
+          phone: string;
+          whatsapp_phone: string;
+          email: string;
+          sms_name: string;
+          telegram_username: string;
+          instagram_username: string;
+          balance: number;
+          discount: number;
+          comment: string;
+          acquisition_source: string;
+          referred_by_client_id: string | null;
+          first_contact_date: string | null;
+          address: string;
+          city: string;
+          property_type: string;
+          language: string | null;
+          birthday: string;
+          blacklisted: boolean;
+          pinned_at: string | null;
+          reminder_at: string | null;
+          phones: Json;
+          locations: Json;
+          notes: Json;
+          equipment: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          full_name: string;
+          phone?: string;
+          whatsapp_phone?: string;
+          email?: string;
+          sms_name?: string;
+          telegram_username?: string;
+          instagram_username?: string;
+          balance?: number;
+          discount?: number;
+          comment?: string;
+          acquisition_source?: string;
+          referred_by_client_id?: string | null;
+          first_contact_date?: string | null;
+          address?: string;
+          city?: string;
+          property_type?: string;
+          language?: string | null;
+          birthday?: string;
+          blacklisted?: boolean;
+          pinned_at?: string | null;
+          reminder_at?: string | null;
+          phones?: Json;
+          locations?: Json;
+          notes?: Json;
+          equipment?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["clients"]["Insert"]>;
+        Relationships: [];
+      };
+      client_tag_assignments: {
+        Row: {
+          client_id: string;
+          tag_id: string;
+          tenant_id: string;
+        };
+        Insert: {
+          client_id: string;
+          tag_id: string;
+          tenant_id: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["client_tag_assignments"]["Insert"]
+        >;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+}

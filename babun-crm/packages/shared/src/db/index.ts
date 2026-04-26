@@ -1,6 +1,13 @@
-// db namespace — Supabase-shape types and (future) client.
+// db namespace — Supabase-shape types and the generated Database type.
 //
-// Used for: future cloud sync (STORY-001).  Local prototype models live
-// in `@babun/shared/local/*` instead.
+// Generated DB shape lives in `./database.types` (regenerated via
+// `apps/web/npm run db:types`). Hand-written domain types for the
+// finance vertical live under `./types/finance` and stay until that
+// vertical is migrated to Supabase (later sub-story of STORY-036).
+//
+// The hand-written stubs in `./types/index.ts` (Profile, Team, Client,
+// Service, Appointment, …) are obsoleted by `./database.types.ts` and
+// not re-exported here. Direct importers of `@babun/shared/db/types/finance`
+// keep working.
 
-export * from "./types";
+export type { Database, Json } from "./database.types";

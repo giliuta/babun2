@@ -1,49 +1,32 @@
 "use client";
 
-// Browser Supabase client.
+// Browser Supabase client (STORY-036).
 //
-// Returns a singleton `SupabaseClient<Database>` configured with the
-// env-provided URL + anon key. Uses `@supabase/supabase-js` directly
-// (no `@supabase/ssr`) because Babun is a client-only PWA — auth state
-// lives in the browser, there's no server-side data fetching today.
-// Revisit if we add server actions.
-//
-// The client is created *lazily* on first call so that modules which
-// import this file don't crash at import time when env vars are
-// absent (during the long scaffolding phase before the CEO provisions
-// the project).
+// Singleton `SupabaseClient<Database>` for use from client components.
+// Created lazily on first call so module-time imports don't crash when
+// env vars are absent during a fresh clone.
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./types";
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@babun/shared/db/database.types";
 
-type Client = SupabaseClient<Database>;
-
-let cached: Client | null = null;
+let cached: ReturnType<typeof createBrowserClient<Database>> | null = null;
 
 export function hasSupabaseEnv(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   );
 }
 
-export function getSupabase(): Client {
+export function getSupabaseBrowser() {
   if (cached) return cached;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
     throw new Error(
-      "Supabase env vars missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
+      "Supabase env missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local.",
     );
   }
-  cached = createClient<Database>(url, anon, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
+  cached = createBrowserClient<Database>(url, key);
   return cached;
 }
-
-export type { Client as Supabase };
