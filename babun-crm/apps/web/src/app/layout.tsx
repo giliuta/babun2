@@ -56,6 +56,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${inter.variable} h-full antialiased`}>
+      <head>
+        {/*
+         * STORY-036: the Supabase project runs without RLS until
+         * STORY-038 lands tenant policies. The publishable key in the
+         * client bundle can read the entire clients table, so we keep
+         * the deployed instance out of search indexes.
+         * Remove this meta tag once STORY-038 is shipped.
+         */}
+        <meta name="robots" content="noindex, nofollow" />
+      </head>
       <body className="min-h-full flex flex-col bg-[var(--surface-grouped)] font-sans">
         <ServiceWorkerRegister />
         {children}
