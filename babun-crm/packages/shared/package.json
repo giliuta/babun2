@@ -1,9 +1,24 @@
 {
   "name": "@babun/shared",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "main": "./index.ts",
   "types": "./index.ts",
+  "exports": {
+    ".":              { "types": "./src/index.ts",              "default": "./src/index.ts" },
+    "./common":       { "types": "./src/common/index.ts",       "default": "./src/common/index.ts" },
+    "./common/*":     { "types": "./src/common/*.ts",           "default": "./src/common/*.ts" },
+    "./local":        { "types": "./src/local/index.ts",        "default": "./src/local/index.ts" },
+    "./local/*":      { "types": "./src/local/*.ts",            "default": "./src/local/*.ts" },
+    "./db":           { "types": "./src/db/index.ts",           "default": "./src/db/index.ts" },
+    "./db/*":         { "types": "./src/db/*.ts",               "default": "./src/db/*.ts" },
+    "./storage":      { "types": "./src/storage/index.ts",      "default": "./src/storage/index.ts" },
+    "./storage/*":    { "types": "./src/storage/*.ts",          "default": "./src/storage/*.ts" },
+    "./icons":        { "types": "./src/common/icons/index.ts", "default": "./src/common/icons/index.ts" },
+    "./types":        { "types": "./types/index.ts",            "default": "./types/index.ts" },
+    "./types/*":      { "types": "./types/*.ts",                "default": "./types/*.ts" },
+    "./lib/*":        { "types": "./lib/*.ts",                  "default": "./lib/*.ts" }
+  },
   "scripts": {},
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"

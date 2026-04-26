@@ -11,6 +11,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = path.resolve(here, "..", "..");
 
 const nextConfig: NextConfig = {
+  // STORY-035 G0 — workspace package compiled by SWC, not pre-bundled.
+  // @babun/shared lives in packages/shared/src/, ships TypeScript
+  // sources, and uses subpath exports.  Without transpilePackages,
+  // Next 16 emits "Module not found" for `@babun/shared/common/...`
+  // because it treats workspace packages as pre-built node_modules
+  // and skips the SWC type-stripping pass.
+  transpilePackages: ["@babun/shared"],
   // Pin Turbopack's workspace root to the monorepo so it can find
   // next/package.json. Without this, `next dev --turbopack` walks up
   // from src/app, stops at apps/web (no local node_modules/next), and

@@ -20,8 +20,19 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@babun/shared": ["../../packages/shared"],
-      "@babun/shared/*": ["../../packages/shared/*"]
+      "@babun/shared":            ["../../packages/shared/src"],
+      "@babun/shared/common":     ["../../packages/shared/src/common"],
+      "@babun/shared/common/*":   ["../../packages/shared/src/common/*"],
+      "@babun/shared/local":      ["../../packages/shared/src/local"],
+      "@babun/shared/local/*":    ["../../packages/shared/src/local/*"],
+      "@babun/shared/db":         ["../../packages/shared/src/db"],
+      "@babun/shared/db/*":       ["../../packages/shared/src/db/*"],
+      "@babun/shared/storage":    ["../../packages/shared/src/storage"],
+      "@babun/shared/storage/*":  ["../../packages/shared/src/storage/*"],
+      "@babun/shared/icons":      ["../../packages/shared/src/common/icons"],
+      "@babun/shared/types":      ["../../packages/shared/types"],
+      "@babun/shared/types/*":    ["../../packages/shared/types/*"],
+      "@babun/shared/lib/*":      ["../../packages/shared/lib/*"]
     }
   },
   "include": [
