@@ -1,12 +1,14 @@
-// Placeholder Database type for STORY-036.
+// Database types for STORY-036.
 //
-// G3 of STORY-036 replaces this file with the output of:
+// Hand-validated to match the SQL in
+//   apps/web/supabase/migrations/20260427_001_init_clients.sql
+//
+// To regenerate from the live project (requires a Supabase Personal
+// Access Token at https://supabase.com/dashboard/account/tokens, set
+// as $SUPABASE_ACCESS_TOKEN), run from apps/web:
 //   npm run db:types
-// (= `supabase gen types typescript --project-id qvgemicqeqwz`)
 //
-// Hand-written shape matches the SQL in
-// apps/web/supabase/migrations/20260427_001_init_clients.sql so tsc
-// compiles in the window between G1 and G3.
+// Project ref: rdtokosbqvgemicqeqwz (URL subdomain qvgemicqeqwz).
 
 export type Json =
   | string

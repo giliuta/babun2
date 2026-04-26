@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "db:types": "supabase gen types typescript --project-id rdtokosbqvgemicqeqwz > ../../packages/shared/src/db/database.types.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
