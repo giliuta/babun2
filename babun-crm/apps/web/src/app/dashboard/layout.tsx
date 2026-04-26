@@ -88,6 +88,7 @@ import {
   type LocationLabel,
 } from "@/lib/location-labels";
 import { warmUpHaptics } from "@/lib/haptics";
+import { getStorage } from "@babun/shared/storage";
 
 interface SidebarContextValue {
   open: () => void;
@@ -423,10 +424,9 @@ export default function DashboardLayout({
   // masters list when it loads. Persisted in localStorage for dev so
   // you stay logged in as the same master across reloads.
   const CURRENT_MASTER_KEY = "babun2:current-master";
-  const [currentMasterId, setCurrentMasterIdState] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem(CURRENT_MASTER_KEY);
-  });
+  const [currentMasterId, setCurrentMasterIdState] = useState<string | null>(() =>
+    getStorage().getRaw(CURRENT_MASTER_KEY),
+  );
   const [fieldVisibility, setFieldVisibilityState] = useState<FormFieldVisibility>({
     show_address: true,
     show_comment: true,
@@ -458,19 +458,15 @@ export default function DashboardLayout({
       masters[0];
     if (pick) {
       setCurrentMasterIdState(pick.id);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(CURRENT_MASTER_KEY, pick.id);
-      }
+      getStorage().setRaw(CURRENT_MASTER_KEY, pick.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [masters]);
 
   const setCurrentMasterId = useCallback((id: string | null) => {
     setCurrentMasterIdState(id);
-    if (typeof window !== "undefined") {
-      if (id) window.localStorage.setItem(CURRENT_MASTER_KEY, id);
-      else window.localStorage.removeItem(CURRENT_MASTER_KEY);
-    }
+    if (id) getStorage().setRaw(CURRENT_MASTER_KEY, id);
+    else getStorage().remove(CURRENT_MASTER_KEY);
   }, []);
 
   // Load all persisted state from localStorage on mount
@@ -496,9 +492,7 @@ export default function DashboardLayout({
     // STORY-007: legacy key cleanup. Drafts are gone — any leftover
     // records would never surface in the UI again, so drop them so
     // storage stays tidy.
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("babun-draft-clients");
-    }
+    getStorage().remove("babun-draft-clients");
   }, []);
 
   // STORY-007: external `upsertClient` in lib/clients.ts dispatches

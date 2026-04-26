@@ -21,6 +21,7 @@ import { computeFinancials } from "@/lib/finance/compute";
 import { type Appointment, getDebtAmount } from "@/lib/appointments";
 import { formatEUR } from "@/lib/money";
 import { Button } from "@/components/ui";
+import { getStorage } from "@babun/shared/storage";
 
 // "Закрыть день" flow — dispatcher's evening sign-off. Sprint 020 F2.
 //
@@ -53,8 +54,7 @@ export default function CloseDayPage() {
   const [closed, setClosed] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    setClosed(window.localStorage.getItem(`${CLOSED_PREFIX}${todayKey}`) === "1");
+    setClosed(getStorage().getRaw(`${CLOSED_PREFIX}${todayKey}`) === "1");
   }, [todayKey]);
 
   const summary = useMemo(() => {
@@ -94,12 +94,12 @@ export default function CloseDayPage() {
       });
       if (!ok) return;
     }
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        `${CLOSED_PREFIX}${todayKey}`,
-        JSON.stringify({ closedAt: new Date().toISOString(), expectedCash, actualCash, delta })
-      );
-    }
+    getStorage().set(`${CLOSED_PREFIX}${todayKey}`, {
+      closedAt: new Date().toISOString(),
+      expectedCash,
+      actualCash,
+      delta,
+    });
     setClosed(true);
   };
 
@@ -111,9 +111,7 @@ export default function CloseDayPage() {
       danger: false,
     });
     if (!ok) return;
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(`${CLOSED_PREFIX}${todayKey}`);
-    }
+    getStorage().remove(`${CLOSED_PREFIX}${todayKey}`);
     setClosed(false);
   };
 

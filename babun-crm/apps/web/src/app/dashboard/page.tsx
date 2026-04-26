@@ -77,6 +77,7 @@ import {
   HOUR_HEIGHT_DEFAULT,
   HOUR_HEIGHT_STEP,
 } from "@/hooks/useCalendarGestures";
+import { getStorage } from "@babun/shared/storage";
 
 // How many days to advance per "next" / "prev" depending on view mode.
 // "month" uses a dedicated branch that jumps whole months.
@@ -219,18 +220,18 @@ function DashboardPageInner() {
   const VIEW_MODE_KEY = "babun-view-mode";
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(VIEW_MODE_KEY) as ViewMode | null;
+    const saved = getStorage().getRaw(VIEW_MODE_KEY) as ViewMode | null;
     if (saved && ["day", "3days", "week", "month"].includes(saved)) {
       setViewMode(saved);
       return;
     }
-    if (window.innerWidth < 1024) setViewMode("day");
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setViewMode("day");
+    }
   }, []);
   // Persist whenever the user switches
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
+    getStorage().setRaw(VIEW_MODE_KEY, viewMode);
   }, [viewMode]);
   // hourHeight is not React state — it lives in a ref and is written as
   // a CSS variable on the outer scroller via writeHourHeight(). This keeps
@@ -447,9 +448,8 @@ function DashboardPageInner() {
 
   // Seed with mock data on first visit only
   useEffect(() => {
-    if (typeof window === "undefined") return;
     if (appointmentsRef.current.length > 0) return;
-    if (window.localStorage.getItem(SEED_KEY)) return;
+    if (getStorage().getRaw(SEED_KEY)) return;
 
     const now = new Date().toISOString();
     for (const m of MOCK_APPOINTMENTS) {
@@ -499,7 +499,7 @@ function DashboardPageInner() {
       };
       upsertRef.current(apt);
     }
-    window.localStorage.setItem(SEED_KEY, "1");
+    getStorage().setRaw(SEED_KEY, "1");
   }, []);
 
   // Filter appointments by active tab. Personal tab shows only this

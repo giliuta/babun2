@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getStorage } from "@babun/shared/storage";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -30,7 +31,7 @@ export function InstallPrompt() {
     const ios = /iPad|iPhone|iPod/.test(ua) && !(window as { MSStream?: unknown }).MSStream;
     setIsIOS(ios);
 
-    const dismissed = localStorage.getItem(DISMISS_KEY);
+    const dismissed = getStorage().getRaw(DISMISS_KEY);
     if (dismissed) {
       const dismissedAt = parseInt(dismissed, 10);
       // Re-show after 7 days
@@ -68,7 +69,7 @@ export function InstallPrompt() {
   };
 
   const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    getStorage().setRaw(DISMISS_KEY, Date.now().toString());
     setInstallEvent(null);
     setShowIOSHint(false);
   };

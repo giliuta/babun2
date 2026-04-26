@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { Appointment } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
+import { getStorage } from "@babun/shared/storage";
 import type { Team } from "@/lib/masters";
 import type { DayExtra } from "@/lib/day-extras";
 import { computeFinancials } from "@/lib/finance/compute";
@@ -53,22 +54,16 @@ export default function MorningBriefing({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const now = new Date();
     const hour = now.getHours();
     if (hour < 6 || hour >= 10) return;
     const key = `${DISMISS_PREFIX}${toDateKey(now)}`;
-    if (window.localStorage.getItem(key) === "1") return;
+    if (getStorage().getRaw(key) === "1") return;
     setOpen(true);
   }, []);
 
   const dismiss = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        `${DISMISS_PREFIX}${toDateKey(new Date())}`,
-        "1"
-      );
-    }
+    getStorage().setRaw(`${DISMISS_PREFIX}${toDateKey(new Date())}`, "1");
     setOpen(false);
   };
 

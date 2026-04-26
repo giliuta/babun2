@@ -17,6 +17,7 @@ import { loadRecurring, dueReminders } from "@/lib/recurring";
 import { loadChats, getTotalUnread } from "@/lib/chats";
 import { BUILD_VERSION } from "@/lib/version";
 import { ICON_TONE_BG, type IconTone } from "@/lib/design-tokens";
+import { getStorage } from "@babun/shared/storage";
 
 // Telegram-style drawer (Sprint 031). Accent-blue brand header with
 // avatar + company, grouped-list body below with coloured tile icons
@@ -67,8 +68,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    setExpanded(window.localStorage.getItem(EXPAND_KEY) === "1");
+    setExpanded(getStorage().getRaw(EXPAND_KEY) === "1");
   }, []);
 
   useEffect(() => {
@@ -100,9 +100,7 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
   const toggleExpanded = () => {
     const next = !expanded;
     setExpanded(next);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(EXPAND_KEY, next ? "1" : "0");
-    }
+    getStorage().setRaw(EXPAND_KEY, next ? "1" : "0");
   };
 
   return (

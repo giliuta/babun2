@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Appointment } from "@/lib/appointments";
 import { getDebtAmount } from "@/lib/appointments";
+import { getStorage } from "@babun/shared/storage";
 
 interface EndOfDayBannerProps {
   appointments: Appointment[];
@@ -33,9 +34,8 @@ export default function EndOfDayBanner({
   const dateKey = toDateKey(now);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const key = `${DISMISS_PREFIX}${dateKey}`;
-    setDismissed(window.localStorage.getItem(key) === "1");
+    setDismissed(getStorage().getRaw(key) === "1");
   }, [dateKey]);
 
   const unpaidCount = useMemo(() => {
@@ -56,9 +56,7 @@ export default function EndOfDayBanner({
 
   const handleDismiss = () => {
     setDismissed(true);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(`${DISMISS_PREFIX}${dateKey}`, "1");
-    }
+    getStorage().setRaw(`${DISMISS_PREFIX}${dateKey}`, "1");
   };
 
   return (
