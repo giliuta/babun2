@@ -1,11 +1,22 @@
 # STORY-035: React Native readiness — extract business logic into @babun/shared
 
-- **Status:** planning
+- **Status:** planning (approved 2026-04-26 — 8 questions answered, addenda A-E added)
 - **Date:** 2026-04-26
 - **Owner:** architect → developer
 - **Branch (when implementing):** `feature/STORY-035-rn-readiness`
 - **Estimated scope:** ~50 lib/* files moved, ~30 imports rewritten in apps/web, ~73 lucide imports rewired, 1 storage abstraction introduced
 - **Supersedes the prior placeholder:** STORY-034's "Open Questions" reserved STORY-035 for "chats-client-panel-refresh". That work is renumbered → **STORY-036**.
+
+## Approved decisions (locked)
+
+1. Icons stay in `@babun/shared/icons` (re-export of lucide-react) — no separate `@babun/icons` package.
+2. 115 localStorage callsites — **all-at-once** via sed in G1, not incremental.
+3. **Storage API is SYNCHRONOUS only** — no Promise. Web uses localStorage; future RN uses react-native-mmkv (also sync). Preserves the existing `useState(() => loadX())` pattern across 30+ providers without rewrites. **This overrides the original brief's async API**.
+4. Variant C namespacing — `@babun/shared/{common,local,db,storage}/`.
+5. `@babun/shared/local/index.ts` is a barrel re-export of types + stores per domain.
+6. `lib/photos.ts` → split into pure helpers (math/sizes) in `common/utils/photo-pure.ts` + web FileReader/Blob code stays in `apps/web/src/lib/photos-web.ts`. RN later writes `photos-rn.ts` over `expo-image-manipulator`.
+7. `lib/finance/*` moves as **one folder** to `local/finance/*` — finance is expanding next story, easier to keep grouped.
+8. `BUILD_VERSION = "v343-rn-readiness"`, `CACHE_VERSION = "babun-v343"`.
 
 ---
 
@@ -729,3 +740,287 @@ G7  → BUILD_TAG + CACHE_VERSION + cleanup + push            → tsc + eslint +
 ---
 
 **Stop here.** Жду апрува плана от пользователя перед хэндофф к `developer` агенту.
+
+---
+
+# Addenda (post-approval, 2026-04-26)
+
+## §A — Полный список 13 PURE файлов (G2)
+
+Все проверены на DOM (`window.|document.|navigator.|localStorage|sessionStorage`) — **0 совпадений в каждом**. Безопасны для переезда в `common/utils/` без модификаций.
+
+| # | Файл | Что делает (одна строка) | LOC |
+|---|---|---|---|
+| 1 | `avatar-color.ts` | Детерминированный color-хеш по имени → одна из 12 iOS-палитры цветов; пара с `getInitials()` для аватаров без фото | ~40 |
+| 2 | `colors.ts` | Каталог 14 iOS-системных цветов с RU-ярлыками, общая палитра для бригад/городов/услуг | ~50 |
+| 3 | `date-utils.ts` | Хелперы календаря: дни/месяцы RU, `getMonday()`, `getWeekDays()`, `addDays()`, форматтеры | ~120 |
+| 4 | `design-tokens.ts` | Типизированное зеркало CSS-переменных из `globals.css` для inline-styles и SVG fills | ~80 |
+| 5 | `event-presets.ts` | Пресеты личных событий бригады («Обед», «Перерыв» и т.п.) для Event-режима BookingSheet | ~30 |
+| 6 | `map-links.ts` | `buildMapUrl("apple"/"google"/"waze", input)` + `extractCoords()`; парсинг адреса/коорд из любых ссылок | ~190 |
+| 7 | `messenger-links.ts` | `whatsappUrl(phone)` / `telegramUrl(handle, phone)` / `instagramUrl(handle)` / `telUrl(phone)` | ~50 |
+| 8 | `money.ts` | `formatEUR()`, `formatEURSigned()`, `formatPercentDelta()` с правильным € перед числом и тонкой запятой | ~60 |
+| 9 | `pluralize.ts` | Русская плюрализация: `pluralize(n, "клиент", "клиента", "клиентов")` + `pluralizeAC()`, `countWordRu()` | ~40 |
+| 10 | `quick-replies.ts` | Multilingual SMS templates (RU/EN/EL) + auto-detection языка по последним inbound-сообщениям | ~280 |
+| 11 | `service-presets.ts` | Quick-pick пресеты услуг для BookingSheet: чистка/установка/диагностика A/C | ~70 |
+| 12 | `share-link.ts` | Сериализация `Appointment` snapshot → URL-safe base64 token и обратно для публичной ссылки на визит | ~150 |
+| 13 | `version.ts` | Один экспорт `BUILD_VERSION` (single source of truth для footer и для tsc-friendly require) | ~7 |
+
+**Зависимости между ними** (критично для порядка переезда):
+- `event-presets.ts` импортирует ничего → переезжает первым
+- `service-presets.ts` импортирует ничего → переезжает первым
+- `colors.ts`, `design-tokens.ts`, `date-utils.ts`, `pluralize.ts`, `money.ts`, `version.ts`, `messenger-links.ts`, `map-links.ts`, `quick-replies.ts`, `avatar-color.ts`, `share-link.ts` — также не импортируют друг друга
+
+→ Порядок переезда внутри G2 не важен. Можно одним коммитом скопировать все 13, потом одним sed-pass обновить импорты в `apps/web`.
+
+## §B — Audit `@babun/shared` импортов (для G5)
+
+Команда: `grep -rn "@babun/shared" apps/ packages/ --exclude-dir=node_modules --exclude-dir=.next` (запущено 2026-04-26).
+
+**Найдено 9 живых импортов** в `apps/web/src/`, все из `@babun/shared/types/finance`:
+
+| Файл | Что импортирует |
+|---|---|
+| `apps/web/src/lib/reconciliations.ts` | `DailyReconciliation` |
+| `apps/web/src/lib/payroll.ts` | (multi) `PayrollPeriod`, `PayrollEntry`, etc. |
+| `apps/web/src/lib/payments.ts` | `FinancePayment`, `FinancePaymentMethod` |
+| `apps/web/src/lib/notifications.ts` | (multi) `NotificationKind`, `NotificationChannel`, etc. |
+| `apps/web/src/lib/migrations/0004_service_categories.ts` | `FinanceServiceCategory` |
+| `apps/web/src/lib/migrations/0002_appointment_finance.ts` | `AppointmentFinance` |
+| `apps/web/src/lib/finance/compute.ts` | (multi) `FinancePayment`, `Expense as StandaloneExpense` |
+| `apps/web/src/lib/brigades.ts` | `Brigade`, `BrigadeMember` |
+| `apps/web/src/lib/expenses.ts` | `Expense`, `ExpenseScope`, `ExpenseCategory` |
+
+**Ничего из `@babun/shared/types/index.ts` (Supabase-shape Client/Profile) не используется** — только finance types. Это упрощает G5: legacy Supabase-shape Client/Profile/Team можно безопасно перевезти в `db/types/index.ts` без поломки call-sites.
+
+### G5 — точный план
+
+Делается **в одной коммите**:
+
+1. Перенести `packages/shared/types/finance.ts` → `packages/shared/src/db/types/finance.ts`.
+2. Перенести `packages/shared/types/index.ts` → `packages/shared/src/db/types/index.ts`.
+3. Перенести `packages/shared/lib/supabase.ts` → `packages/shared/src/db/client/supabase.ts`.
+4. Создать `packages/shared/src/db/index.ts` re-exporting types + client.
+5. **Обновить 9 callsites** — sed `@babun/shared/types/finance` → `@babun/shared/db/types/finance` (точный pattern, без захвата близких строк).
+6. Удалить старые `packages/shared/index.ts`, `packages/shared/types/`, `packages/shared/lib/` после прохождения tsc.
+
+`tsc --noEmit` — обязательно ровно после этих шагов в одной коммите. Откат при провале — `git revert`.
+
+## §C — План отката (rollback) для каждой группы
+
+| Группа | Что делает | Как откатить |
+|---|---|---|
+| G0 | Каркас + tsconfig paths + transpilePackages | `git revert {hash}` — single-commit, чистый |
+| G1 | Storage abstraction + 115 localStorage callsites через sed | `git revert {hash}`. Sed-pass точечный по `window.localStorage.{getItem,setItem,removeItem}`; revert восстанавливает оригинальные строки. |
+| G2 | 13 PURE → common/utils + sed импортов | `git revert {hash}` — sed-pass предсказуем (13 patterns), revert чист |
+| G3a | clients/masters/brigades/services/equipment/cities split | `git revert {hash}`. После этого папки `local/types/{client,master,brigade,...}.ts` исчезнут — `tsc` упадёт пока не сделать revert sed-pass импортов в `apps/web`. **Поэтому G3a-G3d коммитим только если tsc green в группе.** |
+| G3b | appointments/schedule/calendar/blocks/recurring | Аналогично G3a |
+| G3c | chats/sms/photos (split photos на pure + web) | `git revert {hash}`; photos-pure исчезнет, photos-web вернётся к старой шапке |
+| G3d | payments/expenses/reconciliations/payroll/finance/waitlist | `git revert {hash}` |
+| G4 | 3 selectors + mock-data | `git revert {hash}` |
+| G5 | Supabase-shape db/ + delete legacy roots + 9 finance imports | `git revert {hash}`. **Внимание:** revert восстановит старые папки `packages/shared/types/` + `lib/`. tsc должен сразу пройти. |
+| G6 | icons shim + 73-file lucide-react sed | `git revert {hash}`. **Высокая стоимость re-do** — 73 файла. Если sed-pass был с опечаткой, проще починить и сделать новый коммит, чем revert + redo. |
+| G7 | BUILD_VERSION + CACHE_VERSION + cleanup | `git revert {hash}` — один коммит с маленьким diff, чистый |
+
+**Общее правило отката:** если `npx tsc --noEmit` после группы красный — **не пушим** в master. Делаем `git reset --soft HEAD~1`, чиним локально, затем заново коммитим.
+
+**Если уже запушили и обнаружили проблему в production** — `git revert {hash}` + push, не `git reset --hard` (master защищён от force-push в этой story).
+
+## §D — Smoke-test checklist (после каждой группы)
+
+Сразу после каждого `git push`:
+
+| # | Проверка | Что ожидаем |
+|---|---|---|
+| 1 | `npx tsc --noEmit` | exit=0, без новых ошибок |
+| 2 | `npm run dev` запускается | port 3001 поднимается, в консоли нет красных error/warning |
+| 3 | `/dashboard/clients` | Список клиентов рендерится (≥1 клиент видим), поиск по имени работает |
+| 4 | `/dashboard/clients/{любой-id}` | Открывается карточка, header виден, блоки разворачиваются |
+| 5 | `/dashboard/clients/new` | Форма открывается, ввод имени+телефона активирует кнопку «Создать» |
+| 6 | `/dashboard` | Календарь рендерится, появляются записи если они есть |
+
+**Если хотя бы один пункт фейлит** — developer **останавливается**, пишет в чат:
+```
+Группа GX фейл, причина: <симптом>.
+Last commit: {hash}.
+Откат: git revert {hash} или git reset --soft HEAD~1.
+```
+И ждёт инструкций. **Не идёт в следующую группу.**
+
+При успехе всех 6 пунктов — комментирует в чат «GX зелёный, иду в следующую» и переходит.
+
+## §E — Точный интерфейс KVStorage (synchronous, no Promise)
+
+Финальное API — **синхронное на всём web/RN периметре**. Никаких `async`/`await` в storage-слое. Это ключевое решение из ответа №3 пользователя.
+
+```typescript
+// packages/shared/src/storage/types.ts
+
+/**
+ * Synchronous key-value storage abstraction.
+ *
+ * Implementations:
+ *   - Web: WebKVStorage → window.localStorage (sync, ~5 MB quota)
+ *   - RN  (future): MMKVStorage → react-native-mmkv (sync, ~32 MB quota)
+ *   - Tests / SSR: MemoryKVStorage → in-memory Map
+ *
+ * SYNCHRONOUS by design.  Babun's UI tree relies on
+ * `useState(() => loadClients())` patterns in 30+ provider call-sites;
+ * an async API would force a flicker (initial empty → useEffect →
+ * real array) and a major refactor of layout.tsx.  MMKV gives us a
+ * sync RN backend with the same semantics — no API change needed
+ * when the mobile port lands.
+ */
+export interface KVStorage {
+  /** Read JSON-deserialized value.  Returns null when missing or
+   *  malformed.  Caller is responsible for type narrowing. */
+  get<T>(key: string): T | null;
+
+  /** JSON-serialize and write.  Throws on quota exhaustion. */
+  set<T>(key: string, value: T): void;
+
+  /** Remove a key.  No-op if it doesn't exist. */
+  remove(key: string): void;
+
+  /** List all keys with the given prefix.  Returns empty array
+   *  when prefix not provided OR no matches. */
+  list(prefix?: string): string[];
+}
+```
+
+### Web implementation
+
+```typescript
+// packages/shared/src/storage/web.ts
+import type { KVStorage } from "./types";
+
+export class WebKVStorage implements KVStorage {
+  get<T>(key: string): T | null {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(key);
+    if (raw == null) return null;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  set<T>(key: string, value: T): void {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  remove(key: string): void {
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem(key);
+  }
+
+  list(prefix = ""): string[] {
+    if (typeof window === "undefined") return [];
+    const out: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(prefix)) out.push(k);
+    }
+    return out;
+  }
+}
+```
+
+### Memory implementation (для будущих тестов)
+
+```typescript
+// packages/shared/src/storage/memory.ts
+import type { KVStorage } from "./types";
+
+export class MemoryKVStorage implements KVStorage {
+  private map = new Map<string, string>();
+
+  get<T>(key: string): T | null {
+    const raw = this.map.get(key);
+    if (raw == null) return null;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
+  }
+  set<T>(key: string, value: T): void {
+    this.map.set(key, JSON.stringify(value));
+  }
+  remove(key: string): void {
+    this.map.delete(key);
+  }
+  list(prefix = ""): string[] {
+    return Array.from(this.map.keys()).filter((k) => k.startsWith(prefix));
+  }
+}
+```
+
+### Provider singleton
+
+```typescript
+// packages/shared/src/storage/provider.ts
+import type { KVStorage } from "./types";
+import { WebKVStorage } from "./web";
+
+let _impl: KVStorage = new WebKVStorage();
+
+/** Read the active storage backend. */
+export function getStorage(): KVStorage {
+  return _impl;
+}
+
+/** Swap the backend (used by tests, RN bootstrap). */
+export function setStorage(impl: KVStorage): void {
+  _impl = impl;
+}
+```
+
+### Migration pattern для существующих stores
+
+**Было** (в `apps/web/src/lib/clients.ts`):
+```typescript
+const CLIENTS_KEY = "babun:clients";
+export function loadClients(): Client[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CLIENTS_KEY);
+    return raw ? (JSON.parse(raw) as Client[]) : [];
+  } catch {
+    return [];
+  }
+}
+export function saveClients(arr: Client[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CLIENTS_KEY, JSON.stringify(arr));
+  window.dispatchEvent(new Event("babun:clients-changed"));
+}
+```
+
+**Стало** (в `packages/shared/src/local/storage/clients-store.ts`):
+```typescript
+import type { Client } from "../types/client";
+import { getStorage } from "../../storage/provider";
+
+const CLIENTS_KEY = "babun:clients";
+
+export function loadClients(): Client[] {
+  return getStorage().get<Client[]>(CLIENTS_KEY) ?? [];
+}
+
+export function saveClients(arr: Client[]): void {
+  getStorage().set<Client[]>(CLIENTS_KEY, arr);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("babun:clients-changed"));
+  }
+}
+```
+
+Семантика 1:1 идентична. JSON.parse/stringify теперь внутри `WebKVStorage`. Sync контракт сохранён. RN-port позже подменит `getStorage()` на `MMKVStorage` через `setStorage(...)` в bootstrap mobile-app — без изменений в store-файлах.
+
+**`dispatchEvent` остаётся guarded** через `if (typeof window !== "undefined")` — это web-only event-bus. RN заменит на event-emitter в STORY-036+ (по необходимости).
+
+---
+
+**End of addenda. Ready for developer hand-off after final user OK.**
