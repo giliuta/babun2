@@ -2,52 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabase, hasSupabaseEnv } from "@/lib/supabase/client";
-import { isSupabaseEnabled } from "@/lib/supabase/backend-mode";
 
-// Telegram-style auth card (Sprint 031). Accent-blue Babun bubble
-// at the top, 28-px title, grouped two-field input card, 50-px
-// pill primary CTA, ghost toggle when Supabase is live. Plays
-// nicely from iPhone SE (375 × 812) up to tablet widths.
-
-type Mode = "signin" | "signup";
+// Telegram-style auth card. Stub form until STORY-037 wires real auth —
+// any submit just routes to /dashboard.
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<Mode>("signin");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const supabaseLive = isSupabaseEnabled() && hasSupabaseEnv();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-
-    if (!supabaseLive) {
-      router.push("/dashboard");
-      return;
-    }
-
-    try {
-      const sb = getSupabase();
-      if (mode === "signup") {
-        const { error: err } = await sb.auth.signUp({ email, password });
-        if (err) throw err;
-        router.push("/dashboard");
-      } else {
-        const { error: err } = await sb.auth.signInWithPassword({ email, password });
-        if (err) throw err;
-        router.push("/dashboard");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось выполнить запрос");
-    } finally {
-      setLoading(false);
-    }
+    router.push("/dashboard");
   };
 
   return (
@@ -67,7 +35,7 @@ export default function LoginPage() {
             Babun CRM
           </h1>
           <p className="text-[15px] text-[var(--label-secondary)] mt-1">
-            {mode === "signin" ? "Войдите, чтобы продолжить" : "Создайте учётную запись"}
+            Войдите, чтобы продолжить
           </p>
         </div>
 
@@ -86,7 +54,7 @@ export default function LoginPage() {
             <input
               id="password"
               type="password"
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Пароль"
@@ -96,37 +64,13 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && (
-            <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
-              {error}
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={loading}
             className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition mt-4"
           >
-            {loading
-              ? mode === "signin"
-                ? "Входим…"
-                : "Создаём…"
-              : mode === "signin"
-                ? "Войти"
-                : "Создать аккаунт"}
+            {loading ? "Входим…" : "Войти"}
           </button>
-
-          {supabaseLive && (
-            <button
-              type="button"
-              onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
-              className="w-full h-11 text-[14px] font-medium text-[var(--accent)] active:opacity-60 transition"
-            >
-              {mode === "signin"
-                ? "Нет аккаунта? Зарегистрироваться"
-                : "Уже есть аккаунт? Войти"}
-            </button>
-          )}
         </form>
 
         <p className="text-center text-[12px] text-[var(--label-tertiary)] mt-10">
