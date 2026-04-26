@@ -5,7 +5,7 @@ import type { AppointmentService, Discount } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
 import { pricePerUnit } from "@/lib/services";
 import { lineTotal } from "@/lib/finance/appointment-calc";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import PriceEditor from "./PriceEditor";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 

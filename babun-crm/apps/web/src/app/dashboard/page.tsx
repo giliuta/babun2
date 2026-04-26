@@ -17,7 +17,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { getMonday, addWeeks, addDays, formatDateLongRu } from "@/lib/date-utils";
+import { getMonday, addWeeks, addDays, formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@/lib/mock-data";
 import type { Client } from "@/lib/clients";
 import { getTeamSchedule, timeToMinutes, type TeamSchedule } from "@/lib/schedule";
@@ -37,7 +37,7 @@ import DayFinanceModal from "@/components/calendar/DayFinanceModal";
 import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
 import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
-import { BUILD_VERSION } from "@/lib/version";
+import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
 import AppointmentSheet from "@/components/appointment/AppointmentSheet";
 import ActionMenuModal, {

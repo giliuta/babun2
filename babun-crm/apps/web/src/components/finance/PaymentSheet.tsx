@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { Appointment } from "@/lib/appointments";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface PaymentSheetProps {
   open: boolean;

@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { Wallet, ArrowUpRight } from "lucide-react";
 import type { ClientStats } from "@/lib/client-stats";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import ClientCard from "../ClientCard";
 
 interface FinanceBlockProps {

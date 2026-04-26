@@ -10,7 +10,7 @@ import {
   CalendarRange,
   Calendar as CalendarOneDay,
 } from "lucide-react";
-import { getMonthName } from "@/lib/date-utils";
+import { getMonthName } from "@babun/shared/common/utils/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 
 interface HeaderAppointment {

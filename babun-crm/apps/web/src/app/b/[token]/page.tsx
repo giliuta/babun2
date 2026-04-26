@@ -3,8 +3,8 @@
 import { use, useMemo } from "react";
 import Link from "next/link";
 import { Link2Off, MapPin } from "lucide-react";
-import { decodeShareSnapshot } from "@/lib/share-link";
-import { formatEUR } from "@/lib/money";
+import { decodeShareSnapshot } from "@babun/shared/common/utils/share-link";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 // Public share page — no auth, no dashboard chrome. iOS receipt
 // aesthetic: white card on grouped canvas, big time at the top,

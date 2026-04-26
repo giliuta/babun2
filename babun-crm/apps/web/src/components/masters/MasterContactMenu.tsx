@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle, Phone, Send, Smartphone, X } from "lucide-react";
 import type { Master } from "@/lib/masters";
-import { telegramUrl, whatsappUrl } from "@/lib/messenger-links";
+import { telegramUrl, whatsappUrl } from "@babun/shared/common/utils/messenger-links";
 import { haptic } from "@/lib/haptics";
 
 interface MasterContactMenuProps {

@@ -1077,7 +1077,7 @@ export function generatePassword(): string {
 // Sprint 033 Phase I20 — aliased to the unified PRESET_COLORS so
 // brigade, city, group and service pickers all share one palette.
 
-import { PRESET_COLORS as UNIFIED_TEAM_COLORS } from "./colors";
+import { PRESET_COLORS as UNIFIED_TEAM_COLORS } from "@babun/shared/common/utils/colors";
 export const TEAM_COLORS = UNIFIED_TEAM_COLORS;
 
 // ─── Seed data (Артём's real team) ─────────────────────────────────────

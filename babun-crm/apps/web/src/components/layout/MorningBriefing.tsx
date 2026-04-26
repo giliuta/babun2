@@ -15,8 +15,8 @@ import type { Team } from "@/lib/masters";
 import type { DayExtra } from "@/lib/day-extras";
 import { computeFinancials } from "@/lib/finance/compute";
 import { loadChats, getTotalUnread } from "@/lib/chats";
-import { formatEUR } from "@/lib/money";
-import { countWordRu } from "@/lib/pluralize";
+import { formatEUR } from "@babun/shared/common/utils/money";
+import { countWordRu } from "@babun/shared/common/utils/pluralize";
 
 interface MorningBriefingProps {
   appointments: Appointment[];

@@ -1,8 +1,8 @@
 "use client";
 
-import type { ServicePreset } from "@/lib/service-presets";
-import { priceForPreset } from "@/lib/service-presets";
-import { formatEUR } from "@/lib/money";
+import type { ServicePreset } from "@babun/shared/common/utils/service-presets";
+import { priceForPreset } from "@babun/shared/common/utils/service-presets";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface ServiceBlockProps {
   preset: ServicePreset | null;

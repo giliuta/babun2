@@ -12,7 +12,7 @@ import {
   useTeams,
   useClients,
 } from "@/app/dashboard/layout";
-import { formatEUR, formatEURSigned, formatPercentDelta } from "@/lib/money";
+import { formatEUR, formatEURSigned, formatPercentDelta } from "@babun/shared/common/utils/money";
 import {
   useFinanceData,
   PERIODS,

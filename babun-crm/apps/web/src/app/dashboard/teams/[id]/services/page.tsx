@@ -58,7 +58,7 @@ import {
   type ServiceCategory,
   type ServiceMaterialCost,
 } from "@/lib/services";
-import { PRESET_COLOR_VALUES } from "@/lib/colors";
+import { PRESET_COLOR_VALUES } from "@babun/shared/common/utils/colors";
 import { generateId } from "@/lib/masters";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import ContextMenu, {

@@ -5,7 +5,7 @@ import {
   telegramUrl,
   instagramUrl,
   telUrl,
-} from "@/lib/messenger-links";
+} from "@babun/shared/common/utils/messenger-links";
 
 interface MessengerButtonsProps {
   phone?: string;

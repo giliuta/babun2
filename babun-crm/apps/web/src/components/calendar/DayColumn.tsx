@@ -7,7 +7,7 @@ import {
   getMonthNameShort,
   isSameDay,
   formatDateKey,
-} from "@/lib/date-utils";
+} from "@babun/shared/common/utils/date-utils";
 import {
   timeToMinutes,
   getDayScheduleForDate,

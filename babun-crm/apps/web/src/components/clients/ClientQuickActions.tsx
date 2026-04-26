@@ -25,7 +25,7 @@ import type { Client } from "@/lib/clients";
 import {
   whatsappUrl,
   telUrl,
-} from "@/lib/messenger-links";
+} from "@babun/shared/common/utils/messenger-links";
 import { haptic } from "@/lib/haptics";
 import ClientQuickActionsSheet from "./ClientQuickActionsSheet";
 

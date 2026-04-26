@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Phone, MessageSquare, Plus, X, Tag } from "lucide-react";
-import { formatDateLongRu } from "@/lib/date-utils";
-import { formatEUR, formatEURSigned } from "@/lib/money";
+import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
+import { formatEUR, formatEURSigned } from "@babun/shared/common/utils/money";
 import {
   createBlankExpenseCategory,
   type ExpenseCategory,

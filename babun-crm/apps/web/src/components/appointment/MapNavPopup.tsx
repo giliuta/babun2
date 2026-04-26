@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { buildMapUrl } from "@/lib/map-links";
+import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 
 interface MapNavPopupProps {
   open: boolean;

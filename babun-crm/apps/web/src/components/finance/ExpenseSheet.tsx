@@ -6,7 +6,7 @@ import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_ORDER,
 } from "@/lib/finance/expense-categories";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface ExpenseSheetProps {
   open: boolean;

@@ -8,7 +8,7 @@
 
 import { Home, MapPin, ArrowUpRight } from "lucide-react";
 import type { Client, Location } from "@/lib/clients";
-import { buildMapUrl } from "@/lib/map-links";
+import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import ClientCard from "../ClientCard";
 import { haptic } from "@/lib/haptics";
 

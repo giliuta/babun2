@@ -22,8 +22,8 @@ import {
 import type { Client, ClientNote, Location } from "@/lib/clients";
 import { upsertClient, ACQUISITION_LABELS } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
-import { buildMapUrl } from "@/lib/map-links";
-import { formatEUR } from "@/lib/money";
+import { buildMapUrl } from "@babun/shared/common/utils/map-links";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import { useClients, useAppointments } from "@/app/dashboard/layout";
 import type { Appointment } from "@/lib/appointments";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";

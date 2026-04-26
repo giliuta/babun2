@@ -16,7 +16,7 @@ import {
   whatsappUrl,
   telegramUrl,
   telUrl,
-} from "@/lib/messenger-links";
+} from "@babun/shared/common/utils/messenger-links";
 import { haptic } from "@/lib/haptics";
 
 interface Props {

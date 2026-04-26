@@ -13,7 +13,7 @@ import {
   subtotal,
   totalDuration,
 } from "@/lib/finance/appointment-calc";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Tag, X } from "lucide-react";
 

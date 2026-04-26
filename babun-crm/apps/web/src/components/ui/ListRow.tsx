@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
-import { ICON_TONE_BG, type IconTone } from "@/lib/design-tokens";
+import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
 
 interface BaseProps {
   /** Lucide icon component (e.g. `CalendarDays`). Optional — some

@@ -1,6 +1,6 @@
 "use client";
 
-import { formatEUR, formatEURFromCents } from "@/lib/money";
+import { formatEUR, formatEURFromCents } from "@babun/shared/common/utils/money";
 import AnimatedNumber from "./AnimatedNumber";
 
 type MoneySize = "sm" | "md" | "lg" | "xl" | "hero";

@@ -19,7 +19,7 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { computeFinancials } from "@/lib/finance/compute";
 import { type Appointment, getDebtAmount } from "@/lib/appointments";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import { Button } from "@/components/ui";
 import { getStorage } from "@babun/shared/storage";
 

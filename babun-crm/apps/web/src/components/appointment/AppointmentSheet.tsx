@@ -11,7 +11,7 @@ import {
   Moon,
   Plane,
 } from "lucide-react";
-import type { EventPreset } from "@/lib/event-presets";
+import type { EventPreset } from "@babun/shared/common/utils/event-presets";
 
 // Lucide icon components keyed by the preset's `icon` string. Replaces
 // the inline emoji rendering (☕💼🧭🌙✈️) with system-style line icons
@@ -37,9 +37,9 @@ import type { Master, Team } from "@/lib/masters";
 import { getTeamDisplayName } from "@/lib/masters";
 import type { Service, ServiceCategory } from "@/lib/services";
 import { pricePerUnit } from "@/lib/services";
-import { EVENT_PRESETS } from "@/lib/event-presets";
+import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
 import { getCityColor, CITY_LIST } from "@/lib/day-cities";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import {
   appointmentTotal,
   totalDuration as calcDuration,
@@ -62,7 +62,7 @@ import ClientProfileView from "@/components/clients/ClientProfileView";
 import { useRouter } from "next/navigation";
 import { loadChats } from "@/lib/chats";
 import PaymentBlock from "./PaymentBlock";
-import { buildShareUrl } from "@/lib/share-link";
+import { buildShareUrl } from "@babun/shared/common/utils/share-link";
 import { createRecurring } from "@/lib/recurring";
 import RepeatReminderSheet from "./RepeatReminderSheet";
 import { loadCompany } from "@/lib/finance/company";

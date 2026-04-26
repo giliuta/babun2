@@ -9,7 +9,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { Appointment } from "@/lib/appointments";
 import type { Service } from "@/lib/services";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import ClientCard from "../ClientCard";
 import { haptic } from "@/lib/haptics";
 

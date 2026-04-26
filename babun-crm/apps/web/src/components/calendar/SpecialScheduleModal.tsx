@@ -9,7 +9,7 @@ import {
   setDateOverride,
   QUARTER_HOUR_OPTIONS,
 } from "@/lib/schedule";
-import { formatDateLongRu } from "@/lib/date-utils";
+import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 
 interface SpecialScheduleModalProps {
   open: boolean;

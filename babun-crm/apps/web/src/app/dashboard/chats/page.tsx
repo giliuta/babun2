@@ -19,8 +19,8 @@ import {
 } from "@/lib/chats";
 import { generateId } from "@/lib/masters";
 import { haptic } from "@/lib/haptics";
-import { QUICK_REPLIES, LANG_LABELS, detectLanguage, type Lang } from "@/lib/quick-replies";
-import { pluralizeAC } from "@/lib/pluralize";
+import { QUICK_REPLIES, LANG_LABELS, detectLanguage, type Lang } from "@babun/shared/common/utils/quick-replies";
+import { pluralizeAC } from "@babun/shared/common/utils/pluralize";
 import { PROPERTY_LABELS, type PropertyType } from "@/lib/clients";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import { Image as ImageIcon, Mic, MapPin, CornerUpLeft, Copy, Star, Trash2 } from "lucide-react";

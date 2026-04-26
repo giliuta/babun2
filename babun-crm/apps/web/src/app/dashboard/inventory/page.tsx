@@ -45,7 +45,7 @@ import {
   createBlankEquipment,
   type Equipment,
 } from "@/lib/equipment";
-import { PRESET_COLOR_VALUES } from "@/lib/colors";
+import { PRESET_COLOR_VALUES } from "@babun/shared/common/utils/colors";
 import type { Team } from "@/lib/masters";
 
 function normalize(s: string): string {

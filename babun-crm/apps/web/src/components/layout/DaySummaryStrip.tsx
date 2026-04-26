@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import type { Appointment } from "@/lib/appointments";
 import { getDebtAmount, getPaidAmount } from "@/lib/appointments";
-import { formatEUR } from "@/lib/money";
-import { pluralRecord } from "@/lib/pluralize";
+import { formatEUR } from "@babun/shared/common/utils/money";
+import { pluralRecord } from "@babun/shared/common/utils/pluralize";
 
 interface DaySummaryStripProps {
   appointments: Appointment[];

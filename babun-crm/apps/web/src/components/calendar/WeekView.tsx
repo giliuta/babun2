@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getWeekDates, getCurrentCyprusTime, formatDateKey } from "@/lib/date-utils";
+import { getWeekDates, getCurrentCyprusTime, formatDateKey } from "@babun/shared/common/utils/date-utils";
 import { type TeamSchedule, DEFAULT_SCHEDULE } from "@/lib/schedule";
 import type { Appointment, ValidationResult } from "@/lib/appointments";
 import type { Service } from "@/lib/services";

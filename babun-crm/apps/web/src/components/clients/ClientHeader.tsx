@@ -23,8 +23,8 @@ import {
 import { useRouter } from "next/navigation";
 import type { Client, Location } from "@/lib/clients";
 import type { ClientStats } from "@/lib/client-stats";
-import { buildMapUrl } from "@/lib/map-links";
-import { getAvatarColor, getInitials } from "@/lib/avatar-color";
+import { buildMapUrl } from "@babun/shared/common/utils/map-links";
+import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import ClientStatusBadges from "./ClientStatusBadges";
 import { haptic } from "@/lib/haptics";
 

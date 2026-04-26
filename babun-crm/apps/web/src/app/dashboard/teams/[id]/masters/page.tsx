@@ -34,7 +34,7 @@ import ContextMenu, {
   type ContextMenuOption,
 } from "@/components/ui/ContextMenu";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
-import { PRESET_COLORS } from "@/lib/colors";
+import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 import {
   LEGACY_HELPER_ROLE_ID,
   LEGACY_LEAD_ROLE_ID,

@@ -18,7 +18,7 @@ export interface City {
  *  aliased to the unified PRESET_COLORS so brigade / city /
  *  service-group / service all share one palette (13 colours,
  *  iOS system hues). */
-import { PRESET_COLORS } from "./colors";
+import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 export const CITY_COLOR_PRESETS = PRESET_COLORS;
 
 const STORAGE_KEY = "babun2:settings:cities";

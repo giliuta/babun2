@@ -9,7 +9,7 @@ import {
   isSameDay,
   getMonday,
   formatDateKey,
-} from "@/lib/date-utils";
+} from "@babun/shared/common/utils/date-utils";
 interface MiniCalendarAppointment {
   date: string;
 }

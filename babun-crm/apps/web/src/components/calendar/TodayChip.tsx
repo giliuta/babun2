@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount } from "@/lib/appointments";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface TodayChipProps {
   appointments: Appointment[];

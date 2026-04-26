@@ -16,7 +16,7 @@ import {
 import type { Client, PhoneEntry } from "@/lib/clients";
 import { ACQUISITION_LABELS, type AcquisitionSource } from "@/lib/clients";
 import LocationsSection from "./LocationsSection";
-import { getAvatarColor, getInitials } from "@/lib/avatar-color";
+import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import type { Appointment } from "@/lib/appointments";
 import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@/lib/appointments";
 import { useServices, useTeams } from "@/app/dashboard/layout";
@@ -27,7 +27,7 @@ import {
   whatsappUrl,
   telegramUrl,
   telUrl,
-} from "@/lib/messenger-links";
+} from "@babun/shared/common/utils/messenger-links";
 
 interface ClientPanelProps {
   client: Client;

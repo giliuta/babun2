@@ -13,7 +13,7 @@ import {
   whatsappUrl,
   telegramUrl,
   instagramUrl,
-} from "@/lib/messenger-links";
+} from "@babun/shared/common/utils/messenger-links";
 import ClientCard from "../ClientCard";
 import { haptic } from "@/lib/haptics";
 

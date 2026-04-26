@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Client, Location } from "@/lib/clients";
 import { upsertClient } from "@/lib/clients";
 import { generateId } from "@/lib/masters";
-import { extractAddressFromMapUrl, isLikelyUrl } from "@/lib/map-links";
+import { extractAddressFromMapUrl, isLikelyUrl } from "@babun/shared/common/utils/map-links";
 import { useLocationLabels } from "@/app/dashboard/layout";
 import { Navigation } from "lucide-react";
 import MapNavPopup from "./MapNavPopup";

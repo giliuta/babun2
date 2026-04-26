@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { loadRecurring, dueReminders } from "@/lib/recurring";
 import { loadChats, getTotalUnread } from "@/lib/chats";
-import { BUILD_VERSION } from "@/lib/version";
-import { ICON_TONE_BG, type IconTone } from "@/lib/design-tokens";
+import { BUILD_VERSION } from "@babun/shared/common/utils/version";
+import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
 import { getStorage } from "@babun/shared/storage";
 
 // Telegram-style drawer (Sprint 031). Accent-blue brand header with

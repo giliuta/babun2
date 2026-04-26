@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Banknote, CreditCard, ArrowLeftRight, FileText } from "lucide-react";
 import type { AppointmentPayment } from "@/lib/appointments";
-import { formatEUR } from "@/lib/money";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface PaymentBlockProps {
   total: number;

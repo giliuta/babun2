@@ -27,7 +27,7 @@ import {
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import IOSSwitch from "@/components/ui/IOSSwitch";
-import { PRESET_COLORS } from "@/lib/colors";
+import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 import { useMasters, useTeams } from "@/app/dashboard/layout";
 import {
   generateId,
