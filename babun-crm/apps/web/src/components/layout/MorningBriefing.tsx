@@ -7,7 +7,7 @@ import {
   Wallet as WalletIcon,
   MessageSquare,
   AlertTriangle,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
 import { getStorage } from "@babun/shared/storage";

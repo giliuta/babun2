@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, SlidersHorizontal } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   useAppointments,

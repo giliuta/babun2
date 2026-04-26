@@ -6,7 +6,7 @@
 // only renders the *additional* objects (so we don't duplicate the
 // primary).  Auto-opens when there's more than one usable location.
 
-import { Home, MapPin, ArrowUpRight } from "lucide-react";
+import { Home, MapPin, ArrowUpRight } from "@babun/shared/icons";
 import type { Client, Location } from "@babun/shared/local/clients";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import ClientCard from "../ClientCard";

@@ -7,7 +7,7 @@
 // has #notes) scrolls into view.
 
 import { useEffect, useRef, useState } from "react";
-import { X, StickyNote } from "lucide-react";
+import { X, StickyNote } from "@babun/shared/icons";
 import type { Client, ClientNote } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import ClientCard from "../ClientCard";

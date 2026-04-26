@@ -1,6 +1,6 @@
 "use client";
 
-import { Smartphone } from "lucide-react";
+import { Smartphone } from "@babun/shared/icons";
 import {
   APPOINTMENT_SOURCE_LABELS,
   type AppointmentSource,

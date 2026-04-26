@@ -27,7 +27,7 @@ import {
   Trash2,
   User,
   Users,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import ContextMenu, {

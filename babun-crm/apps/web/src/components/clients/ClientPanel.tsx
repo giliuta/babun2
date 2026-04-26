@@ -12,7 +12,7 @@ import {
   Wallet,
   Wind,
   Clock as ClockIcon,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import type { Client, PhoneEntry } from "@babun/shared/local/clients";
 import { ACQUISITION_LABELS, type AcquisitionSource } from "@babun/shared/local/clients";
 import LocationsSection from "./LocationsSection";

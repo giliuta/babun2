@@ -17,7 +17,7 @@
 // времени выше.
 
 import { use, useState } from "react";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useSchedules, useTeams } from "@/app/dashboard/layout";
 import {

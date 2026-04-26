@@ -29,7 +29,7 @@ import {
   Star,
   Trash2,
   X,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useCities, useTeams } from "@/app/dashboard/layout";
 import {

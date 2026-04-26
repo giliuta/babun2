@@ -23,7 +23,7 @@ import { QUICK_REPLIES, LANG_LABELS, detectLanguage, type Lang } from "@babun/sh
 import { pluralizeAC } from "@babun/shared/common/utils/pluralize";
 import { PROPERTY_LABELS, type PropertyType } from "@babun/shared/local/clients";
 import SwipeableRow from "@/components/ui/SwipeableRow";
-import { Image as ImageIcon, Mic, MapPin, CornerUpLeft, Copy, Star, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Mic, MapPin, CornerUpLeft, Copy, Star, Trash2 } from "@babun/shared/icons";
 
 type FilterChannel = ChatChannel | "all" | "unanswered";
 

@@ -6,7 +6,7 @@
 // dispatcher's day-to-day comm lives in the Hero quick actions, this
 // block is for record-keeping.
 
-import { Phone as PhoneIcon, Send, Plus, X } from "lucide-react";
+import { Phone as PhoneIcon, Send, Plus, X } from "@babun/shared/icons";
 import type { Client, PhoneEntry } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import {

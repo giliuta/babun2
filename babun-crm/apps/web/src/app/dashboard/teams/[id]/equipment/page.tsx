@@ -6,7 +6,7 @@
 // here automatically.
 
 import { use, useMemo, useRef, useState } from "react";
-import { Package, Pencil, Plus, Trash2, UserMinus } from "lucide-react";
+import { Package, Pencil, Plus, Trash2, UserMinus } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useEquipment, useTeams } from "@/app/dashboard/layout";

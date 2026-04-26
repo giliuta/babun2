@@ -5,7 +5,7 @@
 // "crew" role (see business-blocks.ts).
 
 import Link from "next/link";
-import { Wallet, ArrowUpRight } from "lucide-react";
+import { Wallet, ArrowUpRight } from "@babun/shared/icons";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import ClientCard from "../ClientCard";

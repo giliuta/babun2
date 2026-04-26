@@ -6,7 +6,7 @@
 // `babun-block-open:{kind}` so user's choice survives a reload.
 
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@babun/shared/icons";
 import {
   getBlockOpen,
   setBlockOpen,

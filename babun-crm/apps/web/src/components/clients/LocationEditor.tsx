@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X } from "@babun/shared/icons";
 import {
   AC_TYPE_LABELS,
   type ACType,

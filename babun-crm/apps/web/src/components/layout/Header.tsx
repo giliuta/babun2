@@ -9,7 +9,7 @@ import {
   LayoutGrid,
   CalendarRange,
   Calendar as CalendarOneDay,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { getMonthName } from "@babun/shared/common/utils/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 

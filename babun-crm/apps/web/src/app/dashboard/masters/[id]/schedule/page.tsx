@@ -12,7 +12,7 @@
 
 import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin } from "@babun/shared/icons";
 import {
   useAppointments,
   useClients,

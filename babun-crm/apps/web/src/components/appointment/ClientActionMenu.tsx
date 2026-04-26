@@ -9,7 +9,7 @@ import {
   Repeat,
   FileText,
   type LucideIcon,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 
 interface ClientActionMenuProps {

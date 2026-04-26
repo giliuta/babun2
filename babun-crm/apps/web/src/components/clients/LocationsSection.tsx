@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Home, MapPin, Plus, Wind } from "lucide-react";
+import { Home, MapPin, Plus, Wind } from "@babun/shared/icons";
 import {
   AC_TYPE_LABELS,
   type ACUnit,

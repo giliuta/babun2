@@ -19,7 +19,7 @@ import {
   MapPin,
   ArrowUpRight,
   Calendar as CalendarIcon,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { useRouter } from "next/navigation";
 import type { Client, Location } from "@babun/shared/local/clients";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";

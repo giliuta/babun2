@@ -32,7 +32,7 @@ import {
   Trash2,
   UserMinus,
   X,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import ContextMenu, {

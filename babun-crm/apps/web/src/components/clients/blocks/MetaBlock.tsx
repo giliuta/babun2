@@ -4,7 +4,7 @@
 // referrer.  Hidden for the future "crew" role
 // (DEFAULT_BLOCK_ORDER flag).
 
-import { Plus, X } from "lucide-react";
+import { Plus, X } from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 import { ACQUISITION_LABELS, type AcquisitionSource } from "@babun/shared/local/clients";
 import { useClients } from "@/app/dashboard/layout";

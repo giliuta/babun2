@@ -20,7 +20,7 @@ import {
   Ban,
   CheckCircle2,
   Trash2,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import {
   useAppointments,
   useClients,

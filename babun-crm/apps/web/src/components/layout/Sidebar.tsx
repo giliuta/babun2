@@ -12,7 +12,7 @@ import {
   Settings as SettingsIcon,
   LogOut,
   ChevronDown,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { loadRecurring, dueReminders } from "@babun/shared/local/recurring";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";

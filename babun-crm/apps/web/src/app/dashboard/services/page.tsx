@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Check, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Settings } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";

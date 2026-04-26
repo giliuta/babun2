@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Check, MapPin } from "lucide-react";
+import { Check, MapPin } from "@babun/shared/icons";
 import { CITIES, cityConfigFromColor } from "@babun/shared/local/day-cities";
 import type { City } from "@babun/shared/local/cities";
 

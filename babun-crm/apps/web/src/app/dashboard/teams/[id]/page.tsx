@@ -31,7 +31,7 @@ import {
   Trash2,
   Users as UsersIcon,
   Wrench,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import IOSSwitch from "@/components/ui/IOSSwitch";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Check, X, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Check, X, Pencil, Trash2 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button, IOSSwitch } from "@/components/ui";
 import { useCities } from "@/app/dashboard/layout";

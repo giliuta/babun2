@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, CreditCard, ArrowLeftRight, FileText } from "lucide-react";
+import { Banknote, CreditCard, ArrowLeftRight, FileText } from "@babun/shared/icons";
 import type { AppointmentPayment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 

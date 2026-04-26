@@ -3,7 +3,7 @@
 import { memo, useRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { AlertTriangle, Camera, Check, Clock } from "lucide-react";
+import { AlertTriangle, Camera, Check, Clock } from "@babun/shared/icons";
 import type { Appointment, AppointmentColorKind } from "@babun/shared/local/appointments";
 import { COLOR_KIND_TAILWIND, getDebtAmount } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";

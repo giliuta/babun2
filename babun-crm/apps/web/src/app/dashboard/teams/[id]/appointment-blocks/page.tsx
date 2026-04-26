@@ -29,7 +29,7 @@ import {
   Wallet,
   Wrench,
   type LucideIcon,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import {
   DndContext,
   PointerSensor,

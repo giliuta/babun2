@@ -15,7 +15,7 @@ import {
 } from "@babun/shared/local/finance/appointment-calc";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { Tag, X } from "lucide-react";
+import { Tag, X } from "@babun/shared/icons";
 
 interface IncomeBlockProps {
   services: AppointmentService[];

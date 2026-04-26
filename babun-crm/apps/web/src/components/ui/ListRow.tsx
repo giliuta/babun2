@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@babun/shared/icons";
 import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
 
 interface BaseProps {

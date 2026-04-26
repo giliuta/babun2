@@ -14,7 +14,7 @@
 //   4. Star (yellow) — VIP tag
 //   5. Sparkles (green) — new client (<30 days in DB)
 
-import { Ban, Cake, Calendar, Star, Sparkles } from "lucide-react";
+import { Ban, Cake, Calendar, Star, Sparkles } from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 

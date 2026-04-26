@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Phone, MessageSquare, Plus, X, Tag } from "lucide-react";
+import { Phone, MessageSquare, Plus, X, Tag } from "@babun/shared/icons";
 import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 import { formatEUR, formatEURSigned } from "@babun/shared/common/utils/money";
 import {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "@babun/shared/icons";
 import { useRouter } from "next/navigation";
 
 // Sprint 033 Phase I31 — mirror of BrigadeSectionShell for /dashboard/masters

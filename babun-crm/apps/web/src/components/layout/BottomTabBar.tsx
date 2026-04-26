@@ -8,7 +8,7 @@ import {
   MessageSquare,
   Wallet,
   Menu,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import {
   useSidebar,
   useAppointments,

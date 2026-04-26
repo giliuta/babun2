@@ -10,7 +10,7 @@
 // fades in, panel pops via animate-popup-in.
 
 import { useEffect } from "react";
-import { Phone as PhoneIcon, MessageSquare, Send, X } from "lucide-react";
+import { Phone as PhoneIcon, MessageSquare, Send, X } from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 import {
   whatsappUrl,

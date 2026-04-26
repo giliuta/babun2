@@ -46,7 +46,7 @@ import {
   Search,
   Trash2,
   X,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/app/dashboard/layout";

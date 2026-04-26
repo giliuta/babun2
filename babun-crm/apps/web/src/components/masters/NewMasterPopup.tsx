@@ -8,7 +8,7 @@ import {
   RefreshCw,
   User as UserIcon,
   X,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import {
   appendAudit,
   defaultPermissionsForRole,

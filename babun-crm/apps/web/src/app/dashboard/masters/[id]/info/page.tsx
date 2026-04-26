@@ -30,7 +30,7 @@ import {
   RefreshCw,
   Trash2,
   UserMinus,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useMasters } from "@/app/dashboard/layout";
 import {

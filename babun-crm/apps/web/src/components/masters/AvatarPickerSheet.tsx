@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Camera, Trash2, X } from "lucide-react";
+import { Check, Camera, Trash2, X } from "@babun/shared/icons";
 import { getAvatarPresets, isAvatarSet } from "@babun/shared/local/selectors/avatars";
 import { haptic } from "@/lib/haptics";
 

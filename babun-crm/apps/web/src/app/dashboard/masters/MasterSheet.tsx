@@ -7,7 +7,7 @@ import {
   EyeOff,
   Trash2,
   X,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import {
   CONTRACT_LABELS,
   PAYMENT_METHOD_LABELS,

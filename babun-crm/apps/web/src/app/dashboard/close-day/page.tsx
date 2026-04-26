@@ -7,7 +7,7 @@ import {
   AlertTriangle,
   Wallet as WalletIcon,
   ArrowLeft,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   useAppointments,

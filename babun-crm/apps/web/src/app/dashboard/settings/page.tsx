@@ -12,7 +12,7 @@ import {
   Building2,
   ChevronRight,
   LogOut,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/app/dashboard/layout";
 import {

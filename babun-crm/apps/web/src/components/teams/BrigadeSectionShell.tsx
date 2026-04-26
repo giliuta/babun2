@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "@babun/shared/icons";
 import { useRouter } from "next/navigation";
 
 interface BrigadeSectionShellProps {

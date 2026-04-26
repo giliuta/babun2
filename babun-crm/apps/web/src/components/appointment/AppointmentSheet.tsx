@@ -10,7 +10,7 @@ import {
   Navigation as NavigationIcon,
   Moon,
   Plane,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import type { EventPreset } from "@babun/shared/common/utils/event-presets";
 
 // Lucide icon components keyed by the preset's `icon` string. Replaces

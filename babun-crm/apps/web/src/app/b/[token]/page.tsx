@@ -2,7 +2,7 @@
 
 import { use, useMemo } from "react";
 import Link from "next/link";
-import { Link2Off, MapPin } from "lucide-react";
+import { Link2Off, MapPin } from "@babun/shared/icons";
 import { decodeShareSnapshot } from "@babun/shared/common/utils/share-link";
 import { formatEUR } from "@babun/shared/common/utils/money";
 

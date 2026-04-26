@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, X, RotateCw, StickyNote } from "lucide-react";
+import { Phone, X, RotateCw, StickyNote } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";

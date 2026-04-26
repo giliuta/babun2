@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { MessageSquare } from "@babun/shared/icons";
 
 interface CommentBlockProps {
   value: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Phone, MessagesSquare } from "lucide-react";
+import { MessageCircle, Phone, MessagesSquare } from "@babun/shared/icons";
 
 interface SuccessOverlayProps {
   clientName: string;

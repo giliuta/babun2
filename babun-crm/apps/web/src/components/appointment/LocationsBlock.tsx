@@ -6,7 +6,7 @@ import { upsertClient } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@babun/shared/common/utils/map-links";
 import { useLocationLabels } from "@/app/dashboard/layout";
-import { Navigation } from "lucide-react";
+import { Navigation } from "@babun/shared/icons";
 import MapNavPopup from "./MapNavPopup";
 
 interface LocationsBlockProps {

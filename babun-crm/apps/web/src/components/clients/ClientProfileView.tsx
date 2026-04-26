@@ -18,7 +18,7 @@ import {
   StickyNote,
   Ban,
   CheckCircle2,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import type { Client, ClientNote, Location } from "@babun/shared/local/clients";
 import { upsertClient, ACQUISITION_LABELS } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";

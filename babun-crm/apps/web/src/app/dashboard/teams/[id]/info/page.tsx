@@ -12,7 +12,7 @@
 //    "city tag" meaning, which became Метки).
 
 import { use, useEffect, useState } from "react";
-import { Check } from "lucide-react";
+import { Check } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useTeams } from "@/app/dashboard/layout";
 import {

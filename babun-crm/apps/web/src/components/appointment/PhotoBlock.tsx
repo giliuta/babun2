@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Camera } from "lucide-react";
+import { Camera } from "@babun/shared/icons";
 import type { AppointmentPhoto, PhotoKind } from "@babun/shared/local/appointments";
 import { compressImage, generateCaption } from "@babun/shared/local/photos";
 import { generateId } from "@babun/shared/local/masters";

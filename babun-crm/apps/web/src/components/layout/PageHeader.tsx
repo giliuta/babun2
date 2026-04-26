@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, Menu } from "lucide-react";
+import { ChevronDown, ChevronLeft, Menu } from "@babun/shared/icons";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/app/dashboard/layout";
 import { haptic } from "@/lib/haptics";

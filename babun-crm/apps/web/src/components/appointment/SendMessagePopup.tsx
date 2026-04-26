@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, MessageSquare, Phone, Send } from "lucide-react";
+import { X, MessageSquare, Phone, Send } from "@babun/shared/icons";
 
 interface SendMessagePopupProps {
   open: boolean;

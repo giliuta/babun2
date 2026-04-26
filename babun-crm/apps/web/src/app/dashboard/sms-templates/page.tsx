@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { X } from "lucide-react";
+import { X } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Button, Input } from "@/components/ui";

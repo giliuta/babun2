@@ -6,7 +6,7 @@ import {
   Receipt,
   CalendarHeart,
   MessagesSquare,
-} from "lucide-react";
+} from "@babun/shared/icons";
 
 interface CreateMenuProps {
   open: boolean;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Home } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
 import IOSSwitch from "@/components/ui/IOSSwitch";

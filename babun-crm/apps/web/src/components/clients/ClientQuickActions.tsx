@@ -20,7 +20,7 @@ import {
   Send,
   MessageSquare,
   StickyNote,
-} from "lucide-react";
+} from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 import {
   whatsappUrl,
