@@ -1,6 +1,20 @@
 // Clients data layer — balance, discount, tags, analytics segmentation.
 
 import { generateId } from "./masters";
+
+// STORY-036: client ids must be uuid-shaped because the canonical
+// store is now Supabase (clients.id is uuid pk). `crypto.randomUUID`
+// is available in every browser we ship to + Node 19+. Falls back to
+// the legacy `cli-…` id only in environments where crypto is missing
+// (very old browsers, certain SSR contexts) — those clients won't
+// round-trip to Supabase but will at least stay readable in
+// localStorage.
+function newClientId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return generateId("cli");
+}
 import type { Appointment } from "./appointments";
 import { MOCK_CLIENTS, type MockClient } from "./mock/seed";
 
@@ -366,7 +380,7 @@ export function saveClientTags(list: ClientTag[]): void {
 
 export function createBlankClient(overrides: Partial<Client> = {}): Client {
   return {
-    id: generateId("cli"),
+    id: newClientId(),
     full_name: "",
     phone: "",
     phones: [],

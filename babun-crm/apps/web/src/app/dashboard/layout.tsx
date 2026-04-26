@@ -44,7 +44,6 @@ import {
 } from "@babun/shared/local/clients";
 import {
   listClients,
-  getClient as getClientRepo,
   createClient as createClientRepo,
   updateClient as updateClientRepo,
   deleteClient as deleteClientRepo,
@@ -663,12 +662,24 @@ export default function DashboardLayout({
   const upsertClient = useCallback(
     async (client: Client) => {
       const supabase = getSupabaseBrowser();
-      const exists =
-        clients.some((c) => c.id === client.id) ||
-        Boolean(await getClientRepo(supabase, client.id, tenantId));
-      const saved = exists
-        ? await updateClientRepo(supabase, client.id, client, tenantId)
-        : await createClientRepo(supabase, client, tenantId);
+      const inMemory = clients.some((c) => c.id === client.id);
+      let saved: Client;
+      if (inMemory) {
+        saved = await updateClientRepo(supabase, client.id, client, tenantId);
+      } else {
+        try {
+          saved = await createClientRepo(supabase, client, tenantId);
+        } catch (err) {
+          // Race: clients[] hadn't loaded yet but the row already
+          // exists. Fall back to update.
+          const msg = err instanceof Error ? err.message : "";
+          if (/duplicate key|already exists|23505/i.test(msg)) {
+            saved = await updateClientRepo(supabase, client.id, client, tenantId);
+          } else {
+            throw err;
+          }
+        }
+      }
       setClientsState((prev) => {
         const idx = prev.findIndex((c) => c.id === saved.id);
         return idx >= 0
