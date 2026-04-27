@@ -126,7 +126,10 @@ export default function ClientCardPage({
       danger: true,
     });
     if (!ok) return;
-    deleteClient(client.id);
+    // STORY-036: await the Supabase delete before unmounting via
+    // onBack(); otherwise the in-flight fetch is cancelled when the
+    // page navigates away and the row stays in the database.
+    await deleteClient(client.id);
     onBack();
   };
 
