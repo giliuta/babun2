@@ -67,6 +67,15 @@ function tail(s: string): string {
   return `${s.slice(0, 4)}…${s.slice(-4)}`;
 }
 
+function bytesHex(bytes: Uint8Array, from: number, to: number): string {
+  let out = "";
+  const end = Math.min(to, bytes.length);
+  for (let i = from; i < end; i++) {
+    out += bytes[i].toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -141,6 +150,13 @@ export async function proxy(req: NextRequest) {
 
   const actual = (await sha256HexBytes(credBytes)).toLowerCase();
   const ok = timingSafeEqual(actual, expected);
+
+  // Sanity: hash of "admin:test" should be a known reference value, so
+  // we can confirm crypto.subtle is computing SHA-256 correctly.
+  const ref = await sha256HexBytes(
+    new TextEncoder().encode("admin:test") as unknown as Uint8Array,
+  );
+
   console.log("[proxy] auth check", {
     ok,
     expectedLen: expected.length,
@@ -150,6 +166,21 @@ export async function proxy(req: NextRequest) {
     credBytesLen: credBytes.length,
     loginLen: colonIdx,
     pwdLen: credBytes.length - colonIdx - 1,
+    // Hex of the actual bytes that got fed to SHA-256.
+    // For 6+1+9 = 16 bytes, this shows you whether the bytes are what
+    // you think they are. Compare with `printf "login:password" | xxd`.
+    loginHex0_3: bytesHex(credBytes, 0, 4),
+    colonByte: bytesHex(credBytes, colonIdx, colonIdx + 1),
+    pwdHexLast4: bytesHex(
+      credBytes,
+      credBytes.length - 4,
+      credBytes.length,
+    ),
+    // First byte 0xef would mean a UTF-8 BOM leaked in.
+    firstByte: bytesHex(credBytes, 0, 1),
+    // Reference hash — sha256("admin:test") should be:
+    //   5b3930222a6773952a6ba0ba7ef5cc0922efe9da722e7dfa9283f19550eb1369
+    refTail: tail(ref),
   });
   if (!ok) {
     return challenge();
