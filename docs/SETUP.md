@@ -1,16 +1,16 @@
 # Babun CRM — Local Dev Setup
 
-> ⚠️ **WARNING — RLS not enabled yet (STORY-038)**
->
-> STORY-037 landed real Supabase Auth (register / login / forgot / reset),
-> per-user tenants and a server-side auth gate. **But RLS policies aren't
-> live yet** — any signed-in user (or anyone who opens DevTools and crafts
-> a REST query with the publishable key) can read every tenant's data.
-> The UI is correctly tenant-scoped via repository filters, but the
-> security gap stays until STORY-038.
->
-> **Until STORY-038 ships:** trusted-tester deploys only. Don't post the URL or
-> the publishable key in screenshots. `<meta robots noindex>` stays in place.
+## Security posture
+
+Multi-tenant with RLS at the DB layer. The publishable key in the
+browser bundle is safe to expose — even crafted REST queries from
+DevTools can only see the caller's own tenant. SUPABASE_SECRET_KEY is
+server-side only.
+
+What RLS does **not** cover: CSRF (handled by httpOnly cookies +
+future CSRF tokens on custom POSTs), brute-force on login (Supabase
+Auth rate-limit), session hijacking (httpOnly + Secure + SameSite
+cookies — Supabase defaults).
 
 ## Supabase Dashboard config (one-time, per project)
 

@@ -1,19 +1,21 @@
 # Babun CRM
 
-> ⚠️ **WARNING — RLS not enabled yet (STORY-038)**
->
-> STORY-037 landed real Supabase Auth (register / login / forgot / reset),
-> per-user tenants and a server-side auth gate. **But RLS policies aren't
-> live yet** — any signed-in user (or anyone who opens DevTools and crafts
-> a REST query with the publishable key) can read every tenant's data.
-> The UI is correctly tenant-scoped via repository filters, but the
-> security gap stays until STORY-038.
->
-> **Until STORY-038 ships:**
-> - Trusted-tester deploys only — invite people you actually trust.
-> - Do **NOT** post the production URL on Twitter / blog / Telegram.
-> - Do **NOT** post the publishable key in screenshots.
-> - The `<meta robots noindex>` tag stays in `app/layout.tsx`.
+## Security
+
+Babun is multi-tenant. **Row-Level Security** is on for every
+tenant-scoped table — each user only sees their own data, enforced at
+the database layer (not just in app code). Even with the publishable
+key in the browser bundle, an attacker who opens DevTools and crafts
+direct REST queries cannot read other tenants' rows.
+
+What RLS does **not** cover (handled elsewhere):
+
+- **CSRF** — Supabase auth tokens travel via httpOnly cookies; any
+  future custom POST endpoint will need explicit CSRF tokens.
+- **Brute-force on login** — Supabase Auth rate-limits sign-in
+  attempts out of the box.
+- **Session hijacking** — auth cookies are httpOnly + Secure +
+  SameSite=lax (Supabase Auth defaults).
 
 CRM platform for service businesses. First customer: AirFix (HVAC, Cyprus).
 
