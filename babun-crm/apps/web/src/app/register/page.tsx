@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import LoginForm from "@/components/auth/LoginForm";
+import RegisterForm from "@/components/auth/RegisterForm";
 
-// Server gate — already-signed-in users skip the form.
-export default async function LoginPage() {
+export default async function RegisterPage() {
   const supabase = await getSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) redirect("/dashboard/clients");
-  return <LoginForm />;
+  return <RegisterForm />;
 }
