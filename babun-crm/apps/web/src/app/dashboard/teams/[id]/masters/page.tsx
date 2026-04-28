@@ -33,7 +33,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import ContextMenu, {
   type ContextMenuOption,
 } from "@/components/ui/ContextMenu";
-import { useMasters, useTeams } from "@/app/dashboard/layout";
+import { useMasters, useTeams } from "@/components/layout/DashboardClientLayout";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 import {
   LEGACY_HELPER_ROLE_ID,

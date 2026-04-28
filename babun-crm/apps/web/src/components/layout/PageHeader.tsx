@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronLeft, Menu } from "@babun/shared/icons";
 import { useRouter } from "next/navigation";
-import { useSidebar } from "@/app/dashboard/layout";
+import { useSidebar } from "@/components/layout/DashboardClientLayout";
 import { haptic } from "@/lib/haptics";
 
 interface PageHeaderProps {

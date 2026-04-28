@@ -27,12 +27,14 @@ export interface Database {
           id: string;
           name: string;
           vertical: string | null;
+          owner_user_id: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
           vertical?: string | null;
+          owner_user_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;

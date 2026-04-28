@@ -14,7 +14,7 @@ import {
   LogOut,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
-import { useFormSettings } from "@/app/dashboard/layout";
+import { useFormSettings } from "@/components/layout/DashboardClientLayout";
 import {
   haptic,
   getHapticsEnabled,

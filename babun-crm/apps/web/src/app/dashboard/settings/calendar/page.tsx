@@ -10,7 +10,7 @@ import {
   useCalendarSettings,
   useCurrentMaster,
   useMasters,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import {
   validateCalendarSettings,
   TIMEZONE_OPTIONS,

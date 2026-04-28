@@ -9,7 +9,7 @@ import { use, useMemo, useRef, useState } from "react";
 import { Package, Pencil, Plus, Trash2, UserMinus } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useEquipment, useTeams } from "@/app/dashboard/layout";
+import { useEquipment, useTeams } from "@/components/layout/DashboardClientLayout";
 import type { Equipment } from "@babun/shared/local/equipment";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import ContextMenu, {

@@ -19,7 +19,7 @@
 import { use, useState } from "react";
 import { ChevronDown, Plus, Trash2 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
-import { useSchedules, useTeams } from "@/app/dashboard/layout";
+import { useSchedules, useTeams } from "@/components/layout/DashboardClientLayout";
 import {
   DEFAULT_SCHEDULE,
   WEEKDAY_KEYS,

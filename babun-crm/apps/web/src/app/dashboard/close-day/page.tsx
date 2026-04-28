@@ -15,7 +15,7 @@ import {
   useServices,
   useTeams,
   useClients,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { computeFinancials } from "@babun/shared/local/finance/compute";
 import { type Appointment, getDebtAmount } from "@babun/shared/local/appointments";

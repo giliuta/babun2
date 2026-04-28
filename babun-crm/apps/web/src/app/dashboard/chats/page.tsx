@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useClients, useAppointments } from "@/app/dashboard/layout";
+import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
 import { createBlankClient, type Client } from "@babun/shared/local/clients";
 import ClientPanel from "@/components/clients/ClientPanel";
 import CreateClientModal from "@/components/clients/CreateClientModal";

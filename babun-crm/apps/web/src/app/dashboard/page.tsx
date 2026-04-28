@@ -57,7 +57,7 @@ import {
   useDayExtras,
   useCalendarSettings,
   useCities,
-} from "./layout";
+} from "@/components/layout/DashboardClientLayout";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import { sumExtras } from "@babun/shared/local/day-extras";
 import { loadChats } from "@babun/shared/local/chats";

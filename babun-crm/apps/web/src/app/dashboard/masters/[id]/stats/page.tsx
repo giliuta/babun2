@@ -16,9 +16,9 @@ import {
   useAppointments,
   useMasters,
   useTeams,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import { getTeamLeadIds, type Team } from "@babun/shared/local/masters";
-import { useClients } from "@/app/dashboard/layout";
+import { useClients } from "@/components/layout/DashboardClientLayout";
 import type { Appointment } from "@babun/shared/local/appointments";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
 

@@ -34,7 +34,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
-import { useClients, useAppointments } from "@/app/dashboard/layout";
+import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
 import { type Client, type ClientTag, createBlankClient } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";

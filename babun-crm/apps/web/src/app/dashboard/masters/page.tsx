@@ -30,7 +30,7 @@ import ContextMenu, {
 } from "@/components/ui/ContextMenu";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import { haptic } from "@/lib/haptics";
-import { useMasters, useTeams } from "@/app/dashboard/layout";
+import { useMasters, useTeams } from "@/components/layout/DashboardClientLayout";
 import {
   ROLE_LABELS,
   generateId,

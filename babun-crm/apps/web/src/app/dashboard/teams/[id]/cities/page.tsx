@@ -31,7 +31,7 @@ import {
   X,
 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
-import { useCities, useTeams } from "@/app/dashboard/layout";
+import { useCities, useTeams } from "@/components/layout/DashboardClientLayout";
 import {
   CITY_COLOR_PRESETS,
   generateCityId,

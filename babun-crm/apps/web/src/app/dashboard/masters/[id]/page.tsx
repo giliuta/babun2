@@ -34,7 +34,7 @@ import {
   useAppointments,
   useMasters,
   useTeams,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import {
   ACCOUNT_STATUS_LABELS,
   PERMISSION_GROUPS,

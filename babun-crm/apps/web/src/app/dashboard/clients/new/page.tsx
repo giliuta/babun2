@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Plus, Home, MapPin } from "@babun/shared/icons";
-import { useClients } from "@/app/dashboard/layout";
+import { useClients } from "@/components/layout/DashboardClientLayout";
 import {
   createBlankClient,
   type Location,

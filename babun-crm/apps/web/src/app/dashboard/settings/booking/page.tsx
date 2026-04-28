@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Check, X, Pencil, Trash2 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
-import { useLocationLabels } from "@/app/dashboard/layout";
+import { useLocationLabels } from "@/components/layout/DashboardClientLayout";
 import {
   generateLocationLabelId,
   type LocationLabel,

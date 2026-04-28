@@ -24,7 +24,7 @@ import { upsertClient, ACQUISITION_LABELS } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { formatEUR } from "@babun/shared/common/utils/money";
-import { useClients, useAppointments } from "@/app/dashboard/layout";
+import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
 import type { Appointment } from "@babun/shared/local/appointments";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
 import { Button } from "@/components/ui";

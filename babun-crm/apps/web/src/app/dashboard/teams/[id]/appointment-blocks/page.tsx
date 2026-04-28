@@ -45,7 +45,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { haptic } from "@/lib/haptics";
-import { useTeams } from "@/app/dashboard/layout";
+import { useTeams } from "@/components/layout/DashboardClientLayout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import {

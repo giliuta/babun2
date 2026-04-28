@@ -32,7 +32,7 @@ import {
   UserMinus,
 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
-import { useMasters } from "@/app/dashboard/layout";
+import { useMasters } from "@/components/layout/DashboardClientLayout";
 import {
   ACCOUNT_STATUS_LABELS,
   ACCOUNT_STATUS_TONE,

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Check, ChevronDown, ChevronUp, Settings } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useServices, useTeams } from "@/app/dashboard/layout";
+import { useServices, useTeams } from "@/components/layout/DashboardClientLayout";
 import type { Team } from "@babun/shared/local/masters";
 import {
   createBlankService,

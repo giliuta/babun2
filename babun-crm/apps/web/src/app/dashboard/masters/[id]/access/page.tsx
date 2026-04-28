@@ -6,7 +6,7 @@
 
 import { use, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
-import { useMasters, useTeams } from "@/app/dashboard/layout";
+import { useMasters, useTeams } from "@/components/layout/DashboardClientLayout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   PERMISSION_GROUPS,

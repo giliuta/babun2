@@ -11,7 +11,7 @@ import {
   useServices,
   useTeams,
   useClients,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import { formatEUR, formatEURSigned, formatPercentDelta } from "@babun/shared/common/utils/money";
 import {
   useFinanceData,

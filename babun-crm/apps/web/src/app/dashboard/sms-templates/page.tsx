@@ -5,7 +5,7 @@ import { X } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Button, Input } from "@/components/ui";
-import { useSmsTemplates } from "@/app/dashboard/layout";
+import { useSmsTemplates } from "@/components/layout/DashboardClientLayout";
 import {
   KIND_LABELS,
   AVAILABLE_TOKENS,

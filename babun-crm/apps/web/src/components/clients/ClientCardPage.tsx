@@ -25,7 +25,7 @@ import {
   useAppointments,
   useClients,
   useServices,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import { buildStats } from "@babun/shared/local/selectors/client-stats";
 import { loadBlockConfig } from "@babun/shared/local/business-blocks";
 import { useConfirm } from "@/components/ui/ConfirmProvider";

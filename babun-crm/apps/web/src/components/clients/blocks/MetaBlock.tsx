@@ -7,7 +7,7 @@
 import { Plus, X } from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 import { ACQUISITION_LABELS, type AcquisitionSource } from "@babun/shared/local/clients";
-import { useClients } from "@/app/dashboard/layout";
+import { useClients } from "@/components/layout/DashboardClientLayout";
 import ClientCard from "../ClientCard";
 import { haptic } from "@/lib/haptics";
 

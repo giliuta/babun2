@@ -53,7 +53,7 @@ import {
   useAppointments,
   useMasters,
   useTeams,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import {
   generateId,
   getTeamMembers,

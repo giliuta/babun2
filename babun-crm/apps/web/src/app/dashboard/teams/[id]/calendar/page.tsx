@@ -11,7 +11,7 @@
 // persists the change without an extra tap.
 
 import { use, useEffect, useState } from "react";
-import { useTeams } from "@/app/dashboard/layout";
+import { useTeams } from "@/components/layout/DashboardClientLayout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 

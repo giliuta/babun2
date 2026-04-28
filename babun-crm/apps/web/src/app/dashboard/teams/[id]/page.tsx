@@ -43,7 +43,7 @@ import {
   useCities,
   useEquipment,
   useSchedules,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import {
   getTeamLeadIds,
   type Master,

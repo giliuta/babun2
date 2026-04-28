@@ -14,7 +14,7 @@
 import { use, useEffect, useState } from "react";
 import { Check } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
-import { useTeams } from "@/app/dashboard/layout";
+import { useTeams } from "@/components/layout/DashboardClientLayout";
 import {
   TEAM_COLORS,
   generateId,

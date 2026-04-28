@@ -17,7 +17,7 @@ import {
   useAppointments,
   useClients,
   useMasters,
-} from "@/app/dashboard/layout";
+} from "@/components/layout/DashboardClientLayout";
 import { haptic } from "@/lib/haptics";
 import type { Appointment } from "@babun/shared/local/appointments";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";

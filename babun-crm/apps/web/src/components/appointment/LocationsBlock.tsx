@@ -5,7 +5,7 @@ import type { Client, Location } from "@babun/shared/local/clients";
 import { upsertClient } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@babun/shared/common/utils/map-links";
-import { useLocationLabels } from "@/app/dashboard/layout";
+import { useLocationLabels } from "@/components/layout/DashboardClientLayout";
 import { Navigation } from "@babun/shared/icons";
 import MapNavPopup from "./MapNavPopup";
 

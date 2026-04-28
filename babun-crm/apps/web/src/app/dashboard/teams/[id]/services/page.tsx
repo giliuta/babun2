@@ -49,7 +49,7 @@ import {
 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { useServices, useTeams } from "@/app/dashboard/layout";
+import { useServices, useTeams } from "@/components/layout/DashboardClientLayout";
 import {
   createBlankService,
   type DurationTier,

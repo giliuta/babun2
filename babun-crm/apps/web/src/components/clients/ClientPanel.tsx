@@ -19,7 +19,7 @@ import LocationsSection from "./LocationsSection";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@babun/shared/local/appointments";
-import { useServices, useTeams } from "@/app/dashboard/layout";
+import { useServices, useTeams } from "@/components/layout/DashboardClientLayout";
 import { loadChats, CHANNEL_LABELS, CHANNEL_COLORS, type Chat, type ChatChannel } from "@babun/shared/local/chats";
 import { generateId } from "@babun/shared/local/masters";
 import { haptic } from "@/lib/haptics";
