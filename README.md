@@ -1,15 +1,19 @@
 # Babun CRM
 
-> ⚠️ **WARNING — DB is publicly readable until STORY-038**
+> ⚠️ **WARNING — RLS not enabled yet (STORY-038)**
 >
-> Babun is currently running on a Supabase project **without RLS enabled** and
-> with the publishable key in the browser bundle. Anyone who can reach
-> `babun2.vercel.app` can `select *` from the `clients` table.
+> STORY-037 landed real Supabase Auth (register / login / forgot / reset),
+> per-user tenants and a server-side auth gate. **But RLS policies aren't
+> live yet** — any signed-in user (or anyone who opens DevTools and crafts
+> a REST query with the publishable key) can read every tenant's data.
+> The UI is correctly tenant-scoped via repository filters, but the
+> security gap stays until STORY-038.
 >
-> **Until STORY-038 lands:**
-> - Do **NOT** share the production URL publicly.
-> - Do **NOT** post the publishable key (or any screenshot containing it) anywhere.
-> - Treat the deployed instance as private dev.
+> **Until STORY-038 ships:**
+> - Trusted-tester deploys only — invite people you actually trust.
+> - Do **NOT** post the production URL on Twitter / blog / Telegram.
+> - Do **NOT** post the publishable key in screenshots.
+> - The `<meta robots noindex>` tag stays in `app/layout.tsx`.
 
 CRM platform for service businesses. First customer: AirFix (HVAC, Cyprus).
 
