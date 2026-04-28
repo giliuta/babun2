@@ -53,6 +53,7 @@ import {
   deleteClientTag,
 } from "@babun/shared/db/repositories/clients";
 import { signOut } from "@/lib/supabase/auth-client";
+import UnconfirmedEmailBanner from "@/components/auth/UnconfirmedEmailBanner";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
   loadTemplates,
@@ -401,12 +402,15 @@ interface DashboardClientLayoutProps {
   tenantId: string;
   /** Shown in the sidebar footer. Empty string if not available. */
   userEmail: string;
+  /** False → render the unconfirmed-email banner above the main area. */
+  emailConfirmed: boolean;
 }
 
 export default function DashboardClientLayout({
   children,
   tenantId,
   userEmail,
+  emailConfirmed,
 }: DashboardClientLayoutProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1023,6 +1027,11 @@ export default function DashboardClientLayout({
               overscrollBehaviorX: "none",
             }}
           >
+            {/* STORY-037 G7 — defensive banner when Supabase Confirm
+                Email is ON (currently OFF per A3, so this is hidden). */}
+            {!emailConfirmed && userEmail && (
+              <UnconfirmedEmailBanner email={userEmail} />
+            )}
             {children}
 
             {/* v328 — Edge guards.  iOS standalone PWA fires the

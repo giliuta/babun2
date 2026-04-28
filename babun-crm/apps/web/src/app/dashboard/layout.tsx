@@ -44,6 +44,7 @@ export default async function DashboardLayout({
     <DashboardClientLayout
       tenantId={tenant.id}
       userEmail={user.email ?? ""}
+      emailConfirmed={Boolean(user.email_confirmed_at)}
     >
       {children}
     </DashboardClientLayout>
