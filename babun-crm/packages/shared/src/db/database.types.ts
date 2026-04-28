@@ -28,6 +28,8 @@ export interface Database {
           name: string;
           vertical: string | null;
           owner_user_id: string | null;
+          city: string | null;
+          onboarded_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -35,6 +37,8 @@ export interface Database {
           name: string;
           vertical?: string | null;
           owner_user_id?: string | null;
+          city?: string | null;
+          onboarded_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;

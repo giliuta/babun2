@@ -30,7 +30,7 @@ export default async function DashboardLayout({
 
   const { data: tenant, error } = await supabase
     .from("tenants")
-    .select("id")
+    .select("id, onboarded_at")
     .eq("owner_user_id", user.id)
     .maybeSingle();
 
@@ -38,6 +38,13 @@ export default async function DashboardLayout({
     // Trigger should always create one. Defensive redirect with a
     // hint param so the bug surfaces instead of looping silently.
     redirect("/login?error=tenant_missing");
+  }
+  // STORY-040 — fresh tenants land with onboarded_at = NULL and get
+  // bounced through the 4-step wizard. Pre-STORY-040 tenants were
+  // backfilled with onboarded_at = created_at by the migration, so
+  // existing users go straight through.
+  if (!tenant.onboarded_at) {
+    redirect("/onboarding");
   }
 
   return (
