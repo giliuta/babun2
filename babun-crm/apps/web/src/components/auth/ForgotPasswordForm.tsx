@@ -5,7 +5,11 @@ import Link from "next/link";
 import AuthCard from "./AuthCard";
 import { requestPasswordReset } from "@/lib/supabase/auth-client";
 
-export default function ForgotPasswordForm() {
+interface Props {
+  errorCode?: string | null;
+}
+
+export default function ForgotPasswordForm({ errorCode = null }: Props) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -40,6 +44,11 @@ export default function ForgotPasswordForm() {
 
   return (
     <AuthCard title="Сброс пароля" subtitle="Введи email — пришлём ссылку">
+      {errorCode === "link_expired" && (
+        <div className="mb-4 rounded-[var(--radius-card)] bg-[rgba(255,149,0,0.10)] border border-[rgba(255,149,0,0.30)] p-3 text-[13px] leading-snug text-[var(--system-orange,#ff9500)]">
+          Ссылка истекла или уже использована. Запроси новую ниже.
+        </div>
+      )}
       <form onSubmit={submit} className="space-y-3">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden shadow-[var(--shadow-card)]">
           <input

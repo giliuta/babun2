@@ -52,6 +52,14 @@ export default function LoginForm({ errorCode = null }: LoginFormProps) {
           </div>
         </div>
       )}
+      {(errorCode === "link_expired" || errorCode === "link_invalid") && (
+        <div className="mb-4 rounded-[var(--radius-card)] bg-[rgba(255,149,0,0.10)] border border-[rgba(255,149,0,0.30)] p-3 text-[13px] leading-snug text-[var(--system-orange,#ff9500)]">
+          Ссылка истекла или уже использована. Запроси новую через{" "}
+          <a href="/forgot-password" className="text-[var(--accent)] font-medium">
+            «Забыли пароль?»
+          </a>
+        </div>
+      )}
       <form onSubmit={submit} className="space-y-3">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
           <input

@@ -1,27 +1,57 @@
-// PKCE callback — Supabase redirects here after the user clicks an
-// email link (password recovery, magic-link login). We exchange the
-// `code` param for a real session, then forward to `?next=...`.
+// Auth callback for Supabase email links (password recovery,
+// signup confirmation, magic link). Handles two flows:
 //
-// This is a route handler (not a page), so it runs server-side and
-// has access to cookies via @supabase/ssr — that's what writes the
-// auth cookie back to the browser.
+//   1. token_hash + type — the modern server-side OTP verification
+//      flow recommended for Next.js Server Components. Email template
+//      links here directly with `?token_hash={{ .TokenHash }}&type=...`.
+//      Works cross-device (no PKCE verifier required).
+//
+//   2. code — PKCE exchange for OAuth providers. Email recovery
+//      flows used to land here when the email template was the
+//      default `{{ .ConfirmationURL }}` — but that path delivered
+//      tokens via URL hash fragment, which can't be read server-side
+//      and broke updateUser() afterwards. Migrated to (1) in
+//      STORY-040 hotfix; this branch stays for OAuth.
+//
+// Either branch sets the auth cookie via @supabase/ssr's setAll
+// adapter and then redirects to `?next=...`.
 
 import { NextResponse, type NextRequest } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
+  const tokenHash = req.nextUrl.searchParams.get("token_hash");
+  const type = req.nextUrl.searchParams.get("type") as EmailOtpType | null;
   const code = req.nextUrl.searchParams.get("code");
   const next = req.nextUrl.searchParams.get("next") ?? "/dashboard/clients";
+
+  if (tokenHash && type) {
+    const supabase = await getSupabaseServer();
+    const { error } = await supabase.auth.verifyOtp({
+      type,
+      token_hash: tokenHash,
+    });
+    if (error) {
+      return NextResponse.redirect(
+        new URL(`/login?error=link_expired`, req.url),
+      );
+    }
+    return NextResponse.redirect(new URL(next, req.url));
+  }
 
   if (code) {
     const supabase = await getSupabaseServer();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return NextResponse.redirect(
-        new URL(`/login?err=callback-failed`, req.url),
+        new URL(`/login?error=link_expired`, req.url),
       );
     }
+    return NextResponse.redirect(new URL(next, req.url));
   }
 
-  return NextResponse.redirect(new URL(next, req.url));
+  // Neither token_hash nor code — this URL was hit without the
+  // expected query params. Send the user back to login.
+  return NextResponse.redirect(new URL("/login?error=link_invalid", req.url));
 }
