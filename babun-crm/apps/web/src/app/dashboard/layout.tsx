@@ -37,7 +37,7 @@ export default async function DashboardLayout({
   if (error || !tenant) {
     // Trigger should always create one. Defensive redirect with a
     // hint param so the bug surfaces instead of looping silently.
-    redirect("/login?err=tenant-missing");
+    redirect("/login?error=tenant_missing");
   }
 
   return (

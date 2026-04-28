@@ -32,7 +32,14 @@ export async function signUp(
       data: businessName ? { business_name: businessName } : undefined,
     },
   });
-  return unwrap(error);
+  if (error) return unwrap(error);
+  // STORY-038 — re-mint the JWT so app_metadata.tenant_id stamped by
+  // handle_new_user() lands in the claims. Without this, the first
+  // session post-signup falls back to current_tenant_id()'s DB lookup
+  // on every query (one extra hit per request) until the user
+  // re-authenticates.
+  await supabase.auth.refreshSession();
+  return unwrap(null);
 }
 
 export async function signIn(

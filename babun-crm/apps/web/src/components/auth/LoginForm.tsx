@@ -6,7 +6,14 @@ import Link from "next/link";
 import AuthCard from "./AuthCard";
 import { signIn } from "@/lib/supabase/auth-client";
 
-export default function LoginForm() {
+interface LoginFormProps {
+  /** Error code from the URL — surfaced as a fail-loud banner above
+   *  the form. Currently the only value is "tenant_missing" (see
+   *  STORY-038 G3.5). */
+  errorCode?: string | null;
+}
+
+export default function LoginForm({ errorCode = null }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,6 +38,20 @@ export default function LoginForm() {
 
   return (
     <AuthCard title="Babun CRM" subtitle="Войдите, чтобы продолжить">
+      {errorCode === "tenant_missing" && (
+        <div className="mb-4 rounded-[var(--radius-card)] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.25)] p-3 text-[13px] leading-snug text-[var(--system-red)]">
+          <div className="font-semibold mb-1">Аккаунт настроен неправильно</div>
+          <div className="text-[var(--label-secondary)]">
+            Напиши нам, починим вручную:{" "}
+            <a
+              href="mailto:airfix.cy@gmail.com?subject=Babun%3A%20tenant_missing"
+              className="text-[var(--accent)] font-medium"
+            >
+              airfix.cy@gmail.com
+            </a>
+          </div>
+        </div>
+      )}
       <form onSubmit={submit} className="space-y-3">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
           <input

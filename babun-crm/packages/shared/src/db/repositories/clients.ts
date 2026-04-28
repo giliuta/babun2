@@ -1,4 +1,4 @@
-// Clients repository — STORY-036.
+// Clients repository — STORY-036 / STORY-038.
 //
 // Single bridge between the UI shape (`@babun/shared/local/clients`
 // → `Client`) and the Supabase row shape (`Database['public']
@@ -10,9 +10,15 @@
 // table; the repository hides this from callers — `Client.tag_ids`
 // round-trips losslessly via a parallel query.
 //
-// Tenant isolation is enforced here in TypeScript (every query
-// filters by `tenant_id`). RLS turns this into a hard guarantee in
-// STORY-038.
+// STORY-038 — every function in this file expects a Supabase client
+// authenticated as either `anon` (no session) or `authenticated`
+// (session cookie). RLS keys off public.current_tenant_id() which
+// reads JWT app_metadata.tenant_id (with a tenants-by-owner_user_id
+// fallback for the fresh-signup race). The explicit `.eq('tenant_id',
+// tenantId)` filter below is now redundant for security but kept as
+// belt-and-suspenders + helps PostgREST pick a faster index path.
+// Service role bypass is intentionally out of scope; admin/cron
+// tasks live outside this module (none yet).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "../database.types";
