@@ -19,8 +19,40 @@ following in the Supabase Dashboard:
 
 - **Authentication → Sign In / Providers → Email → "Confirm email" OFF.**
   STORY-037 ships with auto-sign-in after register so dev / smoke-test
-  works end-to-end. STORY-040 will reinstate confirmation with a proper
-  "verify your email" UI flow.
+  works end-to-end. A future story will reinstate confirmation with a
+  proper "verify your email" UI flow.
+
+### Supabase Auth URL Configuration (CRITICAL for production)
+
+**Authentication → URL Configuration**
+([direct link](https://supabase.com/dashboard/project/rdtokosbqvgemicqeqwz/auth/url-configuration))
+
+This is the page that decides what domain ends up in password-reset
+emails, magic-link emails and email-confirmation links. A wrong value
+here means users click the email link and land on `http://localhost:3000`
+which doesn't exist for them — broken UX, no recovery.
+
+| Field | Value | Why |
+|---|---|---|
+| **Site URL** | `https://babun2.vercel.app` | Default redirect domain. Must be the production URL, NOT localhost — even during dev. |
+| **Redirect URLs** | `https://babun2.vercel.app/**` | Production allowlist. Wildcard `**` covers /auth/callback, /reset-password, etc. |
+| **Redirect URLs** | `http://localhost:3000/**` | Local-dev allowlist. Lets `npm run dev` test reset flows against the real Supabase project. |
+
+**Code-side note:** the app's `requestPasswordReset()` helper passes
+`redirectTo: ${window.location.origin}/auth/callback?next=/reset-password`,
+so on `npm run dev` the redirect points at localhost (matched by the
+local-dev allowlist), and on production it points at babun2.vercel.app.
+The Supabase Site URL is only used as the *default* when no `redirectTo`
+is supplied — but Supabase email templates also use it to render the
+button URL. Both halves must agree, hence both entries above.
+
+**If you change the production domain (custom domain, etc.):**
+1. Update Site URL to the new domain.
+2. Add the new domain to Redirect URLs (you can keep both during a
+   transition period).
+3. Existing reset-link emails issued before the change continue to
+   point at the old domain — they expire on their own (Supabase
+   default: 1 hour). Tell users to request a fresh reset.
 
 ## Prerequisites
 
