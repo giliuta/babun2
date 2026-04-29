@@ -30,7 +30,7 @@ export default async function DashboardLayout({
 
   const { data: tenant, error } = await supabase
     .from("tenants")
-    .select("id, onboarded_at")
+    .select("id, name, onboarded_at")
     .eq("owner_user_id", user.id)
     .maybeSingle();
 
@@ -50,6 +50,7 @@ export default async function DashboardLayout({
   return (
     <DashboardClientLayout
       tenantId={tenant.id}
+      tenantName={tenant.name}
       userEmail={user.email ?? ""}
       emailConfirmed={Boolean(user.email_confirmed_at)}
     >

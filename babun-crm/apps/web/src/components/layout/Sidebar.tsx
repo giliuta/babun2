@@ -42,6 +42,11 @@ interface SidebarProps {
   onNavigate?: (dialog: DialogType) => void;
   open: boolean;
   onClose: () => void;
+  /** Live tenant.name from the DB. Renders in the brand row instead of
+   *  the legacy "Babun CRM" hardcode. */
+  tenantName: string;
+  /** Authenticated user's email — caption under the tenant name. */
+  userEmail: string;
 }
 
 const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
@@ -59,7 +64,13 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
 
 const EXPAND_KEY = "babun-sidebar-expanded";
 
-export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
+export default function Sidebar({
+  onLogout,
+  open,
+  onClose,
+  tenantName,
+  userEmail,
+}: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -126,11 +137,11 @@ export default function Sidebar({ onLogout, open, onClose }: SidebarProps) {
               B
             </div>
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold text-[var(--label-on-accent)] leading-tight">
-                Babun CRM
+              <div className="text-[16px] font-semibold text-[var(--label-on-accent)] leading-tight truncate">
+                {tenantName}
               </div>
               <div className="text-[12px] text-white/80 truncate">
-                airfix.cy@gmail.com
+                {userEmail}
               </div>
             </div>
           </div>

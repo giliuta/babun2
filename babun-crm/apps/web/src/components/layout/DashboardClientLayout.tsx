@@ -400,6 +400,9 @@ interface DashboardClientLayoutProps {
   /** Resolved on the server from auth.users → tenants. Source of
    *  truth for every repo call inside the dashboard tree. */
   tenantId: string;
+  /** Live tenant name from the DB. Replaces the legacy "Babun CRM"
+   *  hardcode in the sidebar; user edits it via /dashboard/settings/account. */
+  tenantName: string;
   /** Shown in the sidebar footer. Empty string if not available. */
   userEmail: string;
   /** False → render the unconfirmed-email banner above the main area. */
@@ -409,6 +412,7 @@ interface DashboardClientLayoutProps {
 export default function DashboardClientLayout({
   children,
   tenantId,
+  tenantName,
   userEmail,
   emailConfirmed,
 }: DashboardClientLayoutProps) {
@@ -446,8 +450,8 @@ export default function DashboardClientLayout({
   const [clientsError, setClientsError] = useState<string | null>(null);
   const [clientTags, setClientTagsState] = useState<ClientTag[]>([]);
   // tenantId now comes from the server layout via prop (STORY-037 G5).
-  // userEmail is referenced below in the sidebar footer.
-  void userEmail;
+  // tenantName + userEmail flow into the Sidebar so the brand row
+  // renders the live tenant identity instead of a hardcoded string.
   const [smsTemplates, setSmsTemplatesState] = useState<SmsTemplate[]>([]);
   const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
   const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
@@ -1014,6 +1018,8 @@ export default function DashboardClientLayout({
             onNavigate={handleLegacyNavigate}
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            tenantName={tenantName}
+            userEmail={userEmail}
           />
 
           {/* Main content area, offset by sidebar width on lg+. Mobile
