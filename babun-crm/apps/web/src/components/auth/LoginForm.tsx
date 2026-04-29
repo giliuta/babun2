@@ -11,9 +11,15 @@ interface LoginFormProps {
    *  the form. Currently the only value is "tenant_missing" (see
    *  STORY-038 G3.5). */
   errorCode?: string | null;
+  /** When true, show a green "account deleted" success banner.
+   *  Wired up by /api/account/delete redirecting to ?deleted=true. */
+  deleted?: boolean;
 }
 
-export default function LoginForm({ errorCode = null }: LoginFormProps) {
+export default function LoginForm({
+  errorCode = null,
+  deleted = false,
+}: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +44,11 @@ export default function LoginForm({ errorCode = null }: LoginFormProps) {
 
   return (
     <AuthCard title="Babun CRM" subtitle="Войдите, чтобы продолжить">
+      {deleted && (
+        <div className="mb-4 rounded-[var(--radius-card)] bg-[rgba(52,199,89,0.10)] border border-[rgba(52,199,89,0.30)] p-3 text-[13px] leading-snug text-[var(--system-green,#34c759)]">
+          Аккаунт удалён. Все данные стёрты.
+        </div>
+      )}
       {errorCode === "tenant_missing" && (
         <div className="mb-4 rounded-[var(--radius-card)] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.25)] p-3 text-[13px] leading-snug text-[var(--system-red)]">
           <div className="font-semibold mb-1">Аккаунт настроен неправильно</div>

@@ -8,6 +8,7 @@ import {
   Package,
   Users as UsersIcon,
   UserCircle2,
+  UserCog,
   MessageSquare,
   Building2,
   ChevronRight,
@@ -15,6 +16,9 @@ import {
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/components/layout/DashboardClientLayout";
+import { signOut } from "@/lib/supabase/auth-client";
+import { useRouter } from "next/navigation";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
   haptic,
   getHapticsEnabled,
@@ -131,6 +135,13 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Компания",
     items: [
       {
+        href: "/dashboard/settings/account",
+        icon: UserCog,
+        tone: "bg-[var(--tile-blue)]",
+        title: "Аккаунт",
+        desc: "Email, бизнес, пароль, удаление",
+      },
+      {
         href: "/dashboard/settings/company",
         icon: Building2,
         tone: "bg-[var(--tile-purple)]",
@@ -142,8 +153,15 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { fieldVisibility, setFieldVisibility, requiredFields, setRequiredFields } =
     useFormSettings();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   const toggleFieldVis = (key: keyof FormFieldVisibility) => {
     if (DISABLED_FIELD_VIS.includes(key)) return;
@@ -239,6 +257,7 @@ export default function SettingsPage() {
 
           <button
             type="button"
+            onClick={handleLogout}
             className="w-full section-card flex items-center justify-center gap-2 py-3.5 text-[15px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-tertiary)] transition press-scale"
           >
             <LogOut size={16} strokeWidth={2.2} />
@@ -255,6 +274,45 @@ export default function SettingsPage() {
 }
 
 function AccountHero() {
+  // Hydrate the tenant name + email after mount. The dashboard layout
+  // already vouches for an authenticated session + tenant row, so we
+  // skip the loading skeleton and just show empty values briefly.
+  const [name, setName] = useState("Babun");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const supabase = getSupabaseBrowser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+      setEmail(user.email ?? "");
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (tenant?.name) setName(tenant.name);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Two-letter initials from the tenant name; falls back to the
+  // first two characters when the name is short or has no spaces.
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "B";
+
   return (
     <div className="section-card relative overflow-hidden">
       <div
@@ -267,19 +325,19 @@ function AccountHero() {
       <div className="relative px-4 pt-5 pb-4 flex items-center gap-3">
         <div className="avatar-ring">
           <div className="w-14 h-14 flex items-center justify-center text-[20px] font-bold text-[var(--label)]">
-            AF
+            {initials}
           </div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[17px] font-semibold text-[var(--label-on-accent)] truncate drop-shadow-sm">
-            AirFix Cyprus
+            {name}
           </div>
           <div className="text-[12px] text-[var(--label-on-accent)]/85 truncate">
-            airfix.cy@gmail.com
+            {email}
           </div>
         </div>
         <Link
-          href="/dashboard/settings/company"
+          href="/dashboard/settings/account"
           className="px-3 py-1.5 rounded-full bg-white/90 text-[13px] font-semibold text-[var(--accent)] active:scale-95 transition shrink-0"
         >
           Профиль
