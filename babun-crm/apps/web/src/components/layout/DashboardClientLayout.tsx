@@ -120,6 +120,7 @@ import {
 } from "@babun/shared/local/location-labels";
 import { warmUpHaptics } from "@/lib/haptics";
 import { getStorage } from "@babun/shared/storage";
+import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 
 interface SidebarContextValue {
   open: () => void;
@@ -637,38 +638,119 @@ export default function DashboardClientLayout({
   }, [reloadAppointments]);
 
   // STORY-044 — schedule + calendar_settings + day_cities + day_extras
-  // now hydrate from Supabase. One Promise.all on mount; failure for
-  // any single fetch is silently logged so a transient outage doesn't
-  // block the dashboard from rendering with empty defaults.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const supabase = getSupabaseBrowser();
-        const [scheduleMap, calSettings, cityMap, extrasMap] =
-          await Promise.all([
-            listScheduleEntries(supabase, tenantId),
-            getCalendarSettingsRepo(supabase, tenantId),
-            listDayCitiesRepo(supabase, tenantId),
-            listDayExtrasRepo(supabase, tenantId),
-          ]);
-        if (cancelled) return;
-        setSchedulesState(scheduleMap);
-        setCalendarSettingsState(calSettings);
-        setDayCitiesState(cityMap);
-        setDayExtrasState(extrasMap);
-      } catch (err) {
-        // Surface to the console; the calendar still renders with
-        // whatever state was hydrated. No banner — schedule absence is
-        // less catastrophic than appointments absence.
-        // eslint-disable-next-line no-console
-        console.warn("STORY-044: schedule hydration failed", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  // now hydrate from Supabase. Failure for any single fetch is
+  // silently logged so a transient outage doesn't block the dashboard
+  // from rendering with empty defaults.
+  // STORY-048 — extracted to a stable callback so realtime onResync
+  // can call it after a reconnect to backfill missed events.
+  const reloadSchedule = useCallback(async () => {
+    try {
+      const supabase = getSupabaseBrowser();
+      const [scheduleMap, calSettings, cityMap, extrasMap] =
+        await Promise.all([
+          listScheduleEntries(supabase, tenantId),
+          getCalendarSettingsRepo(supabase, tenantId),
+          listDayCitiesRepo(supabase, tenantId),
+          listDayExtrasRepo(supabase, tenantId),
+        ]);
+      setSchedulesState(scheduleMap);
+      setCalendarSettingsState(calSettings);
+      setDayCitiesState(cityMap);
+      setDayExtrasState(extrasMap);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("STORY-044: schedule hydration failed", err);
+    }
   }, [tenantId]);
+
+  useEffect(() => {
+    void reloadSchedule();
+  }, [reloadSchedule]);
+
+  // STORY-048 — Supabase Realtime subscriptions for the seven
+  // tenant-scoped tables that DashboardClientLayout owns. Each
+  // event triggers the corresponding reload* function — simple,
+  // correct (handles INSERT / UPDATE / DELETE uniformly), and
+  // immune to row-shape mismatches between the realtime payload
+  // and the repo adapter. wasDisconnected handling is provided
+  // by the hook; onResync re-runs the same reload to backfill.
+  // The realtime client lives in the singleton getSupabaseBrowser().
+  const supabaseClient = getSupabaseBrowser();
+  const refetchClients = useCallback(() => void reloadClients(), [reloadClients]);
+  const refetchAppointments = useCallback(() => void reloadAppointments(), [reloadAppointments]);
+  const refetchSchedule = useCallback(() => void reloadSchedule(), [reloadSchedule]);
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "clients",
+    tenantId,
+    onInsert: refetchClients,
+    onUpdate: refetchClients,
+    onDelete: refetchClients,
+    onResync: refetchClients,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "client_tags",
+    tenantId,
+    onInsert: refetchClients,
+    onUpdate: refetchClients,
+    onDelete: refetchClients,
+    onResync: refetchClients,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "client_tag_assignments",
+    tenantId,
+    onInsert: refetchClients,
+    onUpdate: refetchClients,
+    onDelete: refetchClients,
+    onResync: refetchClients,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "appointments",
+    tenantId,
+    onInsert: refetchAppointments,
+    onUpdate: refetchAppointments,
+    onDelete: refetchAppointments,
+    onResync: refetchAppointments,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "team_schedules",
+    tenantId,
+    onInsert: refetchSchedule,
+    onUpdate: refetchSchedule,
+    onDelete: refetchSchedule,
+    onResync: refetchSchedule,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "calendar_settings",
+    tenantId,
+    onInsert: refetchSchedule,
+    onUpdate: refetchSchedule,
+    onDelete: refetchSchedule,
+    onResync: refetchSchedule,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "day_cities",
+    tenantId,
+    onInsert: refetchSchedule,
+    onUpdate: refetchSchedule,
+    onDelete: refetchSchedule,
+    onResync: refetchSchedule,
+  });
+  useRealtimeTenantSync({
+    supabase: supabaseClient,
+    table: "day_extras",
+    tenantId,
+    onInsert: refetchSchedule,
+    onUpdate: refetchSchedule,
+    onDelete: refetchSchedule,
+    onResync: refetchSchedule,
+  });
 
   // STORY-007 (legacy): components in appointments / chats still call
   // `upsertClient` from @babun/shared/local/clients which writes to

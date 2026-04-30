@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Users, UserPlus, X, Copy, Check } from "@babun/shared/icons";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 
 type Role = "owner" | "dispatcher" | "master";
 const ROLE_LABEL: Record<Role, string> = {
@@ -82,6 +83,19 @@ export default function TeamSettingsClient({
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
+
+  // STORY-048 — realtime keeps the team list live so an Owner sees
+  // a newly-accepted invite (or a role change applied from another
+  // tab) without F5.
+  useRealtimeTenantSync({
+    supabase: getSupabaseBrowser(),
+    table: "tenant_members",
+    tenantId,
+    onInsert: () => void refresh(),
+    onUpdate: () => void refresh(),
+    onDelete: () => void refresh(),
+    onResync: () => void refresh(),
+  });
 
   async function changeRole(member: Member, nextRole: Role) {
     if (member.role === nextRole) return;

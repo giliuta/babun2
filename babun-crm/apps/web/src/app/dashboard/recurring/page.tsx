@@ -14,6 +14,7 @@ import {
 } from "@babun/shared/db/repositories/recurring-reminders";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 
 // Due-reminder inbox. Lists every recurring follow-up whose next_due_date
 // is within 14 days or already past. Tapping an item lets the dispatcher
@@ -50,6 +51,18 @@ export default function RecurringPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
+
+  // STORY-048 — realtime: another tab / device updates a reminder
+  // and the inbox refreshes without F5.
+  useRealtimeTenantSync({
+    supabase: getSupabaseBrowser(),
+    table: "recurring_reminders",
+    tenantId,
+    onInsert: refresh,
+    onUpdate: refresh,
+    onDelete: refresh,
+    onResync: refresh,
+  });
 
   const due = useMemo(() => dueReminders(items), [items]);
   const future = useMemo(

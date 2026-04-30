@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Calendar as CalendarIcon,
@@ -17,6 +17,7 @@ import { dueReminders } from "@babun/shared/local/recurring";
 import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
@@ -86,34 +87,50 @@ export default function Sidebar({
     setExpanded(getStorage().getRaw(EXPAND_KEY) === "1");
   }, []);
 
-  useEffect(() => {
+  // STORY-050 — recurring reminders live in Supabase. Lazy fetch
+  // on mount + on `babun:recurring-changed` (intra-tab signal) +
+  // on focus / storage events.
+  // STORY-048 — realtime subscription on the same channel keeps the
+  // badge live across tabs and devices without F5.
+  const refreshBadge = useCallback(() => {
     let cancelled = false;
-    const refresh = () => {
-      // STORY-050 — recurring reminders live in Supabase. Lazy fetch
-      // on mount, on `babun:recurring-changed`, and on focus / storage
-      // events; the count refreshes whenever a writer dispatches.
-      const supabase = getSupabaseBrowser();
-      void listRecurringReminders(supabase, tenantId)
-        .then((list) => {
-          if (cancelled) return;
-          setRecurringDue(dueReminders(list).length);
-        })
-        .catch(() => {
-          if (!cancelled) setRecurringDue(0);
-        });
-      setUnreadChats(getTotalUnread(loadChats()));
-    };
-    refresh();
-    window.addEventListener("storage", refresh);
-    window.addEventListener("focus", refresh);
-    window.addEventListener("babun:recurring-changed", refresh);
+    const supabase = getSupabaseBrowser();
+    void listRecurringReminders(supabase, tenantId)
+      .then((list) => {
+        if (cancelled) return;
+        setRecurringDue(dueReminders(list).length);
+      })
+      .catch(() => {
+        if (!cancelled) setRecurringDue(0);
+      });
+    setUnreadChats(getTotalUnread(loadChats()));
     return () => {
       cancelled = true;
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("babun:recurring-changed", refresh);
     };
-  }, [open, pathname, tenantId]);
+  }, [tenantId]);
+
+  useEffect(() => {
+    refreshBadge();
+    const onChange = () => refreshBadge();
+    window.addEventListener("storage", onChange);
+    window.addEventListener("focus", onChange);
+    window.addEventListener("babun:recurring-changed", onChange);
+    return () => {
+      window.removeEventListener("storage", onChange);
+      window.removeEventListener("focus", onChange);
+      window.removeEventListener("babun:recurring-changed", onChange);
+    };
+  }, [open, pathname, refreshBadge]);
+
+  useRealtimeTenantSync({
+    supabase: getSupabaseBrowser(),
+    table: "recurring_reminders",
+    tenantId,
+    onInsert: refreshBadge,
+    onUpdate: refreshBadge,
+    onDelete: refreshBadge,
+    onResync: refreshBadge,
+  });
 
   const handleNav = (dialog: DialogType) => {
     if (dialog) {
