@@ -1,6 +1,6 @@
 # STORY-049 — Photos → Supabase Storage
 
-**Status:** `todo` — planning only, awaiting `ok` to start implementation.
+**Status:** `done` — shipped 2026-04-30, smoke passed in production.
 **Estimate:** 4
 **Dependencies:** STORY-038 (`current_tenant_id()` helper ✅), STORY-042 (appointments table + photos jsonb column ✅).
 **Blocks:** none.
@@ -349,3 +349,59 @@ Repeat G6 1-7 on https://babun.app. The User2 RLS probes are forward-compatible 
 ## What to do next
 
 Awaiting `ok` to start. Recommended order: G1 (Storage bucket + RLS via Dashboard) → G2 (SQL migration paste-review-apply) → G4 (repo) → G5 (UI integration; this is the largest chunk) → G6 (smoke local) → G7 (bump + push) → G8 (production verification).
+
+---
+
+## Close — 2026-04-30
+
+### G6 + G8 smoke results (production, babun.app)
+
+All 14 functional smoke probes passed against production:
+
+| # | Probe | Result |
+|---|---|---|
+| 1 | `tsc --noEmit` green | ✅ |
+| 2 | User1 register + appointment create | ✅ |
+| 3 | Upload 1 photo → row + storage object + public URL renders | ✅ |
+| 4 | `listAppointments` REST payload carries no `photos` field | ✅ (column dropped) |
+| 5 | `getAppointment` REST payload carries no `photos` field | ✅ |
+| 6 | `listPhotosForAppointment` returns row with computed `url` | ✅ |
+| 7 | Cross-device fetch — same photo URL renders | ✅ |
+| 8 | User2 cross-tenant `appointment_photos` SELECT → 0 rows | ✅ |
+| 9 | User2 cross-tenant INSERT with foreign `tenant_id` → `42501` RLS | ✅ |
+| 10 | User2 cross-tenant `storage.upload('<USER1_TENANT>/...')` → RLS reject | ✅ |
+| 11 | Sequential 6th INSERT → `23514` from `check_max_photos` trigger | ✅ |
+| 12 | Concurrent 6 × `Promise.all` upload → exactly 5 succeed + 1 × `23514` | ✅ (`FOR UPDATE` lock works) |
+| 13 | Cross-tenant storage write block (folder-name policy) | ✅ |
+| 14 | Anon GET on public URL → `200 OK` + bytes | ✅ |
+
+### Known limitation — storage cleanup orphans (documented, not blocking)
+
+During G6 step 15 cleanup we observed two related findings:
+
+1. **Direct `DELETE FROM storage.objects` is blocked.** Supabase ships a built-in `storage.protect_delete()` trigger that raises `42501: Direct deletion from storage tables is not allowed. Use the Storage API instead.` This is by design — Storage API has its own bookkeeping that raw SQL bypasses.
+2. **`supabase.storage.from(bucket).remove(paths)` returns silent no-op for the service-role-less client we used in the cleanup script.** The SDK call returned `{ data: null, error: null }` but the blob still served `200` via the public URL afterward. Likely root cause: the SDK's `remove()` internally `SELECT`s the rows it intends to delete to return them; without a `SELECT` policy on `storage.objects` the server-side filter returns empty and the delete becomes a no-op. Tenant-scoped uploads still work fine because `INSERT` and `DELETE` policies are explicit; `SELECT` on `storage.objects` for non-service-role clients is currently policy-less (Supabase default).
+
+**Decision (matches STORY-049 A3):** orphan blobs are acceptable — UI can never see them (no row → no `listPhotosForAppointment` result → no `<img src>`), and the bucket is not customer-billable at AirFix's scale. A janitor sweep is parked in **STORY-049a backlog** to add a `SELECT` policy + a periodic edge function that diffs `storage.objects` against `appointment_photos.storage_path` and removes the diff. The application path (single photo delete) does fire `remove()` immediately after the row delete; in the worst case the call is a no-op and the janitor cleans it up later. No data loss, no UX regression.
+
+### Verify after deploy
+
+- `BUILD_VERSION = "v354-photos-storage"` visible in sidebar footer ✅
+- `CACHE_VERSION = "babun-v354"` active in service worker ✅
+- Vercel deploy `master @ 6748e62` green ✅
+
+### Files shipped (commit `6748e62`)
+
+- `supabase/migrations/20260430_006_photos_storage.sql` (138 lines)
+- `packages/shared/src/db/repositories/appointment-photos.ts` (221 lines, new)
+- `packages/shared/src/db/database.types.ts` — `appointment_photos` table types
+- `packages/shared/src/db/repositories/appointments.ts` — drop `photos` projection
+- `packages/shared/src/local/photos.ts` — `compressImage` → `compressImageToBlob`
+- `packages/shared/src/local/finance/invoice.ts` — receipt PDF uses `photo.url`
+- `apps/web/src/components/appointment/PhotoBlock.tsx` — repo wiring + thumbnails
+- `apps/web/src/components/appointment/PhotoViewer.tsx` — `data_url` → `url`
+- `apps/web/src/components/appointment/AppointmentSheet.tsx` — lazy `listPhotos`
+- `apps/web/src/components/calendar/AppointmentBlock.tsx` — `hasPhotos = false`
+- `apps/web/src/components/layout/DashboardClientLayout.tsx` — `useTenantId()`
+- `apps/web/public/sw.js` + `packages/shared/src/common/utils/version.ts` — bump
+
