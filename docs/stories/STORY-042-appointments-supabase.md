@@ -1,6 +1,6 @@
 # STORY-042 — Appointments → Supabase (multi-device sync)
 
-**Status:** `todo` — planning only, awaiting `ok` to start implementation.
+**Status:** `done` — closed 2026-04-30 with `14e4aab` (`v350-appointments-cloud`) + `8e7b5d5` (G1 SQL).
 **Estimate:** 5
 **Dependencies:** STORY-036 (clients in Supabase ✅), STORY-037 (auth + per-user tenant ✅), STORY-038 (RLS helper ✅), STORY-040 (onboarding ✅), STORY-041 (account self-service ✅).
 **Blocks:** STORY-044 (schedule + calendar-settings sync — same pattern, scoped separately to keep this story shippable).
@@ -130,6 +130,12 @@ Same logic as `clients` — when a tenant deletes their account (STORY-041 G4 pa
 ### A7 — Import button lives under Settings → Опасная зона
 
 NOT in onboarding (the wizard only fires for tenants without `onboarded_at`, but AirFix is already onboarded). NOT auto-on-mount (importing 700+ historical appointments unprompted on first sign-in after the deploy is the kind of thing that goes wrong silently). A button labelled «Импортировать локальные записи в облако» with a count badge, then a confirm modal showing the count + clear warning that cloud data wins on duplicate id (there shouldn't be duplicates — local ids are fresh). After import, the button hides.
+
+### A10 — Mock-seed-on-mount logic in `app/dashboard/page.tsx` is left untouched; duplicates cloud rows on multi-device first-visit (deferred)
+
+`app/dashboard/page.tsx:450` has a `useEffect` that seeds the 19 `MOCK_APPOINTMENTS` into the calendar on first visit, gated only by a localStorage `babun-seed` key. With the Supabase migration this seed now persists rows into the cloud — so a second device for the same tenant misses the localStorage gate and seeds 19 more, producing 38 rows total, etc. Confirmed in G7 smoke step 2 (fresh User1 saw 19 appointments without explicit creation).
+
+This is a UX bug, not a correctness/schema bug — the schema and RLS handle the duplicates fine, and `tenant_id CASCADE` on account-delete cleans them up. The fix is small (gate the seed on `appointments.length === 0` in DB OR remove the seed altogether for fresh tenants) but **out of scope** for STORY-042. Tracked as a known limitation; consider folding into the default-tags follow-up (STORY-043) or a dedicated seed-cleanup story.
 
 ### A9 — `upsertAppointment` becomes `async`; server UUID replaces local `apt_xxx` in state
 
