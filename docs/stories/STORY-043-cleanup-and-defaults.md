@@ -1,6 +1,6 @@
 # STORY-043 — Cleanup + Defaults (close STORY-040/042 tails)
 
-**Status:** `todo` — planning only, awaiting `ok` to start implementation.
+**Status:** `done` — closed 2026-04-30 with `f9c4b0e` (`v351-defaults`).
 **Estimate:** 2
 **Dependencies:** STORY-037 (`handle_new_user` trigger ✅), STORY-042 (appointments in Supabase ✅).
 **Supersedes:** the earlier backlog stub `STORY-043-default-tags-on-signup.md` (deleted; this is the merged + scoped version).
