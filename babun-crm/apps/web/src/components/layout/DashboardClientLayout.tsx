@@ -52,6 +52,12 @@ import {
   updateClientTag,
   deleteClientTag,
 } from "@babun/shared/db/repositories/clients";
+import {
+  listAppointments as listAppointmentsRepo,
+  createAppointment as createAppointmentRepo,
+  updateAppointment as updateAppointmentRepo,
+  deleteAppointment as deleteAppointmentRepo,
+} from "@babun/shared/db/repositories/appointments";
 import { signOut } from "@/lib/supabase/auth-client";
 import UnconfirmedEmailBanner from "@/components/auth/UnconfirmedEmailBanner";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
@@ -181,8 +187,18 @@ export function useTeams() {
 
 interface AppointmentsContextValue {
   appointments: Appointment[];
-  upsertAppointment: (apt: Appointment) => void;
-  deleteAppointment: (id: string) => void;
+  /** True until the first listAppointments() resolves. Calendar
+   *  pages can render a skeleton while this is true. */
+  appointmentsLoading: boolean;
+  /** Last error message from a load. UI can show a retry banner. */
+  appointmentsError: string | null;
+  /** Manual refetch. */
+  reloadAppointments: () => Promise<void>;
+  /** STORY-042 — both create and update funnel through the repo.
+   *  Async: caller may await but doesn't have to. Nested arrays in
+   *  the patch are REPLACED ATOMICALLY by the repo (no merge). */
+  upsertAppointment: (apt: Appointment) => Promise<void>;
+  deleteAppointment: (id: string) => Promise<void>;
   getAppointment: (id: string) => Appointment | undefined;
 }
 
@@ -439,6 +455,10 @@ export default function DashboardClientLayout({
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);
   const [appointments, setAppointmentsState] = useState<Appointment[]>([]);
+  // STORY-042 — appointments now live in Supabase. Hydrated on mount
+  // via listAppointments(); calendar pages see [] until then.
+  const [appointmentsLoading, setAppointmentsLoading] = useState<boolean>(true);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [services, setServicesState] = useState<Service[]>([]);
   const [serviceCategories, setServiceCategoriesState] = useState<ServiceCategory[]>([]);
   // STORY-036 — clients vertical now lives in Supabase. The list is
@@ -519,7 +539,8 @@ export default function DashboardClientLayout({
     setSchedulesState(loadSchedules());
     setMastersState(loadMasters());
     setTeamsState(loadTeams());
-    setAppointmentsState(loadAppointments());
+    // STORY-042 — appointments hydrated from Supabase in a separate
+    // effect below; no mount-time localStorage read.
     setServicesState(loadServices());
     setServiceCategoriesState(loadCategories());
     setSmsTemplatesState(loadTemplates());
@@ -563,6 +584,29 @@ export default function DashboardClientLayout({
   useEffect(() => {
     void reloadClients();
   }, [reloadClients]);
+
+  // STORY-042 — fetch appointments from Supabase. Excludes the
+  // `photos` jsonb column to keep the calendar grid lean (photos can
+  // be 50–500 KB base64 each); the appointment sheet calls
+  // getAppointment(id) for the full row when needed.
+  const reloadAppointments = useCallback(async () => {
+    setAppointmentsError(null);
+    setAppointmentsLoading(true);
+    try {
+      const supabase = getSupabaseBrowser();
+      const list = await listAppointmentsRepo(supabase, tenantId);
+      setAppointmentsState(list);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось загрузить записи";
+      setAppointmentsError(msg);
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    void reloadAppointments();
+  }, [reloadAppointments]);
 
   // STORY-007 (legacy): components in appointments / chats still call
   // `upsertClient` from @babun/shared/local/clients which writes to
@@ -626,22 +670,47 @@ export default function DashboardClientLayout({
     });
   }, []);
 
-  const upsertAppointment = useCallback((apt: Appointment) => {
-    setAppointmentsState((prev) => {
-      const idx = prev.findIndex((a) => a.id === apt.id);
-      const next = idx >= 0 ? prev.map((a, i) => (i === idx ? apt : a)) : [...prev, apt];
-      saveAppointments(next);
-      return next;
-    });
-  }, []);
+  // STORY-042 — both upsert paths funnel through the repo. The
+  // server allocates a UUID for new rows whose local id is the
+  // legacy `apt_xxx` shape; `saved.id` is the source of truth after
+  // the round-trip. Same race fallback as upsertClient.
+  const upsertAppointment = useCallback(
+    async (apt: Appointment) => {
+      const supabase = getSupabaseBrowser();
+      const inMemory = appointments.some((a) => a.id === apt.id);
+      let saved: Appointment;
+      if (inMemory) {
+        saved = await updateAppointmentRepo(supabase, apt.id, apt, tenantId);
+      } else {
+        try {
+          saved = await createAppointmentRepo(supabase, apt, tenantId);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "";
+          if (/duplicate key|already exists|23505/i.test(msg)) {
+            saved = await updateAppointmentRepo(supabase, apt.id, apt, tenantId);
+          } else {
+            throw err;
+          }
+        }
+      }
+      setAppointmentsState((prev) => {
+        const idx = prev.findIndex((a) => a.id === saved.id);
+        return idx >= 0
+          ? prev.map((a, i) => (i === idx ? saved : a))
+          : [...prev, saved];
+      });
+    },
+    [appointments, tenantId],
+  );
 
-  const deleteAppointment = useCallback((id: string) => {
-    setAppointmentsState((prev) => {
-      const next = prev.filter((a) => a.id !== id);
-      saveAppointments(next);
-      return next;
-    });
-  }, []);
+  const deleteAppointment = useCallback(
+    async (id: string) => {
+      const supabase = getSupabaseBrowser();
+      await deleteAppointmentRepo(supabase, id, tenantId);
+      setAppointmentsState((prev) => prev.filter((a) => a.id !== id));
+    },
+    [tenantId],
+  );
 
   const getAppointment = useCallback(
     (id: string) => appointments.find((a) => a.id === id),
@@ -821,6 +890,9 @@ export default function DashboardClientLayout({
 
   const appointmentsValue: AppointmentsContextValue = {
     appointments,
+    appointmentsLoading,
+    appointmentsError,
+    reloadAppointments,
     upsertAppointment,
     deleteAppointment,
     getAppointment,

@@ -131,6 +131,12 @@ Same logic as `clients` — when a tenant deletes their account (STORY-041 G4 pa
 
 NOT in onboarding (the wizard only fires for tenants without `onboarded_at`, but AirFix is already onboarded). NOT auto-on-mount (importing 700+ historical appointments unprompted on first sign-in after the deploy is the kind of thing that goes wrong silently). A button labelled «Импортировать локальные записи в облако» with a count badge, then a confirm modal showing the count + clear warning that cloud data wins on duplicate id (there shouldn't be duplicates — local ids are fresh). After import, the button hides.
 
+### A9 — `upsertAppointment` becomes `async`; server UUID replaces local `apt_xxx` in state
+
+The context's `upsertAppointment(apt)` was previously synchronous (`(apt) => void`). Post-G4 it's `(apt) => Promise<void>` because the implementation now awaits `createAppointmentRepo` / `updateAppointmentRepo`. Callers that ignore the returned promise still work (TypeScript widens `Promise<void>` to assignable-to-void in callback positions), but the local state is updated only after the round-trip resolves. UI that depends on instant appearance should `await`.
+
+Side effect: when a brand-new appointment is created, its local `id` is `apt_{ts}_{rand}` from `createBlankAppointment`. The repo treats non-UUID ids as "let the DB allocate" and the `saved` row comes back with a fresh UUID. The state `setAppointmentsState((prev) => ...)` upserts by `saved.id` — so the array ends up with the UUID, not the apt_xxx. Callers that hold the old `apt.id` after firing upsert will see a stale reference until they re-read from the context. Documented; not fixed (no caller in the current codebase relies on this).
+
 ### A8 — `legacy.master_id` and `team_id` are **kept as text columns** (not FKs)
 
 Masters and teams still live in localStorage. Foreign-keying these would require migrating those tables first, blocking this story. The columns are nullable text, RLS doesn't care, and when STORY-045 (or whichever) moves masters/teams to Supabase, that story adds the FKs.

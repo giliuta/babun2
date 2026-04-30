@@ -13,6 +13,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import AccountSection from "@/components/settings/account/AccountSection";
 import BusinessSection from "@/components/settings/account/BusinessSection";
 import SecuritySection from "@/components/settings/account/SecuritySection";
+import ImportLocalAppointmentsSection from "@/components/settings/account/ImportLocalAppointmentsSection";
 import DangerZoneSection from "@/components/settings/account/DangerZoneSection";
 
 export default async function AccountSettingsPage() {
@@ -47,6 +48,7 @@ export default async function AccountSettingsPage() {
             initialCity={tenant.city ?? ""}
           />
           <SecuritySection />
+          <ImportLocalAppointmentsSection />
           <DangerZoneSection />
         </div>
       </div>
