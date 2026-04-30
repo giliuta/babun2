@@ -71,7 +71,7 @@ import { useRouter } from "next/navigation";
 import { loadChats } from "@babun/shared/local/chats";
 import PaymentBlock from "./PaymentBlock";
 import { buildShareUrl } from "@babun/shared/common/utils/share-link";
-import { createRecurring } from "@babun/shared/local/recurring";
+import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
 import RepeatReminderSheet from "./RepeatReminderSheet";
 import { loadCompany } from "@babun/shared/local/finance/company";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
@@ -1178,7 +1178,8 @@ export default function AppointmentSheet({
               .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
               .filter((n): n is string => Boolean(n))
               .join(" · ");
-            createRecurring({
+            const supabase = getSupabaseBrowser();
+            void createRecurringReminder(supabase, tenantId, {
               client_id: client.id,
               client_name: client.full_name,
               phone: client.phone ?? "",
@@ -1188,6 +1189,12 @@ export default function AppointmentSheet({
               last_date: appointment.date,
               interval_months: months,
               note,
+            }).then(() => {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("babun:recurring-changed"));
+              }
+            }).catch((err) => {
+              console.warn("STORY-050: createRecurringReminder failed", err);
             });
           }}
         />

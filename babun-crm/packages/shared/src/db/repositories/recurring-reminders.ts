@@ -1,0 +1,179 @@
+// Recurring reminders repository — STORY-050.
+//
+// Lift-and-shift of @babun/shared/local/recurring.ts. The HVAC follow-up
+// reminder inbox: "we cleaned the A/C six months ago, time to call
+// back". Each row is a single-shot reminder; no RRULE engine, no
+// occurrence generation.
+//
+// Adapters round-trip the local `RecurringReminder` shape verbatim.
+// `client_name` and `phone` are denormalised on the row so deleting a
+// client doesn't drop the reminder (FK is `on delete set null`).
+//
+// RLS gates everything by `tenant_id = current_tenant_id()`. The
+// explicit `.eq('tenant_id', tenantId)` filters below are redundant
+// for security but pin PostgREST to the tenant index.
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../database.types";
+import type {
+  CreateRecurringInput,
+  RecurringReminder,
+  RecurringStatus,
+} from "../../local/recurring";
+import { addMonthsYYYYMMDD } from "../../local/recurring";
+
+type DbSupabase = SupabaseClient<Database>;
+type Row = Database["public"]["Tables"]["recurring_reminders"]["Row"];
+type Insert = Database["public"]["Tables"]["recurring_reminders"]["Insert"];
+
+// ─── Adapters ─────────────────────────────────────────────────────────
+
+function rowToReminder(r: Row): RecurringReminder {
+  return {
+    id: r.id,
+    client_id: r.client_id ?? "",
+    client_name: r.client_name,
+    phone: r.phone,
+    team_id: r.team_id ?? null,
+    service_ids: Array.isArray(r.service_ids)
+      ? (r.service_ids as string[])
+      : [],
+    service_summary: r.service_summary,
+    last_date: r.last_date,
+    next_due_date: r.next_due_date,
+    interval_months: r.interval_months,
+    status: r.status as RecurringStatus,
+    note: r.note,
+    created_at: r.created_at,
+  };
+}
+
+function inputToInsert(
+  tenantId: string,
+  input: CreateRecurringInput
+): Insert {
+  return {
+    tenant_id: tenantId,
+    client_id: input.client_id || null,
+    client_name: input.client_name,
+    phone: input.phone ?? "",
+    team_id: input.team_id ?? null,
+    service_ids: input.service_ids,
+    service_summary: input.service_summary,
+    last_date: input.last_date,
+    next_due_date: addMonthsYYYYMMDD(input.last_date, input.interval_months),
+    interval_months: input.interval_months,
+    status: "pending",
+    note: input.note ?? "",
+  };
+}
+
+// ─── Public API ───────────────────────────────────────────────────────
+
+/** All reminders for the current tenant, sorted by next_due_date asc. */
+export async function listRecurringReminders(
+  supabase: DbSupabase,
+  tenantId: string
+): Promise<RecurringReminder[]> {
+  const { data, error } = await supabase
+    .from("recurring_reminders")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("next_due_date", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(rowToReminder);
+}
+
+export async function getRecurringReminder(
+  supabase: DbSupabase,
+  id: string
+): Promise<RecurringReminder | null> {
+  const { data, error } = await supabase
+    .from("recurring_reminders")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToReminder(data) : null;
+}
+
+export async function createRecurringReminder(
+  supabase: DbSupabase,
+  tenantId: string,
+  input: CreateRecurringInput
+): Promise<RecurringReminder> {
+  const { data, error } = await supabase
+    .from("recurring_reminders")
+    .insert(inputToInsert(tenantId, input))
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToReminder(data);
+}
+
+/** Mark a reminder as `pending | booked | dismissed`. Used for the
+ *  inbox actions on /dashboard/recurring (Записано / X). */
+export async function updateReminderStatus(
+  supabase: DbSupabase,
+  id: string,
+  status: RecurringStatus
+): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_reminders")
+    .update({ status })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Hard delete. The X button on the inbox is destructive (the
+ *  `dismissed` status already covers "leave it but hide"). */
+export async function deleteRecurringReminder(
+  supabase: DbSupabase,
+  id: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_reminders")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Atomic localStorage → cloud transfer used by the Settings import
+ *  button. Returns the count successfully written. Skips rows whose
+ *  shape doesn't parse — surfaces them in `skipped` for the UI. */
+export async function importLocalReminders(
+  supabase: DbSupabase,
+  tenantId: string,
+  rows: RecurringReminder[]
+): Promise<{ inserted: number; skipped: number }> {
+  if (rows.length === 0) return { inserted: 0, skipped: 0 };
+  const inserts: Insert[] = [];
+  let skipped = 0;
+  for (const r of rows) {
+    if (!r.client_name || !r.last_date || !r.next_due_date) {
+      skipped += 1;
+      continue;
+    }
+    inserts.push({
+      tenant_id: tenantId,
+      // Don't carry the local string id — let the server assign uuid.
+      client_id: null,
+      client_name: r.client_name,
+      phone: r.phone ?? "",
+      team_id: r.team_id ?? null,
+      service_ids: r.service_ids ?? [],
+      service_summary: r.service_summary ?? "",
+      last_date: r.last_date,
+      next_due_date: r.next_due_date,
+      interval_months: r.interval_months,
+      status: r.status,
+      note: r.note ?? "",
+    });
+  }
+  if (inserts.length === 0) return { inserted: 0, skipped };
+  const { error } = await supabase
+    .from("recurring_reminders")
+    .insert(inserts);
+  if (error) throw error;
+  return { inserted: inserts.length, skipped };
+}

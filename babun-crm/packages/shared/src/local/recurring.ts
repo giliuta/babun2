@@ -7,7 +7,13 @@
 // couldn't get one, call back to offer one". Recurring = "we did the job
 // X months ago, it's time to offer the next one."
 
-import { generateId } from "./masters";
+// STORY-050 — recurring reminders moved to Supabase. The localStorage
+// writers (`saveRecurring`, `createRecurring`, `markStatus`,
+// `removeRecurring`) are gone; producers/consumers go through
+// `db/repositories/recurring-reminders.ts`. We keep `loadRecurring`
+// for the Settings → Опасная зона import button, plus the pure
+// helpers (`addMonthsYYYYMMDD`, `dueReminders`, `pendingCount`) that
+// are platform-agnostic.
 
 export type RecurringStatus = "pending" | "booked" | "dismissed";
 
@@ -45,18 +51,6 @@ export function loadRecurring(): RecurringReminder[] {
   }
 }
 
-export function saveRecurring(list: RecurringReminder[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    // Let listeners (sidebar badge, dashboard chips) refresh without
-    // waiting for the next focus event.
-    window.dispatchEvent(new Event("babun:recurring-changed"));
-  } catch {
-    // ignore
-  }
-}
-
 export function addMonthsYYYYMMDD(dateKey: string, months: number): string {
   const [y, m, d] = dateKey.split("-").map(Number);
   // JS Date handles month overflow correctly (Jan 31 + 1 month → Mar 3),
@@ -82,38 +76,6 @@ export interface CreateRecurringInput {
   last_date: string;
   interval_months: number;
   note?: string;
-}
-
-export function createRecurring(input: CreateRecurringInput): RecurringReminder {
-  const item: RecurringReminder = {
-    id: generateId("rec"),
-    client_id: input.client_id,
-    client_name: input.client_name,
-    phone: input.phone,
-    team_id: input.team_id,
-    service_ids: input.service_ids,
-    service_summary: input.service_summary,
-    last_date: input.last_date,
-    interval_months: input.interval_months,
-    next_due_date: addMonthsYYYYMMDD(input.last_date, input.interval_months),
-    status: "pending",
-    note: input.note ?? "",
-    created_at: new Date().toISOString(),
-  };
-  const list = loadRecurring();
-  list.push(item);
-  saveRecurring(list);
-  return item;
-}
-
-export function markStatus(id: string, status: RecurringStatus): void {
-  const list = loadRecurring();
-  const next = list.map((r) => (r.id === id ? { ...r, status } : r));
-  saveRecurring(next);
-}
-
-export function removeRecurring(id: string): void {
-  saveRecurring(loadRecurring().filter((r) => r.id !== id));
 }
 
 /**

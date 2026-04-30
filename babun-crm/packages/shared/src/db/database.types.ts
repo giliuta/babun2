@@ -368,6 +368,47 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["day_extras"]["Insert"]>;
         Relationships: [];
       };
+      // STORY-050 — recurring HVAC follow-up reminders ("call back in
+      // 6 months for next seasonal cleaning"). Lift-and-shift of the
+      // localStorage RecurringReminder model; not an RRULE engine.
+      recurring_reminders: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          client_id: string | null;
+          client_name: string;
+          phone: string;
+          team_id: string | null;
+          service_ids: Json;
+          service_summary: string;
+          last_date: string;
+          next_due_date: string;
+          interval_months: number;
+          status: string;
+          note: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          client_id?: string | null;
+          client_name: string;
+          phone?: string;
+          team_id?: string | null;
+          service_ids?: Json;
+          service_summary?: string;
+          last_date: string;
+          next_due_date: string;
+          interval_months: number;
+          status?: string;
+          note?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["recurring_reminders"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     // STORY-044 — public.import_schedule RPC. Atomic per-tenant import

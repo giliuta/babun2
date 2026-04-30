@@ -13,7 +13,10 @@ import {
   LogOut,
   ChevronDown,
 } from "@babun/shared/icons";
-import { loadRecurring, dueReminders } from "@babun/shared/local/recurring";
+import { dueReminders } from "@babun/shared/local/recurring";
+import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
@@ -73,6 +76,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const tenantId = useTenantId();
 
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
@@ -83,8 +87,20 @@ export default function Sidebar({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const refresh = () => {
-      setRecurringDue(dueReminders(loadRecurring()).length);
+      // STORY-050 — recurring reminders live in Supabase. Lazy fetch
+      // on mount, on `babun:recurring-changed`, and on focus / storage
+      // events; the count refreshes whenever a writer dispatches.
+      const supabase = getSupabaseBrowser();
+      void listRecurringReminders(supabase, tenantId)
+        .then((list) => {
+          if (cancelled) return;
+          setRecurringDue(dueReminders(list).length);
+        })
+        .catch(() => {
+          if (!cancelled) setRecurringDue(0);
+        });
       setUnreadChats(getTotalUnread(loadChats()));
     };
     refresh();
@@ -92,11 +108,12 @@ export default function Sidebar({
     window.addEventListener("focus", refresh);
     window.addEventListener("babun:recurring-changed", refresh);
     return () => {
+      cancelled = true;
       window.removeEventListener("storage", refresh);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("babun:recurring-changed", refresh);
     };
-  }, [open, pathname]);
+  }, [open, pathname, tenantId]);
 
   const handleNav = (dialog: DialogType) => {
     if (dialog) {

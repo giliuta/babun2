@@ -6,13 +6,14 @@ import { Phone, X, RotateCw, StickyNote } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { dueReminders, type RecurringReminder } from "@babun/shared/local/recurring";
 import {
-  loadRecurring,
-  dueReminders,
-  markStatus,
-  removeRecurring,
-  type RecurringReminder,
-} from "@babun/shared/local/recurring";
+  listRecurringReminders,
+  updateReminderStatus,
+  deleteRecurringReminder,
+} from "@babun/shared/db/repositories/recurring-reminders";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
 
 // Due-reminder inbox. Lists every recurring follow-up whose next_due_date
 // is within 14 days or already past. Tapping an item lets the dispatcher
@@ -23,10 +24,21 @@ import {
 export default function RecurringPage() {
   const router = useRouter();
   const confirm = useConfirm();
+  const tenantId = useTenantId();
   const [items, setItems] = useState<RecurringReminder[]>([]);
   const [showAll, setShowAll] = useState(false);
 
-  const refresh = () => setItems(loadRecurring());
+  // STORY-050 — lift-and-shift to Supabase. The list lives on the
+  // current tenant; mutations write through and dispatch the same
+  // `babun:recurring-changed` event that the Sidebar badge listens to.
+  const refresh = () => {
+    const supabase = getSupabaseBrowser();
+    void listRecurringReminders(supabase, tenantId)
+      .then(setItems)
+      .catch((err) => {
+        console.warn("STORY-050: listRecurringReminders failed", err);
+      });
+  };
   useEffect(() => {
     refresh();
     const onChange = () => refresh();
@@ -36,7 +48,8 @@ export default function RecurringPage() {
       window.removeEventListener("babun:recurring-changed", onChange);
       window.removeEventListener("focus", onChange);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
 
   const due = useMemo(() => dueReminders(items), [items]);
   const future = useMemo(
@@ -71,13 +84,41 @@ export default function RecurringPage() {
                   key={r.id}
                   item={r}
                   onBooked={() => {
-                    markStatus(r.id, "booked");
-                    refresh();
+                    // Optimistic local hide while the round-trip runs.
+                    setItems((prev) =>
+                      prev.map((it) =>
+                        it.id === r.id ? { ...it, status: "booked" } : it,
+                      ),
+                    );
+                    const supabase = getSupabaseBrowser();
+                    void updateReminderStatus(supabase, r.id, "booked")
+                      .then(() => {
+                        window.dispatchEvent(new Event("babun:recurring-changed"));
+                      })
+                      .catch((err) => {
+                        // eslint-disable-next-line no-console
+                        console.warn("STORY-050: updateReminderStatus failed", err);
+                        refresh();
+                      });
                   }}
                   onDismiss={async () => {
                     if (await confirm({ title: "Удалить напоминание?" })) {
-                      removeRecurring(r.id);
-                      refresh();
+                      setItems((prev) => prev.filter((it) => it.id !== r.id));
+                      const supabase = getSupabaseBrowser();
+                      void deleteRecurringReminder(supabase, r.id)
+                        .then(() => {
+                          window.dispatchEvent(
+                            new Event("babun:recurring-changed"),
+                          );
+                        })
+                        .catch((err) => {
+                          // eslint-disable-next-line no-console
+                          console.warn(
+                            "STORY-050: deleteRecurringReminder failed",
+                            err,
+                          );
+                          refresh();
+                        });
                     }
                   }}
                   onBook={() => {
