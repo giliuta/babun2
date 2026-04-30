@@ -22,15 +22,6 @@ interface InvitePageProps {
 export default async function InviteAcceptPage({ params }: InvitePageProps) {
   const { token } = await params;
 
-  // Service-role lookup so we can render a useful error even when the
-  // invitee email doesn't match the signed-in user.
-  const service = getSupabaseService();
-  const { data: invite } = await service
-    .from("invitations")
-    .select("id, tenant_id, email, role, expires_at, accepted_at")
-    .eq("token", token)
-    .maybeSingle();
-
   const supabase = await getSupabaseServer();
   const {
     data: { user },
@@ -38,6 +29,37 @@ export default async function InviteAcceptPage({ params }: InvitePageProps) {
 
   if (!user) {
     redirect(`/login?return=${encodeURIComponent(`/invite/${token}`)}`);
+  }
+
+  // Look up invite via service-role first (bypasses RLS) — we want to
+  // give "не найдено" / "expired" / "email mismatch" UX even when the
+  // invitee's RLS policy wouldn't otherwise let them read the row.
+  // Falls back to user-scoped read if the service-role client isn't
+  // available (e.g. missing env on a preview deployment).
+  let invite: {
+    id: string;
+    tenant_id: string;
+    email: string;
+    role: string;
+    expires_at: string;
+    accepted_at: string | null;
+  } | null = null;
+  try {
+    const service = getSupabaseService();
+    const { data, error } = await service
+      .from("invitations")
+      .select("id, tenant_id, email, role, expires_at, accepted_at")
+      .eq("token", token)
+      .maybeSingle();
+    if (error) throw error;
+    invite = data;
+  } catch {
+    const { data } = await supabase
+      .from("invitations")
+      .select("id, tenant_id, email, role, expires_at, accepted_at")
+      .eq("token", token)
+      .maybeSingle();
+    invite = data;
   }
 
   if (!invite) {
@@ -76,13 +98,20 @@ export default async function InviteAcceptPage({ params }: InvitePageProps) {
   }
 
   // Switch active tenant to the just-joined one so dashboard renders
-  // the new context immediately.
-  await service.auth.admin.updateUserById(user.id, {
-    app_metadata: {
-      ...((user.app_metadata as Record<string, unknown> | undefined) ?? {}),
-      tenant_id: invite.tenant_id,
-    },
-  });
+  // the new context immediately. Best-effort: if service-role isn't
+  // available the user lands on their original tenant and can use the
+  // (future) switcher; the membership is still recorded.
+  try {
+    const service = getSupabaseService();
+    await service.auth.admin.updateUserById(user.id, {
+      app_metadata: {
+        ...((user.app_metadata as Record<string, unknown> | undefined) ?? {}),
+        tenant_id: invite.tenant_id,
+      },
+    });
+  } catch {
+    // service unavailable — proceed without switching active tenant.
+  }
 
   redirect("/dashboard");
 }

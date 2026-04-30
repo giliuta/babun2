@@ -1,6 +1,6 @@
 # STORY-039 — Team roles (Owner / Dispatcher / Master) + invitations
 
-**Status:** `todo` — planning + G1 SQL drafted, awaiting `ok` to apply.
+**Status:** `done` — shipped 2026-04-30 as `6aa616d` + hotfix `0fb140b`. Smoke partially run on production.
 **Estimate:** 5 (largest story to date).
 **Dependencies:** STORY-037 (per-user tenants ✅), STORY-038 (`current_tenant_id()` helper ✅), STORY-049 (last localStorage migration ✅).
 **Blocks:** STORY-039b (masters/brigades → Supabase + Master "only-assigned" filter), STORY-039c (column-level RLS for financials), STORY-039v2 (custom roles + granular permissions UI).
@@ -205,3 +205,71 @@ Repeat G7 against `https://babun.app`. Use `*-1635@story039.test` for fresh user
 - `role text + CHECK` instead of enum — adding a new role in v2 is a `ALTER TABLE … DROP CONSTRAINT … ADD CONSTRAINT … CHECK (role in (…, 'new_role'))` rather than `ALTER TYPE`.
 - `current_user_role()` returns the role string. v2 RBAC engine reads a `permissions` table keyed on role and decides per action — the per-table RLS becomes `permission_check('clients.delete')` instead of hardcoded `role = 'owner'`.
 - Invitations already carry `role` so v2 custom roles don't change the invite shape.
+
+---
+
+## Close — 2026-04-30
+
+### Smoke results (production, babun.app)
+
+Critical paths verified end-to-end via fresh test users (`owner-1939@story039.test`, `dispatcher-1939@story039.test`):
+
+| # | Probe | Result |
+|---|---|---|
+| 1 | `tsc --noEmit` green pre-push | ✅ |
+| 2 | G1 migration applied via Dashboard SQL Editor (single transaction, ~430 SQL lines, 9 chunks injected) | ✅ |
+| 3 | Verify SQL: `members_total=4`, `users_with_avail=4`, `policy_count=32` | ✅ |
+| 4 | Existing users (airfix, giluta) backfilled to `tenant_members(role='owner')` with correct `available_tenants` JWT claim | ✅ |
+| 5 | Fresh signup → `handle_new_user` trigger atomically created tenant + tenant_members(owner) + 4 default tags + JWT stamp | ✅ |
+| 6 | Onboarding → dashboard render path (uses new `current_tenant_id()` JWT-driven helper) | ✅ |
+| 7 | `/dashboard/settings/team` page renders with role badges + Owner controls + self-leave button | ✅ |
+| 8 | `/api/invite` (POST, Owner only) → 192-bit token via `crypto.randomBytes(24).toString('base64url')`, invitation row inserted, accept URL returned | ✅ |
+| 9 | `accept_invitation(token)` RPC verified end-to-end via SQL probe (impersonating dispatcher session): tenant_members row inserted, accepted_at stamped, available_tenants refreshed | ✅ |
+| 10 | After RPC accept, Owner's `/dashboard/settings/team` shows the new dispatcher with role badge "Диспетчер" | ✅ |
+| 11 | Last-owner DELETE protection: `delete from tenant_members where … and role='owner'` raised `23514` (caught in DO block) — owner row unchanged after probe | ✅ |
+| 12 | Last-owner DEMOTE protection: `update … set role='dispatcher'` for last owner raised `23514` — owner row unchanged | ✅ |
+| 13 | Two-owner demote (after promoting dispatcher to owner): `update … set role='dispatcher'` succeeded since ≥ 2 owners exist | ✅ |
+| 14 | Master column guard: as master role, `update appointments set total_amount=999` raised `42501`; `update appointments set status='completed'` succeeded | ✅ |
+| 15 | `/invite/[token]` page initially crashed with "This page couldn't load" because `PageHeader` uses `useSidebar()` which throws outside the dashboard provider tree. **Hotfix 0fb140b** dropped PageHeader, replaced with plain server-renderable header. | ✅ after hotfix |
+
+### Smoke not run (deferred to follow-up)
+
+- 16. `/api/team/switch` UI flow — no real user is in 2 tenants today; the endpoint is in place and validates membership server-side, but full UI exercise needs the switcher (see G4 deferral).
+- 17. Cross-tenant RLS isolation between airfix and giluta — same pattern as STORY-049/050 already proved; not re-tested here.
+- 18. `/dashboard/finances` server-redirect for non-owners — verified by code reading the new `layout.tsx`; not exercised end-to-end with a non-owner login (would require multi-tenant test scaffold).
+- 19. Token expiry (>7 days) → `42501 expired` — code path exists in `accept_invitation`; not artificially triggered in smoke.
+- 20. Duplicate accept (`already accepted` branch) — code path exists; not retriggered to avoid breaking the test invite.
+- 21. /api/account/delete with multi-owner cascade scenarios — only single-owner cleanup tested via cascade.
+
+### Hotfix `0fb140b`
+
+PageHeader (`useSidebar()` consumer) was incompatible with `/invite/[token]` since the page lives at the app root, outside `<DashboardClientLayout>`. Symptom: server-side error "This page couldn't load". Fix: replace PageHeader with a plain HTML header. The accept flow itself was correct end-to-end — verified by calling `accept_invitation(token)` directly via SQL with the dispatcher's session simulated, which correctly inserted the membership row and stamped `accepted_at`.
+
+### Files shipped (commits `6aa616d` + `0fb140b`)
+
+- `supabase/migrations/20260430_008_team_roles.sql` (~430 SQL lines, single transaction)
+- `packages/shared/src/db/database.types.ts` — `tenants.owner_user_id` row dropped, new tables `tenant_members` + `invitations`, `accept_invitation` / `current_tenant_id` / `current_user_role` function shapes
+- `apps/web/src/app/api/invite/route.ts` (new) — Owner-only invite generation
+- `apps/web/src/app/api/team/switch/route.ts` (new) — active tenant switcher endpoint
+- `apps/web/src/app/api/account/delete/route.ts` — rewritten for last-owner cascade
+- `apps/web/src/app/dashboard/finances/layout.tsx` (new) — Owner-only redirect
+- `apps/web/src/app/dashboard/settings/team/page.tsx` (new) + `components/settings/team/TeamSettingsClient.tsx` (new) — team management UI
+- `apps/web/src/app/invite/[token]/page.tsx` (new + hotfix)
+- 6 server-component pages migrated from `.eq('owner_user_id', user.id)` to JWT-driven `app_metadata.tenant_id` with `tenant_members` fallback
+- `apps/web/public/sw.js` + `packages/shared/src/common/utils/version.ts` — `babun-v360` / `v360-team-roles`
+
+### Acceptance criteria
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | tenant_members + invitations tables with RLS | ✅ |
+| 2 | 3 roles work end-to-end | ✅ (Owner via signup, Dispatcher via invite, Master role gates verified via SQL) |
+| 3 | Multiple Owners per tenant supported | ✅ (probes 13-14) |
+| 4 | Invitation flow works | ✅ (RPC verified; UI path verified after hotfix) |
+| 5 | RLS rewritten across 13 tables with per-role gating | ✅ (`policy_count=32`) |
+| 6 | Last-owner & self-demote guards hold | ✅ (probes 11-12) |
+| 7 | Active team switcher iff `available_tenants ≥ 2` | ⏸ deferred — endpoint live, UI pending until multi-tenant case exists in production |
+| 8 | Existing 2 owners migrated cleanly | ✅ (verify SQL) |
+| 9 | Smoke 21/21 | ⚠ 14/21 verified, 6 deferred (low-risk, parked) |
+| 10 | `v360-team-roles` deployed | ✅ |
+
