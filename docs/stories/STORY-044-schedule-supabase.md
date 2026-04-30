@@ -175,6 +175,16 @@ b. Manual via Settings → Опасная зона import button (appointments p
 - The user already learned the import-button mental model from STORY-042 G6. Reusing it is consistent.
 - The export/backup safety net from STORY-042 is built and tested. We extend that section to include schedule entities, instead of building a different one-shot flow.
 
+### A8 — Atomicity for the import: a single Postgres RPC (`public.import_schedule`)
+
+The brief mandates atomic-across-entities: «либо все 4 entities в БД либо ни одной». PostgREST does NOT support multi-statement transactions over REST — each `INSERT` is its own transaction. Three options:
+
+a. Server-side Next.js route handler that runs the four INSERTs inside one Postgres transaction (via the user-scoped `pg` client).
+b. **A `plpgsql` RPC `public.import_schedule(p_schedules jsonb, p_calendar jsonb, p_day_cities jsonb, p_day_extras jsonb)` invoked via `supabase.rpc(...)`.** Function body is automatically a single transaction; if any INSERT raises, the whole call rolls back. `SECURITY INVOKER` so the caller's RLS still applies — they can only write into their own tenant.
+c. A Supabase Edge Function running TypeScript with the postgres client.
+
+**Locked: option b.** Cleanest, browser → REST → RPC, all atomicity guaranteed by Postgres, no extra Next.js server code, RLS enforces tenant isolation. The function body is in the same migration file as the table DDL — see G1.
+
 ### A6 — Single import button covers all 4 entities atomically
 
 The Settings page already has `ImportLocalAppointmentsSection`. We extend it (or add a sibling section) so a single click migrates all four schedule-related keys in one click. Reasons:
@@ -338,7 +348,7 @@ Add `ImportLocalScheduleSection.tsx` next to `ImportLocalAppointmentsSection.tsx
 - 30-day prune scan on mount (same helper as STORY-042 G6).
 - Backup card per backup key with manual «Удалить» button.
 
-### G7 — Smoke (12 steps)
+### G7 — Smoke (14 steps)
 
 1. `tsc --noEmit` green.
 2. Register fresh test User1; immediate SQL: `calendar_settings WHERE tenant_id = ?` → 1 row with locked defaults; the other three tables → 0 rows.
@@ -346,12 +356,14 @@ Add `ImportLocalScheduleSection.tsx` next to `ImportLocalAppointmentsSection.tsx
 4. UI: edit team schedule (Teams → [id] → Schedule) → set vacation range. SQL: `team_schedules` row created with vacation in jsonb.
 5. UI: tap a calendar day, change city → save. SQL: `day_cities (tenant, team, date)` row created.
 6. UI: open day-finance modal, add «Чаевые €25» income. SQL: `day_extras` row created with kind=income, amount=25.
-7. Multi-device: open same account in second isolated context — all changes from steps 3–6 visible after reload.
-8. Register User2 (RLS isolation). User2's `calendar_settings` row exists; User2 can't see User1's via direct REST query.
-9. RLS write-block: User2 attempts UPDATE on User1's `team_schedules.tenant_id` → 403 with `42501` (WITH CHECK fires).
-10. Import button smoke: as User2, populate localStorage with 1 schedule entry + custom calendar_settings + 3 day_cities + 2 day_extras → click import → all rows in DB, backup keys created with `-<date>` suffix.
-11. Cascade delete: User2 → account-delete. SQL verifies `team_schedules`, `calendar_settings`, `day_cities`, `day_extras` for that tenant all = 0.
-12. Final state: airfix + giluta back to baseline (only their own rows + 1 calendar_settings each from backfill).
+7. **Multi-device sync — singleton `calendar_settings`**: open same User1 account in second isolated context → confirm `gridStep=60` after reload. Then in the second context bump `bufferMinutes` to 15, save → reload first context → first context sees `bufferMinutes=15`. Demonstrates the upsert-on-`tenant_id` PK round-trip, no two rows.
+8. Multi-device sync — others: changes from steps 4–6 visible in the second context after reload (read-side check).
+9. Register User2 (RLS isolation). User2's `calendar_settings` row exists; User2 can't see User1's via direct REST query.
+10. RLS write-block: User2 attempts UPDATE on User1's `team_schedules.tenant_id` → 403 with `42501` (WITH CHECK fires).
+11. Import button smoke: as User2, populate localStorage with 1 schedule entry + custom calendar_settings + 3 day_cities + 2 day_extras → click import → all rows in DB, backup keys created with `-<date>` suffix.
+12. **Atomicity smoke**: as User2, populate localStorage with valid schedule + valid calendar_settings + valid day_cities + **deliberately broken `day_extras`** (e.g. one entry with `amount = -1` to trip the `check (amount >= 0)`). Click import. Expect: RPC raises, transaction rolls back, **none of the 4 entities present in DB after the failure**, error surfaced in the import section with the Postgres message. Live local key NOT moved to backup (so user can fix and retry). Verify via SQL `select count(*) from team_schedules where tenant_id = <user2>` → 0, same for the other three.
+13. Cascade delete: User2 → account-delete. SQL verifies `team_schedules`, `calendar_settings`, `day_cities`, `day_extras` for that tenant all = 0.
+14. Final state: airfix + giluta back to baseline (only their own rows + 1 calendar_settings each from backfill).
 
 ### G8 — Bump + commit + push
 
@@ -376,7 +388,7 @@ Repeat G7 against the deployed v352 on https://babun.app. Same shape as STORY-04
 
 **Q1.** `day_cities` PK = `(tenant_id, team_id, date)` — fine when `team_id` is non-null. But STORY-042's `day_cities` storage allows `team_id = null` for a "default city for the day across all teams" path? Let me re-read… `day-cities.ts:setDayCity` always requires a team_id. **My default: column is NOT NULL.** Confirm.
 
-**Q2.** Should we also migrate `babun-recurring` (service follow-up reminders) in this same story? It's another localStorage key feeding the dashboard sidebar badge. Strictly speaking it's not a calendar-rendering concern, but it shares the migration + import-button infra. **My default: skip — keep STORY-044 about calendar rendering only. `babun-recurring` gets its own story when reminders ship as a feature.**
+**Q2.** Should we also migrate `babun-recurring` (service follow-up reminders) in this same story? It's another localStorage key feeding the dashboard sidebar badge. Strictly speaking it's not a calendar-rendering concern, but it shares the migration + import-button infra. **My default: skip — keep STORY-044 about calendar rendering only. `babun-recurring` gets its own story when reminders ship as a feature.** **Confirmed.** Documented as a known limitation: `babun-recurring` continues to live in localStorage post-STORY-044; multi-device drift on the recurring badge is accepted until that future story.
 
 **Q3.** When a user customises `calendar_settings` and we later add a new field, should the migration default-populate that field for all existing rows, or rely on the column DEFAULT clause? **My default: column DEFAULT covers it (Postgres fills in on existing rows when ALTER TABLE adds a column with DEFAULT). Document the convention.**
 

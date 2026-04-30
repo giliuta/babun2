@@ -58,6 +58,22 @@ import {
   updateAppointment as updateAppointmentRepo,
   deleteAppointment as deleteAppointmentRepo,
 } from "@babun/shared/db/repositories/appointments";
+import {
+  listScheduleEntries,
+  upsertScheduleEntry,
+} from "@babun/shared/db/repositories/schedule";
+import {
+  getCalendarSettings as getCalendarSettingsRepo,
+  updateCalendarSettings as updateCalendarSettingsRepo,
+} from "@babun/shared/db/repositories/calendar-settings";
+import {
+  listDayCities as listDayCitiesRepo,
+  setDayCity as setDayCityRepo,
+} from "@babun/shared/db/repositories/day-cities";
+import {
+  listDayExtras as listDayExtrasRepo,
+  setDayExtras as setDayExtrasRepo,
+} from "@babun/shared/db/repositories/day-extras";
 import { signOut } from "@/lib/supabase/auth-client";
 import UnconfirmedEmailBanner from "@/components/auth/UnconfirmedEmailBanner";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
@@ -536,7 +552,9 @@ export default function DashboardClientLayout({
   // STORY-036: clients + tags moved to Supabase — they are loaded in
   // a separate effect below so we can surface loading/error state.
   useEffect(() => {
-    setSchedulesState(loadSchedules());
+    // STORY-044 — schedules now hydrate from Supabase in the
+    // schedule reload effect below; keep the localStorage fallback
+    // empty here so the initial render doesn't flash stale data.
     setMastersState(loadMasters());
     setTeamsState(loadTeams());
     // STORY-042 — appointments hydrated from Supabase in a separate
@@ -545,9 +563,8 @@ export default function DashboardClientLayout({
     setServiceCategoriesState(loadCategories());
     setSmsTemplatesState(loadTemplates());
     setExpenseCategoriesState(loadExpenseCategories());
-    setDayCitiesState(loadDayCities());
-    setDayExtrasState(loadDayExtras());
-    setCalendarSettingsState(loadCalendarSettings());
+    // STORY-044 — day_cities, day_extras, calendar_settings hydrate
+    // from Supabase in the effect below.
     setCitiesState(loadCities());
     setEquipmentState(loadEquipment());
     setLocationLabelsState(loadLocationLabels());
@@ -608,6 +625,40 @@ export default function DashboardClientLayout({
     void reloadAppointments();
   }, [reloadAppointments]);
 
+  // STORY-044 — schedule + calendar_settings + day_cities + day_extras
+  // now hydrate from Supabase. One Promise.all on mount; failure for
+  // any single fetch is silently logged so a transient outage doesn't
+  // block the dashboard from rendering with empty defaults.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const supabase = getSupabaseBrowser();
+        const [scheduleMap, calSettings, cityMap, extrasMap] =
+          await Promise.all([
+            listScheduleEntries(supabase, tenantId),
+            getCalendarSettingsRepo(supabase, tenantId),
+            listDayCitiesRepo(supabase, tenantId),
+            listDayExtrasRepo(supabase, tenantId),
+          ]);
+        if (cancelled) return;
+        setSchedulesState(scheduleMap);
+        setCalendarSettingsState(calSettings);
+        setDayCitiesState(cityMap);
+        setDayExtrasState(extrasMap);
+      } catch (err) {
+        // Surface to the console; the calendar still renders with
+        // whatever state was hydrated. No banner — schedule absence is
+        // less catastrophic than appointments absence.
+        // eslint-disable-next-line no-console
+        console.warn("STORY-044: schedule hydration failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
   // STORY-007 (legacy): components in appointments / chats still call
   // `upsertClient` from @babun/shared/local/clients which writes to
   // localStorage and dispatches babun:clients-changed. We listen and
@@ -621,10 +672,29 @@ export default function DashboardClientLayout({
     return () => window.removeEventListener("babun:clients-changed", reload);
   }, [reloadClients]);
 
-  const handleSchedulesChange = useCallback((next: ScheduleMap) => {
-    setSchedulesState(next);
-    saveSchedules(next);
-  }, []);
+  // STORY-044 — schedules now live in Supabase. Optimistic local
+  // update + per-team upsert. The schedule editor passes the full
+  // map; we diff against the previous state and write only the
+  // changed teams to keep round-trips minimal.
+  const handleSchedulesChange = useCallback(
+    (next: ScheduleMap) => {
+      setSchedulesState((prev) => {
+        const supabase = getSupabaseBrowser();
+        for (const [teamId, schedule] of Object.entries(next)) {
+          if (prev[teamId] !== schedule) {
+            void upsertScheduleEntry(supabase, tenantId, teamId, schedule).catch(
+              (err) => {
+                // eslint-disable-next-line no-console
+                console.warn("STORY-044: upsertScheduleEntry failed", teamId, err);
+              },
+            );
+          }
+        }
+        return next;
+      });
+    },
+    [tenantId],
+  );
 
   const handleMastersChange = useCallback((next: Master[]) => {
     setMastersState(next);
@@ -941,13 +1011,17 @@ export default function DashboardClientLayout({
 
   const handleSetCityFor = useCallback(
     (teamId: string, dateKey: string, city: string) => {
-      setDayCitiesState((prev) => {
-        const next = setDayCity(prev, teamId, dateKey, city);
-        saveDayCities(next);
-        return next;
-      });
+      // STORY-044 — optimistic local update + Supabase upsert.
+      setDayCitiesState((prev) => setDayCity(prev, teamId, dateKey, city));
+      const supabase = getSupabaseBrowser();
+      void setDayCityRepo(supabase, tenantId, teamId, dateKey, city).catch(
+        (err) => {
+          // eslint-disable-next-line no-console
+          console.warn("STORY-044: setDayCity failed", teamId, dateKey, err);
+        },
+      );
     },
-    []
+    [tenantId],
   );
 
   const handleGetCityFor = useCallback(
@@ -966,13 +1040,18 @@ export default function DashboardClientLayout({
 
   const handleSetExtrasFor = useCallback(
     (teamId: string, dateKey: string, extras: DayExtra[]) => {
-      setDayExtrasState((prev) => {
-        const next = setDayExtrasFor(prev, teamId, dateKey, extras);
-        saveDayExtras(next);
-        return next;
-      });
+      // STORY-044 — optimistic local update + Supabase replace-all
+      // for this (team, date) tuple. Repo handles the delete+insert.
+      setDayExtrasState((prev) => setDayExtrasFor(prev, teamId, dateKey, extras));
+      const supabase = getSupabaseBrowser();
+      void setDayExtrasRepo(supabase, tenantId, teamId, dateKey, extras).catch(
+        (err) => {
+          // eslint-disable-next-line no-console
+          console.warn("STORY-044: setDayExtras failed", teamId, dateKey, err);
+        },
+      );
     },
-    []
+    [tenantId],
   );
 
   const handleGetExtrasFor = useCallback(
@@ -988,10 +1067,19 @@ export default function DashboardClientLayout({
     setExtrasFor: handleSetExtrasFor,
   };
 
-  const handleCalendarSettingsChange = useCallback((next: CalendarSettings) => {
-    setCalendarSettingsState(next);
-    saveCalendarSettings(next);
-  }, []);
+  // STORY-044 — calendar settings are a singleton per tenant; upsert
+  // through the repo (PRIMARY KEY = tenant_id, ON CONFLICT updates).
+  const handleCalendarSettingsChange = useCallback(
+    (next: CalendarSettings) => {
+      setCalendarSettingsState(next);
+      const supabase = getSupabaseBrowser();
+      void updateCalendarSettingsRepo(supabase, tenantId, next).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn("STORY-044: updateCalendarSettings failed", err);
+      });
+    },
+    [tenantId],
+  );
 
   const calendarSettingsValue: CalendarSettingsContextValue = {
     calendarSettings,

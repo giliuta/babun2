@@ -232,9 +232,125 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["appointments"]["Insert"]>;
         Relationships: [];
       };
+      // STORY-044 — schedule + calendar settings + day-cities + day-extras.
+      // Closes the localStorage state that affects calendar rendering.
+      // team_schedules: jsonb-heavy, one row per (tenant, team).
+      team_schedules: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          team_id: string;
+          schedule: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          team_id: string;
+          schedule?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["team_schedules"]["Insert"]>;
+        Relationships: [];
+      };
+      // calendar_settings: singleton per tenant (PRIMARY KEY = tenant_id).
+      calendar_settings: {
+        Row: {
+          tenant_id: string;
+          start_hour: number;
+          end_hour: number;
+          grid_step: number;
+          week_start: string;
+          timezone: string;
+          buffer_minutes: number;
+          hide_cancelled: boolean;
+          allow_overtime: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          start_hour?: number;
+          end_hour?: number;
+          grid_step?: number;
+          week_start?: string;
+          timezone?: string;
+          buffer_minutes?: number;
+          hide_cancelled?: boolean;
+          allow_overtime?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["calendar_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      // day_cities: PK = (tenant, team, date). Composite, no synthetic id.
+      day_cities: {
+        Row: {
+          tenant_id: string;
+          team_id: string;
+          date: string;
+          city: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          team_id: string;
+          date: string;
+          city: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["day_cities"]["Insert"]>;
+        Relationships: [];
+      };
+      // day_extras: one row per line item (id is its own PK).
+      day_extras: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          team_id: string;
+          date: string;
+          name: string;
+          amount: number;
+          kind: string;
+          category: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          team_id: string;
+          date: string;
+          name: string;
+          amount: number;
+          kind: string;
+          category?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["day_extras"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    // STORY-044 — public.import_schedule RPC. Atomic per-tenant import
+    // of all four schedule entities; SECURITY INVOKER + RLS-scoped.
+    Functions: {
+      import_schedule: {
+        Args: {
+          p_schedules?: Json;
+          p_calendar_settings?: Json | null;
+          p_day_cities?: Json;
+          p_day_extras?: Json;
+        };
+        Returns: void;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
