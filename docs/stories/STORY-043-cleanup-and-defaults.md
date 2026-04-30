@@ -95,6 +95,8 @@ b. Wrap the backfill in a `WHERE NOT EXISTS` guard.
 
 **Locked: option b for THIS story.** Adding the unique constraint is correct long-term but interacts with the `client_tags` repo (the user can already create two tags with the same name through the UI; a backfilled constraint would block future `INSERT`s). Out of scope for STORY-043. The `WHERE NOT EXISTS` guard makes *this migration* idempotent without changing the table contract.
 
+**Customised-colour edge case (locked).** The backfill `WHERE NOT EXISTS` keys on `name` only, not on `(name, color)`. So if a user already renamed their `Постоянный` tag to colour `#84cc16` (a custom green) and kept the name, the backfill skips that row — **the user's customised colour is preserved.** Conversely, if a user renamed the tag to a different name (e.g. `Лояльный`) and deleted `Постоянный`, the backfill *will* recreate `Постоянный` with the default colour, because we have no signal that they made a deliberate rename. Documented; not addressed (correct behaviour for a defaults-population story; if a user wants the tag gone they can delete it again).
+
 ### A4 — Backfill goes ONLY for tenants with `owner_user_id IS NOT NULL`
 
 The orphan `Babun Dev` was deleted by hand (post-STORY-041), so today there are 0 orphans — but the backfill query is forward-looking. If a future migration accidentally re-introduces an orphan, we don't want to give it default tags. The `WHERE owner_user_id IS NOT NULL` guard keeps the system clean.
@@ -221,8 +223,15 @@ No new TypeScript files. No repo changes. No layout changes. Surface area is sma
 After Vercel deploy of v351:
 
 a. Visit `https://babun.app/dashboard` as one of the live users (airfix or giluta) — grid renders without injecting MOCK_APPOINTMENTS (the legacy 19 rows that they accumulated during STORY-042 are still in DB; this story doesn't retroactively delete them).
-b. Register a fresh test user `prod-defaults-…@story043.test`. Land on `/dashboard` post-onboarding — grid is **empty** (no seed). 4 default tags accessible from any client tag picker.
-c. SQL verify on production: `SELECT count(*) FROM client_tags WHERE tenant_id = '<test tenant>'` → 4. `SELECT count(*) FROM appointments WHERE tenant_id = '<test tenant>'` → 0.
+b. **Full new-user regression sweep.** Register a fresh test user `prod-defaults-…@story043.test`. Walk through every onboarding step:
+   - Step 1 (business name): pre-fills email or empty; type a name; «Далее» enables.
+   - Step 2 (vertical): 5 options; pick one; «Далее» enables.
+   - Step 3 (city): optional, can skip; «Далее» enables.
+   - Step 4 (done): atomic commit; «Перейти к панели» lands on `/dashboard/clients`.
+   - `/dashboard/clients` renders with 0 clients but the tag picker shows 4 default tags.
+   - `/dashboard` (calendar) renders empty (no seed).
+   - Sidebar shows the live tenant name + the test email (STORY-041 G3 regression check).
+c. SQL verify on production: `SELECT count(*) FROM client_tags WHERE tenant_id = '<test tenant>'` → 4. `SELECT count(*) FROM appointments WHERE tenant_id = '<test tenant>'` → 0. Names + colours match the locked palette.
 d. Cleanup: account-delete the test user. Verify `client_tags` and tenants both cascade-cleaned.
 
 ### G7 — Optional housekeeping (not in scope, just noted)

@@ -18,7 +18,6 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { getMonday, addWeeks, addDays, formatDateLongRu } from "@babun/shared/common/utils/date-utils";
-import { MOCK_APPOINTMENTS, MOCK_SERVICES } from "@babun/shared/local/mock/seed";
 import type { Client } from "@babun/shared/local/clients";
 import { getTeamSchedule, timeToMinutes, type TeamSchedule } from "@babun/shared/local/schedule";
 import {
@@ -88,8 +87,6 @@ const STEP_DAYS: Record<ViewMode, number> = {
   month: 0,
 };
 
-const SEED_KEY = "babun-seeded";
-
 function toYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -127,12 +124,6 @@ function DashboardPageInner() {
   const { calendarSettings } = useCalendarSettings();
   const { cities } = useCities();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
-  // Refs for the mount-only seed effect — lets the effect read current values
-  // without listing them as deps, which would re-trigger on every render.
-  const appointmentsRef = useRef(appointments);
-  appointmentsRef.current = appointments;
-  const upsertRef = useRef(upsertAppointment);
-  upsertRef.current = upsertAppointment;
   const { requiredFields } = useFormSettings();
   const { services, categories: serviceCategories } = useServices();
   const { clients } = useClients();
@@ -446,61 +437,11 @@ function DashboardPageInner() {
     writeHourHeight,
   });
 
-  // Seed with mock data on first visit only
-  useEffect(() => {
-    if (appointmentsRef.current.length > 0) return;
-    if (getStorage().getRaw(SEED_KEY)) return;
-
-    const now = new Date().toISOString();
-    for (const m of MOCK_APPOINTMENTS) {
-      const isEvent = !m.client_name && m.amount === 0;
-      const guessedServiceId = MOCK_SERVICES.find(
-        (s) => s.name.toLowerCase() === m.service_name.toLowerCase()
-      )?.id;
-      const apt: Appointment = {
-        id: m.id,
-        date: m.date,
-        time_start: m.time_start,
-        time_end: m.time_end,
-        client_id: null,
-        location_id: null,
-        team_id: m.team_id,
-        service_ids: guessedServiceId ? [guessedServiceId] : [],
-        payment: null,
-        services: [],
-        global_discount: null,
-        total_duration: 0,
-        total_amount: m.amount,
-        custom_total: true,
-        discount_amount: 0,
-        expenses: [],
-        service_price_overrides: {},
-        color_override: null,
-        prepaid_amount: m.amount, // seed as fully paid so we don't mark as debt
-        payments: [],
-        comment: m.client_name ? `${m.client_name} — ${m.comment}` : m.comment,
-        address: "",
-        address_note: "",
-        address_lat: null,
-        address_lng: null,
-        source: null,
-        is_online_booking: false,
-        cancel_reason: null,
-        kind: isEvent ? "event" : "work",
-        photos: [],
-        consent_given: true,
-        reminder_enabled: false,
-        reminder_offsets: [1440, 60],
-        reminder_template:
-          "Здравствуйте, {name}! Напоминаем: {date} в {time} по адресу {address}. Babun CRM",
-        status: isEvent ? "scheduled" : "completed",
-        created_at: now,
-        updated_at: now,
-      };
-      upsertRef.current(apt);
-    }
-    getStorage().setRaw(SEED_KEY, "1");
-  }, []);
+  // STORY-043 G1 — MOCK_APPOINTMENTS seed-on-mount removed. Pre-cloud
+  // it filled an empty calendar with demo data; post-STORY-042 it
+  // wrote those demo rows straight to Supabase, polluting fresh
+  // tenants and duplicating across devices on first visit. Fresh
+  // tenants now land on a genuinely empty calendar.
 
   // Filter appointments by active tab. Personal tab shows only this
   // master's private events (master_id === current, team_id falsy).
