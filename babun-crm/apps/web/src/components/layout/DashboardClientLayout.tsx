@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
 import BottomTabBar from "@/components/layout/BottomTabBar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import {
   loadSchedules,
@@ -1309,6 +1310,7 @@ export default function DashboardClientLayout({
 
           <BottomTabBar />
           <InstallPrompt />
+          <ServiceWorkerRegister />
         </div>
       </ConfirmProvider>
       </SchedulesContext.Provider>
