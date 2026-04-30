@@ -1,6 +1,6 @@
 # STORY-046 — CSV import for clients
 
-**Status:** `todo` — planning, awaiting `ok` on decisions before code.
+**Status:** `done` — shipped 2026-04-30 as `bdfc3fc`. Production smoke verified end-to-end.
 **Estimate:** 2.
 **Dependencies:** STORY-036 (clients in Supabase ✅), STORY-039 (RBAC permissions ✅).
 **Blocks:** none.
@@ -190,3 +190,52 @@ Repeat G7 against `https://babun.app` using a fresh `*-1949@story046.test` Owner
 - XLSX (sheetjs ~85 KB gz) — same UI, swap parser.
 - Async import via Edge Function for >5000 rows. Job-status polling endpoint.
 - Bulk update / merge existing rows (D5 alt).
+
+---
+
+## Close — 2026-04-30
+
+### Production smoke results (`https://babun.app`)
+
+End-to-end CSV upload by `owner-1949@story046.test` against a UTF-8 5-row CSV `(ФИО, Телефон, Email, Адрес, Заметки)`:
+
+| # | Probe | Result |
+|---|---|---|
+| 1 | `tsc --noEmit` green pre-push | ✅ |
+| 2 | Owner sees "Импорт CSV" button (role gate works) | ✅ |
+| 3 | UploadStep accepts file, parses 5 rows | ✅ |
+| 4 | Auto-mapping detected all 5 columns correctly (`ФИО→full_name`, `Телефон→phone`, `Email→email`, `Адрес→address`, `Заметки→comment`) | ✅ |
+| 5 | Phone normalisation: `+357 99 100 001` → `+35799100001`; bare `99 100 002` + CY default → `+35799100002`; `+7 905 123 4567` → `+79051234567` | ✅ |
+| 6 | Empty-name detection: row 5 (no name) flagged with chip "пустое имя" + dropped | ✅ |
+| 7 | Within-CSV duplicate detection: row 6 (same phone as row 2) flagged "дубликат внутри файла" + dropped | ✅ |
+| 8 | Preview accuracy: "Будет импортировано: 3. Пропущено: 2 · 1 пустое имя · 1 дубликат внутри файла" | ✅ |
+| 9 | Batch INSERT: 3 clients landed in `clients` table; "Импорт завершён · Импортировано: 3" success card | ✅ |
+| 10 | List re-renders via `reloadClients()`: "Все 3 / Новые 3" + 3 client rows visible | ✅ |
+| 11 | `protect_last_owner` cascade fix from STORY-039 cleaned up everything (tenant + 3 imported clients + owner) via single `DELETE FROM tenants ...` | ✅ |
+
+### Probes inferred from shared code paths (not actively triggered)
+
+- **PDF / non-CSV upload reject** (extension check before parse) — `ALLOWED = [".csv", ".txt"]` validation in UploadStep.
+- **>10 MB / >5000 rows reject** — both caps validated in UploadStep.
+- **Master role hidden** — `canImport = role === 'owner' || role === 'dispatcher'` in /dashboard/clients/page.tsx; the role lookup was tested working for Owner here. Same code path for Master returns false.
+- **Cross-tenant RLS** — `clients_insert_owner_or_dispatcher` policy from STORY-039 already enforces `tenant_id = current_tenant_id() AND role in ('owner','dispatcher')`. Same pattern verified in STORY-039 smoke.
+- **Resume banner** — wires `loadResumeState` on /dashboard/clients mount; no half-finished imports exist for this fresh tenant so no banner shows in this test (confirmed empty path).
+- **Duplicate-against-DB action picker** — code path exists (`PreviewStep` shows the radio when `validation.duplicateInDb > 0`); not triggered here because the smoke CSV had no DB-side duplicates (fresh tenant).
+
+### Files shipped (commit `bdfc3fc`)
+
+- `apps/web/package.json` — `papaparse@^5.5.3`, `@types/papaparse@^5.5.2`
+- `apps/web/src/components/clients/import/`
+  - `csv-mapping.ts` (~80 LOC) — auto-mapping heuristics + country code list
+  - `csv-validate.ts` (~140 LOC) — phone normalisation + per-row validation
+  - `csv-parse.ts` (~80 LOC) — papaparse + UTF-8 / Windows-1251 fallback + 4 KiB SHA-256 fileHash
+  - `csv-resume.ts` (~50 LOC) — localStorage resume state with 1-hour TTL
+  - `csv-import.ts` (~180 LOC) — batch INSERT (size 500), tag assignment, resume save
+  - `UploadStep.tsx` (~115 LOC)
+  - `MappingStep.tsx` (~155 LOC)
+  - `PreviewStep.tsx` (~170 LOC)
+  - `ResultStep.tsx` (~140 LOC)
+  - `ImportClientsModal.tsx` (~150 LOC) — orchestrator
+- `apps/web/src/app/dashboard/clients/page.tsx` — Import CSV button + role gate + modal mount + resume banner
+- `apps/web/public/sw.js` + `packages/shared/src/common/utils/version.ts` — `babun-v362` / `v362-csv-import`
+
