@@ -215,6 +215,7 @@ declare
   t_id   uuid := public.current_tenant_id();
   k      text;
   v      jsonb;
+  v_text text;
   parts  text[];
   team   text;
   d      text;
@@ -289,7 +290,10 @@ begin
 
   -- 3. day_cities — upsert per (tenant, team, date). Keys are
   --    "<teamId>:<YYYY-MM-DD>" matching the localStorage shape.
-  for k, v in
+  --    Uses v_text (text) because jsonb_each_text returns (text, text);
+  --    binding into v (jsonb) would fail with code 22P02 on the implicit
+  --    text→jsonb cast for unquoted city names ("Token X is invalid").
+  for k, v_text in
     select * from jsonb_each_text(coalesce(p_day_cities, '{}'::jsonb))
   loop
     parts := string_to_array(k, ':');
@@ -299,7 +303,7 @@ begin
     team := parts[1];
     d    := parts[2];
     insert into public.day_cities (tenant_id, team_id, date, city)
-    values (t_id, team, d, v)
+    values (t_id, team, d, v_text)
     on conflict (tenant_id, team_id, date) do update set
       city       = excluded.city,
       updated_at = now();

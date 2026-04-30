@@ -1,6 +1,6 @@
 # STORY-044 — Schedule + calendar settings + day-cities + day-extras → Supabase
 
-**Status:** `todo` — planning only, awaiting `ok` to start implementation.
+**Status:** `done` — closed 2026-04-30 with `c66da6f` (`v352-schedule-cloud`) + RPC fix.
 **Estimate:** 5
 **Dependencies:** STORY-038 (`current_tenant_id()` helper ✅), STORY-042 (jsonb-heavy migration pattern + import-button UX ✅), STORY-043 (`handle_new_user` trigger extension pattern ✅).
 **Blocks:** STORY-045 (masters / teams in Supabase) eventually wants to FK `team_id` columns introduced here.
