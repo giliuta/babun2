@@ -222,10 +222,10 @@ Migration file: `babun-crm/apps/web/supabase/migrations/20260429_001_appointment
 
 `packages/shared/src/db/repositories/appointments.ts` — mirrors `clients.ts` shape. Functions:
 
-- `listAppointments(supabase, tenantId, opts?)` — `opts.range` accepts `{ from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }` for the calendar week query, else returns all. Uses PostgREST column exclusion to skip `photos` for performance (see A1).
+- `listAppointments(supabase, tenantId)` — fetches every appointment for the tenant, **excluding the `photos` column** via PostgREST column projection (`select=*,!photos` is not valid syntax — actual call is `select="<every column except photos>"`). Photos are pulled lazily by `getAppointment` for the sheet. Confirmed in [Q2].
 - `getAppointment(supabase, id, tenantId)` — full row including `photos`.
 - `createAppointment(supabase, input, tenantId)` — adapts the local `Appointment` to the row shape, returns the persisted row mapped back to `Appointment`.
-- `updateAppointment(supabase, id, patch, tenantId)` — partial update, returns full row.
+- `updateAppointment(supabase, id, patch, tenantId)` — partial update at the **top-level column** only. **Nested arrays/objects (`services`, `expenses`, `payments`, `photos`, `payment`, `global_discount`, `service_price_overrides`, `reminder_offsets`) are REPLACED ATOMICALLY**, never merged. If the caller wants to add one photo, the caller assembles `[...existing, newPhoto]` and passes the full array; the repo writes that array verbatim. This matches the `clients` repository semantics (see `clientToUpdate` in `repositories/clients.ts`) and avoids partial-update races where two browsers each add their own photo and one wins. **Locked.**
 - `deleteAppointment(supabase, id, tenantId)` — same pattern as `deleteClient`.
 
 Adapters (`rowToAppointment` / `appointmentToInsert` / `appointmentToUpdate`) live in this file. Unlike clients, no junction-table dance is needed.
@@ -252,15 +252,16 @@ If realtime ships in this story → smoke step 7 (multi-device sync) tests live 
 Above the existing «Удалить аккаунт» card. Component path: `apps/web/src/components/settings/account/ImportLocalAppointmentsSection.tsx`. Logic:
 
 1. Read `loadAppointments()` from localStorage.
-2. If empty → render nothing (the section hides itself).
-3. Else → show «N локальных записей не загружены в облако». Confirm modal lists count + the dates of the oldest and newest, then:
+2. If empty AND no backup key present → render nothing (the section hides itself).
+3. Else if local data present → show «N локальных записей не загружены в облако». Confirm modal lists count + the dates of the oldest and newest, then:
 4. Map each local `Appointment` through `clientToInsert` analogue, generating fresh UUIDs.
 5. Call `createAppointment` in batches of 50 (PostgREST default insert limit is 1000, but smaller batches give better UX feedback and let us retry on partial failure).
-6. On 100% success → clear `localStorage["babun-appointments"]`. On partial failure → keep the local copy intact, surface the error message.
+6. **On 100% success: do NOT clear `localStorage["babun-appointments"]`. Move it to `localStorage["babun:appointments:backup-YYYY-MM-DD"]` (date = today), and clear the live key.** The backup key has an embedded `created_at` ISO inside (or we infer it from the suffix); the layout's mount effect deletes it after 30 days automatically. On partial failure → keep the live local copy intact, surface the error.
+7. After the live key is empty but a backup exists, the section shows a second card: «Локальный бэкап от {date} ({N} записей, удалится через {days} дн)» with a button «Удалить локальный backup сейчас». Idempotent: clicking removes the backup key.
 
-The button is one-shot: after the local key is empty, the section hides.
+The primary import button is one-shot: after the live local key is empty, only the backup card stays visible (and only until day 30 / manual cleanup).
 
-### G7 — Smoke (12 steps)
+### G7 — Smoke (14 steps)
 
 1. `tsc --noEmit` green.
 2. Login on phone (Safari) as airfix.cy@gmail.com.
@@ -270,10 +271,12 @@ The button is one-shot: after the local key is empty, the section hides.
 6. Open `/dashboard` on laptop (separate browser, same account). Appointment from step 4 appears.
 7. Edit the appointment from the laptop (change time). Refresh phone. New time visible.
 8. Delete from the phone. Refresh laptop. Gone.
-9. Register a fresh test user in a private window. Their `/dashboard` has zero appointments (RLS cross-tenant proof).
-10. From DevTools network panel on the test user, attempt a direct REST `GET /rest/v1/appointments` with their JWT. Returns only their own rows (zero).
-11. Run the import button on AirFix's account once → batch insert → local key cleared → calendar still renders correctly with cloud-only data.
-12. Delete the test user via STORY-041's «Опасная зона» → SQL verify `auth.users` count = 2 (only airfix + giluta) and `appointments` count for the deleted tenant = 0 (cascade worked).
+9. **Photo round-trip:** create an appointment, attach a base64 photo via the existing PhotoBlock UI, save. Open the same appointment again — the `photos[]` array round-trips byte-for-byte (same `data_url`, same `kind`, same `caption`, same `id`). Tests jsonb encoding of large strings.
+10. **RLS proof — read isolation:** register `rls-probe-…@story042.test` as User2 in a private window. Probe in DevTools console: `await supabase.from('appointments').select('*')` → returns 0 rows (User2 has no appointments). Then probe with User1's appointment id: `await supabase.from('appointments').select('*').eq('id', '<user1-apt-id>')` → still 0 rows. RLS cross-tenant block confirmed at the REST layer, not just UI.
+11. **RLS proof — write block on tenant_id:** as User2, attempt `await supabase.from('appointments').update({ tenant_id: '<user1-tenant-id>' }).eq('id', '<user2-own-apt-id>')` → fails with `new row violates row-level security policy` (the `WITH CHECK` half of the policy fires). Tenant-stealing is impossible.
+12. From DevTools network panel on the test user, attempt a direct REST `GET /rest/v1/appointments` with their JWT. Returns only their own rows (zero, after the 0-row state from step 10).
+13. Run the import button on AirFix's account once → batch insert → live local key cleared but backup key created → calendar still renders correctly with cloud-only data; backup card visible with date.
+14. Delete the test user via STORY-041's «Опасная зона» → SQL verify `auth.users` count = 2 (only airfix + giluta) and `appointments` count for the deleted tenant = 0 (cascade worked).
 
 ### G8 — Bump + commit + push
 
