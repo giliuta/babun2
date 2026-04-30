@@ -28,6 +28,7 @@ import {
   Bell,
   Sparkles,
   Star,
+  CloudUpload,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -53,6 +54,13 @@ import ClientCardStats from "@/components/clients/ClientCardStats";
 import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
 import ClientQuickActionsSheet from "@/components/clients/ClientQuickActionsSheet";
 import ClientsListSkeleton from "@/components/clients/ClientsListSkeleton";
+import ImportClientsModal from "@/components/clients/import/ImportClientsModal";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import {
+  loadResumeState,
+  clearResumeState,
+} from "@/components/clients/import/csv-resume";
 
 // v312 — tag chips are tenant-managed: read from useClients().tags.
 // Settings UI for creating/editing/deleting tags lands in Phase 2.
@@ -124,6 +132,34 @@ export default function ClientsPage() {
   // v333 — long-press on the green phone icon opens this contact-
   // channel picker (Звонок / WhatsApp / SMS / Telegram).
   const [quickActionsFor, setQuickActionsFor] = useState<Client | null>(null);
+  // STORY-046 — CSV import modal + role gate + resume toast.
+  const tenantId = useTenantId();
+  const [callerRole, setCallerRole] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [resumeBannerOpen, setResumeBannerOpen] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState<string>("");
+  useEffect(() => {
+    void (async () => {
+      const supabase = getSupabaseBrowser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("tenant_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      setCallerRole(data?.role ?? null);
+    })();
+    const resume = loadResumeState();
+    if (resume) {
+      setResumeFileName(resume.fileName);
+      setResumeBannerOpen(true);
+    }
+  }, [tenantId]);
+  const canImport = callerRole === "owner" || callerRole === "dispatcher";
   // v314 — search hidden above the fold, reveals on pull-down
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -568,19 +604,33 @@ export default function ClientsPage() {
               {selectedIds.size === filtered.length ? "Снять" : "Все"}
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                haptic("tap");
-                // STORY-034 Group 4 — quick-create lives at its own
-                // route now; the inline draft view is gone.
-                router.push("/dashboard/clients/new");
-              }}
-              aria-label="Добавить клиента"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
-            >
-              <Plus size={20} strokeWidth={2.2} />
-            </button>
+            <div className="flex items-center gap-1">
+              {canImport && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic("tap");
+                    setImportOpen(true);
+                  }}
+                  aria-label="Импорт CSV"
+                  title="Импорт CSV"
+                  className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+                >
+                  <CloudUpload size={20} strokeWidth={2.2} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  router.push("/dashboard/clients/new");
+                }}
+                aria-label="Добавить клиента"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+              >
+                <Plus size={20} strokeWidth={2.2} />
+              </button>
+            </div>
           )
         }
       />
@@ -1183,6 +1233,40 @@ export default function ClientsPage() {
           client={quickActionsFor}
           onClose={() => setQuickActionsFor(null)}
         />
+      )}
+
+      {/* STORY-046 — CSV import wizard. Owner + Dispatcher only. */}
+      <ImportClientsModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+      />
+
+      {/* STORY-046 — resume banner for half-finished imports. */}
+      {resumeBannerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[70] bg-[var(--surface-card)] rounded-2xl shadow-2xl px-4 py-3 max-w-[420px] w-[calc(100vw-32px)] flex items-center gap-3"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-semibold text-[var(--label)]">
+              Прерванный импорт
+            </div>
+            <div className="text-[12px] text-[var(--label-tertiary)] truncate">
+              {resumeFileName}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              clearResumeState();
+              setResumeBannerOpen(false);
+            }}
+            className="px-3 h-9 rounded-[10px] text-[var(--label-secondary)] text-[13px] font-medium active:bg-[var(--fill-quaternary)] transition"
+          >
+            Игнорировать
+          </button>
+        </div>
       )}
     </>
   );
