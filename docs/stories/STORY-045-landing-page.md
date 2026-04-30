@@ -285,4 +285,29 @@ Local synthetic Lighthouse on Windows dev box with 30+ active node processes is 
 | 5 | Mobile-responsive 375px | ✓ |
 | 6 | SEO meta + OG + sitemap + robots | ✓ |
 | 7 | `/privacy` `/terms` 200 | ✓ |
-| 8 | Lighthouse mobile ≥ 90 all four scores | A11y/BP/SEO ✓ locally — perf to be confirmed on Vercel prod |
+| 8 | Lighthouse mobile ≥ 90 all four scores | ✓ verified on prod |
+
+### Production Lighthouse — `https://babun.app/` (mobile, headless Chrome × 3 runs)
+
+| Run | Perf | A11y | BP | SEO | LCP | TBT | FCP |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 93 | 95 | 96 | 100 | 2.4s | 240ms | 1.2s |
+| 2 | 90 | 95 | 96 | 100 | 2.5s | 340ms | 1.2s |
+| 3 | 92 | 95 | 96 | 100 | 2.4s | 270ms | 1.6s |
+| **Median** | **92 ✓** | **95 ✓** | **96 ✓** | **100 ✓** | — | — | — |
+
+All four scores ≥ 90 on Vercel prod CDN. Local prod-mode synthetic was 84 (noise-bound on Windows dev box with 30+ active node processes); Edge CDN + clean infra adds ~+8 perf points, exactly as predicted.
+
+### OG / share-preview verification
+
+- `curl -A "WhatsApp/2.23"` → `/og.png` returns 200, `image/png`, 107.7 KB ✓
+- `curl -A "facebookexternalhit/1.1"` → `/` returns 200 with full OG meta block ✓
+- `og:image` resolves to absolute `https://babun.app/og.png` (via `metadataBase`) ✓
+- `og:image:width = 1200`, `og:image:height = 630` ✓
+- Visual: gradient brand blue, "B" rounded white logo + "Babun" wordmark, "CRM для сервисного бизнеса" headline, mock phone UI, "babun.app" pill — renders correctly when fetched directly ✓
+- WhatsApp share preview on phone: pending user manual verification (only the user can perform a real WhatsApp send-to-self on their device).
+
+### Known follow-ups (not blocking close)
+
+- `public/landing/*.png` — real screenshots (hero-iphone, onboarding, dashboard) need to be dropped in. Until then `LandingImage` shows a styled blue placeholder block. Visible on the deployed landing today; replacing them requires only a file drop, no code change.
+- Sun-glare contrast on accent CTAs: now `#1F66D7` (4.85:1) on landing, vs `--accent: #3E88F7` (3.0:1) used in dashboard. Worth a follow-up to align dashboard primary buttons with the same darker token for a11y parity. Out of scope for STORY-045.
