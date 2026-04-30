@@ -1,6 +1,14 @@
 # Backlog
 
-Short parked items that don't justify a full STORY file yet. Pick from here when looking for a small win or follow-up.
+Short parked items that don't justify a full STORY file yet, plus full STORY plans waiting on a sequencing constraint. Pick from here when looking for a small win or follow-up.
+
+---
+
+## STORY-044b — Product analytics + feedback button (PARKED)
+
+**Plan:** [`docs/stories/STORY-044b-analytics-feedback.md`](stories/STORY-044b-analytics-feedback.md) — written + approved on architecture, paused on sequencing.
+**Why parked:** analytics is only useful with humans actually using the app. We unpark **after STORY-052 (Stripe billing) closes** and **before internal alpha with Дима** — that's the moment data starts mattering.
+**Owner one-shot when unparking:** PostHog Cloud EU signup + paste API key into Vercel env (~5 min).
 
 ---
 
