@@ -14,7 +14,6 @@
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSupabaseService } from "@/lib/supabase/service";
-import PageHeader from "@/components/layout/PageHeader";
 
 interface InvitePageProps {
   params: Promise<{ token: string }>;
@@ -89,10 +88,14 @@ export default async function InviteAcceptPage({ params }: InvitePageProps) {
 }
 
 function InviteError({ title, body }: { title: string; body: string }) {
+  // Plain server-renderable header — /invite/[token] lives outside
+  // the dashboard tree, so PageHeader (uses useSidebar) can't be used.
   return (
-    <>
-      <PageHeader title="Приглашение" backHref="/dashboard" />
-      <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
+    <div className="min-h-[100dvh] bg-[var(--surface-grouped)] flex flex-col">
+      <header className="h-12 flex items-center px-4 bg-[var(--surface-card)] border-b border-[var(--separator)]">
+        <h1 className="text-[15px] font-semibold text-[var(--label)]">Приглашение</h1>
+      </header>
+      <div className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-4 py-8">
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-5 space-y-3">
             <h2 className="text-[18px] font-semibold text-[var(--label)]">{title}</h2>
@@ -106,6 +109,6 @@ function InviteError({ title, body }: { title: string; body: string }) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
