@@ -1,6 +1,6 @@
 # STORY-050 — Recurring reminders → Supabase
 
-**Status:** `todo` — planning, awaiting `ok` on G1 SQL.
+**Status:** `done` — shipped 2026-04-30, full smoke 10/10 passed in production.
 **Estimate:** 1
 **Dependencies:** STORY-038 (`current_tenant_id()` ✅), STORY-042 (appointments cloud ✅), STORY-049 (last storage migration ✅).
 **Blocks:** none. Closes the last localStorage entity.
@@ -193,3 +193,53 @@ Repeat G6 against `https://babun.app` after Vercel deploy is green. Use a `prod-
 - Auto-create next reminder when one is booked (still manual via AppointmentSheet).
 - iCal export, push notifications, email reminders.
 - Editing notes/dates after creation (current UI doesn't expose this).
+
+---
+
+## Close — 2026-04-30
+
+### G6 + G8 smoke results (combined run against production)
+
+All 10 functional smoke probes passed against `babun.app` after `v355-recurring-reminders` deploy:
+
+| # | Probe | Result |
+|---|---|---|
+| 1 | `tsc --noEmit` green | ✅ |
+| 2 | Reminder INSERT round-trip via repo path | ✅ (id `80419593-…`) |
+| 3 | `/dashboard/recurring` page renders the card lazily fetched via `listRecurringReminders` | ✅ |
+| 4 | Sidebar badge: 0 → 2 → 1 reflects DB pending+due-soon count, refreshes on `babun:recurring-changed` | ✅ |
+| 5 | "Записано" → `updateReminderStatus(id,'booked')` → row's `status='booked'`, card disappears from inbox, header drops `(2)→(1)` | ✅ (latency 36s, DB confirmed) |
+| 6 | × → confirm modal → `deleteRecurringReminder` → row hard-deleted, badge 2→1 | ✅ |
+| 7 | Multi-device: same user logged into a second isolated context → reload `/dashboard/recurring` shows the same survivor + badge `Напоминания 1` | ✅ |
+| 8 | RLS read isolation: User2 (different tenant) `select count(*) from recurring_reminders` → 0; explicit `where tenant_id = USER1_TENANT` → 0 | ✅ |
+| 9 | RLS write block: User2 `insert into recurring_reminders (tenant_id = USER1_TENANT, …)` → `42501 insufficient_privilege` (caught as `rls_violation_42501_ok`) | ✅ |
+| 10 | Settings → Опасная зона "Импортировать 3 напоминаний в облако": 3 INSERTs land for the user's tenant, `babun-recurring` cleared, `babun:recurring:backup-2026-04-30` populated, "Удалится через 30 дн." | ✅ |
+
+### Cleanup verified
+
+After `/api/account/delete` cascade for both test users:
+
+```
+auth_users         = 0
+tenants            = 0
+residual_reminders = 0
+```
+
+`recurring_reminders.tenant_id ... on delete cascade` worked end-to-end — no janitor needed.
+
+### Files shipped (commits `6e2bb8a` + close)
+
+- `supabase/migrations/20260430_007_recurring_reminders.sql` (76 lines)
+- `packages/shared/src/db/repositories/recurring-reminders.ts` (181 lines, new)
+- `packages/shared/src/db/database.types.ts` — `recurring_reminders` table types
+- `packages/shared/src/local/recurring.ts` — localStorage writers removed; `loadRecurring` + pure helpers retained
+- `apps/web/src/app/dashboard/recurring/page.tsx` — repo wiring + optimistic UI
+- `apps/web/src/components/layout/Sidebar.tsx` — badge fetches via `listRecurringReminders`
+- `apps/web/src/components/appointment/AppointmentSheet.tsx` — "Повторить через" calls `createRecurringReminder`
+- `apps/web/src/components/settings/account/ImportLocalRecurringSection.tsx` (new) + mounted in `account/page.tsx`
+- `apps/web/public/sw.js` + `packages/shared/src/common/utils/version.ts` — `babun-v355` / `v355-recurring-reminders`
+
+### Closing note: localStorage migration is now complete
+
+This was the last domain still on the device. After STORY-036 (clients), 042 (appointments), 044 (schedule + calendar settings + day-cities + day-extras), 049 (photos to Storage), and **050 (recurring reminders)**, every customer-facing data domain except a few UI prefs (`babun-sidebar-expanded`, `babun-draft-clients` cleanup vestige, current-master selector) lives in Supabase with multi-device sync + RLS isolation.
+
