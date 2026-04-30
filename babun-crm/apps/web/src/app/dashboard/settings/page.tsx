@@ -142,6 +142,13 @@ const NAV_GROUPS: NavGroup[] = [
         desc: "Email, бизнес, пароль, удаление",
       },
       {
+        href: "/dashboard/settings/team",
+        icon: UsersIcon,
+        tone: "bg-[var(--tile-orange)]",
+        title: "Команда",
+        desc: "Участники, роли, приглашения",
+      },
+      {
         href: "/dashboard/settings/company",
         icon: Building2,
         tone: "bg-[var(--tile-purple)]",
@@ -289,10 +296,14 @@ function AccountHero() {
       } = await supabase.auth.getUser();
       if (cancelled || !user) return;
       setEmail(user.email ?? "");
+      // STORY-039 — read active tenant from JWT app_metadata.
+      const tenantId = (user.app_metadata as { tenant_id?: string } | undefined)
+        ?.tenant_id;
+      if (!tenantId) return;
       const { data: tenant } = await supabase
         .from("tenants")
         .select("name")
-        .eq("owner_user_id", user.id)
+        .eq("id", tenantId)
         .maybeSingle();
       if (cancelled) return;
       if (tenant?.name) setName(tenant.name);

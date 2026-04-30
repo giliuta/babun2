@@ -27,7 +27,8 @@ export interface Database {
           id: string;
           name: string;
           vertical: string | null;
-          owner_user_id: string | null;
+          // STORY-039 — owner_user_id column dropped. Ownership now
+          // lives in public.tenant_members(role='owner').
           city: string | null;
           onboarded_at: string | null;
           created_at: string;
@@ -36,12 +37,61 @@ export interface Database {
           id?: string;
           name: string;
           vertical?: string | null;
-          owner_user_id?: string | null;
           city?: string | null;
           onboarded_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;
+        Relationships: [];
+      };
+      // STORY-039 — N-to-N membership replacing tenants.owner_user_id.
+      // Three roles via CHECK: 'owner' | 'dispatcher' | 'master'.
+      tenant_members: {
+        Row: {
+          tenant_id: string;
+          user_id: string;
+          role: string;
+          invited_by_user_id: string | null;
+          joined_at: string;
+          metadata: Json;
+        };
+        Insert: {
+          tenant_id: string;
+          user_id: string;
+          role: string;
+          invited_by_user_id?: string | null;
+          joined_at?: string;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["tenant_members"]["Insert"]>;
+        Relationships: [];
+      };
+      // STORY-039 — email-based invitations with 7-day TTL,
+      // one-time-use semantics enforced by accept_invitation() RPC.
+      invitations: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          email: string;
+          role: string;
+          invited_by_user_id: string | null;
+          token: string;
+          expires_at: string;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          email: string;
+          role: string;
+          invited_by_user_id?: string | null;
+          token: string;
+          expires_at?: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invitations"]["Insert"]>;
         Relationships: [];
       };
       client_tags: {
@@ -422,6 +472,20 @@ export interface Database {
           p_day_extras?: Json;
         };
         Returns: void;
+      };
+      // STORY-039 — SECURITY DEFINER entry point for the
+      // /invite/[token] accept flow. Returns the tenant_id joined.
+      accept_invitation: {
+        Args: { p_token: string };
+        Returns: string;
+      };
+      current_tenant_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      current_user_role: {
+        Args: Record<string, never>;
+        Returns: string | null;
       };
     };
     Enums: Record<string, never>;

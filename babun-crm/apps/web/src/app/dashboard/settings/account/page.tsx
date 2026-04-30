@@ -25,10 +25,25 @@ export default async function AccountSettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // STORY-039 — resolve via JWT app_metadata + tenant_members fallback.
+  const jwtTenantId = (user.app_metadata as { tenant_id?: string } | undefined)
+    ?.tenant_id;
+  let activeTenantId = jwtTenantId ?? null;
+  if (!activeTenantId) {
+    const { data: membership } = await supabase
+      .from("tenant_members")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    activeTenantId = membership?.tenant_id ?? null;
+  }
+  if (!activeTenantId) redirect("/login?error=tenant_missing");
   const { data: tenant } = await supabase
     .from("tenants")
     .select("id, name, vertical, city")
-    .eq("owner_user_id", user.id)
+    .eq("id", activeTenantId)
     .maybeSingle();
 
   if (!tenant) redirect("/login?error=tenant_missing");

@@ -108,18 +108,27 @@ export default function ImportLocalRecurringSection() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Сессия истекла");
-      const { data: tenant, error: tenantErr } = await supabase
-        .from("tenants")
-        .select("id")
-        .eq("owner_user_id", user.id)
-        .maybeSingle();
-      if (tenantErr || !tenant) {
+      // STORY-039 — JWT-driven tenant resolution.
+      let tenantId =
+        (user.app_metadata as { tenant_id?: string } | undefined)?.tenant_id ??
+        null;
+      if (!tenantId) {
+        const { data: membership } = await supabase
+          .from("tenant_members")
+          .select("tenant_id")
+          .eq("user_id", user.id)
+          .order("joined_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        tenantId = membership?.tenant_id ?? null;
+      }
+      if (!tenantId) {
         throw new Error("Не удалось найти tenant");
       }
 
       const { inserted, skipped } = await importLocalReminders(
         supabase,
-        tenant.id,
+        tenantId,
         list,
       );
 

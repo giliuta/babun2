@@ -28,10 +28,30 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // STORY-039 — resolve active tenant via tenant_members. Prefer the
+  // JWT's app_metadata.tenant_id when present; fall back to the user's
+  // first membership (oldest joined_at) for the fresh-signup race
+  // where the JWT predates the trigger stamp.
+  const jwtTenantId = (user.app_metadata as { tenant_id?: string } | undefined)
+    ?.tenant_id;
+  let activeTenantId = jwtTenantId ?? null;
+  if (!activeTenantId) {
+    const { data: membership } = await supabase
+      .from("tenant_members")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    activeTenantId = membership?.tenant_id ?? null;
+  }
+  if (!activeTenantId) {
+    redirect("/login?error=tenant_missing");
+  }
   const { data: tenant, error } = await supabase
     .from("tenants")
     .select("id, name, onboarded_at")
-    .eq("owner_user_id", user.id)
+    .eq("id", activeTenantId)
     .maybeSingle();
 
   if (error || !tenant) {

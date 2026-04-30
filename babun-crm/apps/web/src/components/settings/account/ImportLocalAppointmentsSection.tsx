@@ -128,23 +128,28 @@ export default function ImportLocalAppointmentsSection() {
     setProgress({ done: 0, total: list.length });
     try {
       const supabase = getSupabaseBrowser();
-      // Tenant id needs to be passed to the repo. We don't have it
-      // directly here, so we fetch it from the session JWT app_metadata
-      // — same as the dashboard layout does. Simpler: query tenants by
-      // owner_user_id once.
+      // STORY-039 — pull active tenant from JWT app_metadata; falls
+      // back to tenant_members for the fresh-signup race.
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Сессия истекла");
-      const { data: tenant, error: tenantErr } = await supabase
-        .from("tenants")
-        .select("id")
-        .eq("owner_user_id", user.id)
-        .maybeSingle();
-      if (tenantErr || !tenant) {
+      let tenantId =
+        (user.app_metadata as { tenant_id?: string } | undefined)?.tenant_id ??
+        null;
+      if (!tenantId) {
+        const { data: membership } = await supabase
+          .from("tenant_members")
+          .select("tenant_id")
+          .eq("user_id", user.id)
+          .order("joined_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        tenantId = membership?.tenant_id ?? null;
+      }
+      if (!tenantId) {
         throw new Error("Не удалось найти tenant");
       }
-      const tenantId = tenant.id;
 
       // Batched insert — 50 per group keeps progress feedback smooth
       // and the request payload below the PostgREST default limit.

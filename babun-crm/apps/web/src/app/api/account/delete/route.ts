@@ -1,19 +1,22 @@
-// STORY-041 G4 — Account self-delete endpoint.
+// STORY-041 G4 + STORY-039 update — Account self-delete endpoint.
 //
-// Flow:
+// Flow under the new RBAC layer:
 //   1. Authenticate the caller via the user-scoped server client
 //      (cookies → getUser). Reject anonymous calls.
-//   2. Use the user-scoped client (RLS-enforced) to drop tenant data:
-//      client_tag_assignments → client_tags → clients → tenants. The
-//      RLS policies guarantee these only touch the caller's tenant.
-//   3. Use the service-role client to drop the auth.users row last —
-//      RLS doesn't apply to auth schema, and only service role can
-//      delete auth users.
+//   2. List the tenants where this user is a member; for each tenant
+//      where they are the LAST owner (no other 'owner' rows), DELETE
+//      the tenant via service-role. The tenants → clients/appointments/
+//      ... cascade fans out automatically. Memberships in other-people's
+//      tenants are not touched here — auth.users delete cascades them.
+//   3. Use service-role to drop the auth.users row last; this cascades
+//      every remaining tenant_members row owned by this user.
 //
-// If step 2 fails partway through we leave a half-deleted tenant
-// in the DB and the auth row alive — the user can retry. Step 3
-// failure is the worst case (data gone, auth alive); the orphan
-// backfill migration covers that scenario as a safety net.
+// The `protect_last_owner` trigger has a "remove last owner" guard,
+// which would normally block step 3's cascade. We side-step it by
+// deleting the entire tenant first (step 2) for last-owner cases, so
+// by the time auth.users delete cascades, there's no tenant left for
+// those rows to violate the invariant on. For non-last-owner tenants,
+// the user just leaves silently (count of remaining owners ≥ 1).
 
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -29,60 +32,64 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Resolve the tenant id once so all DELETEs target the same row.
-  const { data: tenant, error: tenantErr } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .maybeSingle();
-  if (tenantErr) {
+  let service;
+  try {
+    service = getSupabaseService();
+  } catch (err) {
     return NextResponse.json(
-      { error: `tenant lookup: ${tenantErr.message}` },
+      { error: err instanceof Error ? err.message : "service role unavailable" },
       { status: 500 },
     );
   }
 
-  if (tenant) {
-    const tenantId = tenant.id;
-    const cleanups: Array<{ table: "client_tag_assignments" | "client_tags" | "clients" }> = [
-      { table: "client_tag_assignments" },
-      { table: "client_tags" },
-      { table: "clients" },
-    ];
-    for (const { table } of cleanups) {
-      const { error } = await supabase.from(table).delete().eq("tenant_id", tenantId);
-      if (error) {
+  // Find every tenant where this user holds the 'owner' role.
+  const { data: ownerships, error: ownErr } = await service
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .eq("role", "owner");
+  if (ownErr) {
+    return NextResponse.json(
+      { error: `tenant_members lookup: ${ownErr.message}` },
+      { status: 500 },
+    );
+  }
+
+  for (const row of ownerships ?? []) {
+    const tenantId = row.tenant_id;
+    const { count, error: countErr } = await service
+      .from("tenant_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("role", "owner");
+    if (countErr) {
+      return NextResponse.json(
+        { error: `owner count for ${tenantId}: ${countErr.message}` },
+        { status: 500 },
+      );
+    }
+    if ((count ?? 0) <= 1) {
+      // Last owner — drop the tenant entirely. FK cascades from tenants
+      // wipe clients / appointments / settings / memberships.
+      const { error: tenantDelErr } = await service
+        .from("tenants")
+        .delete()
+        .eq("id", tenantId);
+      if (tenantDelErr) {
         return NextResponse.json(
-          { error: `${table}: ${error.message}` },
+          { error: `tenants ${tenantId}: ${tenantDelErr.message}` },
           { status: 500 },
         );
       }
     }
-
-    const { error: tenantDelErr } = await supabase
-      .from("tenants")
-      .delete()
-      .eq("id", tenantId);
-    if (tenantDelErr) {
-      return NextResponse.json(
-        { error: `tenants: ${tenantDelErr.message}` },
-        { status: 500 },
-      );
-    }
+    // Non-last-owner tenants: leave the tenant alive; the auth.users
+    // cascade below removes only this user's tenant_members row.
   }
 
-  try {
-    const service = getSupabaseService();
-    const { error: userDelErr } = await service.auth.admin.deleteUser(user.id);
-    if (userDelErr) {
-      return NextResponse.json(
-        { error: `auth.users: ${userDelErr.message}` },
-        { status: 500 },
-      );
-    }
-  } catch (err) {
+  const { error: userDelErr } = await service.auth.admin.deleteUser(user.id);
+  if (userDelErr) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "service role unavailable" },
+      { error: `auth.users: ${userDelErr.message}` },
       { status: 500 },
     );
   }
