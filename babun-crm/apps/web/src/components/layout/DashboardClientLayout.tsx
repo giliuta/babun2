@@ -135,6 +135,17 @@ export function useSidebar() {
   return ctx;
 }
 
+// STORY-049 — expose the server-resolved tenantId via context so leaf
+// components (PhotoBlock, etc.) can call repo functions that need it
+// without prop-drilling through every parent.
+const TenantContext = createContext<string | null>(null);
+
+export function useTenantId(): string {
+  const ctx = useContext(TenantContext);
+  if (!ctx) throw new Error("useTenantId must be used within DashboardLayout");
+  return ctx;
+}
+
 interface SchedulesContextValue {
   schedules: ScheduleMap;
   setSchedules: (next: ScheduleMap) => void;
@@ -1141,6 +1152,7 @@ export default function DashboardClientLayout({
   };
 
   return (
+    <TenantContext.Provider value={tenantId}>
     <SidebarContext.Provider value={sidebarValue}>
       <CurrentMasterContext.Provider value={currentMasterValue}>
       <MastersContext.Provider value={mastersValue}>
@@ -1234,5 +1246,6 @@ export default function DashboardClientLayout({
       </MastersContext.Provider>
       </CurrentMasterContext.Provider>
     </SidebarContext.Provider>
+    </TenantContext.Provider>
   );
 }

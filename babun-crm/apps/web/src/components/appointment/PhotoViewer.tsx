@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AppointmentPhoto, PhotoKind } from "@babun/shared/local/appointments";
+import type {
+  AppointmentPhotoRecord,
+  PhotoKind,
+} from "@babun/shared/db/repositories/appointment-photos";
 import { kindLabel } from "@babun/shared/local/photos";
 
 interface PhotoViewerProps {
   open: boolean;
-  photos: AppointmentPhoto[];
+  photos: AppointmentPhotoRecord[];
   initialIndex: number;
   readOnly?: boolean;
   onClose: () => void;
@@ -145,7 +148,7 @@ export default function PhotoViewer({
       <div className="flex-1 min-h-0 flex items-center justify-center relative select-none">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={photo.data_url}
+          src={photo.url}
           alt={photo.caption}
           onContextMenu={(e) => e.preventDefault()}
           draggable={false}

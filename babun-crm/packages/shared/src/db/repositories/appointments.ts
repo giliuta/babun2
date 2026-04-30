@@ -33,7 +33,6 @@ import type {
   AppointmentExpense,
   AppointmentKind,
   AppointmentPayment,
-  AppointmentPhoto,
   AppointmentService,
   AppointmentSource,
   AppointmentStatus,
@@ -46,48 +45,10 @@ type Row = Database["public"]["Tables"]["appointments"]["Row"];
 type Insert = Database["public"]["Tables"]["appointments"]["Insert"];
 type Update = Database["public"]["Tables"]["appointments"]["Update"];
 
-// Every column except `photos`. Hand-maintained — must stay in sync
-// with the SQL migration. `photos` is opted in by `getAppointment`.
-const COLS_NO_PHOTOS = [
-  "id",
-  "tenant_id",
-  "client_id",
-  "team_id",
-  "master_id",
-  "location_id",
-  "date",
-  "time_start",
-  "time_end",
-  "kind",
-  "status",
-  "total_amount",
-  "custom_total",
-  "discount_amount",
-  "prepaid_amount",
-  "comment",
-  "address",
-  "address_note",
-  "address_lat",
-  "address_lng",
-  "cancel_reason",
-  "source",
-  "is_online_booking",
-  "consent_given",
-  "color_override",
-  "reminder_enabled",
-  "reminder_offsets",
-  "reminder_template",
-  "service_ids",
-  "services",
-  "service_price_overrides",
-  "expenses",
-  "payments",
-  "payment",
-  "global_discount",
-  "total_duration",
-  "created_at",
-  "updated_at",
-].join(",");
+// STORY-049 — `photos` column dropped from appointments. Photos now
+// live in public.appointment_photos (blobs in Storage). The list /
+// get / insert / update paths below no longer touch any photos
+// field; UI fetches photos lazily via the appointment-photos repo.
 
 // ─── Adapters ──────────────────────────────────────────────────
 
@@ -136,7 +97,9 @@ function rowToAppointment(r: Row): Appointment {
     is_online_booking: r.is_online_booking,
     cancel_reason: r.cancel_reason,
     kind: r.kind as AppointmentKind,
-    photos: asArray<AppointmentPhoto>(r.photos),
+    // STORY-049 — photos removed from the appointments row; UI fetches
+    // them separately via @babun/shared/db/repositories/appointment-photos.
+    photos: [],
     consent_given: r.consent_given,
     reminder_enabled: r.reminder_enabled,
     reminder_offsets: asArray<number>(r.reminder_offsets),
@@ -191,7 +154,7 @@ function appointmentToInsert(a: Appointment, tenantId: string): Insert {
     expenses: (a.expenses ?? []) as unknown as Json,
     payments: (a.payments ?? []) as unknown as Json,
     payment: a.payment as unknown as Json | null,
-    photos: (a.photos ?? []) as unknown as Json,
+    // STORY-049 — photos column gone from schema; ignore here.
     global_discount: a.global_discount as unknown as Json | null,
     total_duration: a.total_duration,
     created_at: a.created_at || undefined,
@@ -251,8 +214,8 @@ function appointmentToUpdate(patch: Partial<Appointment>): Update {
     out.payments = patch.payments as unknown as Json;
   if (patch.payment !== undefined)
     out.payment = patch.payment as unknown as Json | null;
-  if (patch.photos !== undefined)
-    out.photos = patch.photos as unknown as Json;
+  // STORY-049 — patch.photos is intentionally ignored; the column
+  // doesn't exist anymore. PhotoBlock writes via the dedicated repo.
   if (patch.global_discount !== undefined)
     out.global_discount = patch.global_discount as unknown as Json | null;
   return out;
@@ -260,29 +223,22 @@ function appointmentToUpdate(patch: Partial<Appointment>): Update {
 
 // ─── Public API ────────────────────────────────────────────────
 
-/** Fetch every appointment for the tenant, EXCLUDING the `photos`
- *  column (decision Q2). Photos are pulled lazily per-appointment by
- *  `getAppointment` — the calendar grid never needs them. */
+/** Fetch every appointment for the tenant. STORY-049 — the photos
+ *  column was dropped, so the result no longer carries blob data. */
 export async function listAppointments(
   supabase: DbSupabase,
   tenantId: string,
 ): Promise<Appointment[]> {
   const { data: rows, error } = await supabase
     .from("appointments")
-    .select(COLS_NO_PHOTOS)
+    .select("*")
     .eq("tenant_id", tenantId);
   if (error) throw new Error(`listAppointments: ${error.message}`);
-  // Photos absent in the projected select → rowToAppointment falls
-  // through asArray() and returns photos:[]. The cast is necessary
-  // because PostgREST's return type for a column-projected select
-  // doesn't preserve the Row shape.
-  return (rows ?? []).map((r) => {
-    const full = { ...(r as object), photos: [] } as unknown as Row;
-    return rowToAppointment(full);
-  });
+  return (rows ?? []).map((r) => rowToAppointment(r));
 }
 
-/** Full row including `photos`. Use from the AppointmentSheet path. */
+/** Single appointment by id. Photos NOT included — caller fetches
+ *  them via listPhotosForAppointment (STORY-049 decision A9). */
 export async function getAppointment(
   supabase: DbSupabase,
   id: string,

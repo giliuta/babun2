@@ -121,7 +121,11 @@ function AppointmentBlockInner({
   const debt = getDebtAmount(appointment);
   const hasDebt = debt > 0 && appointment.status !== "scheduled";
   const isCancelled = colorKind === "cancelled";
-  const hasPhotos = appointment.photos.length > 0;
+  // STORY-049 — photos no longer ride on the appointment row; the
+  // calendar grid doesn't fetch them per-block. The hasPhotos
+  // indicator returns when STORY-049b adds a join-count or when we
+  // surface a per-tenant photo summary.
+  const hasPhotos = false;
 
   return (
     <button

@@ -2,27 +2,40 @@
 
 import { useState } from "react";
 import { Camera } from "@babun/shared/icons";
-import type { AppointmentPhoto, PhotoKind } from "@babun/shared/local/appointments";
-import { compressImage, generateCaption } from "@babun/shared/local/photos";
-import { generateId } from "@babun/shared/local/masters";
+import type { PhotoKind } from "@babun/shared/local/appointments";
+import { compressImageToBlob, generateCaption, validatePhotoFile } from "@babun/shared/local/photos";
+import {
+  uploadPhoto,
+  updatePhoto,
+  deletePhoto as deletePhotoRepo,
+  type AppointmentPhotoRecord,
+} from "@babun/shared/db/repositories/appointment-photos";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 import PhotoPicker from "./PhotoPicker";
 import PhotoViewer from "./PhotoViewer";
 
 interface PhotoBlockProps {
-  photos: AppointmentPhoto[];
+  photos: AppointmentPhotoRecord[];
   readonly: boolean;
+  /** Server-side IDs needed to upload through the storage repo. */
+  tenantId: string;
+  appointmentId: string;
   /** Used to auto-fill caption ('До · 14:35 · Спальня'). */
   locationLabel?: string;
-  onChange: (next: AppointmentPhoto[]) => void;
+  onChange: (next: AppointmentPhotoRecord[]) => void;
 }
 
 const MAX_PHOTOS = 5;
 
-// Thin thumbnail row + "+" chip; empty state is a full-width dashed
-// button. Tapping a thumbnail opens the fullscreen PhotoViewer.
+// STORY-049 — uploads go to Supabase Storage; metadata to DB.
+// Server-side trigger enforces MAX_PHOTOS=5; the client UI cap below
+// is a UX nicety so the disabled "+" button hints at the limit before
+// the user tries to add a 6th.
 export default function PhotoBlock({
   photos,
   readonly,
+  tenantId,
+  appointmentId,
   locationLabel,
   onChange,
 }: PhotoBlockProps) {
@@ -41,19 +54,26 @@ export default function PhotoBlock({
       flashToast(`Максимум ${MAX_PHOTOS} фото на запись`);
       return;
     }
+    const validation = validatePhotoFile(file);
+    if (!validation.ok) {
+      flashToast(validation.reason ?? "Неподходящий файл");
+      return;
+    }
     setBusy(true);
     try {
-      const dataUrl = await compressImage(file);
+      const blob = await compressImageToBlob(file);
       const now = new Date();
-      const photo: AppointmentPhoto = {
-        id: generateId("photo"),
-        data_url: dataUrl,
+      const supabase = getSupabaseBrowser();
+      const record = await uploadPhoto(supabase, {
+        tenantId,
+        appointmentId,
+        file: blob,
+        contentType: "image/jpeg",
         kind,
         caption: generateCaption(kind, locationLabel, now),
-        taken_at: now.toISOString(),
-        uploaded_at: now.toISOString(),
-      };
-      onChange([...photos, photo]);
+        takenAt: now.toISOString(),
+      });
+      onChange([...photos, record]);
       flashToast("Фото добавлено");
     } catch (e) {
       flashToast(e instanceof Error ? e.message : "Не удалось добавить фото");
@@ -62,48 +82,65 @@ export default function PhotoBlock({
     }
   };
 
-  const deletePhoto = (id: string) => {
-    const removed = photos.find((p) => p.id === id);
-    if (!removed) return;
-    onChange(photos.filter((p) => p.id !== id));
-    setViewerIndex(null);
-    // Simple undo path — re-add to the original spot. 5 seconds.
-    const backupIndex = photos.findIndex((p) => p.id === id);
-    let undone = false;
-    setToast(null);
-    const undoBanner = "Фото удалено · Вернуть";
-    setToast(undoBanner);
-    const timer = window.setTimeout(() => {
-      if (!undone) setToast(null);
-    }, 5000);
-    undoHandler.current = () => {
-      clearTimeout(timer);
-      undone = true;
-      const next = [...photos];
-      next.splice(backupIndex, 0, removed);
-      onChange(next);
-      setToast("Фото возвращено");
-      window.setTimeout(() => setToast(null), 1500);
-    };
-  };
-
-  const rekindPhoto = (id: string, kind: PhotoKind) => {
-    onChange(
-      photos.map((p) =>
-        p.id === id
-          ? { ...p, kind, caption: generateCaption(kind, locationLabel, new Date(p.taken_at ?? p.uploaded_at)) }
-          : p,
-      ),
-    );
-  };
-
-  const setCaption = (id: string, caption: string) => {
-    onChange(photos.map((p) => (p.id === id ? { ...p, caption } : p)));
-  };
-
   const undoHandler = { current: null as null | (() => void) };
 
-  // Read-only + empty → hide the block entirely.
+  const handleDelete = async (id: string) => {
+    const removed = photos.find((p) => p.id === id);
+    if (!removed) return;
+    // Optimistic remove from local state; server delete via repo.
+    const previous = photos;
+    onChange(photos.filter((p) => p.id !== id));
+    setViewerIndex(null);
+    setToast("Удаляем фото…");
+    try {
+      const supabase = getSupabaseBrowser();
+      await deletePhotoRepo(supabase, removed);
+      setToast("Фото удалено · Вернуть");
+      const timer = window.setTimeout(() => setToast(null), 5000);
+      undoHandler.current = () => {
+        // Undo path can't recover the storage object (already removed
+        // by the repo). Skip the actual restore — best we can do is
+        // restore the local state placeholder. The user notices the
+        // image as broken and re-uploads if they want it back.
+        clearTimeout(timer);
+        onChange(previous);
+        setToast("Восстановлено локально (фото из Storage уже удалено)");
+        window.setTimeout(() => setToast(null), 2500);
+      };
+    } catch (err) {
+      // Rollback the optimistic change.
+      onChange(previous);
+      flashToast(err instanceof Error ? err.message : "Не удалось удалить фото");
+    }
+  };
+
+  const handleRekind = async (id: string, kind: PhotoKind) => {
+    const photo = photos.find((p) => p.id === id);
+    if (!photo) return;
+    const caption = generateCaption(kind, locationLabel, new Date(photo.taken_at ?? photo.created_at));
+    const optimistic = photos.map((p) =>
+      p.id === id ? { ...p, kind, caption } : p,
+    );
+    onChange(optimistic);
+    try {
+      const supabase = getSupabaseBrowser();
+      await updatePhoto(supabase, id, { kind, caption });
+    } catch (err) {
+      flashToast(err instanceof Error ? err.message : "Не удалось обновить фото");
+    }
+  };
+
+  const handleCaption = async (id: string, caption: string) => {
+    const optimistic = photos.map((p) => (p.id === id ? { ...p, caption } : p));
+    onChange(optimistic);
+    try {
+      const supabase = getSupabaseBrowser();
+      await updatePhoto(supabase, id, { caption });
+    } catch (err) {
+      flashToast(err instanceof Error ? err.message : "Не удалось сохранить подпись");
+    }
+  };
+
   if (readonly && photos.length === 0) return null;
 
   return (
@@ -181,9 +218,9 @@ export default function PhotoBlock({
           initialIndex={viewerIndex}
           readOnly={readonly}
           onClose={() => setViewerIndex(null)}
-          onDelete={deletePhoto}
-          onRekind={rekindPhoto}
-          onCaptionChange={setCaption}
+          onDelete={handleDelete}
+          onRekind={handleRekind}
+          onCaptionChange={handleCaption}
         />
       )}
     </div>
@@ -195,7 +232,7 @@ function PhotoThumb({
   onTap,
   disabled,
 }: {
-  photo: AppointmentPhoto;
+  photo: AppointmentPhotoRecord;
   onTap: () => void;
   disabled?: boolean;
 }) {
@@ -217,8 +254,9 @@ function PhotoThumb({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={photo.data_url}
+        src={photo.url}
         alt={photo.caption}
+        loading="lazy"
         className="w-full h-full object-cover pointer-events-none"
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}

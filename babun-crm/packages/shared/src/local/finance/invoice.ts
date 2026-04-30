@@ -13,7 +13,7 @@
 //     or English can be pasted verbatim.
 
 import jsPDF from "jspdf";
-import type { Appointment } from "../appointments";
+import type { Appointment, PhotoKind } from "../appointments";
 import type { Client } from "../clients";
 import type { Service } from "../services";
 import type { Team } from "../masters";
@@ -29,6 +29,11 @@ export interface InvoiceOptions {
   company: CompanyInfo;
   /** If true, attach before/after photos on a second page. */
   includePhotos?: boolean;
+  /** STORY-049 — photos for the export. Caller fetches them via
+   *  listPhotosForAppointment and passes the AppointmentPhotoRecord[]
+   *  shape (or any compatible {url, kind, caption}). When empty/
+   *  undefined, the photos page is omitted regardless of includePhotos. */
+  photos?: { url: string; kind: PhotoKind; caption: string }[];
 }
 
 export function generateInvoicePDF(opts: InvoiceOptions): { blob: Blob; filename: string } {
@@ -212,7 +217,11 @@ export function generateInvoicePDF(opts: InvoiceOptions): { blob: Blob; filename
   }
 
   // ─── Photos page ──────────────────────────────────────────────────────
-  if (opts.includePhotos && appointment.photos.length > 0) {
+  // STORY-049 — photos no longer ride on the appointment row. The
+  // receipt-export flow now needs to pass them in via opts.photos
+  // (lifted from listPhotosForAppointment by the caller). Until that
+  // call site is plumbed, the photos page is silently skipped.
+  if (opts.includePhotos && (opts.photos?.length ?? 0) > 0) {
     doc.addPage();
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
@@ -222,8 +231,9 @@ export function generateInvoicePDF(opts: InvoiceOptions): { blob: Blob; filename
     let y = margin + 14;
     const cellW = (pageWidth - margin * 2 - 4) / 2;
     const cellH = 60;
-    for (let i = 0; i < appointment.photos.length; i++) {
-      const ph = appointment.photos[i];
+    const photos = opts.photos ?? [];
+    for (let i = 0; i < photos.length; i++) {
+      const ph = photos[i];
       const col = i % 2;
       const row = Math.floor(i / 2);
       if (row > 0 && col === 0) y += cellH + 8;
@@ -233,7 +243,10 @@ export function generateInvoicePDF(opts: InvoiceOptions): { blob: Blob; filename
       }
       const x = margin + col * (cellW + 4);
       try {
-        doc.addImage(ph.data_url, "JPEG", x, y, cellW, cellH, undefined, "FAST");
+        // jsPDF accepts public URLs but the renderer may not fetch
+        // cross-origin in some environments; the catch below preserves
+        // export resilience.
+        doc.addImage(ph.url, "JPEG", x, y, cellW, cellH, undefined, "FAST");
       } catch {
         // skip unreadable photos rather than crash the whole export
       }

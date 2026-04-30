@@ -26,12 +26,20 @@ const EVENT_ICONS: Record<EventPreset["icon"], React.ComponentType<{ size?: numb
 import type {
   Appointment,
   AppointmentPayment,
-  AppointmentPhoto,
+  // STORY-049 — AppointmentPhoto removed from imports; the sheet
+  // hydrates `AppointmentPhotoRecord[]` from the appointment-photos
+  // repo on open.
   AppointmentService,
   AppointmentSource,
   Discount,
 } from "@babun/shared/local/appointments";
 import { loadAppointments } from "@babun/shared/local/appointments";
+import {
+  listPhotosForAppointment,
+  type AppointmentPhotoRecord,
+} from "@babun/shared/db/repositories/appointment-photos";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
 import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
@@ -161,7 +169,11 @@ export default function AppointmentSheet({
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
   const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
-  const [photos, setPhotos] = useState<AppointmentPhoto[]>(appointment.photos ?? []);
+  // STORY-049 — photos hydrate from Supabase Storage via the
+  // appointment-photos repo (effect below). Initial render shows
+  // an empty list; thumbnails fade in once the fetch resolves.
+  const [photos, setPhotos] = useState<AppointmentPhotoRecord[]>([]);
+  const tenantId = useTenantId();
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   const [clientSheet, setClientSheet] = useState(false);
@@ -203,7 +215,16 @@ export default function AppointmentSheet({
     setCancelFlag(appointment.status === "cancelled");
     setCancelReason(appointment.cancel_reason ?? "");
     setSource(appointment.source ?? null);
-    setPhotos(appointment.photos ?? []);
+    // STORY-049 — refresh photo list when the appointment id changes.
+    setPhotos([]);
+    if (appointment.id) {
+      const supabase = getSupabaseBrowser();
+      void listPhotosForAppointment(supabase, appointment.id)
+        .then(setPhotos)
+        .catch(() => {
+          // Quiet failure — sheet is functional without photos.
+        });
+    }
     setEventLabel(appointment.comment || "");
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
@@ -395,7 +416,9 @@ export default function AppointmentSheet({
       comment: finalComment,
       address,
       address_note: addressNote.trim(),
-      photos,
+      // STORY-049 — photos no longer ride on the appointment row.
+      // The appointmentToInsert/Update adapters ignore this field.
+      photos: [],
       source,
       cancel_reason: cancelFlag ? (cancelReason.trim() || null) : null,
       reminder_enabled: smsEnabled && Boolean((client as Client).phone),
@@ -739,6 +762,8 @@ export default function AppointmentSheet({
                 <PhotoBlock
                   photos={photos}
                   readonly={readonly}
+                  tenantId={tenantId}
+                  appointmentId={appointment.id}
                   locationLabel={selectedLocation?.label}
                   onChange={setPhotos}
                 />
@@ -1079,7 +1104,7 @@ export default function AppointmentSheet({
                     services: catalog,
                     team: activeTeam,
                     company: loadCompany(),
-                    includePhotos: (appointment.photos ?? []).length > 0,
+                    includePhotos: photos.length > 0,
                   });
                   downloadBlob(blob, filename);
                 }

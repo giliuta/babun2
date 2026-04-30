@@ -95,14 +95,16 @@ Photos in this product are not regulated PHI. They're "before/after AC install" 
 
 ### A3 — Storage cleanup is application-side for explicit deletes, janitor-deferred for cascade
 
+**Order REVERSED (per brief): DELETE row first, then storage.remove. Orphan blob is acceptable; a broken UI pointing at a gone blob is not.**
+
 When the user deletes a photo from the UI:
-1. `deletePhoto(id)` repo: fetch storage_path → call `supabase.storage.from('appointment-photos').remove([path])` → DELETE the row.
-2. If storage delete fails (network), the row stays. UI surfaces error, user retries.
-3. If row delete fails after storage delete (rare), orphan storage gone but row pointing to nothing → UI shows a broken image once. Janitor sweeps on next run.
+1. `deletePhoto(photo)` repo: `from('appointment_photos').delete().eq('id', ...)` → if 200, `supabase.storage.remove([photo.storage_path])`.
+2. If row delete fails (network), nothing happens. UI shows error, retry.
+3. If row delete succeeds and storage delete fails, the row is gone (UI no longer shows the photo) and the blob orphans. **Janitor sweeps later.** No broken-image state.
 
 When the user deletes an entire appointment (UI):
-1. List photos → loop `storage.remove(...)` → DELETE the appointment (FK CASCADE drops the rows).
-2. If any storage delete fails partway, surface error; the appointment delete is **NOT** attempted. User can retry.
+1. List photos → DELETE the appointment (FK CASCADE drops `appointment_photos` rows automatically) → loop `storage.remove([...paths])` for the captured paths.
+2. If the storage cleanup loop fails partway, the appointment + rows are already gone. Surface a low-key warning ("Some photos may take a moment to be cleaned up"). Janitor.
 
 When a tenant cascade-deletes (account-delete from STORY-041):
 1. `auth.admin.deleteUser` → `tenants` cascade → `appointments` cascade → `appointment_photos` rows cascade. Storage objects orphan.
@@ -150,9 +152,29 @@ create policy storage_delete_own_tenant on storage.objects for delete to authent
 
 **Locked.** Two policies on `storage.objects`: insert + delete, both gated on the path's first segment matching the JWT tenant_id.
 
-### A7 — Keep `MAX_PHOTOS = 5` UI cap
+### A7 — Keep `MAX_PHOTOS = 5` — **server-side trigger, not client-only**
 
-Carrying over from `PhotoBlock.tsx`. Bumping the cap is its own UX call; out of scope.
+UI keeps the 5-photo cap, but the source of truth is a `BEFORE INSERT` trigger on `appointment_photos`. The trigger:
+
+```sql
+create or replace function public.check_max_photos()
+returns trigger language plpgsql as $$
+begin
+  -- Lock the parent appointment row so concurrent inserts serialise.
+  -- Two browsers racing to add the 5th photo to the same appointment
+  -- both hit this lock; the second wakes up to count=5 and raises.
+  perform 1 from public.appointments where id = new.appointment_id for update;
+  if (select count(*) from public.appointment_photos where appointment_id = new.appointment_id) >= 5 then
+    raise exception 'max 5 photos per appointment' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+```
+
+`FOR UPDATE` on the parent appointment row serialises inserts to the same appointment without blocking inserts to different appointments. This handles the "6 parallel uploads" race in G6.
+
+**Locked.**
 
 ### A8 — Rewrite `compressImage` to return a `Blob`, drop the data_url path
 
@@ -288,8 +310,11 @@ deletePhoto(supabase, photo: AppointmentPhotoRecord): Promise<void>
 11. Upload-validation:
     - 6 MB file → reject by Storage MIME/size policy (response error).
     - `.pdf` file → reject by MIME whitelist.
-    - 5 photos uploaded successfully, 6th attempt blocked by `MAX_PHOTOS` UI cap.
-12. Cleanup smoke: in the AppointmentSheet, swipe-delete one photo → storage object gone, row gone. Then delete the appointment → remaining `appointment_photos` rows cascaded via FK; storage cleanup runs in the UI's pre-delete loop. Verify storage bucket count for that appointment_id prefix = 0.
+    - 5 photos uploaded successfully, **6th INSERT raises `23514` from `check_max_photos` trigger** (server-side, not just UI).
+12. **Concurrent race**: 6 parallel `Promise.all` uploads to the same appointment → exactly 5 succeed, 1 fails with `23514`. Verifies `FOR UPDATE` lock on parent appointment.
+13. **Cross-tenant write block**: User2 attempts `storage.upload('<USER1_TENANT_ID>/abc/def.jpg', blob)` → 403 from Storage RLS folder-name policy.
+14. **Anon GET URL**: open the photo's public URL in an incognito-equivalent context (no JWT) → 200 OK + image bytes. Demonstrates RLS does not block SELECT on a public bucket.
+15. Cleanup smoke: in the AppointmentSheet, swipe-delete one photo → row gone first, then storage object gone (REVERSED order, A3). Then delete the appointment → `appointment_photos` rows cascade via FK; storage cleanup loop runs after. Verify storage bucket count for that appointment_id prefix = 0.
 
 ### G7 — Bump + commit + push
 

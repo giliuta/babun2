@@ -1,46 +1,80 @@
 // Photo helpers for the AppointmentPhoto flow.
-// - compressImage: downscale + jpeg quality cascade until the base64
-//   fits the budget (default ~200 KB) so 5 photos × 5 appointments still
-//   fit the localStorage quota comfortably.
+// - compressImageToBlob: downscale + JPEG quality cascade. Returns a
+//   Blob ready for Supabase Storage upload (STORY-049 A8). Targets
+//   500 KB at quality 0.7, falls through to 0.5 / 0.35 if oversized.
+//   Hard cap is the 5 MB Storage bucket limit.
 // - generateCaption: "До · 14:35 · Спальня" built from kind + time +
 //   optional object label.
-// - validatePhotoSize: quick check for a picked image before asking the
-//   user to accept a too-large upload.
+// - validatePhotoFile: client-side MIME + size check before upload.
 
 import type { PhotoKind } from "./appointments";
 
 const MAX_DIMENSION = 1600;
-const DEFAULT_BUDGET_KB = 200;
-// base64 is ~1.37x the binary size; keep the budget honest.
-const BASE64_OVERHEAD = 1.37;
+const DEFAULT_BUDGET_KB = 500;
+const HARD_CAP_BYTES = 5 * 1024 * 1024; // 5 MB — matches bucket limit
 
-export async function compressImage(
+export async function compressImageToBlob(
   file: File,
-  budgetKb = DEFAULT_BUDGET_KB
-): Promise<string> {
+  budgetKb = DEFAULT_BUDGET_KB,
+): Promise<Blob> {
   const img = await fileToImage(file);
   const { width, height } = fit(img.width, img.height, MAX_DIMENSION);
 
-  // Cascade quality levels — stop as soon as we hit the budget.
-  const qualities = [0.6, 0.45, 0.3];
-  const budgetBytes = budgetKb * 1024 * BASE64_OVERHEAD;
+  const qualities = [0.7, 0.5, 0.35];
+  const budgetBytes = budgetKb * 1024;
 
-  let lastResult = "";
+  let lastBlob: Blob | null = null;
   for (const q of qualities) {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("2D context unavailable");
-    ctx.drawImage(img, 0, 0, width, height);
-    const dataUrl = canvas.toDataURL("image/jpeg", q);
-    lastResult = dataUrl;
-    if (dataUrl.length < budgetBytes) {
-      return dataUrl;
-    }
+    const blob = await canvasToBlob(img, width, height, q);
+    lastBlob = blob;
+    if (blob.size < budgetBytes) return blob;
   }
-  // None of the passes hit the budget — return the tightest we have.
-  return lastResult;
+  if (!lastBlob) throw new Error("Не удалось сжать изображение");
+  if (lastBlob.size > HARD_CAP_BYTES) {
+    throw new Error("Файл больше 5 МБ — выбери меньше или попробуй другой кадр");
+  }
+  return lastBlob;
+}
+
+async function canvasToBlob(
+  img: HTMLImageElement,
+  width: number,
+  height: number,
+  quality: number,
+): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("2D context unavailable");
+  ctx.drawImage(img, 0, 0, width, height);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("toBlob returned null"));
+      },
+      "image/jpeg",
+      quality,
+    );
+  });
+}
+
+const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+
+export interface PhotoFileValidation {
+  ok: boolean;
+  reason?: string;
+}
+
+export function validatePhotoFile(file: File): PhotoFileValidation {
+  if (!ALLOWED_MIME.includes(file.type as (typeof ALLOWED_MIME)[number])) {
+    return { ok: false, reason: "Только JPG / PNG / WebP" };
+  }
+  if (file.size > HARD_CAP_BYTES) {
+    return { ok: false, reason: "Файл больше 5 МБ" };
+  }
+  return { ok: true };
 }
 
 export function generateCaption(
@@ -61,9 +95,8 @@ export function kindLabel(kind: PhotoKind): string {
   return "Прочее";
 }
 
-export function validatePhotoSize(dataUrl: string, budgetKb = DEFAULT_BUDGET_KB): boolean {
-  return dataUrl.length < budgetKb * 1024 * BASE64_OVERHEAD * 1.1;
-}
+// validatePhotoSize was used by the legacy data_url flow. Replaced by
+// validatePhotoFile (above) for the Storage-based upload path.
 
 function fileToImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

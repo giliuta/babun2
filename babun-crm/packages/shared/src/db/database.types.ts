@@ -182,7 +182,8 @@ export interface Database {
           expenses: Json;
           payments: Json;
           payment: Json | null;
-          photos: Json;
+          // STORY-049 — `photos` jsonb column dropped; photos now live
+          // in public.appointment_photos with blobs in Supabase Storage.
           global_discount: Json | null;
           total_duration: number;
           created_at: string;
@@ -223,13 +224,44 @@ export interface Database {
           expenses?: Json;
           payments?: Json;
           payment?: Json | null;
-          photos?: Json;
           global_discount?: Json | null;
           total_duration?: number;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["appointments"]["Insert"]>;
+        Relationships: [];
+      };
+      // STORY-049 — separate table for appointment photos (blobs go to
+      // Supabase Storage; the table stores metadata + storage_path).
+      appointment_photos: {
+        Row: {
+          id: string;
+          appointment_id: string;
+          tenant_id: string;
+          storage_path: string;
+          kind: string;
+          caption: string;
+          location_id: string | null;
+          taken_at: string | null;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          appointment_id: string;
+          tenant_id: string;
+          storage_path: string;
+          kind?: string;
+          caption?: string;
+          location_id?: string | null;
+          taken_at?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["appointment_photos"]["Insert"]>;
         Relationships: [];
       };
       // STORY-044 — schedule + calendar settings + day-cities + day-extras.
