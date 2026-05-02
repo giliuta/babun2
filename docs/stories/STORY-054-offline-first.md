@@ -1,202 +1,214 @@
 # STORY-054 — Offline-first
 
-**Status:** `todo` — planning + G0 inventory done, awaiting `ok` and **STORY-053b close** before G1.
+**Status:** `in-progress (G1 in review)` — G0 inventory + decisions locked 2026-05-02. G1 cache layer drafted, awaiting code review.
 **Estimate:** 3–4 days.
-**Dependencies:** STORY-053b must be fully shipped + closed first per user order.
+**Dependencies:** STORY-053b autonomous portion shipped (v365). G5 iPhone push test still open but orthogonal.
 **Blocks:** STORY-055+ (any feature relying on offline UX as a baseline).
 
 ## Why
 
 Today every page in Babun is a thin server-rendered shell that falls over the moment connectivity drops. A master in a basement has nothing. With Supabase Realtime + the data already streaming through `useRealtimeTenantSync`, mirroring it into IndexedDB and queuing writes during disconnects gives us:
-- Instant repeat-page loads (read from IDB while waiting on Supabase).
-- Continued work in the field on flaky LTE.
-- A path toward "Babun feels native" without going actual native.
 
-## G0 — Inventory (done 2026-04-30)
+- Instant repeat-page loads (read from IDB while waiting on Supabase)
+- Continued work in the field on flaky LTE
+- A path toward "Babun feels native" without going actual native
+
+## G0 — Inventory + decisions (done 2026-05-02)
+
+### What exists today
 
 | Concern | State | Verdict |
 |---|---|---|
-| IndexedDB wrapper | `idb` (^8.0.3) **already in `apps/web/package.json` deps** | Use it. **No Dexie** — drop original brief on this point. |
-| Existing IndexedDB usage in app code | None | Greenfield |
-| Service worker cache | Network-first for HTML, cache-first for static. Already in `sw.js`. No background sync. | Keep, add background sync handler |
-| Repository pattern | `apps/web/src/lib/clients.ts`, `appointments.ts`, etc. — all hit Supabase directly via `getSupabaseBrowser()` | These are the seam: every write goes through them; that's where we wedge in the cache + queue layer |
-| `online`/`offline` events handled? | No | Add in `DashboardClientLayout` |
-| Realtime sync | `useRealtimeTenantSync` exists (STORY-048), 10 tables already streaming | Becomes the cache invalidator: realtime row → write to IDB cache |
+| `idb` ^8.0.3 | Already in `apps/web/package.json` deps | Use directly. **No Dexie.** |
+| Existing IndexedDB usage | None in app code | Greenfield |
+| Service worker | `babun-v365` with precache + network-first HTML + cache-first static. **No `sync` handler.** | Add `sync` event in G5 |
+| Realtime sync | `useRealtimeTenantSync<TRow>` (STORY-048) — generic per-(tenant,table) channel with reconnect resync | Wedge cache writes into the existing handler closures; reuse `onResync()` to drain the queue |
+| Repository pattern | `packages/shared/src/db/repositories/{clients,appointments,...}.ts` | Wrap these — they're the seam |
+| `online`/`offline` event handling | None in codebase | Add `lib/network.ts` in G2 |
+| Toast | `UndoToast.tsx` (delete-undo only) | Add a tiny generic `<Toast>` for conflict warnings |
+| `services` table on Supabase | Doesn't exist — services are a JSONB column on `appointments` and a localStorage catalog | **Drop from v1 cache scope.** See decision #1 below. |
+| `client_tags.updated_at` | Doesn't exist — table has `(id, tenant_id, name, color)` only | **Full re-pull on each sync** (cheap; <100 rows/tenant). See #2. |
+| `version` column for conflict detection | Doesn't exist on any cached table | Use `updated_at` (server-set via trigger) for last-write-wins. **No schema migration.** See #3. |
 
-## G1 — IndexedDB schema + helpers
+### Locked decisions
 
-Build on the already-installed `idb` (no Dexie, no new dep).
+1. **Cache scope v1: `clients`, `appointments`, `client_tags` only.** Services catalog migration to Supabase is parked under STORY-039b (or a future mini-story); until then services stay in localStorage and are NOT mirrored to IDB.
+2. **`client_tags` syncs via full re-pull.** `syncFromRemote('tags')` ignores the `since` parameter — unconditional full fetch. Tags are <100 rows; sub-ms cost.
+3. **Conflict detection uses `updated_at`, not a `version` column.** Replay does `UPDATE WHERE id=$1 AND updated_at=$2`. 0 rows affected → conflict → toast warning + retry without the `updated_at` clause (force last-write-wins). 1 row → success. `updated_at` is set server-side via existing triggers (no client clock skew). No DB migration.
+4. **Reconnect handling reuses `useRealtimeTenantSync.onResync()`** — already fires on reconnect. We hook cache-freshness verification + queue drain there. Don't add a duplicate `online` listener.
+5. **`appointments.master_id` is `text` legacy.** Cache as-is. IndexedDB schema-upgrade hook ready to migrate to UUID when STORY-039b lands.
+6. **Pre-Supabase localStorage repos under `packages/shared/local/*` are NOT touched** in this story. Cache wrapping operates only on `packages/shared/db/repositories/*`. Existing dual-source is documented as tech debt for future cleanup.
 
-New module: `babun-crm/packages/shared/src/db/cache/index.ts`.
+## G1 — IndexedDB schema + cache layer
+
+Lives at `packages/shared/src/db/cache/` (new directory).
+
+### Schema (Dexie-style, on raw `idb`)
 
 ```ts
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+DB_NAME = 'babun-cache'
+DB_VERSION = 1
 
-interface BabunCacheDB extends DBSchema {
-  clients: { key: string; value: ClientRow; indexes: { tenant_id: string } };
-  appointments: { key: string; value: AppointmentRow; indexes: { tenant_id: string; date: string } };
-  tags: { key: string; value: TagRow; indexes: { tenant_id: string } };
-  services: { key: string; value: ServiceRow; indexes: { tenant_id: string } };
-  sync_queue: { key: number; value: QueuedOp; indexes: { ts: number } };  // autoIncrement key
-  meta: { key: string; value: { value: string; updated_at: number } };    // last_sync_ts per table
-}
-
-const DB_NAME = 'babun-cache';
-const DB_VERSION = 1;
+stores:
+  clients         { keyPath: 'id', indexes: [tenant_id, updated_at, [tenant_id, updated_at]] }
+  appointments    { keyPath: 'id', indexes: [tenant_id, date, [tenant_id, date], [tenant_id, updated_at]] }
+  tags            { keyPath: 'id', indexes: [tenant_id] }
+  sync_queue      { keyPath: 'id', autoIncrement, indexes: [created_at] }
+  sync_meta       { keyPath: 'key' }                 // { key: 'last_full_sync_clients', value: ts }
 ```
 
-**Schema scope (v1):** `clients`, `appointments`, `tags`, `services`, `sync_queue`, `meta`. Not all 10 realtime tables — start with the heavy-read ones the master actually opens in the field. Schedule, finances, etc. stay online-only in v1.
+Compound indexes give us cheap "all clients for tenant X sorted by updated_at" without scan-and-filter.
 
-**`QueuedOp` shape:**
+### Public API (the only thing callers should import)
+
+```ts
+// Singleton — opens once, survives across the app.
+getCache(): Promise<IDBPDatabase<BabunCacheDB>>
+
+// READ
+cacheRead<T>(table: 'clients' | 'appointments' | 'tags', tenantId: string): Promise<T[]>
+
+// WRITE-THROUGH (one row at a time; bulk is for bootstraps below)
+cacheUpsert<T extends { id: string }>(table, row): Promise<void>
+cacheDelete(table, id: string): Promise<void>
+
+// BULK (used by bootstrap + onResync)
+cacheBulkUpsert<T extends { id: string }>(table, rows: T[]): Promise<void>
+cacheClearTenant(table, tenantId: string): Promise<void>     // drop pre-resync
+cacheClearAll(): Promise<void>                                 // drop on logout
+
+// QUEUE (G2 will use these)
+enqueueOp(op: Omit<QueuedOp, 'id' | 'created_at' | 'attempts'>): Promise<void>
+dequeueAll(): Promise<QueuedOp[]>
+removeOp(id: number): Promise<void>
+bumpAttempt(id: number, error: string): Promise<void>
+
+// META
+readMeta(key: string): Promise<string | null>
+writeMeta(key: string, value: string): Promise<void>
+```
+
+### `QueuedOp` shape
+
 ```ts
 type QueuedOp = {
-  id: number;             // autoIncrement
-  ts: number;             // ms epoch
-  table: 'clients' | 'appointments' | 'tags' | 'services';
+  id: number;                                  // autoIncrement
+  created_at: number;                          // ms epoch (replay order)
+  table: 'clients' | 'appointments' | 'tags';
   op: 'insert' | 'update' | 'delete';
-  row_id: string;         // local UUID (we generate UUIDs client-side)
-  payload: Record<string, unknown>;  // what to write
-  attempts: number;       // retry count for backoff
-  last_error?: string;    // last failure message
+  row_id: string;                              // client-generated UUID
+  payload: Record<string, unknown>;            // full row for insert/update; minimal for delete
+  expected_updated_at: string | null;          // for conflict detection on UPDATE; null on INSERT/DELETE
+  attempts: number;
+  last_error?: string;
 };
 ```
 
-**Public surface (`packages/shared/src/db/cache/index.ts`):**
-- `getCache(): Promise<IDBPDatabase<BabunCacheDB>>` — singleton, opens once.
-- `cacheRead<T>(table, filter): Promise<T[]>` — reads from IDB, returns `[]` if empty.
-- `cacheWrite<T>(table, row): Promise<void>` — upsert one row.
-- `cacheDelete(table, id): Promise<void>` — remove by primary key.
-- `enqueueOp(op: Omit<QueuedOp, 'id' | 'ts' | 'attempts'>): Promise<void>` — push to `sync_queue`.
-- `dequeueAll(): Promise<QueuedOp[]>` — drain in `ts ASC` order.
-- `removeOp(id: number): Promise<void>` — drop one op after success.
-- `bumpAttempt(id: number, error: string): Promise<void>` — update on failure.
+### Cross-tenant safety
 
-## G2 — Write-through cache layer
+`cacheClearAll()` runs on `auth.signOut()` — every store dropped. `getCache()` is keyed by the IndexedDB DB name only (no tenant in DB name) so a single user with multiple tenants works without stomping; the per-row `tenant_id` index keeps reads filtered.
 
-Wrap existing repository calls with a thin adapter.
+## G2 — Sync queue replay
 
-### Strategy
-- **Read path**: Repositories optionally accept `{ preferCache?: boolean }`. Lists default to `preferCache: true` — read from IDB first, kick off a background revalidate from Supabase, swap on completion (SWR pattern).
-- **Write path**: Every `createX/updateX/deleteX` in `lib/clients.ts` etc. becomes:
+`apps/web/src/lib/sync/replayer.ts` (new):
+
+- Hooks into `lib/network.ts` (`useIsOnline`) — fires immediately on `onLine && queue.length > 0`
+- Also hooks `useRealtimeTenantSync.onResync()` so a Supabase reconnect triggers verification + drain
+- Replay loop:
   ```
-  if (online) { write to Supabase; on success → cacheWrite } else { cacheWrite + enqueueOp }
+  ops = dequeueAll() sorted by created_at ASC
+  for op in ops:
+    try: repository call (insert/update/delete) with expected_updated_at clause
+    if 0 rows affected on UPDATE → conflict toast + retry without expected_updated_at
+    on success → removeOp + emit 'babun:cache-changed'
+    on retryable error (5xx, network) → bumpAttempt; if attempts < 3 → exponential backoff (1s, 5s, 30s)
+    on attempts >= 3 → leave in queue with last_error; show "1 запись с ошибкой синхронизации"
   ```
-  Always cacheWrite first (optimistic UI) + always set the row's `id` client-side via `crypto.randomUUID()` so writes don't depend on server-generated PKs.
-- **Realtime sync** (already in place via `useRealtimeTenantSync`): on each `INSERT`/`UPDATE`/`DELETE` payload from Postgres, call `cacheWrite`/`cacheDelete`. This keeps IDB warm for offline reads automatically while the user is online.
+- Mounted as a hook in `DashboardClientLayout`
 
-### Files touched
-- `apps/web/src/lib/clients.ts` — add cache wrapping in `createClient`, `updateClient`, `deleteClient`, `listClients`.
-- `apps/web/src/lib/appointments.ts` — same.
-- `apps/web/src/lib/tags.ts` — same.
-- `apps/web/src/lib/services.ts` — same.
-- `apps/web/src/lib/realtime/useRealtimeTenantSync.ts` — write through to cache on realtime payloads.
+## G3 — Conflict resolution
 
-## G3 — Sync queue replay
+Per decision #3:
+- Repository update path adds optional `expected_updated_at` parameter
+- Generates `WHERE id = $1 AND updated_at = $2`
+- Returns row count via `.select('id').single()` after update — 0 ⇒ conflict
+- On conflict: replayer issues second UPDATE without the updated_at filter, fires `track('sync.conflict', { table })` (PostHog stub for STORY-044b later) and shows toast `Запись была обновлена на другом устройстве. Применены ваши изменения.`
 
-New module `apps/web/src/lib/sync/replayer.ts`:
-- `useSyncReplayer()` hook mounted in `DashboardClientLayout`.
-- Effect:
-  ```
-  online ? immediate replay : wait for online event
-  on online → dequeueAll → for each op (in ts ASC order):
-    try repository call
-      success → removeOp + emit 'babun:cache-changed'
-      4xx (client error / RLS) → bumpAttempt; if attempts >= 3 → removeOp + log + show toast
-      5xx / network → break loop, retry on next online tick
-  ```
-- Backoff: between batches, 200ms jitter. Don't drown Supabase.
+## G4 — UI indicators
 
-## G4 — Conflict resolution
+Three new components under `apps/web/src/components/offline/`:
+- `OfflineIndicator.tsx` — fixed bottom strip, above `BottomTabBar`. Shows `Без сети — работаешь в локальном режиме` when `!navigator.onLine`. Auto-hides on reconnect.
+- `SyncQueueBadge.tsx` — sidebar pill `↑ N` when queue has entries; `↑ N ⚠` when any have errors. Click → opens panel.
+- `SyncQueuePanel.tsx` — modal listing queued ops with timestamps, retry button per op, and `Очистить очередь` (confirm) for emergency cleanup.
+- Plus `lib/network.ts` (`useIsOnline()` hook + `subscribeNetwork(cb)` for non-React listeners).
 
-Server-side approach: add `version` column (int) to `clients`, `appointments`, `tags`, `services`. Default `1`. UPDATE statement includes `WHERE id = $1 AND version = $2 RETURNING version + 1`. If 0 rows updated → conflict.
+## G5 — Background sync
 
-Migration: `supabase/migrations/20260502_001_row_version.sql`.
+`sw.js` adds `'sync'` event handler:
+- On `event.tag === 'babun-sync-queue'` → `notifyClients('replay-queue')` to wake any open client; if no clients → optional fetch to `/api/noop` to keep the worker alive briefly (Android Chrome standard pattern)
+- Client side: `registration.sync.register('babun-sync-queue')` after enqueueing
+- iOS: BackgroundSync **not supported**. Documented + accept — only foreground replay for iOS users (already handled by the `online` event listener)
 
-Client behavior on conflict:
-- `last-write-wins` is **the default** (per user brief). Replayer overwrites server with our version, bumps `version` to server-current+1.
-- Toast: `Запись была обновлена на другом устройстве. Применены ваши изменения.`
-- **No diff dialog in v1** (user marked it "optionally"). Defer.
-- Log conflict via PostHog if STORY-044b lands first: `track('sync.conflict', { table, op })`. If 044b not landed yet — `console.warn` + structured log only.
+## G6 — Race conditions documented
 
-## G5 — UI indicators
+- **Realtime payload during replay** — `useRealtimeTenantSync.onUpdate(row)` checks `sync_queue` for a pending op on the same `row_id`; if pending → skip the realtime apply (the queued local op wins; replayer will eventually overwrite the server then re-fetch).
+- **2 tabs, both offline, edit same row** — last-write-wins by `created_at` of the queue op. Acceptable.
+- **iOS PWA storage eviction (~7 days idle)** — IDB cleared by OS. Document. Reload triggers realtime → cache rebuild.
 
-- **Bottom banner offline**: `apps/web/src/components/sync/OfflineBanner.tsx` — fixed bottom, above `BottomTabBar`, `bg-[#3C3C43]/95 text-white text-[13px]` strip showing `Без сети — изменения сохраняются локально и отправятся при подключении.`. Mounted in `DashboardClientLayout`. Listens to `online`/`offline` window events + initial `navigator.onLine`.
-- **Sidebar pending badge**: small chip on the avatar / bottom-tab "Ещё" button: `↑ N` when `sync_queue` has entries. Updates on `babun:cache-changed` event from G3.
-- **Sync spinner**: when replayer is actively flushing, the chip swaps to a spinner icon for the duration. Two seconds minimum visibility so it's not a flash.
+## G7 — Smoke (Playwright via MCP)
 
-## G6 — Background sync (Service Worker)
+1. Disconnect network → create client → toast `Сохранено локально` → reconnect → row appears in Supabase
+2. Disconnect → INSERT + UPDATE + DELETE on same client → reconnect → all 3 ops replay in order; final state matches expected
+3. Conflict: open in 2 tabs, tab A offline-edit, tab B online-edit → A reconnects → toast warning, A's value wins
+4. Cache survives reload (offline) — list still renders
+5. Logout → all IDB stores cleared
+6. New device login → realtime triggers `cacheBulkUpsert` populating IDB
 
-Add to `sw.js`:
-```js
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'babun-sync-queue') {
-    event.waitUntil(notifyClients('replay-queue'));
-  }
-});
-```
-- `notifyClients` iterates `clients.matchAll()` and posts a message; if no clients → fall back to `fetch('/api/sync/replay-trigger')` which simply hits a no-op endpoint to wake a server route (Vercel cold starts on demand otherwise can't get write to DB without a client).
-- Client side: when online → `registration.sync.register('babun-sync-queue')`. On Android Chrome this fires after reconnect even if Babun is closed.
-- iOS: Background Sync **not supported**. Document and accept — replay only on next foreground open. iOS users get the same experience as today, just with cache survival.
+Not testable in headless (deferred to user device):
+- Real Service Worker background sync on Android Chrome (PWA closed → reconnect → SW fires `sync`)
+- iOS PWA online/offline transitions with realistic LTE flap
 
-## G7 — Smoke (7/7)
+## G8 — Bump v366-offline-first + push
 
-1. **Disconnect → create client** → toast `Сохранено локально`. IDB has the row. `sync_queue` has one INSERT op.
-2. **Reconnect → automatic replay** → row appears in Supabase via Network panel. Sidebar badge clears. Toast `Изменения отправлены`.
-3. **Disconnect → create + edit + delete sequence** → Reconnect → replay in correct order; final state in Supabase = deleted (op 3 wins). Queue is empty.
-4. **Conflict scenario** — Open device A, go offline, edit client. On device B (online), edit same client. Reconnect A → A's version overwrites; A sees toast `Запись была обновлена на другом устройстве. Применены ваши изменения.`
-5. **IDB cache survives reload** — disconnect, reload page → clients list still renders from IDB. Add a row offline → reload still offline → row persists.
-6. **New device login → bulk sync** — log in on a fresh browser → `useRealtimeTenantSync` performs initial fetch from Supabase, populates IDB, lists render.
-7. **Background sync (Android only)** — close PWA, kill network, reopen → background sync fires queue replay on next reconnect even before user opens the app. Verify via Supabase Logs.
-
-## G8 — Bump v365-offline-first + push
-
-- `BUILD_VERSION = "v365-offline-first"`
-- `CACHE_VERSION = "babun-v365"`
+- `BUILD_VERSION = "v366-offline-first"`
+- `CACHE_VERSION = "babun-v366"`
 
 ## G9 — Production verify
 
-Repeat smoke 1, 2, 3, 5 against prod (the core offline → online round-trip). 4 (conflict) needs two devices — defer to manual verification when convenient.
+After Vercel deploy:
+- Offline mode works on prod
+- Sync queue flushes after reconnect
+- Conflict toast appears
 
-## Acceptance criteria
+## Out of scope (parked)
 
-| # | Criterion | Verified by |
-|---|---|---|
-| 1 | Reads from IDB when offline | G7 step 5 |
-| 2 | Writes queued + replayed on reconnect | G7 steps 1, 2, 3 |
-| 3 | Last-write-wins conflict + toast | G7 step 4 |
-| 4 | UI indicators for offline state + pending count | manual visual + G7 |
-| 5 | Background sync on Android Chrome | G7 step 7 |
-| 6 | iOS graceful (no errors, just no background sync) | manual UA test |
-| 7 | Existing online flows unchanged | typecheck + STORY-045/048 smoke regression |
+- Schedule / finances / day_cities / day_extras / recurring_reminders / tenant_members / invitations offline (desktop usage; revisit when masters report needing them)
+- Conflict diff dialog `Save mine / Discard`
+- Per-row offline preference UI
+- Manual cache clear button in Settings (only logout cleanup in v1)
+- Multi-device cache invalidation strategy beyond realtime (eventually consistent is enough)
 
-## Out of scope
+## Tech debt acknowledged (not fixed in this story)
 
-- E2E encryption of local data (CRM, not a vault — overkill)
-- WebSocket realtime in offline mode (impossible by definition)
-- Sync between devices that haven't been online together (no architecture)
-- Schedule + finances tables in cache (online-only in v1; revisit when masters report needing them)
-- Conflict diff dialog (deferred from G4 per brief — last-write-wins is enough for v1)
+- Pre-Supabase localStorage repos under `packages/shared/local/*` still exist alongside `packages/shared/db/repositories/*`. Dual-source. Cleanup tracked separately — most likely as part of the masters subroute redesign.
+- `services` is not a top-level Supabase table. Catalog migration parked.
+- `client_tags` lacks `updated_at`. Acceptable given full-pull strategy.
 
-## Risks
+## Lessons applied from STORY-053b
 
-- **IDB quota exhaustion**: Chrome typically gives ~60% of disk. With 10k clients + 50k appointments per tenant, comfortably fits. Add a `cache.evictOldest(table, keepN)` helper for paranoia, run nightly via SW alarm.
-- **Schema migrations vs DB_VERSION**: every change to the `BabunCacheDB` interface bumps `DB_VERSION`. Forgetting → silent breakage. Mitigate with a `cache:version` constant in `packages/shared/src/db/cache/index.ts` and a unit test that fails if the interface hash changes without a version bump.
-- **Race with Supabase Realtime**: realtime payload arrives during replay → potential duplicate writes. Mitigate by checking `version` before applying realtime payload to IDB if a queued op for the same row exists.
-- **`navigator.onLine` lies**: returns `true` even when DNS is broken. Mitigate by treating any 5xx/network error in repository call as "offline" and falling back to queue, regardless of `navigator.onLine`.
-- **iOS PWA storage eviction**: iOS evicts IDB after 7 days of non-use. Document. We can't prevent. Reload triggers Realtime → IDB rebuild.
-- **Optimistic UI showing un-replayed deletes**: a deleted-locally row is gone from IDB; if the queue op fails permanently we've lost the row from view. Mitigate with `dropped_ops` log table in IDB so failed ops surface in a "Не удалось отправить" admin view (defer the UI; just keep the log).
+- Don't trust `WITH SCHEMA` clauses on extensions (pg_net, pg_cron, etc.) — schema is hardcoded.
+- Service-role bypass on RLS tables needs explicit policy after the JWT-Signing-Keys migration.
+- Edge Function Secrets ≠ Postgres Vault.
+- Schema changes outside agreed scope require STOP + ask.
 
-## Migration sequence (ordered)
+## Checkpoint flow
 
-1. `20260502_001_row_version.sql` — add `version int default 1` to 4 tables + create the conflict-detection function.
-2. Code changes (no breaking SQL).
-3. Bump versions, push.
-4. Backfill: existing rows get `version = 1` automatically via the default.
-
-## Owner one-shots
-
-None for STORY-054. All keys/secrets done as part of normal Supabase access.
-
-## Sequencing reminder
-
-**Do NOT start STORY-054 until STORY-053b is closed and verified on prod.** Two large concurrent migrations + cache layer + push pipeline = compounded debug surface area.
+Same as STORY-053b:
+- G0 → reported, decisions locked
+- G1 cache layer code → review BEFORE applying
+- G2 sync queue → review queue logic
+- G3 conflict resolution → confirm `updated_at` round-trip
+- G4–G6 UI + sw.js + race-condition guards → autonomous
+- G7 smoke → review pass/fail
+- G8 push v366 → my OK before production deploy
+- G9 production verify → final report
