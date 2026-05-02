@@ -1,6 +1,6 @@
 # STORY-053b — PWA mobile polish
 
-**Status:** `todo` — planning + G0 inventory done, awaiting `ok` before G1.
+**Status:** `done — pending G5 device test` — autonomous portion (G1–G4 + G7–G8) shipped as `v365-pwa-polish` on 2026-05-02. Final acceptance gate is the iPhone push-receive test (user-side; cannot be automated).
 **Estimate:** 3–4 days.
 **Dependencies:** none. Builds on existing PWA + auth + RLS.
 **Blocks:** STORY-054 (offline-first) — must close this story fully first per user order.
