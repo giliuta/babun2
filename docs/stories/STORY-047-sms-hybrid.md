@@ -248,7 +248,21 @@ Real test SMS sending — gated on user setup of Babun's Twilio account.
 3. After real creds + user OK → flip `app_settings.sms_enabled='on'`
 4. AirFix BYOK Twilio account (later, after STORY-052 lifetime grant)
 
-## Backlog discovered during this story
+## Backlog + tech debt discovered during this story
+
+- **Webhook unknown-MessageSid logging.** Today the route logs a
+  `console.warn`. Future: structured logging + a security-review
+  surface in case someone starts brute-forcing the MessageSid space
+  to map out the system. Not a v1 blocker; the AccountSid + HMAC
+  gates already prevent any actual mutation from a forged hit.
+- **Type-cast hack on `getSupabaseService()` for the SMS tables.**
+  `database.types.ts` was last regenerated before STORY-047 G1, so
+  `tenant_sms_config` + `sms_messages` aren't in the typed schema
+  yet. The webhook route uses `supabase as any` + post-query type
+  assertions. Schedule a `npm run db:types` regen as STORY-047b
+  cleanup along with the audit of public-schema service_role grants.
+
+
 
 - **Audit `public` schema service_role grants.** Decide a global
   pattern (read-only default + opt-in writes per table). Today the
