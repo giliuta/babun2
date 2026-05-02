@@ -31,6 +31,26 @@ Until then `LandingImage` falls back to a styled blue block — visible on prod 
 
 ---
 
+## STORY-053c — Wire PullToRefresh into list pages
+
+**Priority:** low (component is shipped and tested in isolation; absence is not user-visible regression)
+**Origin:** STORY-053b G4 (2026-05-02) — `components/ui/PullToRefresh.tsx` shipped as parking-lot drop-in.
+**Estimate:** 0.5 day.
+
+Two pages worth wiring:
+
+1. `/dashboard/clients` — refactor the existing `<div ref={scrollRef} className="flex-1 overflow-y-auto">` so PullToRefresh becomes the scrollable container, threading `scrollRef` to PullToRefresh's outer div. Trigger `reloadClients()` on commit.
+2. `/dashboard` (calendar) — pull-down refreshes appointments from Supabase realtime cache + re-runs initial-load fetches. May need a different trigger function; check before wiring.
+
+Don't wire on settings / finances / reports until masters use the gesture there. Pull-to-refresh on a non-list page feels like it's about to do something it can't.
+
+Smoke:
+- Pull down at top → spinner appears, `reloadClients()` fires, list updates
+- Pull down mid-scroll → no spinner, regular page scroll wins
+- Swipe-left on a row mid-pull → SwipeableRow wins (axis lock in PullToRefresh defers correctly)
+
+---
+
 ## STORY-053 — Dashboard contrast cleanup
 
 **Priority:** medium (a11y compliance, no user complaint yet)

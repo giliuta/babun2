@@ -31,7 +31,7 @@ const DISMISS_KEY = "babun-pwa-install-dismissed";
 const SESSION_KEY = "babun-session-count";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-type Visibility = "hidden" | "ios" | "android" | "unknown";
+type Visibility = "hidden" | "iphone" | "ipad" | "android" | "unknown";
 
 export function InstallPrompt() {
   const [vis, setVis] = useState<Visibility>("hidden");
@@ -42,7 +42,7 @@ export function InstallPrompt() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const { isStandalone, platform } = detectPlatform();
+    const { isStandalone, platform, isIPad } = detectPlatform();
     if (isStandalone) return;
 
     const sessions = readSessionCount();
@@ -52,7 +52,9 @@ export function InstallPrompt() {
     if (dismissedAt && Date.now() - dismissedAt < SEVEN_DAYS_MS) return;
 
     if (platform === "ios") {
-      setVis("ios");
+      // Share button location differs between iPhone (bottom) and
+      // iPad (top-right). Keep them as separate visibility states.
+      setVis(isIPad ? "ipad" : "iphone");
       return;
     }
 
@@ -137,7 +139,7 @@ export function InstallPrompt() {
           </div>
         </div>
 
-        {vis === "ios" && (
+        {vis === "iphone" && (
           <ol className="mt-5 space-y-3">
             <Step
               n={1}
@@ -148,6 +150,25 @@ export function InstallPrompt() {
                     «Поделиться»
                   </span>{" "}
                   внизу Safari
+                </>
+              }
+            />
+            <Step n={2} text="Найди «На главный экран» в списке" />
+            <Step n={3} text="Нажми «Добавить»" />
+          </ol>
+        )}
+
+        {vis === "ipad" && (
+          <ol className="mt-5 space-y-3">
+            <Step
+              n={1}
+              text={
+                <>
+                  Тапни кнопку <ShareIcon />{" "}
+                  <span className="text-[var(--label-secondary)]">
+                    «Поделиться»
+                  </span>{" "}
+                  в правом верхнем углу Safari
                 </>
               }
             />

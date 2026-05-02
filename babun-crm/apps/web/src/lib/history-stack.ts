@@ -36,12 +36,29 @@ function ensureListener(): void {
   listenerAttached = true;
 
   window.addEventListener("popstate", (ev: PopStateEvent) => {
-    if (stack.length === 0) return;
+    // Edge case — page reload while a modal was open. Our pushState
+    // entries are persisted in the browser's session history, but the
+    // in-memory `stack` is empty (modules re-initialised). Without this
+    // guard, hardware Back walks the user backward through "ghost"
+    // entries that no longer have handlers; nothing closes, nothing
+    // navigates, app feels stuck. Detect by looking at the popped
+    // state — if it carries `babunModal` and we have no live handler,
+    // silent-skip backward until we land on a non-modal entry.
+    const evState = (ev.state ?? null) as BabunHistoryState | null;
+    if (stack.length === 0) {
+      if (evState && evState[STATE_KEY]) {
+        // Still on a stale modal entry → keep walking back. The browser
+        // will fire another popstate; that one we can decide about then.
+        try {
+          window.history.back();
+        } catch {
+          // ignore — already at the bottom of history.
+        }
+      }
+      return;
+    }
 
-    // The popped state has *no* babunModal field — it's whatever the
-    // app had before our entry. (After we pushState'd, history sat at
-    // our marker; pressing back goes one step back, so the popstate
-    // delivers the previous-state object.) Pop our top handler.
+    // Normal path: pop the top handler and run its onPop.
     const top = stack[stack.length - 1];
     stack = stack.slice(0, -1);
 
@@ -51,12 +68,6 @@ function ensureListener(): void {
       // Don't let a buggy handler block other modal closes.
       console.error("history-stack onPop failed", err);
     }
-
-    // Stop here — let the browser's natural back finish the popstate.
-    // We don't pushState again, so the history line is short by exactly
-    // one entry compared to before the modal opened. That's fine; it's
-    // identical to the state before registerModalBack ran.
-    void ev;
   });
 }
 

@@ -10,6 +10,11 @@ export interface PlatformInfo {
   isStandalone: boolean;
   /** Major version number on iOS (e.g. 16, 17, 18) or null. */
   iosMajor: number | null;
+  /** True for iPad specifically. Modern iPadOS reports as
+   *  "Macintosh; Intel Mac OS X" with maxTouchPoints>1; pure UA
+   *  matching gets fooled. Used to switch the install-prompt copy
+   *  (Share button location differs between iPhone and iPad). */
+  isIPad: boolean;
   /** Web Push capability — needs SW + PushManager. On iOS it also
    *  requires standalone mode AND iOS >= 16.4. */
   canSubscribePush: boolean;
@@ -25,6 +30,7 @@ const SSR_DEFAULT: PlatformInfo = {
   platform: "other",
   isStandalone: false,
   iosMajor: null,
+  isIPad: false,
   canSubscribePush: false,
   canShowInstallPrompt: false,
   deviceLabel: "",
@@ -36,7 +42,18 @@ export function detectPlatform(): PlatformInfo {
   }
 
   const ua = navigator.userAgent || "";
-  const isIos = /iPad|iPhone|iPod/.test(ua) && !("MSStream" in window);
+  // iPadOS 13+ ships UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X ...)"
+  // making it look like a desktop Mac. Detect via maxTouchPoints>1
+  // *combined with Macintosh* (NOT just /Mac/, because iPhone UAs say
+  // "like Mac OS X" and would false-positive). Real iPad UA still
+  // includes the "iPad" token; cover both shapes.
+  const maxTouch = (navigator as { maxTouchPoints?: number }).maxTouchPoints ?? 0;
+  const isIPad =
+    /iPad/.test(ua) ||
+    (/Macintosh/.test(ua) && maxTouch > 1);
+  const isIos =
+    isIPad ||
+    (/iPhone|iPod/.test(ua) && !("MSStream" in window));
   const isAndroid = /Android/.test(ua);
   const platform: Platform = isIos
     ? "ios"
@@ -105,6 +122,7 @@ export function detectPlatform(): PlatformInfo {
     platform,
     isStandalone,
     iosMajor,
+    isIPad,
     canSubscribePush,
     canShowInstallPrompt,
     deviceLabel,
