@@ -50,6 +50,7 @@ import { isOnline } from "@/lib/sync/network";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import SheetShell from "@/components/ui/SheetShell";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { labelForOp, relativeTime, pluralizeOps } from "@/lib/sync/format";
 
 interface Props {
   onClose: () => void;
@@ -162,7 +163,7 @@ function OpRow({
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-semibold text-[var(--label)] truncate">
-            {labelFor(op)}
+            {labelForOp(op)}
           </div>
           <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
             {relativeTime(op.created_at)} · попытка {op.attempts}/3
@@ -194,39 +195,3 @@ function OpRow({
   );
 }
 
-function labelFor(op: QueuedOp): string {
-  const noun =
-    op.table === "clients"
-      ? "Клиент"
-      : op.table === "appointments"
-        ? "Запись"
-        : "Тег";
-  const verb =
-    op.op === "insert"
-      ? "создание"
-      : op.op === "update"
-        ? "обновление"
-        : "удаление";
-  return `${noun} / ${verb}`;
-}
-
-function relativeTime(ms: number): string {
-  const diff = Math.max(0, Date.now() - ms);
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "только что";
-  if (mins < 60) return `${mins} мин назад`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} ч назад`;
-  const days = Math.floor(hrs / 24);
-  return `${days} дн назад`;
-}
-
-function pluralizeOps(n: number): string {
-  // RU: 1 операция, 2-4 операции, 5+ операций.
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return "операция";
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
-    return "операции";
-  return "операций";
-}

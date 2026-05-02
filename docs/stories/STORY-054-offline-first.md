@@ -306,6 +306,20 @@ After Vercel deploy:
 - Manual cache clear button in Settings (only logout cleanup in v1)
 - Multi-device cache invalidation strategy beyond realtime (eventually consistent is enough)
 
+## Follow-ups discovered during verify (logged for backlog)
+
+- **STORY-046d — Form autosave debouncing.** `/dashboard/clients/[id]`
+  profile inputs trigger an UPSERT on every keystroke. A single rename
+  enqueued 7 update ops during G4 verify. The sync layer drains them
+  correctly via the conflict-force-update path, but the inefficiency is
+  visible: 7 PostgREST calls + 7 cache rewrites per word the user types.
+  Fix is debounce-on-change at the form layer (300–500 ms), independent
+  of sync. Not a STORY-054 concern.
+- **STORY-054a — SyncQueuePanel state persistence.** Addressed in G7
+  by lifting `panelOpen` into DashboardClientLayout so the panel
+  survives if `OfflineIndicator` returns null mid-interaction. Closed
+  before opening as a separate story; left here for the trail.
+
 ## Tech debt acknowledged (not fixed in this story)
 
 - Pre-Supabase localStorage repos under `packages/shared/local/*` still exist alongside `packages/shared/db/repositories/*`. Dual-source. Cleanup tracked separately — most likely as part of the masters subroute redesign.

@@ -8,8 +8,14 @@
 //      «Синхронизация: N» while count > 0. Blue pill, tappable to
 //      open the SyncQueuePanel for inspection / manual retry.
 //
-// Online + empty queue → render nothing. The pill is intentionally
-// chrome-less in the happy path so the dashboard stays calm.
+// Online + empty queue → pill renders null (chrome-less happy path).
+//
+// G7 — `panelOpen` lives at the parent (DashboardClientLayout) so
+// the SyncQueuePanel survives independently of the pill's visibility.
+// Without this, dropping the queue depth to 0 mid-interaction would
+// unmount the indicator AND the open panel along with it. The
+// indicator only fires `onOpenPanel` on tap; rendering of the panel
+// itself is the parent's job.
 //
 // Z-index: 55 — sits above the static layout (BottomTabBar @ 40,
 // EdgeGuards @ 50) but BELOW any modal sheet (70+) and below the
@@ -22,9 +28,12 @@
 import { useEffect, useState } from "react";
 import { useIsOnline } from "@/lib/sync/network";
 import { useQueueDepth } from "@/lib/sync/queue-events";
-import SyncQueuePanel from "./SyncQueuePanel";
 
-export default function OfflineIndicator() {
+interface Props {
+  onOpenPanel: () => void;
+}
+
+export default function OfflineIndicator({ onOpenPanel }: Props) {
   // G4b — defer all client-only state (navigator.onLine, IDB queue
   // depth) until after hydration. Returning null on the server +
   // first client render keeps the SSR HTML and the first client
@@ -42,7 +51,6 @@ export default function OfflineIndicator() {
 
   const online = useIsOnline();
   const depth = useQueueDepth();
-  const [panelOpen, setPanelOpen] = useState(false);
 
   if (!mounted) return null;
 
@@ -60,33 +68,30 @@ export default function OfflineIndicator() {
     : "bg-[var(--system-blue)] text-white active:opacity-70";
 
   return (
-    <>
-      <div
-        role="status"
-        aria-live="polite"
-        className="fixed left-1/2 -translate-x-1/2 z-[55] pointer-events-none"
-        style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 8px)",
-        }}
-      >
-        {tappable ? (
-          <button
-            type="button"
-            onClick={() => setPanelOpen(true)}
-            className={`${pillBase} ${pillStyle}`}
-          >
-            <Dot />
-            {label}
-          </button>
-        ) : (
-          <div className={`${pillBase} ${pillStyle}`}>
-            <Dot dim />
-            {label}
-          </div>
-        )}
-      </div>
-      {panelOpen && <SyncQueuePanel onClose={() => setPanelOpen(false)} />}
-    </>
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed left-1/2 -translate-x-1/2 z-[55] pointer-events-none"
+      style={{
+        top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+      }}
+    >
+      {tappable ? (
+        <button
+          type="button"
+          onClick={onOpenPanel}
+          className={`${pillBase} ${pillStyle}`}
+        >
+          <Dot />
+          {label}
+        </button>
+      ) : (
+        <div className={`${pillBase} ${pillStyle}`}>
+          <Dot dim />
+          {label}
+        </div>
+      )}
+    </div>
   );
 }
 

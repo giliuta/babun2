@@ -137,6 +137,7 @@ import { setSyncToast } from "@/lib/sync/clientsCached";
 import { subscribeNetwork, isOnline } from "@/lib/sync/network";
 import { queueDepth } from "@babun/shared/db/cache";
 import OfflineIndicator from "@/components/sync/OfflineIndicator";
+import SyncQueuePanel from "@/components/sync/SyncQueuePanel";
 
 interface SidebarContextValue {
   open: () => void;
@@ -478,6 +479,9 @@ export default function DashboardClientLayout({
 }: DashboardClientLayoutProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // G7 — sync panel state lives here, not in OfflineIndicator, so
+  // dropping the queue to 0 doesn't unmount an open panel.
+  const [syncPanelOpen, setSyncPanelOpen] = useState(false);
 
   // v316 — Prime the haptics audio context + iOS taptic switch on
   // the first user gesture.  Without this, iOS Safari suspends the
@@ -1423,8 +1427,13 @@ export default function DashboardClientLayout({
           {/* STORY-054 G4 — top-center status pill. Renders nothing
               when online + queue empty; shows «Без сети» offline
               and «Синхронизация: N» while there are pending writes.
-              Tappable (online only) → opens SyncQueuePanel. */}
-          <OfflineIndicator />
+              Tappable (online only) → opens SyncQueuePanel. The
+              panel itself is a sibling so it survives if the queue
+              empties while the user is reading it. */}
+          <OfflineIndicator onOpenPanel={() => setSyncPanelOpen(true)} />
+          {syncPanelOpen && (
+            <SyncQueuePanel onClose={() => setSyncPanelOpen(false)} />
+          )}
         </div>
       </ConfirmProvider>
       </SchedulesContext.Provider>
