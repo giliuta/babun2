@@ -6,6 +6,10 @@ import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
 import BottomTabBar from "@/components/layout/BottomTabBar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import {
+  EnableNotificationsPrompt,
+  bumpSessionCount,
+} from "@/components/pwa/EnableNotificationsPrompt";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import {
   loadSchedules,
@@ -479,6 +483,12 @@ export default function DashboardClientLayout({
       window.removeEventListener("pointerdown", prime);
       window.removeEventListener("touchstart", prime);
     };
+  }, []);
+
+  // STORY-053b — bump the session counter so EnableNotificationsPrompt
+  // can gate on "user has actually used the app at least twice".
+  useEffect(() => {
+    bumpSessionCount();
   }, []);
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
@@ -1311,6 +1321,7 @@ export default function DashboardClientLayout({
           <BottomTabBar />
           <InstallPrompt />
           <ServiceWorkerRegister />
+          <EnableNotificationsPrompt />
         </div>
       </ConfirmProvider>
       </SchedulesContext.Provider>
