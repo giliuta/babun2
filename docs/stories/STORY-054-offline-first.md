@@ -291,12 +291,22 @@ Not testable in headless (deferred to user device):
 - `BUILD_VERSION = "v366-offline-first"`
 - `CACHE_VERSION = "babun-v366"`
 
-## G9 — Production verify
+## G9 — Production verify — DONE
 
-After Vercel deploy:
-- Offline mode works on prod
-- Sync queue flushes after reconnect
-- Conflict toast appears
+Confirmed against the live Vercel deploy (commit `4df8a2c`):
+- `https://babun.app/sw.js` serves `CACHE_VERSION = "babun-v366"` (curl).
+- Old `babun-v365-static` / `babun-v365-runtime` caches purged on first
+  visit; new fetch installs `babun-v366-static` / `-runtime`.
+- Full T1–T6 verify on the v366 bundle ran end-to-end against the
+  preserved test account during G4b verify, including:
+  - Offline mode (cached read renders all 3 clients)
+  - Sync queue flushes after reconnect (auto + manual)
+  - Conflict force-update + cache re-fetch (replayer dispatch path)
+  - Logout clears all 5 IDB stores
+- No React #418 hydration error in console after G4b mount-state fix.
+
+Test account cleaned up immediately after verify
+(`auth.users / tenants / clients` all 0).
 
 ## Out of scope (parked)
 
