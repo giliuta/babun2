@@ -90,13 +90,68 @@ Migration filename: `supabase/migrations/20260501_001_push_subscriptions.sql`.
 
 ## G3 — Notifications for core events
 
-Triggers fire `pg_net.http_post` to the Edge Function. Edge Function does the actual push.
+Triggers fire `pg_net.http_post` to the Edge Function. Edge Function does the actual push. v1 ships with **two** triggers; the third (`master_new_appointment`) is deferred to STORY-039b — see "Future work" below.
 
 | Trigger | DB event | Recipient |
 |---|---|---|
-| `notify_master_new_appointment` | INSERT on `appointments` where `master_id IS NOT NULL AND master_id != auth.uid()` (avoid notifying the creator) | the master assigned |
-| `notify_owner_new_member` | INSERT on `tenant_members` where `role != 'owner'` | the tenant's owner(s) |
-| `notify_inviter_invite_accepted` | UPDATE on `invitations` where `accepted_at` IS NOT NULL OLD WAS NULL | `created_by` |
+| `notify_owner_new_member` | INSERT on `tenant_members` where `role != 'owner'` | the tenant's owners (excluding the actor) |
+| `notify_inviter_invite_accepted` | UPDATE on `invitations` where `accepted_at` flips `NULL → NOT NULL` | `invited_by_user_id` |
+
+### Security boundary note
+
+`_dispatch_push` and the per-trigger functions are declared `security definer set search_path = public, extensions`. They run with the function-owner's privileges (`postgres` role) so they can `pg_net.http_post` without granting that capability to `authenticated`. The trade-off is that any code path that can fire these triggers can fan-out a push — which is exactly what we want for INSERT/UPDATE-driven events, but worth being aware of when adding more triggers in the future. Don't expand the function bodies to do anything besides the dispatch + skip rules.
+
+### Feature flag
+
+Master switch is the database-level GUC `app.push_enabled` (default `'off'` set by the migration). Triggers are wired but inert until:
+```sql
+alter database postgres set app.push_enabled = 'on';
+-- existing connections need to reconnect to see the new value
+```
+
+### CSV-import mute
+
+Bulk insert paths set the transaction-scoped GUC `app.skip_push = '1'` so a 5000-row CSV doesn't fan out 5000 push notifications:
+```sql
+begin;
+  select set_config('app.skip_push', '1', true);
+  -- bulk inserts here
+commit;
+```
+
+### Future work — `master_new_appointment` deferred
+
+`appointments.master_id` is `text` today (legacy local-storage slug), not `uuid`. The push pipeline only knows how to address `auth.users.id` UUIDs. Until STORY-039b migrates the masters domain to be auth-keyed, master notifications can't be delivered.
+
+When STORY-039b lands, add this trigger function in the same migration:
+```sql
+create or replace function public._tg_notify_master_new_appointment() returns trigger ... as $$
+begin
+  if NEW.master_id is null or NEW.master_id = auth.uid() then return NEW; end if;
+  perform public._dispatch_push(
+    'master.new_appointment',
+    jsonb_build_object(
+      'appointment_id', NEW.id,
+      'tenant_id',      NEW.tenant_id,
+      'date',           NEW.date,
+      'time_start',     NEW.time_start,
+      'time_end',       NEW.time_end,
+      'service_ids',    NEW.service_ids,
+      'client_id',      NEW.client_id,
+      'comment',        NEW.comment
+    ),
+    array[NEW.master_id]
+  );
+  return NEW;
+end;
+$$;
+
+create trigger notify_master_new_appointment
+  after insert on public.appointments
+  for each row execute function public._tg_notify_master_new_appointment();
+```
+
+The Edge Function (`send_push`) already keeps a `master.new_appointment` entry in its `TEMPLATES` const so a copy refresh + this trigger are the only delta when STORY-039b ships.
 
 Notification copy is built server-side in the Edge Function:
 - Master appointment: `Новая запись · ${date.toLocaleDateString('ru')}, ${time}` body: `${client_name || 'Без имени'} · ${service_name || 'Услуга не указана'}`
