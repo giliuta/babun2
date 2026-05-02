@@ -47,10 +47,9 @@ import {
   type Client,
   type ClientTag,
 } from "@babun/shared/local/clients";
-// STORY-054 G3a — clients route through cache wrappers
-// (lib/sync/clientsCached) so write paths optimistically hit IDB and
-// queue when offline. Read paths SWR via cache. tags + appointments
-// stay on direct repo imports until G3b lands.
+// STORY-054 G3 — clients + tags route through cache wrappers
+// (lib/sync/{clientsCached,tagsCached}) so write paths optimistically
+// hit IDB and queue when offline. Read paths SWR via cache.
 import {
   listClients,
   createClient as createClientRepo,
@@ -62,13 +61,14 @@ import {
   createClientTag,
   updateClientTag,
   deleteClientTag,
-} from "@babun/shared/db/repositories/clients";
+} from "@/lib/sync/tagsCached";
+// STORY-054 G3 — appointments route through cache wrappers.
 import {
   listAppointments as listAppointmentsRepo,
   createAppointment as createAppointmentRepo,
   updateAppointment as updateAppointmentRepo,
   deleteAppointment as deleteAppointmentRepo,
-} from "@babun/shared/db/repositories/appointments";
+} from "@/lib/sync/appointmentsCached";
 import {
   listScheduleEntries,
   upsertScheduleEntry,
@@ -730,15 +730,18 @@ export default function DashboardClientLayout({
   const refetchAppointments = useCallback(() => void reloadAppointments(), [reloadAppointments]);
   const refetchSchedule = useCallback(() => void reloadSchedule(), [reloadSchedule]);
 
-  // STORY-054 G3a — onResync fires after a Supabase Realtime
+  // STORY-054 G3 — onResync fires after a Supabase Realtime
   // reconnect. That's also our signal to drain any offline-queued
   // writes. Using the realtime hook reuses one network listener
   // instead of attaching a duplicate `online` event everywhere.
-  // G3b will add onResyncAppointments + wire kickReplayer there too.
   const onResyncClients = useCallback(() => {
     void reloadClients();
     void kickReplayer({ supabase: supabaseClient });
   }, [reloadClients, supabaseClient]);
+  const onResyncAppointments = useCallback(() => {
+    void reloadAppointments();
+    void kickReplayer({ supabase: supabaseClient });
+  }, [reloadAppointments, supabaseClient]);
   useRealtimeTenantSync({
     supabase: supabaseClient,
     table: "clients",
@@ -755,7 +758,7 @@ export default function DashboardClientLayout({
     onInsert: refetchClients,
     onUpdate: refetchClients,
     onDelete: refetchClients,
-    onResync: refetchClients,
+    onResync: onResyncClients,
   });
   useRealtimeTenantSync({
     supabase: supabaseClient,
@@ -764,7 +767,7 @@ export default function DashboardClientLayout({
     onInsert: refetchClients,
     onUpdate: refetchClients,
     onDelete: refetchClients,
-    onResync: refetchClients,
+    onResync: onResyncClients,
   });
   useRealtimeTenantSync({
     supabase: supabaseClient,
@@ -773,7 +776,7 @@ export default function DashboardClientLayout({
     onInsert: refetchAppointments,
     onUpdate: refetchAppointments,
     onDelete: refetchAppointments,
-    onResync: refetchAppointments,
+    onResync: onResyncAppointments,
   });
   useRealtimeTenantSync({
     supabase: supabaseClient,
