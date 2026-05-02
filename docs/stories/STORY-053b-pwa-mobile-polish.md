@@ -123,6 +123,19 @@ The result is memoised per request (`emailCache`) so a fan-out to N owners only 
 
 Both `owner.new_member` and `inviter.invite_accepted` use the same body shape: `{email} принял приглашение как {role}`. Identical pattern keeps the notification card readable across both events for users who are both Owner and Inviter (common case in small teams).
 
+### Supabase extension-schema gotcha (G3 hotfix learning)
+
+`pg_net` installs its functions into the **`net`** schema regardless of the `CREATE EXTENSION pg_net WITH SCHEMA extensions` clause. The original `_dispatch_push` body called `extensions.http_post(...)` which silently failed inside the function's exception handler — pipeline appeared healthy from the trigger side but no HTTP request ever fired. Fixed in `20260501_004_dispatch_push_fix_pgnet_schema.sql` by calling `net.http_post(...)` and adding `net` to the function's `search_path`.
+
+**Pattern for future stories using pg_net / pg_cron / postgis / similar:**
+
+1. Don't trust `CREATE EXTENSION ... WITH SCHEMA <x>` to relocate every object — most extensions hardcode their schema.
+2. After install, run `select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname like '<expected_function>%';` to confirm the actual schema.
+3. Always call extension functions with their fully qualified schema name.
+4. If using `EXCEPTION WHEN OTHERS` for resilience, add a structured `RAISE WARNING` with `sqlerrm` so silent extension-call failures still surface in Supabase Logs (we did this — that's how the smoke caught it after the http_response check).
+
+Same logic applies to extensions we'll likely add later: `pg_cron`, `vector`, `postgis`, etc. Check the actual schema before writing the wrapper functions.
+
 ### Feature flag
 
 Master switch is the database-level GUC `app.push_enabled` (default `'off'` set by the migration). Triggers are wired but inert until:
