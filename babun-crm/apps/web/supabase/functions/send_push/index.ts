@@ -89,25 +89,42 @@ Deno.serve(async (req: Request) => {
   const { user_ids, title, body, url, data: payloadData } = parsed;
 
   // Service-role client — bypasses RLS so we can read across users.
+  // Supabase migrated from `SUPABASE_SERVICE_ROLE_KEY` (legacy, deprecated)
+  // to `SUPABASE_SECRET_KEYS` (JSON dict of one or more keys issued via
+  // JWT Signing Keys). The legacy var is still injected for backward compat
+  // but on newer projects it lacks the privileges to bypass RLS, so prefer
+  // the JSON dict and fall back only if it's empty.
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const secretKeysJson = Deno.env.get("SUPABASE_SECRET_KEYS");
+  const legacyServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  let serviceKey: string | undefined;
+  if (secretKeysJson) {
+    try {
+      const parsed = JSON.parse(secretKeysJson) as Record<string, string>;
+      serviceKey = Object.values(parsed)[0];
+    } catch {
+      // fall through to legacy
+    }
+  }
+  if (!serviceKey) serviceKey = legacyServiceKey || undefined;
   if (!supabaseUrl || !serviceKey) {
-    return jsonResponse(500, { error: "missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" });
+    return jsonResponse(500, {
+      error: "missing SUPABASE_URL or service key (SUPABASE_SECRET_KEYS / SUPABASE_SERVICE_ROLE_KEY)",
+    });
   }
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Vault secrets — read but don't *use* in the skeleton. The presence
-  // check fails loudly if the owner forgot to populate Vault during
-  // checkpoint review.
+  // Edge Function Secrets — set in Dashboard → Edge Functions → Secrets
+  // (NOT in Postgres Vault, those are different stores).
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
   const vapidSubject = Deno.env.get("VAPID_SUBJECT");
   if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
     return jsonResponse(500, {
       error:
-        "missing VAPID secrets in Vault — set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT",
+        "missing VAPID secrets — set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT in Edge Function Secrets",
     });
   }
 
