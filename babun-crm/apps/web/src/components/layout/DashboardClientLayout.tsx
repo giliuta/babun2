@@ -530,6 +530,26 @@ export default function DashboardClientLayout({
       wasOffline = !online;
     });
   }, []);
+
+  // STORY-054 G5 — listen for replay nudges from the Service Worker.
+  // The SW posts BABUN_SYNC_REPLAY when (a) the Background Sync
+  // event fires (Chromium only — connectivity restored while the
+  // page was backgrounded) or (b) a push notification arrives. Both
+  // are good signals to flush any locally-queued writes the user
+  // made while the tab wasn't focused.
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string } | null;
+      if (data?.type !== "BABUN_SYNC_REPLAY") return;
+      void kickReplayer({ supabase: getSupabaseBrowser() });
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", onMessage);
+    };
+  }, []);
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);

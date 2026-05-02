@@ -142,18 +142,136 @@ Three new components under `apps/web/src/components/offline/`:
 - `SyncQueuePanel.tsx` — modal listing queued ops with timestamps, retry button per op, and `Очистить очередь` (confirm) for emergency cleanup.
 - Plus `lib/network.ts` (`useIsOnline()` hook + `subscribeNetwork(cb)` for non-React listeners).
 
-## G5 — Background sync
+## G5 — Background sync — SHIPPED
 
-`sw.js` adds `'sync'` event handler:
-- On `event.tag === 'babun-sync-queue'` → `notifyClients('replay-queue')` to wake any open client; if no clients → optional fetch to `/api/noop` to keep the worker alive briefly (Android Chrome standard pattern)
-- Client side: `registration.sync.register('babun-sync-queue')` after enqueueing
-- iOS: BackgroundSync **not supported**. Documented + accept — only foreground replay for iOS users (already handled by the `online` event listener)
+**Architecture: SW is a nudge, not a drainer.**
+
+The queue lives in IndexedDB and is mutated by typed wrappers in
+`apps/web/src/lib/sync/*` that depend on the `idb` library and the
+shared Database types. None of those compile into the raw `public/sw.js`
+context, and reimplementing dispatch in plain JS would invite drift
+between SW + client paths. So:
+
+- `sw.js` listens for `sync` events with tag `babun-sync-queue` and
+  for `push` events. Both broadcast `{ type: "BABUN_SYNC_REPLAY" }`
+  to every open client via `clients.matchAll().postMessage()`.
+- `DashboardClientLayout` listens for that message and calls
+  `kickReplayer({ supabase: getSupabaseBrowser() })`. The drain
+  logic stays in one place (the typed replayer).
+- `enqueueOpAndEmit()` (in `lib/sync/queue-events.ts`) calls
+  `registration.sync.register('babun-sync-queue')` after every
+  offline write. SyncManager probe is feature-detected — if the
+  browser doesn't expose it (Safari) we silently skip.
+
+**Platform reality:**
+- Chromium PWA (Android Chrome, desktop Chrome/Edge): full
+  Background Sync flow works. App closed → connectivity restored →
+  SW `sync` fires → if any client is open it drains.
+- iOS Safari + iOS PWA: Background Sync API is not implemented.
+  The `sync` listener is dead code there. Push events ARE delivered
+  to closed iOS PWAs (STORY-053b ships VAPID push), so the
+  `push → BABUN_SYNC_REPLAY` path is the closest thing iOS gets to
+  background sync. Otherwise drain happens via the in-page `online`
+  listener the next time the user opens the app.
+
+**Limits we accept:**
+- If no clients are open AND the SW gets `sync` (Chromium-only), we
+  can't drain — we'd need to duplicate dispatch in the SW. Not worth
+  the drift risk in v1; the queue waits until the user opens the app.
+- Push-triggered drain only fires while at least one tab/PWA is open.
+  Same accept.
 
 ## G6 — Race conditions documented
 
-- **Realtime payload during replay** — `useRealtimeTenantSync.onUpdate(row)` checks `sync_queue` for a pending op on the same `row_id`; if pending → skip the realtime apply (the queued local op wins; replayer will eventually overwrite the server then re-fetch).
-- **2 tabs, both offline, edit same row** — last-write-wins by `created_at` of the queue op. Acceptable.
-- **iOS PWA storage eviction (~7 days idle)** — IDB cleared by OS. Document. Reload triggers realtime → cache rebuild.
+The offline cache + write queue introduces several time-ordering
+edge cases. Documenting each so future maintainers know which we
+explicitly handled and which we accepted as low-impact.
+
+### Handled
+
+**1. Drain in progress + new enqueue arrives.** `kickReplayer`
+single-flights via `draining` boolean. New triggers during a drain
+set `pendingFollowup = true` (boolean, not counter — at most one
+additional pass is queued). Subsequent triggers during that
+follow-up are dropped; the next external event (online / onResync
+/ manual retry / kickReplayer call) re-enters cleanly. Prevents
+event-storm DDoS of Supabase. See `replayer.ts:91-108`.
+
+**2. Conflict on UPDATE replay (server moved on).** `dispatch()`
+issues `UPDATE WHERE id=$1 AND updated_at=$2 RETURNING id`. 0 rows
+returned → conflict detected; we re-issue without the `updated_at`
+filter (force-update = local wins) AND re-fetch the canonical row
+to call `cacheUpsert`. Without the re-fetch, IDB would carry the
+stale pre-conflict `updated_at` and falsely conflict on the next
+edit. See `replayer.ts:197-231`.
+
+**3. Realtime overwrites local optimistic edit.** The realtime
+hook calls `reloadClients()` / `reloadAppointments()` on every
+INSERT/UPDATE/DELETE event. Since cached wrappers are SWR (cache
+returns immediately, then revalidate from server), the realtime
+refresh re-fetches and overwrites the in-memory state. **This means
+a local optimistic edit can be transiently overwritten by a stale
+realtime event, then re-applied when the queue drains.** Acceptable
+in v1: the visible flicker is sub-second on warm connections, and
+the queued op is the source of truth.
+
+**4. Logout mid-drain.** `cacheClearAll()` (called from the auth
+listener mounted in root layout) wipes `sync_queue` along with
+every store. If a drain pass is in flight, its `removeOp(id)` calls
+become no-ops on already-deleted rows. The `draining` lock will
+release on the next tick and the next session starts with a clean
+queue. Worst case: an in-flight write hits Supabase as the user logs
+out; the row appears under the previous user's tenant which their
+RLS would reject — request fails silently. Accepted; the user
+explicitly logged out.
+
+**5. Two tabs, both online, both call kickReplayer.** Each tab has
+its own `draining` lock (module-level state per JS realm). Both
+tabs may start drains simultaneously, each enumerating IDB queue
+entries. Race condition: one tab's `removeOp(id)` may run after
+the other already drained that op + Supabase already accepted both
+inserts. Mitigated by:
+  - `dequeueAll()` reads inside an IDB read transaction (snapshot)
+  - Queue rows have unique `autoIncrement` IDs (no insert collision)
+  - Supabase enforces `id` PK uniqueness so the second tab's
+    insert raises 23505 → caught by the same `duplicate key` retry
+    branch that DCL `upsertClient` uses for the local-list-not-yet-
+    loaded race.
+Net result: at-most-once delivery to Supabase, with a possible
+spurious retry that resolves to a no-op. Acceptable.
+
+### Accepted
+
+**6. Two tabs, both offline, edit same row.** Both queue updates;
+both replay in order of `created_at` ASC when either tab reconnects.
+Last write wins by enqueue time. Acceptable per decision #2 (last-
+write-wins is the v1 conflict policy).
+
+**7. iOS PWA storage eviction (~7 days idle).** WebKit clears IDB
++ all caches when a PWA hasn't been used for ~7 days. On next open,
+cache is cold → cached-wrappers fall through to direct Supabase
+read. If offline at that moment, list pages render empty until
+reconnect. Acceptable; documented in cache layer header.
+
+**8. Cached row depended on by uncached junction (e.g. tags assignment).**
+`client_tag_assignments` is intentionally NOT cached. Editing tag
+membership requires online connectivity; the cached wrapper strips
+`tag_ids` from the queued payload + toasts «Изменения тегов
+недоступны без сети — попробуй позже». Documented in
+`clientsCached.ts` + `replayer.ts` headers.
+
+**9. `client_tags.updated_at` doesn't exist.** All tag ops queue
+with `expected_updated_at: null` → unconditional last-write-wins on
+replay → no conflict detection. Tags are <100 rows per tenant,
+rarely change, conflicts are vanishingly rare. Documented in
+`tagsCached.ts` header.
+
+**10. SW message arrives but no client listens.** If the SW posts
+`BABUN_SYNC_REPLAY` to a tab whose JS hasn't finished hydrating
+(or the message listener hasn't mounted yet), the message is
+silently dropped. Acceptable: the in-page `online` listener fires
+on the next network transition + the 5-s safety poll catches any
+straggler queue depth changes.
 
 ## G7 — Smoke (Playwright via MCP)
 

@@ -59,11 +59,36 @@ export function subscribeQueueChange(cb: Listener): () => void {
 // than the raw cache exports so the badge updates instantly without
 // waiting for the 5-s safety poll.
 
+const SYNC_TAG = "babun-sync-queue";
+
+/** STORY-054 G5 — register the SW Background Sync tag when an op
+ *  is queued offline. The tag fires the SW `sync` event whenever
+ *  the browser decides connectivity is restored AND the page is
+ *  closed/backgrounded, which is exactly when the in-page `online`
+ *  listener can't fire. Chromium-only; no-ops on iOS Safari. */
+async function registerBackgroundSync(): Promise<void> {
+  if (typeof navigator === "undefined") return;
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    // SyncManager is undefined on Safari; bail silently.
+    const syncManager = (reg as ServiceWorkerRegistration & {
+      sync?: { register: (tag: string) => Promise<void> };
+    }).sync;
+    if (!syncManager) return;
+    await syncManager.register(SYNC_TAG);
+  } catch {
+    // Permission denied / SW not installed yet / Safari — drain
+    // still happens via the in-page online listener.
+  }
+}
+
 export async function enqueueOpAndEmit(
   op: Omit<QueuedOp, "id" | "created_at" | "attempts">,
 ): Promise<void> {
   await enqueueOp(op);
   emitQueueChange();
+  void registerBackgroundSync();
 }
 
 export async function removeOpAndEmit(id: number): Promise<void> {
