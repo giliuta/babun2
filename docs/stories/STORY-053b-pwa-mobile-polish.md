@@ -101,6 +101,28 @@ Triggers fire `pg_net.http_post` to the Edge Function. Edge Function does the ac
 
 `_dispatch_push` and the per-trigger functions are declared `security definer set search_path = public, extensions`. They run with the function-owner's privileges (`postgres` role) so they can `pg_net.http_post` without granting that capability to `authenticated`. The trade-off is that any code path that can fire these triggers can fan-out a push — which is exactly what we want for INSERT/UPDATE-driven events, but worth being aware of when adding more triggers in the future. Don't expand the function bodies to do anything besides the dispatch + skip rules.
 
+### Push delivery semantics
+
+**Best-effort, no replay guarantee.** The Web Push spec doesn't provide reliable delivery on top of the OS notification systems (APNs / FCM). Specifically:
+
+- **TTL = 24h** in the Edge Function. Push services drop messages that haven't reached the device within that window. If a user's iPhone is offline for >24h, notifications fired during that window are **lost**, not queued. Acceptable trade-off for ephemeral UX events ("приглашение принято") — the data is still in the DB; the missed push is just a missed nudge.
+- **Lifecycle inconsistencies on iOS.** PWA push on iOS only works when the app is installed to home screen on iOS 16.4+. Users on stock Safari iOS see the EnableNotificationsPrompt's gate ("Сначала установи на главный экран") before the subscribe button. iPad behaviour is iPad-OS-version-dependent.
+- **No delivery receipts.** A 2xx response from the push service means "queued for delivery" not "shown on device". We log `sent` count to the function logs but it's an upper bound.
+
+If reliable in-app notification history matters later, store an event log in Postgres and let clients pull on focus. Out of scope for v1.
+
+### `owner.new_member` email lookup — privacy boundary
+
+The `owner.new_member` template performs `supabase.auth.admin.getUserById(user_id)` inside the Edge Function to resolve an email for the notification body. This crosses a normally-isolated boundary (auth.users is service-role-only) but the recipient is the tenant's owner, who *invited* this exact user — they already know the email. The lookup just surfaces it on the notification card so the owner sees `ivan@example.com принял приглашение как Диспетчер` instead of generic `Принято приглашение в роли «Диспетчер»`.
+
+If the lookup fails (network blip, deleted user, anything) the template degrades to the generic copy. No throw, no notification skip.
+
+The result is memoised per request (`emailCache`) so a fan-out to N owners only does the lookup once.
+
+### Notification copy parity
+
+Both `owner.new_member` and `inviter.invite_accepted` use the same body shape: `{email} принял приглашение как {role}`. Identical pattern keeps the notification card readable across both events for users who are both Owner and Inviter (common case in small teams).
+
 ### Feature flag
 
 Master switch is the database-level GUC `app.push_enabled` (default `'off'` set by the migration). Triggers are wired but inert until:
