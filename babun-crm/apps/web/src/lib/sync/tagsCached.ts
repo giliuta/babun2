@@ -34,11 +34,11 @@ import {
   cacheUpsert,
   cacheDelete,
   cacheBulkUpsert,
-  enqueueOp,
   type CachedTag,
 } from "@babun/shared/db/cache";
 import { isOnline } from "./network";
 import { kickReplayer } from "./replayer";
+import { enqueueOpAndEmit as enqueueOp } from "./queue-events";
 
 type DbSupabase = SupabaseClient<Database>;
 

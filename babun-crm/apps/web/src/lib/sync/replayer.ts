@@ -54,12 +54,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@babun/shared/db/database.types";
 import {
   dequeueAll,
-  removeOp,
-  bumpAttempt,
   cacheUpsert,
   type QueuedOp,
   type CachedTable,
 } from "@babun/shared/db/cache";
+// G4 — go through the emit-wrappers so the OfflineIndicator badge
+// updates the moment the replayer succeeds/fails an op, instead of
+// waiting for the 5-s safety poll.
+import {
+  removeOpAndEmit as removeOp,
+  bumpAttemptAndEmit as bumpAttempt,
+} from "./queue-events";
 
 type DbSupabase = SupabaseClient<Database>;
 
@@ -250,13 +255,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Reset attempts on a single op so the next drain retries it
- *  immediately. Wired into the SyncQueuePanel "Попробовать снова"
- *  button. */
-export async function resetOpAttempts(_id: number): Promise<void> {
-  // Implementation deferred to G4 (UI panel) — kept as a placeholder
-  // so the API surface is stable.
-  // const db = await getCache();
-  // const op = await db.get('sync_queue', id); if (!op) return;
-  // await db.put('sync_queue', { ...op, attempts: 0, last_error: undefined });
-}
+// G4: manual-retry now lives in `lib/sync/queue-events`
+// (`resetOpAttemptsAndEmit`) so the IDB write fires the badge-refresh
+// event in the same transaction. The SyncQueuePanel imports it
+// directly; the replayer no longer needs a parallel API surface.

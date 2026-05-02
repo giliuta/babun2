@@ -135,6 +135,7 @@ import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { kickReplayer } from "@/lib/sync/replayer";
 import { setSyncToast } from "@/lib/sync/clientsCached";
 import { subscribeNetwork, isOnline } from "@/lib/sync/network";
+import OfflineIndicator from "@/components/sync/OfflineIndicator";
 
 interface SidebarContextValue {
   open: () => void;
@@ -1374,6 +1375,11 @@ export default function DashboardClientLayout({
           <InstallPrompt />
           <ServiceWorkerRegister />
           <EnableNotificationsPrompt />
+          {/* STORY-054 G4 — top-center status pill. Renders nothing
+              when online + queue empty; shows «Без сети» offline
+              and «Синхронизация: N» while there are pending writes.
+              Tappable (online only) → opens SyncQueuePanel. */}
+          <OfflineIndicator />
         </div>
       </ConfirmProvider>
       </SchedulesContext.Provider>
