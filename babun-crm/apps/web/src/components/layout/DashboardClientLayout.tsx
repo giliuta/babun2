@@ -135,6 +135,7 @@ import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { kickReplayer } from "@/lib/sync/replayer";
 import { setSyncToast } from "@/lib/sync/clientsCached";
 import { subscribeNetwork, isOnline } from "@/lib/sync/network";
+import { queueDepth } from "@babun/shared/db/cache";
 import OfflineIndicator from "@/components/sync/OfflineIndicator";
 
 interface SidebarContextValue {
@@ -529,6 +530,30 @@ export default function DashboardClientLayout({
       }
       wasOffline = !online;
     });
+  }, []);
+
+  // STORY-054 G4b — one-shot drain at mount when we boot online with
+  // a non-empty queue. Without this, a user who closes the PWA with
+  // pending offline writes and reopens it later (online) would see
+  // the «Синхронизация: N» badge stuck — the network listener only
+  // fires on offline→online transitions, not on first mount, and
+  // realtime onResync only fires after a disconnect. queueDepth()
+  // is sub-millisecond against IDB so the gate is cheap.
+  useEffect(() => {
+    if (!isOnline()) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const depth = await queueDepth();
+        if (cancelled || depth === 0) return;
+        void kickReplayer({ supabase: getSupabaseBrowser() });
+      } catch {
+        /* IDB unavailable (private mode / SSR) — leave silent */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // STORY-054 G5 — listen for replay nudges from the Service Worker.

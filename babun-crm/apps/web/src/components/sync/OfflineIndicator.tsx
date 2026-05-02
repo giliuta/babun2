@@ -19,15 +19,32 @@
 // doesn't crash into it. Width capped at min(92vw, 220px) — same
 // rhythm as UndoToast. Tap target is the whole pill.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIsOnline } from "@/lib/sync/network";
 import { useQueueDepth } from "@/lib/sync/queue-events";
 import SyncQueuePanel from "./SyncQueuePanel";
 
 export default function OfflineIndicator() {
+  // G4b — defer all client-only state (navigator.onLine, IDB queue
+  // depth) until after hydration. Returning null on the server +
+  // first client render keeps the SSR HTML and the first client
+  // tree identical — no React #418 hydration mismatch when the
+  // network/queue state would otherwise diverge between the two.
+  const [mounted, setMounted] = useState(false);
+  // The setState-in-effect pattern is the canonical Next.js
+  // hydration-safe gate: server + first client render both see
+  // `mounted=false` → return null → no hydration mismatch. The
+  // post-hydration rerender then reads navigator.onLine + IDB
+  // queue depth and shows the real pill. Lint rule is overly
+  // broad for this specific case.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
+
   const online = useIsOnline();
   const depth = useQueueDepth();
   const [panelOpen, setPanelOpen] = useState(false);
+
+  if (!mounted) return null;
 
   // Happy path — render nothing.
   if (online && depth === 0) return null;
