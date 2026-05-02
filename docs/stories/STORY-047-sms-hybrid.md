@@ -143,7 +143,27 @@ BYOK mode requires encrypted credentials. Pattern reuse from VAPID:
 
 Show vault wrapper for review BEFORE apply.
 
-## G3 — Edge Function `send_sms` (specced)
+## G3 — Edge Function `send_sms` — SHIPPED in skeleton mode
+
+Deployed at `https://rdtokosbqvgemicqeqwz.supabase.co/functions/v1/send_sms`,
+Verify JWT OFF (pg_cron internal). Skeleton mode inserts `sms_messages`
+rows with `status='failed'` + `error_code='skeleton_mode'` for cron +
+query + render path verification before real Twilio fan-out (G3b).
+
+### G3 hotfix (caught during deploy smoke-ping)
+
+Migration: `20260502_002_service_role_grants_hotfix.sql`. Same root
+cause as the STORY-053b push_subscriptions hotfix — JWT-Signing-Keys
+service-role JWTs don't auto-bypass RLS like the legacy single key
+did. Tightened to **read-only**: `grant select` + `for select to
+service_role` policies on the four pre-existing tables `send_sms`
+reads (`app_settings`, `tenants`, `appointments`, `clients`).
+
+**Forward rule:** if a future Edge Function needs INSERT/UPDATE/DELETE
+on any of these tables, add the narrow GRANT in the feature story
+that introduces the need — don't widen them globally.
+
+### Original spec (kept for reference)
 
 Deno + TypeScript. Triggered every 5 minutes by pg_cron via `net.http_post`. Behaviour:
 
@@ -227,6 +247,16 @@ Real test SMS sending — gated on user setup of Babun's Twilio account.
 2. Put credentials in Edge Function Secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
 3. After real creds + user OK → flip `app_settings.sms_enabled='on'`
 4. AirFix BYOK Twilio account (later, after STORY-052 lifetime grant)
+
+## Backlog discovered during this story
+
+- **Audit `public` schema service_role grants.** Decide a global
+  pattern (read-only default + opt-in writes per table). Today the
+  matrix is: `tenant_sms_config` + `sms_messages` + `push_subscriptions`
+  have full `grant all`; `app_settings` + `tenants` + `appointments` +
+  `clients` have `grant select` only (STORY-047 G3 hotfix). Other
+  tables in `public` haven't been audited — anything an Edge Function
+  needs to touch will tripwire on the JWT-Signing-Keys gap.
 
 ## Out of scope (parked, to be confirmed)
 
