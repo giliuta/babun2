@@ -1,0 +1,262 @@
+// STORY-054 G2 — sync queue replayer.
+//
+// Drains the IndexedDB sync_queue once we're online + idle. Each op
+// is dispatched to the matching repository with the row's
+// `expected_updated_at` for last-write-wins conflict detection. On
+// 0-rows-affected (server moved on) we toast a warning and re-issue
+// the UPDATE without the updated_at filter; the local edit wins.
+//
+// Retry policy: exponential backoff per op — 1s, 5s, 30s. After 3
+// attempts the op stays in the queue with `last_error` set so the
+// sidebar badge can surface "1 запись с ошибкой" + the user can
+// manually retry from the SyncQueuePanel.
+//
+// Trigger sources (any of these starts a drain):
+//   1. `online` event listener (network.ts)
+//   2. `useRealtimeTenantSync.onResync()` callback — fires on
+//      Supabase channel reconnect, which also indicates network
+//      recovered. Reusing this avoids a duplicate listener.
+//   3. Manual: user taps "Попробовать снова" in SyncQueuePanel
+//   4. Programmatic: `kickReplayer()` after enqueueOp returns from
+//      a write that thought it was online but got a 5xx mid-flight
+//
+// Single-flight: a drain in progress sets a module-level lock. New
+// triggers arriving during the drain set `pendingFollowup` (boolean,
+// not a counter) — meaning at most ONE additional pass is queued.
+// Subsequent triggers during that follow-up are ignored; if they
+// genuinely needed action, the next external event (online / onResync
+// / manual retry / kickReplayer call) will re-trigger. Keeps us from
+// ddosing Supabase on event storms.
+//
+// Cache freshness after a conflict-forced UPDATE: when the server
+// "won" the conflict but our local copy still applied (force-update),
+// we re-fetch the row via .select().single() and call cacheUpsert
+// with the returned shape. Without this, IDB carries the
+// pre-conflict updated_at and would falsely conflict again on the
+// next edit.
+//
+// Stale-while-revalidate failure mode: if a drain partially fails
+// (some ops moved on, some stuck on retry), the local cache may
+// hold a row whose updated_at no longer matches the server. The
+// next reconnect / onResync will re-pull, fixing the drift. Until
+// then a stale view is acceptable. Pull-to-refresh (parked under
+// STORY-053c) will become the explicit user-triggered recovery for
+// clients/calendar list pages. Not a v1 blocker.
+//
+// `client_tag_assignments` is intentionally NOT cached. The junction
+// table is tightly coupled to client + tag rows on the server; ON
+// DELETE CASCADE keeps it consistent without our help. Realtime
+// propagates assignment changes to subscribed clients; the cache
+// layer never sees them, and the sync queue only carries
+// clients / appointments / tags ops.
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@babun/shared/db/database.types";
+import {
+  dequeueAll,
+  removeOp,
+  bumpAttempt,
+  cacheUpsert,
+  type QueuedOp,
+  type CachedTable,
+} from "@babun/shared/db/cache";
+
+type DbSupabase = SupabaseClient<Database>;
+
+const MAX_ATTEMPTS = 3;
+const BACKOFFS_MS = [1000, 5000, 30000]; // attempts 1, 2, 3
+
+type Toast = (msg: string) => void;
+
+interface ReplayerOptions {
+  supabase: DbSupabase;
+  /** Called after the drain completes (success or error) so the UI
+   *  can refresh its in-memory state from the cache + Supabase. */
+  onChanged?: () => void;
+  /** Called on conflict detection (0 rows affected). UI surfaces:
+   *  «Запись была обновлена на другом устройстве. Применены ваши
+   *  изменения.» */
+  onConflict?: Toast;
+  /** Called when an op fails MAX_ATTEMPTS times. UI surfaces a
+   *  retry-able warning in the sidebar / SyncQueuePanel. */
+  onPermanentFailure?: (op: QueuedOp) => void;
+}
+
+let draining = false;
+let pendingFollowup = false;
+
+/** Public trigger — call from `online` listener, onResync, manual
+ *  retry button, or after a write failed mid-flight. Idempotent
+ *  and self-coalescing. */
+export async function kickReplayer(opts: ReplayerOptions): Promise<void> {
+  if (draining) {
+    pendingFollowup = true;
+    return;
+  }
+  draining = true;
+  try {
+    await drain(opts);
+    if (pendingFollowup) {
+      pendingFollowup = false;
+      // Run one follow-up pass synchronously so coalesced triggers
+      // get a chance to flush the queue without recursion explosion.
+      await drain(opts);
+    }
+  } finally {
+    draining = false;
+  }
+}
+
+async function drain(opts: ReplayerOptions): Promise<void> {
+  const ops = await dequeueAll(); // sorted by created_at ASC via index
+  if (ops.length === 0) return;
+
+  for (const op of ops) {
+    if (op.attempts >= MAX_ATTEMPTS) {
+      // Already failed permanently — leave in queue so the UI can
+      // show the manual-retry button. Manual retry resets attempts.
+      continue;
+    }
+
+    // Soft-throttle: if this op was recently attempted, wait its
+    // backoff. We measure attempts->backoff naively; the queue
+    // doesn't carry last_attempt_at to keep the schema small.
+    if (op.attempts > 0) {
+      const backoff = BACKOFFS_MS[Math.min(op.attempts - 1, BACKOFFS_MS.length - 1)] ?? 30000;
+      await sleep(backoff);
+    }
+
+    try {
+      const conflict = await dispatch(opts.supabase, op);
+      if (conflict) {
+        opts.onConflict?.(
+          "Запись была обновлена на другом устройстве. Применены ваши изменения.",
+        );
+      }
+      await removeOp(op.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await bumpAttempt(op.id, msg);
+      // If we just exceeded the cap, surface to UI once.
+      if (op.attempts + 1 >= MAX_ATTEMPTS) {
+        opts.onPermanentFailure?.({
+          ...op,
+          attempts: op.attempts + 1,
+          last_error: msg,
+        });
+      }
+      // Don't bail the entire drain on one failure — keep going so
+      // ops behind a poisoned one still get their chance.
+    }
+  }
+
+  opts.onChanged?.();
+}
+
+/** Returns `true` if the dispatch succeeded but a conflict was
+ *  detected (UPDATE matched 0 rows on the first pass; we then
+ *  retried without expected_updated_at and that one succeeded).
+ *  Throws on unrecoverable errors so the caller bumps attempts. */
+async function dispatch(
+  supabase: DbSupabase,
+  op: QueuedOp,
+): Promise<boolean> {
+  // The repositories accept the row shapes already; payloads are
+  // pre-shaped at enqueue time so dispatch is mostly a relay. We
+  // talk directly to PostgREST here (not through the typed repo
+  // helpers) because:
+  //   1. Each table has a different repo function signature; a
+  //      generic relay keeps the replayer table-agnostic.
+  //   2. The conflict-detection pattern (UPDATE WHERE updated_at)
+  //      is uniform across tables.
+  const tableName = tableForOp(op.table);
+
+  if (op.op === "delete") {
+    const { error } = await supabase
+      .from(tableName)
+      .delete()
+      .eq("id", op.row_id);
+    if (error) throw new Error(`replay delete: ${error.message}`);
+    return false;
+  }
+
+  if (op.op === "insert") {
+    const { error } = await supabase
+      .from(tableName)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(op.payload as any);
+    if (error) throw new Error(`replay insert: ${error.message}`);
+    return false;
+  }
+
+  // op.op === 'update' — last-write-wins via updated_at sentinel.
+  // Table-agnostic dispatch: cast through `unknown` to a
+  // PostgrestFilterBuilder so we can chain `.eq("updated_at", ...)`
+  // without per-table type narrowing. The replayer is intentionally
+  // generic across cached tables.
+  if (op.expected_updated_at) {
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const filter = (
+      supabase.from(tableName).update(op.payload as any) as any
+    )
+      .eq("id", op.row_id)
+      .eq("updated_at", op.expected_updated_at)
+      .select("id");
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+    const { data, error } = await filter;
+    if (error) throw new Error(`replay update: ${error.message}`);
+    if (data && data.length > 0) return false; // matched cleanly
+
+    // 0 rows → conflict. Retry without updated_at filter and re-fetch
+    // the canonical server row (now carrying the new updated_at) so
+    // the cache stays consistent. Without this re-fetch, IDB would
+    // hold the pre-conflict updated_at and falsely conflict on the
+    // next edit.
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const forceFilter = (
+      supabase.from(tableName).update(op.payload as any) as any
+    )
+      .eq("id", op.row_id)
+      .select()
+      .single();
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+    const { data: forced, error: forceErr } = await forceFilter;
+    if (forceErr)
+      throw new Error(`replay force-update: ${forceErr.message}`);
+    if (forced) {
+      // Cache write-through with the canonical row.
+      await cacheUpsert(op.table as CachedTable, forced);
+    }
+    return true;
+  }
+
+  // No expected_updated_at — unconditional update (e.g. queued from
+  // a context where we didn't have the cached row yet).
+  const { error: plainErr } = await supabase
+    .from(tableName)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(op.payload as any)
+    .eq("id", op.row_id);
+  if (plainErr) throw new Error(`replay update (plain): ${plainErr.message}`);
+  return false;
+}
+
+function tableForOp(t: QueuedOp["table"]): "clients" | "appointments" | "client_tags" {
+  // UI vocab → DB table. See cache layer header for rationale.
+  return t === "tags" ? "client_tags" : t;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Reset attempts on a single op so the next drain retries it
+ *  immediately. Wired into the SyncQueuePanel "Попробовать снова"
+ *  button. */
+export async function resetOpAttempts(_id: number): Promise<void> {
+  // Implementation deferred to G4 (UI panel) — kept as a placeholder
+  // so the API surface is stable.
+  // const db = await getCache();
+  // const op = await db.get('sync_queue', id); if (!op) return;
+  // await db.put('sync_queue', { ...op, attempts: 0, last_error: undefined });
+}
