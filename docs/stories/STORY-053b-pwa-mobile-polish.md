@@ -197,12 +197,35 @@ Repeat smoke 1, 4, 6 against prod (these are the user-visible features). 2, 3, 5
 Owner generates the keypair locally so the private key never enters the chat transcript:
 
 1. PowerShell: `npx --yes web-push generate-vapid-keys --json` → captures both halves locally.
-2. Paste `privateKey` directly into Supabase Vault → New Secret → `VAPID_PRIVATE_KEY`. Never to chat.
-3. Paste `publicKey` into Supabase Vault → New Secret → `VAPID_PUBLIC_KEY` (Edge Function reads from Vault).
-4. Add Vault Secret `VAPID_SUBJECT` = `mailto:support@babun.app`.
-5. Add Vercel env `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (Production+Preview+Development) — same `publicKey` value.
-6. Apply migration `20260501_001_push_subscriptions.sql` via Supabase Dashboard → SQL Editor.
-7. Deploy Edge Function: `supabase functions deploy send_push --no-verify-jwt --project-ref rdtokosbqvgemicqeqwz` (or Dashboard UI deploy if CLI not installed).
+2. **Edge Function Secrets** (NOT Postgres Vault — they are different stores; Edge Functions read only from Edge Function Secrets):
+   - Open https://supabase.com/dashboard/project/<project>/functions/secrets
+   - Add `VAPID_PRIVATE_KEY` = `privateKey` from step 1. Paste straight into the Dashboard form, never to chat.
+   - Add `VAPID_PUBLIC_KEY` = `publicKey` from step 1.
+   - Add `VAPID_SUBJECT` = `mailto:support@babun.app`.
+3. Vercel env `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = same `publicKey` (Production + Preview + Development).
+4. Apply migration `20260501_001_push_subscriptions.sql` via Supabase Dashboard → SQL Editor.
+5. Apply migration `20260501_002_push_subscriptions_service_role.sql` (service_role bypass — see post-JWT-migration gotcha below).
+6. Deploy Edge Function: `supabase functions deploy send_push --no-verify-jwt --project-ref <project>` (or Dashboard UI deploy if CLI not installed).
+7. After deploy, set Verify JWT = OFF in the function's settings (pg_net trigger in G3 calls without an auth token).
+
+### Post-JWT-migration service_role gotcha (G1 hotfix learning)
+
+Supabase migrated from a single legacy `SUPABASE_SERVICE_ROLE_KEY` to `SUPABASE_SECRET_KEYS` — keys minted via JWT Signing Keys. The legacy var is still injected for backward compat but on newer projects it lacks the privileges to bypass RLS. The new keys also do not auto-bypass RLS.
+
+**Pattern for any future table that needs to be readable from an Edge Function via service-role** (cross-user fan-out, batch jobs, scheduled cleanup, etc.):
+
+```sql
+grant all on public.<table_name> to service_role;
+
+create policy <table_name>_service_role_all
+  on public.<table_name>
+  for all to service_role
+  using (true) with check (true);
+```
+
+**Don't make this the default for every new table** — only the ones that genuinely need server-side cross-user reads. Tables that should remain user-scoped (the vast majority) keep their original `for select to authenticated using (user_id = auth.uid())` shape with no service_role addition.
+
+Applied to `push_subscriptions` in `20260501_002_push_subscriptions_service_role.sql`.
 
 ### VAPID public key (rotated 2026-05-01) — for traceability
 
