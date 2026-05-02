@@ -16,9 +16,10 @@
 // 7 days. On error: inline error message inside the modal, the dismiss
 // flag is NOT set so the user can retry next session.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { detectPlatform } from "@/lib/platform";
 import { isSubscribed, subscribePush, PermissionDeniedError } from "@/lib/push";
+import { registerModalBack } from "@/lib/history-stack";
 
 const DISMISS_KEY = "babun-push-prompt-dismissed-at";
 const SESSION_KEY = "babun-session-count";
@@ -32,6 +33,7 @@ type State =
 
 export function EnableNotificationsPrompt() {
   const [state, setState] = useState<State>({ kind: "hidden" });
+  const popCloseRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,8 +53,24 @@ export function EnableNotificationsPrompt() {
     })();
     return () => {
       cancelled = true;
+      popCloseRef.current?.();
+      popCloseRef.current = null;
     };
   }, []);
+
+  // Register hardware-back handler whenever the prompt is visible.
+  useEffect(() => {
+    if (state.kind === "hidden") {
+      popCloseRef.current?.();
+      popCloseRef.current = null;
+      return;
+    }
+    if (popCloseRef.current) return;
+    popCloseRef.current = registerModalBack("enable-notifications", () => {
+      writeDismissedAt(Date.now());
+      setState({ kind: "hidden" });
+    });
+  }, [state.kind]);
 
   if (state.kind === "hidden") return null;
 

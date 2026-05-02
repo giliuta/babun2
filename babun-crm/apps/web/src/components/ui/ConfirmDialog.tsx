@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { registerModalBack } from "@/lib/history-stack";
+
 interface ConfirmDialogProps {
   title: string;
   message: string;
@@ -23,6 +26,13 @@ export default function ConfirmDialog({
   onClose,
   danger = true,
 }: ConfirmDialogProps) {
+  // STORY-053b — hardware Back / iOS edge-swipe should cancel the
+  // confirm dialog (treat as decline), not navigate away.
+  useEffect(() => {
+    const popClose = registerModalBack("confirm-dialog", onClose);
+    return popClose;
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] px-4"

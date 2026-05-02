@@ -926,7 +926,10 @@ export default function ClientsPage() {
                         label: isPinned ? "Открепить" : "Закрепить",
                         icon: <Pin size={18} strokeWidth={2.2} />,
                         color: "bg-[var(--accent)]",
-                        onSelect: () => togglePin(client),
+                        onSelect: () => {
+                          haptic("light");
+                          togglePin(client);
+                        },
                       },
                     ]}
                     rightActions={[
@@ -945,13 +948,19 @@ export default function ClientsPage() {
                         label: "Напомнить",
                         icon: <Clock size={18} strokeWidth={2.2} />,
                         color: "bg-[var(--system-orange)]",
-                        onSelect: () => setReminderFor(client),
+                        onSelect: () => {
+                          haptic("light");
+                          setReminderFor(client);
+                        },
                       },
                       {
                         label: "Удалить",
                         icon: <Trash2 size={18} strokeWidth={2.2} />,
                         color: "bg-[var(--system-red)]",
-                        onSelect: () => setSingleConfirmDelete(client),
+                        onSelect: () => {
+                          haptic("warning");
+                          setSingleConfirmDelete(client);
+                        },
                       },
                     ]}
                   >

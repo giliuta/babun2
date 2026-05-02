@@ -326,6 +326,14 @@ h1, h2, h3,
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
+
+/* STORY-053b — pull-to-refresh spinner */
+@keyframes babun-spin {
+  to { transform: rotate(360deg); }
+}
+.babun-spin {
+  animation: babun-spin 0.7s linear infinite;
+}
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,

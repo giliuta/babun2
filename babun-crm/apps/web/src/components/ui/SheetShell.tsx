@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
 import { X } from "@babun/shared/icons";
+import { registerModalBack } from "@/lib/history-stack";
 
 interface SheetShellProps {
   open: boolean;
@@ -38,6 +39,8 @@ export default function SheetShell({
   maxWidth = "max-w-lg",
   children,
 }: SheetShellProps) {
+  const sheetId = useId();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -46,11 +49,19 @@ export default function SheetShell({
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
+
+    // STORY-053b — register hardware-back handler so Android Back /
+    // iOS edge-swipe close the sheet instead of navigating away.
+    const popClose = registerModalBack(`sheet:${sheetId}`, onClose);
+
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
+      // popClose is a no-op if the user already triggered hardware back,
+      // otherwise it balances our pushState entry.
+      popClose();
     };
-  }, [open, onClose]);
+  }, [open, onClose, sheetId]);
 
   if (!open) return null;
 
