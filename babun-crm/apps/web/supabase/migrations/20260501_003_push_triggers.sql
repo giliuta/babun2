@@ -20,11 +20,17 @@
 -- deploy the triggers in an inert state and flip them on once the
 -- Edge Function is verified end-to-end:
 --
---   - app.push_enabled (database-level GUC, default 'off') — global
---     master switch. Flip to 'on' via:
---       alter database postgres set app.push_enabled = 'on';
---     Flip OFF the same way with 'off'. Takes effect on the next
---     connection (existing connections cache the previous value).
+--   - public.app_settings (key='push_enabled', value='off') — global
+--     master switch. Flip ON / OFF via:
+--       update public.app_settings
+--          set value = 'on', updated_at = now()
+--        where key = 'push_enabled';
+--     Takes effect immediately on the next trigger fire (no connection
+--     cache lag because the helper does a fresh SELECT each time).
+--     Originally drafted as a `alter database ... set app.push_enabled`
+--     GUC but Supabase managed Postgres doesn't grant superuser, so a
+--     small one-row table is the next-cleanest pattern. The table is
+--     reusable for future flags (sms_enabled, stripe_test_mode, etc.).
 --
 --   - app.skip_push (transaction-scoped, set via set_config(...,
 --     true)) — used by bulk imports (CSV) so a 5000-row import
@@ -33,6 +39,8 @@
 --         select set_config('app.skip_push', '1', true);
 --         -- bulk inserts here
 --       commit;
+--     The two flags answer different questions (global vs txn-local)
+--     so they intentionally use different storage mechanisms.
 --
 -- The Edge Function (send_push) renders all notification copy
 -- server-side from event_type + payload data, so a copy change is
@@ -42,15 +50,39 @@
 -- ── Step 1: enable pg_net (HTTP from inside Postgres) ─────────────
 create extension if not exists pg_net with schema extensions;
 
--- ── Step 2: feature flag default OFF ──────────────────────────────
--- Database-level setting; applies to all new connections.
--- (Existing connections see the old value until they reconnect — fine
--- for our use because triggers re-read on every fire.)
-alter database postgres set app.push_enabled = 'off';
+-- ── Step 2: feature-flag store + initial row ──────────────────────
+-- Generic key-value table for global flags. RLS-protected; only
+-- service_role + the postgres role (used by SQL Editor and migrations)
+-- can touch it. Read access from triggers happens via security definer
+-- helpers, so authenticated users never query it directly.
+create table if not exists public.app_settings (
+  key        text        primary key,
+  value      text        not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.app_settings enable row level security;
+
+drop policy if exists app_settings_service_role_all on public.app_settings;
+create policy app_settings_service_role_all
+  on public.app_settings
+  for all to service_role
+  using (true) with check (true);
+
+-- Initial flag value: push_enabled = 'off'. The whole pipeline is
+-- inert until this row is updated to 'on'.
+insert into public.app_settings (key, value)
+  values ('push_enabled', 'off')
+  on conflict (key) do nothing;
+
+comment on table public.app_settings is
+  'Generic key-value store for global feature flags / settings that '
+  'change infrequently (master switches, kill flips). Reads happen '
+  'through security-definer helpers; never expose to authenticated.';
 
 -- ── Step 3: shared dispatch helper ────────────────────────────────
--- All three triggers funnel through this. It bails early on either
--- flag and on empty recipients, then calls pg_net.http_post with the
+-- All triggers funnel through this. It bails early on either flag
+-- and on empty recipients, then calls pg_net.http_post with the
 -- shape send_push expects: { user_ids, event_type, data }.
 create or replace function public._dispatch_push(
   p_event_type text,
@@ -66,13 +98,19 @@ declare
   skip_push    text;
   fn_url       text := 'https://rdtokosbqvgemicqeqwz.supabase.co/functions/v1/send_push';
 begin
-  -- Master switch.
-  push_enabled := current_setting('app.push_enabled', true);
-  if push_enabled is distinct from 'on' then
+  -- Master switch (global). Read fresh on each call so flag flips
+  -- take effect immediately without cycling connections. If the row
+  -- is missing entirely (someone DROPPED it, migration order glitch,
+  -- etc.) — treat as OFF, which is the safe default.
+  select value into push_enabled
+    from public.app_settings
+   where key = 'push_enabled';
+
+  if not found or push_enabled is distinct from 'on' then
     return;
   end if;
 
-  -- Bulk-import mute.
+  -- Bulk-import mute (transaction-scoped).
   skip_push := current_setting('app.skip_push', true);
   if skip_push = '1' then
     return;
@@ -197,12 +235,20 @@ create trigger notify_inviter_invite_accepted
 
 -- ── Diagnostics / runbook ─────────────────────────────────────────
 -- Flip the master switch ON (after end-to-end verification):
---   alter database postgres set app.push_enabled = 'on';
---   -- close all existing connections OR call pg_reload_conf() so
---   -- triggers see the new value.
+--   update public.app_settings
+--      set value = 'on', updated_at = now()
+--    where key = 'push_enabled';
+--   -- effect is immediate; the next trigger fire reads the new value.
 --
 -- Flip OFF (kill switch):
---   alter database postgres set app.push_enabled = 'off';
+--   update public.app_settings
+--      set value = 'off', updated_at = now()
+--    where key = 'push_enabled';
+--
+-- Read current value:
+--   select key, value, updated_at
+--     from public.app_settings
+--    where key = 'push_enabled';
 --
 -- Inspect recent http requests (pg_net's outbox):
 --   select id, status_code, content_type, error_msg, created
