@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthClearListener } from "@/components/system/AuthClearListener";
 
 // Narrow the Inter weights we actually use in styles (400 body,
 // 500 chip, 600 title, 700 big number, 900 day-header). Next's
@@ -79,6 +80,7 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[var(--surface-grouped)] font-sans">
+        <AuthClearListener />
         {children}
       </body>
     </html>

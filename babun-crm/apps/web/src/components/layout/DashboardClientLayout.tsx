@@ -47,11 +47,17 @@ import {
   type Client,
   type ClientTag,
 } from "@babun/shared/local/clients";
+// STORY-054 G3a — clients route through cache wrappers
+// (lib/sync/clientsCached) so write paths optimistically hit IDB and
+// queue when offline. Read paths SWR via cache. tags + appointments
+// stay on direct repo imports until G3b lands.
 import {
   listClients,
   createClient as createClientRepo,
   updateClient as updateClientRepo,
   deleteClient as deleteClientRepo,
+} from "@/lib/sync/clientsCached";
+import {
   listClientTags,
   createClientTag,
   updateClientTag,
@@ -126,6 +132,9 @@ import {
 import { warmUpHaptics } from "@/lib/haptics";
 import { getStorage } from "@babun/shared/storage";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+import { kickReplayer } from "@/lib/sync/replayer";
+import { setSyncToast } from "@/lib/sync/clientsCached";
+import { subscribeNetwork, isOnline } from "@/lib/sync/network";
 
 interface SidebarContextValue {
   open: () => void;
@@ -490,6 +499,36 @@ export default function DashboardClientLayout({
   useEffect(() => {
     bumpSessionCount();
   }, []);
+
+  // STORY-054 G3a — wire the sync-warning toast to console.warn until
+  // G4 lands the real toast UI. The fallback is intentionally
+  // visible-in-DevTools only; without it offline-tag-edit hints
+  // would silently no-op.
+  useEffect(() => {
+    setSyncToast((msg) => {
+      // eslint-disable-next-line no-console
+      console.warn(`[sync] ${msg}`);
+    });
+  }, []);
+
+  // STORY-054 G3a — drain the offline queue on offline→online
+  // transitions. useRealtimeTenantSync.onResync (set up further
+  // down) covers Supabase-channel reconnects, but a fast network
+  // flap (offline 5s → online) may not disconnect the realtime
+  // channel at all. The browser's `online` event is the lower-
+  // level signal. Mounted once at dashboard layout. We call
+  // getSupabaseBrowser() inside the effect because the
+  // `supabaseClient` const is declared later in this component;
+  // the getter is an idempotent singleton.
+  useEffect(() => {
+    let wasOffline = !isOnline();
+    return subscribeNetwork((online) => {
+      if (online && wasOffline) {
+        void kickReplayer({ supabase: getSupabaseBrowser() });
+      }
+      wasOffline = !online;
+    });
+  }, []);
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);
@@ -690,6 +729,16 @@ export default function DashboardClientLayout({
   const refetchClients = useCallback(() => void reloadClients(), [reloadClients]);
   const refetchAppointments = useCallback(() => void reloadAppointments(), [reloadAppointments]);
   const refetchSchedule = useCallback(() => void reloadSchedule(), [reloadSchedule]);
+
+  // STORY-054 G3a — onResync fires after a Supabase Realtime
+  // reconnect. That's also our signal to drain any offline-queued
+  // writes. Using the realtime hook reuses one network listener
+  // instead of attaching a duplicate `online` event everywhere.
+  // G3b will add onResyncAppointments + wire kickReplayer there too.
+  const onResyncClients = useCallback(() => {
+    void reloadClients();
+    void kickReplayer({ supabase: supabaseClient });
+  }, [reloadClients, supabaseClient]);
   useRealtimeTenantSync({
     supabase: supabaseClient,
     table: "clients",
@@ -697,7 +746,7 @@ export default function DashboardClientLayout({
     onInsert: refetchClients,
     onUpdate: refetchClients,
     onDelete: refetchClients,
-    onResync: refetchClients,
+    onResync: onResyncClients,
   });
   useRealtimeTenantSync({
     supabase: supabaseClient,
