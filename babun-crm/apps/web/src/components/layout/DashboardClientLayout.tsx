@@ -6,6 +6,7 @@ import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
 import BottomTabBar from "@/components/layout/BottomTabBar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { IOSInstallPrompt } from "@/components/install/IOSInstallPrompt";
+import { SplashScreen } from "@/components/splash/SplashScreen";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import {
   EnableNotificationsPrompt,
@@ -1420,6 +1421,7 @@ export default function DashboardClientLayout({
           <BottomTabBar />
           <InstallPrompt />
           <IOSInstallPrompt />
+          <SplashScreen tenantName={tenantName} />
           <ServiceWorkerRegister />
           <EnableNotificationsPrompt />
           {/* STORY-054 G4 — top-center status pill. Renders nothing
