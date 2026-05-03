@@ -1,6 +1,45 @@
 # STORY-047 — SMS Hybrid (Twilio reminders, multi-tenant)
 
-Status: G0 done, full spec locked, G1 in review.
+Status: **CLOSED** — skeleton mode pipeline live in production
+(v367-sms-hybrid, babun-v367). Awaiting Owner Twilio one-shots
+before flipping `app_settings.sms_enabled = 'on'`.
+
+## Final shipped contents
+
+| Gate | Commit | What |
+|---|---|---|
+| G1 | `0c3e843` | tenant_sms_config + sms_messages + RLS + RPC |
+| G3 | `8034211` | send_sms Edge Function (skeleton) + read-only service_role grants hotfix |
+| G4 | `ac492b8` | pg_cron schedule (every 5 min, heartbeat) |
+| G7a | (verified) | Smoke 4/4 PASS — match, queued, idempotent skip, row shape |
+| G6 | `a4569e8` | /api/twilio/status webhook + 9 Vitest cases (signature, AccountSid, status mapping) |
+| G5+G8 | `a89ea96` | Settings UI (3 components + page + server action) + v367 bump |
+| G9 | (verified) | sw.js serves babun-v367; /dashboard/settings/sms returns 307 unauthenticated |
+
+## Production state
+
+- `app_settings.sms_enabled = 'off'` — pipeline inert; cron fires every 5 min, Edge Function returns `{matched:0, mode:"skeleton", reason:"sms_enabled_off"}` immediately.
+- `cron.job` row: `{ schedule: '*/5 * * * *', jobname: 'sms_reminder_check', active: true }`.
+- `send_sms` Edge Function deployed at `https://rdtokosbqvgemicqeqwz.supabase.co/functions/v1/send_sms`, Verify JWT OFF.
+- `/api/twilio/status` deployed at `https://babun.app/api/twilio/status` — returns `{ok:true, ignored:true}` for unknown MessageSid.
+- `/dashboard/settings/sms` Owner-gated — non-owner redirects to `/dashboard/settings?error=sms_owner_only`.
+
+## Awaiting Owner one-shots
+
+1. Register Twilio account on `support@babun.app`, buy a Cyprus SMS-capable phone number.
+2. Put creds in Edge Function Secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`.
+3. **Code change required to leave skeleton mode** — replace the `status='failed' / error_code='skeleton_mode'` INSERT block in `send_sms/index.ts` with a real Twilio Messages.create() call + `status='sent' / twilio_sid=resp.sid`. ~30 LOC diff (the "G3b" anchor in the function header).
+4. After G3b deploy + your OK → flip `app_settings.sms_enabled='on'`.
+5. AirFix BYOK Twilio account → register through Babun's Settings UI (already shipped) → tenant_sms_config row created automatically.
+
+## Tech debt logged
+
+- `npm run db:types` regen + replace `supabase as any` casts (STORY-047b).
+- Audit `public` schema service_role grants for consistent default (read-only opt-in writes).
+- Webhook structured logging for unknown-MessageSid hits.
+
+## Original spec (kept below)
+
 
 ## Locked decisions (post-G0)
 
