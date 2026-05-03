@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -99,4 +100,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// STORY-060b — bundle analyzer wired behind ANALYZE env var so
+// `ANALYZE=true npm run build` produces per-route bundle sheets.
+// No-op for normal dev/prod builds. Useful when chasing First Load JS
+// budgets or hunting an unexpected dependency that landed in the
+// client chunk.
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
+export default withBundleAnalyzer(nextConfig);
