@@ -162,6 +162,13 @@ const NAV_GROUPS: NavGroup[] = [
         title: "Реквизиты и VAT",
         desc: "Название, VAT-номер, ставка 19%",
       },
+      {
+        href: "/dashboard/settings/billing",
+        icon: Building2,
+        tone: "bg-[var(--tile-blue)]",
+        title: "Тариф и оплата",
+        desc: "Free / Pro / Business, использование, счета",
+      },
     ],
   },
 ];

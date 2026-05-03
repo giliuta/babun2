@@ -98,6 +98,13 @@ strip the query params so a refresh doesn't re-fire the toast.
 5. Configure webhook endpoint `https://babun.app/api/stripe/webhook`
    — events listed in G3.
 
+## Backlog logged for STORY-052c
+
+- **Admin panel for billing event audit.** When a multi-person
+  support team eventually appears, a UI for searching across
+  tenants' billing_events history would beat raw SQL access. v1 =
+  solo founder + SQL Editor is acceptable.
+
 ## Backlog logged for STORY-052b
 
 - **Path C — Postgres BEFORE INSERT triggers** on clients,

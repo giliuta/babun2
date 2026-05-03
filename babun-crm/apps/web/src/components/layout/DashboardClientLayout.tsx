@@ -11,6 +11,7 @@ import {
   bumpSessionCount,
 } from "@/components/pwa/EnableNotificationsPrompt";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
+import { ToastProvider, useToast } from "@/components/ui/Toast";
 import {
   loadSchedules,
   saveSchedules,
@@ -506,16 +507,9 @@ export default function DashboardClientLayout({
     bumpSessionCount();
   }, []);
 
-  // STORY-054 G3a — wire the sync-warning toast to console.warn until
-  // G4 lands the real toast UI. The fallback is intentionally
-  // visible-in-DevTools only; without it offline-tag-edit hints
-  // would silently no-op.
-  useEffect(() => {
-    setSyncToast((msg) => {
-      // eslint-disable-next-line no-console
-      console.warn(`[sync] ${msg}`);
-    });
-  }, []);
+  // STORY-054 G3a → STORY-052 G5b — sync warning toasts now go
+  // through the real Toast UI. The wiring lives in <SyncToastBridge>
+  // below the ToastProvider so useToast() resolves correctly.
 
   // STORY-054 G3a — drain the offline queue on offline→online
   // transitions. useRealtimeTenantSync.onResync (set up further
@@ -1366,6 +1360,8 @@ export default function DashboardClientLayout({
       <LocationLabelsContext.Provider value={locationLabelsValue}>
       <SchedulesContext.Provider value={schedulesValue}>
       <ConfirmProvider>
+      <ToastProvider>
+      <SyncToastBridge>
         <div
           className="h-[100dvh] flex overflow-hidden bg-[var(--surface-grouped)]"
           style={{
@@ -1435,6 +1431,8 @@ export default function DashboardClientLayout({
             <SyncQueuePanel onClose={() => setSyncPanelOpen(false)} />
           )}
         </div>
+      </SyncToastBridge>
+      </ToastProvider>
       </ConfirmProvider>
       </SchedulesContext.Provider>
       </LocationLabelsContext.Provider>
@@ -1455,4 +1453,23 @@ export default function DashboardClientLayout({
     </SidebarContext.Provider>
     </TenantContext.Provider>
   );
+}
+
+/** STORY-052 G5b — bridges the cached-wrappers' `setSyncToast()`
+ *  global hook into the ToastProvider. Must live BELOW the
+ *  ToastProvider in the tree so `useToast()` resolves. Renders its
+ *  children verbatim. */
+function SyncToastBridge({ children }: { children: React.ReactNode }) {
+  const toast = useToast();
+  useEffect(() => {
+    setSyncToast((msg) => {
+      toast.show({ variant: "info", message: msg });
+    });
+    return () => {
+      // Reset to no-op on unmount so a stale ref doesn't fire after
+      // the provider is gone (e.g. logout → root layout swap).
+      setSyncToast(() => {});
+    };
+  }, [toast]);
+  return <>{children}</>;
 }
