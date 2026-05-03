@@ -33,6 +33,10 @@ import {
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
+import EmptyState from "@/components/ui/EmptyState";
+import { CsvImportHint } from "@/components/onboarding/CsvImportHint";
+import { TutorialOverlay } from "@/components/onboarding/TutorialOverlay";
+import { useTutorialState } from "@/components/onboarding/useTutorialState";
 import { useTenantQuota } from "@/lib/quota/useTenantQuota";
 import { isUnlimited } from "@/components/settings/billing/types";
 import QuotaBanner from "@/components/quota/QuotaBanner";
@@ -128,6 +132,10 @@ export default function ClientsPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Client | null>(null);
+  // STORY-059 — first-visit tutorial pointing at the "+" button. Only
+  // fires when the tenant has zero clients (otherwise the user has
+  // clearly already used this page; tutorial would be noise).
+  const tutorialClients = useTutorialState("clients-add");
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
   // v312 — multi-select mode + bulk actions
   const [isSelecting, setIsSelecting] = useState(false);
@@ -573,6 +581,13 @@ export default function ClientsPage() {
   // ─── Client list ───
   return (
     <>
+      {tutorialClients.show && clients.length === 0 && !clientsLoading && (
+        <TutorialOverlay
+          targetId="clients-add"
+          text="Здесь добавляешь клиентов. Тапни «+», заполни имя и телефон — и контакт появится в списке."
+          onDismiss={tutorialClients.complete}
+        />
+      )}
       <PageHeader
         title={isSelecting ? `Выбрано ${selectedIds.size}` : "Клиенты"}
         showBack={false}
@@ -633,6 +648,7 @@ export default function ClientsPage() {
               )}
               <button
                 type="button"
+                data-tutorial="clients-add"
                 onClick={() => {
                   haptic("tap");
                   router.push("/dashboard/clients/new");
@@ -659,6 +675,9 @@ export default function ClientsPage() {
           scope="clients"
         />
       )}
+
+      {/* STORY-059 — CSV import hint, shown only when 1 ≤ N < 5. */}
+      <CsvImportHint clientsCount={clients.length} />
 
       {/* STORY-036 — loading skeleton on first fetch from Supabase. */}
       {clientsLoading && clients.length === 0 && (
@@ -994,22 +1013,46 @@ export default function ClientsPage() {
                 </div>
               );
             })}
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center gap-3 py-12 text-center bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)]">
-                <Users size={40} strokeWidth={1.5} className="text-[var(--label-quaternary)]" />
-                <div className="text-[14px] font-medium text-[var(--label-secondary)]">
-                  По фильтру никого нет
-                </div>
-                <Button
-                  variant="tinted"
-                  size="sm"
-                  onClick={() => setDraft(createBlankClient())}
-                  disabled={clientsAtCap}
-                  title={clientsCapTooltip}
-                >
-                  + Добавить клиента
-                </Button>
-              </div>
+            {/* STORY-059 — first-run vs filter-empty are now distinct.
+                First-run gets the prominent welcome variant; filter-
+                empty stays muted and short. clients.length is the
+                source of truth ("ever had any?"); filtered.length is
+                "anything matching the current chips/search?". */}
+            {filtered.length === 0 && clients.length === 0 && (
+              <EmptyState
+                variant="prominent"
+                icon={<Users size={28} strokeWidth={2} />}
+                title="Создай первого клиента"
+                description="Контакт, телефон, объекты — всё на одном экране. Заполнишь — он сразу появится в календаре."
+                action={
+                  <Button
+                    variant="primary"
+                    onClick={() => setDraft(createBlankClient())}
+                    disabled={clientsAtCap}
+                    title={clientsCapTooltip}
+                  >
+                    + Новый клиент
+                  </Button>
+                }
+              />
+            )}
+            {filtered.length === 0 && clients.length > 0 && (
+              <EmptyState
+                variant="muted"
+                icon={<Users size={24} strokeWidth={1.8} />}
+                title="По фильтру никого нет"
+                action={
+                  <Button
+                    variant="tinted"
+                    size="sm"
+                    onClick={() => setDraft(createBlankClient())}
+                    disabled={clientsAtCap}
+                    title={clientsCapTooltip}
+                  >
+                    + Добавить клиента
+                  </Button>
+                }
+              />
             )}
           </div>
         </div>

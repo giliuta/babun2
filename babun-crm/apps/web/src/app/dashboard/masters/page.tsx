@@ -25,6 +25,7 @@ import {
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import EmptyState from "@/components/ui/EmptyState";
 import ContextMenu, {
   type ContextMenuOption,
 } from "@/components/ui/ContextMenu";
@@ -184,7 +185,21 @@ export default function MastersPage() {
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">
           {masters.length === 0 ? (
-            <EmptyState onAdd={openNew} />
+            <EmptyState
+              variant="prominent"
+              icon={<UserCircle2 size={28} strokeWidth={2} />}
+              title="Пока нет сотрудников"
+              description="Добавьте первого — потом сможете закрепить его за бригадой и настроить доступы."
+              action={
+                <button
+                  type="button"
+                  onClick={openNew}
+                  className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
+                >
+                  Новый сотрудник
+                </button>
+              }
+            />
           ) : (
             <>
               {masters.length > 6 && (
@@ -304,32 +319,10 @@ export default function MastersPage() {
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div className="px-6 pt-10 pb-4 flex flex-col items-center text-center gap-3">
-      <span className="w-16 h-16 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
-        <UserCircle2 size={28} strokeWidth={2} />
-      </span>
-      <div>
-        <div className="text-[17px] font-semibold text-[var(--label)]">
-          Пока нет сотрудников
-        </div>
-        <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-          Добавьте первого — потом сможете закрепить его за&nbsp;бригадой и настроить доступы.
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-3 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
-      >
-        Новый сотрудник
-      </button>
-    </div>
-  );
-}
+// STORY-059 — local EmptyState removed; shared component used at the
+// call site below. Local copy kept the same visual weight as the new
+// shared `variant="prominent"` (16px disc, accent-tint), so this is a
+// straight refactor with no UX change.
 
 // ─── Master row ───────────────────────────────────────────────────
 

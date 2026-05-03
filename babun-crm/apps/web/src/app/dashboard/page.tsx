@@ -30,6 +30,7 @@ import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
 import { useTenantQuota } from "@/lib/quota/useTenantQuota";
 import QuotaBanner from "@/components/quota/QuotaBanner";
+import { CalendarEmptyState } from "@/components/empty-states/CalendarEmptyState";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import MonthView from "@/components/calendar/MonthView";
@@ -1138,6 +1139,24 @@ function DashboardPageInner() {
           </div>
         )}
       </DndContext>
+
+      {/* STORY-059 — first-run empty state. Floats over the empty grid
+          when the tenant has no appointments. Tapping "Добавить первую
+          запись" opens the new-appointment sheet at the next round
+          hour today; tapping any grid cell still works as the
+          alternate path. */}
+      <CalendarEmptyState
+        appointmentsCount={appointments.length}
+        onCreateClick={() => {
+          const now = new Date();
+          const dateKey = toYmd(now);
+          // Snap to the next whole hour so the default isn't an
+          // awkward ":17" start time.
+          const startHour = (now.getHours() + 1) % 24;
+          const time = `${String(startHour).padStart(2, "0")}:00`;
+          handleEmptySlotClick(dateKey, time);
+        }}
+      />
 
       {/* Build tag — visible proof that latest code is running. Dev
           only; in prod the chip would be noise on top of the calendar. */}
