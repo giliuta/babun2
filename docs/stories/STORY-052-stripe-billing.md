@@ -98,6 +98,24 @@ strip the query params so a refresh doesn't re-fire the toast.
 5. Configure webhook endpoint `https://babun.app/api/stripe/webhook`
    — events listed in G3.
 
+## Sprint A scope context (locked)
+
+Architecture pattern locked for the foreseeable future:
+- `babun.app` (Next.js web) — primary surface for desktop owners.
+- iOS / Android — React Native, after Mac hardware arrives (~6-8 weeks).
+- Desktop — Tauri wraps the same web app (~1-2 weeks after RN).
+- Supabase backend shared forever.
+
+Sprint A (now → Mac arrival) finishes the web backend for production.
+After Sprint A: register AirFix tenant, run the manual lifetime grant
+SQL, then pause Babun web work. Sprint B (React Native) starts when
+the Mac is on the desk.
+
+Out-of-scope-for-this-sprint (RN era):
+- Sidebar / splash micro-feedback (deferred to RN polish).
+- iPhone push acceptance test (web Push works; native push lands in RN).
+- STORY-053c pull-to-refresh wiring (native gesture in RN).
+
 ## Lessons applied from previous stories
 
 - **Webhook idempotency via unique constraint** — same as `sms_messages.twilio_sid UNIQUE` from STORY-047.
