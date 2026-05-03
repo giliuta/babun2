@@ -18,14 +18,53 @@ import Footer from "@/components/landing/Footer";
 
 // Public marketing pages allow pinch-zoom (a11y/Lighthouse).
 // Dashboard keeps userScalable=false in the root layout for the
-// custom calendar pinch-zoom handler.
+// custom calendar pinch-zoom handler. STORY-056 unified the brand
+// blue across surfaces — landing themeColor now matches manifest.ts
+// and the icon gradient.
 export const viewport: Viewport = {
-  themeColor: "#3E88F7",
+  themeColor: "#1F66D7",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
   viewportFit: "cover",
+};
+
+// STORY-060 — JSON-LD structured data for SEO. Google + LinkedIn use
+// schema.org Organization to enrich link previews; SoftwareApplication
+// helps the landing show up for "CRM" queries. Inlined as a literal
+// JSON object so Next renders it server-side without a client script.
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://babun.app/#org",
+      name: "Babun",
+      url: "https://babun.app",
+      logo: "https://babun.app/icon.svg",
+      sameAs: [],
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: "CY",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Babun CRM",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web, iOS, Android",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "EUR",
+      },
+      description:
+        "CRM для сервисного бизнеса: записи, клиенты, SMS-напоминания. Работает с iPhone и компьютера.",
+      url: "https://babun.app",
+      publisher: { "@id": "https://babun.app/#org" },
+    },
+  ],
 };
 
 export default async function HomePage() {
@@ -38,14 +77,27 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[var(--surface-grouped)] text-[var(--label)]">
-      <Header />
-      <Hero />
-      <Features />
-      <HowItWorks />
-      <Pricing />
-      <FAQ />
-      <Footer />
-    </main>
+    <>
+      <script
+        type="application/ld+json"
+        // Inline JSON-LD is a documented, safe Next pattern for
+        // SEO-only structured data. The object is build-time literal,
+        // not user-controlled, so XSS surface is nil.
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+      />
+      <main
+        id="main"
+        className="min-h-[100dvh] bg-[var(--surface-grouped)] text-[var(--label)]"
+      >
+        <Header />
+        <Hero />
+        <Features />
+        <HowItWorks />
+        <Pricing />
+        <FAQ />
+        <Footer />
+      </main>
+    </>
   );
 }

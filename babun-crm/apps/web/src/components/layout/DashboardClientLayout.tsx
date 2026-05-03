@@ -1391,7 +1391,15 @@ export default function DashboardClientLayout({
               gets bottom padding for the tab bar. `<main>` satisfies
               Lighthouse's `landmark-one-main` rule without breaking any
               existing layout. */}
+          {/* STORY-060 — keyboard-accessible skip link. Visually hidden
+              until focused (first Tab in the tab order). Lets keyboard
+              and screen-reader users jump past the sidebar straight to
+              page content. Style lives in globals.css (.babun-skip-link). */}
+          <a href="#babun-main" className="babun-skip-link">
+            Перейти к контенту
+          </a>
           <main
+            id="babun-main"
             className="flex-1 lg:ml-[240px] flex flex-col min-h-0 min-w-0 pb-[60px] lg:pb-0 relative"
             style={{
               touchAction: "pan-y",

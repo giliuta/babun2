@@ -189,6 +189,15 @@ export default function Sidebar({
       )}
 
       <aside
+        // STORY-060 — explicit landmark + label so screen readers
+        // announce "Главная навигация" and the drawer shows up in the
+        // rotor. We don't add aria-hidden when the drawer is closed
+        // because on lg+ it's always visible (the closed state on
+        // mobile is layout-only, controlled by the translate-x class
+        // — the breakpoint isn't React-aware here, so a JS-driven
+        // aria-hidden would lie about the desktop state).
+        role="navigation"
+        aria-label="Главная навигация"
         className={`fixed top-0 left-0 h-full w-[280px] bg-[var(--surface-grouped)] flex flex-col z-40 transition-transform duration-[250ms] ease-out shadow-[10px_0_30px_-20px_rgba(0,0,0,0.2)] lg:shadow-none ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}

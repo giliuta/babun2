@@ -713,3 +713,41 @@ h1, h2, h3,
 @media (prefers-reduced-motion: reduce) {
   .onboarding-step-enter { animation: none; }
 }
+
+/* STORY-060 — keyboard a11y. Default Tailwind reset removes focus
+   outlines globally; restore a visible ring for keyboard users via
+   :focus-visible (mouse focus stays clean). 2px solid accent ring +
+   2px offset reads on every surface tone. Skip-link below is
+   visually hidden until focused — first Tab on dashboard surfaces
+   the "Перейти к контенту" target. */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline-offset: 3px;
+}
+
+.babun-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 8px;
+  z-index: 200;
+  background: var(--accent);
+  color: var(--label-on-accent);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 150ms ease-out;
+}
+.babun-skip-link:focus {
+  top: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .babun-skip-link { transition: none; }
+}
