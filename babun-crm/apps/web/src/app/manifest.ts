@@ -9,7 +9,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#EFEFF4",
-    theme_color: "#3E88F7",
+    // STORY-056 — unified brand blue (matches icon gradient + install
+    // prompts). theme_color drives the Android splash background and
+    // the browser chrome accent. Keep in lockstep with icon files.
+    theme_color: "#1F66D7",
     lang: "ru",
     categories: ["business", "productivity"],
     icons: [
