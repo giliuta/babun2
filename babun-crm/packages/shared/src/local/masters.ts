@@ -1080,99 +1080,16 @@ export function generatePassword(): string {
 import { PRESET_COLORS as UNIFIED_TEAM_COLORS } from "@babun/shared/common/utils/colors";
 export const TEAM_COLORS = UNIFIED_TEAM_COLORS;
 
-// ─── Seed data (Артём's real team) ─────────────────────────────────────
+// ─── Seed data ─────────────────────────────────────────────────────────
+// STORY-053a — empty arrays. Previously these contained AirFix's real
+// team (Артём, Дима, Юра…) which leaked into every fresh tenant on
+// first signup. New tenants now start blank and are guided by the
+// existing /dashboard/masters + /dashboard/teams empty-state CTAs to
+// add their own. The constants stay exported so any external import
+// keeps compiling; the values are just empty.
 
-const NOW = new Date().toISOString();
-
-export const DEFAULT_MASTERS: Master[] = [
-  {
-    id: "m-artem",
-    full_name: "Артём",
-    phone: "+357 99 000001",
-    team_id: null,
-    role: "admin",
-    is_active: true,
-    permissions: defaultPermissionsForRole("admin"),
-    created_at: NOW,
-  },
-  {
-    id: "m-dima",
-    full_name: "Дима",
-    phone: "+357 99 000002",
-    team_id: null, // universal substitute / dispatcher
-    role: "dispatcher",
-    is_active: true,
-    permissions: defaultPermissionsForRole("dispatcher"),
-    created_at: NOW,
-  },
-  {
-    id: "m-yura",
-    full_name: "Юра",
-    phone: "+357 99 000003",
-    team_id: "team-yd",
-    role: "lead",
-    is_active: true,
-    permissions: defaultPermissionsForRole("lead"),
-    created_at: NOW,
-  },
-  {
-    id: "m-danya-yd",
-    full_name: "Даня (Y&D)",
-    phone: "+357 99 000004",
-    team_id: "team-yd",
-    role: "helper",
-    is_active: true,
-    permissions: defaultPermissionsForRole("helper"),
-    created_at: NOW,
-  },
-  {
-    id: "m-danya-dk",
-    full_name: "Даня (D&K)",
-    phone: "+357 99 000005",
-    team_id: "team-dk",
-    role: "lead",
-    is_active: true,
-    permissions: defaultPermissionsForRole("lead"),
-    created_at: NOW,
-  },
-  {
-    id: "m-kolya",
-    full_name: "Коля",
-    phone: "+357 99 000006",
-    team_id: "team-dk",
-    role: "helper",
-    is_active: true,
-    permissions: defaultPermissionsForRole("helper"),
-    created_at: NOW,
-  },
-];
-
-export const DEFAULT_TEAMS: Team[] = [
-  {
-    id: "team-yd",
-    name: "Y&D",
-    region: "Пафос, Лимассол",
-    color: "#3b82f6",
-    default_city: "Пафос",
-    lead_id: "m-yura",
-    helper_ids: ["m-danya-yd"],
-    payout_percentage: 30,
-    active: true,
-    created_at: NOW,
-  },
-  {
-    id: "team-dk",
-    name: "D&K",
-    region: "Ларнака, Никосия",
-    color: "#10b981",
-    default_city: "Ларнака",
-    lead_id: "m-danya-dk",
-    helper_ids: ["m-kolya"],
-    payout_percentage: 30,
-    active: true,
-    created_at: NOW,
-  },
-];
+export const DEFAULT_MASTERS: Master[] = [];
+export const DEFAULT_TEAMS: Team[] = [];
 
 // ─── Storage ───────────────────────────────────────────────────────────
 

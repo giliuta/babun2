@@ -39,50 +39,12 @@ export const AVAILABLE_TOKENS = [
 
 const NOW = new Date().toISOString();
 
-export const DEFAULT_TEMPLATES: SmsTemplate[] = [
-  {
-    id: "tpl-new",
-    kind: "new_appointment",
-    name: "Новая запись",
-    body: "Здравствуйте, [Name]! Вы записаны на [Date] в [Time]. Мастер: [Master]. AirFix",
-    enabled: true,
-  },
-  {
-    id: "tpl-reminder",
-    kind: "reminder",
-    name: "Напоминание",
-    body: "[Name], напоминаем: завтра [Day], [Date] в [Time] — ждём вас. AirFix",
-    enabled: true,
-  },
-  {
-    id: "tpl-after-short",
-    kind: "after_24h_short",
-    name: "После визита (короткое)",
-    body: "[Name], спасибо за заказ! Если есть вопросы — пишите. AirFix",
-    enabled: true,
-  },
-  {
-    id: "tpl-after-long",
-    kind: "after_24h_long",
-    name: "После визита (длинное)",
-    body: "[Name], прошло время после нашего визита. Всё работает? Будем рады отзыву. AirFix",
-    enabled: false,
-  },
-  {
-    id: "tpl-cancel",
-    kind: "cancellation",
-    name: "Отмена записи",
-    body: "[Name], ваша запись на [Date] в [Time] отменена. Перезапишитесь по звонку. AirFix",
-    enabled: true,
-  },
-  {
-    id: "tpl-waitlist",
-    kind: "waitlist",
-    name: "Лист ожидания",
-    body: "[Name], появилось свободное время [Date] в [Time]. Подтвердите — запишем. AirFix",
-    enabled: true,
-  },
-];
+// STORY-053a — empty array. Previously defaulted to AirFix-flavoured
+// templates with a literal "AirFix" signature in every body. Leaked
+// into every fresh tenant on first signup. New tenants now start
+// with no templates and use the existing Settings → SMS templates
+// editor (or STORY-047 SMS reminders) to add their own.
+export const DEFAULT_TEMPLATES: SmsTemplate[] = [];
 
 const STORAGE_KEY = "babun-sms-templates";
 
