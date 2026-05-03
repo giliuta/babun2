@@ -1,0 +1,38 @@
+---
+description: Полный конвейер задачи через всех агентов на максималках
+---
+
+Прогони задачу "$ARGUMENTS" через ПОЛНЫЙ pipeline на максимум качества.
+
+## Phase 1: Планирование
+1. **strategist** (ultrathink) — продумай задачу глубоко, прочитай весь нужный контекст, создай детальный план в `docs/stories/STORY-NNN.md`
+
+2. **architect** (ultrathink) — проверь план на архитектурную правильность. Если нужно — обнови план, напиши ADR в `docs/adr/`
+
+3. **strategist** — review правок от architect, финализируй план
+
+## Phase 2: Дизайн (только если задача касается UI)
+4. **designer** (think hard) — через chrome-devtools MCP проанализируй текущий UI затронутых страниц. Дай рекомендации с CSS/JSX
+
+## Phase 3: Реализация
+5. **developer** — реализуй по плану от strategist + рекомендациям от designer. Один коммит = одна причина. Push в master.
+
+## Phase 4: Проверка качества (параллельно через Agent Teams)
+6. **security-auditor** (ultrathink) — обязательная проверка multi-tenant. Если FAIL → возврат к developer, повтор макс 2 раза
+
+7. **ux-tester** (think hard) — реальный прогон через chrome-devtools MCP. Если CRITICAL баги → возврат к developer, повтор макс 2 раза
+
+## Phase 5: Финальный review
+8. **reviewer** (think hard) — финальный code review. APPROVE / REQUEST CHANGES
+
+## Phase 6: Сводка
+9. **strategist** — финальный summary:
+   - Что сделано
+   - Что улучшено по сравнению с первоначальным планом
+   - Какие компромиссы приняты
+   - Готово ли к merge
+
+## Жёсткие лимиты
+- Phase 4 циклы: максимум 2 возврата на каждого аудитора
+- Если после 2 циклов всё ещё проблема — STOP, эскалация на пользователя
+- Если развилка решений — strategist принимает финальное решение
