@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { registerModalBack } from "@/lib/history-stack";
 import {
   Calendar as CalendarIcon,
   Users as UsersIcon,
@@ -82,10 +83,28 @@ export default function Sidebar({
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const popCloseRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    // Hydrate expanded flag from storage — same pattern as
+    // OfflineIndicator / usePwaInstallState. Lint is satisfied by an
+    // explicit suppression rather than restructuring the read.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpanded(getStorage().getRaw(EXPAND_KEY) === "1");
   }, []);
+
+  // STORY-058 — hardware-back / iOS edge-swipe closes the drawer
+  // instead of falling through to URL navigation. Match the modal
+  // pattern used by AppointmentSheet and the install prompts.
+  useEffect(() => {
+    if (!open) {
+      popCloseRef.current?.();
+      popCloseRef.current = null;
+      return;
+    }
+    if (popCloseRef.current) return;
+    popCloseRef.current = registerModalBack("sidebar", onClose);
+  }, [open, onClose]);
 
   // STORY-050 — recurring reminders live in Supabase. Lazy fetch
   // on mount + on `babun:recurring-changed` (intra-tab signal) +
@@ -110,6 +129,11 @@ export default function Sidebar({
   }, [tenantId]);
 
   useEffect(() => {
+    // Initial fetch + subscribe to external badge-state signals.
+    // refreshBadge ultimately calls setRecurringDue/setUnreadChats;
+    // the lint rule sees the synchronous call as a cascading render
+    // even though it actually queues an async fetch. Suppress.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshBadge();
     const onChange = () => refreshBadge();
     window.addEventListener("storage", onChange);
@@ -152,13 +176,20 @@ export default function Sidebar({
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          // STORY-058 — frosted-glass backdrop. backdrop-filter blurs
+          // and saturates the dashboard underneath; black/30 gives a
+          // clear scrim signal on top of the blur so the dim still
+          // reads on light wallpapers. lg:hidden — desktop pins the
+          // drawer. STORY-060 follow-up: fade-in transition on this
+          // backdrop's opacity (200ms) for polish; today it pops in
+          // with the panel slide.
+          className="fixed inset-0 z-30 lg:hidden bg-black/30 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)]"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-full w-[280px] bg-[var(--surface-grouped)] flex flex-col z-40 transition-transform duration-300 shadow-[10px_0_30px_-20px_rgba(0,0,0,0.2)] lg:shadow-none ${
+        className={`fixed top-0 left-0 h-full w-[280px] bg-[var(--surface-grouped)] flex flex-col z-40 transition-transform duration-[250ms] ease-out shadow-[10px_0_30px_-20px_rgba(0,0,0,0.2)] lg:shadow-none ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -232,7 +263,9 @@ export default function Sidebar({
           <button
             type="button"
             onClick={toggleExpanded}
-            className="w-full flex items-center gap-2 px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] active:text-[var(--label)] transition"
+            // STORY-058 — 44px tap target per Apple HIG. min-h hits
+            // the floor; vertical content stays centred with flex.
+            className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] active:text-[var(--label)] transition"
           >
             <ChevronDown
               size={14}
@@ -279,7 +312,10 @@ export default function Sidebar({
         <div className="flex-shrink-0 px-4 py-4 border-t border-[var(--separator)] bg-[var(--surface-card)]">
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 text-[14px] text-[var(--system-red)] active:opacity-70 transition"
+            // STORY-058 — 44px tap target. Negative left padding pulls
+            // the icon back to the column edge so the visible label
+            // stays aligned with the build-version row below it.
+            className="flex items-center gap-2 min-h-[44px] -ml-1 px-1 text-[14px] text-[var(--system-red)] active:opacity-70 transition"
           >
             <LogOut size={16} strokeWidth={2} />
             Выход
