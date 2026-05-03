@@ -65,6 +65,39 @@ Multi-tenant SaaS billing through Stripe for the four tiers below.
 - G8 Bump `v368-stripe` + push
 - G9 Production verify + AirFix lifetime grant SQL
 
+## G5 Settings UI — query-string handling spec (locked for implementation)
+
+After Stripe Checkout redirects back, the Settings page receives
+either `?session_id={...}` (success) or `?canceled=1` (cancel).
+The webhook is the single source of truth for `tenants.plan`, so
+the page reads the current `plan` field and decides the toast:
+
+- `?session_id=…` AND `tenants.plan === 'free'` → toast
+  «Платёж обрабатывается. Если изменения не появились через
+  минуту — обнови страницу.» (webhook hasn't landed yet — Stripe
+  callback typically arrives within seconds, but we don't block on
+  it).
+- `?session_id=…` AND `tenants.plan !== 'free'` → toast
+  «Подписка {plan_ru} активирована» (success; webhook already
+  reconciled).
+- `?canceled=1` → toast «Оплата отменена. Можно попробовать снова.»
+
+After surfacing the toast, the page should `router.replace()` to
+strip the query params so a refresh doesn't re-fire the toast.
+
+## Owner Stripe one-shot checklist (lock-in)
+
+1. Register Stripe account on `support@babun.app`.
+2. **Enable Stripe Tax** — `Settings → Tax → Enable Stripe Tax`.
+   Register Cyprus VAT MOSS. Without this, every Checkout session
+   creation fails with `tax_not_configured` (caught + surfaced as
+   «Налоговая настройка не завершена…» in the UI).
+3. Create products + prices in the Dashboard.
+4. Set Vercel env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+   `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`.
+5. Configure webhook endpoint `https://babun.app/api/stripe/webhook`
+   — events listed in G3.
+
 ## Lessons applied from previous stories
 
 - **Webhook idempotency via unique constraint** — same as `sms_messages.twilio_sid UNIQUE` from STORY-047.
