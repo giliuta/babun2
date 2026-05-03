@@ -64,7 +64,27 @@ import {
 import {
   removeOpAndEmit as removeOp,
   bumpAttemptAndEmit as bumpAttempt,
+  markOpPermanentlyFailedAndEmit,
 } from "./queue-events";
+// STORY-052 G4 — quota gate for offline replay. Prevents an offline
+// burst from over-quota'ing the tenant when the queue drains. Path B
+// in the story doc; Path C (Postgres BEFORE INSERT trigger) is logged
+// for STORY-052b as the defense-in-depth covering any PostgREST
+// writer (not just our app code).
+import {
+  assertQuotaAvailable,
+  QuotaExceededError,
+} from "@/lib/quota/check";
+
+const QUOTA_TABLES = new Set<CachedTable>(["clients", "appointments"]);
+
+function tableToQuotaKind(
+  t: CachedTable,
+): "clients" | "appointments_month" | null {
+  if (t === "clients") return "clients";
+  if (t === "appointments") return "appointments_month";
+  return null;
+}
 
 type DbSupabase = SupabaseClient<Database>;
 
@@ -129,6 +149,36 @@ async function drain(opts: ReplayerOptions): Promise<void> {
     if (op.attempts > 0) {
       const backoff = BACKOFFS_MS[Math.min(op.attempts - 1, BACKOFFS_MS.length - 1)] ?? 30000;
       await sleep(backoff);
+    }
+
+    // STORY-052 G4 — pre-gate offline INSERTs on the tier quota.
+    // Quota failures are KNOWN-PERMANENT (waiting + retrying won't
+    // free up tier headroom), so mark perm-failed immediately
+    // instead of burning 3 retry windows. UI shows the row in
+    // SyncQueuePanel with last_error so the user knows why + can
+    // upgrade and manually retry from the panel.
+    if (op.op === "insert" && QUOTA_TABLES.has(op.table)) {
+      const kind = tableToQuotaKind(op.table);
+      const tenantId = (op.payload as { tenant_id?: string }).tenant_id;
+      if (kind && tenantId) {
+        try {
+          await assertQuotaAvailable(opts.supabase, tenantId, kind);
+        } catch (err) {
+          if (err instanceof QuotaExceededError) {
+            const msg = `Quota exceeded: ${err.kind} (${err.current}/${err.limit})`;
+            await markOpPermanentlyFailedAndEmit(op.id, msg);
+            opts.onPermanentFailure?.({
+              ...op,
+              attempts: 999,
+              last_error: msg,
+            });
+            continue;
+          }
+          // Non-quota error in the gate — fall through to normal
+          // dispatch + bump-attempt path so a transient blip doesn't
+          // permanently fail the op.
+        }
+      }
     }
 
     try {

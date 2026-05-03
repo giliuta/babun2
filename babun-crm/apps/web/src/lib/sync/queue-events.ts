@@ -104,6 +104,27 @@ export async function bumpAttemptAndEmit(
   emitQueueChange();
 }
 
+/** Permanent-fail an op without going through MAX retries. Used when
+ *  the failure is known-permanent (e.g. quota exceeded) — retrying
+ *  every backoff window would waste time + Supabase calls. Sets
+ *  attempts to a high sentinel so the replayer's
+ *  `attempts >= MAX_ATTEMPTS` skip kicks in immediately, while
+ *  preserving the row + last_error for the SyncQueuePanel. */
+export async function markOpPermanentlyFailedAndEmit(
+  id: number,
+  error: string,
+): Promise<void> {
+  const db = await getCache();
+  const op = await db.get("sync_queue", id);
+  if (!op) return;
+  await db.put("sync_queue", {
+    ...op,
+    attempts: 999,
+    last_error: error,
+  });
+  emitQueueChange();
+}
+
 /** Manual-retry from the SyncQueuePanel: reset attempts + clear
  *  last_error so the next drain pass picks the op up fresh. */
 export async function resetOpAttemptsAndEmit(id: number): Promise<void> {

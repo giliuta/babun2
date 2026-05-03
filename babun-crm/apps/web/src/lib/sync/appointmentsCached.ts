@@ -34,6 +34,10 @@ import {
 import { isOnline } from "./network";
 import { kickReplayer } from "./replayer";
 import { enqueueOpAndEmit as enqueueOp } from "./queue-events";
+import {
+  assertQuotaAvailable,
+  QuotaExceededError,
+} from "@/lib/quota/check";
 
 type DbSupabase = SupabaseClient<Database>;
 
@@ -150,7 +154,18 @@ export async function createAppointment(
   const optimisticRow = makeOptimisticRow(input, tenantId, id, nowIso);
   await cacheUpsert("appointments", optimisticRow);
 
+  // STORY-052 G4 — same online-only quota gate as clientsCached.
+  // Offline replays go through the standard repo path; future
+  // STORY-052b BEFORE INSERT trigger handles the bypass case.
   if (isOnline()) {
+    try {
+      await assertQuotaAvailable(supabase, tenantId, "appointments_month");
+    } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        await cacheDelete("appointments", id);
+      }
+      throw err;
+    }
     try {
       const created = await repoCreateAppointment(
         supabase,

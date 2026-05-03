@@ -9,6 +9,11 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import {
+  assertQuotaAvailable,
+  QuotaExceededError,
+  quotaKindLabelRu,
+} from "@/lib/quota/check";
 
 const VALID_ROLES = new Set(["owner", "dispatcher", "master"]);
 
@@ -58,6 +63,28 @@ export async function POST(req: Request) {
   }
   if (caller.role !== "owner") {
     return NextResponse.json({ error: "Owner only" }, { status: 403 });
+  }
+
+  // STORY-052 G4 — gate on team_members quota (active members +
+  // pending invitations). Owner-friendly RU error so the Settings UI
+  // can show "Достигнут лимит N членов команды на текущем тарифе"
+  // without parsing.
+  try {
+    await assertQuotaAvailable(supabase, tenantId, "team_members");
+  } catch (err) {
+    if (err instanceof QuotaExceededError) {
+      return NextResponse.json(
+        {
+          error: "quota_exceeded",
+          kind: err.kind,
+          current: err.current,
+          limit: err.limit,
+          message: `Достигнут лимит ${err.limit} ${quotaKindLabelRu(err.kind)} на текущем тарифе.`,
+        },
+        { status: 402 }, // Payment Required
+      );
+    }
+    throw err;
   }
 
   // 192 bits of entropy → 32 url-safe characters after base64url.

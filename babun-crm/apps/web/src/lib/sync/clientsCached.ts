@@ -45,6 +45,10 @@ import {
 import { isOnline } from "./network";
 import { kickReplayer } from "./replayer";
 import { enqueueOpAndEmit as enqueueOp } from "./queue-events";
+import {
+  assertQuotaAvailable,
+  QuotaExceededError,
+} from "@/lib/quota/check";
 
 type DbSupabase = SupabaseClient<Database>;
 
@@ -163,7 +167,22 @@ export async function createClient(
   const optimisticRow = makeOptimisticRow(input, tenantId, id, nowIso);
   await cacheUpsert("clients", optimisticRow);
 
+  // STORY-052 G4 — gate online-path inserts on the tier quota.
+  // Offline writes are NOT pre-gated (we'd need a live count anyway);
+  // the queue replays through this path on reconnect, so any quota
+  // breach surfaces then. Direct PostgREST writes bypass — STORY-052b
+  // backlog adds a Postgres BEFORE INSERT trigger backstop.
   if (isOnline()) {
+    try {
+      await assertQuotaAvailable(supabase, tenantId, "clients");
+    } catch (err) {
+      // Roll back the optimistic cache row so the user's UI doesn't
+      // show a "client" that never landed on the server.
+      if (err instanceof QuotaExceededError) {
+        await cacheDelete("clients", id);
+      }
+      throw err;
+    }
     try {
       const created = await repoCreateClient(supabase, { ...input, id }, tenantId);
       // Re-fetch the canonical row for the cache (created carries

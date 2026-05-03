@@ -98,6 +98,21 @@ strip the query params so a refresh doesn't re-fire the toast.
 5. Configure webhook endpoint `https://babun.app/api/stripe/webhook`
    — events listed in G3.
 
+## Backlog logged for STORY-052b
+
+- **Path C — Postgres BEFORE INSERT triggers** on clients,
+  appointments, invitations calling the `tenant_quota_*` SQL
+  helpers. Defense-in-depth covering ANY PostgREST writer (not
+  just our app code). v1 ships Path B (replayer pre-check inside
+  the offline drain loop), which closes the offline-replay
+  loophole specifically; the trigger backstop covers the rest.
+- **DB types regen** (`npm run db:types`) + replace `supabase as any`
+  casts at the four call sites (twilio webhook, billing actions,
+  stripe webhook, quota helper).
+- **Structured logging for unknown-MessageSid + orphan billing
+  events** — currently `console.warn`. Future move to a structured
+  log sink for security-review hygiene.
+
 ## Sprint A scope context (locked)
 
 Architecture pattern locked for the foreseeable future:
