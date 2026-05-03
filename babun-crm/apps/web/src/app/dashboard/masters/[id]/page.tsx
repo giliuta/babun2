@@ -29,6 +29,7 @@ import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import MasterContactMenu from "@/components/masters/MasterContactMenu";
+import { safeBack } from "@/lib/nav/safe-back";
 import { isAvatarSet } from "@babun/shared/local/selectors/avatars";
 import {
   useAppointments,
@@ -201,7 +202,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
       <div className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] h-12 flex items-center px-2 relative">
         <button
           type="button"
-          onClick={() => router.push("/dashboard/masters")}
+          onClick={() => safeBack(router, "/dashboard/masters")}
           aria-label="Назад"
           className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] press-scale"
         >

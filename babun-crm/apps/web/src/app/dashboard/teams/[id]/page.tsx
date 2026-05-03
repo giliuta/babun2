@@ -34,6 +34,7 @@ import {
 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { safeBack } from "@/lib/nav/safe-back";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   useMasters,
@@ -246,7 +247,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
       <div className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] h-12 flex items-center px-2 relative">
         <button
           type="button"
-          onClick={() => router.push("/dashboard/teams")}
+          onClick={() => safeBack(router, "/dashboard/teams")}
           aria-label="Назад"
           className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] press-scale"
         >
