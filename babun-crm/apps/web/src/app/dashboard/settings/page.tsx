@@ -129,6 +129,13 @@ const NAV_GROUPS: NavGroup[] = [
         title: "Шаблоны SMS",
         desc: "Тексты напоминаний и подтверждений",
       },
+      {
+        href: "/dashboard/settings/sms",
+        icon: MessageSquare,
+        tone: "bg-[var(--tile-mint)]",
+        title: "Автоматические SMS",
+        desc: "Напоминания за 24 ч / 2 ч, Twilio",
+      },
     ],
   },
   {
