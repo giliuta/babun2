@@ -1,21 +1,20 @@
 "use client";
 
 // STORY-053b — install prompt rewrite (G4e).
-//
-// Replaces the previous toast-style banner with a proper centered
-// modal. Three numbered steps for iOS (Safari → Share → Add to Home
-// Screen). On Android, single button via `beforeinstallprompt`.
+// STORY-055 — iOS branch lifted out into IOSInstallPrompt with a
+// different cadence (30s/2nd-nav + dual dismiss). This component now
+// covers ANDROID ONLY. iOS users see the bottom sheet from
+// components/install/IOSInstallPrompt.tsx instead.
 //
 // Trigger gates (all must hold):
 //   - not already standalone
-//   - sessionCount >= 2 (uses the same babun-session-count counter
-//     that EnableNotificationsPrompt reads)
+//   - platform === "android"
+//   - sessionCount >= 2 (same babun-session-count counter
+//     EnableNotificationsPrompt reads)
 //   - dismissed-at flag missing OR > 7 days old
 //
 // Decline path: dismiss flag set for 7 days. Accept on Android: try
-// the prompt; on accept set the flag permanently. iOS doesn't have
-// programmatic accept — user follows the steps and our flag is set
-// by the "Понятно" button.
+// the prompt; on accept set the flag permanently.
 
 import { useEffect, useRef, useState } from "react";
 import { detectPlatform } from "@/lib/platform";
@@ -31,7 +30,7 @@ const DISMISS_KEY = "babun-pwa-install-dismissed";
 const SESSION_KEY = "babun-session-count";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-type Visibility = "hidden" | "iphone" | "ipad" | "android" | "unknown";
+type Visibility = "hidden" | "android" | "unknown";
 
 export function InstallPrompt() {
   const [vis, setVis] = useState<Visibility>("hidden");
@@ -42,21 +41,16 @@ export function InstallPrompt() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const { isStandalone, platform, isIPad } = detectPlatform();
+    const { isStandalone, platform } = detectPlatform();
     if (isStandalone) return;
+    // iOS handled by components/install/IOSInstallPrompt — bail here.
+    if (platform === "ios") return;
 
     const sessions = readSessionCount();
     if (sessions < 2) return;
 
     const dismissedAt = readDismissedAt();
     if (dismissedAt && Date.now() - dismissedAt < SEVEN_DAYS_MS) return;
-
-    if (platform === "ios") {
-      // Share button location differs between iPhone (bottom) and
-      // iPad (top-right). Keep them as separate visibility states.
-      setVis(isIPad ? "ipad" : "iphone");
-      return;
-    }
 
     // Android — wait briefly for `beforeinstallprompt` to land. If it
     // doesn't, fall back to the platform's panel with generic copy.
@@ -139,44 +133,6 @@ export function InstallPrompt() {
           </div>
         </div>
 
-        {vis === "iphone" && (
-          <ol className="mt-5 space-y-3">
-            <Step
-              n={1}
-              text={
-                <>
-                  Тапни кнопку <ShareIcon />{" "}
-                  <span className="text-[var(--label-secondary)]">
-                    «Поделиться»
-                  </span>{" "}
-                  внизу Safari
-                </>
-              }
-            />
-            <Step n={2} text="Найди «На главный экран» в списке" />
-            <Step n={3} text="Нажми «Добавить»" />
-          </ol>
-        )}
-
-        {vis === "ipad" && (
-          <ol className="mt-5 space-y-3">
-            <Step
-              n={1}
-              text={
-                <>
-                  Тапни кнопку <ShareIcon />{" "}
-                  <span className="text-[var(--label-secondary)]">
-                    «Поделиться»
-                  </span>{" "}
-                  в правом верхнем углу Safari
-                </>
-              }
-            />
-            <Step n={2} text="Найди «На главный экран» в списке" />
-            <Step n={3} text="Нажми «Добавить»" />
-          </ol>
-        )}
-
         {vis === "android" && (
           <p className="mt-5 text-[14px] leading-snug text-[#3C3C43D9]">
             Тапни «Установить» — Babun добавится на главный экран и
@@ -211,45 +167,6 @@ export function InstallPrompt() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Step({ n, text }: { n: number; text: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-3 text-[14px] leading-snug text-[#3C3C43D9]">
-      <span
-        className="flex-shrink-0 w-6 h-6 rounded-full bg-[rgba(31,102,215,0.12)] text-[#1F66D7] text-[12px] font-semibold flex items-center justify-center"
-        aria-hidden
-      >
-        {n}
-      </span>
-      <span>{text}</span>
-    </li>
-  );
-}
-
-function ShareIcon() {
-  return (
-    <span
-      className="inline-flex items-center justify-center align-middle"
-      style={{ width: 18, height: 18 }}
-      aria-hidden
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        width="16"
-        height="16"
-      >
-        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-        <polyline points="16 6 12 2 8 6" />
-        <line x1="12" y1="2" x2="12" y2="15" />
-      </svg>
-    </span>
   );
 }
 
