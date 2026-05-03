@@ -6,6 +6,9 @@ import { Users, UserPlus, X, Copy, Check } from "@babun/shared/icons";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+import { useTenantQuota } from "@/lib/quota/useTenantQuota";
+import { isUnlimited } from "@/components/settings/billing/types";
+import QuotaBanner from "@/components/quota/QuotaBanner";
 
 type Role = "owner" | "dispatcher" | "master";
 const ROLE_LABEL: Record<Role, string> = {
@@ -50,6 +53,16 @@ export default function TeamSettingsClient({
   const [busy, setBusy] = useState(false);
 
   const isOwner = callerRole === "owner";
+
+  // STORY-052 G6 — quota gate for the invite button.
+  const { snapshot: quotaSnap } = useTenantQuota();
+  const teamAtCap =
+    !!quotaSnap &&
+    !isUnlimited(quotaSnap.quotas.team_members) &&
+    quotaSnap.usage.team_members >= quotaSnap.quotas.team_members;
+  const teamCapTooltip = teamAtCap
+    ? `Достигнут лимит ${quotaSnap.quotas.team_members} членов команды на тарифе ${quotaSnap.plan}. Перейдите на Pro в Настройках → Тариф и оплата.`
+    : undefined;
 
   async function refresh() {
     setError(null);
@@ -237,14 +250,26 @@ export default function TeamSettingsClient({
       </div>
 
       {isOwner && (
-        <button
-          type="button"
-          onClick={() => setInviteOpen(true)}
-          className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition flex items-center justify-center gap-2"
-        >
-          <UserPlus size={16} />
-          Пригласить участника
-        </button>
+        <>
+          {quotaSnap && (
+            <QuotaBanner
+              plan={quotaSnap.plan}
+              quotas={quotaSnap.quotas}
+              usage={quotaSnap.usage}
+              scope="team_members"
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setInviteOpen(true)}
+            disabled={teamAtCap}
+            title={teamCapTooltip}
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <UserPlus size={16} />
+            Пригласить участника
+          </button>
+        </>
       )}
 
       {invites.length > 0 && isOwner && (

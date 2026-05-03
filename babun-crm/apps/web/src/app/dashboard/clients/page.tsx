@@ -33,6 +33,9 @@ import {
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
+import { useTenantQuota } from "@/lib/quota/useTenantQuota";
+import { isUnlimited } from "@/components/settings/billing/types";
+import QuotaBanner from "@/components/quota/QuotaBanner";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
 import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
@@ -109,6 +112,15 @@ export default function ClientsPage() {
     tags,
   } = useClients();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
+  // STORY-052 G6 — quota state for the "Добавить клиента" gating.
+  const { snapshot: quotaSnap } = useTenantQuota();
+  const clientsAtCap =
+    !!quotaSnap &&
+    !isUnlimited(quotaSnap.quotas.clients) &&
+    quotaSnap.usage.clients >= quotaSnap.quotas.clients;
+  const clientsCapTooltip = clientsAtCap
+    ? `Достигнут лимит ${quotaSnap.quotas.clients} клиентов. Перейдите на Pro в Настройках → Тариф и оплата.`
+    : undefined;
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [segment, setSegment] = useState<Segment>("all");
@@ -625,8 +637,10 @@ export default function ClientsPage() {
                   haptic("tap");
                   router.push("/dashboard/clients/new");
                 }}
+                disabled={clientsAtCap}
+                title={clientsCapTooltip}
                 aria-label="Добавить клиента"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus size={20} strokeWidth={2.2} />
               </button>
@@ -634,6 +648,17 @@ export default function ClientsPage() {
           )
         }
       />
+
+      {/* STORY-052 G6 — quota nudge banner; scope=clients keeps the
+          message focused on this page's relevant kind. */}
+      {quotaSnap && (
+        <QuotaBanner
+          plan={quotaSnap.plan}
+          quotas={quotaSnap.quotas}
+          usage={quotaSnap.usage}
+          scope="clients"
+        />
+      )}
 
       {/* STORY-036 — loading skeleton on first fetch from Supabase. */}
       {clientsLoading && clients.length === 0 && (
@@ -975,7 +1000,13 @@ export default function ClientsPage() {
                 <div className="text-[14px] font-medium text-[var(--label-secondary)]">
                   По фильтру никого нет
                 </div>
-                <Button variant="tinted" size="sm" onClick={() => setDraft(createBlankClient())}>
+                <Button
+                  variant="tinted"
+                  size="sm"
+                  onClick={() => setDraft(createBlankClient())}
+                  disabled={clientsAtCap}
+                  title={clientsCapTooltip}
+                >
                   + Добавить клиента
                 </Button>
               </div>

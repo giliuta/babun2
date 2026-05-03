@@ -28,6 +28,8 @@ import {
 } from "@babun/shared/local/appointments";
 import Header, { type ViewMode } from "@/components/layout/Header";
 import WeekView from "@/components/calendar/WeekView";
+import { useTenantQuota } from "@/lib/quota/useTenantQuota";
+import QuotaBanner from "@/components/quota/QuotaBanner";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import MonthView from "@/components/calendar/MonthView";
@@ -109,6 +111,8 @@ export default function DashboardPage() {
 }
 
 function DashboardPageInner() {
+  // STORY-052 G6 — quota state for the calendar's appointments_month banner.
+  const { snapshot: quotaSnap } = useTenantQuota();
   const router = useRouter();
   // Tracks `?new=1&kind=…` transitions so the create-sheet handler
   // re-runs when the FAB navigates here while we're already on
@@ -1062,6 +1066,15 @@ function DashboardPageInner() {
         onSelectDate={handleSelectDate}
         onMenuToggle={sidebar.toggle}
       />
+
+      {quotaSnap && (
+        <QuotaBanner
+          plan={quotaSnap.plan}
+          quotas={quotaSnap.quotas}
+          usage={quotaSnap.usage}
+          scope="appointments_month"
+        />
+      )}
 
       {/* Sprint 026-hotfix: убрали TodayGlance (фиолетовая плашка
           «Сегодня · 1 запись») и NowPill («Через N мин → клиент»).
