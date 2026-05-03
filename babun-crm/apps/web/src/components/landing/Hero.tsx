@@ -8,12 +8,10 @@ export default function Hero() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div className="text-center lg:text-left">
             <h1 className="text-[36px] leading-[1.1] sm:text-[44px] lg:text-[56px] font-semibold tracking-tight text-[var(--label)]">
-              CRM для сервисного бизнеса
+              CRM для мастеров и салонов на Кипре
             </h1>
             <p className="mt-5 text-[17px] sm:text-[18px] lg:text-[20px] leading-snug text-[#3C3C43D9] max-w-xl mx-auto lg:mx-0">
-              Клиенты, расписание, команда — всё в одном месте.{" "}
-              <span className="whitespace-nowrap">Mobile-first,</span>{" "}
-              multi-device sync.
+              Записи, клиенты, SMS-напоминания. Работает с iPhone и компьютера.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Link
@@ -22,15 +20,15 @@ export default function Hero() {
               >
                 Попробовать бесплатно
               </Link>
-              <Link
-                href="/login"
+              <a
+                href="#features"
                 className="h-12 px-6 rounded-[12px] border border-[var(--separator)] text-[var(--label)] text-[16px] font-medium flex items-center justify-center hover:bg-[var(--fill-quaternary)] transition"
               >
-                Войти
-              </Link>
+                Узнать больше
+              </a>
             </div>
             <p className="mt-4 text-[13px] text-[#3C3C43A6]">
-              Бесплатно во время беты · регистрация без SMS
+              14 дней бесплатно · отмена в один клик · без привязки карты на Free
             </p>
           </div>
 
