@@ -28,6 +28,7 @@
 // "Babun & AirFix" (14 chars) ≈ 1.87s end-to-end.
 
 import { useEffect, useRef, useState } from "react";
+import { BabunMark } from "@/components/ui/BabunMark";
 
 const SESSION_KEY = "babun:splash-shown";
 const CHAR_INTERVAL_MS = 80;
@@ -142,17 +143,14 @@ export function SplashScreen({ tenantName }: Props) {
       }}
       aria-hidden="true"
     >
-      {/* PLACEHOLDER mark — same gradient as icon.svg / apple-icon.tsx
-          / install prompts (STORY-056 unified blue). Swap for the real
-          designed mark in STORY-062 along with the other surfaces. */}
-      <div
-        className="w-20 h-20 rounded-[20px] flex items-center justify-center text-white text-[42px] font-bold tracking-tight shadow-[0_8px_24px_rgba(31,102,215,0.25)]"
+      {/* STORY-062 — shared placeholder mark. */}
+      <BabunMark
+        size={80}
+        radius={20}
         style={{
-          background: "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
+          boxShadow: "0 8px 24px rgba(31,102,215,0.25)",
         }}
-      >
-        B
-      </div>
+      />
 
       <div
         className="mt-6 font-sans text-[20px] font-semibold text-[var(--label)] tracking-tight"

@@ -16,6 +16,8 @@ import {
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/components/layout/DashboardClientLayout";
+import { TutorialOverlay } from "@/components/onboarding/TutorialOverlay";
+import { useTutorialState } from "@/components/onboarding/useTutorialState";
 import { signOut } from "@/lib/supabase/auth-client";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
@@ -177,6 +179,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const { fieldVisibility, setFieldVisibility, requiredFields, setRequiredFields } =
     useFormSettings();
+  // STORY-059b — first-visit tutorial pointing at the billing tile.
+  // Discoverable nudge for users on Free plan to find paid tiers; only
+  // fires once, then babun:tutorial-settings-billing-completed is set.
+  const tutorialBilling = useTutorialState("settings-billing");
 
   const handleLogout = async () => {
     await signOut();
@@ -195,6 +201,13 @@ export default function SettingsPage() {
 
   return (
     <>
+      {tutorialBilling.show && (
+        <TutorialOverlay
+          targetId="settings-billing"
+          text="Здесь подключаешь платный тариф когда команда вырастет. Free доступен навсегда — без срока и привязки карты."
+          onDismiss={tutorialBilling.complete}
+        />
+      )}
       <PageHeader title="Настройки" />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
@@ -208,10 +221,15 @@ export default function SettingsPage() {
               <div className="divide-y divide-[var(--separator)]">
                 {group.items.map((s) => {
                   const Icon = s.icon;
+                  const tutorialId =
+                    s.href === "/dashboard/settings/billing"
+                      ? "settings-billing"
+                      : undefined;
                   return (
                     <Link
                       key={s.href}
                       href={s.href}
+                      data-tutorial={tutorialId}
                       className="flex items-center gap-3 px-4 py-3 min-h-[58px] active:bg-[var(--fill-tertiary)] transition-colors press-scale"
                     >
                       <span
@@ -439,7 +457,10 @@ function HapticsSection() {
   const [audio, setAudioState] = useState(false);
 
   // Hydrate from localStorage after mount (avoids SSR mismatch).
+  // Same hydration-from-storage pattern as OfflineIndicator /
+  // usePwaInstallState — legitimate "external system → React" sync.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEnabledState(getHapticsEnabled());
     setAudioState(getHapticsAudio());
   }, []);

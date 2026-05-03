@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { detectPlatform } from "@/lib/platform";
 import { getStorage } from "@babun/shared/storage";
 import { registerModalBack } from "@/lib/history-stack";
+import { BabunMark } from "@/components/ui/BabunMark";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -120,9 +121,8 @@ export function InstallPrompt() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-[12px] bg-[#1F66D7] text-white flex items-center justify-center text-[22px] font-bold tracking-tight">
-            B
-          </div>
+          {/* STORY-062 — shared placeholder mark. */}
+          <BabunMark size={48} radius={12} />
           <div className="flex-1 min-w-0">
             <h2 className="text-[18px] font-semibold text-[var(--label)] tracking-tight">
               Установить Babun

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { AuthClearListener } from "@/components/system/AuthClearListener";
 
@@ -86,6 +88,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[var(--surface-grouped)] font-sans">
         <AuthClearListener />
         {children}
+        {/* STORY-061c — Vercel Analytics + Speed Insights. Both ship as
+            tiny scripts loaded via next/script, only fire in production
+            (no-op locally), and don't gather PII. Useful baseline for
+            measuring landing-page conversion + dashboard performance. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

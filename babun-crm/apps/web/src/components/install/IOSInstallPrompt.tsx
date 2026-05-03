@@ -19,6 +19,7 @@
 import { useEffect, useRef } from "react";
 import { detectPlatform } from "@/lib/platform";
 import { registerModalBack } from "@/lib/history-stack";
+import { BabunMark } from "@/components/ui/BabunMark";
 import { usePwaInstallState } from "./usePwaInstallState";
 
 export function IOSInstallPrompt() {
@@ -63,14 +64,9 @@ export function IOSInstallPrompt() {
         />
 
         <div className="flex items-center gap-3">
-          {/* PLACEHOLDER icon — blue square with a "B" glyph. Final
-              brand mark lands in STORY-056 (App icons + splash);
-              swap this single block when a designed icon ships
-              and ideally hoist into a shared <BabunMark /> at that
-              point so the install + splash + favicon stay in sync. */}
-          <div className="w-12 h-12 rounded-[12px] bg-[#1F66D7] text-white flex items-center justify-center text-[22px] font-bold tracking-tight">
-            B
-          </div>
+          {/* STORY-062 — shared placeholder mark. Swap one component
+              file when the designed brand mark lands. */}
+          <BabunMark size={48} radius={12} />
           <div className="flex-1 min-w-0">
             <h2
               id="ios-install-title"
