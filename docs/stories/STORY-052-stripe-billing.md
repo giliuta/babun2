@@ -1,6 +1,64 @@
 # STORY-052 — Stripe billing (Free / Pro / Business / Lifetime)
 
-Status: G0 done, decisions locked. G1 SQL drafting.
+Status: **CLOSED** — pipeline live in production behind lazy-fail
+(STRIPE_* env vars not yet set). Awaiting Owner Stripe one-shots
+before flipping the system fully on.
+
+## Final shipped contents
+
+| Gate | Commit | What |
+|---|---|---|
+| G1 | `444fe17` | tenant billing columns + billing_events + 6 quota helpers |
+| G2 | `9c975ea` | Stripe SDK lazy-singleton + 3 server actions (Customer/Checkout/Portal) |
+| G3 | `627ef99` | /api/stripe/webhook + 10 Vitest cases (signature + idempotency + status mapping) |
+| G4 | `87472d7` | quota gates at 4 write paths + 8 Vitest cases + offline replayer pre-gate |
+| G5+G5b | `4dc68e6` | Settings billing UI (page + 5 components) + reusable Toast infrastructure |
+| G6 | `ec77498` | quota nudges (banner + disabled CTAs + tooltips) at clients/calendar/team pages |
+
+## Production state
+
+- `https://babun.app/sw.js` → `CACHE_VERSION = "babun-v368"`
+- `BUILD_VERSION = "v368-stripe"` (sidebar footer)
+- `/api/stripe/webhook` returns 503 `stripe_not_configured` until env is set (lazy-fail confirmed live)
+- `/dashboard/settings/billing` accessible to Owners (verified 307 unauthenticated)
+- Quota gates: G4 server-side (createClient/createAppointment/invite/replayer), G6 UI (banners + disabled CTAs)
+- Master switch: Stripe pipeline is inert by env presence, not by `app_settings` flag
+
+## G7 smoke summary
+
+Active Vitest suites: **36/36 pass**.
+- 9 sync/format (RU pluralization + relative time + op labelling)
+- 9 sms/twilio-webhook (signature + status mapping + idempotency)
+- 10 billing/stripe-webhook (signature + idempotency + 6 events + 2 lookup paths)
+- 8 billing/quota (under/at/over limits + lifetime + team_members + UTC month boundary)
+
+Deferred to user verification (require real Stripe test mode):
+- Real Checkout completion with test card `4242 4242 4242 4242`
+- Real subscription billing cycle (renew, fail, recover)
+- Real webhook signature from Stripe Dashboard
+
+## Awaiting Owner one-shots
+
+1. Register Stripe account on `support@babun.app`.
+2. **Enable Stripe Tax** (`Settings → Tax → Enable`). Register Cyprus VAT MOSS.
+3. Create products + prices: "Babun Pro" €15/mo + "Babun Business" €40/mo.
+4. Set Vercel env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`.
+5. Configure webhook endpoint `https://babun.app/api/stripe/webhook` with these events:
+   - `customer.subscription.created` / `.updated` / `.deleted`
+   - `invoice.payment_succeeded` / `.payment_failed`
+   - `customer.subscription.trial_will_end`
+6. Test Checkout with card 4242 → verify webhook → flip a real tenant to Pro → verify UI.
+7. Once verified end-to-end → register AirFix tenant → manual `UPDATE tenants SET plan_override='lifetime' WHERE id=...`.
+
+## Tech debt logged for STORY-052b
+
+- `npm run db:types` regen → replace `supabase as any` casts at five call sites (twilio webhook, billing actions, billing quota-action, stripe webhook, quota helper, billing settings page).
+- Postgres BEFORE INSERT triggers on clients/appointments/invitations as defense-in-depth quota backstop (Path C — covers any PostgREST writer not just app code).
+- Audit `public` schema service_role grants for consistent default (read-only opt-in writes).
+
+## Tech debt logged for STORY-052c
+
+- Admin panel for cross-tenant billing event audit (v1 = SQL Editor sufficient for solo founder).
 
 ## Locked decisions
 
