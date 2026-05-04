@@ -1,22 +1,23 @@
 "use client";
 
-// STORY-034 Group 1 — Four primary actions under the client header.
+// STORY-065 — restructured quick actions per user feedback.
 //
-// Tap = launch the channel; long-press (≥500 ms) = opens
-// ClientQuickActionsSheet for the secondary list (Telegram, separate
-// WhatsApp number, etc).  Per project rule feedback_center_modals,
-// the sheet is a *centered* popup, not a bottom sheet.
+// User's exact words: "звонок, и переход в чат в срм это должна быть
+// основа остальное доп". Meaning the two PRIMARY actions are:
+//   1. Позвонить (tel: link, phone-keyboard call)
+//   2. Чат CRM   (router.push to /dashboard/chats?client_id=X)
 //
-// Buttons:
-//   1. Позвонить  — tel:
-//   2. WhatsApp   — https://wa.me/{digits}
-//   3. SMS        — sms:
-//   4. + Заметка  — calls onAddNote(); the parent page expands the
-//                    NotesBlock (Group 3) and focuses its input.
+// Everything else is secondary — collapsed behind a "Ещё" button so
+// the screen isn't dominated by 4-5 round buttons. The secondary
+// row reveals on tap and folds back. No long-press magic; that
+// pattern was unfindable for users.
 
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Phone as PhoneIcon,
+  MessageCircle,
+  MoreHorizontal,
   Send,
   MessageSquare,
   StickyNote,
@@ -27,7 +28,6 @@ import {
   telUrl,
 } from "@babun/shared/common/utils/messenger-links";
 import { haptic } from "@/lib/haptics";
-import ClientQuickActionsSheet from "./ClientQuickActionsSheet";
 
 interface ClientQuickActionsProps {
   client: Client;
@@ -35,204 +35,199 @@ interface ClientQuickActionsProps {
   onAddNote: () => void;
 }
 
-interface SlotProps {
-  label: string;
-  href?: string | null;
-  external?: boolean;
-  icon: React.ReactNode;
-  toneCls: string;
-  onClick?: () => void;
-  onLongPress: () => void;
-}
-
 export default function ClientQuickActions({
   client,
   onAddNote,
 }: ClientQuickActionsProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const router = useRouter();
+  const [secondaryOpen, setSecondaryOpen] = useState(false);
 
   const phoneDigits = client.phone.replace(/\D/g, "");
   const tel = telUrl(client.phone);
   const sms = phoneDigits ? `sms:${phoneDigits}` : null;
   const wa = whatsappUrl(client.whatsapp_phone || client.phone);
 
-  const openSheet = () => {
-    haptic("medium");
-    setSheetOpen(true);
+  const openCrmChat = () => {
+    haptic("tap");
+    router.push(`/dashboard/chats?client_id=${client.id}`);
   };
 
   return (
-    <>
-      <div className="px-3 py-3 grid grid-cols-4 gap-1.5">
-        <Slot
+    <div className="px-3 pt-2 pb-3 flex flex-col gap-2">
+      {/* Two primary buttons — equal-width, tall, brand-colored. The
+          two channels the user identified as "the basics". */}
+      <div className="grid grid-cols-2 gap-2">
+        <PrimaryAction
           label="Позвонить"
           href={tel}
-          icon={<PhoneIcon size={18} strokeWidth={2.2} />}
-          toneCls="bg-[rgba(52,199,89,0.12)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.22)]"
-          onLongPress={openSheet}
+          icon={<PhoneIcon size={18} strokeWidth={2.4} />}
+          color="green"
         />
-        <Slot
-          label="WhatsApp"
-          href={wa}
-          external
-          icon={<Send size={18} strokeWidth={2.2} />}
-          toneCls="bg-[rgba(52,199,89,0.12)] text-[var(--system-green)] active:bg-[rgba(52,199,89,0.22)]"
-          onLongPress={openSheet}
-        />
-        <Slot
-          label="SMS"
-          href={sms}
-          icon={<MessageSquare size={18} strokeWidth={2.2} />}
-          toneCls="bg-[rgba(0,122,255,0.10)] text-[var(--system-blue)] active:bg-[rgba(0,122,255,0.20)]"
-          onLongPress={openSheet}
-        />
-        <Slot
-          label="Заметка"
-          icon={<StickyNote size={18} strokeWidth={2.2} />}
-          toneCls="bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--fill-secondary)]"
-          onClick={() => {
-            haptic("tap");
-            onAddNote();
-          }}
-          onLongPress={() => {
-            // No alt-channels for the note button — falls through to
-            // the same action as a tap.
-            haptic("tap");
-            onAddNote();
-          }}
+        <PrimaryButton
+          label="Чат"
+          onClick={openCrmChat}
+          icon={<MessageCircle size={18} strokeWidth={2.4} />}
+          color="blue"
         />
       </div>
 
-      {sheetOpen && (
-        <ClientQuickActionsSheet
-          client={client}
-          onClose={() => setSheetOpen(false)}
-        />
+      {/* Secondary actions — collapsed. Tap "Ещё" to reveal. */}
+      {!secondaryOpen ? (
+        <button
+          type="button"
+          onClick={() => {
+            haptic("tap");
+            setSecondaryOpen(true);
+          }}
+          className="self-center mt-1 inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-[var(--fill-tertiary)] text-[13px] font-medium text-[var(--label-secondary)] active:bg-[var(--fill-secondary)]"
+        >
+          <MoreHorizontal size={14} strokeWidth={2.2} />
+          Ещё
+        </button>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 mt-1">
+          <SecondaryAction
+            label="WhatsApp"
+            href={wa}
+            external
+            icon={<Send size={16} strokeWidth={2.2} />}
+          />
+          <SecondaryAction
+            label="SMS"
+            href={sms}
+            icon={<MessageSquare size={16} strokeWidth={2.2} />}
+          />
+          <SecondaryButton
+            label="Заметка"
+            onClick={() => {
+              haptic("tap");
+              onAddNote();
+            }}
+            icon={<StickyNote size={16} strokeWidth={2.2} />}
+          />
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
-// One round-icon button.  Handles long-press detection internally so
-// the parent component stays declarative.
-function Slot({
+interface PrimaryProps {
+  label: string;
+  icon: React.ReactNode;
+  color: "green" | "blue";
+}
+
+function colorClass(color: "green" | "blue"): string {
+  return color === "green"
+    ? "bg-[var(--system-green)] active:bg-[#2BA549]"
+    : "bg-[var(--accent)] active:bg-[var(--accent-pressed)]";
+}
+
+function PrimaryAction({
   label,
   href,
-  external,
   icon,
-  toneCls,
-  onClick,
-  onLongPress,
-}: SlotProps) {
-  const enabled = href != null || onClick != null;
-  const timer = useRef<number | null>(null);
-  const fired = useRef(false);
-  const start = (e: React.PointerEvent) => {
-    if (!enabled) return;
-    e.stopPropagation();
-    fired.current = false;
-    timer.current = window.setTimeout(() => {
-      fired.current = true;
-      onLongPress();
-    }, 500);
-  };
-  const cancel = () => {
-    if (timer.current != null) {
-      window.clearTimeout(timer.current);
-      timer.current = null;
-    }
-  };
-  const handleClick = (e: React.MouseEvent) => {
-    if (fired.current) {
-      e.preventDefault();
-      e.stopPropagation();
-      fired.current = false;
-      return;
-    }
-    if (!href && onClick) {
-      e.preventDefault();
-      onClick();
-      return;
-    }
-    if (href) haptic("tap");
-  };
-
-  const inner = (
-    <>
-      <span
-        className={`w-11 h-11 rounded-full flex items-center justify-center transition press-scale ${
-          enabled
-            ? toneCls
-            : "bg-[var(--fill-tertiary)] text-[var(--label-quaternary)]"
-        }`}
+  color,
+}: PrimaryProps & { href: string | null }) {
+  const cls = `h-12 rounded-[12px] flex items-center justify-center gap-2 text-[15px] font-semibold text-white press-scale ${colorClass(color)}`;
+  if (!href) {
+    return (
+      <button
+        type="button"
+        disabled
+        className={`${cls} opacity-40 cursor-not-allowed`}
       >
         {icon}
-      </span>
-      <span
-        className={`text-[10px] leading-none font-semibold ${
-          enabled ? "text-[var(--label-secondary)]" : "text-[var(--label-quaternary)]"
-        }`}
-      >
         {label}
-      </span>
-    </>
-  );
-
-  const baseCls =
-    "flex flex-col items-center justify-center gap-1 py-1.5 select-none";
-
-  if (href) {
-    return (
-      <a
-        href={href}
-        target={external ? "_blank" : undefined}
-        rel={external ? "noreferrer" : undefined}
-        aria-label={label}
-        onClick={handleClick}
-        onPointerDown={start}
-        onPointerUp={cancel}
-        onPointerCancel={cancel}
-        onPointerLeave={cancel}
-        onPointerMove={(e) => {
-          if (Math.abs(e.movementX) > 4 || Math.abs(e.movementY) > 4) cancel();
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          if (!fired.current) {
-            fired.current = true;
-            onLongPress();
-          }
-        }}
-        className={baseCls}
-      >
-        {inner}
-      </a>
+      </button>
     );
   }
+  return (
+    <a
+      href={href}
+      onClick={() => haptic("tap")}
+      className={cls}
+      aria-label={label}
+    >
+      {icon}
+      {label}
+    </a>
+  );
+}
 
+function PrimaryButton({
+  label,
+  onClick,
+  icon,
+  color,
+}: PrimaryProps & { onClick: () => void }) {
   return (
     <button
       type="button"
+      onClick={onClick}
+      className={`h-12 rounded-[12px] flex items-center justify-center gap-2 text-[15px] font-semibold text-white press-scale ${colorClass(color)}`}
       aria-label={label}
-      disabled={!enabled}
-      onClick={handleClick}
-      onPointerDown={start}
-      onPointerUp={cancel}
-      onPointerCancel={cancel}
-      onPointerLeave={cancel}
-      onPointerMove={(e) => {
-        if (Math.abs(e.movementX) > 4 || Math.abs(e.movementY) > 4) cancel();
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        if (enabled && !fired.current) {
-          fired.current = true;
-          onLongPress();
-        }
-      }}
-      className={baseCls}
     >
-      {inner}
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+interface SecondaryProps {
+  label: string;
+  icon: React.ReactNode;
+}
+
+function SecondaryAction({
+  label,
+  href,
+  icon,
+  external,
+}: SecondaryProps & { href: string | null; external?: boolean }) {
+  const cls =
+    "h-10 rounded-[10px] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5 text-[13px] font-medium text-[var(--label)]";
+  if (!href) {
+    return (
+      <button
+        type="button"
+        disabled
+        className={`${cls} opacity-40 cursor-not-allowed`}
+      >
+        {icon}
+        {label}
+      </button>
+    );
+  }
+  return (
+    <a
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer" : undefined}
+      onClick={() => haptic("tap")}
+      className={cls}
+      aria-label={label}
+    >
+      {icon}
+      {label}
+    </a>
+  );
+}
+
+function SecondaryButton({
+  label,
+  onClick,
+  icon,
+}: SecondaryProps & { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-10 rounded-[10px] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5 text-[13px] font-medium text-[var(--label)]"
+      aria-label={label}
+    >
+      {icon}
+      {label}
     </button>
   );
 }

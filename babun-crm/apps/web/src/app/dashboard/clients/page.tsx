@@ -197,14 +197,17 @@ export default function ClientsPage() {
   // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
   // Dima taps "Открыть карточку" in a chat and lands directly on the
   // full client detail view. URL is tidied up after consumption.
+  // STORY-065 — `?id=X` deep-link now routes to /dashboard/clients/[id]
+  // (the canonical detail page) instead of toggling an inline panel.
+  // Single source of truth for the detail UI.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     if (id) {
-      setSelectedId((prev) => prev ?? id);
-      window.history.replaceState({}, "", "/dashboard/clients");
+      router.replace(`/dashboard/clients/${id}`);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // v329 — single source of truth for client roll-up stats.  Walks
@@ -947,7 +950,9 @@ export default function ClientsPage() {
                         return next;
                       });
                     } else {
-                      setSelectedId(client.id);
+                      // STORY-065 — single-tap navigates to canonical
+                      // /[id] detail page instead of inline panel.
+                      router.push(`/dashboard/clients/${client.id}`);
                     }
                   }}
                   onLongPress={(anchor) => {
@@ -1027,7 +1032,7 @@ export default function ClientsPage() {
                 action={
                   <Button
                     variant="primary"
-                    onClick={() => setDraft(createBlankClient())}
+                    onClick={() => router.push("/dashboard/clients/new")}
                     disabled={clientsAtCap}
                     title={clientsCapTooltip}
                   >
@@ -1045,7 +1050,7 @@ export default function ClientsPage() {
                   <Button
                     variant="tinted"
                     size="sm"
-                    onClick={() => setDraft(createBlankClient())}
+                    onClick={() => router.push("/dashboard/clients/new")}
                     disabled={clientsAtCap}
                     title={clientsCapTooltip}
                   >
@@ -1129,7 +1134,7 @@ export default function ClientsPage() {
           opts.push({
             label: "Открыть карточку",
             icon: <Eye size={18} strokeWidth={2} />,
-            onSelect: () => setSelectedId(c.id),
+            onSelect: () => router.push(`/dashboard/clients/${c.id}`),
           });
           opts.push({
             label: isPinned ? "Открепить" : "Закрепить",

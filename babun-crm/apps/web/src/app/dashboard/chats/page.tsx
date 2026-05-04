@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
 import { createBlankClient, type Client } from "@babun/shared/local/clients";
-import ClientPanel from "@/components/clients/ClientPanel";
+// STORY-065 — replaced legacy ClientPanel (2167 LOC, tabs UI) with the
+// canonical ClientCardPage so the side-panel and bottom-sheet match the
+// /dashboard/clients/[id] standalone view exactly. One source of truth
+// for the client detail UI.
+import ClientCardPage from "@/components/clients/ClientCardPage";
 import CreateClientModal from "@/components/clients/CreateClientModal";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import {
@@ -46,6 +50,8 @@ export default function ChatsPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Hydration-from-storage; legitimate external-state-sync pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChats(loadChats());
   }, []);
 
@@ -64,6 +70,7 @@ export default function ChatsPage() {
     let chat: Chat | undefined;
     if (chatId) chat = chats.find((c) => c.id === chatId);
     if (!chat && clientId) chat = chats.find((c) => c.client_id === clientId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (chat) setActiveChatId(chat.id);
     window.history.replaceState({}, "", "/dashboard/chats");
   }, [chats]);
@@ -464,30 +471,30 @@ export default function ChatsPage() {
       <div className={`${activeChatId ? "flex" : "hidden lg:flex"} flex-col flex-1 h-full min-w-0`}>
         {chatViewEl}
       </div>
-      {/* Client panel — desktop only, slide-in right */}
+      {/* Client panel — desktop only, slide-in right.
+          STORY-065 — uses ClientCardPage (same as /dashboard/clients/[id]). */}
       {showClientPanel && linkedClient && isLG && (
-        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full animate-fade-in-up">
-          <ClientPanel
-            client={linkedClient}
-            appointments={appointments}
-            onUpdate={(updated: Client) => upsertClient(updated)}
-            onClose={() => setShowClientPanel(false)}
+        <div className="hidden lg:flex flex-col w-[340px] flex-shrink-0 h-full animate-fade-in-up border-l border-[var(--separator)]">
+          <ClientCardPage
+            clientId={linkedClient.id}
+            onBack={() => setShowClientPanel(false)}
           />
         </div>
       )}
 
-      {/* Client panel — mobile bottom sheet */}
+      {/* Client panel — mobile bottom sheet (also ClientCardPage). */}
       {showClientPanel && linkedClient && !isLG && (
         <div className="fixed inset-0 z-[80] lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowClientPanel(false)} />
-          <div className="absolute bottom-0 left-0 right-0 h-[85vh] bg-[var(--surface-card)] rounded-t-2xl overflow-hidden animate-fade-in-up">
-            <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1" />
-            <div className="h-full overflow-y-auto" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
-              <ClientPanel
-                client={linkedClient}
-                appointments={appointments}
-                onUpdate={(updated: Client) => upsertClient(updated)}
-                onClose={() => setShowClientPanel(false)}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowClientPanel(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 h-[90vh] bg-[var(--surface-card)] rounded-t-2xl overflow-hidden animate-fade-in-up flex flex-col">
+            <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ClientCardPage
+                clientId={linkedClient.id}
+                onBack={() => setShowClientPanel(false)}
               />
             </div>
           </div>
