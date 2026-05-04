@@ -17,11 +17,13 @@ import {
   cancelSenderRequest,
   createTopupCheckout,
   requestSenderName,
+} from "@/app/dashboard/settings/sms/managed-actions";
+import {
   TOPUP_PACKS,
   DEFAULT_FREE_SMS,
   PER_SMS_COST_CENTS,
   PLATFORM_DEFAULT_SENDER,
-} from "@/app/dashboard/settings/sms/managed-actions";
+} from "@/app/dashboard/settings/sms/sms-constants";
 import { haptic } from "@/lib/haptics";
 
 export interface ManagedSmsConfig {

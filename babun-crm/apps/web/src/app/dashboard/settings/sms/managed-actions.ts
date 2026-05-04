@@ -158,40 +158,6 @@ export async function createTopupCheckout(packId: string): Promise<
   };
 }
 
-// Pricing constants — single source of truth for both the UI and
-// the eventual Stripe Checkout. Per-SMS cost computed as
-// amount_cents / credits_added; bonus packs lower it so the user
-// sees value in larger top-ups.
-export interface TopupPack {
-  id: "starter" | "standard" | "business";
-  amountCents: number;
-  credits: number;
-  label: string;
-  bonusLabel?: string;
-}
-export const TOPUP_PACKS: TopupPack[] = [
-  {
-    id: "starter",
-    amountCents: 1000,
-    credits: 100,
-    label: "Стартовый",
-  },
-  {
-    id: "standard",
-    amountCents: 2500,
-    credits: 280,
-    label: "Стандарт",
-    bonusLabel: "+10%",
-  },
-  {
-    id: "business",
-    amountCents: 5000,
-    credits: 600,
-    label: "Бизнес",
-    bonusLabel: "+20%",
-  },
-];
-
-export const DEFAULT_FREE_SMS = 10;
-export const PER_SMS_COST_CENTS = 10;
-export const PLATFORM_DEFAULT_SENDER = "Babun";
+// Pricing constants moved to ./sms-constants.ts — Next 16 forbids
+// non-async exports from a "use server" module. Import from the
+// constants module directly where needed.
