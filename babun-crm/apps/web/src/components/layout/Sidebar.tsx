@@ -21,7 +21,10 @@ import { useTenantId } from "@/components/layout/DashboardClientLayout";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
-import { ICON_TONE_BG, type IconTone } from "@babun/shared/common/utils/design-tokens";
+// STORY-064 — ICON_TONE_BG dropped in the visual modernization
+// (NavRow no longer uses colored tile backgrounds). Type kept for
+// the optional `tone` prop on the API to avoid breaking call sites.
+import type { IconTone } from "@babun/shared/common/utils/design-tokens";
 import { getStorage } from "@babun/shared/storage";
 
 // Telegram-style drawer (Sprint 031). Accent-blue brand header with
@@ -156,12 +159,22 @@ export default function Sidebar({
     onResync: refreshBadge,
   });
 
+  // STORY-064 — sidebar nav uses replace, mirrors BottomTabBar.
+  // Tabs + sidebar entries are sibling navigation; tapping shouldn't
+  // accumulate history (which fed iOS edge-swipe-back) or trigger a
+  // visible "back" trail when leaving the sidebar.
   const handleNav = (dialog: DialogType) => {
     if (dialog) {
-      router.push(ROUTE_MAP[dialog]);
+      router.replace(ROUTE_MAP[dialog]);
     }
     onClose();
   };
+
+  // STORY-064 — prefetch every reachable route on mount so sidebar
+  // taps feel instant. Same rationale as BottomTabBar prefetch.
+  useEffect(() => {
+    Object.values(ROUTE_MAP).forEach((path) => router.prefetch(path));
+  }, [router]);
 
   const isActive = (dialog: Exclude<DialogType, null>) =>
     pathname === ROUTE_MAP[dialog];
@@ -202,26 +215,35 @@ export default function Sidebar({
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Telegram-style brand header — blue wash with white avatar
-            ring around the B mark. Stays the identity element of the
-            drawer but follows the new accent. */}
-        <div className="flex-shrink-0 bg-[var(--accent)] px-4 pt-6 pb-5">
+        {/* STORY-064 — quieter brand header. The full-bleed accent
+            wash read as loud + dated against the iOS-grouped tile
+            grid below it; switched to surface-card with the brand
+            mark using the unified gradient. Tenant name in primary
+            label, email in secondary — same hierarchy as the iOS
+            Settings header. */}
+        <div className="flex-shrink-0 bg-[var(--surface-card)] px-4 pt-6 pb-5 border-b border-[var(--separator)]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[var(--surface-card)] rounded-full flex items-center justify-center text-[var(--accent)] text-[20px] font-bold">
+            <div
+              className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[20px] font-bold tracking-tight shadow-[0_2px_6px_rgba(31,102,215,0.18)]"
+              style={{
+                background:
+                  "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
+              }}
+            >
               B
             </div>
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold text-[var(--label-on-accent)] leading-tight truncate">
+              <div className="text-[16px] font-semibold text-[var(--label)] leading-tight truncate">
                 {tenantName}
               </div>
-              <div className="text-[12px] text-white/80 truncate">
+              <div className="text-[12px] text-[var(--label-secondary)] truncate">
                 {userEmail}
               </div>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
           <Group>
             <NavRow
               icon={CalendarIcon}
@@ -274,7 +296,10 @@ export default function Sidebar({
             onClick={toggleExpanded}
             // STORY-058 — 44px tap target per Apple HIG. min-h hits
             // the floor; vertical content stays centred with flex.
-            className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] active:text-[var(--label)] transition"
+            // STORY-064 — softened from uppercase + tracking-wider to
+            // sentence-case 13 px medium. The ALL-CAPS read as a section
+            // header from a 2010-era CMS, not a tap target.
+            className="w-full flex items-center gap-2 px-3 mx-1 mt-3 mb-1 min-h-[36px] text-[13px] font-medium text-[var(--label-secondary)] active:text-[var(--label)] transition"
           >
             <ChevronDown
               size={14}
@@ -360,24 +385,38 @@ function SyncTime() {
   return <span suppressHydrationWarning>{label}</span>;
 }
 
+// STORY-064 — Group used to be a card-shaped wrapper with row
+// dividers. Rows are now self-contained rounded pills, so Group is
+// just a vertical stack with breathing room between sections.
 function Group({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden shadow-[var(--shadow-card)] divide-y divide-[var(--separator)]">
-      {children}
-    </div>
-  );
+  return <div className="flex flex-col">{children}</div>;
 }
 
+// STORY-064 — NavRow visual modernization. Was a 7×7 colored tile
+// per row (orange Calendar, cyan Clients, green Chats, ...) which
+// felt loud and dated against the rest of the iOS-grouped UI. Now:
+//   * Monochrome stroke icon — accent on active, secondary label
+//     elsewhere. Single source of brand colour, less visual noise.
+//   * Bumped icon size 16 → 20 px for legibility (still fits the
+//     44 px row floor).
+//   * Active row gets an accent-tint pill behind the WHOLE row
+//     plus accent-coloured text. Reads instantly as "selected"
+//     without needing the colored tile.
+//   * `tone` prop kept on the API to avoid breaking call sites,
+//     but no longer drives the visual.
 function NavRow({
   icon: Icon,
-  tone,
   label,
   badge,
   active,
   onClick,
 }: {
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  tone: IconTone;
+  icon: React.ComponentType<{
+    size?: number;
+    strokeWidth?: number;
+    className?: string;
+  }>;
+  tone?: IconTone;
   label: string;
   badge?: number;
   active?: boolean;
@@ -387,18 +426,26 @@ function NavRow({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left min-h-[44px] transition-colors ${
-        active ? "bg-[var(--accent-tint)]" : "active:bg-[var(--fill-quaternary)]"
+      className={`w-full flex items-center gap-3 px-3 mx-1 my-0.5 rounded-[10px] text-left min-h-[44px] transition-colors ${
+        active
+          ? "bg-[var(--accent-tint)]"
+          : "active:bg-[var(--fill-quaternary)]"
       }`}
     >
-      <span
-        className={`w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${ICON_TONE_BG[tone]}`}
-      >
-        <Icon size={16} strokeWidth={2} />
-      </span>
+      <Icon
+        size={20}
+        strokeWidth={2}
+        className={
+          active
+            ? "text-[var(--accent)] shrink-0"
+            : "text-[var(--label-secondary)] shrink-0"
+        }
+      />
       <span
         className={`flex-1 truncate text-[15px] ${
-          active ? "text-[var(--accent)] font-semibold" : "text-[var(--label)]"
+          active
+            ? "text-[var(--accent)] font-semibold"
+            : "text-[var(--label)] font-medium"
         }`}
       >
         {label}

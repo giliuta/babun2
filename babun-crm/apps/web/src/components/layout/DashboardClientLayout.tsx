@@ -423,14 +423,23 @@ export function useLocationLabels() {
   return ctx;
 }
 
-// v328 — 16-px transparent strip pinned to the left or right edge of
-// <main>.  Captures touchstart with `touch-action: none` and
-// preventDefault, so iOS PWA's native swipe-back/-forward gesture
-// (the only thing the user-installed-PWA wrapper still listens to
-// on those edges) cannot fire.  Vertical scrolling, internal
-// SwipeableRow gestures, etc. happen further inside and are
-// untouched.  The strip is too narrow to interfere with content
-// (touch targets sit ≥ 12 px from the screen edge anyway).
+// v328 + STORY-064 — transparent strip pinned to the left or right
+// edge of the viewport. Captures touchstart with `touch-action: none`
+// and preventDefault, so iOS PWA's native swipe-back/-forward
+// gesture cannot fire. Vertical scrolling, internal SwipeableRow
+// gestures, etc. happen further inside and are untouched.
+//
+// STORY-064 changes:
+//   * Width 16 → 24 px. iOS PWA in iOS 26+ activates the system
+//     edge-back gesture from the first ~20 px of the screen edge —
+//     a 16-px strip wasn't catching every finger placement. 24 px
+//     covers the gesture activation zone with margin to spare.
+//   * Position absolute → fixed. The previous absolute placement
+//     resolved relative to <main>, which has safe-area-left
+//     padding from the parent. On notched iPhones in landscape
+//     that pushed the strip ~44 px inboard, leaving the actual
+//     screen edge unguarded. `position: fixed` anchors to the
+//     viewport so the strip always reaches the device edge.
 function EdgeGuard({ side }: { side: "left" | "right" }) {
   return (
     <div
@@ -442,16 +451,13 @@ function EdgeGuard({ side }: { side: "left" | "right" }) {
         if (e.touches.length === 1) e.preventDefault();
       }}
       style={{
-        position: "absolute",
+        position: "fixed",
         top: 0,
         bottom: 0,
         [side]: 0,
-        width: 16,
+        width: 24,
         zIndex: 50,
         touchAction: "none",
-        // Pointer events must pass through to allow taps on UI
-        // that genuinely sits in the safe-area inset (rare).  The
-        // touchstart preventDefault still fires.
         pointerEvents: "auto",
         background: "transparent",
       }}

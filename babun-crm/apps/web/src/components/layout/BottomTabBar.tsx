@@ -38,6 +38,8 @@ export default function BottomTabBar() {
 
   const [unreadChats, setUnreadChats] = useState(0);
   useEffect(() => {
+    // Hydration-from-storage; legitimate external-state-sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnreadChats(getTotalUnread(loadChats()));
   }, [pathname]);
 
@@ -57,10 +59,28 @@ export default function BottomTabBar() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // STORY-064 — tabs are sibling navigation, not a stack. Using
+  // router.replace() means tapping between tabs doesn't accumulate
+  // history, so iOS edge-swipe-back from a tab root has nothing to
+  // go back to (no Clients→Calendar→Chats trail). Combined with the
+  // wider EdgeGuard strips below, this gives the "full-page, no
+  // swipe escape" feel the user expected.
   const go = (path: string) => {
     haptic("tap");
-    router.push(path);
+    router.replace(path);
   };
+
+  // STORY-064 — prefetch sibling tabs on mount so tapping is
+  // instant. Next 16's prefetch fetches the route's RSC payload +
+  // shared chunks; subsequent navigation is fed from cache. Without
+  // this, every tab tap triggers a fresh server roundtrip + JS
+  // chunk load (the "долго думает" complaint).
+  useEffect(() => {
+    router.prefetch("/dashboard");
+    router.prefetch("/dashboard/clients");
+    router.prefetch("/dashboard/chats");
+    router.prefetch("/dashboard/finances");
+  }, [router]);
 
   return (
     <>
