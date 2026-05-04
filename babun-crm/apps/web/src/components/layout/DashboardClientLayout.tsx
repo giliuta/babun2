@@ -135,6 +135,7 @@ import {
 import { warmUpHaptics } from "@/lib/haptics";
 import { getStorage } from "@babun/shared/storage";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+import { useDashboardSwipeTrap } from "@/hooks/useDashboardSwipeTrap";
 import { kickReplayer } from "@/lib/sync/replayer";
 import { setSyncToast } from "@/lib/sync/clientsCached";
 import { subscribeNetwork, isOnline } from "@/lib/sync/network";
@@ -491,6 +492,15 @@ export default function DashboardClientLayout({
   // G7 — sync panel state lives here, not in OfflineIndicator, so
   // dropping the queue to 0 doesn't unmount an open panel.
   const [syncPanelOpen, setSyncPanelOpen] = useState(false);
+
+  // STORY-064 round 2 — popstate-level trap for the iOS PWA edge-
+  // swipe gestures. The 24-px EdgeGuard strips block touchstart on
+  // the device-edge zones, but on some iOS versions the system
+  // back/forward gesture fires from outside the strip, OR old
+  // history entries from before STORY-064 (when tabs used push)
+  // still feed swipe-back. The trap intercepts popstate on tab
+  // roots and re-pushes the sentinel so the gesture is a no-op.
+  useDashboardSwipeTrap();
 
   // v316 — Prime the haptics audio context + iOS taptic switch on
   // the first user gesture.  Without this, iOS Safari suspends the
