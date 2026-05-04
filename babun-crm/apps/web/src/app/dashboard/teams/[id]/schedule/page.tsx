@@ -46,6 +46,13 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   const schedule: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
   const vacations = schedule.vacations ?? [];
 
+  // BUGFIX (bug-hunt sweep) — `useState(expandedDay)` (line 118 in
+  // the original) was AFTER the `if (!team) early-return`, violating
+  // rules-of-hooks. A conditional useState is the most dangerous
+  // form of this bug — hook order changes between renders and React
+  // can corrupt internal state. Hoist to before any early return.
+  const [expandedDay, setExpandedDay] = useState<WeekdayKey | null>(null);
+
   if (!team) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
@@ -114,8 +121,8 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
     });
   };
 
-  // Per-day expansion state for the inline editor.
-  const [expandedDay, setExpandedDay] = useState<WeekdayKey | null>(null);
+  // (expandedDay state hoisted to before the early return — see bug-hunt
+  // bugfix comment above.)
 
   // Read-only summary of off days for the general header
   const offDaysList = WEEKDAY_KEYS.filter((k) => {

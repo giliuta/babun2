@@ -147,6 +147,36 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
   const { teams, upsertTeam } = useTeams();
   const team = teams.find((t) => t.id === id);
 
+  // BUGFIX (bug-hunt sweep) — useMemo/useSensors/useSensor were
+  // below the `if (!team) early-return` which violated rules-of-
+  // hooks (hook order changed between renders depending on whether
+  // the team had loaded yet). Hoist all three hooks above the early
+  // return; `blocks` falls back to {} when team is missing so the
+  // memo still computes a stable result.
+  const blocks = team?.appointment_blocks ?? {};
+
+  const orderedBlocks: BlockMeta[] = useMemo(() => {
+    const saved = blocks.order ?? [];
+    const byKey = new Map<string, BlockMeta>();
+    for (const b of OPTIONAL_BLOCKS) byKey.set(b.key, b);
+    const result: BlockMeta[] = [];
+    for (const key of saved) {
+      const b = byKey.get(key);
+      if (b) {
+        result.push(b);
+        byKey.delete(key);
+      }
+    }
+    for (const b of OPTIONAL_BLOCKS) {
+      if (byKey.has(b.key)) result.push(b);
+    }
+    return result;
+  }, [blocks.order]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
+  );
+
   if (!team) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Запись" hideSave>
@@ -156,8 +186,6 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
       </BrigadeSectionShell>
     );
   }
-
-  const blocks = team.appointment_blocks ?? {};
 
   const toggle = (key: BlockKey, current: boolean) => {
     haptic("tap");
@@ -180,31 +208,6 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
 
   const isEnabled = (b: (typeof OPTIONAL_BLOCKS)[number]) =>
     blocks[b.key] ?? b.defaultOn;
-
-  // Phase I46 — resolve order. Apply saved order first; append any
-  // blocks that weren't in the saved list (new additions) in their
-  // declaration-order position.
-  const orderedBlocks: BlockMeta[] = useMemo(() => {
-    const saved = blocks.order ?? [];
-    const byKey = new Map<string, BlockMeta>();
-    for (const b of OPTIONAL_BLOCKS) byKey.set(b.key, b);
-    const result: BlockMeta[] = [];
-    for (const key of saved) {
-      const b = byKey.get(key);
-      if (b) {
-        result.push(b);
-        byKey.delete(key);
-      }
-    }
-    for (const b of OPTIONAL_BLOCKS) {
-      if (byKey.has(b.key)) result.push(b);
-    }
-    return result;
-  }, [blocks.order]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
-  );
 
   const handleDragEnd = (ev: DragEndEvent) => {
     const { active, over } = ev;

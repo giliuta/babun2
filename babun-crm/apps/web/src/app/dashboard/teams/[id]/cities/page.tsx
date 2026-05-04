@@ -88,6 +88,28 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
     });
   }, [brigadeCityNames, cities]);
 
+  // BUGFIX (bug-hunt sweep) — `usedInOtherBrigades` useMemo (was at
+  // line 287 below) was after the `if (!team) early-return`,
+  // violating rules-of-hooks. Hoisted here to satisfy the rule;
+  // dependencies don't reference `team` directly so it computes
+  // safely either way.
+  const usedInOtherBrigades = useMemo(() => {
+    const inUse = new Set<string>();
+    teams.forEach((t) => {
+      if (t.id === id) return;
+      (t.cities ?? []).forEach((n) => inUse.add(n));
+    });
+    return cities
+      .filter(
+        (c) =>
+          inUse.has(c.name) &&
+          !brigadeCityNames.some(
+            (n) => n.toLowerCase() === c.name.toLowerCase(),
+          ),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  }, [cities, teams, id, brigadeCityNames]);
+
   if (!team) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Метки" hideSave>
@@ -281,25 +303,8 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
 
   const listEmpty = rows.length === 0;
 
-  // Suggestions for the Add modal — only tags the user ALREADY added
-  // somewhere else in this account (other brigades of this tenant).
-  // SaaS-correct: no universal "справочник", only my own history.
-  const usedInOtherBrigades = useMemo(() => {
-    const inUse = new Set<string>();
-    teams.forEach((t) => {
-      if (t.id === id) return;
-      (t.cities ?? []).forEach((n) => inUse.add(n));
-    });
-    return cities
-      .filter(
-        (c) =>
-          inUse.has(c.name) &&
-          !brigadeCityNames.some(
-            (n) => n.toLowerCase() === c.name.toLowerCase(),
-          ),
-      )
-      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
-  }, [cities, teams, id, brigadeCityNames]);
+  // (`usedInOtherBrigades` useMemo hoisted above the early return —
+  // see bug-hunt bugfix comment.)
 
   return (
     <BrigadeSectionShell

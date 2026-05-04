@@ -37,6 +37,18 @@ export default function MasterAccessPage({ params }: RouteParams) {
     [master],
   );
 
+  // BUGFIX (bug-hunt sweep) — `currentVisibility` was below the
+  // `if (!master) early-return` which violated rules-of-hooks (the
+  // useMemo would be skipped on the missing-master branch, changing
+  // hook order between renders). Hoist above the early return so all
+  // hooks run unconditionally on every render.
+  const currentVisibility: VisibilityMode = useMemo(() => {
+    const v = permissions.visible_team_ids ?? [];
+    if (v.includes("*")) return "all";
+    if (v.length === 0) return "own";
+    return "picked";
+  }, [permissions.visible_team_ids]);
+
   if (!master) {
     return (
       <MasterSectionShell masterId={id} title="Доступы" hideSave>
@@ -59,13 +71,6 @@ export default function MasterAccessPage({ params }: RouteParams) {
     haptic("tap");
     commit({ [key]: !permissions[key] } as Partial<MasterPermissions>);
   };
-
-  const currentVisibility: VisibilityMode = useMemo(() => {
-    const v = permissions.visible_team_ids ?? [];
-    if (v.includes("*")) return "all";
-    if (v.length === 0) return "own";
-    return "picked";
-  }, [permissions.visible_team_ids]);
 
   const setVisibility = (next: VisibilityMode) => {
     if (next === currentVisibility) return;

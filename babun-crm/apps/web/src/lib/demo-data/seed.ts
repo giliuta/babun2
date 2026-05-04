@@ -30,7 +30,8 @@ interface DemoClientFixture {
   full_name: string;
   phone: string;
   city: string;
-  notes: string;
+  /** Schema column on clients table is `comment`, not `notes`. */
+  comment: string;
 }
 
 interface DemoAppointmentFixture {
@@ -41,7 +42,7 @@ interface DemoAppointmentFixture {
   start_hour: number;
   duration_minutes: number;
   service: string;
-  status: "scheduled" | "completed" | "cancelled";
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
 }
 
 const DEMO_CLIENTS: DemoClientFixture[] = [
@@ -49,31 +50,31 @@ const DEMO_CLIENTS: DemoClientFixture[] = [
     full_name: "Анна Петрова",
     phone: "+35799100001",
     city: "Лимассол",
-    notes: "Демо-клиент. Регулярный сервис кондиционера.",
+    comment: "Демо-клиент. Регулярный сервис кондиционера.",
   },
   {
     full_name: "Сергей Иванов",
     phone: "+35799100002",
     city: "Никосия",
-    notes: "Демо-клиент. Установка нового split-системы.",
+    comment: "Демо-клиент. Установка нового split-системы.",
   },
   {
     full_name: "Мария Соколова",
     phone: "+35799100003",
     city: "Пафос",
-    notes: "Демо-клиент. Сезонная чистка двух кондиционеров.",
+    comment: "Демо-клиент. Сезонная чистка двух кондиционеров.",
   },
   {
     full_name: "Дмитрий Волков",
     phone: "+35799100004",
     city: "Ларнака",
-    notes: "Демо-клиент. Ремонт после короткого замыкания.",
+    comment: "Демо-клиент. Ремонт после короткого замыкания.",
   },
   {
     full_name: "Елена Новикова",
     phone: "+35799100005",
     city: "Лимассол",
-    notes: "Демо-клиент. Ежегодное обслуживание трёх объектов.",
+    comment: "Демо-клиент. Ежегодное обслуживание трёх объектов.",
   },
 ];
 
@@ -118,19 +119,22 @@ function buildAppointmentTimes(
   dayOffset: number,
   startHour: number,
   durationMinutes: number,
-): { start_at: string; end_at: string; appointment_date: string } {
+): { date: string; time_start: string; time_end: string } {
+  // Schema columns are `date` (TEXT, YYYY-MM-DD) and `time_start` /
+  // `time_end` (TEXT, HH:MM) — see migration 20260430_003_appointments.
+  // These are NOT timestamps, so we build local-clock strings rather
+  // than ISO timestamps.
   const now = new Date();
   const start = new Date(now);
   start.setDate(now.getDate() + dayOffset);
   start.setHours(startHour, 0, 0, 0);
-  const end = new Date(start.getTime() + durationMinutes * 60_000);
-  // ISO date (YYYY-MM-DD) for the appointment_date column.
-  const date = start.toISOString().slice(0, 10);
-  return {
-    start_at: start.toISOString(),
-    end_at: end.toISOString(),
-    appointment_date: date,
-  };
+  const endMinutes = startHour * 60 + durationMinutes;
+  const endHour = Math.floor(endMinutes / 60) % 24;
+  const endMin = endMinutes % 60;
+  const date = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+  const time_start = `${String(startHour).padStart(2, "0")}:00`;
+  const time_end = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
+  return { date, time_start, time_end };
 }
 
 /**
@@ -155,7 +159,8 @@ export async function seedDemoData(
     full_name: c.full_name,
     phone: c.phone,
     city: c.city,
-    notes: c.notes,
+    // Schema column is `comment`, not `notes`.
+    comment: c.comment,
     is_demo: true,
     // updated_at + created_at default to now() in the schema.
   }));
@@ -175,13 +180,17 @@ export async function seedDemoData(
       id: newId(),
       tenant_id: tenantId,
       client_id: clientIds[a.client_index],
-      appointment_date: times.appointment_date,
-      start_at: times.start_at,
-      end_at: times.end_at,
-      duration_minutes: a.duration_minutes,
-      service_name: a.service,
+      // Schema columns: date / time_start / time_end (TEXT) +
+      // total_duration (INTEGER). Service name lives inside the
+      // jsonb `services` array per migration 20260430_003.
+      date: times.date,
+      time_start: times.time_start,
+      time_end: times.time_end,
+      total_duration: a.duration_minutes,
+      kind: "work" as const,
       status: a.status,
       comment: `Демо-запись. ${a.service} для ${DEMO_CLIENTS[a.client_index].full_name}.`,
+      services: [{ name: a.service, price: 0, duration: a.duration_minutes }],
       is_demo: true,
     };
   });

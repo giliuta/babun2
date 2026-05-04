@@ -125,6 +125,32 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     });
   }, [team, upsertTeam]);
 
+  // BUGFIX (bug-hunt sweep) — `roles`/`members` and the `grouped`
+  // useMemo were below the `if (!team) early-return`, making the
+  // useMemo conditional. Hoisted with fallback to empty arrays so
+  // the hook runs unconditionally; the early return now sits below
+  // these declarations.
+  const roles: BrigadeRole[] = team?.roles ?? [];
+  const members: BrigadeMember[] = team?.members ?? [];
+
+  // ── Derived groups (hoisted from line 260 below to satisfy
+  //    rules-of-hooks). Empty when team is undefined. ──────────
+  const grouped = useMemo(() => {
+    const byRole = new Map<string | null, Master[]>();
+    byRole.set(null, []);
+    for (const r of roles) byRole.set(r.id, []);
+    for (const m of members) {
+      const master = masters.find((mm) => mm.id === m.master_id);
+      if (!master) continue;
+      const key =
+        m.role_id && roles.some((r) => r.id === m.role_id) ? m.role_id : null;
+      const arr = byRole.get(key) ?? [];
+      arr.push(master);
+      byRole.set(key, arr);
+    }
+    return byRole;
+  }, [members, roles, masters]);
+
   if (!team) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Команда" hideSave>
@@ -134,9 +160,6 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
       </BrigadeSectionShell>
     );
   }
-
-  const roles: BrigadeRole[] = team.roles ?? [];
-  const members: BrigadeMember[] = team.members ?? [];
 
   // ── Legacy sync (keep lead_ids/helper_ids aligned) ────────────
   const toLegacy = (rolesNow: BrigadeRole[], membersNow: BrigadeMember[]) => {
@@ -256,22 +279,8 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     );
   };
 
-  // ── Derived groups ──────────────────────────────────────────
-  const grouped = useMemo(() => {
-    const byRole = new Map<string | null, Master[]>();
-    byRole.set(null, []);
-    for (const r of roles) byRole.set(r.id, []);
-    for (const m of members) {
-      const master = masters.find((mm) => mm.id === m.master_id);
-      if (!master) continue;
-      const key =
-        m.role_id && roles.some((r) => r.id === m.role_id) ? m.role_id : null;
-      const arr = byRole.get(key) ?? [];
-      arr.push(master);
-      byRole.set(key, arr);
-    }
-    return byRole;
-  }, [members, roles, masters]);
+  // (`grouped` useMemo hoisted above the early return — see bug-hunt
+  // bugfix comment.)
 
   const availableMasters = masters.filter(
     (m) => m.is_active && !members.some((mm) => mm.master_id === m.id),

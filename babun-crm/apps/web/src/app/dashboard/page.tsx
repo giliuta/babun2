@@ -1148,12 +1148,25 @@ function DashboardPageInner() {
       <CalendarEmptyState
         appointmentsCount={appointments.length}
         onCreateClick={() => {
+          // Snap to a sensible work-hour default. If we just rolled
+          // (now.hours + 1) % 24 we'd get "00:00" any time after
+          // 23:00, which lands the user on a past slot. Instead:
+          //   * before 09:00 → 10:00 today
+          //   * 09:00–17:00 → next whole hour today
+          //   * 18:00 onward → 10:00 next working day
           const now = new Date();
-          const dateKey = toYmd(now);
-          // Snap to the next whole hour so the default isn't an
-          // awkward ":17" start time.
-          const startHour = (now.getHours() + 1) % 24;
-          const time = `${String(startHour).padStart(2, "0")}:00`;
+          const h = now.getHours();
+          const start = new Date(now);
+          if (h < 9) {
+            start.setHours(10, 0, 0, 0);
+          } else if (h < 18) {
+            start.setHours(h + 1, 0, 0, 0);
+          } else {
+            start.setDate(start.getDate() + 1);
+            start.setHours(10, 0, 0, 0);
+          }
+          const dateKey = toYmd(start);
+          const time = `${String(start.getHours()).padStart(2, "0")}:00`;
           handleEmptySlotClick(dateKey, time);
         }}
       />

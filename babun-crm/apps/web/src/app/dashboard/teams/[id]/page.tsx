@@ -16,7 +16,7 @@
 //   /dashboard/teams/:id/calendar  — grid window + scroll-to
 //   /dashboard/teams/:id/schedule  — work hours + break + days off
 
-import { use, useMemo } from "react";
+import { use, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -74,14 +74,13 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const { equipment } = useEquipment();
   const { schedules } = useSchedules();
 
-  // Freshly created brigades first hit /dashboard/teams/new. Since the
-  // compact index has no edit form, redirect new-brigade requests to
-  // /info so the user starts with a real editor.
-  if (isNew) {
-    router.replace("/dashboard/teams/new/info");
-    return null;
-  }
-
+  // BUGFIX (bug-hunt sweep) — `if (isNew) early-return` was here,
+  // but the eight `useMemo` hooks below it ran conditionally
+  // (skipped when isNew=true), violating rules-of-hooks. The early
+  // return is now moved AFTER all hooks. The redirect is dispatched
+  // in a useEffect so it runs after React's first paint of the
+  // (empty) page; the visual flash is the same as before since the
+  // page renders nothing (team is undefined, all previews are "").
   const team = teams.find((t) => t.id === id);
   const schedule = schedules[id] ?? DEFAULT_SCHEDULE;
 
@@ -196,7 +195,25 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const activeCities = cities.filter((c) => c.isActive);
   void activeCities;
 
+  // BUGFIX (bug-hunt sweep) — redirect for the `id === "new"` case
+  // moved into a useEffect so it runs after the hooks above. Was
+  // previously a synchronous `if (isNew) router.replace(...) ; return null`
+  // block at the top of the component, which made every useMemo
+  // below it conditional and tripped rules-of-hooks. The page
+  // renders nothing-visible during the redirect (team is undefined,
+  // hits the not-found branch — same UX as before).
+  useEffect(() => {
+    if (isNew) router.replace("/dashboard/teams/new/info");
+  }, [isNew, router]);
+
   // ── Guard for unknown id ────────────────────────────────────────────
+  // For isNew we render an empty placeholder (no "Не найдена" flash)
+  // while the redirect-effect kicks in.
+  if (isNew) {
+    return (
+      <div className="flex-1 bg-[var(--surface-grouped)]" aria-hidden />
+    );
+  }
   if (!team) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-center bg-[var(--surface-grouped)]">
