@@ -215,9 +215,11 @@ export default function ChatsPage() {
     }
   };
 
-  // Auto-open client panel on xl+ when chat has linked client
+  // Auto-open client panel on xl+ when chat has linked client.
+  // Same external-state-sync pattern as OfflineIndicator etc.
   useEffect(() => {
     if (isXL && activeChat?.client_id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowClientPanel(true);
     }
   }, [isXL, activeChat?.client_id]);
@@ -828,9 +830,21 @@ function formatDateLabel(dateKey: string): string {
 
 function WaitingBadge({ chat }: { chat: Chat }) {
   const last = chat.messages[chat.messages.length - 1];
+  // BUGFIX (bug-hunt sweep) — `Date.now()` was called during render,
+  // tripping react-hooks/purity (impure call → unstable diff across
+  // re-renders, badge could jitter as parent state changed). Wall-
+  // clock state lives in `now` and refreshes once a minute via an
+  // interval. Hooks must run unconditionally, so the early return
+  // for closed/archived chats moved below the hooks.
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+
   if (!last || last.direction !== "in" || chat.status === "closed" || chat.status === "archived") return null;
 
-  const diff = Date.now() - new Date(last.timestamp).getTime();
+  const diff = now - new Date(last.timestamp).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 30) return null;
 

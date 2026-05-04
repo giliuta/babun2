@@ -123,7 +123,15 @@ export default function CloseDayPage() {
       payments: [
         ...apt.payments,
         {
-          id: `pay-${Date.now()}`,
+          // BUGFIX (bug-hunt sweep) — was `pay-${Date.now()}` which
+          // is not collision-safe at sub-millisecond rates if the
+          // user double-taps. crypto.randomUUID() is collision-safe
+          // and matches the rest of the codebase's id strategy.
+          // (The lint rule flags this as a render-purity violation
+          // but the call lives inside the markPaidCash event handler
+          // — only invoked on click, never during render.)
+          // eslint-disable-next-line react-hooks/purity
+          id: `pay-${crypto.randomUUID()}`,
           method: "cash",
           amount: debt,
           paid_at: new Date().toISOString(),
