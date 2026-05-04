@@ -44,8 +44,12 @@ export default function AuthCard({ title, subtitle, children }: AuthCardProps) {
 
         {children}
 
+        {/* STORY-053a follow-up — public auth pages must not name a
+            specific tenant. "AirFix" was hardcoded here from the
+            single-tenant prototype era. Public pages just brand as
+            Babun. */}
         <p className="text-center text-[12px] text-[var(--label-tertiary)] mt-10">
-          AirFix &copy; 2026 · Babun CRM
+          Babun &copy; 2026
         </p>
       </div>
     </main>
