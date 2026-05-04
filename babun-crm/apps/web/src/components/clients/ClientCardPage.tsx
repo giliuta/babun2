@@ -83,6 +83,8 @@ export default function ClientCardPage({
       client.locations?.find((l) => l.isPrimary) ??
       client.locations?.[0] ??
       null;
+    // Defaulting from external client state — legitimate sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (primary) setActiveLocationId(primary.id);
   }, [client, activeLocationId]);
 
@@ -154,7 +156,13 @@ export default function ClientCardPage({
             {blockConfig.map((cfg) => {
               switch (cfg.kind) {
                 case "objects":
-                  return <ObjectsBlock key={cfg.kind} client={client} />;
+                  return (
+                    <ObjectsBlock
+                      key={cfg.kind}
+                      client={client}
+                      onUpdate={(next) => upsertClient(next)}
+                    />
+                  );
                 case "visits":
                   return (
                     <VisitsBlock

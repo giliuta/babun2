@@ -1,33 +1,62 @@
 "use client";
 
-// STORY-034 Group 4 — Quick-create client screen.
+// STORY-068 — full-screen client creation per user feedback.
 //
-// Strict minimum: name + phone (+357 default).  Optional inline
-// «+ Добавить объект» that opens the existing LocationEditor sheet.
-// «Создать» disabled until both fields have content.  After save
-// → router.replace to /dashboard/clients/{id} so the user lands on
-// the freshly-redesigned card and can fill the rest from there.
+// Old flow was: name + phone + (modal to add 1 object) + "fill the rest
+// after creation". User pushback: "хочу сразу чтоб при создании сразу
+// все было на виду не нужно было тап туда потом тап туда".
 //
-// Removed per brief:
-// * orange banner «Имя и телефон обязательны»
-// * placeholder «Заполни профиль ниже»
-// * any extra blocks (Личное / Группы / Заметки) — they live in the
-//   detail card after creation.
+// New flow:
+//   * One scrollable screen, no modals.
+//   * Contact card — name, phone, + WhatsApp/Telegram/Instagram inline.
+//   * Objects card — multi, inline expand-form (no LocationEditor sheet).
+//   * Дополнительно accordion — city, birthday, email, comment.
+// Only name+phone are required to enable Save.
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Plus, Home, MapPin } from "@babun/shared/icons";
+import {
+  ChevronDown,
+  ChevronLeft,
+  Home,
+  MapPin,
+  Plus,
+  X,
+} from "@babun/shared/icons";
 import { useClients } from "@/components/layout/DashboardClientLayout";
 import {
   createBlankClient,
   type Location,
+  type PropertyType,
 } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
-import LocationEditor from "@/components/clients/LocationEditor";
 import { Button } from "@/components/ui";
 import { haptic } from "@/lib/haptics";
 
 const DEFAULT_PHONE_PREFIX = "+357 ";
+
+// Property-type chips for inline object form. Six options, one row.
+// Drives both the Russian label (visible) and the schema enum.
+interface PropertyChoice {
+  value: PropertyType;
+  label: string;
+  defaultLabel: string;
+}
+const PROPERTY_CHOICES: PropertyChoice[] = [
+  { value: "house", label: "Дом", defaultLabel: "Дом" },
+  { value: "apartment", label: "Квартира", defaultLabel: "Квартира" },
+  { value: "office", label: "Офис", defaultLabel: "Офис" },
+  { value: "shop", label: "Магазин", defaultLabel: "Магазин" },
+  { value: "restaurant", label: "Ресторан", defaultLabel: "Ресторан" },
+  { value: "other", label: "Другое", defaultLabel: "Объект" },
+];
+
+interface LocationDraft {
+  label: string;
+  property_type: PropertyType;
+  address: string;
+  note: string;
+}
 
 export default function NewClientPage() {
   const router = useRouter();
@@ -35,8 +64,22 @@ export default function NewClientPage() {
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState(DEFAULT_PHONE_PREFIX);
-  const [location, setLocation] = useState<Location | null>(null);
-  const [editingLocation, setEditingLocation] = useState(false);
+  const [whatsapp, setWhatsapp] = useState("");
+  const [telegram, setTelegram] = useState("");
+  const [instagram, setInstagram] = useState("");
+
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [draftLoc, setDraftLoc] = useState<LocationDraft | null>(null);
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [city, setCity] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [email, setEmail] = useState("");
+  const [comment, setComment] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,22 +89,61 @@ export default function NewClientPage() {
   const trimmedPhone = phone.trim();
   const phoneFilled =
     trimmedPhone.length > 0 && trimmedPhone !== DEFAULT_PHONE_PREFIX.trim();
-  const canSubmit = fullName.trim().length > 0 && phoneFilled;
+  const canSubmit = fullName.trim().length > 0 && phoneFilled && !saving;
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const handleStartObject = () => {
+    haptic("tap");
+    setDraftLoc({
+      label: PROPERTY_CHOICES[0].defaultLabel,
+      property_type: "house",
+      address: "",
+      note: "",
+    });
+  };
 
-  const submit = async () => {
-    if (!canSubmit || saving) return;
+  const handleSaveObject = () => {
+    if (!draftLoc) return;
+    if (!draftLoc.address.trim()) return;
+    haptic("tap");
+    const newLoc: Location = {
+      id: generateId("loc"),
+      label: draftLoc.label.trim() || "Объект",
+      address: draftLoc.address.trim(),
+      isPrimary: locations.length === 0,
+      note: draftLoc.note.trim() || undefined,
+      equipment: [],
+    };
+    setLocations((prev) => [...prev, newLoc]);
+    setDraftLoc(null);
+  };
+
+  const handleRemoveObject = (idx: number) => {
+    haptic("warning");
+    setLocations((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      // Keep first object as primary if we removed the previous one.
+      return next.map((l, i) => ({ ...l, isPrimary: i === 0 }));
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
     haptic("medium");
+    setSaving(true);
+    setSaveError(null);
     const blank = createBlankClient({
       full_name: fullName.trim(),
       phone: trimmedPhone,
-      sms_name: fullName.trim().split(" ")[0] || "",
-      locations: location ? [{ ...location, isPrimary: true }] : [],
+      sms_name: fullName.trim().split(/\s+/)[0] || "",
+      whatsapp_phone: whatsapp.trim(),
+      telegram_username: telegram.trim().replace(/^@/, ""),
+      instagram_username: instagram.trim().replace(/^@/, ""),
+      email: email.trim(),
+      city: city.trim(),
+      birthday: birthday || "",
+      comment: comment.trim(),
+      locations,
     });
-    setSaving(true);
-    setSaveError(null);
     try {
       await upsertClient(blank);
       router.replace(`/dashboard/clients/${blank.id}`);
@@ -74,6 +156,7 @@ export default function NewClientPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-grouped)] h-full">
+      {/* Sticky header with Save in the top-right. */}
       <div className="sticky top-0 z-20 bg-[var(--surface-card)] border-b border-[var(--separator)]">
         <div className="flex items-center gap-2 px-3 h-12">
           <button
@@ -87,142 +170,428 @@ export default function NewClientPage() {
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <div className="flex-1 text-[14px] font-semibold text-[var(--label)]">
+          <div className="flex-1 text-[15px] font-semibold text-[var(--label)]">
             Новый клиент
           </div>
           <Button
             variant="primary"
             size="sm"
-            onClick={() => void submit()}
-            disabled={!canSubmit || saving}
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit}
           >
-            {saving ? "Сохраняем…" : "Создать"}
+            {saving ? "Сохраняем…" : "Сохранить"}
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-md mx-auto p-3 space-y-2">
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3 space-y-3">
-            <Field label="Имя">
-              <input
-                ref={nameRef}
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Иван Петров"
-                maxLength={120}
-                className="w-full h-10 px-3 text-[15px] bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-              />
-            </Field>
-            <Field label="Телефон">
-              <input
-                type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onFocus={(e) => {
-                  // Move caret past the prefix on first focus so the
-                  // user types right after «+357 » without thinking.
-                  if (e.currentTarget.value === DEFAULT_PHONE_PREFIX) {
-                    const len = DEFAULT_PHONE_PREFIX.length;
-                    e.currentTarget.setSelectionRange(len, len);
-                  }
-                }}
-                placeholder="+357 99 ..."
-                className="w-full h-10 px-3 text-[15px] tabular-nums bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-              />
-            </Field>
-          </div>
+        <div className="max-w-md mx-auto p-3 pb-10 space-y-3">
+          {/* ───────── Contact card ───────── */}
+          <Card>
+            <CardTitle>Контакт</CardTitle>
+            <div className="space-y-2.5">
+              <Field label="Имя" required>
+                <Input
+                  inputRef={nameRef}
+                  value={fullName}
+                  onChange={setFullName}
+                  placeholder="Имя или Имя Фамилия"
+                  maxLength={120}
+                />
+              </Field>
+              <Field label="Телефон" required>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onFocus={(e) => {
+                    if (e.currentTarget.value === DEFAULT_PHONE_PREFIX) {
+                      const len = DEFAULT_PHONE_PREFIX.length;
+                      e.currentTarget.setSelectionRange(len, len);
+                    }
+                  }}
+                  placeholder="+357 99 ..."
+                  className={inputCls + " tabular-nums"}
+                />
+              </Field>
+              <Field label="WhatsApp" hint="если номер отличается от основного">
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="+357 ..."
+                  className={inputCls + " tabular-nums"}
+                />
+              </Field>
+              <Field label="Telegram">
+                <Input
+                  value={telegram}
+                  onChange={setTelegram}
+                  placeholder="@username"
+                  maxLength={64}
+                />
+              </Field>
+              <Field label="Instagram">
+                <Input
+                  value={instagram}
+                  onChange={setInstagram}
+                  placeholder="@handle"
+                  maxLength={64}
+                />
+              </Field>
+            </div>
+          </Card>
 
-          {/* Optional object — collapsed unless user adds one */}
-          {location ? (
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3 flex items-start gap-2">
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center">
-                <Home size={16} strokeWidth={2} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-semibold text-[var(--label)] truncate">
-                  {location.label || "Объект"}
-                </div>
-                <div className="text-[12px] text-[var(--label-secondary)] truncate flex items-center gap-1">
-                  <MapPin size={10} strokeWidth={2} className="shrink-0" />
-                  {location.address || "адрес не указан"}
-                </div>
-              </div>
+          {/* ───────── Objects card ───────── */}
+          <Card>
+            <CardTitle subtitle="дом, офис, вилла — каждый со своим адресом">
+              Объекты
+            </CardTitle>
+            {locations.length === 0 && !draftLoc && (
+              <p className="text-[12px] text-[var(--label-tertiary)] mb-2">
+                Можно добавить позже из карточки клиента.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {locations.map((loc, idx) => (
+                <LocationRow
+                  key={loc.id}
+                  location={loc}
+                  onRemove={() => handleRemoveObject(idx)}
+                />
+              ))}
+            </div>
+
+            {draftLoc ? (
+              <InlineLocationForm
+                draft={draftLoc}
+                onChange={setDraftLoc}
+                onSave={handleSaveObject}
+                onCancel={() => {
+                  haptic("light");
+                  setDraftLoc(null);
+                }}
+              />
+            ) : (
               <button
                 type="button"
-                onClick={() => setEditingLocation(true)}
-                className="text-[12px] font-semibold text-[var(--accent)] active:opacity-70"
+                onClick={handleStartObject}
+                className="mt-2 w-full h-11 flex items-center justify-center gap-1.5 rounded-[12px] border border-dashed border-[var(--separator)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--accent-tint)]"
               >
-                Изменить
+                <Plus size={14} strokeWidth={2.5} />
+                {locations.length === 0
+                  ? "Добавить объект"
+                  : "Добавить ещё объект"}
               </button>
-            </div>
-          ) : (
+            )}
+          </Card>
+
+          {/* ───────── Дополнительно accordion ───────── */}
+          <Card>
             <button
               type="button"
               onClick={() => {
-                haptic("tap");
-                setEditingLocation(true);
+                haptic("light");
+                setMoreOpen((v) => !v);
               }}
-              className="w-full h-12 flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--separator)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--accent-tint)]"
+              className="w-full flex items-center gap-2 -my-1 -mx-1 px-1 py-1"
+              aria-expanded={moreOpen}
             >
-              <Plus size={14} strokeWidth={2.5} />
-              Добавить объект
+              <span className="flex-1 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+                Дополнительно
+              </span>
+              <span className="text-[12px] text-[var(--label-tertiary)]">
+                {moreOpen ? "Скрыть" : "Показать"}
+              </span>
+              <span
+                className={`text-[var(--label-tertiary)] transition-transform ${
+                  moreOpen ? "rotate-180" : ""
+                }`}
+              >
+                <ChevronDown size={14} strokeWidth={2.5} />
+              </span>
             </button>
-          )}
+            {moreOpen && (
+              <div className="space-y-2.5 mt-3">
+                <Field label="Город">
+                  <Input
+                    value={city}
+                    onChange={setCity}
+                    placeholder="Лимассол / Никосия / ..."
+                  />
+                </Field>
+                <Field label="День рождения">
+                  <input
+                    type="date"
+                    value={birthday}
+                    onChange={(e) => setBirthday(e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Email">
+                  <input
+                    type="email"
+                    inputMode="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ivan@example.com"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Комментарий">
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={3}
+                    placeholder="Особенности, предпочтения, всё важное…"
+                    className={`${inputCls} h-auto py-2 leading-snug`}
+                  />
+                </Field>
+              </div>
+            )}
+          </Card>
 
           {saveError && (
-            <div className="text-[13px] text-[var(--system-red)] text-center px-2 pt-1">
+            <div className="text-[13px] text-[var(--system-red)] text-center px-2">
               {saveError}
             </div>
           )}
-
-          <p className="text-[12px] text-[var(--label-tertiary)] text-center px-4 pt-2">
-            Остальные данные (заметки, теги, мессенджеры…) можно
-            заполнить после создания.
-          </p>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <LocationEditor
-        open={editingLocation}
-        location={
-          editingLocation
-            ? location ?? {
-                id: generateId("loc"),
-                label: "Дом",
-                address: "",
-                isPrimary: true,
-                equipment: [],
-              }
-            : null
-        }
-        isOnly={true}
-        onSave={(loc) => {
-          haptic("tap");
-          setLocation({ ...loc, isPrimary: true });
-          setEditingLocation(false);
-        }}
-        onClose={() => setEditingLocation(false)}
-      />
+// ───────── Inline object form ─────────
+
+function InlineLocationForm({
+  draft,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  draft: LocationDraft;
+  onChange: (next: LocationDraft) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const canSave = draft.address.trim().length > 0;
+  return (
+    <div className="mt-3 p-3 rounded-[12px] bg-[var(--fill-quaternary)] space-y-2.5">
+      <div className="flex flex-wrap gap-1.5">
+        {PROPERTY_CHOICES.map((p) => {
+          const active = draft.property_type === p.value;
+          return (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                onChange({
+                  ...draft,
+                  property_type: p.value,
+                  // Auto-fill the label when user picks a type — but
+                  // only if they haven't already typed a custom one.
+                  label: PROPERTY_CHOICES.some((c) => c.defaultLabel === draft.label)
+                    ? p.defaultLabel
+                    : draft.label,
+                });
+              }}
+              className={`h-8 px-3 rounded-full text-[13px] font-medium transition ${
+                active
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <Field label="Адрес" required>
+        <input
+          type="text"
+          autoFocus
+          value={draft.address}
+          onChange={(e) => onChange({ ...draft, address: e.target.value })}
+          placeholder="ул. Архиепископу Макариу III, 12"
+          className={inputCls}
+          maxLength={200}
+        />
+      </Field>
+
+      <Field label="Заметка для бригады" hint="код домофона, собака, особенности входа">
+        <input
+          type="text"
+          value={draft.note}
+          onChange={(e) => onChange({ ...draft, note: e.target.value })}
+          placeholder="зелёная дверь, домофон 25"
+          className={inputCls}
+          maxLength={140}
+        />
+      </Field>
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 h-10 rounded-[10px] bg-[var(--surface-card)] border border-[var(--separator)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-tertiary)]"
+        >
+          Отмена
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave}
+          className={`flex-1 h-10 rounded-[10px] text-[14px] font-semibold transition ${
+            canSave
+              ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)]"
+              : "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] cursor-not-allowed"
+          }`}
+        >
+          Готово
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ───────── Existing-object row ─────────
+
+function LocationRow({
+  location,
+  onRemove,
+}: {
+  location: Location;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-2 p-3 rounded-[12px] bg-[var(--fill-quaternary)]">
+      <span className="shrink-0 w-9 h-9 rounded-lg bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center">
+        <Home size={16} strokeWidth={2} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-semibold text-[var(--label)] truncate">
+          {location.label}
+          {location.isPrimary && (
+            <span className="ml-1.5 text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">
+              основной
+            </span>
+          )}
+        </div>
+        <div className="text-[12px] text-[var(--label-secondary)] truncate flex items-center gap-1">
+          <MapPin size={10} strokeWidth={2} className="shrink-0" />
+          {location.address}
+        </div>
+        {location.note && (
+          <div className="text-[11px] text-[var(--label-tertiary)] truncate mt-0.5">
+            {location.note}
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Удалить объект"
+        className="shrink-0 w-8 h-8 -mr-1 -mt-1 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-tertiary)]"
+      >
+        <X size={14} strokeWidth={2.4} />
+      </button>
+    </div>
+  );
+}
+
+// ───────── Tiny presentational helpers ─────────
+
+const inputCls =
+  "w-full h-10 px-3 text-[15px] bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] focus:outline-none focus:border-[var(--accent)]";
+
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3">
+      {children}
+    </section>
+  );
+}
+
+function CardTitle({
+  children,
+  subtitle,
+}: {
+  children: React.ReactNode;
+  subtitle?: string;
+}) {
+  return (
+    <div className="mb-2">
+      <h2 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+        {children}
+      </h2>
+      {subtitle && (
+        <p className="text-[11px] text-[var(--label-tertiary)] mt-0.5">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
 
 function Field({
   label,
+  hint,
+  required,
   children,
 }: {
   label: string;
+  hint?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <label className="block">
-      <span className="block text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
+      <span className="text-[12px] font-medium text-[var(--label-secondary)] flex items-center gap-1 mb-1">
         {label}
+        {required && (
+          <span className="text-[var(--system-red)]" aria-label="Обязательное поле">
+            *
+          </span>
+        )}
+        {hint && (
+          <span className="text-[var(--label-tertiary)] font-normal ml-auto">
+            {hint}
+          </span>
+        )}
       </span>
       {children}
     </label>
+  );
+}
+
+function Input({
+  inputRef,
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+}: {
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  maxLength?: number;
+}) {
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      className={inputCls}
+    />
   );
 }
