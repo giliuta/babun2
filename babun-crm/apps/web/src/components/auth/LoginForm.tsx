@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AuthCard from "./AuthCard";
+import AuthTabs from "./AuthTabs";
+import SocialAuthButtons from "./SocialAuthButtons";
 import { signIn } from "@/lib/supabase/auth-client";
 
 interface LoginFormProps {
@@ -20,28 +22,6 @@ export default function LoginForm({
   errorCode = null,
   deleted = false,
 }: LoginFormProps) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
-    setLoading(true);
-    setError("");
-    const { ok, error: err } = await signIn(email, password);
-    if (!ok) {
-      setError(err ?? "Не удалось войти");
-      setLoading(false);
-      return;
-    }
-    // Force the server layout to re-check auth + tenant.
-    router.push("/dashboard/clients");
-    router.refresh();
-  };
-
   return (
     <AuthCard title="Babun CRM" subtitle="Войдите, чтобы продолжить">
       {deleted && (
@@ -71,57 +51,101 @@ export default function LoginForm({
           </a>
         </div>
       )}
-      <form onSubmit={submit} className="space-y-3">
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
-          <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            required
-            className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
-          />
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Пароль"
-            required
-            minLength={8}
-            className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
-          />
-        </div>
 
-        {error && (
-          <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
-            {error}
-          </div>
-        )}
+      <SocialAuthButtons variant="login" />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition mt-4"
-        >
-          {loading ? "Входим…" : "Войти"}
-        </button>
+      <div className="flex items-center gap-2 my-3">
+        <div className="flex-1 h-px bg-[var(--separator)]" />
+        <span className="text-[11px] uppercase tracking-wider text-[var(--label-tertiary)]">
+          или
+        </span>
+        <div className="flex-1 h-px bg-[var(--separator)]" />
+      </div>
 
-        <Link
-          href="/forgot-password"
-          className="block text-center h-11 leading-[44px] text-[14px] font-medium text-[var(--accent)] active:opacity-60"
-        >
-          Забыли пароль?
-        </Link>
+      <AuthTabs
+        variant="login"
+        defaultTab="email-otp"
+        passwordTab={<PasswordLoginInner />}
+      />
 
-        <Link
-          href="/register"
-          className="block text-center h-11 leading-[44px] text-[14px] font-medium text-[var(--accent)] active:opacity-60"
-        >
-          Нет аккаунта? Зарегистрироваться
-        </Link>
-      </form>
+      <Link
+        href="/register"
+        className="block text-center h-11 leading-[44px] mt-3 text-[14px] font-medium text-[var(--accent)] active:opacity-60"
+      >
+        Нет аккаунта? Зарегистрироваться
+      </Link>
     </AuthCard>
+  );
+}
+
+// Email + password tab — kept as the inner block of AuthTabs so the
+// existing flow (returning users with passwords) still works.
+function PasswordLoginInner() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    setError("");
+    const { ok, error: err } = await signIn(email, password);
+    if (!ok) {
+      setError(err ?? "Не удалось войти");
+      setLoading(false);
+      return;
+    }
+    router.push("/dashboard/clients");
+    router.refresh();
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
+        <input
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+          className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+        />
+        <input
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Пароль"
+          required
+          minLength={8}
+          className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+        />
+      </div>
+
+      {error && (
+        <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
+          {error}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
+      >
+        {loading ? "Входим…" : "Войти"}
+      </button>
+
+      <Link
+        href="/forgot-password"
+        className="block text-center h-11 leading-[44px] text-[14px] font-medium text-[var(--accent)] active:opacity-60"
+      >
+        Забыли пароль?
+      </Link>
+    </form>
   );
 }
