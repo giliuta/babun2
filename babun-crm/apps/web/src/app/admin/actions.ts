@@ -163,3 +163,43 @@ export async function grantSmsBalance(
   revalidatePath("/admin");
   return { ok: true };
 }
+
+// ── Tenant impersonation via magic link ──────────────────────────
+//
+// Generates a one-time login link for the tenant's owner. Admin
+// opens it in a new tab and lands signed-in as that owner — useful
+// for debugging "this is broken" reports without asking for the
+// customer's password. The auth admin generateLink under the
+// service-role client is the cleanest path. We don't email the link —
+// we return it to the UI which opens it directly in a new window.
+export async function impersonateTenantOwner(
+  tenantId: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const auth = await assertAdmin();
+  if (!auth) return { ok: false, error: "Доступ только для администратора" };
+
+  const sb = await getSupabaseServer();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: email, error: rpcErr } = await (sb as any).rpc(
+    "admin_resolve_tenant_owner_email",
+    { p_tenant_id: tenantId },
+  );
+  if (rpcErr) return { ok: false, error: rpcErr.message };
+  if (!email) return { ok: false, error: "У тенанта не найден владелец" };
+
+  const svc = getSupabaseService();
+  const { data, error } = await svc.auth.admin.generateLink({
+    type: "magiclink",
+    email: email as string,
+    options: {
+      redirectTo: "https://babun.app/dashboard",
+    },
+  });
+  if (error) return { ok: false, error: error.message };
+  const link =
+    (data as { properties?: { action_link?: string } } | null)?.properties
+      ?.action_link;
+  if (!link) return { ok: false, error: "Не удалось сгенерировать magic link" };
+
+  return { ok: true, url: link };
+}

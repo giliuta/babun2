@@ -17,6 +17,7 @@ import ImportLocalAppointmentsSection from "@/components/settings/account/Import
 import ImportLocalScheduleSection from "@/components/settings/account/ImportLocalScheduleSection";
 import ImportLocalRecurringSection from "@/components/settings/account/ImportLocalRecurringSection";
 import DemoDataSection from "@/components/settings/account/DemoDataSection";
+import DataExportSection from "@/components/settings/account/DataExportSection";
 import DangerZoneSection from "@/components/settings/account/DangerZoneSection";
 
 export default async function AccountSettingsPage() {
@@ -70,6 +71,7 @@ export default async function AccountSettingsPage() {
           <ImportLocalScheduleSection />
           <ImportLocalRecurringSection />
           <DemoDataSection />
+          <DataExportSection />
           <DangerZoneSection />
         </div>
       </div>

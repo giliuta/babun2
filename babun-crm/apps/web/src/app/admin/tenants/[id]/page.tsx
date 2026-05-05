@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import TenantPlanForm from "@/components/admin/TenantPlanForm";
 import GrantBalanceForm from "@/components/admin/GrantBalanceForm";
+import ImpersonateButton from "@/components/admin/ImpersonateButton";
 
 interface DetailResponse {
   tenant?: {
@@ -168,6 +169,10 @@ export default async function AdminTenantDetailPage({
             tenantId={t.id}
             current={t.plan_override}
           />
+
+          <div className="pt-3 border-t border-[var(--separator)]">
+            <ImpersonateButton tenantId={t.id} tenantName={t.name || "—"} />
+          </div>
         </section>
 
         {/* SMS state */}
