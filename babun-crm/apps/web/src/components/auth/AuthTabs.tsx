@@ -1,109 +1,112 @@
 "use client";
 
-// STORY-072 — Three-tab auth UI used by both /login and /register.
+// STORY-072 — Single-input auth flow.
 //
-// Tabs:
-//   * Email + код    → passwordless OTP via email
-//   * Email + пароль → existing email/password (default)
-//   * Телефон        → SMS OTP via Twilio (Supabase phone auth)
+// One field: "Email или телефон". Auto-detects:
+//   - starts with "+" or all-digits → phone OTP via SMS
+//   - contains "@"                  → email OTP
 //
-// Wraps the existing email/password form when "Email + пароль" is
-// active. Otherwise shows a single-input form (email or phone) which
-// fires the OTP request and swaps to OtpVerifyForm.
+// Falls back to a tiny "Войти по паролю" toggle for legacy users
+// who registered with email + password and didn't migrate to OTP.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import OtpVerifyForm from "./OtpVerifyForm";
 import {
   sendEmailOtp,
   sendPhoneOtp,
+  signIn,
+  signUp,
   verifyEmailOtp,
   verifyPhoneOtp,
 } from "@/lib/supabase/auth-client";
 
-type Tab = "email-otp" | "email-password" | "phone";
-
 interface Props {
-  /** Tab to show first. login + register can pick different defaults. */
-  defaultTab?: Tab;
-  /** Render prop for the email+password tab — keeps the existing
-   *  form's logic intact (different between login/register). */
-  passwordTab: React.ReactNode;
-  /** "Войти" / "Регистрация" — labels for OTP submit buttons. */
   variant: "login" | "register";
 }
 
-export default function AuthTabs({
-  defaultTab = "email-otp",
-  passwordTab,
-  variant,
-}: Props) {
-  const [tab, setTab] = useState<Tab>(defaultTab);
+type Mode = "quick" | "password";
+
+export default function AuthTabs({ variant }: Props) {
+  const [mode, setMode] = useState<Mode>("quick");
   return (
     <div className="space-y-3">
-      <TabBar tab={tab} setTab={setTab} />
-      {tab === "email-otp" && <EmailOtpFlow variant={variant} />}
-      {tab === "email-password" && <div className="space-y-3">{passwordTab}</div>}
-      {tab === "phone" && <PhoneOtpFlow variant={variant} />}
+      {mode === "quick" ? (
+        <QuickFlow variant={variant} />
+      ) : (
+        <PasswordFlow variant={variant} />
+      )}
+      <button
+        type="button"
+        onClick={() => setMode((m) => (m === "quick" ? "password" : "quick"))}
+        className="block w-full text-center h-10 leading-[40px] text-[13px] text-[var(--label-secondary)] active:opacity-60"
+      >
+        {mode === "quick" ? "Войти по паролю" : "← Войти по коду"}
+      </button>
     </div>
   );
 }
 
-function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
-  const items: Array<{ id: Tab; label: string }> = [
-    { id: "email-otp", label: "Email" },
-    { id: "phone", label: "Телефон" },
-    { id: "email-password", label: "Пароль" },
-  ];
-  return (
-    <div className="grid grid-cols-3 gap-1 bg-[var(--fill-tertiary)] rounded-[10px] p-0.5">
-      {items.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          onClick={() => setTab(it.id)}
-          className={`h-9 text-[13px] font-semibold rounded-[8px] transition ${
-            tab === it.id
-              ? "bg-[var(--surface-card)] text-[var(--label)] shadow-sm"
-              : "text-[var(--label-secondary)]"
-          }`}
-        >
-          {it.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── Email OTP flow ──────────────────────────────────────────────
-function EmailOtpFlow({ variant }: { variant: "login" | "register" }) {
+// ─── Quick flow: one input → email or phone OTP ──────────────────
+function QuickFlow({ variant }: { variant: "login" | "register" }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [value, setValue] = useState("");
   const [stage, setStage] = useState<"input" | "verify">("input");
+  const [channel, setChannel] = useState<"email" | "phone">("email");
+  const [normalized, setNormalized] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const detect = (raw: string): { kind: "email" | "phone"; value: string } | null => {
+    const t = raw.trim();
+    if (!t) return null;
+    if (t.includes("@")) {
+      // very loose email check — server will reject malformed
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+      return ok ? { kind: "email", value: t.toLowerCase() } : null;
+    }
+    // phone: normalize spaces and dashes; require leading + and 8-15 digits
+    const cleaned = t.replace(/[\s\-()]/g, "");
+    if (/^\+\d{8,15}$/.test(cleaned)) return { kind: "phone", value: cleaned };
+    return null;
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    setBusy(true);
+    const detected = detect(value);
+    if (!detected) {
+      setError("Введи email (например you@gmail.com) или телефон с кодом страны (+357 99 12 34 56)");
+      return;
+    }
     setError(null);
-    const { ok, error: err } = await sendEmailOtp(email.trim());
+    setBusy(true);
+    const send = detected.kind === "email" ? sendEmailOtp : sendPhoneOtp;
+    const { ok, error: err } = await send(detected.value);
     setBusy(false);
     if (!ok) {
       setError(err ?? "Не удалось отправить код");
       return;
     }
+    setChannel(detected.kind);
+    setNormalized(detected.value);
     setStage("verify");
   };
 
   if (stage === "verify") {
     return (
       <OtpVerifyForm
-        channel="email"
-        destination={email}
-        onVerify={(code) => verifyEmailOtp(email, code)}
-        onResend={() => sendEmailOtp(email)}
+        channel={channel}
+        destination={normalized}
+        onVerify={(code) =>
+          channel === "email"
+            ? verifyEmailOtp(normalized, code)
+            : verifyPhoneOtp(normalized, code)
+        }
+        onResend={() =>
+          channel === "email" ? sendEmailOtp(normalized) : sendPhoneOtp(normalized)
+        }
         onBack={() => setStage("input")}
         onSuccess={() => {
           router.push("/dashboard/clients");
@@ -113,15 +116,19 @@ function EmailOtpFlow({ variant }: { variant: "login" | "register" }) {
     );
   }
 
+  const cta =
+    variant === "register" ? "Получить код для регистрации" : "Получить код для входа";
+
   return (
     <form onSubmit={submit} className="space-y-3">
       <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)]">
         <input
-          type="email"
+          type="text"
           autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
+          inputMode="email"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Email или +телефон"
           required
           className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
         />
@@ -136,102 +143,135 @@ function EmailOtpFlow({ variant }: { variant: "login" | "register" }) {
         disabled={busy}
         className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
       >
-        {busy
-          ? "Отправляем…"
-          : variant === "register"
-            ? "Получить код для регистрации"
-            : "Получить код для входа"}
+        {busy ? "Отправляем код…" : cta}
       </button>
       <p className="text-[11px] text-[var(--label-tertiary)] text-center leading-snug">
-        Отправим 6-значный код на почту. Пароль не нужен.
+        Отправим 6-значный код. Email — бесплатно. SMS — может списаться по тарифу оператора.
       </p>
     </form>
   );
 }
 
-// ─── Phone OTP flow ──────────────────────────────────────────────
-//
-// Phone format: E.164 (e.g. +35799123456). We don't enforce a country
-// code prefix here because tenants will sign up from different
-// countries. The `tel` input lets mobile keyboards render the numeric
-// pad. Validation defers to Supabase / Twilio which return clean
-// errors for malformed numbers.
-function PhoneOtpFlow({ variant }: { variant: "login" | "register" }) {
+// ─── Password flow: legacy email + password ──────────────────────
+function PasswordFlow({ variant }: { variant: "login" | "register" }) {
   const router = useRouter();
-  const [phone, setPhone] = useState("+357");
-  const [stage, setStage] = useState<"input" | "verify">("input");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy) return;
-    const trimmed = phone.replace(/\s/g, "");
-    if (!/^\+\d{8,15}$/.test(trimmed)) {
-      setError("Номер в формате +XXXXXXXXXX (с кодом страны)");
-      return;
+    if (loading) return;
+    setLoading(true);
+    setError("");
+    if (variant === "register") {
+      const { ok, error: err } = await signUp(
+        email,
+        password,
+        businessName.trim() || undefined,
+      );
+      if (!ok) {
+        setError(err ?? "Не удалось создать аккаунт");
+        setLoading(false);
+        return;
+      }
+      const supabase = (await import("@/lib/supabase/client")).getSupabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.push("/dashboard/clients");
+        router.refresh();
+      } else {
+        setPending(true);
+        setLoading(false);
+      }
+    } else {
+      const { ok, error: err } = await signIn(email, password);
+      if (!ok) {
+        setError(err ?? "Не удалось войти");
+        setLoading(false);
+        return;
+      }
+      router.push("/dashboard/clients");
+      router.refresh();
     }
-    setBusy(true);
-    setError(null);
-    const { ok, error: err } = await sendPhoneOtp(trimmed);
-    setBusy(false);
-    if (!ok) {
-      setError(err ?? "Не удалось отправить SMS");
-      return;
-    }
-    setPhone(trimmed);
-    setStage("verify");
   };
 
-  if (stage === "verify") {
+  if (pending) {
     return (
-      <OtpVerifyForm
-        channel="phone"
-        destination={phone}
-        onVerify={(code) => verifyPhoneOtp(phone, code)}
-        onResend={() => sendPhoneOtp(phone)}
-        onBack={() => setStage("input")}
-        onSuccess={() => {
-          router.push("/dashboard/clients");
-          router.refresh();
-        }}
-      />
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-5 text-[14px] text-[var(--label-secondary)] leading-relaxed">
+        На <span className="text-[var(--label)] font-medium">{email}</span>{" "}
+        ушло письмо со ссылкой. Открой его, перейди по ссылке — и
+        возвращайся сюда, чтобы войти.
+      </div>
     );
   }
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)]">
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
+        {variant === "register" && (
+          <input
+            type="text"
+            autoComplete="organization"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            placeholder="Название бизнеса (необязательно)"
+            maxLength={120}
+            className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+          />
+        )}
         <input
-          type="tel"
-          autoComplete="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="+357 99 123 456"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
           required
-          className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent tabular-nums"
+          className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+        />
+        <input
+          type="password"
+          autoComplete={variant === "register" ? "new-password" : "current-password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={variant === "register" ? "Пароль (минимум 8 символов)" : "Пароль"}
+          required
+          minLength={8}
+          className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
         />
       </div>
+
       {error && (
         <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
           {error}
         </div>
       )}
+
       <button
         type="submit"
-        disabled={busy}
+        disabled={loading}
         className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
       >
-        {busy
-          ? "Отправляем SMS…"
+        {loading
+          ? variant === "register"
+            ? "Создаём…"
+            : "Входим…"
           : variant === "register"
-            ? "Получить код для регистрации"
-            : "Получить код для входа"}
+            ? "Создать аккаунт"
+            : "Войти"}
       </button>
-      <p className="text-[11px] text-[var(--label-tertiary)] text-center leading-snug">
-        Отправим SMS с 6-значным кодом. Тариф оператора может списать стоимость
-        SMS — со стороны Babun отправка бесплатна.
-      </p>
+
+      {variant === "login" && (
+        <Link
+          href="/forgot-password"
+          className="block text-center h-11 leading-[44px] text-[14px] font-medium text-[var(--accent)] active:opacity-60"
+        >
+          Забыли пароль?
+        </Link>
+      )}
     </form>
   );
 }
