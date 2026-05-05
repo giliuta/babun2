@@ -1,9 +1,10 @@
-// STORY-056 — PLACEHOLDER icon. Final brand drops with the designed
-// mark; until then this and apple-icon.tsx share the same gradient
-// (#1F66D7 → #1850A8) used by IOSInstallPrompt and the manifest
-// theme_color. Keep them in lockstep when swapping in the real icon.
+// STORY-056 — Babun mark. The dynamic /icon route renders a 512×512 PNG
+// of the baboon for clients that don't fetch /icon.svg directly. The SVG
+// itself lives in src/lib/brand/babun-mark.ts and /public/icon.svg —
+// keep all three in lockstep when iterating on the mark.
 
 import { ImageResponse } from "next/og";
+import { BABUN_MARK_DATA_URL } from "@/lib/brand/babun-mark";
 
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
@@ -13,22 +14,19 @@ export default function Icon() {
     (
       <div
         style={{
-          fontSize: 360,
-          background: "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          fontWeight: 800,
-          fontFamily: "system-ui, sans-serif",
-          letterSpacing: "-0.05em",
         }}
       >
-        B
+        <img
+          src={BABUN_MARK_DATA_URL}
+          width={512}
+          height={512}
+          alt="Babun"
+        />
       </div>
     ),
-    { ...size }
+    { ...size },
   );
 }

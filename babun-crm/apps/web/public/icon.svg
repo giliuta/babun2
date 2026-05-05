@@ -1,10 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Babun">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1F66D7"/>
-      <stop offset="100%" stop-color="#1850A8"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3A8DEA"/>
+      <stop offset="55%" stop-color="#1F66D7"/>
+      <stop offset="100%" stop-color="#0E3380"/>
     </linearGradient>
+    <radialGradient id="bgGlow" cx="50%" cy="18%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="face" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F7E6C7"/>
+      <stop offset="60%" stop-color="#E5CD9E"/>
+      <stop offset="100%" stop-color="#C29F6E"/>
+    </linearGradient>
+    <linearGradient id="mane" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F4A581"/>
+      <stop offset="55%" stop-color="#DE7449"/>
+      <stop offset="100%" stop-color="#9F4327"/>
+    </linearGradient>
+    <linearGradient id="ridge" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F2A9B6"/>
+      <stop offset="55%" stop-color="#D06A82"/>
+      <stop offset="100%" stop-color="#963850"/>
+    </linearGradient>
+    <radialGradient id="cheekGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD3B0" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#FFD3B0" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="512" height="512" rx="96" fill="url(#g)"/>
-  <text x="256" y="256" font-family="system-ui,-apple-system,sans-serif" font-size="340" font-weight="800" fill="white" text-anchor="middle" dominant-baseline="central" letter-spacing="-15">B</text>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+
+  <g>
+    <ellipse cx="118" cy="222" rx="28" ry="38" fill="#DE7449"/>
+    <ellipse cx="118" cy="222" rx="13" ry="22" fill="#963850"/>
+    <ellipse cx="394" cy="222" rx="28" ry="38" fill="#DE7449"/>
+    <ellipse cx="394" cy="222" rx="13" ry="22" fill="#963850"/>
+
+    <path d="M 200 170 C 150 168, 98 202, 92 282 C 88 342, 132 384, 184 374 C 206 370, 220 350, 224 320 L 224 198 Z" fill="url(#mane)"/>
+    <path d="M 312 170 C 362 168, 414 202, 420 282 C 424 342, 380 384, 328 374 C 306 370, 292 350, 288 320 L 288 198 Z" fill="url(#mane)"/>
+
+    <path d="M 256 96 C 322 96, 364 142, 364 200 L 364 246 C 364 276, 350 308, 340 338 C 330 366, 310 396, 288 414 C 278 422, 268 426, 256 426 C 244 426, 234 422, 224 414 C 202 396, 182 366, 172 338 C 162 308, 148 276, 148 246 L 148 200 C 148 142, 190 96, 256 96 Z" fill="url(#face)"/>
+
+    <ellipse cx="200" cy="296" rx="42" ry="52" fill="url(#cheekGlow)"/>
+    <ellipse cx="312" cy="296" rx="42" ry="52" fill="url(#cheekGlow)"/>
+
+    <path d="M 232 196 C 230 192, 282 192, 280 196 L 286 360 C 286 382, 272 396, 256 396 C 240 396, 226 382, 226 360 Z" fill="url(#ridge)"/>
+    <path d="M 250 208 L 254 354 C 254 360, 248 360, 246 358 Z" fill="#FFFFFF" opacity="0.22"/>
+
+    <ellipse cx="245" cy="378" rx="5.5" ry="6.5" fill="#2A0F1A"/>
+    <ellipse cx="267" cy="378" rx="5.5" ry="6.5" fill="#2A0F1A"/>
+
+    <path d="M 226 410 Q 256 420, 286 410" stroke="#A8482A" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.45"/>
+
+    <path d="M 178 232 Q 208 218, 232 234" stroke="#8E5A2E" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.4"/>
+    <path d="M 280 234 Q 304 218, 334 232" stroke="#8E5A2E" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.4"/>
+
+    <ellipse cx="208" cy="254" rx="22" ry="24" fill="#FFFFFF"/>
+    <ellipse cx="304" cy="254" rx="22" ry="24" fill="#FFFFFF"/>
+    <ellipse cx="208" cy="256" rx="14" ry="16" fill="#E78440"/>
+    <ellipse cx="304" cy="256" rx="14" ry="16" fill="#E78440"/>
+    <ellipse cx="208" cy="258" rx="7" ry="9" fill="#1A0E08"/>
+    <ellipse cx="304" cy="258" rx="7" ry="9" fill="#1A0E08"/>
+    <circle cx="212" cy="252" r="3" fill="#FFFFFF"/>
+    <circle cx="308" cy="252" r="3" fill="#FFFFFF"/>
+  </g>
 </svg>

@@ -1,10 +1,10 @@
-// STORY-056 — PLACEHOLDER apple-touch-icon. Renders 180×180 PNG
-// served at /apple-icon. iOS uses this for the home-screen icon
-// after "Add to Home Screen". 22% border-radius matches the
-// iOS squircle; iOS itself rounds the icon further so the visible
-// corner is softer than 22%.
+// STORY-056 — Babun mark for iOS home-screen. iOS rounds the icon further
+// at the OS level, so we render the squircle at 22% radius here and let
+// iOS do the final mask. The SVG already has rx="112" on a 512 canvas
+// (~22%) so visually the corners line up after iOS rounding.
 
 import { ImageResponse } from "next/og";
+import { BABUN_MARK_DATA_URL } from "@/lib/brand/babun-mark";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
@@ -14,23 +14,19 @@ export default function AppleIcon() {
     (
       <div
         style={{
-          fontSize: 130,
-          background: "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          fontWeight: 800,
-          fontFamily: "system-ui, sans-serif",
-          letterSpacing: "-0.05em",
-          borderRadius: "22%",
         }}
       >
-        B
+        <img
+          src={BABUN_MARK_DATA_URL}
+          width={180}
+          height={180}
+          alt="Babun"
+        />
       </div>
     ),
-    { ...size }
+    { ...size },
   );
 }
