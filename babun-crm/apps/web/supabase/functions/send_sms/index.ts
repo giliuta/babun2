@@ -1,42 +1,34 @@
-// STORY-047 G3 — send_sms Edge Function (SKELETON MODE).
+// STORY-069 wave 3 — send_sms Edge Function (LIVE).
 //
-// Triggered by pg_cron every 5 minutes (G4 sets up the schedule). The
-// function sweeps appointments that need a 24h or 2h reminder, renders
-// the tenant's template, applies quota / mode rules, and inserts an
-// `sms_messages` row per appointment + trigger pairing.
+// Driven by pg_cron every 5 minutes. Sweeps appointments that need a
+// 24h or 2h reminder and sends them via the platform's single Twilio
+// account. The per-tenant BYOK model from STORY-047 is dropped.
 //
-// SKELETON: this version does NOT call Twilio. Rows are inserted with
-// `status='queued'` and `error_message='[skeleton] Twilio not yet wired'`
-// so the cron + query + render path can be smoke-tested before real
-// creds + fan-out land in G3b. The G3b diff will:
-//   - drop the [skeleton] marker
-//   - replace the early-return with the real Twilio Messages.create()
-//     call
-//   - update status to 'sent' (or 'failed' on Twilio error)
-//   - record `twilio_sid`
+// Send mechanics:
+//   * sender = tenant_sms_config.sender_name when sender_status='approved',
+//     else PLATFORM_DEFAULT_SENDER ("Babun"). Cyprus (Babun's first
+//     country) doesn't require Alpha Sender registration, so the
+//     fallback works without paperwork.
+//   * cost = PER_SMS_COST_CENTS per send. Free trial slots
+//     (free_sms_remaining) consumed first, then balance_cents.
+//     Tenant blocked when both are exhausted.
 //
-// Master switch: `app_settings.sms_enabled = 'on'` is required for ANY
-// row to be inserted. Off → function logs + returns immediately. Same
-// pattern as STORY-053b push_enabled. Pipeline ships inert.
+// Idempotency: sms_messages has a partial UNIQUE on
+// (appointment_id, trigger_type) so a retried cron firing can't
+// double-send. The pre-check is just a counter optimisation.
 //
-// Idempotency: per (appointment_id, trigger_type) the table has a
-// partial UNIQUE index. The query below LEFT-JOINs against
-// sms_messages to skip appointments that already have a reminder
-// row, so a cron retry can't double-fire.
+// Time window: ±5 min around T-24h / T-2h. Tenant TZ assumed
+// Europe/Nicosia (single-TZ v1).
 //
-// Time window: appointment.date is text "YYYY-MM-DD" and time_start
-// is text "HH:MM". v1 assumes Europe/Nicosia for every tenant
-// (single-TZ assumption locked in calendar_settings). When
-// multi-tenant timezones land, this function reads the per-tenant
-// TZ from calendar_settings and computes the local timestamp.
+// Master switch: app_settings.sms_enabled = 'on' required. Off →
+// the function returns immediately without scanning.
 //
-// Quota (Platform mode + Free tier): each tenant's
-// `sent_this_month` + `free_quota_per_month` are checked before a
-// would-be Twilio call. Self-resets via `quota_period_start` when
-// the calendar month rolls over — no janitor cron required.
+// Dual-write: every send inserts into sms_messages (legacy — the
+// Twilio status webhook + Settings/Billing UI still read from it)
+// AND sms_logs (new — /admin dashboards + STORY-069 SMS history UI).
+// Both rows share the Twilio MessageSid for cross-table joins.
 //
-// CORS: server-to-server only (pg_cron via pg_net). Open for now;
-// tighten if abuse appears.
+// CORS: server-to-server only (pg_cron via pg_net). Open for now.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
@@ -53,33 +45,39 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+// ─── Pricing / sender constants ──────────────────────────────────
+// Mirror the values in src/app/dashboard/settings/sms/sms-constants.ts.
+// Edge runtime can't import from the Next app, so keep them in sync
+// by hand — both locations comment-link this duplication.
+const PER_SMS_COST_CENTS = 10;
+const PLATFORM_DEFAULT_SENDER = "Babun";
+
 // ─── Types ────────────────────────────────────────────────────────
 
 type TriggerType = "reminder_24h" | "reminder_2h" | "manual" | "test";
-type Mode = "platform" | "byok";
 
 interface TenantSmsConfig {
   tenant_id: string;
-  mode: Mode;
   enabled: boolean;
   remind_24h_before: boolean;
   remind_2h_before: boolean;
   template_24h: string;
   template_2h: string;
-  twilio_account_sid: string | null;
-  twilio_auth_token: string | null;
-  twilio_phone_number: string | null;
-  sent_this_month: number;
-  free_quota_per_month: number;
-  quota_period_start: string; // ISO timestamp
+  sender_name: string | null;
+  sender_status: "pending" | "approved" | "rejected" | null;
+  balance_cents: number;
+  free_sms_remaining: number;
+  total_sent_count: number;
+  // Legacy mode/quota fields are still on the row but unused in v3.
+  mode: "platform" | "byok";
 }
 
 interface AppointmentRow {
   id: string;
   tenant_id: string;
   client_id: string | null;
-  date: string;       // YYYY-MM-DD
-  time_start: string; // HH:MM
+  date: string;
+  time_start: string;
 }
 
 interface ClientRow {
@@ -95,14 +93,14 @@ interface TenantRow {
 
 interface SendSmsResponse {
   matched: number;
-  queued: number;
+  sent: number;
   blocked: number;
   skipped: number;
+  failed: number;
   errors: Array<{ tenant_id: string; appointment_id?: string; reason: string }>;
-  mode: "skeleton" | "live";
 }
 
-// ─── Service-role client (legacy + JWT-Signing-Keys both supported) ─
+// ─── Supabase + Twilio bootstrap ─────────────────────────────────
 
 function buildServiceClient(): ReturnType<typeof createClient> | null {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -124,22 +122,110 @@ function buildServiceClient(): ReturnType<typeof createClient> | null {
   });
 }
 
+interface TwilioCreds {
+  accountSid: string;
+  authToken: string;
+  // Optional: status callback URL Twilio POSTs delivery updates to.
+  // Falls back to the public default when unset.
+  statusCallbackUrl: string | null;
+}
+
+function readTwilioCreds(): TwilioCreds | null {
+  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+  if (!accountSid || !authToken) return null;
+  const statusCallbackUrl =
+    Deno.env.get("TWILIO_STATUS_CALLBACK_URL") ?? "https://babun.app/api/twilio/status";
+  return { accountSid, authToken, statusCallbackUrl };
+}
+
+// ─── Twilio call ─────────────────────────────────────────────────
+//
+// Uses the form-encoded REST endpoint directly. Avoids a Twilio SDK
+// in the Deno runtime — keeps the function lean and there's no SDK
+// shim we'd need anyway.
+interface TwilioSendResult {
+  ok: true;
+  sid: string;
+  status: string;
+}
+interface TwilioSendError {
+  ok: false;
+  status: string | null;
+  errorCode: string | null;
+  errorMessage: string;
+}
+
+async function twilioSend(
+  creds: TwilioCreds,
+  from: string,
+  to: string,
+  body: string,
+): Promise<TwilioSendResult | TwilioSendError> {
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(creds.accountSid)}/Messages.json`;
+  const auth = btoa(`${creds.accountSid}:${creds.authToken}`);
+
+  const form = new URLSearchParams();
+  form.set("To", to);
+  form.set("From", from);
+  form.set("Body", body);
+  if (creds.statusCallbackUrl) form.set("StatusCallback", creds.statusCallbackUrl);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form.toString(),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      status: null,
+      errorCode: "network_error",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = await res.json();
+  } catch {
+    /* ignore — error path below handles missing body */
+  }
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      status: typeof payload.status === "string" ? payload.status : null,
+      errorCode:
+        typeof payload.code === "number" || typeof payload.code === "string"
+          ? String(payload.code)
+          : `http_${res.status}`,
+      errorMessage:
+        typeof payload.message === "string" ? payload.message : `Twilio HTTP ${res.status}`,
+    };
+  }
+
+  return {
+    ok: true,
+    sid: String(payload.sid ?? ""),
+    status: typeof payload.status === "string" ? payload.status : "queued",
+  };
+}
+
 // ─── Time helpers ─────────────────────────────────────────────────
 
-const TENANT_TZ = "Europe/Nicosia"; // v1 single-TZ assumption
-const WINDOW_MINUTES = 5;           // ±5 min window per cron fire
+const TENANT_TZ = "Europe/Nicosia";
+const WINDOW_MINUTES = 5;
 
-/** Build a UTC Date from a tenant-local "YYYY-MM-DD" + "HH:MM" pair.
- *  Europe/Nicosia (EET / EEST) — uses the JS Intl machinery to find
- *  the correct UTC offset for that wall-clock date so DST flips are
- *  handled without our own table. Returns null on parse error. */
 function tenantLocalToUtc(date: string, time: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   const t = /^(\d{2}):(\d{2})$/.exec(time);
   if (!m || !t) return null;
-  // Construct a Date as if the wall-clock time were UTC, then ask
-  // the Intl formatter what offset Europe/Nicosia would have at
-  // that instant, and subtract.
   const naive = new Date(
     Date.UTC(
       Number(m[1]),
@@ -151,7 +237,6 @@ function tenantLocalToUtc(date: string, time: string): Date | null {
       0,
     ),
   );
-  // getTimezoneOffset for Europe/Nicosia at `naive`:
   const tzFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: TENANT_TZ,
     timeZoneName: "shortOffset",
@@ -159,7 +244,6 @@ function tenantLocalToUtc(date: string, time: string): Date | null {
   const offsetPart = tzFmt
     .formatToParts(naive)
     .find((p) => p.type === "timeZoneName")?.value ?? "GMT+0";
-  // shortOffset gives "GMT+2" / "GMT+3"; strip and parse.
   const off = /GMT([+-]\d+)/.exec(offsetPart)?.[1] ?? "+0";
   const offsetHours = Number(off);
   return new Date(naive.getTime() - offsetHours * 3600_000);
@@ -170,7 +254,6 @@ function isWithinWindow(target: Date, center: Date, mins: number): boolean {
 }
 
 function formatDateRu(date: string): string {
-  // "5 мая" — short RU display in templates.
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m) return date;
   const month = Number(m[2]) - 1;
@@ -181,8 +264,6 @@ function formatDateRu(date: string): string {
   ];
   return `${day} ${months[month] ?? ""}`.trim();
 }
-
-// ─── Template rendering ───────────────────────────────────────────
 
 function renderTemplate(
   template: string,
@@ -202,7 +283,40 @@ function renderTemplate(
     .replaceAll("{business_name}", ctx.business_name);
 }
 
-// ─── Main handler ─────────────────────────────────────────────────
+function isoDate(d: Date): string {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TENANT_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(d);
+}
+
+// Resolve which sender name to use + whether this send eats a free
+// slot or balance. Returns null when the tenant is fully blocked.
+function planSend(
+  cfg: TenantSmsConfig,
+): {
+  senderName: string;
+  charge: "free" | "paid";
+  costCents: number;
+} | { blocked: "no_credit" } {
+  const senderName =
+    cfg.sender_status === "approved" && cfg.sender_name
+      ? cfg.sender_name
+      : PLATFORM_DEFAULT_SENDER;
+
+  if (cfg.free_sms_remaining > 0) {
+    return { senderName, charge: "free", costCents: 0 };
+  }
+  if (cfg.balance_cents >= PER_SMS_COST_CENTS) {
+    return { senderName, charge: "paid", costCents: PER_SMS_COST_CENTS };
+  }
+  return { blocked: "no_credit" };
+}
+
+// ─── Main handler ────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -215,7 +329,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(500, { error: "service-role client unavailable" });
   }
 
-  // ── Master switch ──────────────────────────────────────────────
+  // ── Master switch ────────────────────────────────────────────
   const { data: flagRow, error: flagErr } = await supabase
     .from("app_settings")
     .select("value")
@@ -227,16 +341,24 @@ Deno.serve(async (req: Request) => {
   if (!flagRow || flagRow.value !== "on") {
     return jsonResponse(200, {
       matched: 0,
-      queued: 0,
+      sent: 0,
       blocked: 0,
       skipped: 0,
+      failed: 0,
       errors: [],
-      mode: "skeleton",
       reason: "sms_enabled_off",
     } satisfies SendSmsResponse & { reason: string });
   }
 
-  // ── Sweep enabled tenants ──────────────────────────────────────
+  const twilio = readTwilioCreds();
+  if (!twilio) {
+    return jsonResponse(503, {
+      error: "twilio_not_configured",
+      hint: "Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN in Edge Function Secrets.",
+    });
+  }
+
+  // ── Sweep enabled tenants ────────────────────────────────────
   const { data: configs, error: cfgErr } = await supabase
     .from("tenant_sms_config")
     .select("*")
@@ -251,16 +373,18 @@ Deno.serve(async (req: Request) => {
 
   const out: SendSmsResponse = {
     matched: 0,
-    queued: 0,
+    sent: 0,
     blocked: 0,
     skipped: 0,
+    failed: 0,
     errors: [],
-    mode: "skeleton",
   };
 
-  for (const cfg of (configs ?? []) as TenantSmsConfig[]) {
+  for (const cfgRaw of (configs ?? []) as TenantSmsConfig[]) {
+    // Mutable in-loop copy so deductions stay consistent across the
+    // tenant's batch before we persist at the end.
+    const cfg = { ...cfgRaw };
     try {
-      // Tenant name for {business_name}
       const { data: tenant, error: tenantErr } = await supabase
         .from("tenants")
         .select("id,name")
@@ -274,41 +398,12 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Quota self-reset (platform-mode only — BYOK tenants don't
-      // hit our quota tracking). Compare current month's start
-      // against quota_period_start; reset if a month has elapsed.
-      let sentThisMonth = cfg.sent_this_month;
-      let quotaStart = new Date(cfg.quota_period_start);
-      const currentMonthStart = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-      );
-      if (cfg.mode === "platform" && currentMonthStart > quotaStart) {
-        sentThisMonth = 0;
-        quotaStart = currentMonthStart;
-        await supabase
-          .from("tenant_sms_config")
-          .update({
-            sent_this_month: 0,
-            quota_period_start: quotaStart.toISOString(),
-          })
-          .eq("tenant_id", cfg.tenant_id);
-      }
-
-      // Query candidate appointments for this tenant. We cast a wide
-      // net (next 25h to cover both 24h and 2h windows + slack) and
-      // filter precisely in JS — keeps the SQL simple at the cost of
-      // a slight over-fetch. With 1000 tenants × ~50 appointments/day
-      // that's ≤50000 rows in memory during one cron pass, which is
-      // fine; rewrite with per-row date arithmetic if it ever bites.
       const todayStr = isoDate(now);
       const tomorrowStr = isoDate(new Date(now.getTime() + 25 * 60 * 60_000));
       const { data: appts, error: apptErr } = await supabase
         .from("appointments")
         .select("id,tenant_id,client_id,date,time_start")
         .eq("tenant_id", cfg.tenant_id)
-        // Strictly `scheduled` — sending a 2h reminder for an
-        // already-in-progress visit confuses the client (the master
-        // is on site / on the phone with them already).
         .eq("status", "scheduled")
         .in("date", [todayStr, tomorrowStr]);
       if (apptErr) {
@@ -323,7 +418,6 @@ Deno.serve(async (req: Request) => {
         const startUtc = tenantLocalToUtc(apt.date, apt.time_start);
         if (!startUtc) continue;
 
-        // Decide which trigger (if any) this appointment matches.
         let trigger: TriggerType | null = null;
         if (cfg.remind_24h_before && isWithinWindow(startUtc, t24, WINDOW_MINUTES)) {
           trigger = "reminder_24h";
@@ -337,30 +431,20 @@ Deno.serve(async (req: Request) => {
 
         out.matched++;
 
-        // Idempotency check — skip if a row already exists for this
-        // (appointment, trigger). The partial UNIQUE index in G1
-        // would also reject the INSERT, but checking first lets us
-        // categorize correctly in the response counters.
-        const { data: existing, error: existErr } = await supabase
+        // Idempotency pre-check on sms_messages legacy table —
+        // partial UNIQUE on (appointment_id, trigger_type).
+        const { data: existing } = await supabase
           .from("sms_messages")
           .select("id")
           .eq("appointment_id", apt.id)
           .eq("trigger_type", trigger)
           .maybeSingle();
-        if (existErr) {
-          out.errors.push({
-            tenant_id: cfg.tenant_id,
-            appointment_id: apt.id,
-            reason: `idempotency: ${existErr.message}`,
-          });
-          continue;
-        }
         if (existing) {
           out.skipped++;
           continue;
         }
 
-        // Resolve client + tenant data for template placeholders.
+        // Recipient + body.
         let client: ClientRow | null = null;
         if (apt.client_id) {
           const { data: c } = await supabase
@@ -390,95 +474,119 @@ Deno.serve(async (req: Request) => {
           business_name: (tenant as TenantRow).name ?? "",
         });
 
-        // Quota gate (platform mode). BYOK tenants pay Twilio
-        // directly — we don't track their usage.
-        if (
-          cfg.mode === "platform" &&
-          sentThisMonth >= cfg.free_quota_per_month
-        ) {
-          const { error: quotaInsErr } = await supabase
-            .from("sms_messages")
-            .insert({
-              tenant_id: cfg.tenant_id,
-              appointment_id: apt.id,
-              client_id: client?.id ?? null,
-              to_phone: toPhone,
-              message_body: body,
-              status: "failed",
-              error_code: "quota_exceeded",
-              error_message: `Платформа: ${cfg.free_quota_per_month} SMS / месяц израсходовано`,
-              trigger_type: trigger,
-              mode: cfg.mode,
-            });
-          if (quotaInsErr) {
-            // Same 23505 race protection as the skeleton insert below.
-            if ((quotaInsErr as { code?: string }).code === "23505") {
-              out.skipped++;
-            } else {
-              out.errors.push({
-                tenant_id: cfg.tenant_id,
-                appointment_id: apt.id,
-                reason: `quota insert: ${quotaInsErr.message}`,
-              });
-            }
-            continue;
-          }
+        // Pricing decision BEFORE Twilio call. Block tenants without
+        // credit instead of failing mid-fanout.
+        const plan = planSend(cfg);
+        if ("blocked" in plan) {
+          await supabase.from("sms_messages").insert({
+            tenant_id: cfg.tenant_id,
+            appointment_id: apt.id,
+            client_id: client?.id ?? null,
+            to_phone: toPhone,
+            message_body: body,
+            status: "failed",
+            error_code: "no_credit",
+            error_message:
+              "Бесплатные SMS закончились, баланс < стоимости отправки",
+            trigger_type: trigger,
+            mode: "platform",
+          });
+          await supabase.from("sms_logs").insert({
+            tenant_id: cfg.tenant_id,
+            to_phone: toPhone,
+            body,
+            sender_name_used: PLATFORM_DEFAULT_SENDER,
+            cost_cents: 0,
+            was_free: false,
+            error_code: "no_credit",
+            error_message: "no_credit",
+            appointment_id: apt.id,
+          });
           out.blocked++;
           continue;
         }
 
-        // ── SKELETON: insert with status='failed' + error_code
-        // 'skeleton_mode'. NOT 'queued' — that status means "in
-        // flight to Twilio", and skeleton mode never attempts the
-        // call. Cleanup pattern: DELETE WHERE error_code = 'skeleton_mode'.
-        // G3b will replace this block with the real Twilio call +
-        // status='sent'/'failed' + twilio_sid.
-        const { error: insErr } = await supabase.from("sms_messages").insert({
+        // Send to Twilio.
+        const result = await twilioSend(twilio, plan.senderName, toPhone, body);
+
+        if (!result.ok) {
+          await supabase.from("sms_messages").insert({
+            tenant_id: cfg.tenant_id,
+            appointment_id: apt.id,
+            client_id: client?.id ?? null,
+            to_phone: toPhone,
+            message_body: body,
+            status: "failed",
+            error_code: result.errorCode,
+            error_message: result.errorMessage,
+            trigger_type: trigger,
+            mode: "platform",
+          });
+          await supabase.from("sms_logs").insert({
+            tenant_id: cfg.tenant_id,
+            to_phone: toPhone,
+            body,
+            sender_name_used: plan.senderName,
+            cost_cents: 0,
+            was_free: plan.charge === "free",
+            twilio_status: result.status ?? "failed",
+            error_code: result.errorCode,
+            error_message: result.errorMessage,
+            appointment_id: apt.id,
+          });
+          out.failed++;
+          continue;
+        }
+
+        // Success — write sms_messages (legacy) + sms_logs (new) +
+        // deduct from local cfg copy. Persist counters at end of
+        // tenant loop to save round-trips.
+        await supabase.from("sms_messages").insert({
           tenant_id: cfg.tenant_id,
           appointment_id: apt.id,
           client_id: client?.id ?? null,
           to_phone: toPhone,
           message_body: body,
-          status: "failed",
-          error_code: "skeleton_mode",
-          error_message: "[skeleton] Twilio not yet wired",
+          status: "sent",
+          twilio_sid: result.sid,
           trigger_type: trigger,
-          mode: cfg.mode,
+          mode: "platform",
+          sent_at: new Date().toISOString(),
         });
-        if (insErr) {
-          // 23505 = unique_violation. Defense-in-depth: the partial
-          // UNIQUE on (appointment_id, trigger_type) catches the
-          // (extremely unlikely) race between our pre-check and this
-          // INSERT — pg_cron is single-flight per tag so it shouldn't
-          // happen, but a manual `cron.dispatch()` fired in parallel
-          // with the scheduled run could trigger it. Treat as skipped
-          // rather than killing the rest of the loop.
-          if ((insErr as { code?: string }).code === "23505") {
-            out.skipped++;
-          } else {
-            out.errors.push({
-              tenant_id: cfg.tenant_id,
-              appointment_id: apt.id,
-              reason: `insert: ${insErr.message}`,
-            });
-          }
-          continue;
-        }
+        await supabase.from("sms_logs").insert({
+          tenant_id: cfg.tenant_id,
+          to_phone: toPhone,
+          body,
+          sender_name_used: plan.senderName,
+          cost_cents: plan.costCents,
+          was_free: plan.charge === "free",
+          twilio_message_sid: result.sid,
+          twilio_status: result.status,
+          appointment_id: apt.id,
+        });
 
-        out.queued++;
-        if (cfg.mode === "platform") {
-          sentThisMonth++;
-          // Increment in-place so the quota gate sees the new total
-          // before deciding the next loop iteration. DB write is
-          // batched at end of the tenant loop to save round-trips.
+        if (plan.charge === "free") {
+          cfg.free_sms_remaining = Math.max(0, cfg.free_sms_remaining - 1);
+        } else {
+          cfg.balance_cents = Math.max(0, cfg.balance_cents - plan.costCents);
         }
+        cfg.total_sent_count = (cfg.total_sent_count ?? 0) + 1;
+        out.sent++;
       }
 
-      // Persist the bumped counter (platform mode only).
-      if (cfg.mode === "platform" && sentThisMonth !== cfg.sent_this_month) {
+      // Persist tenant counters once per cron pass per tenant.
+      if (
+        cfg.free_sms_remaining !== cfgRaw.free_sms_remaining ||
+        cfg.balance_cents !== cfgRaw.balance_cents ||
+        cfg.total_sent_count !== cfgRaw.total_sent_count
+      ) {
         await supabase
           .from("tenant_sms_config")
-          .update({ sent_this_month: sentThisMonth })
+          .update({
+            free_sms_remaining: cfg.free_sms_remaining,
+            balance_cents: cfg.balance_cents,
+            total_sent_count: cfg.total_sent_count,
+          })
           .eq("tenant_id", cfg.tenant_id);
       }
     } catch (err) {
@@ -491,15 +599,3 @@ Deno.serve(async (req: Request) => {
 
   return jsonResponse(200, out);
 });
-
-function isoDate(d: Date): string {
-  // YYYY-MM-DD in tenant TZ — used to filter appointments.date.
-  // Matches the `text` column shape the app stores.
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TENANT_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return fmt.format(d);
-}
