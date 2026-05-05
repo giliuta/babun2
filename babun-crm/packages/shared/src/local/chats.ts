@@ -69,12 +69,19 @@ export function loadChats(): Chat[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedChats();
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : seedChats();
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return seedChats();
+    return [];
   }
+}
+
+// STORY-053a follow-up — demo seed kept for on-demand demo data
+// loading from Settings → Account → "Загрузить демо-чаты", but it
+// MUST NOT auto-fire on empty load. New tenants get an empty inbox.
+export function seedDemoChats(): Chat[] {
+  return seedChats();
 }
 
 export function saveChats(list: Chat[]): void {

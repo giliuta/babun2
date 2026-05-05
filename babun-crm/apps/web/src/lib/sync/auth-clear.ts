@@ -44,7 +44,28 @@ const LEGACY_LOCAL_KEYS = [
   "babun-draft-clients",
   // Phase I37 stubbed "current master" (DCL: CURRENT_MASTER_KEY).
   "babun2:current-master",
+  // STORY-072 follow-up — chats / appointments / schedule / etc.
+  // were missing from this list, causing demo or previous-tenant
+  // data to leak into a fresh signup on the same browser.
+  "babun-chats",
+  "babun-appointments",
+  "babun-day-cities",
+  "babun-day-extras",
+  "babun-recurring",
+  "babun-team-schedules",
+  "babun-waitlist",
+  "babun:company-info",
+  // CSV import resume state — not tenant-fatal but ought not survive
+  // a logout either.
+  "babun:import:active",
 ] as const;
+
+// Prefix-based wipe for keys we know are tenant-scoped but generated
+// dynamically (e.g. business-blocks: "babun-block-open:{kind}",
+// per-tenant tutorials hints: "babun:hint-*", per-tenant unread
+// trackers etc). Cheaper than an explicit list and survives new
+// keys being added without remembering to update this file.
+const PREFIX_WIPE = ["babun-block-open:", "babun:hint-", "babun:tutorial-"];
 
 function clearLegacyLocalStorage(): void {
   if (typeof window === "undefined") return;
@@ -57,23 +78,56 @@ function clearLegacyLocalStorage(): void {
       // paths if the user actually saves anything.
     }
   }
+  // Prefix sweep — copy keys first because removeItem mutates the
+  // index during iteration on some browsers.
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      if (PREFIX_WIPE.some((p) => k.startsWith(p))) toRemove.push(k);
+    }
+    for (const k of toRemove) window.localStorage.removeItem(k);
+  } catch {
+    /* ignore */
+  }
+}
+
+// Track the last user_id we observed in this browser. Wipe runs when
+// either (a) we go to SIGNED_OUT, or (b) SIGNED_IN with a different
+// user_id than last time — covering the "register a new account
+// without logging out first" path.
+const LAST_USER_KEY = "babun:auth:last-user-id";
+
+async function performWipe(): Promise<void> {
+  clearLegacyLocalStorage();
+  try {
+    await cacheClearAll();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("auth-clear: cacheClearAll failed", err);
+  }
 }
 
 export function attachAuthClearListener(): () => void {
   const supabase = getSupabaseBrowser();
-  const { data } = supabase.auth.onAuthStateChange(async (event) => {
-    if (event !== "SIGNED_OUT") return;
-    // Synchronous localStorage wipe first — it's the fast win and
-    // doesn't await anything. IDB wipe follows.
-    clearLegacyLocalStorage();
-    try {
-      await cacheClearAll();
-    } catch (err) {
-      // Storage may be unavailable in private mode / quota-full;
-      // log + carry on. Worst case the next session sees old rows
-      // until they're realtime-overwritten or the user reloads.
-      // eslint-disable-next-line no-console
-      console.warn("auth-clear: cacheClearAll failed", err);
+  const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT") {
+      try { window.localStorage.removeItem(LAST_USER_KEY); } catch {}
+      await performWipe();
+      return;
+    }
+    if (event === "SIGNED_IN" && session?.user?.id) {
+      let prev: string | null = null;
+      try { prev = window.localStorage.getItem(LAST_USER_KEY); } catch {}
+      const next = session.user.id;
+      if (prev && prev !== next) {
+        // Different account on the same browser — wipe before stamping
+        // the new id so the new tenant doesn't inherit the previous
+        // tenant's localStorage / IDB state.
+        await performWipe();
+      }
+      try { window.localStorage.setItem(LAST_USER_KEY, next); } catch {}
     }
   });
   return () => data.subscription.unsubscribe();
