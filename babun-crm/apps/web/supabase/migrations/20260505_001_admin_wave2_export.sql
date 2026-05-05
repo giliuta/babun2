@@ -66,28 +66,28 @@ begin
   -- "if-table-exists" guard via to_regclass so the dump degrades
   -- cleanly on older schemas.
   if to_regclass('public.masters') is not null then
-    execute 'select coalesce(json_agg(row_to_json(m)), $$[]$$::json) from public.masters m where m.tenant_id = $1'
+    execute 'select coalesce(json_agg(row_to_json(m)), ''[]''::json) from public.masters m where m.tenant_id = $1'
       into v_masters using v_tenant_id;
   else
     v_masters := '[]'::json;
   end if;
 
   if to_regclass('public.brigades') is not null then
-    execute 'select coalesce(json_agg(row_to_json(b)), $$[]$$::json) from public.brigades b where b.tenant_id = $1'
+    execute 'select coalesce(json_agg(row_to_json(b)), ''[]''::json) from public.brigades b where b.tenant_id = $1'
       into v_brigades using v_tenant_id;
   else
     v_brigades := '[]'::json;
   end if;
 
   if to_regclass('public.sms_logs') is not null then
-    execute 'select coalesce(json_agg(row_to_json(l)), $$[]$$::json) from public.sms_logs l where l.tenant_id = $1'
+    execute 'select coalesce(json_agg(row_to_json(l)), ''[]''::json) from public.sms_logs l where l.tenant_id = $1'
       into v_sms_logs using v_tenant_id;
   else
     v_sms_logs := '[]'::json;
   end if;
 
   if to_regclass('public.sms_topups') is not null then
-    execute 'select coalesce(json_agg(row_to_json(t)), $$[]$$::json) from public.sms_topups t where t.tenant_id = $1'
+    execute 'select coalesce(json_agg(row_to_json(t)), ''[]''::json) from public.sms_topups t where t.tenant_id = $1'
       into v_topups using v_tenant_id;
   else
     v_topups := '[]'::json;
