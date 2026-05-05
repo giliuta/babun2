@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v395-baboon-mark";
+export const BUILD_VERSION = "v396-baboon-mark-v2";
