@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSupabaseService } from "@/lib/supabase/service";
 import { getStripeOrThrow, StripeNotConfiguredError } from "@/lib/stripe/client";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { TOPUP_PACKS } from "./sms-constants";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -74,6 +75,11 @@ export async function requestSenderName(
   const auth = await resolveOwnerTenantId();
   if (!auth) {
     return { ok: false, error: "Только владелец может настраивать SMS" };
+  }
+
+  const rl = checkRateLimit(`sender:${auth.userId}`, RATE_LIMITS.senderRequest);
+  if (!rl.allowed) {
+    return { ok: false, error: "Слишком часто — подождите пару минут" };
   }
 
   const trimmed = name.trim();
@@ -159,6 +165,11 @@ export async function createTopupCheckout(packId: string): Promise<
   const auth = await resolveOwnerTenantId();
   if (!auth) {
     return { ok: false, error: "Только владелец может пополнять баланс" };
+  }
+
+  const rl = checkRateLimit(`topup:${auth.userId}`, RATE_LIMITS.topupCheckout);
+  if (!rl.allowed) {
+    return { ok: false, error: "Слишком частые попытки оплаты — подождите минуту" };
   }
 
   const pack = TOPUP_PACKS.find((p) => p.id === packId);
@@ -253,6 +264,12 @@ export async function createTopupCheckout(packId: string): Promise<
       success_url:
         "https://babun.app/dashboard/settings/sms?topup_status=success&session_id={CHECKOUT_SESSION_ID}",
       cancel_url: "https://babun.app/dashboard/settings/sms?topup_status=canceled",
+      // Stripe Checkout shows our Terms link below the pay button.
+      // Requires Stripe Dashboard → Settings → Public business info →
+      // Terms of service URL = https://babun.app/terms.
+      consent_collection: {
+        terms_of_service: "required",
+      },
       // Topups are one-shot purchases — no automatic_tax for now to
       // skip the Stripe Tax dependency. Subscription billing handles
       // tax via the recurring price object.

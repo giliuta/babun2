@@ -361,6 +361,11 @@ export default function Sidebar({
           <div className="text-[12px] text-[var(--label-tertiary)] mt-1 font-mono tracking-wide">
             {BUILD_VERSION}
           </div>
+          <div className="text-[11px] text-[var(--label-tertiary)] mt-3 leading-tight">
+            <a href="/privacy" className="underline">Конфиденциальность</a>
+            <span className="mx-1.5">·</span>
+            <a href="/terms" className="underline">Условия</a>
+          </div>
         </div>
       </aside>
     </>

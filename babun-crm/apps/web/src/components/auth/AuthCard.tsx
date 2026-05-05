@@ -47,10 +47,15 @@ export default function AuthCard({ title, subtitle, children }: AuthCardProps) {
         {/* STORY-053a follow-up — public auth pages must not name a
             specific tenant. "AirFix" was hardcoded here from the
             single-tenant prototype era. Public pages just brand as
-            Babun. */}
-        <p className="text-center text-[12px] text-[var(--label-tertiary)] mt-10">
-          Babun &copy; 2026
-        </p>
+            Babun. STORY-071 added the legal links for GDPR/EU. */}
+        <div className="text-center text-[12px] text-[var(--label-tertiary)] mt-10 space-y-1">
+          <div>
+            <a href="/privacy" className="underline">Политика конфиденциальности</a>
+            <span className="mx-2">·</span>
+            <a href="/terms" className="underline">Условия использования</a>
+          </div>
+          <div>Babun &copy; 2026</div>
+        </div>
       </div>
     </main>
   );
