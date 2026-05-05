@@ -150,6 +150,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, reconcile_warning: true });
   }
 
+  // ── STORY-069: SMS topup credit. Separate concern from
+  //    subscription reconciliation, but shares idempotency via the
+  //    same audit log + the UNIQUE on sms_topups.stripe_payment_intent_id.
+  try {
+    await maybeCreditSmsTopup(event, sbs);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("stripe webhook: sms topup credit failed", err);
+    return NextResponse.json({ ok: true, topup_warning: true });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -297,4 +308,98 @@ function mapSubscriptionStatus(
 
 function unixToIso(unix: number): string {
   return new Date(unix * 1000).toISOString();
+}
+
+// ─── STORY-069 — SMS topup credit ──────────────────────────────────
+// Triggered by checkout.session.completed where metadata.kind === 'sms_topup'.
+// Inserts a sms_topups row (status: completed) and bumps
+// tenant_sms_config.balance_cents. Idempotency via the UNIQUE on
+// sms_topups.stripe_payment_intent_id — a duplicate webhook delivery
+// hits the conflict and we skip the balance update.
+async function maybeCreditSmsTopup(
+  event: Stripe.Event,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sbs: any,
+): Promise<void> {
+  if (event.type !== "checkout.session.completed") return;
+
+  const session = event.data.object as Stripe.Checkout.Session;
+  const meta = (session.metadata ?? {}) as Record<string, string | undefined>;
+  if (meta.kind !== "sms_topup") return;
+
+  const tenantId = meta.tenant_id;
+  const packId = meta.pack_id;
+  const amountCents = Number(meta.amount_cents);
+  const credits = Number(meta.credits);
+
+  if (!tenantId || !packId || !Number.isFinite(amountCents) || !Number.isFinite(credits)) {
+    // eslint-disable-next-line no-console
+    console.warn("sms topup: missing metadata", meta);
+    return;
+  }
+
+  // payment_intent is what we store as the idempotency key. Stripe
+  // sends checkout.session.completed only after the PaymentIntent
+  // succeeds, so payment_intent is always populated for paid sessions.
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+
+  if (!paymentIntentId) {
+    // eslint-disable-next-line no-console
+    console.warn("sms topup: no payment_intent on session", session.id);
+    return;
+  }
+
+  // Insert sms_topups. UNIQUE on stripe_payment_intent_id catches
+  // duplicate deliveries (23505); we skip the balance bump in that case.
+  const { error: insertErr } = await sbs.from("sms_topups").insert({
+    tenant_id: tenantId,
+    amount_cents: amountCents,
+    credits_added: credits,
+    pack_label: packId,
+    stripe_session_id: session.id,
+    stripe_payment_intent_id: paymentIntentId,
+    status: "completed",
+    completed_at: new Date().toISOString(),
+  });
+
+  if (insertErr) {
+    if ((insertErr as { code?: string }).code === "23505") {
+      // Already credited — duplicate webhook. Don't double-bump.
+      return;
+    }
+    throw insertErr;
+  }
+
+  // Bump balance via SECURITY DEFINER RPC so we don't have to read +
+  // write (avoids a race with concurrent topups). Since tenant_sms_config
+  // already has a row for every tenant (ensured by signup trigger),
+  // we can update by tenant_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existing, error: readErr } = await sbs
+    .from("tenant_sms_config")
+    .select("balance_cents")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (readErr) throw readErr;
+
+  if (existing) {
+    const newBalance = (existing.balance_cents ?? 0) + amountCents;
+    const { error: updErr } = await sbs
+      .from("tenant_sms_config")
+      .update({ balance_cents: newBalance })
+      .eq("tenant_id", tenantId);
+    if (updErr) throw updErr;
+  } else {
+    // No config row yet (older tenant pre-signup-trigger). Create it.
+    const { error: insErr } = await sbs.from("tenant_sms_config").insert({
+      tenant_id: tenantId,
+      balance_cents: amountCents,
+      free_sms_remaining: 10,
+    });
+    if (insErr) throw insErr;
+  }
 }

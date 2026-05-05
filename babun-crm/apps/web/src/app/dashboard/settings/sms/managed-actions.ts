@@ -17,18 +17,21 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSupabaseService } from "@/lib/supabase/service";
+import { getStripeOrThrow, StripeNotConfiguredError } from "@/lib/stripe/client";
+import { TOPUP_PACKS } from "./sms-constants";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function resolveOwnerTenantId(): Promise<{
   tenantId: string;
   userId: string;
+  email: string;
 } | null> {
   const sb = await getSupabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
-  if (!user) return null;
+  if (!user || !user.email) return null;
 
   const jwt = (user.app_metadata as { tenant_id?: string } | undefined)
     ?.tenant_id;
@@ -53,7 +56,7 @@ async function resolveOwnerTenantId(): Promise<{
     .maybeSingle();
   if (!membership || membership.role !== "owner") return null;
 
-  return { tenantId, userId: user.id };
+  return { tenantId, userId: user.id, email: user.email };
 }
 
 // ── Sender ID request ────────────────────────────────────────────
@@ -138,11 +141,18 @@ export async function cancelSenderRequest(): Promise<ActionResult> {
   return { ok: true };
 }
 
-// ── Stripe top-up Checkout (G3 stub for wave 1) ──────────────────
+// ── Stripe top-up Checkout (wave 2) ──────────────────────────────
 //
-// Wave 2 of STORY-069 wires this to Stripe. For wave 1 we return
-// ok: false with a clear "coming soon" error so the UI button can
-// disable with explanatory copy.
+// Creates a one-shot Stripe Checkout Session in `payment` mode (no
+// subscription) for the chosen SMS pack. Webhook
+// `checkout.session.completed` handles `metadata.kind === 'sms_topup'`
+// and credits balance_cents + inserts an sms_topups row.
+//
+// Idempotency lives on sms_topups.stripe_payment_intent_id (UNIQUE).
+//
+// We reuse tenants.stripe_customer_id when present so the customer's
+// Stripe Dashboard view shows topups + subscription under one
+// customer object. Created lazily on first topup if absent.
 export async function createTopupCheckout(packId: string): Promise<
   { ok: true; url: string } | { ok: false; error: string }
 > {
@@ -150,14 +160,110 @@ export async function createTopupCheckout(packId: string): Promise<
   if (!auth) {
     return { ok: false, error: "Только владелец может пополнять баланс" };
   }
-  void packId;
-  return {
-    ok: false,
-    error:
-      "Пополнение баланса станет доступно в ближайшем обновлении (волна 2 STORY-069 — после подключения Stripe)",
-  };
-}
 
-// Pricing constants moved to ./sms-constants.ts — Next 16 forbids
-// non-async exports from a "use server" module. Import from the
-// constants module directly where needed.
+  const pack = TOPUP_PACKS.find((p) => p.id === packId);
+  if (!pack) {
+    return { ok: false, error: "Неизвестный пакет пополнения" };
+  }
+
+  let stripe;
+  try {
+    stripe = getStripeOrThrow();
+  } catch (err) {
+    if (err instanceof StripeNotConfiguredError) {
+      return { ok: false, error: "Платежи временно недоступны" };
+    }
+    return { ok: false, error: "Не удалось подключить Stripe" };
+  }
+
+  const svc = getSupabaseService();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbs = svc as any;
+
+  // Reuse or create Stripe customer. Same pattern as billing/actions.ts
+  // ensureStripeCustomer — keep topups under the same customer object.
+  const { data: tenantRow, error: tenantErr } = await sbs
+    .from("tenants")
+    .select("id, name, stripe_customer_id")
+    .eq("id", auth.tenantId)
+    .maybeSingle();
+  if (tenantErr || !tenantRow) {
+    return { ok: false, error: "Тенант не найден" };
+  }
+
+  let customerId: string | null = tenantRow.stripe_customer_id ?? null;
+  if (!customerId) {
+    try {
+      const created = await stripe.customers.create({
+        email: auth.email,
+        name: (tenantRow.name as string | null) ?? undefined,
+        metadata: { tenant_id: auth.tenantId },
+      });
+      customerId = created.id;
+      await sbs
+        .from("tenants")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", auth.tenantId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "stripe customer create failed";
+      return { ok: false, error: msg };
+    }
+  }
+
+  // Create the Checkout Session in payment mode. EUR — same currency
+  // as the subscription tiers. We don't rely on Stripe Products /
+  // Prices for topups: the amount is set ad-hoc per session so we can
+  // tweak pack pricing without re-creating Stripe price objects.
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      client_reference_id: auth.tenantId,
+      metadata: {
+        kind: "sms_topup",
+        tenant_id: auth.tenantId,
+        pack_id: pack.id,
+        amount_cents: String(pack.amountCents),
+        credits: String(pack.credits),
+      },
+      payment_intent_data: {
+        // Mirror the metadata onto the PaymentIntent so the webhook
+        // can use it directly when the event arrives there.
+        metadata: {
+          kind: "sms_topup",
+          tenant_id: auth.tenantId,
+          pack_id: pack.id,
+          amount_cents: String(pack.amountCents),
+          credits: String(pack.credits),
+        },
+      },
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "eur",
+            unit_amount: pack.amountCents,
+            product_data: {
+              name: `Babun · SMS пакет «${pack.label}» — ${pack.credits} SMS`,
+            },
+          },
+        },
+      ],
+      success_url:
+        "https://babun.app/dashboard/settings/sms?topup_status=success&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://babun.app/dashboard/settings/sms?topup_status=canceled",
+      // Topups are one-shot purchases — no automatic_tax for now to
+      // skip the Stripe Tax dependency. Subscription billing handles
+      // tax via the recurring price object.
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "stripe checkout failed";
+    return { ok: false, error: msg };
+  }
+
+  if (!session.url) {
+    return { ok: false, error: "no_session_url" };
+  }
+  return { ok: true, url: session.url };
+}
