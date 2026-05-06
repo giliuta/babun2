@@ -278,7 +278,11 @@ export default function ChatsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters — STORY-082 polish: hide "(0)" suffix on empty
+          buckets so first-time users don't see "WhatsApp (0)
+          Instagram (0)" noise. The "Все" chip always shows its
+          count (it's the canonical total). Other channels only show
+          the count when > 0 OR when the chip is active. */}
       <div className="flex-shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b border-[var(--separator)]">
         {(["all", "unanswered", "whatsapp", "instagram", "telegram", "sms"] as FilterChannel[]).map((ch) => {
           const label = ch === "all" ? "Все" : ch === "unanswered" ? "Без ответа" : CHANNEL_LABELS[ch as ChatChannel];
@@ -286,6 +290,8 @@ export default function ChatsPage() {
             : ch === "unanswered" ? unansweredCount
             : chats.filter((c) => c.channel === ch && c.status !== "archived").length;
           const isOrange = ch === "unanswered" && filter === ch;
+          // Show count for "Все" always, others only when > 0 or active.
+          const showCount = ch === "all" || count > 0 || filter === ch;
           return (
             <button key={ch} type="button" onClick={() => setFilter(ch)}
               className={`px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition ${
@@ -293,7 +299,7 @@ export default function ChatsPage() {
                   ? isOrange ? "bg-[var(--system-orange)] text-[var(--label-on-accent)]" : "bg-[var(--accent)] text-[var(--label-on-accent)]"
                   : ch === "unanswered" && count > 0 ? "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" : "bg-[var(--fill-primary)] text-[var(--label-secondary)]"
               }`}
-            >{label} ({count})</button>
+            >{showCount ? `${label} (${count})` : label}</button>
           );
         })}
       </div>

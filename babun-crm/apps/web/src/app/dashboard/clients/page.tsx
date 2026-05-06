@@ -61,6 +61,7 @@ import ClientCardStats from "@/components/clients/ClientCardStats";
 import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
 import ClientQuickActionsSheet from "@/components/clients/ClientQuickActionsSheet";
 import ClientsListSkeleton from "@/components/clients/ClientsListSkeleton";
+import { DelayedSkeleton } from "@/components/ui/DelayedSkeleton";
 import ImportClientsModal from "@/components/clients/import/ImportClientsModal";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useTenantId } from "@/components/layout/DashboardClientLayout";
@@ -682,12 +683,15 @@ export default function ClientsPage() {
       {/* STORY-059 — CSV import hint, shown only when 1 ≤ N < 5. */}
       <CsvImportHint clientsCount={clients.length} />
 
-      {/* STORY-036 — loading skeleton on first fetch from Supabase. */}
-      {clientsLoading && clients.length === 0 && (
+      {/* STORY-036 + STORY-082 polish — delayed-skeleton pattern.
+          Empty tenants resolve in <300ms, so we never want to flash
+          a skeleton for them. The hook returns true ONLY if loading
+          has continued past the threshold. */}
+      <DelayedSkeleton show={clientsLoading && clients.length === 0} delayMs={300}>
         <div className="flex-1 overflow-hidden">
           <ClientsListSkeleton />
         </div>
-      )}
+      </DelayedSkeleton>
 
       {/* STORY-036 — error state on first fetch failure. */}
       {!clientsLoading && clientsError && clients.length === 0 && (
@@ -829,33 +833,42 @@ export default function ClientsPage() {
             >
               Все
             </SegmentChip>
-            <SegmentChip
-              active={segment === "debt"}
-              count={segmentCounts.debt}
-              onClick={() => setSegment("debt")}
-              tone="bad"
-            >
-              <Wallet size={12} strokeWidth={2.5} />
-              Должники
-            </SegmentChip>
-            <SegmentChip
-              active={segment === "birthday"}
-              count={segmentCounts.birthday}
-              onClick={() => setSegment("birthday")}
-              tone="warn"
-            >
-              <Cake size={12} strokeWidth={2.5} />
-              ДР
-            </SegmentChip>
-            <SegmentChip
-              active={segment === "blacklist"}
-              count={segmentCounts.blacklist}
-              onClick={() => setSegment("blacklist")}
-              tone="bad"
-            >
-              <Ban size={12} strokeWidth={2.5} />
-              ЧС
-            </SegmentChip>
+            {/* STORY-082 design polish — segment chips hide when 0
+                so empty tenants don't see "Должники 0 / ДР 0 / ЧС 0"
+                noise. They reappear automatically when data lands. */}
+            {segmentCounts.debt > 0 && (
+              <SegmentChip
+                active={segment === "debt"}
+                count={segmentCounts.debt}
+                onClick={() => setSegment("debt")}
+                tone="bad"
+              >
+                <Wallet size={12} strokeWidth={2.5} />
+                Должники
+              </SegmentChip>
+            )}
+            {segmentCounts.birthday > 0 && (
+              <SegmentChip
+                active={segment === "birthday"}
+                count={segmentCounts.birthday}
+                onClick={() => setSegment("birthday")}
+                tone="warn"
+              >
+                <Cake size={12} strokeWidth={2.5} />
+                ДР
+              </SegmentChip>
+            )}
+            {segmentCounts.blacklist > 0 && (
+              <SegmentChip
+                active={segment === "blacklist"}
+                count={segmentCounts.blacklist}
+                onClick={() => setSegment("blacklist")}
+                tone="bad"
+              >
+                <Ban size={12} strokeWidth={2.5} />
+                ЧС
+              </SegmentChip>
+            )}
             {/* v331 — smart filters: silence / new / loyal.  Each one
                 hides itself when the bucket is empty so the chip row
                 stays compact for fresh tenants. */}
