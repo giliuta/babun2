@@ -8,12 +8,18 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { isSameOriginRequest } from "@/lib/http/csrf";
 
 interface UnsubscribeBody {
   endpoint?: unknown;
 }
 
 export async function POST(req: Request) {
+  // STORY-080 — same-origin guard. CSRF-driven unsubscribe blocks
+  // notifications without the user's consent.
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = await getSupabaseServer();
   const {
     data: { user },

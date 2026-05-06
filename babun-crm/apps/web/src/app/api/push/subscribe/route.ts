@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { isSameOriginRequest } from "@/lib/http/csrf";
 
 interface SubscribeBody {
   endpoint?: unknown;
@@ -20,6 +21,12 @@ interface SubscribeBody {
 }
 
 export async function POST(req: Request) {
+  // STORY-080 — same-origin guard. CSRF-attached endpoint hijack
+  // would let an attacker route victim push notifications to their
+  // own server.
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = await getSupabaseServer();
   const {
     data: { user },

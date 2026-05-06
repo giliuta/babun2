@@ -9,6 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSupabaseService } from "@/lib/supabase/service";
+import { logAdminAction } from "@/lib/admin/audit";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -32,6 +33,13 @@ export async function setTenantPlanOverride(
   const auth = await assertAdmin();
   if (!auth) return { ok: false, error: "Доступ только для администратора" };
 
+  await logAdminAction({
+    adminUserId: auth.userId,
+    action: "set_plan_override",
+    targetTenantId: tenantId,
+    details: { override },
+  });
+
   const svc = getSupabaseService();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (svc as any)
@@ -52,6 +60,12 @@ export async function approveSender(
 ): Promise<ActionResult> {
   const auth = await assertAdmin();
   if (!auth) return { ok: false, error: "Доступ только для администратора" };
+
+  await logAdminAction({
+    adminUserId: auth.userId,
+    action: "approve_sender",
+    targetTenantId: tenantId,
+  });
 
   const svc = getSupabaseService();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,6 +97,13 @@ export async function rejectSender(
   if (trimmed.length === 0) {
     return { ok: false, error: "Укажи причину отклонения" };
   }
+
+  await logAdminAction({
+    adminUserId: auth.userId,
+    action: "reject_sender",
+    targetTenantId: tenantId,
+    details: { reason: trimmed },
+  });
 
   const svc = getSupabaseService();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,12 +142,17 @@ export async function grantSmsBalance(
     return { ok: false, error: "Укажи причину начисления" };
   }
 
-  const svc = getSupabaseService();
+  await logAdminAction({
+    adminUserId: auth.userId,
+    action: "grant_sms_balance",
+    targetTenantId: tenantId,
+    details: { credits, reason: trimmed },
+  });
 
-  // Read current balance + free counter so we can decide where the
-  // credits land. For ops grants the right behaviour is: bump
-  // balance_cents by (credits * PER_SMS_COST_CENTS) so the user can
-  // burn them at the normal per-send price.
+  const svc = getSupabaseService();
+  // STORY-080 — replaced legacy read-then-update with the atomic
+  // bump_sms_balance RPC (introduced in migration 005 for the Stripe
+  // webhook). Two simultaneous admin grants no longer race.
   const PER_SMS = 10; // cents
   const amountCents = credits * PER_SMS;
 
@@ -144,20 +170,15 @@ export async function grantSmsBalance(
   });
   if (tErr) return { ok: false, error: `Не удалось записать аудит: ${tErr.message}` };
 
-  // Bump balance
-  const { data: cfg } = await sb
-    .from("tenant_sms_config")
-    .select("balance_cents")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-  const newBalance = (cfg?.balance_cents ?? 0) + amountCents;
-  const { error: uErr } = await sb
-    .from("tenant_sms_config")
-    .upsert(
-      { tenant_id: tenantId, balance_cents: newBalance },
-      { onConflict: "tenant_id" },
-    );
-  if (uErr) return { ok: false, error: uErr.message };
+  // Atomic balance bump — see migration 20260506_005.
+  const { data: rpcData, error: rpcErr } = await sb.rpc("bump_sms_balance", {
+    p_tenant_id: tenantId,
+    p_amount_cents: amountCents,
+  });
+  if (rpcErr) return { ok: false, error: rpcErr.message };
+  if (rpcData && typeof rpcData === "object" && "error" in rpcData) {
+    return { ok: false, error: String((rpcData as { error: string }).error) };
+  }
 
   revalidatePath(`/admin/tenants/${tenantId}`);
   revalidatePath("/admin");
@@ -177,6 +198,15 @@ export async function impersonateTenantOwner(
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const auth = await assertAdmin();
   if (!auth) return { ok: false, error: "Доступ только для администратора" };
+
+  // STORY-080 — log impersonation BEFORE generating the link, so
+  // even a failed attempt leaves a forensic record. This is the
+  // most-sensitive admin action by a wide margin.
+  await logAdminAction({
+    adminUserId: auth.userId,
+    action: "impersonate_owner",
+    targetTenantId: tenantId,
+  });
 
   const sb = await getSupabaseServer();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

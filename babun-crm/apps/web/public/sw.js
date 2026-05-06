@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v404";
+const CACHE_VERSION = "babun-v405";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -181,7 +181,12 @@ self.addEventListener("sync", (event) => {
 // Notification click
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/dashboard";
+  // STORY-080 — only allow same-origin paths. Reject absolute URLs,
+  // protocol-relative `//attacker.com`, and any non-/-prefixed value.
+  // Keeps phishing-via-push from being a thing if the push payload
+  // ever gets shaped by an untrusted source in future.
+  const raw = event.notification.data?.url;
+  const url = typeof raw === "string" && /^\/[^/]/.test(raw) ? raw : "/dashboard";
   event.waitUntil(
     self.clients.matchAll({ type: "window" }).then((clients) => {
       for (const client of clients) {

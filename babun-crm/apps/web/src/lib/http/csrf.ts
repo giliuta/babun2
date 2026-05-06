@@ -18,8 +18,20 @@ const DEV_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
-  // Vercel preview deploys: <branch>-<hash>-<scope>.vercel.app
-  if (origin.startsWith("https://") && origin.endsWith(".vercel.app")) return true;
+  // STORY-080 — Vercel preview deploys for THIS project only. The
+  // wildcard `*.vercel.app` was too loose because attacker-app.vercel.app
+  // also matches. Tighten to the babun project's preview slug pattern
+  // (`babun-` prefix + hashes) and to the explicit Vercel scope when
+  // we know it.
+  if (
+    origin.startsWith("https://babun-") &&
+    origin.endsWith(".vercel.app")
+  ) {
+    return true;
+  }
+  if (origin.startsWith("https://babun-crm-") && origin.endsWith(".vercel.app")) {
+    return true;
+  }
   if (PROD_ORIGINS.includes(origin)) return true;
   if (process.env.NODE_ENV !== "production" && DEV_ORIGINS.includes(origin)) return true;
   return false;
@@ -29,7 +41,11 @@ function isAllowedOrigin(origin: string | null): boolean {
  *  looks like a cross-site CSRF. Caller should respond 403. */
 export function isSameOriginRequest(req: Request): boolean {
   const fetchSite = req.headers.get("sec-fetch-site");
-  if (fetchSite === "same-origin" || fetchSite === "same-site") return true;
+  // STORY-080 — accept ONLY same-origin. `same-site` covers cross-
+  // subdomain on the registrable domain which we don't actually use,
+  // and accidentally accepts attacker-controlled subdomains in some
+  // hosting setups.
+  if (fetchSite === "same-origin") return true;
 
   // Browsers that don't send Sec-Fetch-Site (older Safari, mostly):
   // fall back to Origin / Referer.

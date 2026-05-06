@@ -378,9 +378,15 @@ async function maybeCreditSmsTopup(
   // under concurrent webhooks for different topups on the same tenant.
   // RPC does INSERT ... ON CONFLICT DO UPDATE in a single statement,
   // so Postgres' row lock guarantees correctness.
-  const { error: rpcErr } = await sbs.rpc("bump_sms_balance", {
+  const { data: rpcData, error: rpcErr } = await sbs.rpc("bump_sms_balance", {
     p_tenant_id: tenantId,
     p_amount_cents: amountCents,
   });
   if (rpcErr) throw rpcErr;
+  // STORY-080 — RPC returns {error: 'amount_must_be_positive'} when
+  // amount<=0; throw so Stripe sees a 5xx and the audit row stays for
+  // forensic review.
+  if (rpcData && typeof rpcData === "object" && "error" in rpcData) {
+    throw new Error(`bump_sms_balance: ${(rpcData as { error: string }).error}`);
+  }
 }

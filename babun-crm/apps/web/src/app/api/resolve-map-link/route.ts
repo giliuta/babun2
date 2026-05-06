@@ -34,7 +34,6 @@ const ALLOWED_HOST_SUFFIXES = [
   "waze.com",
   "yandex.ru",
   "yandex.com",
-  "2gist.ru",
   "2gis.ru",
   "2gis.com",
   "bit.ly",
