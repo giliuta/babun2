@@ -17,7 +17,8 @@ import AccountSection from "@/components/settings/account/AccountSection";
 import BusinessSection from "@/components/settings/account/BusinessSection";
 import BrandContactsSection from "@/components/settings/account/BrandContactsSection";
 import RegionSection from "@/components/settings/account/RegionSection";
-import PersonalCalendarSection from "@/components/settings/account/PersonalCalendarSection";
+// v429 — PersonalCalendarSection toggle moved to /dashboard/settings/calendar
+// (lives next to the rest of the calendar-shape config).
 import ImportLocalAppointmentsSection from "@/components/settings/account/ImportLocalAppointmentsSection";
 import ImportLocalScheduleSection from "@/components/settings/account/ImportLocalScheduleSection";
 import ImportLocalRecurringSection from "@/components/settings/account/ImportLocalRecurringSection";
@@ -49,7 +50,7 @@ export default async function PersonalInfoPage() {
   const { data: tenant } = await (supabase as any)
     .from("tenants")
     .select(
-      "id, name, vertical, city, personal_calendar_enabled, country, currency, " +
+      "id, name, vertical, city, country, currency, " +
         "booking_slug, logo_url, business_address, contact_phone, contact_email, " +
         "contact_whatsapp, contact_telegram, contact_instagram",
     )
@@ -88,9 +89,6 @@ export default async function PersonalInfoPage() {
               contact_telegram: tenant.contact_telegram ?? null,
               contact_instagram: tenant.contact_instagram ?? null,
             }}
-          />
-          <PersonalCalendarSection
-            initialEnabled={Boolean(tenant.personal_calendar_enabled)}
           />
           <ImportLocalAppointmentsSection />
           <ImportLocalScheduleSection />

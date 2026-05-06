@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, ChevronLeft, ChevronRight, Home } from "@babun/shared/icons";
+import {
+  CalendarHeart,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+} from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
 import IOSSwitch from "@/components/ui/IOSSwitch";
@@ -17,6 +23,8 @@ import {
   type CalendarSettings,
 } from "@babun/shared/local/calendar-settings";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
+import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
+import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
 
 const HOURS_0_23 = Array.from({ length: 24 }, (_, i) => i);
 const HOURS_1_24 = Array.from({ length: 24 }, (_, i) => i + 1);
@@ -28,6 +36,27 @@ export default function CalendarSettingsPage() {
   const currentMaster = masters.find((m) => m.id === currentMasterId) ?? null;
   const [draft, setDraft] = useState<CalendarSettings>({ ...calendarSettings });
   const [saved, setSaved] = useState(false);
+
+  // Personal-calendar tenant toggle. v429 — moved here from "Личная
+  // информация" so all calendar-shape settings live in one place.
+  const personalCal = usePersonalCalendarEnabled();
+  const [pcEnabled, setPcEnabled] = useState(true);
+  const [pcError, setPcError] = useState<string | null>(null);
+  const [, startPcTransition] = useTransition();
+  useEffect(() => {
+    if (personalCal.loaded) setPcEnabled(personalCal.enabled);
+  }, [personalCal.loaded, personalCal.enabled]);
+  const togglePersonalCal = (next: boolean) => {
+    setPcError(null);
+    setPcEnabled(next); // optimistic
+    startPcTransition(async () => {
+      const res = await setPersonalCalendarEnabled(next);
+      if (!res.ok) {
+        setPcError(res.error);
+        setPcEnabled(!next);
+      }
+    });
+  };
 
   // Personal-calendar name + colour live on the master record itself
   // (not on CalendarSettings) because these settings *belong to the
@@ -90,70 +119,89 @@ export default function CalendarSettingsPage() {
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-lg mx-auto px-4 py-4 space-y-5 pb-24">
 
-          {/* Personal calendar identity (Sprint 033 Phase I37) */}
-          {currentMaster && (
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-4">
-              <div>
+          {/* v429 — Personal calendar tenant toggle. Moved out of Settings →
+              Личная информация so all calendar-shape config lives here. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <CalendarHeart size={18} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-[var(--label)]">
                   Личный календарь
                 </div>
-                <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5 leading-snug">
-                  Эти записи видите только вы. В календарной ленте
-                  переключается тапом на вкладку рядом с бригадами.
+                <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+                  Свои встречи и заметки. Видны только тебе, не команде.
                 </div>
               </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-                  Название
-                </label>
-                <input
-                  type="text"
-                  defaultValue={personalName}
-                  onBlur={(e) => commitPersonalName(e.target.value)}
-                  placeholder={currentMaster.full_name || "Мой календарь"}
-                  maxLength={40}
-                  className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
-                />
-                <div className="text-[11px] text-[var(--label-tertiary)] mt-1">
-                  Пусто — покажется «Мой календарь».
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-                  Цвет
-                </label>
-                <div className="grid grid-cols-7 gap-2">
-                  {PRESET_COLORS.map((c) => {
-                    const picked = c.value === personalColor;
-                    return (
-                      <button
-                        key={c.value}
-                        type="button"
-                        onClick={() => commitPersonalColor(c.value)}
-                        aria-label={c.name}
-                        className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
-                        style={{ backgroundColor: c.value }}
-                      >
-                        {picked && (
-                          <Check
-                            size={16}
-                            strokeWidth={3}
-                            className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="text-[11px] text-[var(--label-tertiary)] mt-2 leading-snug">
-                  Подсвечивает события вашего личного календаря и вкладку
-                  в шапке.
-                </div>
-              </div>
+              <IOSSwitch
+                checked={pcEnabled}
+                onChange={togglePersonalCal}
+                ariaLabel="Включить личный календарь"
+              />
             </div>
-          )}
+            {pcError && (
+              <div className="px-4 pb-3 text-[12px] text-[var(--system-red)] leading-snug">
+                {pcError}
+              </div>
+            )}
+
+            {/* Identity (имя + цвет) shows only when both the tenant
+                toggle AND a current-master selection are present. */}
+            {pcEnabled && currentMaster && (
+              <div className="px-4 pb-4 pt-1 border-t border-[var(--separator)] space-y-4">
+                <div>
+                  <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+                    Название
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue={personalName}
+                    onBlur={(e) => commitPersonalName(e.target.value)}
+                    placeholder={currentMaster.full_name || "Мой календарь"}
+                    maxLength={40}
+                    className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
+                  />
+                  <div className="text-[11px] text-[var(--label-tertiary)] mt-1">
+                    Пусто — покажется «Мой календарь».
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+                    Цвет
+                  </label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {PRESET_COLORS.map((c) => {
+                      const picked = c.value === personalColor;
+                      return (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => commitPersonalColor(c.value)}
+                          aria-label={c.name}
+                          className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
+                          style={{ backgroundColor: c.value }}
+                        >
+                          {picked && (
+                            <Check
+                              size={16}
+                              strokeWidth={3}
+                              className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] mt-2 leading-snug">
+                    Подсвечивает события вашего личного календаря и вкладку
+                    в шапке.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Time range */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-4">

@@ -79,7 +79,8 @@ export default function BrandContactsSection({ initial }: Props) {
         Бренд и контакты
       </div>
       <div className="px-4 pb-3 text-[12px] text-[var(--label-tertiary)] leading-snug">
-        Эти данные подставляются в SMS-напоминания клиентам, в публичную страницу записи (когда подключим онлайн-бронирование), в инвойсы и в подпись email. Не обязательны — заполни то, что хочешь показывать клиентам.
+        Подставляется в SMS-напоминания, инвойсы и публичную страницу
+        записи. Не обязательно — заполни то, что хочешь показывать клиентам.
       </div>
       <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] divide-y divide-[var(--separator)] overflow-hidden">
         <Row
@@ -228,8 +229,13 @@ function Row({
   hint?: string;
   children: React.ReactNode;
 }) {
+  // v429 — hints used to render under every row permanently, which
+  // turned an 8-field form into a wall-of-text screen. Now hidden by
+  // default and unfolded only when the row gains focus (input is being
+  // edited). Tailwind's `group-focus-within` keeps that purely CSS-
+  // driven, no extra state.
   return (
-    <div className="px-4 py-2.5">
+    <div className="group px-4 py-2.5">
       <label className="flex items-center gap-3 min-h-[44px]">
         <span className="text-[var(--label-secondary)] shrink-0">{icon}</span>
         <span className="w-[90px] text-[12px] text-[var(--label-secondary)] shrink-0">
@@ -238,7 +244,10 @@ function Row({
         {children}
       </label>
       {hint && (
-        <div className="ml-[110px] mt-0.5 text-[11px] text-[var(--label-secondary)] leading-snug">
+        <div
+          className="ml-[110px] text-[11px] text-[var(--label-secondary)] leading-snug overflow-hidden max-h-0 opacity-0 group-focus-within:max-h-12 group-focus-within:opacity-100 group-focus-within:mt-1 transition-all duration-200"
+          aria-hidden
+        >
           {hint}
         </div>
       )}
