@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { registerModalBack } from "@/lib/history-stack";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Calendar as CalendarIcon,
   Users as UsersIcon,
@@ -86,7 +86,6 @@ export default function Sidebar({
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const popCloseRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     // Hydrate expanded flag from storage — same pattern as
@@ -96,18 +95,19 @@ export default function Sidebar({
     setExpanded(getStorage().getRaw(EXPAND_KEY) === "1");
   }, []);
 
-  // STORY-058 — hardware-back / iOS edge-swipe closes the drawer
-  // instead of falling through to URL navigation. Match the modal
-  // pattern used by AppointmentSheet and the install prompts.
+  // STORY-085 — close the drawer when the user navigates to a new
+  // route. Tapping a Next.js <Link> changes the pathname; this effect
+  // observes that change and runs onClose. Replaces the previous
+  // registerModalBack-based close path that was racing with router
+  // navigation and undoing it (history.back() ate the new entry).
+  // Hardware Back: with the drawer open, browser's native back will
+  // navigate away (which is also what Sidebar should do — go back to
+  // wherever the user was before opening the drawer), so we no longer
+  // need the modal-back sentinel for it either.
   useEffect(() => {
-    if (!open) {
-      popCloseRef.current?.();
-      popCloseRef.current = null;
-      return;
-    }
-    if (popCloseRef.current) return;
-    popCloseRef.current = registerModalBack("sidebar", onClose);
-  }, [open, onClose]);
+    if (open) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // STORY-050 — recurring reminders live in Supabase. Lazy fetch
   // on mount + on `babun:recurring-changed` (intra-tab signal) +
@@ -159,26 +159,16 @@ export default function Sidebar({
     onResync: refreshBadge,
   });
 
-  // STORY-064 used router.replace to keep the sidebar from accumulating
-  // history. STORY-085 reverted that: replace would null out the back
-  // stack so once the user opened Settings and tapped the back-arrow,
-  // pathname stayed at /dashboard/settings (the back-arrow's
-  // window.history.length-based fallback couldn't reach the previous
-  // route), and re-tapping "Настройки" in the sidebar then dispatched
-  // replace to the same path — which Next no-ops on equal pathnames.
-  // Net effect: Settings became unreachable on the second tap. Push is
-  // the right primitive here even though it adds a history entry per
-  // sidebar tap; iOS users still get the proper back-stack semantics
-  // they expect.
-  const handleNav = (dialog: DialogType) => {
-    if (dialog) {
-      router.push(ROUTE_MAP[dialog]);
-    }
-    onClose();
-  };
+  // STORY-085 — sidebar nav uses <Link> components directly. No more
+  // imperative router.push/replace + close-then-history-back dance —
+  // those collided with registerModalBack's history.back, which kept
+  // undoing the navigation we'd just pushed. <Link> handles the right
+  // navigation primitives internally; pathname-watching effect above
+  // closes the drawer when it lands.
 
-  // STORY-064 — prefetch every reachable route on mount so sidebar
-  // taps feel instant. Same rationale as BottomTabBar prefetch.
+  // Prefetch every reachable route on mount so first sidebar tap is
+  // instant. <Link> already prefetches on hover/visibility, this is
+  // belt-and-suspenders for routes the user hasn't seen yet.
   useEffect(() => {
     Object.values(ROUTE_MAP).forEach((path) => router.prefetch(path));
   }, [router]);
@@ -253,45 +243,45 @@ export default function Sidebar({
               icon={CalendarIcon}
               tone="orange"
               label="Календарь"
+              href={ROUTE_MAP.calendar}
               active={isActive("calendar")}
-              onClick={() => handleNav("calendar")}
             />
             <NavRow
               icon={UsersIcon}
               tone="cyan"
               label="Клиенты"
+              href={ROUTE_MAP.clients}
               active={isActive("clients")}
-              onClick={() => handleNav("clients")}
             />
             <NavRow
               icon={MessageSquare}
               tone="green"
               label="Чаты"
+              href={ROUTE_MAP.chats}
               badge={unreadChats > 0 ? unreadChats : undefined}
               active={isActive("chats")}
-              onClick={() => handleNav("chats")}
             />
             <NavRow
               icon={Wallet}
               tone="yellow"
               label="Финансы"
+              href={ROUTE_MAP.finances}
               active={isActive("finances")}
-              onClick={() => handleNav("finances")}
             />
             <NavRow
               icon={RotateCcw}
               tone="red"
               label="Напоминания"
+              href={ROUTE_MAP.recurring}
               badge={recurringDue > 0 ? recurringDue : undefined}
               active={isActive("recurring")}
-              onClick={() => handleNav("recurring")}
             />
             <NavRow
               icon={SettingsIcon}
               tone="gray"
               label="Настройки"
+              href={ROUTE_MAP.settings}
               active={isActive("settings")}
-              onClick={() => handleNav("settings")}
             />
           </Group>
 
@@ -320,28 +310,25 @@ export default function Sidebar({
                 icon={UsersIcon}
                 tone="blue"
                 label="Бригады"
+                href={ROUTE_MAP.teams}
                 active={isActive("teams")}
-                onClick={() => handleNav("teams")}
               />
               <NavRow
                 icon={UserCircle2}
                 tone="indigo"
                 label="Мастера"
+                href={ROUTE_MAP.masters}
                 active={isActive("masters")}
-                onClick={() => handleNav("masters")}
               />
               {/* Sprint 033 Phase I29 — "Услуги" sidebar link removed
                   per user feedback. Services are now per-brigade only
-                  (edited inside /teams/[id]/services). The global
-                  /dashboard/services page file stays on disk for
-                  now (in case we bring it back as an admin view)
-                  but it's unlinked from navigation. */}
+                  (edited inside /teams/[id]/services). */}
               <NavRow
                 icon={MessageSquare}
                 tone="mint"
                 label="SMS-шаблоны"
+                href={ROUTE_MAP["sms-templates"]}
                 active={isActive("sms-templates")}
-                onClick={() => handleNav("sms-templates")}
               />
             </Group>
           )}
@@ -415,10 +402,10 @@ function Group({ children }: { children: React.ReactNode }) {
 //     but no longer drives the visual.
 function NavRow({
   icon: Icon,
+  href,
   label,
   badge,
   active,
-  onClick,
 }: {
   icon: React.ComponentType<{
     size?: number;
@@ -426,28 +413,23 @@ function NavRow({
     className?: string;
   }>;
   tone?: IconTone;
+  href: string;
   label: string;
   badge?: number;
   active?: boolean;
-  onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      // STORY-085 — block iOS callout/selection menu on long-press.
-      // Without these, a held tap on a sidebar row pops the native
-      // "Скопировать / Найти / Перевести" menu instead of triggering
-      // the press-and-hold app behaviour. touch-action: manipulation
-      // also kills the 300ms double-tap-zoom delay on iOS Safari, so
-      // the row feels instant.
+    <Link
+      href={href}
+      // STORY-085 — block iOS callout/selection menu on long-press +
+      // kill 300ms double-tap-zoom delay so the row feels instant.
       style={{
         WebkitTouchCallout: "none",
         WebkitUserSelect: "none",
         userSelect: "none",
         touchAction: "manipulation",
       }}
-      className={`w-full flex items-center gap-3 px-3 mx-1 my-0.5 rounded-[10px] text-left min-h-[44px] transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 mx-1 my-0.5 rounded-[10px] text-left min-h-[44px] transition-colors no-underline ${
         active
           ? "bg-[var(--accent-tint)]"
           : "active:bg-[var(--fill-quaternary)]"
@@ -476,6 +458,6 @@ function NavRow({
           {badge}
         </span>
       )}
-    </button>
+    </Link>
   );
 }
