@@ -184,15 +184,44 @@ export function useSidebar() {
   return ctx;
 }
 
-// STORY-049 — expose the server-resolved tenantId via context so leaf
-// components (PhotoBlock, etc.) can call repo functions that need it
-// without prop-drilling through every parent.
-const TenantContext = createContext<string | null>(null);
+// STORY-049 — expose the server-resolved tenant + user identity via
+// context so leaf components can read them synchronously, without
+// re-fetching from Supabase. Without this, screens like the Settings
+// hero card would show a placeholder ("Babun") on first paint and
+// flicker to the real name once a client-side getUser() landed.
+interface TenantContextValue {
+  id: string;
+  name: string;
+  email: string;
+  emailConfirmed: boolean;
+}
+
+const TenantContext = createContext<TenantContextValue | null>(null);
 
 export function useTenantId(): string {
   const ctx = useContext(TenantContext);
   if (!ctx) throw new Error("useTenantId must be used within DashboardLayout");
-  return ctx;
+  return ctx.id;
+}
+
+/** Tenant display name. Resolved server-side, synchronous on the client. */
+export function useTenantName(): string {
+  const ctx = useContext(TenantContext);
+  if (!ctx) throw new Error("useTenantName must be used within DashboardLayout");
+  return ctx.name;
+}
+
+/** Authenticated user's email. Empty string when unavailable. */
+export function useUserEmail(): string {
+  const ctx = useContext(TenantContext);
+  if (!ctx) throw new Error("useUserEmail must be used within DashboardLayout");
+  return ctx.email;
+}
+
+export function useEmailConfirmed(): boolean {
+  const ctx = useContext(TenantContext);
+  if (!ctx) throw new Error("useEmailConfirmed must be used within DashboardLayout");
+  return ctx.emailConfirmed;
 }
 
 interface SchedulesContextValue {
@@ -1387,7 +1416,14 @@ export default function DashboardClientLayout({
   };
 
   return (
-    <TenantContext.Provider value={tenantId}>
+    <TenantContext.Provider
+      value={{
+        id: tenantId,
+        name: tenantName,
+        email: userEmail,
+        emailConfirmed,
+      }}
+    >
     <SidebarContext.Provider value={sidebarValue}>
       <CurrentMasterContext.Provider value={currentMasterValue}>
       <MastersContext.Provider value={mastersValue}>

@@ -18,12 +18,15 @@ import {
   CreditCard,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
-import { useFormSettings } from "@/components/layout/DashboardClientLayout";
+import {
+  useFormSettings,
+  useTenantName,
+  useUserEmail,
+} from "@/components/layout/DashboardClientLayout";
 import { TutorialOverlay } from "@/components/onboarding/TutorialOverlay";
 import { useTutorialState } from "@/components/onboarding/useTutorialState";
 import { signOut } from "@/lib/supabase/auth-client";
 import { useRouter } from "next/navigation";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
   haptic,
   getHapticsEnabled,
@@ -343,37 +346,13 @@ export default function SettingsPage() {
 }
 
 function AccountHero() {
-  // Hydrate the tenant name + email after mount. The dashboard layout
-  // already vouches for an authenticated session + tenant row, so we
-  // skip the loading skeleton and just show empty values briefly.
-  const [name, setName] = useState("Babun");
-  const [email, setEmail] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const supabase = getSupabaseBrowser();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled || !user) return;
-      setEmail(user.email ?? "");
-      // STORY-039 — read active tenant from JWT app_metadata.
-      const tenantId = (user.app_metadata as { tenant_id?: string } | undefined)
-        ?.tenant_id;
-      if (!tenantId) return;
-      const { data: tenant } = await supabase
-        .from("tenants")
-        .select("name")
-        .eq("id", tenantId)
-        .maybeSingle();
-      if (cancelled) return;
-      if (tenant?.name) setName(tenant.name);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Tenant name + user email come from the server-resolved context
+  // populated by DashboardClientLayout. No client-side fetching, no
+  // flicker — the values are already in memory by the time the hero
+  // renders. (Old behaviour was a useState("Babun") default that
+  // visibly swapped to the real name after a Supabase round-trip.)
+  const name = useTenantName();
+  const email = useUserEmail();
 
   // Two-letter initials from the tenant name; falls back to the
   // first two characters when the name is short or has no spaces.
