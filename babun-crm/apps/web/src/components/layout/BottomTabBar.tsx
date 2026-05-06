@@ -7,10 +7,8 @@ import {
   Users as UsersIcon,
   MessageSquare,
   Wallet,
-  Menu,
 } from "@babun/shared/icons";
 import {
-  useSidebar,
   useAppointments,
   useClients,
 } from "@/components/layout/DashboardClientLayout";
@@ -29,7 +27,6 @@ import GlobalSearch from "./GlobalSearch";
 export default function BottomTabBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const sidebar = useSidebar();
 
   const isCalendar = pathname === "/dashboard";
   const isClients = pathname.startsWith("/dashboard/clients");
@@ -117,12 +114,6 @@ export default function BottomTabBar() {
             active={isFinances}
             onClick={() => go("/dashboard/finances")}
             icon={<Wallet size={20} strokeWidth={2.2} />}
-          />
-          <TabButton
-            label="Ещё"
-            active={false}
-            onClick={sidebar.toggle}
-            icon={<Menu size={20} strokeWidth={2.2} />}
           />
         </div>
       </nav>

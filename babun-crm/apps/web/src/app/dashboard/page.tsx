@@ -1111,6 +1111,7 @@ function DashboardPageInner() {
         onZoomOut={handleZoomOut}
         onSelectDate={handleSelectDate}
         onMenuToggle={sidebar.toggle}
+        personalCalendar={personalCal.enabled}
       />
 
       {quotaSnap && (
