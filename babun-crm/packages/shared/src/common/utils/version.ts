@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v425-personal-cal-label-and-no-more-tab";
+export const BUILD_VERSION = "v426-revert-v425";

@@ -35,10 +35,6 @@ interface HeaderProps {
   onZoomOut: () => void;
   onSelectDate: (monday: Date) => void;
   onMenuToggle: () => void;
-  /** When true, renders a "ЛИЧНЫЙ КАЛЕНДАРЬ" supratitle above the
-   *  month so the user knows they're looking at their own schedule
-   *  rather than a team / brigade view. */
-  personalCalendar?: boolean;
 }
 
 const VIEW_MODE_LABELS: Record<ViewMode, string> = {
@@ -64,7 +60,6 @@ export default function Header({
   onZoomOut,
   onSelectDate,
   onMenuToggle,
-  personalCalendar = false,
 }: HeaderProps) {
   // zoom controls are reachable via pinch/ctrl+wheel; silence unused-prop warning
   void onZoomIn;
@@ -123,25 +118,16 @@ export default function Header({
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 active:bg-[var(--fill-quaternary)] rounded-full px-2.5 py-1 transition max-w-full"
+            className="flex items-center gap-1 active:bg-[var(--fill-quaternary)] rounded-full px-2.5 py-1.5 transition max-w-full"
           >
-            <span className="flex flex-col items-start min-w-0">
-              {personalCalendar && (
-                <span className="text-[9px] uppercase tracking-[0.08em] text-[var(--accent)] font-semibold leading-none mb-0.5">
-                  Личный календарь
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <h2 className="text-[17px] font-semibold text-[var(--label)] capitalize whitespace-nowrap truncate tracking-tight">
-                  {monthName} {year}
-                </h2>
-                <ChevronDown
-                  size={14}
-                  strokeWidth={2.5}
-                  className="text-[var(--label-tertiary)] flex-shrink-0"
-                />
-              </span>
-            </span>
+            <h2 className="text-[17px] font-semibold text-[var(--label)] capitalize whitespace-nowrap truncate tracking-tight">
+              {monthName} {year}
+            </h2>
+            <ChevronDown
+              size={14}
+              strokeWidth={2.5}
+              className="text-[var(--label-tertiary)] flex-shrink-0"
+            />
           </button>
 
           {showMiniCalendar && (
