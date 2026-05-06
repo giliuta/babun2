@@ -2,11 +2,17 @@
 
 // STORY-072 — OAuth buttons (Google + Apple).
 //
-// One-click signup/login. Both providers must be configured in
-// Supabase Dashboard → Authentication → Providers. If a provider
-// isn't enabled, Supabase responds with "Unsupported provider" —
-// we surface that as a generic error. Apple requires HTTPS to work
-// — local dev (localhost) won't trigger Apple's redirect.
+// Hidden by default. Each provider is gated by a build-time env flag:
+//   NEXT_PUBLIC_AUTH_GOOGLE=1  → Google button visible
+//   NEXT_PUBLIC_AUTH_APPLE=1   → Apple button visible
+//
+// Set the flag only AFTER configuring the matching provider in
+// Supabase Dashboard → Authentication → Providers. Without provider
+// config the auth endpoint returns "Unsupported provider" 400, which
+// looks like a broken app to the user. So: no flag → no button.
+//
+// Apple requires Apple Developer Program ($99/year) + Service ID +
+// signing key. Google needs only a free Cloud Console OAuth client.
 
 import { useState } from "react";
 import { signInWithApple, signInWithGoogle } from "@/lib/supabase/auth-client";
@@ -15,9 +21,16 @@ interface Props {
   variant?: "login" | "register";
 }
 
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1";
+const APPLE_ENABLED = process.env.NEXT_PUBLIC_AUTH_APPLE === "1";
+
 export default function SocialAuthButtons({ variant = "login" }: Props) {
   const [busy, setBusy] = useState<"google" | "apple" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Both providers off → render nothing, including the divider in the
+  // parent card. The page falls back to "just email/password" cleanly.
+  if (!GOOGLE_ENABLED && !APPLE_ENABLED) return null;
 
   const handle = async (provider: "google" | "apple") => {
     if (busy) return;
@@ -36,24 +49,28 @@ export default function SocialAuthButtons({ variant = "login" }: Props) {
 
   return (
     <div className="space-y-2 mb-3">
-      <button
-        type="button"
-        onClick={() => handle("google")}
-        disabled={!!busy}
-        className="w-full h-[50px] rounded-[var(--radius-pill)] bg-white border border-[var(--separator)] text-[#3c4043] text-[15px] font-semibold active:bg-[#f1f3f4] disabled:opacity-50 transition flex items-center justify-center gap-2.5"
-      >
-        <GoogleIcon />
-        {busy === "google" ? "Подключаемся…" : `${verb} через Google`}
-      </button>
-      <button
-        type="button"
-        onClick={() => handle("apple")}
-        disabled={!!busy}
-        className="w-full h-[50px] rounded-[var(--radius-pill)] bg-black text-white text-[15px] font-semibold active:opacity-80 disabled:opacity-50 transition flex items-center justify-center gap-2.5"
-      >
-        <AppleIcon />
-        {busy === "apple" ? "Подключаемся…" : `${verb} через Apple`}
-      </button>
+      {GOOGLE_ENABLED && (
+        <button
+          type="button"
+          onClick={() => handle("google")}
+          disabled={!!busy}
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-white border border-[var(--separator)] text-[#3c4043] text-[15px] font-semibold active:bg-[#f1f3f4] disabled:opacity-50 transition flex items-center justify-center gap-2.5"
+        >
+          <GoogleIcon />
+          {busy === "google" ? "Подключаемся…" : `${verb} через Google`}
+        </button>
+      )}
+      {APPLE_ENABLED && (
+        <button
+          type="button"
+          onClick={() => handle("apple")}
+          disabled={!!busy}
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-black text-white text-[15px] font-semibold active:opacity-80 disabled:opacity-50 transition flex items-center justify-center gap-2.5"
+        >
+          <AppleIcon />
+          {busy === "apple" ? "Подключаемся…" : `${verb} через Apple`}
+        </button>
+      )}
       {error && (
         <div className="text-[12px] text-[var(--system-red)] text-center px-2 leading-snug">
           {error}
