@@ -164,7 +164,7 @@ export default function PullToRefresh({
         }}
       >
         <div
-          className={`w-8 h-8 rounded-full border-2 border-[#1F66D7]/30 border-t-[#1F66D7] ${
+          className={`w-8 h-8 rounded-full border-2 border-[var(--accent)]/30 border-t-[var(--accent)] ${
             refreshing ? "babun-spin" : ""
           }`}
           style={{

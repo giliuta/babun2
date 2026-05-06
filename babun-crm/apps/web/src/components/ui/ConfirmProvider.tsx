@@ -77,9 +77,18 @@ export function useConfirm(): ConfirmFn {
   const ctx = useContext(ConfirmContext);
   if (!ctx) {
     // Fallback to native confirm so callers don't crash when the
-    // provider isn't mounted yet (e.g. in storybook or tests).
-    return async (opts) =>
-      typeof window !== "undefined" && window.confirm(opts.title);
+    // provider isn't mounted yet (e.g. in storybook or tests). If
+    // we ever see this fire in production it's a regression — the
+    // provider is supposed to be mounted at the dashboard layout
+    // root. Loud warning so we notice instead of silently shipping
+    // a native confirm dialog to a real user.
+    return async (opts) => {
+      if (typeof window === "undefined") return false;
+      console.warn(
+        "[useConfirm] ConfirmProvider is not mounted — falling back to window.confirm. This is a regression; mount <ConfirmProvider> at the layout root.",
+      );
+      return window.confirm(opts.title);
+    };
   }
   return ctx;
 }

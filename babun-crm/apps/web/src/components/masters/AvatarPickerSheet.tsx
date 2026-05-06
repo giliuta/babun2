@@ -100,7 +100,7 @@ export default function AvatarPickerSheet({
               className="relative aspect-square rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex flex-col items-center justify-center gap-0.5 active:scale-[0.95] transition border border-dashed border-[var(--accent)]"
             >
               <Camera size={18} strokeWidth={2} />
-              <span className="text-[9px] font-semibold leading-none">
+              <span className="text-[10px] font-semibold leading-none">
                 Своё
               </span>
             </button>

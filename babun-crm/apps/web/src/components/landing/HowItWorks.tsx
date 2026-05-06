@@ -61,7 +61,7 @@ export default function HowItWorks() {
                     {step.title}
                   </h3>
                 </div>
-                <p className="mt-3 text-[15px] lg:text-[16px] text-[#3C3C43D9] leading-snug max-w-md">
+                <p className="mt-3 text-[15px] lg:text-[16px] text-[var(--label-secondary)] leading-snug max-w-md">
                   {step.desc}
                 </p>
               </div>

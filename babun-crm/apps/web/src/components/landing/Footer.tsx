@@ -14,7 +14,7 @@ export default function Footer() {
                 Babun
               </span>
             </div>
-            <p className="mt-3 text-[13px] text-[#3C3C43A6] max-w-[18em]">
+            <p className="mt-3 text-[13px] text-[var(--label-tertiary)] max-w-[18em]">
               CRM для сервисного бизнеса.
             </p>
           </div>
@@ -46,7 +46,7 @@ export default function Footer() {
             </a>
           </nav>
 
-          <div className="text-[13px] text-[#3C3C43A6] lg:text-right">
+          <div className="text-[13px] text-[var(--label-tertiary)] lg:text-right">
             <a
               href="mailto:hello@babun.app"
               className="text-[var(--label)] hover:text-[var(--accent)] transition"

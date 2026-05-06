@@ -263,7 +263,7 @@ function PhotoThumb({
       />
       {badgeCls && badgeText && (
         <span
-          className={`absolute top-0.5 left-0.5 h-4 px-1.5 rounded-full ${badgeCls} text-[var(--label-on-accent)] text-[9px] font-bold flex items-center`}
+          className={`absolute top-0.5 left-0.5 h-4 px-1.5 rounded-full ${badgeCls} text-[var(--label-on-accent)] text-[10px] font-bold flex items-center`}
         >
           {badgeText}
         </span>

@@ -56,7 +56,7 @@ export default function Features() {
         <h2 className="text-[28px] sm:text-[32px] lg:text-[40px] font-semibold tracking-tight text-[var(--label)] text-center max-w-2xl mx-auto">
           Всё, что нужно сервисному бизнесу
         </h2>
-        <p className="mt-3 text-[16px] text-[#3C3C43D9] text-center max-w-xl mx-auto">
+        <p className="mt-3 text-[16px] text-[var(--label-secondary)] text-center max-w-xl mx-auto">
           От первой записи клиента до отчёта за месяц.
         </p>
 
@@ -82,7 +82,7 @@ function FeatureCard({ icon: Icon, title, desc }: Feature) {
       <h3 className="mt-4 text-[16px] lg:text-[17px] font-semibold tracking-tight text-[var(--label)]">
         {title}
       </h3>
-      <p className="mt-2 text-[14px] text-[#3C3C43D9] leading-snug">
+      <p className="mt-2 text-[14px] text-[var(--label-secondary)] leading-snug">
         {desc}
       </p>
     </div>

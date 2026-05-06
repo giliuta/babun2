@@ -48,21 +48,16 @@ export function IOSInstallPrompt() {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--surface-overlay)] animate-backdrop-in"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] p-4 animate-backdrop-in"
       onClick={snooze24h}
       role="dialog"
       aria-modal="true"
       aria-labelledby="ios-install-title"
     >
       <div
-        className="w-full max-w-md bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] pt-2 pb-[max(env(safe-area-inset-bottom),16px)] px-5 animate-sheet-up"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] p-5 animate-sheet-up"
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          aria-hidden
-          className="mx-auto h-1 w-9 rounded-full bg-[var(--fill-tertiary)] mb-4"
-        />
-
         <div className="flex items-center gap-3">
           {/* STORY-062 — shared placeholder mark. Swap one component
               file when the designed brand mark lands. */}
@@ -74,7 +69,7 @@ export function IOSInstallPrompt() {
             >
               Установить Babun
             </h2>
-            <p className="text-[13px] text-[#3C3C43A6] mt-0.5">
+            <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
               Откроется как обычное приложение, без браузера
             </p>
           </div>
@@ -101,7 +96,7 @@ export function IOSInstallPrompt() {
           <button
             type="button"
             onClick={dismissPermanent}
-            className="h-11 rounded-[12px] bg-[#1F66D7] hover:bg-[#1850A8] text-white text-[15px] font-semibold transition active:scale-[0.99]"
+            className="h-11 rounded-[12px] bg-[var(--accent)] active:bg-[var(--accent-pressed)] text-[var(--label-on-accent)] text-[15px] font-semibold transition active:scale-[0.99]"
           >
             Понятно, скрыть
           </button>
@@ -120,9 +115,9 @@ export function IOSInstallPrompt() {
 
 function Step({ n, text }: { n: number; text: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-3 text-[14px] leading-snug text-[#3C3C43D9]">
+    <li className="flex items-start gap-3 text-[14px] leading-snug text-[var(--label-secondary)]">
       <span
-        className="flex-shrink-0 w-6 h-6 rounded-full bg-[rgba(31,102,215,0.12)] text-[#1F66D7] text-[12px] font-semibold flex items-center justify-center"
+        className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[12px] font-semibold flex items-center justify-center"
         aria-hidden
       >
         {n}

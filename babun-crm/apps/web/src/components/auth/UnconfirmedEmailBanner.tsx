@@ -43,7 +43,7 @@ export default function UnconfirmedEmailBanner({ email }: Props) {
           type="button"
           onClick={resend}
           disabled={sending}
-          className="shrink-0 px-2 h-7 rounded-md bg-[var(--surface-card)] text-[var(--system-orange,#ff9500)] text-[12px] font-semibold disabled:opacity-50"
+          className="shrink-0 px-2 h-7 rounded-md bg-[var(--surface-card)] text-[var(--system-orange,#ff9500)] text-[12px] font-semibold disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
         >
           {sending ? "…" : "Ещё раз"}
         </button>

@@ -57,7 +57,7 @@ export default function SocialAuthButtons({ variant = "login" }: Props) {
           type="button"
           onClick={() => handle("google")}
           disabled={!!busy}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-white border border-[var(--separator)] text-[#3c4043] text-[15px] font-semibold active:bg-[#f1f3f4] disabled:opacity-50 transition flex items-center justify-center gap-2.5"
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-white border border-[var(--separator)] text-[#3c4043] text-[15px] font-semibold active:bg-[#f1f3f4] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:border-transparent transition flex items-center justify-center gap-2.5"
         >
           <GoogleIcon />
           {busy === "google" ? "Подключаемся…" : `${verb} через Google`}
@@ -68,7 +68,7 @@ export default function SocialAuthButtons({ variant = "login" }: Props) {
           type="button"
           onClick={() => handle("apple")}
           disabled={!!busy}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-black text-white text-[15px] font-semibold active:opacity-80 disabled:opacity-50 transition flex items-center justify-center gap-2.5"
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-black text-white text-[15px] font-semibold active:opacity-80 disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:border-transparent transition flex items-center justify-center gap-2.5"
         >
           <AppleIcon />
           {busy === "apple" ? "Подключаемся…" : `${verb} через Apple`}

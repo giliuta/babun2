@@ -297,7 +297,7 @@ function TopupCard({ config }: { config: ManagedSmsConfig }) {
               className="flex flex-col items-center justify-center gap-1 py-3 rounded-[14px] border border-[var(--separator)] active:bg-[var(--fill-tertiary)] disabled:opacity-50 transition relative"
             >
               {p.bonusLabel && (
-                <span className="absolute top-1 right-1 inline-flex items-center px-1 h-4 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[9px] font-bold tracking-wide">
+                <span className="absolute top-1 right-1 inline-flex items-center px-1 h-4 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[10px] font-bold tracking-wide">
                   {p.bonusLabel}
                 </span>
               )}
@@ -385,7 +385,7 @@ function LogRow({ log }: { log: ManagedSmsLog }) {
               {log.to_phone}
             </span>
             {log.was_free && (
-              <span className="inline-flex items-center px-1 h-4 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[9px] font-bold uppercase tracking-wide">
+              <span className="inline-flex items-center px-1 h-4 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
                 free
               </span>
             )}

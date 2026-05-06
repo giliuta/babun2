@@ -160,7 +160,7 @@ export function SplashScreen({ tenantName }: Props) {
       >
         {typed}
         <span
-          className="inline-block w-[2px] h-[20px] ml-[2px] align-[-3px] bg-[#1F66D7]"
+          className="inline-block w-[2px] h-[20px] ml-[2px] align-[-3px] bg-[var(--accent)]"
           style={{
             animation:
               phase === "typing"

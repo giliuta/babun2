@@ -225,10 +225,7 @@ export default function Sidebar({
           <div className="flex items-center gap-3">
             <div
               className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[20px] font-bold tracking-tight shadow-[0_2px_6px_rgba(31,102,215,0.18)]"
-              style={{
-                background:
-                  "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
-              }}
+              style={{ background: "var(--brand-mark-grad)" }}
             >
               B
             </div>

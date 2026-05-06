@@ -488,7 +488,12 @@ export default function ChatsPage() {
         </div>
       )}
 
-      {/* Client panel — mobile bottom sheet (also ClientCardPage). */}
+      {/* Client panel — mobile bottom sheet (also ClientCardPage).
+          Intentionally a full-height slide-up sheet (90vh, bottom-0,
+          rounded-t-2xl + grabber) instead of a centered modal — this
+          opens the entire client profile, which needs the room. The
+          centered-modal pattern is for short confirms/pickers, not
+          full pages. */}
       {showClientPanel && linkedClient && !isLG && (
         <div className="fixed inset-0 z-[80] lg:hidden">
           <div
@@ -657,7 +662,7 @@ function ChatDetailView({
             href={`/dashboard/clients?id=${linkedClient.id}`}
             className="flex items-center gap-2 text-[12px] text-[var(--system-green)] active:opacity-80 w-full text-left"
           >
-            <span className="w-5 h-5 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center text-[9px] font-bold">{linkedClient.full_name.charAt(0)}</span>
+            <span className="w-5 h-5 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px] font-bold">{linkedClient.full_name.charAt(0)}</span>
             <span className="flex-1">✓ {linkedClient.full_name}</span>
             <span className="text-[12px] uppercase tracking-wide text-[var(--system-green)] font-semibold">Карточка</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[var(--system-green)]"><polyline points="9 18 15 12 9 6" /></svg>
@@ -749,7 +754,10 @@ function ChatDetailView({
           />
         )}
 
-        {/* Input */}
+        {/* Input — `items-end` here is composer-bar baseline alignment
+            (icon buttons + multi-line textarea + send button), NOT a
+            bottom-sheet container. Audits scanning for items-end →
+            centered-modal should skip this site. */}
         <div className="flex-shrink-0 border-t border-[var(--separator)] bg-[var(--surface-card)] px-2 py-2 flex items-end gap-1.5">
           <button type="button" onClick={onPhotoAttach} className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-primary)] flex-shrink-0">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

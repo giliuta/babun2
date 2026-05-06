@@ -21,7 +21,7 @@ export default function Header() {
           </Link>
           <Link
             href="/register"
-            className="h-9 px-4 rounded-[10px] bg-[#1F66D7] text-white font-semibold hover:bg-[#1850A8] transition flex items-center"
+            className="h-9 px-4 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold hover:bg-[var(--accent-pressed)] transition flex items-center"
           >
             Попробовать
           </Link>

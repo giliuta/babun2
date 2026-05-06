@@ -46,9 +46,7 @@ export default function AdminSidebar({ adminEmail }: { adminEmail: string }) {
         <div className="flex items-center gap-2">
           <div
             className="w-9 h-9 rounded-[10px] flex items-center justify-center text-white text-[15px] font-bold tracking-tight"
-            style={{
-              background: "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
-            }}
+            style={{ background: "var(--brand-mark-grad)" }}
           >
             B
           </div>

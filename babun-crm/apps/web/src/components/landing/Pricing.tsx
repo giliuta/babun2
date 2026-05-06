@@ -86,7 +86,7 @@ export default function Pricing() {
           <h2 className="text-[28px] sm:text-[32px] lg:text-[40px] font-semibold tracking-tight text-[var(--label)]">
             Простые и честные тарифы
           </h2>
-          <p className="mt-3 text-[16px] lg:text-[17px] text-[#3C3C43D9] leading-snug">
+          <p className="mt-3 text-[16px] lg:text-[17px] text-[var(--label-secondary)] leading-snug">
             Начни бесплатно. Перейди на платный когда команда вырастет — без сюрпризов и скрытых лимитов.
           </p>
         </div>
@@ -97,7 +97,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        <p className="mt-10 text-center text-[13px] text-[#3C3C43A6] max-w-xl mx-auto leading-snug">
+        <p className="mt-10 text-center text-[13px] text-[var(--label-tertiary)] max-w-xl mx-auto leading-snug">
           Цены в евро без НДС. Платёж через Stripe — Visa, Mastercard, Apple Pay, Google Pay. Отмена подписки в любой момент.
         </p>
       </div>
@@ -122,14 +122,14 @@ function PricingCard({ tier }: { tier: Tier }) {
       <h3 className="text-[18px] font-semibold tracking-tight text-[var(--label)]">
         {tier.name}
       </h3>
-      <p className="mt-1 text-[13px] text-[#3C3C43A6] leading-snug min-h-[2.5em]">
+      <p className="mt-1 text-[13px] text-[var(--label-tertiary)] leading-snug min-h-[2.5em]">
         {tier.tagline}
       </p>
       <div className="mt-4 flex items-baseline gap-1.5">
         <span className="text-[36px] lg:text-[40px] font-semibold tracking-tight text-[var(--label)]">
           {tier.price}
         </span>
-        <span className="text-[14px] text-[#3C3C43A6]">{tier.cadence}</span>
+        <span className="text-[14px] text-[var(--label-tertiary)]">{tier.cadence}</span>
       </div>
 
       <ul className="mt-6 space-y-2.5 flex-1">
@@ -152,7 +152,7 @@ function PricingCard({ tier }: { tier: Tier }) {
         href={tier.cta.href}
         className={`mt-7 h-11 px-4 rounded-[12px] text-[15px] font-semibold flex items-center justify-center transition active:scale-[0.99] ${
           tier.highlighted
-            ? "bg-[#1F66D7] text-white hover:bg-[#1850A8]"
+            ? "bg-[var(--accent)] text-[var(--label-on-accent)] hover:bg-[var(--accent-pressed)]"
             : "border border-[var(--separator)] text-[var(--label)] hover:bg-[var(--fill-quaternary)]"
         }`}
       >

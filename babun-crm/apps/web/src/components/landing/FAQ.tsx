@@ -57,12 +57,12 @@ export default function FAQ() {
                 </h3>
                 <span
                   aria-hidden
-                  className="text-[#3C3C43A6] text-[20px] leading-none transition-transform group-open:rotate-45"
+                  className="text-[var(--label-tertiary)] text-[20px] leading-none transition-transform group-open:rotate-45"
                 >
                   +
                 </span>
               </summary>
-              <p className="mt-3 text-[14px] lg:text-[15px] text-[#3C3C43D9] leading-snug">
+              <p className="mt-3 text-[14px] lg:text-[15px] text-[var(--label-secondary)] leading-snug">
                 {qa.a}
               </p>
             </details>

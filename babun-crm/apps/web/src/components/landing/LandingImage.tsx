@@ -17,8 +17,8 @@ export default function LandingImage({ src, alt, priority }: LandingImageProps) 
     <div
       className="w-full h-full rounded-[16px] overflow-hidden flex items-center justify-center text-[13px] font-medium"
       style={{
-        background: "rgba(62, 136, 247, 0.08)",
-        color: "#1F66D7",
+        background: "var(--accent-tint)",
+        color: "var(--accent)",
       }}
     >
       <img

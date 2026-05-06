@@ -23,7 +23,10 @@ interface BabunMarkProps {
   className?: string;
 }
 
-const GRADIENT = "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)";
+// References the canonical brand-mark gradient declared in globals.css
+// (--brand-mark-grad). When the designed mark lands, swap this constant
+// AND the matching token in globals.css together.
+const GRADIENT = "var(--brand-mark-grad)";
 
 export function BabunMark({
   size = 48,

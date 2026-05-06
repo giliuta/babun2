@@ -10,13 +10,13 @@ export default function Hero() {
             <h1 className="text-[36px] leading-[1.1] sm:text-[44px] lg:text-[56px] font-semibold tracking-tight text-[var(--label)]">
               CRM для мастеров и салонов на Кипре
             </h1>
-            <p className="mt-5 text-[17px] sm:text-[18px] lg:text-[20px] leading-snug text-[#3C3C43D9] max-w-xl mx-auto lg:mx-0">
+            <p className="mt-5 text-[17px] sm:text-[18px] lg:text-[20px] leading-snug text-[var(--label-secondary)] max-w-xl mx-auto lg:mx-0">
               Записи, клиенты, SMS-напоминания. Работает с iPhone и компьютера.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Link
                 href="/register"
-                className="h-12 px-6 rounded-[12px] bg-[#1F66D7] text-white text-[16px] font-semibold flex items-center justify-center hover:bg-[#1850A8] active:scale-[0.99] transition"
+                className="h-12 px-6 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[16px] font-semibold flex items-center justify-center hover:bg-[var(--accent-pressed)] active:scale-[0.99] transition"
               >
                 Попробовать бесплатно
               </Link>
@@ -27,7 +27,7 @@ export default function Hero() {
                 Узнать больше
               </a>
             </div>
-            <p className="mt-4 text-[13px] text-[#3C3C43A6]">
+            <p className="mt-4 text-[13px] text-[var(--label-tertiary)]">
               14 дней бесплатно · отмена в один клик · без привязки карты на Free
             </p>
           </div>
