@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
-import {
-  CalendarHeart,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Home,
-} from "@babun/shared/icons";
+import { Bell, CalendarHeart } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
 import IOSSwitch from "@/components/ui/IOSSwitch";
@@ -22,12 +15,17 @@ import {
   TIMEZONE_OPTIONS,
   type CalendarSettings,
 } from "@babun/shared/local/calendar-settings";
-import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
 
+// v434 — full 0-23 range for both bounds. Was 0-23 / 1-24 split which
+// surprised users who expected to set the day to end at midnight.
 const HOURS_0_23 = Array.from({ length: 24 }, (_, i) => i);
-const HOURS_1_24 = Array.from({ length: 24 }, (_, i) => i + 1);
+
+// LocalStorage key for the personal-calendar push toggle. Real push
+// subscription wiring happens in a later pass; this flag is just the
+// preference signal.
+const PERSONAL_PUSH_KEY = "babun:personal-calendar-push";
 
 export default function CalendarSettingsPage() {
   const { calendarSettings, setCalendarSettings } = useCalendarSettings();
@@ -58,13 +56,11 @@ export default function CalendarSettingsPage() {
     });
   };
 
-  // Personal-calendar name + colour live on the master record itself
-  // (not on CalendarSettings) because these settings *belong to the
-  // master*. The rest of this page — grid hours, buffer, etc. — still
-  // uses global CalendarSettings and will be migrated into per-master
-  // settings in a later pass.
+  // Personal-calendar name lives on the master record. Colour was
+  // dropped from this page in v434 — when the calendar is purely a
+  // personal-events surface, the team-distinguishing colour swatch is
+  // noise.
   const personalName = currentMaster?.personal_calendar_name ?? "";
-  const personalColor = currentMaster?.personal_calendar_color ?? "";
   const commitPersonalName = (next: string) => {
     if (!currentMaster) return;
     const trimmed = next.trim();
@@ -74,13 +70,29 @@ export default function CalendarSettingsPage() {
       personal_calendar_name: trimmed || undefined,
     });
   };
-  const commitPersonalColor = (next: string) => {
-    if (!currentMaster) return;
-    if (next === (currentMaster.personal_calendar_color ?? "")) return;
-    upsertMaster({
-      ...currentMaster,
-      personal_calendar_color: next || undefined,
-    });
+
+  // Push notifications for personal-calendar events. Stored client-side
+  // for now; the real Web Push subscription is hooked up in a later
+  // pass. The preference itself persists across reloads.
+  const [pushEnabled, setPushEnabled] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPushEnabled(
+        typeof window !== "undefined" &&
+          window.localStorage.getItem(PERSONAL_PUSH_KEY) === "1",
+      );
+    } catch {
+      /* private mode */
+    }
+  }, []);
+  const togglePush = (next: boolean) => {
+    setPushEnabled(next);
+    try {
+      window.localStorage.setItem(PERSONAL_PUSH_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
   };
 
   const error = validateCalendarSettings(draft);
@@ -103,24 +115,15 @@ export default function CalendarSettingsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Мой календарь"
-        leftContent={
-          <Link
-            href="/dashboard/settings"
-            className="inline-flex items-center gap-1 text-[var(--accent)] text-[13px] font-medium px-2 py-2 active:opacity-70"
-          >
-            <ChevronLeft size={18} strokeWidth={2.5} />
-            Настройки
-          </Link>
-        }
-      />
+      <PageHeader title="Мой календарь" backHref="/dashboard/settings" />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-lg mx-auto px-4 py-4 space-y-5 pb-24">
 
-          {/* v429 — Personal calendar tenant toggle. Moved out of Settings →
-              Личная информация so all calendar-shape config lives here. */}
+          {/* Personal calendar toggle + identity (name + push). v434 —
+              colour picker dropped (the personal calendar is just a
+              private-events surface, doesn't need to be visually
+              distinguished from a team palette). */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3.5">
               <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
@@ -146,11 +149,9 @@ export default function CalendarSettingsPage() {
               </div>
             )}
 
-            {/* Identity (имя + цвет) shows only when both the tenant
-                toggle AND a current-master selection are present. */}
             {pcEnabled && currentMaster && (
-              <div className="px-4 pb-4 pt-1 border-t border-[var(--separator)] space-y-4">
-                <div>
+              <>
+                <div className="px-4 pb-4 pt-1 border-t border-[var(--separator)]">
                   <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
                     Название
                   </label>
@@ -158,7 +159,7 @@ export default function CalendarSettingsPage() {
                     type="text"
                     defaultValue={personalName}
                     onBlur={(e) => commitPersonalName(e.target.value)}
-                    placeholder={currentMaster.full_name || "Мой календарь"}
+                    placeholder="Мой календарь"
                     maxLength={40}
                     className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
                   />
@@ -167,39 +168,26 @@ export default function CalendarSettingsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-                    Цвет
-                  </label>
-                  <div className="grid grid-cols-7 gap-2">
-                    {PRESET_COLORS.map((c) => {
-                      const picked = c.value === personalColor;
-                      return (
-                        <button
-                          key={c.value}
-                          type="button"
-                          onClick={() => commitPersonalColor(c.value)}
-                          aria-label={c.name}
-                          className="relative w-full aspect-square rounded-full press-scale flex items-center justify-center"
-                          style={{ backgroundColor: c.value }}
-                        >
-                          {picked && (
-                            <Check
-                              size={16}
-                              strokeWidth={3}
-                              className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
+                {/* v434 — Push notifications for personal events */}
+                <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+                  <div className="w-9 h-9 rounded-[10px] bg-[var(--system-orange-tint,rgba(255,149,0,0.12))] text-[var(--system-orange,#FF9500)] flex items-center justify-center shrink-0">
+                    <Bell size={16} strokeWidth={2} />
                   </div>
-                  <div className="text-[11px] text-[var(--label-tertiary)] mt-2 leading-snug">
-                    Подсвечивает события вашего личного календаря и вкладку
-                    в шапке.
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[15px] text-[var(--label)]">
+                      Push-уведомления
+                    </div>
+                    <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+                      Напомнит о ближайшем событии за 15 минут.
+                    </div>
                   </div>
+                  <IOSSwitch
+                    checked={pushEnabled}
+                    onChange={togglePush}
+                    ariaLabel="Push-уведомления для личного календаря"
+                  />
                 </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -234,7 +222,7 @@ export default function CalendarSettingsPage() {
                   onChange={(e) => patch({ endHour: Number(e.target.value) })}
                   className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
                 >
-                  {HOURS_1_24.map((h) => (
+                  {HOURS_0_23.map((h) => (
                     <option key={h} value={h}>
                       {String(h).padStart(2, "0")}:00
                     </option>
@@ -244,13 +232,15 @@ export default function CalendarSettingsPage() {
             </div>
 
             {error && (
-              <div className="text-[12px] text-[var(--system-red)] bg-[rgba(255,59,48,0.1)] rounded-[10px] px-3 py-2">
+              <div className="text-[12px] text-[var(--system-red)] bg-[var(--system-red-tint)] rounded-[10px] px-3 py-2">
                 {error}
               </div>
             )}
 
             <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
-              Открытие календаря будет прокручено к {String(draft.startHour).padStart(2, "0")}:00
+              Календарь открывается и при возврате прокручивается
+              к {String(draft.startHour).padStart(2, "0")}:00 — это твоё рабочее
+              начало дня.
             </div>
           </div>
 
@@ -273,26 +263,36 @@ export default function CalendarSettingsPage() {
                 </button>
               ))}
             </div>
+            <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
+              На сколько минут разделена каждая часовая ячейка. 30 мин —
+              самый частый выбор: запись минимум на полчаса. 15 мин —
+              если бывают короткие визиты, 60 мин — для длинных смен.
+            </div>
           </div>
 
-          {/* Week start */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">
-            <div className="text-[15px] font-semibold text-[var(--label)]">Начало недели</div>
-            <div className="flex gap-2">
-              {(["monday", "sunday"] as const).map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => patch({ weekStart: day })}
-                  className={`flex-1 h-11 rounded-[10px] text-[14px] font-medium transition-all ${
-                    draft.weekStart === day
-                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                      : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                  }`}
-                >
-                  {day === "monday" ? "Понедельник" : "Воскресенье"}
-                </button>
-              ))}
+          {/* Week start — compact iOS segmented control */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 py-3.5 flex items-center gap-3">
+            <div className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--label)]">
+              Начало недели
+            </div>
+            <div className="inline-flex p-0.5 rounded-[10px] bg-[var(--fill-tertiary)] shrink-0">
+              {(["monday", "sunday"] as const).map((day) => {
+                const active = draft.weekStart === day;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => patch({ weekStart: day })}
+                    className={`h-8 px-3 rounded-[8px] text-[13px] font-medium transition-all ${
+                      active
+                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
+                        : "text-[var(--label-secondary)]"
+                    }`}
+                  >
+                    {day === "monday" ? "Пн" : "Вс"}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -312,85 +312,6 @@ export default function CalendarSettingsPage() {
             </select>
           </div>
 
-          {/* Buffer + toggles (Sprint 033 Phase I35) */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="px-4 pt-3.5 pb-2">
-              <div className="text-[15px] font-semibold text-[var(--label)]">
-                Поведение календаря
-              </div>
-              <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5 leading-snug">
-                Действуют на всех бригадах.
-              </div>
-            </div>
-
-            {/* Buffer between appointments */}
-            <div className="px-4 py-3 border-t border-[var(--separator)]">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[15px] text-[var(--label)]">
-                    Перерыв между записями
-                  </div>
-                  <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
-                    Автоматический буфер после каждого визита — дорога, уборка инструмента.
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-1.5 mt-2.5">
-                {[0, 10, 15, 20, 30, 45, 60].map((m) => {
-                  const picked = (draft.bufferMinutes ?? 0) === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => patch({ bufferMinutes: m })}
-                      className={`flex-1 h-9 rounded-[10px] text-[12px] font-medium press-scale transition-colors ${
-                        picked
-                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                          : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                      }`}
-                    >
-                      {m === 0 ? "нет" : `${m}м`}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Hide cancelled */}
-            <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] text-[var(--label)]">
-                  Скрыть отменённые записи
-                </div>
-                <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
-                  Выключено — отменённые остаются на сетке зачёркнутыми.
-                </div>
-              </div>
-              <IOSSwitch
-                checked={draft.hideCancelled ?? false}
-                onChange={(next) => patch({ hideCancelled: next })}
-                ariaLabel="Скрыть отменённые"
-              />
-            </div>
-
-            {/* Allow overtime */}
-            <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] text-[var(--label)]">
-                  Разрешить продлить рабочий день
-                </div>
-                <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
-                  Последний визит может закончиться после {String(draft.endHour).padStart(2, "0")}:00 без ошибки.
-                </div>
-              </div>
-              <IOSSwitch
-                checked={draft.allowOvertime ?? false}
-                onChange={(next) => patch({ allowOvertime: next })}
-                ariaLabel="Разрешить продлить рабочий день"
-              />
-            </div>
-          </div>
-
           {/* Save */}
           <div className="flex gap-3">
             <Button variant="secondary" size="md" fullWidth onClick={handleReset}>
@@ -408,24 +329,10 @@ export default function CalendarSettingsPage() {
             </Button>
           </div>
 
-          {/* Related: booking-form customisation */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            <Link
-              href="/dashboard/settings/booking"
-              className="flex items-center gap-3 px-4 py-3 min-h-[48px] active:bg-[var(--fill-quaternary)] transition-colors"
-            >
-              <span className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[var(--label-on-accent)] shrink-0 bg-[var(--system-red)]">
-                <Home size={16} strokeWidth={2} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] text-[var(--label)]">Записи — типы объектов</div>
-                <div className="text-[12px] text-[var(--label-secondary)] mt-0.5">
-                  Дом, Квартира, Офис, Вилла — добавь свои
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-[var(--label-tertiary)] shrink-0" />
-            </Link>
-          </div>
+          {/* v434 — "Записи — типы объектов" link removed from this
+              page. The setting is for client-appointment addresses, not
+              for personal-events; it stays reachable from the brigade
+              detail page where it actually applies. */}
 
         </div>
       </div>

@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v433-first-run-choice-screen";
+export const BUILD_VERSION = "v434-personal-cal-redesign";
