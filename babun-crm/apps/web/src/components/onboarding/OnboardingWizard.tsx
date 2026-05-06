@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { completeOnboarding } from "@/app/onboarding/complete-action";
 import OnboardingShell from "./OnboardingShell";
 import StepBusinessName from "./StepBusinessName";
 import StepVertical from "./StepVertical";
@@ -42,19 +42,18 @@ export default function OnboardingWizard({
     if (!name.trim() || !vertical) return;
     setSaving(true);
     setError(null);
-    const supabase = getSupabaseBrowser();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: err } = await (supabase as any)
-      .from("tenants")
-      .update({
-        name: name.trim(),
-        vertical,
-        personal_calendar_enabled: personalCalendar,
-        onboarded_at: new Date().toISOString(),
-      })
-      .eq("id", tenantId);
-    if (err) {
-      setError(err.message);
+    // Routed through a server action so the cached tenant entry can
+    // be invalidated (revalidateTag("tenant")) atomically with the
+    // DB write — otherwise a freshly-onboarded user could redirect
+    // back to /onboarding for the rest of the cache TTL window.
+    const result = await completeOnboarding({
+      tenantId,
+      name,
+      vertical,
+      personalCalendar,
+    });
+    if (!result.ok) {
+      setError(result.error);
       setSaving(false);
       return;
     }

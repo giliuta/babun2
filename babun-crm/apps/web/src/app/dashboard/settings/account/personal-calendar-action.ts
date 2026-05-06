@@ -6,7 +6,7 @@
 // tenants_update_own; we still resolve the user server-side as a
 // belt-and-suspenders.
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -31,6 +31,7 @@ export async function setPersonalCalendarEnabled(
     .eq("id", tenantId);
   if (error) return { ok: false, error: error.message };
 
+  updateTag("tenant");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/settings/account/personal");
