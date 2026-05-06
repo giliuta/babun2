@@ -24,6 +24,10 @@ import { registerModalBack } from "@/lib/history-stack";
 const DISMISS_KEY = "babun-push-prompt-dismissed-at";
 const SESSION_KEY = "babun-session-count";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+// STORY-082 — once per session gate, same as InstallPrompt. Empty
+// tenants used to see push + install popups stacked on the empty
+// calendar before they had any data to be notified about.
+const SESSION_ONCE_KEY = "babun-push-prompt-shown-session";
 
 type State =
   | { kind: "hidden" }
@@ -44,12 +48,23 @@ export function EnableNotificationsPrompt() {
       const sessions = readSessionCount();
       if (sessions < 2) return;
 
+      // STORY-082 — once per browser tab session, full stop.
+      if (typeof window !== "undefined" && window.sessionStorage.getItem(SESSION_ONCE_KEY) === "1") return;
+
       const dismissedAt = readDismissedAt();
       if (dismissedAt && Date.now() - dismissedAt < SEVEN_DAYS_MS) return;
 
       if (await isSubscribed()) return;
 
-      if (!cancelled) setState({ kind: "ready" });
+      // STORY-082 — never prompt before the user has at least one
+      // appointment. Empty calendar tenant with no data has nothing
+      // worth being notified about; the popup just looks like noise.
+      if (!hasAnyAppointmentLocally()) return;
+
+      if (!cancelled) {
+        try { window.sessionStorage.setItem(SESSION_ONCE_KEY, "1"); } catch {}
+        setState({ kind: "ready" });
+      }
     })();
     return () => {
       cancelled = true;
@@ -181,6 +196,21 @@ function writeDismissedAt(ts: number): void {
     window.localStorage.setItem(DISMISS_KEY, String(ts));
   } catch {
     // ignore — quota or privacy mode
+  }
+}
+
+// STORY-082 — fires only when the tenant has at least one
+// appointment cached locally. New empty-calendar tenants don't see
+// the prompt until they have something to be notified about.
+function hasAnyAppointmentLocally(): boolean {
+  try {
+    if (typeof window === "undefined") return false;
+    const raw = window.localStorage.getItem("babun-appointments");
+    if (!raw) return false;
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) && arr.length > 0;
+  } catch {
+    return false;
   }
 }
 

@@ -29,7 +29,15 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISS_KEY = "babun-pwa-install-dismissed";
 const SESSION_KEY = "babun-session-count";
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+// STORY-082 — session-level once gate. Stops the prompt from re-
+// showing when the user navigates between pages within a single
+// session (the user-reported "Установить Babun на каждом экране"
+// papercut). sessionStorage clears on tab close so a new visit
+// still gets a fair chance.
+const SESSION_ONCE_KEY = "babun-pwa-install-shown-session";
+// Bumped from 7 → 30 days. A user who said "не сейчас" once isn't
+// asking to be re-pestered weekly.
+const DISMISS_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 type Visibility = "hidden" | "android" | "unknown";
 
@@ -50,8 +58,13 @@ export function InstallPrompt() {
     const sessions = readSessionCount();
     if (sessions < 2) return;
 
+    // STORY-082 — once per session, period. If we showed it earlier
+    // in this tab the user already saw it (and either installed or
+    // dismissed); don't re-pester on the next route change.
+    if (sessionShownThisSession()) return;
+
     const dismissedAt = readDismissedAt();
-    if (dismissedAt && Date.now() - dismissedAt < SEVEN_DAYS_MS) return;
+    if (dismissedAt && Date.now() - dismissedAt < DISMISS_WINDOW_MS) return;
 
     // Android — wait briefly for `beforeinstallprompt` to land. If it
     // doesn't, fall back to the platform's panel with generic copy.
@@ -59,13 +72,17 @@ export function InstallPrompt() {
     const onPrompt = (e: Event) => {
       e.preventDefault();
       captured = true;
+      markShownThisSession();
       setInstallEvent(e as BeforeInstallPromptEvent);
       setVis("android");
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
 
     const fallback = window.setTimeout(() => {
-      if (!captured) setVis(platform === "android" ? "android" : "unknown");
+      if (!captured) {
+        markShownThisSession();
+        setVis(platform === "android" ? "android" : "unknown");
+      }
     }, 2000);
 
     return () => {
@@ -196,5 +213,22 @@ function writeDismissedAt(ts: number): void {
     getStorage().setRaw(DISMISS_KEY, String(ts));
   } catch {
     // ignore — quota / private mode
+  }
+}
+
+function sessionShownThisSession(): boolean {
+  try {
+    return typeof window !== "undefined" && window.sessionStorage.getItem(SESSION_ONCE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markShownThisSession(): void {
+  try {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(SESSION_ONCE_KEY, "1");
+  } catch {
+    /* ignore */
   }
 }
