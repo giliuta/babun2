@@ -28,14 +28,14 @@ import {
   createBlankAppointment,
 } from "@babun/shared/local/appointments";
 import Header, { type ViewMode } from "@/components/layout/Header";
+import PageHeader from "@/components/layout/PageHeader";
+import { Menu } from "@babun/shared/icons";
 import WeekView from "@/components/calendar/WeekView";
 import { useTenantQuota } from "@/lib/quota/useTenantQuota";
 import QuotaBanner from "@/components/quota/QuotaBanner";
 import { CalendarEmptyState } from "@/components/empty-states/CalendarEmptyState";
-// usePersonalCalendarEnabled / setPersonalCalendarEnabled removed in
-// v432: the calendar empty-state no longer forks on this flag and the
-// rest of the page doesn't read it. The toggle still lives in
-// Settings → Мой календарь and writes to the same column.
+import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
+import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalendarChoice";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import UndoToast from "@/components/ui/UndoToast";
@@ -160,6 +160,11 @@ function DashboardPageInner() {
   // STORY-052 G6 — quota state for the calendar's appointments_month banner.
   const { snapshot: quotaSnap } = useTenantQuota();
   const router = useRouter();
+  // STORY-085 — first-run gate. When the tenant has no teams configured
+  // AND personal_calendar_enabled is false, the calendar grid is
+  // meaningless. We render <FirstRunCalendarChoice> instead, asking
+  // the owner how they'll use the calendar (personal vs team).
+  const personalCal = usePersonalCalendarEnabled();
   // Tracks `?new=1&kind=…` transitions so the create-sheet handler
   // re-runs when the FAB navigates here while we're already on
   // /dashboard. Using the search-params string as a stable dependency
@@ -1092,6 +1097,33 @@ function DashboardPageInner() {
         },
       ]
     : [];
+
+  // STORY-085 — first-run gate. Brand-new tenants (no teams yet AND
+  // personal calendar not enabled) see a full-screen choice instead of
+  // an empty grid. Wait for personalCal.loaded so we don't flash the
+  // gate-screen on already-configured tenants while the column is
+  // being read.
+  if (personalCal.loaded && !personalCal.enabled && teams.length === 0) {
+    return (
+      <>
+        <PageHeader
+          title="Календарь"
+          showBack={false}
+          leftContent={
+            <button
+              type="button"
+              onClick={sidebar.toggle}
+              aria-label="Меню"
+              className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              <Menu size={22} strokeWidth={2} />
+            </button>
+          }
+        />
+        <FirstRunCalendarChoice onEnabledRefresh={personalCal.refresh} />
+      </>
+    );
+  }
 
   return (
     <>
