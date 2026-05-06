@@ -97,12 +97,21 @@ export async function resendConfirmation(email: string): Promise<AuthResult> {
 // signInWithOAuth navigates the browser away to the provider; the
 // promise resolves only on error before redirect. The auth/callback
 // route exchanges the returned `code` for a session.
+//
+// `prompt=select_account` (Google) / `response_mode=form_post` +
+// `prompt=login` (Apple) — both providers will ALWAYS show the
+// account-picker / consent screen, even if the browser already has an
+// active session with that provider. Without this, a user clicking
+// "Войти через Google" on a device where you happen to be logged into
+// Google would silently sign in as YOU, not them. With it, the user
+// is forced to choose which account they want and re-authenticate.
 export async function signInWithGoogle(): Promise<AuthResult> {
   const supabase = getSupabaseBrowser();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: window.location.origin + "/auth/callback?next=/dashboard/clients",
+      queryParams: { prompt: "select_account" },
     },
   });
   return unwrap(error);
@@ -114,6 +123,7 @@ export async function signInWithApple(): Promise<AuthResult> {
     provider: "apple",
     options: {
       redirectTo: window.location.origin + "/auth/callback?next=/dashboard/clients",
+      queryParams: { prompt: "login" },
     },
   });
   return unwrap(error);
