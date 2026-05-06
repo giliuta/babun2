@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Bell, CalendarHeart } from "@babun/shared/icons";
+import { Bell, CalendarHeart, Sparkles, UserPlus } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   useCalendarSettings,
   useCurrentMaster,
+  useFormSettings,
   useMasters,
 } from "@/components/layout/DashboardClientLayout";
 import {
@@ -17,6 +18,15 @@ import {
 } from "@babun/shared/local/calendar-settings";
 import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
+
+// LocalStorage keys for the per-personal-calendar feature flags
+// (v436). The actual booking-form / event-form schemas the UI
+// produces will be wired into AppointmentSheet in a follow-up; for
+// now this page just remembers which sub-features the owner enabled.
+const APPT_ENABLED_KEY = "babun:personal-cal:appointments-on";
+const EVENT_ENABLED_KEY = "babun:personal-cal:events-on";
+const EVENT_DEFAULT_DURATION_KEY = "babun:personal-cal:event-default-duration";
+const EVENT_REMINDER_KEY = "babun:personal-cal:event-reminder-min";
 
 // v434 — full 0-23 range for both bounds. Was 0-23 / 1-24 split which
 // surprised users who expected to set the day to end at midnight.
@@ -95,6 +105,56 @@ export default function CalendarSettingsPage() {
     }
   };
 
+  // v436 — Two sub-features the owner can opt into for the personal
+  // calendar:
+  //   • Appointments ("Запись клиента") — same fields as a brigade
+  //     visit. Field visibility / required reuses the existing global
+  //     useFormSettings() store; the toggle just exposes the form.
+  //   • Events ("Событие") — owner-only personal event with a default
+  //     duration + reminder lead-time. Stored locally for now.
+  const { fieldVisibility, setFieldVisibility, requiredFields, setRequiredFields } =
+    useFormSettings();
+
+  const [apptEnabled, setApptEnabled] = useState(false);
+  const [eventEnabled, setEventEnabled] = useState(false);
+  const [eventDuration, setEventDuration] = useState<15 | 30 | 60>(30);
+  const [eventReminder, setEventReminder] = useState<0 | 5 | 15 | 30 | 60>(15);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setApptEnabled(window.localStorage.getItem(APPT_ENABLED_KEY) === "1");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEventEnabled(window.localStorage.getItem(EVENT_ENABLED_KEY) === "1");
+      const d = parseInt(window.localStorage.getItem(EVENT_DEFAULT_DURATION_KEY) ?? "30", 10);
+      if ([15, 30, 60].includes(d)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setEventDuration(d as 15 | 30 | 60);
+      }
+      const r = parseInt(window.localStorage.getItem(EVENT_REMINDER_KEY) ?? "15", 10);
+      if ([0, 5, 15, 30, 60].includes(r)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setEventReminder(r as 0 | 5 | 15 | 30 | 60);
+      }
+    } catch {
+      /* private mode */
+    }
+  }, []);
+  const writeFlag = (key: string, on: boolean) => {
+    try {
+      window.localStorage.setItem(key, on ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
+  const writeNum = (key: string, n: number) => {
+    try {
+      window.localStorage.setItem(key, String(n));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const error = validateCalendarSettings(draft);
 
   const patch = (p: Partial<CalendarSettings>) => {
@@ -157,13 +217,6 @@ export default function CalendarSettingsPage() {
                   </label>
                   <input
                     type="text"
-                    // v435 — render the friendly default ("Мой календарь")
-                    // as a real value, not a placeholder. The value is
-                    // selected on focus so a single tap is enough to
-                    // start typing a custom name. On blur we treat
-                    // either an empty string OR the default literal
-                    // as "use the default" — so saving "Мой календарь"
-                    // doesn't pin that string into the DB.
                     defaultValue={personalName || "Мой календарь"}
                     onFocus={(e) => e.currentTarget.select()}
                     onBlur={(e) => {
@@ -178,7 +231,7 @@ export default function CalendarSettingsPage() {
                   </div>
                 </div>
 
-                {/* v434 — Push notifications for personal events */}
+                {/* Push notifications */}
                 <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
                   <div className="w-9 h-9 rounded-[10px] bg-[var(--system-orange-tint,rgba(255,149,0,0.12))] text-[var(--system-orange,#FF9500)] flex items-center justify-center shrink-0">
                     <Bell size={16} strokeWidth={2} />
@@ -198,6 +251,200 @@ export default function CalendarSettingsPage() {
                   />
                 </div>
               </>
+            )}
+          </div>
+
+          {/* v436 — everything below this point only renders when the
+              personal calendar is on. Off → just the toggle card. */}
+          {pcEnabled && (
+            <>
+
+          {/* "Запись клиента" — collapsible. On = appointments form
+              available in the personal calendar; expanded body shows
+              field-visibility / required toggles (reuses the global
+              form-settings store for now). */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <UserPlus size={18} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-semibold text-[var(--label)]">
+                  Запись клиента
+                </div>
+                <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+                  Можно записать клиента прямо в личный календарь.
+                </div>
+              </div>
+              <IOSSwitch
+                checked={apptEnabled}
+                onChange={(next) => {
+                  setApptEnabled(next);
+                  writeFlag(APPT_ENABLED_KEY, next);
+                }}
+                ariaLabel="Включить запись клиента"
+              />
+            </div>
+
+            {apptEnabled && (
+              <div className="border-t border-[var(--separator)]">
+                <div className="px-4 py-3">
+                  <div className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                    Поля формы
+                  </div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-1">
+                    Какие поля показывать при создании записи.
+                  </div>
+                </div>
+                <FieldRow
+                  label="Адрес"
+                  checked={fieldVisibility.show_address}
+                  onChange={(v) =>
+                    setFieldVisibility({ ...fieldVisibility, show_address: v })
+                  }
+                />
+                <FieldRow
+                  label="Комментарий"
+                  checked={fieldVisibility.show_comment}
+                  onChange={(v) =>
+                    setFieldVisibility({ ...fieldVisibility, show_comment: v })
+                  }
+                />
+                <FieldRow
+                  label="Аванс / предоплата"
+                  checked={fieldVisibility.show_prepaid}
+                  onChange={(v) =>
+                    setFieldVisibility({ ...fieldVisibility, show_prepaid: v })
+                  }
+                />
+                <FieldRow
+                  label="Способы оплаты"
+                  checked={fieldVisibility.show_payments}
+                  onChange={(v) =>
+                    setFieldVisibility({ ...fieldVisibility, show_payments: v })
+                  }
+                />
+
+                <div className="px-4 py-3 border-t border-[var(--separator)]">
+                  <div className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                    Обязательно
+                  </div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-1">
+                    Без них запись нельзя сохранить.
+                  </div>
+                </div>
+                <FieldRow
+                  label="Клиент"
+                  checked={requiredFields.require_client}
+                  onChange={(v) =>
+                    setRequiredFields({ ...requiredFields, require_client: v })
+                  }
+                />
+                <FieldRow
+                  label="Телефон клиента"
+                  checked={requiredFields.require_phone}
+                  onChange={(v) =>
+                    setRequiredFields({ ...requiredFields, require_phone: v })
+                  }
+                />
+                <FieldRow
+                  label="Услуги"
+                  checked={requiredFields.require_services}
+                  onChange={(v) =>
+                    setRequiredFields({ ...requiredFields, require_services: v })
+                  }
+                />
+                <FieldRow
+                  label="Адрес"
+                  checked={requiredFields.require_address}
+                  onChange={(v) =>
+                    setRequiredFields({ ...requiredFields, require_address: v })
+                  }
+                />
+              </div>
+            )}
+          </div>
+
+          {/* "Событие" — собственное событие (без клиента). Длительность
+              по умолчанию + время напоминания. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <Sparkles size={18} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-semibold text-[var(--label)]">
+                  Событие
+                </div>
+                <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+                  Личные встречи и заметки без клиента.
+                </div>
+              </div>
+              <IOSSwitch
+                checked={eventEnabled}
+                onChange={(next) => {
+                  setEventEnabled(next);
+                  writeFlag(EVENT_ENABLED_KEY, next);
+                }}
+                ariaLabel="Включить события"
+              />
+            </div>
+
+            {eventEnabled && (
+              <div className="border-t border-[var(--separator)] px-4 py-4 space-y-4">
+                <div>
+                  <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+                    Длительность по умолчанию
+                  </div>
+                  <div className="flex gap-2">
+                    {([15, 30, 60] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => {
+                          setEventDuration(d);
+                          writeNum(EVENT_DEFAULT_DURATION_KEY, d);
+                        }}
+                        className={`flex-1 h-10 rounded-[10px] text-[13px] font-medium transition-colors ${
+                          eventDuration === d
+                            ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                            : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                        }`}
+                      >
+                        {d} мин
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
+                    Напоминание
+                  </div>
+                  <div className="flex gap-1.5">
+                    {([0, 5, 15, 30, 60] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => {
+                          setEventReminder(m);
+                          writeNum(EVENT_REMINDER_KEY, m);
+                        }}
+                        className={`flex-1 h-9 rounded-[10px] text-[12px] font-medium transition-colors ${
+                          eventReminder === m
+                            ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                            : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                        }`}
+                      >
+                        {m === 0 ? "нет" : `${m}м`}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] leading-snug mt-2">
+                    За сколько до события показать push-уведомление.
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -339,13 +586,32 @@ export default function CalendarSettingsPage() {
             </Button>
           </div>
 
-          {/* v434 — "Записи — типы объектов" link removed from this
-              page. The setting is for client-appointment addresses, not
-              for personal-events; it stays reachable from the brigade
-              detail page where it actually applies. */}
+            </>
+          )}
+          {/* end of pcEnabled gate */}
 
         </div>
       </div>
     </>
+  );
+}
+
+// FieldRow — small switch row reused inside the "Запись клиента"
+// expanded body. Kept local to this page; can graduate to a shared
+// component if a second screen needs the same shape.
+function FieldRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+      <div className="flex-1 min-w-0 text-[15px] text-[var(--label)]">{label}</div>
+      <IOSSwitch checked={checked} onChange={onChange} ariaLabel={label} />
+    </div>
   );
 }
