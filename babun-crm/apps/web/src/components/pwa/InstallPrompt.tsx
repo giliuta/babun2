@@ -68,11 +68,15 @@ export function InstallPrompt() {
 
     // Android — wait briefly for `beforeinstallprompt` to land. If it
     // doesn't, fall back to the platform's panel with generic copy.
+    //
+    // Note: we DO NOT mark-shown here. The mark is applied only when
+    // the user actually makes a decision (install / dismiss / back).
+    // If the user navigates away before deciding, we want them to see
+    // the prompt again on the next route — they hadn't truly seen it.
     let captured = false;
     const onPrompt = (e: Event) => {
       e.preventDefault();
       captured = true;
-      markShownThisSession();
       setInstallEvent(e as BeforeInstallPromptEvent);
       setVis("android");
     };
@@ -80,7 +84,6 @@ export function InstallPrompt() {
 
     const fallback = window.setTimeout(() => {
       if (!captured) {
-        markShownThisSession();
         setVis(platform === "android" ? "android" : "unknown");
       }
     }, 2000);
@@ -101,6 +104,7 @@ export function InstallPrompt() {
     if (popCloseRef.current) return;
     popCloseRef.current = registerModalBack("install-prompt", () => {
       writeDismissedAt(Date.now());
+      markShownThisSession();
       setInstallEvent(null);
       setVis("hidden");
     });
@@ -111,12 +115,14 @@ export function InstallPrompt() {
   const onAndroidInstall = async () => {
     if (!installEvent) {
       writeDismissedAt(Date.now());
+      markShownThisSession();
       setVis("hidden");
       return;
     }
     await installEvent.prompt();
     const choice = await installEvent.userChoice;
     writeDismissedAt(Date.now());
+    markShownThisSession();
     setInstallEvent(null);
     setVis("hidden");
     void choice;
@@ -124,6 +130,7 @@ export function InstallPrompt() {
 
   const dismiss = () => {
     writeDismissedAt(Date.now());
+    markShownThisSession();
     setInstallEvent(null);
     setVis("hidden");
   };
@@ -144,21 +151,21 @@ export function InstallPrompt() {
             <h2 className="text-[18px] font-semibold text-[var(--label)] tracking-tight">
               Установить Babun
             </h2>
-            <p className="text-[13px] text-[#3C3C43A6] mt-0.5">
+            <p className="text-[13px] text-[var(--label-secondary)] mt-0.5">
               На главный экран как обычное приложение
             </p>
           </div>
         </div>
 
         {vis === "android" && (
-          <p className="mt-5 text-[14px] leading-snug text-[#3C3C43D9]">
+          <p className="mt-5 text-[14px] leading-snug text-[var(--label-secondary)]">
             Тапни «Установить» — Babun добавится на главный экран и
             откроется в полноэкранном режиме.
           </p>
         )}
 
         {vis === "unknown" && (
-          <p className="mt-5 text-[14px] leading-snug text-[#3C3C43D9]">
+          <p className="mt-5 text-[14px] leading-snug text-[var(--label-secondary)]">
             Открой Babun в Safari (на iPhone) или Chrome (на Android),
             чтобы установить как приложение.
           </p>
@@ -169,7 +176,7 @@ export function InstallPrompt() {
             <button
               type="button"
               onClick={onAndroidInstall}
-              className="h-11 rounded-[12px] bg-[#1F66D7] hover:bg-[#1850A8] text-white text-[15px] font-semibold transition active:scale-[0.99]"
+              className="h-11 rounded-[12px] bg-[var(--accent)] active:bg-[var(--accent-pressed)] text-[var(--label-on-accent)] text-[15px] font-semibold transition active:scale-[0.99]"
             >
               Установить
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useToast } from "@/components/ui/Toast";
 import {
   Check,
   Camera,
@@ -140,6 +141,7 @@ export default function AppointmentSheet({
   personalMode = false,
 }: AppointmentSheetProps) {
   const router = useRouter();
+  const toast = useToast();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
   // sheet родителем.
@@ -1142,12 +1144,21 @@ export default function AppointmentSheet({
                   if (typeof navigator !== "undefined" && navigator.clipboard) {
                     try {
                       await navigator.clipboard.writeText(url);
-                      window.alert("Ссылка скопирована — отправьте клиенту");
+                      toast.show({
+                        variant: "success",
+                        message: "Ссылка скопирована — отправьте клиенту",
+                      });
                     } catch {
-                      window.prompt("Ссылка:", url);
+                      toast.show({
+                        variant: "error",
+                        message: "Не удалось скопировать. Скопируйте вручную в адресной строке.",
+                      });
                     }
                   } else {
-                    window.prompt("Ссылка:", url);
+                    toast.show({
+                      variant: "error",
+                      message: "Копирование не поддерживается в этом браузере.",
+                    });
                   }
                 }
           }

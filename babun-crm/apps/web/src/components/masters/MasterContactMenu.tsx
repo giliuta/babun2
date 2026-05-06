@@ -73,14 +73,11 @@ export default function MasterContactMenu({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center bg-[var(--surface-overlay)] backdrop-blur-[2px]"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-3"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-[360px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
-        style={{
-          paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
-        }}
+        className="w-full max-w-[360px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">

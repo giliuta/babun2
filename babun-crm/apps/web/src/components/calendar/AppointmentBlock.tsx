@@ -172,7 +172,7 @@ function AppointmentBlockInner({
       <div className="px-1.5 py-0.5 h-full overflow-hidden relative">
         {/* Line 1: time range */}
         <div
-          className={`text-[8px] lg:text-[12px] font-medium opacity-80 leading-tight ${
+          className={`text-[11px] lg:text-[12px] font-medium opacity-80 leading-tight ${
             isCancelled ? "line-through" : ""
           }`}
         >
@@ -195,7 +195,7 @@ function AppointmentBlockInner({
 
         {/* Line 3: service or comment — useful context for the team */}
         {serviceSummary && (
-          <div className="text-[8px] lg:text-[12px] truncate opacity-80 leading-tight">
+          <div className="text-[12px] lg:text-[12px] truncate opacity-80 leading-tight">
             {serviceSummary}
           </div>
         )}

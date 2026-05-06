@@ -62,7 +62,10 @@ export function EnableNotificationsPrompt() {
       if (!hasAnyAppointmentLocally()) return;
 
       if (!cancelled) {
-        try { window.sessionStorage.setItem(SESSION_ONCE_KEY, "1"); } catch {}
+        // Note: we DO NOT mark-shown here. The mark is applied only
+        // when the user actually decides (accept / decline / back).
+        // If they navigate away mid-prompt the prompt should be able
+        // to reappear — they hadn't truly seen it through.
         setState({ kind: "ready" });
       }
     })();
@@ -83,6 +86,7 @@ export function EnableNotificationsPrompt() {
     if (popCloseRef.current) return;
     popCloseRef.current = registerModalBack("enable-notifications", () => {
       writeDismissedAt(Date.now());
+      markShownThisSession();
       setState({ kind: "hidden" });
     });
   }, [state.kind]);
@@ -96,14 +100,19 @@ export function EnableNotificationsPrompt() {
     try {
       await subscribePush();
       writeDismissedAt(Date.now());
+      markShownThisSession();
       setState({ kind: "hidden" });
     } catch (err) {
       if (err instanceof PermissionDeniedError) {
         // User declined the OS prompt — same as "Не сейчас".
         writeDismissedAt(Date.now());
+        markShownThisSession();
         setState({ kind: "hidden" });
         return;
       }
+      // On a real error (network / push service down) we leave the
+      // session-shown flag *unset* so the user gets a fresh chance
+      // next time. The dismiss flag is also not written.
       const msg =
         err instanceof Error ? err.message : "Не удалось включить уведомления";
       setState({ kind: "error", message: msg });
@@ -112,6 +121,7 @@ export function EnableNotificationsPrompt() {
 
   const onDecline = () => {
     writeDismissedAt(Date.now());
+    markShownThisSession();
     setState({ kind: "hidden" });
   };
 
@@ -126,8 +136,7 @@ export function EnableNotificationsPrompt() {
       >
         <div className="flex items-center gap-3">
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center text-[28px]"
-            style={{ background: "rgba(31, 102, 215, 0.12)", color: "#1F66D7" }}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-[28px] bg-[var(--accent-tint)] text-[var(--accent)]"
             aria-hidden
           >
             🔔
@@ -137,12 +146,12 @@ export function EnableNotificationsPrompt() {
           </h2>
         </div>
 
-        <p className="mt-3 text-[14px] leading-snug text-[#3C3C43D9]">
+        <p className="mt-3 text-[14px] leading-snug text-[var(--label-secondary)]">
           Получай новые записи и заявки сразу, без открытия приложения.
         </p>
 
         {state.kind === "error" && (
-          <p className="mt-3 text-[13px] leading-snug text-[#B91C1C]">
+          <p className="mt-3 text-[13px] leading-snug text-[var(--system-red)]">
             {state.message}
           </p>
         )}
@@ -152,7 +161,7 @@ export function EnableNotificationsPrompt() {
             type="button"
             onClick={onAccept}
             disabled={submitting}
-            className="h-11 rounded-[12px] bg-[#1F66D7] hover:bg-[#1850A8] disabled:bg-[#7DA8E5] text-white text-[15px] font-semibold transition active:scale-[0.99]"
+            className="h-11 rounded-[12px] bg-[var(--accent)] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] text-[var(--label-on-accent)] text-[15px] font-semibold transition active:scale-[0.99]"
           >
             {submitting ? "Включаем…" : "Включить"}
           </button>
@@ -196,6 +205,15 @@ function writeDismissedAt(ts: number): void {
     window.localStorage.setItem(DISMISS_KEY, String(ts));
   } catch {
     // ignore — quota or privacy mode
+  }
+}
+
+function markShownThisSession(): void {
+  try {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(SESSION_ONCE_KEY, "1");
+  } catch {
+    /* ignore */
   }
 }
 

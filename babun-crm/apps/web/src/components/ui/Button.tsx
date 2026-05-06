@@ -46,17 +46,22 @@ export default function Button({
         ? "h-[50px] px-6 text-[17px]"
         : "h-11 px-5 text-[15px]";
 
+  // STORY-081 — disabled token. Filled variants get a real
+  // fill-tertiary + label-tertiary state (mirrors `.pill-primary:disabled`
+  // in globals.css). Text-only variants just dim the label. Avoids the
+  // "faded enabled button" look that opacity-only produces and stops
+  // users from repeat-tapping a button that won't respond.
   const variantCls = {
     primary:
-      "bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--accent-pressed)] press-spring shadow-[var(--shadow-fab)]",
+      "bg-[var(--accent)] text-[var(--label-on-accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--accent-pressed)] press-spring shadow-[var(--shadow-fab)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:shadow-none",
     secondary:
-      "bg-[var(--fill-tertiary)] text-[var(--label)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] press-spring",
+      "bg-[var(--fill-tertiary)] text-[var(--label)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] press-spring disabled:text-[var(--label-tertiary)]",
     tinted:
-      "bg-[var(--accent-tint)] text-[var(--accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] press-spring",
+      "bg-[var(--accent-tint)] text-[var(--accent)] font-semibold rounded-[var(--radius-pill)] active:bg-[var(--fill-secondary)] press-spring disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]",
     ghost:
-      "text-[var(--accent)] font-medium rounded-[10px] active:bg-[var(--fill-quaternary)] press-scale",
+      "text-[var(--accent)] font-medium rounded-[10px] active:bg-[var(--fill-quaternary)] press-scale disabled:text-[var(--label-tertiary)]",
     destructive:
-      "text-[var(--system-red)] font-semibold rounded-[10px] active:bg-[rgba(255,59,48,0.1)] press-scale",
+      "text-[var(--system-red)] font-semibold rounded-[10px] active:bg-[rgba(255,59,48,0.1)] press-scale disabled:text-[var(--label-tertiary)]",
   }[variant];
 
   // v319 — haptic on every button press.  Variant maps to feedback
@@ -74,7 +79,7 @@ export default function Button({
       type="button"
       {...rest}
       onClick={hapticOnTap}
-      className={`inline-flex items-center justify-center gap-2 ${sizeCls} ${variantCls} ${fullWidth ? "w-full" : ""} disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none ${className}`}
+      className={`inline-flex items-center justify-center gap-2 ${sizeCls} ${variantCls} ${fullWidth ? "w-full" : ""} disabled:cursor-not-allowed disabled:pointer-events-none ${className}`}
     >
       {leadingIcon}
       {children}

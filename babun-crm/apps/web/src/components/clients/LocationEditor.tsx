@@ -95,11 +95,11 @@ export default function LocationEditor({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-3"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[440px] bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden max-h-[92vh]"
+        className="w-full max-w-[440px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">

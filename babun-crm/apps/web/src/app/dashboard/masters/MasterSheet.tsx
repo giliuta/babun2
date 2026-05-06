@@ -38,6 +38,7 @@ import {
   type Team,
   type WorkSchedule,
 } from "@babun/shared/local/masters";
+import { useToast } from "@/components/ui/Toast";
 
 // TODO(decomp): 600+ lines single-file. Acceptable for one cohesive
 // multi-section sheet; split into sub-sections if it grows past 800.
@@ -65,6 +66,7 @@ export default function MasterSheet({
   onDelete,
 }: MasterSheetProps) {
   const isEditing = !!master;
+  const toast = useToast();
 
   // Account
   const [loginEmail, setLoginEmail] = useState(master?.login_email ?? master?.email ?? "");
@@ -217,7 +219,7 @@ export default function MasterSheet({
 
   const handleSubmit = () => {
     if (!fullName.trim()) {
-      window.alert("Введите ФИО сотрудника");
+      toast.show({ variant: "error", message: "Введите ФИО сотрудника" });
       return;
     }
     // Normalise brigade visibility into permissions before save.
@@ -931,11 +933,19 @@ function PasswordShowOnce({
   email?: string;
   onDismiss: () => void;
 }) {
+  const toast = useToast();
   const copy = async () => {
     try {
       await navigator.clipboard?.writeText(password);
+      toast.show({ variant: "success", message: "Пароль скопирован" });
     } catch {
-      window.prompt("Скопируйте пароль:", password);
+      // Clipboard unavailable (insecure context / privacy lockdown). The
+      // password is still visible above — instruct the user to copy it
+      // manually instead of falling back to a native prompt() dialog.
+      toast.show({
+        variant: "error",
+        message: "Не удалось скопировать. Выделите пароль вручную.",
+      });
     }
   };
   return (

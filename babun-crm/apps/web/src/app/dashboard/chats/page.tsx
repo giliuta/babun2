@@ -902,10 +902,9 @@ function QuickReplySheet({
   );
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center lg:items-center">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-2xl lg:rounded-2xl max-h-[70vh] flex flex-col overflow-hidden">
-        <div className="w-12 h-1.5 bg-[var(--fill-primary)] rounded-full mx-auto mt-3 mb-1 lg:hidden" />
+      <div className="relative w-full max-w-md bg-[var(--surface-card)] rounded-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-[var(--shadow-sheet)]">
         <div className="px-4 pt-2 pb-3 border-b border-[var(--separator)]">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[15px] font-semibold text-[var(--label)]">Быстрые ответы</div>

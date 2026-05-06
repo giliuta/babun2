@@ -20,6 +20,7 @@ import {
   removeDemoData,
   seedDemoData,
 } from "@/lib/demo-data/seed";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type Phase = "idle" | "loading" | "seeding" | "removing";
 
@@ -28,6 +29,7 @@ export default function DemoDataSection() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [demoCount, setDemoCount] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const refreshCount = async () => {
     try {
@@ -68,13 +70,7 @@ export default function DemoDataSection() {
 
   const handleRemove = async () => {
     if (phase !== "idle") return;
-    if (
-      !window.confirm(
-        "Удалить все демо-данные из этого аккаунта? Действие нельзя отменить.",
-      )
-    ) {
-      return;
-    }
+    setConfirmRemove(false);
     setPhase("removing");
     setMessage(null);
     try {
@@ -122,7 +118,7 @@ export default function DemoDataSection() {
         {hasDemo && (
           <button
             type="button"
-            onClick={handleRemove}
+            onClick={() => setConfirmRemove(true)}
             disabled={busy}
             className="h-11 px-4 rounded-[12px] bg-[var(--system-red-tint,rgba(255,59,48,0.12))] text-[var(--system-red)] text-[15px] font-semibold flex items-center justify-center gap-2 active:opacity-80 disabled:opacity-50 transition"
           >
@@ -142,6 +138,18 @@ export default function DemoDataSection() {
           </div>
         )}
       </div>
+
+      {confirmRemove && (
+        <ConfirmDialog
+          title="Удалить демо-данные?"
+          message="Все демо-клиенты и записи будут удалены. Действие нельзя отменить."
+          confirmLabel="Удалить"
+          cancelLabel="Отмена"
+          danger
+          onConfirm={handleRemove}
+          onClose={() => setConfirmRemove(false)}
+        />
+      )}
     </section>
   );
 }

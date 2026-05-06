@@ -348,8 +348,8 @@ function ServiceEditorSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40">
-      <div className="w-full lg:max-w-lg bg-[var(--surface-card)] rounded-t-2xl lg:rounded-2xl max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
+      <div className="w-full max-w-lg bg-[var(--surface-card)] rounded-2xl max-h-[92vh] flex flex-col shadow-[var(--shadow-sheet)]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
           <h2 className="text-base font-semibold text-[var(--label)]">
             {service.name ? "Редактировать услугу" : "Новая услуга"}
