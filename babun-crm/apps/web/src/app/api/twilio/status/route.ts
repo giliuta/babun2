@@ -116,9 +116,12 @@ export async function POST(req: Request) {
   const platformAccountSid = process.env.TWILIO_ACCOUNT_SID;
   const platformAuthToken = process.env.TWILIO_AUTH_TOKEN;
   if (!platformAccountSid || !platformAuthToken) {
+    // STORY-079 — return 200 (not 500) on missing platform creds so
+    // Twilio stops retrying. 5xx triggers up to 11 retries over 24h
+    // per message — branch deploys without env can self-DoS otherwise.
     // eslint-disable-next-line no-console
-    console.error("twilio/status: platform creds missing in env");
-    return NextResponse.json({ error: "platform creds missing" }, { status: 500 });
+    console.error("twilio/status: platform creds missing in env, ack-and-drop");
+    return NextResponse.json({ ok: true, ignored: "platform_creds_missing" });
   }
   const fullUrl = computeFullUrl(req);
   const platformExpected = computeTwilioSignature(platformAuthToken, fullUrl, params);

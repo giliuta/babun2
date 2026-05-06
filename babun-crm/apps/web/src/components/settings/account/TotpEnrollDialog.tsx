@@ -26,10 +26,12 @@ export default function TotpEnrollDialog({ onClose, onSuccess }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Enroll on mount. STORY-078 — first sweep any unverified TOTP
-  // factors left over from previous abandoned enrollments. Supabase
-  // caps factors per user (~10) so without this cleanup users who
-  // hesitated repeatedly would eventually hit `mfa_factor_count_exceeded`.
+  // Enroll on mount. STORY-078 sweeps stale unverified factors first.
+  // STORY-079 also early-exits if a verified factor already exists —
+  // the parent component should never open this dialog when 2FA is
+  // already on, but the dialog defends itself in case of a mis-wire
+  // (otherwise we'd stack new factors and eventually hit
+  // `mfa_factor_count_exceeded`).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -37,7 +39,15 @@ export default function TotpEnrollDialog({ onClose, onSuccess }: Props) {
         const sb = getSupabaseBrowser();
         try {
           const { data: list } = await sb.auth.mfa.listFactors();
-          const stale = (list?.totp ?? []).filter((f) => f.status !== "verified");
+          const factors = list?.totp ?? [];
+          const verified = factors.find((f) => f.status === "verified");
+          if (verified) {
+            if (!cancelled) {
+              setError("2FA уже включена. Сначала отключите её, потом подключайте заново.");
+            }
+            return;
+          }
+          const stale = factors.filter((f) => f.status !== "verified");
           await Promise.all(
             stale.map((f) =>
               sb.auth.mfa.unenroll({ factorId: f.id }).catch(() => {}),

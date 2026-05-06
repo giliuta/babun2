@@ -365,14 +365,19 @@ export function upsertClient(client: Client): void {
 }
 
 export function loadClientTags(): ClientTag[] {
-  if (typeof window === "undefined") return DEFAULT_TAGS;
+  // STORY-079 leak fix — DEFAULT_TAGS (VIP / Постоянный / Новый /
+  // Проблемный) were leaking RU labels into every new tenant. The
+  // Postgres trigger handle_new_user() now seeds the same four tags
+  // into the `client_tags` table per-tenant, so the localStorage
+  // layer can default to empty.
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(TAGS_KEY);
-    if (!raw) return DEFAULT_TAGS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TAGS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_TAGS;
+    return [];
   }
 }
 

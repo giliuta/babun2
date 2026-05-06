@@ -136,6 +136,22 @@ export async function assertQuotaAvailable(
   }
 }
 
+/** Returns how many MORE rows of `kind` the tenant can create before
+ *  hitting their quota. Used by bulk-paths (CSV import) to refuse or
+ *  trim oversized batches up front instead of letting individual
+ *  INSERTs fail mid-loop. Returns `Infinity` when limit is unlimited. */
+export async function fetchRemainingQuota(
+  supabase: DbSupabase,
+  tenantId: string,
+  kind: QuotaKind,
+): Promise<number> {
+  const [limit, current] = await Promise.all([
+    fetchQuota(supabase, tenantId, kind),
+    fetchCount(supabase, tenantId, kind),
+  ]);
+  return Math.max(0, limit - current);
+}
+
 /** Friendly RU label for the UI's "approaching limit" toast and the
  *  hard-cap error message. */
 export function quotaKindLabelRu(kind: QuotaKind): string {

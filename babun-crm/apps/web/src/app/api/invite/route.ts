@@ -9,15 +9,25 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { isSameOriginRequest } from "@/lib/http/csrf";
 import {
   assertQuotaAvailable,
   QuotaExceededError,
   quotaKindLabelRu,
 } from "@/lib/quota/check";
 
-const VALID_ROLES = new Set(["owner", "dispatcher", "master"]);
+// STORY-079 — restrict /api/invite to non-owner roles. Co-owner
+// invitations are too high-risk to be a one-click flow (a phished
+// owner click grants permanent full access including Stripe customer
+// id mutation, account deletion). Owner-add is now a manual SQL
+// operation by platform admin via /admin/tenants/[id].
+const VALID_ROLES = new Set(["dispatcher", "master"]);
 
 export async function POST(req: Request) {
+  // STORY-079 — same-origin guard.
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = await getSupabaseServer();
   const {
     data: { user },
@@ -41,7 +51,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
   if (!VALID_ROLES.has(role)) {
-    return NextResponse.json({ error: "Role must be owner | dispatcher | master" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error:
+          "Role must be dispatcher or master. Co-owner invitations are not allowed via API — contact support to add a second owner.",
+      },
+      { status: 400 },
+    );
   }
 
   // Resolve active tenant + verify caller is its Owner. RLS on

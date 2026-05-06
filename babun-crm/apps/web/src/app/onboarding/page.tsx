@@ -34,15 +34,26 @@ export default async function OnboardingPage() {
   const jwtTenantId = (user.app_metadata as { tenant_id?: string } | undefined)
     ?.tenant_id;
   let activeTenantId = jwtTenantId ?? null;
+  // STORY-079 — distinguish transient lookup errors from terminal
+  // "no membership exists" so a flaky network doesn't strand the
+  // user on /login?error=tenant_missing forever.
+  let lookupTransientError = false;
   if (!activeTenantId) {
-    const { data: membership } = await supabase
+    const { data: membership, error: memErr } = await supabase
       .from("tenant_members")
       .select("tenant_id")
       .eq("user_id", user.id)
       .order("joined_at", { ascending: true })
       .limit(1)
       .maybeSingle();
+    if (memErr) {
+      lookupTransientError = true;
+    }
     activeTenantId = membership?.tenant_id ?? null;
+  }
+
+  if (lookupTransientError) {
+    return <TransientLoadError />;
   }
   if (!activeTenantId) {
     redirect("/login?error=tenant_missing");
@@ -54,7 +65,10 @@ export default async function OnboardingPage() {
     .eq("id", activeTenantId)
     .maybeSingle();
 
-  if (error || !tenant) {
+  if (error) {
+    return <TransientLoadError />;
+  }
+  if (!tenant) {
     redirect("/login?error=tenant_missing");
   }
   if (tenant.onboarded_at) {
@@ -74,5 +88,28 @@ export default async function OnboardingPage() {
       initialVertical={asVertical(tenant.vertical)}
       initialPersonalCalendar={Boolean(tenant.personal_calendar_enabled)}
     />
+  );
+}
+
+// STORY-079 — transient lookup-error fallback. Renders inline instead
+// of bouncing to /login so the user can retry without losing context.
+function TransientLoadError() {
+  return (
+    <main className="min-h-[100dvh] bg-[var(--surface-grouped)] flex items-center justify-center p-6">
+      <div className="max-w-sm w-full bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-6 text-center space-y-3">
+        <h1 className="text-[18px] font-semibold text-[var(--label)]">
+          Не удалось загрузить аккаунт
+        </h1>
+        <p className="text-[13px] text-[var(--label-secondary)] leading-snug">
+          Похоже, что-то с подключением. Перезагрузи страницу — обычно помогает.
+        </p>
+        <a
+          href="/onboarding"
+          className="inline-flex h-11 px-5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold items-center justify-center"
+        >
+          Повторить
+        </a>
+      </div>
+    </main>
   );
 }

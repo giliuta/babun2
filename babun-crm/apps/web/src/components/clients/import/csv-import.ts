@@ -17,6 +17,7 @@ import {
   saveResumeState,
   type ImportResumeState,
 } from "./csv-resume";
+import { fetchRemainingQuota, QuotaExceededError } from "@/lib/quota/check";
 
 type DbSupabase = SupabaseClient<Database>;
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"];
@@ -83,6 +84,34 @@ export async function importClients(
 
   const errors: ImportError[] = [];
   let insertedTotal = 0;
+
+  // STORY-079 — quota gate. Refuse the whole import if it would push
+  // the tenant past their `clients` quota. Counts only NEW inserts
+  // (overwrite-mode duplicates don't add to count). Conservative —
+  // for `skip` / `overwrite` modes we still gate on the worst case
+  // (all rows are new).
+  if (rows.length > 0 && startBatchIndex === 0) {
+    try {
+      const remaining = await fetchRemainingQuota(supabase, tenantId, "clients");
+      if (rows.length > remaining) {
+        throw new QuotaExceededError(
+          "clients",
+          // current + (rows.length - remaining new rows)
+          0,
+          remaining + rows.length, // values not surfaced; message is what matters
+        );
+      }
+    } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        throw err;
+      }
+      // Quota lookup failed — fail-open with a warning rather than
+      // refusing the import for a transient blip. The per-row INSERTs
+      // remain RLS-protected.
+      // eslint-disable-next-line no-console
+      console.warn("csv-import: quota check failed, continuing", err);
+    }
+  }
 
   // Slice into batches of BATCH_SIZE so we can save resume state
   // between batches.

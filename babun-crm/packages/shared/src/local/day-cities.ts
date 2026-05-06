@@ -78,18 +78,27 @@ export interface CityConfig {
   bgToday: string;
 }
 
-// Палитра обновлена по спеке. color === c2 (gradient end).
-export const CITIES: Record<string, CityConfig> = {
+// STORY-079 leak fix — was hardcoded Cyprus 4-city palette which
+// every fresh tenant inherited regardless of country. Empty by
+// default; the CYPRUS_CITY_PRESETS export is kept so the future
+// vertical-driven onboarding seed can pull from it explicitly.
+//
+// Calendar code that needs a CityConfig falls back to
+// `cityConfigFromColor(name, color)` using the per-tenant city
+// records loaded from `cities.ts` (Settings → Cities).
+export const CITIES: Record<string, CityConfig> = {};
+
+export const CITY_LIST: CityConfig[] = [];
+
+export const CITY_PRESETS: string[] = [];
+
+// Reference palette retained for vertical-driven seed (deferred).
+export const CYPRUS_CITY_PRESETS: Record<string, CityConfig> = {
   "Пафос":    { name: "Пафос",    code: "ПФ", c1: "#38BDF8", color: "#0284C7", bg: "#F0F9FF", bgToday: "#E0F2FE" },
   "Лимассол": { name: "Лимассол", code: "ЛМ", c1: "#FB923C", color: "#EA580C", bg: "#FFF7ED", bgToday: "#FFEDD5" },
   "Ларнака":  { name: "Ларнака",  code: "ЛК", c1: "#34D399", color: "#059669", bg: "#ECFDF5", bgToday: "#D1FAE5" },
   "Никосия":  { name: "Никосия",  code: "НК", c1: "#C084FC", color: "#7C3AED", bg: "#FAF5FF", bgToday: "#EDE9FE" },
 };
-
-export const CITY_LIST = Object.values(CITIES);
-
-// Common Cyprus cities used as quick-pick presets in the city picker.
-export const CITY_PRESETS: string[] = CITY_LIST.map((c) => c.name);
 
 export function getCityConfig(city: string): CityConfig | null {
   return CITIES[city] ?? null;

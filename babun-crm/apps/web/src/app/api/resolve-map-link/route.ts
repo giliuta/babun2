@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabase/server";
 
 // Resolves a (possibly shortened) map link to coordinates.
 //
@@ -7,8 +8,81 @@ import { NextResponse } from "next/server";
 // URL that does. Client-side fetch can't follow those redirects
 // because of CORS, so we do the chain manually on the server and scan
 // every URL along the way for a coordinate pattern.
+//
+// STORY-079 hardening — this endpoint used to be unauthenticated
+// and would fetch ANY URL. That's a textbook SSRF (AWS IMDS at
+// 169.254.169.254, internal Vercel hosts, RFC1918 ranges). Now:
+//   * auth-gated (must be a logged-in tenant member)
+//   * host allowlist — only known map-link hostnames
+//   * private/loopback/link-local IP ranges blocked at every hop
+//   * https-only (no http://, no file://, no data:)
 
 export const runtime = "nodejs";
+
+// Hostnames we'll fetch from. Suffix match — both the bare host
+// and any subdomain of it. Keep the list tight; new map providers
+// must be added explicitly.
+const ALLOWED_HOST_SUFFIXES = [
+  "google.com",
+  "google.cy",
+  "google.ru",
+  "google.gr",
+  "goo.gl",
+  "maps.app.goo.gl",
+  "apple.com",
+  "maps.apple.com",
+  "waze.com",
+  "yandex.ru",
+  "yandex.com",
+  "2gist.ru",
+  "2gis.ru",
+  "2gis.com",
+  "bit.ly",
+  "t.co",
+];
+
+function isAllowedHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return ALLOWED_HOST_SUFFIXES.some(
+    (suf) => h === suf || h.endsWith("." + suf),
+  );
+}
+
+// IPv4 / IPv6 literal blocklist for SSRF defence.
+function isBlockedIp(hostname: string): boolean {
+  // IPv4 dotted-quad
+  const v4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(hostname);
+  if (v4) {
+    const [a, b] = [parseInt(v4[1]!, 10), parseInt(v4[2]!, 10)];
+    if (a === 10) return true; // 10.0.0.0/8
+    if (a === 127) return true; // 127.0.0.0/8 loopback
+    if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local (incl. AWS IMDS)
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16
+    if (a === 0) return true;
+    if (a >= 224) return true; // multicast / reserved
+    return false;
+  }
+  // IPv6 link-local / loopback / unique-local
+  if (/^::1$/i.test(hostname)) return true;
+  if (/^fe[89ab][0-9a-f]:/i.test(hostname)) return true;
+  if (/^f[cd][0-9a-f][0-9a-f]:/i.test(hostname)) return true;
+  return false;
+}
+
+function safeUrl(raw: string, base?: string): URL | null {
+  let u: URL;
+  try {
+    u = base ? new URL(raw, base) : new URL(raw);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (u.protocol === "http:" && process.env.NODE_ENV === "production") return null;
+  if (isBlockedIp(u.hostname)) return null;
+  if (!isAllowedHost(u.hostname)) return null;
+  return u;
+}
 
 interface ResolveResponse {
   resolved_url: string | null;
@@ -112,6 +186,10 @@ async function followRedirects(
   const visited: string[] = [];
   let current = initial;
   for (let i = 0; i < maxHops; i++) {
+    // SSRF check on EVERY hop — the initial URL was validated, but
+    // the Location header can redirect us anywhere.
+    const checked = safeUrl(current);
+    if (!checked) break;
     visited.push(current);
     let res: Response;
     try {
@@ -128,17 +206,24 @@ async function followRedirects(
     if (res.status < 300 || res.status >= 400) break;
     const loc = res.headers.get("location");
     if (!loc) break;
-    try {
-      current = new URL(loc, current).toString();
-    } catch {
-      break;
-    }
+    const next = safeUrl(loc, current);
+    if (!next) break;
+    current = next.toString();
     if (visited.includes(current)) break; // cycle guard
   }
   return visited;
 }
 
 export async function GET(request: Request) {
+  // STORY-079 — auth gate. Was open for SSRF exploitation.
+  const supabase = await getSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const target = searchParams.get("url");
 
@@ -158,11 +243,21 @@ export async function GET(request: Request) {
     });
   }
 
+  // Validate the initial URL. Out-of-allowlist or private-IP targets
+  // are rejected before any fetch happens.
+  const initial = safeUrl(target);
+  if (!initial) {
+    return NextResponse.json(
+      { resolved_url: null, coords: null, error: "host_not_allowed" },
+      { status: 400 },
+    );
+  }
+
   try {
     // 1. Manually follow redirects, trying to extract coords from each
     //    intermediate URL. Short URLs often reveal the coordinates
     //    right in the first redirect Location header.
-    const urls = await followRedirects(target);
+    const urls = await followRedirects(initial.toString());
     for (const u of urls) {
       const coords = extractCoords(u);
       if (coords) {
@@ -176,14 +271,26 @@ export async function GET(request: Request) {
     // 2. No coords in any URL along the chain — fetch the final page
     //    with auto-follow (some origins only serve content via JS on
     //    the final hop) and scan the HTML.
-    const finalRes = await fetch(target, {
-      redirect: "follow",
+    //
+    // We use redirect:'manual' here too because redirect:'follow'
+    // bypasses our SSRF host check on intermediate hops. The last URL
+    // in `urls` already passed the allowlist; fetch that directly.
+    const lastUrl = urls.length > 0 ? urls[urls.length - 1]! : initial.toString();
+    const lastChecked = safeUrl(lastUrl);
+    if (!lastChecked) {
+      return NextResponse.json<ResolveResponse>({
+        resolved_url: null,
+        coords: null,
+      });
+    }
+    const finalRes = await fetch(lastChecked.toString(), {
+      redirect: "manual",
       headers: {
         "User-Agent": UA,
         "Accept-Language": "en-US,en;q=0.9",
       },
     });
-    const finalUrl = finalRes.url;
+    const finalUrl = lastChecked.toString();
     const finalUrlCoords = extractCoords(finalUrl);
     if (finalUrlCoords) {
       return NextResponse.json<ResolveResponse>({
@@ -191,7 +298,8 @@ export async function GET(request: Request) {
         coords: finalUrlCoords,
       });
     }
-    const html = await finalRes.text();
+    // Cap response body at 256 KB so we don't OOM on a malicious giant page.
+    const html = (await finalRes.text()).slice(0, 256 * 1024);
     const htmlCoords = extractCoords(html);
     return NextResponse.json<ResolveResponse>({
       resolved_url: finalUrl,

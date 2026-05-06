@@ -373,33 +373,14 @@ async function maybeCreditSmsTopup(
     throw insertErr;
   }
 
-  // Bump balance via SECURITY DEFINER RPC so we don't have to read +
-  // write (avoids a race with concurrent topups). Since tenant_sms_config
-  // already has a row for every tenant (ensured by signup trigger),
-  // we can update by tenant_id.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existing, error: readErr } = await sbs
-    .from("tenant_sms_config")
-    .select("balance_cents")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-
-  if (readErr) throw readErr;
-
-  if (existing) {
-    const newBalance = (existing.balance_cents ?? 0) + amountCents;
-    const { error: updErr } = await sbs
-      .from("tenant_sms_config")
-      .update({ balance_cents: newBalance })
-      .eq("tenant_id", tenantId);
-    if (updErr) throw updErr;
-  } else {
-    // No config row yet (older tenant pre-signup-trigger). Create it.
-    const { error: insErr } = await sbs.from("tenant_sms_config").insert({
-      tenant_id: tenantId,
-      balance_cents: amountCents,
-      free_sms_remaining: 10,
-    });
-    if (insErr) throw insErr;
-  }
+  // STORY-079 — atomic balance bump via the bump_sms_balance RPC.
+  // Replaced the previous read-then-update pattern which lost credits
+  // under concurrent webhooks for different topups on the same tenant.
+  // RPC does INSERT ... ON CONFLICT DO UPDATE in a single statement,
+  // so Postgres' row lock guarantees correctness.
+  const { error: rpcErr } = await sbs.rpc("bump_sms_balance", {
+    p_tenant_id: tenantId,
+    p_amount_cents: amountCents,
+  });
+  if (rpcErr) throw rpcErr;
 }

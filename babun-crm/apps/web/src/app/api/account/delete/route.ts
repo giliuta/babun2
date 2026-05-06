@@ -21,8 +21,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSupabaseService } from "@/lib/supabase/service";
+import { isSameOriginRequest } from "@/lib/http/csrf";
 
-export async function POST() {
+export async function POST(req: Request) {
+  // STORY-079 — same-origin guard so a cross-site form POST can't
+  // nuke the user's account through cookie-CSRF.
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = await getSupabaseServer();
   const {
     data: { user },
