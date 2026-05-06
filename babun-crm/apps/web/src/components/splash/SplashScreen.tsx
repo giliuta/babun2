@@ -148,7 +148,7 @@ export function SplashScreen({ tenantName }: Props) {
         size={80}
         radius={20}
         style={{
-          boxShadow: "0 8px 24px rgba(31,102,215,0.25)",
+          boxShadow: "0 8px 24px rgba(62,136,247,0.25)",
         }}
       />
 

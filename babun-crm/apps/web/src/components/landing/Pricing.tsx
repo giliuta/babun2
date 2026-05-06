@@ -109,7 +109,7 @@ function PricingCard({ tier }: { tier: Tier }) {
   const base =
     "relative bg-[var(--surface-grouped)] rounded-2xl p-6 lg:p-7 flex flex-col";
   const highlighted = tier.highlighted
-    ? "ring-2 ring-[var(--accent)] lg:scale-[1.02] shadow-[0_8px_24px_rgba(31,102,215,0.12)]"
+    ? "ring-2 ring-[var(--accent)] lg:scale-[1.02] shadow-[0_8px_24px_rgba(62,136,247,0.12)]"
     : "ring-1 ring-[var(--separator)]";
 
   return (

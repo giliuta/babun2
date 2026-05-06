@@ -224,7 +224,7 @@ export default function Sidebar({
         <div className="flex-shrink-0 bg-[var(--surface-card)] px-4 pt-6 pb-5 border-b border-[var(--separator)]">
           <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[20px] font-bold tracking-tight shadow-[0_2px_6px_rgba(31,102,215,0.18)]"
+              className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[20px] font-bold tracking-tight shadow-[0_2px_6px_rgba(62,136,247,0.18)]"
               style={{ background: "var(--brand-mark-grad)" }}
             >
               B

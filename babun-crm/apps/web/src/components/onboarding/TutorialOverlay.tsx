@@ -203,7 +203,7 @@ export function TutorialOverlay({
           width: rect.width,
           height: rect.height,
           borderRadius: 14,
-          boxShadow: "0 0 0 3px rgba(31,102,215,0.85)",
+          boxShadow: "0 0 0 3px rgba(62,136,247,0.85)",
           zIndex: 91,
           pointerEvents: "none",
         }}
