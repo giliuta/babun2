@@ -5,10 +5,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   Globe,
-  MapPin,
-  Package,
   Users as UsersIcon,
-  UserCircle2,
   MessageSquare,
   Building2,
   ChevronRight,
@@ -121,44 +118,11 @@ const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
-  {
-    title: "Команда",
-    items: [
-      {
-        href: "/dashboard/teams",
-        icon: UsersIcon,
-        tone: "bg-[var(--tile-blue)]",
-        title: "Бригады",
-        desc: "Состав команд, цвета, % зарплаты",
-      },
-      {
-        href: "/dashboard/masters",
-        icon: UserCircle2,
-        tone: "bg-[var(--tile-indigo)]",
-        title: "Мастера",
-        desc: "Сотрудники, контакты, доступы",
-      },
-    ],
-  },
-  {
-    title: "Каталог",
-    items: [
-      {
-        href: "/dashboard/settings/cities",
-        icon: MapPin,
-        tone: "bg-[var(--tile-red)]",
-        title: "Города",
-        desc: "Справочник для клиентов и записей",
-      },
-      {
-        href: "/dashboard/inventory",
-        icon: Package,
-        tone: "bg-[var(--tile-mint)]",
-        title: "Оборудование",
-        desc: "Инструмент и приборы по бригадам",
-      },
-    ],
-  },
+  // v431 — "Команда" (Бригады, Мастера) and "Каталог" (Города,
+  // Оборудование) groups dropped from settings per user request.
+  // Бригады/Мастера live in the sidebar (Ещё → Бригады/Мастера) and
+  // Города/Оборудование are configured inside the brigade/master
+  // detail pages, not as standalone catalog screens.
   {
     title: "Записи",
     items: [
