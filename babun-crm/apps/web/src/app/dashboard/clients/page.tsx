@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Trash2,
@@ -46,7 +47,15 @@ import { useClients, useAppointments } from "@/components/layout/DashboardClient
 import { type Client, type ClientTag, createBlankClient } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
-import ClientPanel from "@/components/clients/ClientPanel";
+// ClientPanel is the full client profile view (~1500 lines). Mobile
+// renders it as a slide-up sheet on row tap; desktop renders it as a
+// right-side panel only when a client is selected. Either way it's
+// gated behind user interaction, so lazy-loading saves a big chunk
+// from the initial /dashboard/clients parse.
+const ClientPanel = dynamic(
+  () => import("@/components/clients/ClientPanel"),
+  { ssr: false },
+);
 import { matchesClient } from "@babun/shared/local/selectors/client-search";
 import { haptic } from "@/lib/haptics";
 import {
@@ -59,10 +68,19 @@ import {
 } from "@babun/shared/local/selectors/client-stats";
 import ClientCardStats from "@/components/clients/ClientCardStats";
 import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
-import ClientQuickActionsSheet from "@/components/clients/ClientQuickActionsSheet";
+// ClientQuickActionsSheet — bottom sheet that opens on long-press of
+// a client row. ImportClientsModal — opens from the page menu. Both
+// gated on user action, neither needs to ship in the initial bundle.
+const ClientQuickActionsSheet = dynamic(
+  () => import("@/components/clients/ClientQuickActionsSheet"),
+  { ssr: false },
+);
 import ClientsListSkeleton from "@/components/clients/ClientsListSkeleton";
 import { DelayedSkeleton } from "@/components/ui/DelayedSkeleton";
-import ImportClientsModal from "@/components/clients/import/ImportClientsModal";
+const ImportClientsModal = dynamic(
+  () => import("@/components/clients/import/ImportClientsModal"),
+  { ssr: false },
+);
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useTenantId } from "@/components/layout/DashboardClientLayout";
 import {
