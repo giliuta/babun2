@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
+  Globe,
   MapPin,
   Package,
   Users as UsersIcon,
@@ -182,6 +183,13 @@ const NAV_GROUPS: NavGroup[] = [
         title: "Автоматические SMS",
         desc: "Напоминания за 24 ч / 2 ч, Twilio",
       },
+      {
+        href: "/dashboard/settings/online-booking",
+        icon: Globe,
+        tone: "bg-[var(--tile-cyan)]",
+        title: "Онлайн запись",
+        desc: "Адрес страницы, рабочие часы, предоплата",
+      },
     ],
   },
   {
@@ -241,7 +249,7 @@ export default function SettingsPage() {
           onDismiss={tutorialBilling.complete}
         />
       )}
-      <PageHeader title="Настройки" />
+      <PageHeader title="Настройки" backHref="/dashboard" />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-6 stagger-children">

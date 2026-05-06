@@ -42,20 +42,21 @@ export default function PageHeader({
   const router = useRouter();
   const sidebar = useSidebar();
 
-  // v319 — Smart back behavior.  iOS native pattern: arrow returns
-  // to whichever screen pushed you here.  Falls back to `backHref`
-  // (or /dashboard) when there is no history (cold deep-link).
+  // v430 — back-arrow logic. Prefer explicit backHref via router.push:
+  // it always works and gives a deterministic landing route. When
+  // backHref isn't supplied we fall through to router.back(), which
+  // walks one step up the history. The previous window.history.length
+  // > 1 guard was unreliable on iOS PWA — sessions could rack up
+  // pushed entries while the browser still reported length 1, and
+  // the guard would short-circuit to push("/dashboard") instead of
+  // doing the actual back navigation the user expected.
   const goBack = () => {
     haptic("light");
     if (backHref) {
       router.push(backHref);
       return;
     }
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/dashboard");
-    }
+    router.back();
   };
 
   return (

@@ -51,7 +51,7 @@ export default async function PersonalInfoPage() {
     .from("tenants")
     .select(
       "id, name, vertical, city, country, currency, " +
-        "booking_slug, logo_url, business_address, contact_phone, contact_email, " +
+        "logo_url, business_address, contact_phone, contact_email, " +
         "contact_whatsapp, contact_telegram, contact_instagram",
     )
     .eq("id", activeTenantId)
@@ -80,7 +80,6 @@ export default async function PersonalInfoPage() {
           />
           <BrandContactsSection
             initial={{
-              booking_slug: tenant.booking_slug ?? null,
               logo_url: tenant.logo_url ?? null,
               business_address: tenant.business_address ?? null,
               contact_phone: tenant.contact_phone ?? null,
