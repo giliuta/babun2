@@ -1,15 +1,12 @@
 "use client";
 
 // STORY-070 wave 2 — Tenant impersonation button.
-//
-// Calls the impersonateTenantOwner server action which returns a
-// magic-link URL. We open it in a new tab so the admin keeps their
-// own /admin session intact. Confirms before firing — the magic
-// link grants full owner access, so this is a load-bearing button.
+// STORY-081 — replaced window.confirm with iOS-styled ConfirmDialog.
 
 import { useState, useTransition } from "react";
 import { LogIn } from "@babun/shared/icons";
 import { impersonateTenantOwner } from "@/app/admin/actions";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface Props {
   tenantId: string;
@@ -19,15 +16,11 @@ interface Props {
 export default function ImpersonateButton({ tenantId, tenantName }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const onClick = () => {
-    if (busy || isPending) return;
-    const ok = window.confirm(
-      `Войти как владелец тенанта «${tenantName}»? Сгенерируется magic-link, ` +
-        `откроется в новой вкладке. Используй только для поддержки.`,
-    );
-    if (!ok) return;
+  const handleConfirm = () => {
+    setShowConfirm(false);
     setError(null);
     setBusy(true);
     startTransition(async () => {
@@ -45,7 +38,7 @@ export default function ImpersonateButton({ tenantId, tenantName }: Props) {
     <div className="space-y-2">
       <button
         type="button"
-        onClick={onClick}
+        onClick={() => setShowConfirm(true)}
         disabled={busy || isPending}
         className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[13px] font-semibold active:bg-[var(--fill-secondary)] disabled:opacity-50 transition flex items-center justify-center gap-2"
       >
@@ -56,6 +49,18 @@ export default function ImpersonateButton({ tenantId, tenantName }: Props) {
         <div className="text-[12px] text-[var(--system-red)] leading-snug">
           {error}
         </div>
+      )}
+
+      {showConfirm && (
+        <ConfirmDialog
+          title={`Войти как владелец «${tenantName}»?`}
+          message="Сгенерируется magic-link, откроется в новой вкладке. Используй только для поддержки клиента."
+          confirmLabel="Войти"
+          cancelLabel="Отмена"
+          danger={false}
+          onConfirm={handleConfirm}
+          onClose={() => setShowConfirm(false)}
+        />
       )}
     </div>
   );

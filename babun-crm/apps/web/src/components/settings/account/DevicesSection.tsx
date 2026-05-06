@@ -12,9 +12,12 @@
 import { Monitor } from "@babun/shared/icons";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function DevicesSection() {
   const [thisDeviceLabel, setThisDeviceLabel] = useState<string>("Это устройство");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     if (typeof navigator === "undefined") return;
@@ -28,17 +31,26 @@ export default function DevicesSection() {
     setThisDeviceLabel(device);
   }, []);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const handleSignOutOthers = async () => {
-    if (!confirm("Выйти на всех устройствах кроме этого?")) return;
+    setShowConfirm(false);
     try {
       const sb = getSupabaseBrowser();
       // Supabase signOut(scope: 'others') revokes all other sessions
       // for the current user. Current session stays alive.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (sb.auth as any).signOut({ scope: "others" });
-      alert("Готово. Все остальные устройства разлогинены.");
+      setToast({ kind: "ok", text: "Готово. Все остальные устройства разлогинены." });
     } catch (err) {
-      alert("Не удалось выйти: " + (err instanceof Error ? err.message : "ошибка"));
+      setToast({
+        kind: "err",
+        text: "Не удалось выйти: " + (err instanceof Error ? err.message : "ошибка"),
+      });
     }
   };
 
@@ -66,15 +78,41 @@ export default function DevicesSection() {
         </div>
         <button
           type="button"
-          onClick={handleSignOutOthers}
-          className="w-full text-left px-4 py-3 text-[14px] text-[var(--system-red)] active:bg-[var(--fill-quaternary)]"
+          onClick={() => setShowConfirm(true)}
+          className="w-full text-left px-4 py-3 text-[14px] text-[var(--system-red)] active:bg-[var(--fill-quaternary)] min-h-[44px]"
         >
           Выйти на всех других устройствах
         </button>
       </div>
-      <div className="px-4 pt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+      <div className="px-4 pt-2 text-[11px] text-[var(--label-secondary)] leading-snug">
         Полный список активных сессий с датой и местом — в разработке. Подключим вместе с журналом входов.
       </div>
+
+      {showConfirm && (
+        <ConfirmDialog
+          title="Выйти везде кроме этого?"
+          message="Все остальные устройства будут разлогинены. Это устройство останется в сети."
+          confirmLabel="Выйти"
+          cancelLabel="Отмена"
+          danger
+          onConfirm={handleSignOutOthers}
+          onClose={() => setShowConfirm(false)}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={`fixed left-1/2 -translate-x-1/2 z-[95] px-4 py-2 rounded-full shadow-lg text-[13px] font-medium ${
+            toast.kind === "ok"
+              ? "bg-[var(--system-green)] text-white"
+              : "bg-[var(--system-red)] text-white"
+          }`}
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 80px)" }}
+          role="status"
+        >
+          {toast.text}
+        </div>
+      )}
     </div>
   );
 }

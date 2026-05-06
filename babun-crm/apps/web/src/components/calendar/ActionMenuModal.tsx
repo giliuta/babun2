@@ -63,7 +63,7 @@ export default function ActionMenuModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-[var(--surface-overlay)]"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-[var(--surface-overlay)]"
       onPointerDown={handleBackdropPointerDown}
     >
       <div

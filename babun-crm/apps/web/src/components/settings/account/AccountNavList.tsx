@@ -109,7 +109,7 @@ export default function AccountNavList({ email, initials }: Props) {
                 {r.title}
               </div>
               {r.hint && (
-                <div className="text-[11px] text-[var(--label-tertiary)] truncate leading-tight mt-0.5">
+                <div className="text-[11px] text-[var(--label-secondary)] truncate leading-tight mt-0.5">
                   {r.hint}
                 </div>
               )}
@@ -122,7 +122,7 @@ export default function AccountNavList({ email, initials }: Props) {
         ))}
       </div>
 
-      <div className="px-4 text-[11px] text-[var(--label-tertiary)] flex items-center gap-1.5">
+      <div className="px-4 text-[11px] text-[var(--label-secondary)] flex items-center gap-1.5">
         <Sparkles size={12} />
         <span>Структура как в настройках Apple — каждая секция на своей странице.</span>
       </div>

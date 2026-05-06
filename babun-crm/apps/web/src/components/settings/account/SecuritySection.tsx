@@ -14,6 +14,7 @@
 import { useEffect, useState } from "react";
 import { Lock, Check, Shield, ShieldCheck, Mail, Phone } from "@babun/shared/icons";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import TotpEnrollDialog from "./TotpEnrollDialog";
 
 export default function SecuritySection() {
@@ -132,6 +133,7 @@ function TwoFactorBlock() {
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEnroll, setShowEnroll] = useState(false);
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
@@ -154,7 +156,7 @@ function TwoFactorBlock() {
 
   const handleDisable = async () => {
     if (!totpFactorId || busy) return;
-    if (!confirm("Отключить двухфакторную аутентификацию? Аккаунт станет менее защищён.")) return;
+    setShowDisableConfirm(false);
     setBusy(true);
     try {
       const sb = getSupabaseBrowser();
@@ -187,9 +189,9 @@ function TwoFactorBlock() {
             ) : hasTotp ? (
               <button
                 type="button"
-                onClick={handleDisable}
+                onClick={() => setShowDisableConfirm(true)}
                 disabled={busy}
-                className="h-9 px-3.5 rounded-[10px] bg-[rgba(255,59,48,0.10)] border border-[rgba(255,59,48,0.30)] text-[var(--system-red)] text-[12px] font-semibold active:bg-[rgba(255,59,48,0.18)] disabled:opacity-50"
+                className="h-11 px-4 rounded-[10px] bg-[rgba(255,59,48,0.10)] border border-[rgba(255,59,48,0.30)] text-[var(--system-red)] text-[13px] font-semibold active:bg-[rgba(255,59,48,0.18)] disabled:opacity-50"
               >
                 Отключить
               </button>
@@ -197,7 +199,7 @@ function TwoFactorBlock() {
               <button
                 type="button"
                 onClick={() => setShowEnroll(true)}
-                className="h-9 px-3.5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[12px] font-semibold active:scale-[0.98]"
+                className="h-11 px-4 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:scale-[0.98]"
               >
                 Подключить
               </button>
@@ -229,6 +231,17 @@ function TwoFactorBlock() {
             setShowEnroll(false);
             await refresh();
           }}
+        />
+      )}
+      {showDisableConfirm && (
+        <ConfirmDialog
+          title="Отключить 2FA?"
+          message="Аккаунт станет менее защищён. Снова подключить можно будет в любой момент."
+          confirmLabel="Отключить"
+          cancelLabel="Отмена"
+          danger
+          onConfirm={handleDisable}
+          onClose={() => setShowDisableConfirm(false)}
         />
       )}
     </>

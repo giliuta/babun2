@@ -110,7 +110,7 @@ export default function BusinessSection({
               </option>
             ))}
           </select>
-          <div className="mt-1 text-[11px] text-[var(--label-tertiary)] leading-snug">
+          <div className="mt-1 text-[11px] text-[var(--label-secondary)] leading-snug">
             По типу бизнеса будем подсказывать стартовые шаблоны: услуги, цены, шаблоны SMS. Можно поменять в любой момент.
           </div>
         </Field>

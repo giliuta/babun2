@@ -85,7 +85,7 @@ export default function SenderApprovalRow({
             {ownerEmail ?? "—"}
           </div>
         </div>
-        <span className="text-[11px] text-[var(--label-tertiary)] tabular-nums whitespace-nowrap">
+        <span className="text-[11px] text-[var(--label-secondary)] tabular-nums whitespace-nowrap">
           {ageLabel}
         </span>
       </div>

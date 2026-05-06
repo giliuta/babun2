@@ -78,34 +78,46 @@ export default function RegisterForm() {
 
       <form onSubmit={submit} className="space-y-3">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
-          <input
-            type="text"
-            autoComplete="organization"
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            placeholder="Название бизнеса (необязательно)"
-            maxLength={120}
-            className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
-          />
-          <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            required
-            className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
-          />
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Пароль (минимум 8 символов)"
-            required
-            minLength={8}
-            className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
-          />
+          <label className="block">
+            <span className="sr-only">Название бизнеса</span>
+            <input
+              type="text"
+              autoComplete="organization"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Название бизнеса (необязательно)"
+              maxLength={120}
+              aria-label="Название бизнеса"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Email</span>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              aria-label="Email"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Пароль</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Пароль (минимум 8 символов)"
+              required
+              minLength={8}
+              aria-label="Пароль"
+              className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
+            />
+          </label>
         </div>
 
         {error && (
@@ -122,7 +134,7 @@ export default function RegisterForm() {
           {loading ? "Создаём…" : "Создать аккаунт"}
         </button>
 
-        <p className="text-[11px] text-[var(--label-tertiary)] text-center leading-snug px-2">
+        <p className="text-[11px] text-[var(--label-secondary)] text-center leading-snug px-2">
           После регистрации мы отправим письмо со ссылкой подтверждения. Открой его — и возвращайся сюда, чтобы войти.
         </p>
 

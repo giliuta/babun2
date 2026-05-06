@@ -116,7 +116,7 @@ function StatusCard({ config }: { config: ManagedSmsConfig }) {
         </p>
       )}
       {config.total_sent_count > 0 && (
-        <p className="mt-2 text-[11px] text-[var(--label-tertiary)] tabular-nums">
+        <p className="mt-2 text-[11px] text-[var(--label-secondary)] tabular-nums">
           Всего отправлено: {config.total_sent_count}
         </p>
       )}
@@ -228,7 +228,7 @@ function SenderCard({ config }: { config: ManagedSmsConfig }) {
             maxLength={11}
             className="w-full h-11 px-3 text-[16px] tracking-[0.04em] uppercase tabular-nums bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] focus:outline-none focus:border-[var(--accent)]"
           />
-          <p className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+          <p className="mt-2 text-[11px] text-[var(--label-secondary)] leading-snug">
             До 11 символов, латинские буквы / цифры / пробел. Должна быть минимум одна буква. Получатели увидят это имя вместо номера.
           </p>
           {error && (
@@ -307,7 +307,7 @@ function TopupCard({ config }: { config: ManagedSmsConfig }) {
               <span className="text-[12px] font-medium text-[var(--label-secondary)] tabular-nums">
                 {p.credits} SMS
               </span>
-              <span className="text-[10px] text-[var(--label-tertiary)] tabular-nums">
+              <span className="text-[10px] text-[var(--label-secondary)] tabular-nums">
                 ≈ €{perSms}/SMS
               </span>
             </button>
@@ -324,7 +324,7 @@ function TopupCard({ config }: { config: ManagedSmsConfig }) {
           {error}
         </p>
       )}
-      <p className="mt-3 text-[11px] text-[var(--label-tertiary)] text-center leading-snug">
+      <p className="mt-3 text-[11px] text-[var(--label-secondary)] text-center leading-snug">
         Безопасная оплата через Stripe · отмена не нужна — нет подписки · возврат по запросу
       </p>
     </section>
@@ -393,7 +393,7 @@ function LogRow({ log }: { log: ManagedSmsLog }) {
           <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 line-clamp-2 leading-snug">
             {log.body}
           </div>
-          <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5 tabular-nums">
+          <div className="text-[11px] text-[var(--label-secondary)] mt-0.5 tabular-nums">
             {dateLabel} · {timeLabel} · от «{log.sender_name_used}»
             {log.cost_cents > 0 && ` · €${(log.cost_cents / 100).toFixed(2)}`}
           </div>

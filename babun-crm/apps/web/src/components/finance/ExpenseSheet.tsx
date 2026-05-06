@@ -70,17 +70,13 @@ export default function ExpenseSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px]"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] px-4"
       onClick={onClose}
     >
       <div
-        className="w-full lg:max-w-md bg-[var(--surface-card)] rounded-t-[20px] lg:rounded-[20px] lg:mb-8 shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh]"
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Grabber */}
-        <div className="flex-shrink-0 flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-[var(--label-quaternary)]" />
-        </div>
 
         {/* Header */}
         <div className="px-5 pt-1 pb-3 flex-shrink-0">

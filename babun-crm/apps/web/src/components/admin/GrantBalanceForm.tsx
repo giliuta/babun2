@@ -66,7 +66,8 @@ export default function GrantBalanceForm({ tenantId }: { tenantId: string }) {
         onChange={(e) => setReason(e.target.value)}
         placeholder="Причина (для аудита)"
         maxLength={140}
-        className="w-full h-9 px-3 text-[12px] bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] focus:outline-none focus:border-[var(--accent)]"
+        aria-label="Причина начисления"
+        className="w-full h-11 px-3 text-[13px] bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] focus:outline-none focus:border-[var(--accent)]"
       />
       {error && <p className="text-[12px] text-[var(--system-red)]">{error}</p>}
       {success && (
@@ -78,7 +79,7 @@ export default function GrantBalanceForm({ tenantId }: { tenantId: string }) {
         type="button"
         onClick={submit}
         disabled={pending || credits <= 0 || reason.trim().length === 0}
-        className="h-9 px-4 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold disabled:opacity-40"
+        className="h-11 px-4 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
       >
         {pending ? "Начисляем…" : `Начислить ${credits} SMS`}
       </button>

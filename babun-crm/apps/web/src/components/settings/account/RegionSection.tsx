@@ -112,7 +112,7 @@ export default function RegionSection({
         </label>
       </div>
 
-      <div className="px-4 mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+      <div className="px-4 mt-2 text-[11px] text-[var(--label-secondary)] leading-snug">
         Часовой пояс и рабочие часы — в{" "}
         <a href="/dashboard/settings/calendar" className="text-[var(--accent)]">
           настройках календаря

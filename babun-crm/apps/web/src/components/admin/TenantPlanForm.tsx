@@ -68,7 +68,7 @@ export default function TenantPlanForm({
       {error && (
         <p className="mt-2 text-[12px] text-[var(--system-red)]">{error}</p>
       )}
-      <p className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+      <p className="mt-2 text-[11px] text-[var(--label-secondary)] leading-snug">
         Override побеждает Stripe-план. Используй для жалующихся клиентов, lifetime-grants (AirFix), партнёров. «Снять» возвращает контроль Stripe-у.
       </p>
     </div>

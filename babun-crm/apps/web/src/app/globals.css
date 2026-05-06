@@ -60,6 +60,11 @@
   --accent-pressed: #2D7BE5;
   --accent-tint: rgba(62, 136, 247, 0.12);
   --accent-on: #FFFFFF;
+  /* STORY-081 — single brand-mark gradient token. Three different
+     blues had been hardcoded across Sidebar / AdminSidebar /
+     AccountNavList / auth — all now read this. */
+  --brand-mark-grad: linear-gradient(135deg, var(--accent) 0%, var(--accent-pressed) 100%);
+  --brand-mark-grad-hero: linear-gradient(135deg, #3478F6 0%, #AF52DE 100%);
 
   /* Tile palette — Telegram-iOS rounded-square icons on the left of
      ListRow items. Slightly saturated so they pop on the light card. */
@@ -331,6 +336,18 @@ h1, h2, h3,
 @keyframes babun-spin {
   to { transform: rotate(360deg); }
 }
+
+/* STORY-081 — accessibility floor. Users with vestibular disorders
+   set Settings → Accessibility → Reduce Motion. Gate every keyframe-
+   driven utility on prefers-reduced-motion: no-preference. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 .babun-spin {
   animation: babun-spin 0.7s linear infinite;
 }
@@ -526,7 +543,11 @@ h1, h2, h3,
   opacity: 0.92;
 }
 .pill-primary:disabled {
-  opacity: 0.5;
+  /* STORY-081 — opacity-only disabled looks like a faded enabled
+     button (users repeat-tap). Swap to a real fill-tertiary +
+     label-tertiary state so the affordance is unambiguous. */
+  background: var(--fill-tertiary);
+  color: var(--label-tertiary);
   box-shadow: none;
   cursor: not-allowed;
 }

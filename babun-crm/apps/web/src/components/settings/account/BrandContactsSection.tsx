@@ -97,7 +97,7 @@ export default function BrandContactsSection({ initial }: Props) {
           />
         </Row>
         {slug && (
-          <div className="px-4 pb-2 -mt-1 text-[11px] text-[var(--label-tertiary)] font-mono">
+          <div className="px-4 pb-2 -mt-1 text-[11px] text-[var(--label-secondary)] font-mono">
             babun.app/book/{slug}
           </div>
         )}
@@ -238,7 +238,7 @@ function Row({
         {children}
       </label>
       {hint && (
-        <div className="ml-[110px] mt-0.5 text-[11px] text-[var(--label-tertiary)] leading-snug">
+        <div className="ml-[110px] mt-0.5 text-[11px] text-[var(--label-secondary)] leading-snug">
           {hint}
         </div>
       )}
