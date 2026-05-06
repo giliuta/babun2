@@ -2,8 +2,13 @@
 // Drives auto-scroll start position and grid range on the calendar.
 
 export interface CalendarSettings {
-  startHour: number;          // 0-23, default 9
-  endHour: number;            // 1-24, default 20
+  /** Visible-grid start hour. Determines what the user actually sees
+   *  on the calendar — 0-23, default 9. Renamed conceptually in v438:
+   *  treated as "visibleStartHour" but the field name stays for back-
+   *  compat with any persisted localStorage entries. */
+  startHour: number;
+  /** Visible-grid end hour. 0-23, default 20. */
+  endHour: number;
   gridStep: 15 | 30 | 60;    // minutes, default 30
   weekStart: "monday" | "sunday";
   timezone: string;           // default "Europe/Nicosia"
@@ -15,13 +20,26 @@ export interface CalendarSettings {
   hideCancelled?: boolean;
   /** Allow an appointment to end past endHour (overflow). */
   allowOvertime?: boolean;
+  // v438 — separate working hours from the visible range.
+  /** Working-day start hour. The grid between work-start and work-end
+   *  is highlighted (lighter background) so the user sees their work
+   *  block at a glance. Falls back to startHour when undefined. */
+  workStartHour?: number;
+  /** Working-day end hour. Falls back to endHour when undefined. */
+  workEndHour?: number;
+  /** Hour the calendar auto-scrolls to on open. When undefined we
+   *  use workStartHour, then startHour. */
+  scrollOpenHour?: number;
 }
 
 const STORAGE_KEY = "babun2:settings:calendar";
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
-  startHour: 9,
-  endHour: 20,
+  startHour: 6,
+  endHour: 22,
+  workStartHour: 8,
+  workEndHour: 20,
+  scrollOpenHour: 9,
   gridStep: 30,
   weekStart: "monday",
   timezone: "Europe/Nicosia",
@@ -67,7 +85,19 @@ export function saveCalendarSettings(settings: CalendarSettings): void {
 
 export function validateCalendarSettings(s: CalendarSettings): string | null {
   if (s.endHour <= s.startHour) {
-    return "Конец дня должен быть позже начала";
+    return "Конец видимого диапазона должен быть позже начала";
+  }
+  const ws = s.workStartHour ?? s.startHour;
+  const we = s.workEndHour ?? s.endHour;
+  if (we <= ws) {
+    return "Конец рабочих часов должен быть позже начала";
+  }
+  if (ws < s.startHour || we > s.endHour) {
+    return "Рабочие часы должны быть внутри видимого диапазона";
+  }
+  const open = s.scrollOpenHour ?? ws;
+  if (open < s.startHour || open > s.endHour) {
+    return "Время открытия должно быть внутри видимого диапазона";
   }
   return null;
 }

@@ -142,9 +142,6 @@ export default function CalendarSettingsPage() {
                     maxLength={40}
                     className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
                   />
-                  <div className="text-[11px] text-[var(--label-tertiary)] mt-1">
-                    Тапни и набери своё — старое выделится автоматически.
-                  </div>
                 </div>
               </>
             )}
@@ -155,57 +152,46 @@ export default function CalendarSettingsPage() {
           {pcEnabled && (
             <>
 
-          {/* Time range */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-4">
-            <div className="text-[15px] font-semibold text-[var(--label)]">Диапазон часов</div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-                  Начало дня
-                </label>
-                <select
-                  value={draft.startHour}
-                  onChange={(e) => patch({ startHour: Number(e.target.value) })}
-                  className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
-                >
-                  {HOURS_0_23.map((h) => (
-                    <option key={h} value={h}>
-                      {String(h).padStart(2, "0")}:00
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-1.5 tracking-wide">
-                  Конец дня
-                </label>
-                <select
-                  value={draft.endHour}
-                  onChange={(e) => patch({ endHour: Number(e.target.value) })}
-                  className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
-                >
-                  {HOURS_0_23.map((h) => (
-                    <option key={h} value={h}>
-                      {String(h).padStart(2, "0")}:00
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Time range — three compact rows: what hours appear on the
+              grid, which of those count as working (highlighted), and
+              the hour the calendar auto-scrolls to on open. v438. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-4 pt-4 pb-2 text-[15px] font-semibold text-[var(--label)]">
+              Диапазон часов
             </div>
 
+            <HoursRangeRow
+              label="Видимо"
+              hint="что отображается"
+              from={draft.startHour}
+              to={draft.endHour}
+              onFromChange={(v) => patch({ startHour: v })}
+              onToChange={(v) => patch({ endHour: v })}
+            />
+            <HoursRangeRow
+              label="Рабочие"
+              hint="подсвечиваются"
+              from={draft.workStartHour ?? draft.startHour}
+              to={draft.workEndHour ?? draft.endHour}
+              onFromChange={(v) => patch({ workStartHour: v })}
+              onToChange={(v) => patch({ workEndHour: v })}
+            />
+            <HourRow
+              label="Открывать"
+              hint="точка прокрутки"
+              value={
+                draft.scrollOpenHour ??
+                draft.workStartHour ??
+                draft.startHour
+              }
+              onChange={(v) => patch({ scrollOpenHour: v })}
+            />
+
             {error && (
-              <div className="text-[12px] text-[var(--system-red)] bg-[var(--system-red-tint)] rounded-[10px] px-3 py-2">
+              <div className="mx-4 mb-3 text-[12px] text-[var(--system-red)] bg-[var(--system-red-tint)] rounded-[10px] px-3 py-2">
                 {error}
               </div>
             )}
-
-            <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
-              Календарь открывается и при возврате прокручивается
-              к {String(draft.startHour).padStart(2, "0")}:00 — это твоё рабочее
-              начало дня.
-            </div>
           </div>
 
           {/* Grid step */}
@@ -303,3 +289,90 @@ export default function CalendarSettingsPage() {
   );
 }
 
+// HoursRangeRow — one tabular row inside "Диапазон часов" with two
+// hour pickers separated by a dash. Used for the visible-grid range
+// and the working-hours range.
+function HoursRangeRow({
+  label,
+  hint,
+  from,
+  to,
+  onFromChange,
+  onToChange,
+}: {
+  label: string;
+  hint?: string;
+  from: number;
+  to: number;
+  onFromChange: (v: number) => void;
+  onToChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+      <div className="w-[88px] shrink-0">
+        <div className="text-[14px] text-[var(--label)]">{label}</div>
+        {hint && (
+          <div className="text-[11px] text-[var(--label-tertiary)] leading-tight mt-0.5">
+            {hint}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        <HourSelect value={from} onChange={onFromChange} />
+        <span className="text-[var(--label-tertiary)] text-[14px]">—</span>
+        <HourSelect value={to} onChange={onToChange} />
+      </div>
+    </div>
+  );
+}
+
+// HourRow — single hour picker. Used for "Открывать" (scroll target).
+function HourRow({
+  label,
+  hint,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
+      <div className="w-[88px] shrink-0">
+        <div className="text-[14px] text-[var(--label)]">{label}</div>
+        {hint && (
+          <div className="text-[11px] text-[var(--label-tertiary)] leading-tight mt-0.5">
+            {hint}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <HourSelect value={value} onChange={onChange} />
+      </div>
+    </div>
+  );
+}
+
+function HourSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[14px] text-[var(--label)] tabular-nums focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
+    >
+      {Array.from({ length: 24 }, (_, h) => (
+        <option key={h} value={h}>
+          {String(h).padStart(2, "0")}:00
+        </option>
+      ))}
+    </select>
+  );
+}
