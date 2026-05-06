@@ -498,21 +498,32 @@ export function useLocationLabels() {
 //     screen edge unguarded. `position: fixed` anchors to the
 //     viewport so the strip always reaches the device edge.
 function EdgeGuard({ side }: { side: "left" | "right" }) {
+  // STORY-085 — bumped width from 24 to 40 px. iOS edge-swipe-back
+  // gesture is recognised when the touch starts within ~30 px of the
+  // screen edge; 24 was being beaten on small phones in landscape.
+  // Also attach a non-passive native touchstart listener via useEffect
+  // — React's onTouchStart is passive by default, so its preventDefault
+  // is silently ignored by the browser and the gesture wins anyway.
   return (
     <div
       aria-hidden
-      onTouchStart={(e) => {
-        // Only block when the touch *starts* in the edge strip.
-        // Don't preventDefault if the user is already mid-gesture
-        // and only their finger drifted into the edge.
-        if (e.touches.length === 1) e.preventDefault();
+      ref={(el) => {
+        if (!el) return;
+        // Non-passive listener: preventDefault actually fires.
+        const handler = (e: TouchEvent) => {
+          if (e.touches.length === 1) e.preventDefault();
+        };
+        el.addEventListener("touchstart", handler, { passive: false });
+        // No cleanup — this element is mounted for the lifetime of
+        // the dashboard layout. When it unmounts, the listener goes
+        // with it.
       }}
       style={{
         position: "fixed",
         top: 0,
         bottom: 0,
         [side]: 0,
-        width: 24,
+        width: 40,
         zIndex: 50,
         touchAction: "none",
         pointerEvents: "auto",

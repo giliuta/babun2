@@ -30,13 +30,26 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { modalStackDepth } from "@/lib/history-stack";
 
+// True tab roots — the four routes reachable from the bottom tab bar
+// + the calendar (/dashboard). On these, swipe-back has no useful
+// destination, so the sentinel re-push pattern stops the gesture
+// from bleeding the previous tab in from underneath.
+//
+// Settings and Recurring are NOT tab roots even though earlier
+// versions (STORY-064) listed them here. They're reached from the
+// Sidebar / Bottom-tab "Ещё" — stack-style navigation where the
+// PageHeader back arrow legitimately needs router.back() to escape.
+// Treating them as tab roots made the back-arrow no-op (popstate
+// landed on the trap sentinel which immediately re-pushed itself),
+// so users who opened Settings once couldn't reopen it via the
+// sidebar afterwards — pathname stayed on /dashboard/settings while
+// the second sidebar tap dispatched router.push to the same path,
+// which Next no-ops.
 const TAB_ROOT_PATHS = new Set<string>([
   "/dashboard",
   "/dashboard/clients",
   "/dashboard/chats",
   "/dashboard/finances",
-  "/dashboard/recurring",
-  "/dashboard/settings",
 ]);
 
 const SENTINEL_KEY = "babunDashboardTrap";
