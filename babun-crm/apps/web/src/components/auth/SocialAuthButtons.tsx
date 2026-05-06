@@ -28,8 +28,11 @@ export default function SocialAuthButtons({ variant = "login" }: Props) {
   const [busy, setBusy] = useState<"google" | "apple" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Both providers off → render nothing, including the divider in the
-  // parent card. The page falls back to "just email/password" cleanly.
+  // Apple intentionally rendered as a "coming soon" stub when the env
+  // flag is off — the iOS app is on the roadmap and Apple Sign-In is
+  // a hard requirement for App Store apps that already offer Google
+  // OAuth, so the placeholder communicates intent without a broken
+  // 400 from Supabase. Google has no such stub: if it's off, hide it.
   if (!GOOGLE_ENABLED && !APPLE_ENABLED) return null;
 
   const handle = async (provider: "google" | "apple") => {
@@ -60,7 +63,7 @@ export default function SocialAuthButtons({ variant = "login" }: Props) {
           {busy === "google" ? "Подключаемся…" : `${verb} через Google`}
         </button>
       )}
-      {APPLE_ENABLED && (
+      {APPLE_ENABLED ? (
         <button
           type="button"
           onClick={() => handle("apple")}
@@ -70,6 +73,18 @@ export default function SocialAuthButtons({ variant = "login" }: Props) {
           <AppleIcon />
           {busy === "apple" ? "Подключаемся…" : `${verb} через Apple`}
         </button>
+      ) : (
+        <div
+          aria-disabled
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-black/85 text-white/60 text-[15px] font-semibold flex items-center justify-center gap-2.5 cursor-not-allowed select-none relative overflow-hidden"
+          title="Появится с выходом iOS-приложения"
+        >
+          <AppleIcon />
+          <span>{verb} через Apple</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wider font-bold px-2 h-5 inline-flex items-center rounded-full bg-white/15 text-white/85">
+            Скоро
+          </span>
+        </div>
       )}
       {error && (
         <div className="text-[12px] text-[var(--system-red)] text-center px-2 leading-snug">
