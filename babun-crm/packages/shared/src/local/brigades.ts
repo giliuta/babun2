@@ -98,14 +98,17 @@ const BRIGADES_KEY = "babun2:finance:brigades";
 const MEMBERS_KEY = "babun2:finance:brigade_members";
 
 export function loadBrigades(): Brigade[] {
-  if (typeof window === "undefined") return DEFAULT_BRIGADES;
+  // STORY-072 leak fix — DEFAULT_BRIGADES contains AirFix-specific
+  // brigade names (Y&D, D&K, George Install). New tenants start
+  // empty; explicit demo seed lives under seedBrigades().
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(BRIGADES_KEY);
-    if (!raw) return DEFAULT_BRIGADES;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_BRIGADES;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_BRIGADES;
+    return [];
   }
 }
 
@@ -119,14 +122,14 @@ export function saveBrigades(list: Brigade[]): void {
 }
 
 export function loadBrigadeMembers(): BrigadeMember[] {
-  if (typeof window === "undefined") return DEFAULT_BRIGADE_MEMBERS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(MEMBERS_KEY);
-    if (!raw) return DEFAULT_BRIGADE_MEMBERS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_BRIGADE_MEMBERS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_BRIGADE_MEMBERS;
+    return [];
   }
 }
 

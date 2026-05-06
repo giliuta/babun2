@@ -58,6 +58,14 @@ const LEGACY_LOCAL_KEYS = [
   // CSV import resume state — not tenant-fatal but ought not survive
   // a logout either.
   "babun:import:active",
+  // STORY-072 leak audit follow-up — clients, client-tags, finance
+  // brigades / members were not in the original list. Caused
+  // previous-tenant data to surface on a fresh signup in the same
+  // browser even after the tenant_sms_config / chats fixes.
+  "babun-clients",
+  "babun-client-tags",
+  "babun2:finance:brigades",
+  "babun2:finance:brigade_members",
 ] as const;
 
 // Prefix-based wipe for keys we know are tenant-scoped but generated

@@ -257,13 +257,18 @@ function mockToClient(m: MockClient): Client {
 }
 
 export function loadClients(): Client[] {
-  if (typeof window === "undefined") return MOCK_CLIENTS.map(mockToClient);
+  // STORY-072 leak fix — never auto-seed MOCK_CLIENTS on empty load.
+  // Those records are AirFix-specific demo data ("Григорьев Олег",
+  // "Захарова Ирина" etc); a fresh tenant signing up MUST start with
+  // an empty list. Demo data still loadable explicitly from
+  // Settings → Account → "Загрузить демо-данные" (DemoDataSection).
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(CLIENTS_KEY);
-    if (!raw) return MOCK_CLIENTS.map(mockToClient);
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return MOCK_CLIENTS.map(mockToClient);
+      return [];
     }
     // Lightweight migration for fields added after records were stored
     return parsed.map((c: Partial<Client>) => {

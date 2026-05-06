@@ -1097,15 +1097,18 @@ const MASTERS_KEY = "babun-masters";
 const TEAMS_KEY = "babun-teams";
 
 export function loadMasters(): Master[] {
-  if (typeof window === "undefined") return DEFAULT_MASTERS;
+  // STORY-072 leak fix — DEFAULT_MASTERS contains AirFix employee names.
+  // New tenants get an empty list; explicit demo load happens via
+  // Settings → Account → "Загрузить демо-данные".
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(MASTERS_KEY);
-    if (!raw) return DEFAULT_MASTERS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_MASTERS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
     return (parsed as Master[]).map(migrateMasterSalaryShape);
   } catch {
-    return DEFAULT_MASTERS;
+    return [];
   }
 }
 
@@ -1172,12 +1175,12 @@ export function saveMasters(masters: Master[]): void {
 }
 
 export function loadTeams(): Team[] {
-  if (typeof window === "undefined") return DEFAULT_TEAMS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(TEAMS_KEY);
-    if (!raw) return DEFAULT_TEAMS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_TEAMS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
     // Migrate records written before default_city was added: fall back to
     // the first token of the region string.
     return parsed.map((t: Partial<Team>) => ({
@@ -1188,7 +1191,7 @@ export function loadTeams(): Team[] {
       payout_percentage: t.payout_percentage ?? 30,
     })) as Team[];
   } catch {
-    return DEFAULT_TEAMS;
+    return [];
   }
 }
 
