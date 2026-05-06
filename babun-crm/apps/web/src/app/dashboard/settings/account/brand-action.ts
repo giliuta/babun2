@@ -90,7 +90,8 @@ export async function updateTenantBrand(patch: BrandPatch): Promise<Result> {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/dashboard/settings/account");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/account/personal");
   revalidatePath("/dashboard");
   return { ok: true };
 }

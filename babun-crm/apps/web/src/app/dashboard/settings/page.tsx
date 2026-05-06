@@ -8,11 +8,14 @@ import {
   Package,
   Users as UsersIcon,
   UserCircle2,
-  UserCog,
   MessageSquare,
   Building2,
   ChevronRight,
   LogOut,
+  IdCard,
+  Receipt,
+  Shield,
+  CreditCard,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useFormSettings } from "@/components/layout/DashboardClientLayout";
@@ -76,6 +79,44 @@ interface NavGroup {
 }
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    // Personal account hub. Was a separate /dashboard/settings/account
+    // page with the same four rows and a profile card on top — collapsed
+    // into the root settings page so the user has one fewer hop. The
+    // hero card above the groups now shows the same identity info
+    // without a redundant "Профиль" CTA.
+    title: "Личный кабинет",
+    items: [
+      {
+        href: "/dashboard/settings/account/personal",
+        icon: IdCard,
+        tone: "bg-[var(--tile-blue)]",
+        title: "Личная информация",
+        desc: "Бизнес, регион, бренд, контакты",
+      },
+      {
+        href: "/dashboard/settings/account/billing-info",
+        icon: Receipt,
+        tone: "bg-[var(--tile-green)]",
+        title: "Счёт компании",
+        desc: "Реквизиты для инвойсов",
+      },
+      {
+        href: "/dashboard/settings/account/security",
+        icon: Shield,
+        tone: "bg-[var(--tile-orange)]",
+        title: "Вход и безопасность",
+        desc: "Пароль, 2FA, устройства",
+      },
+      {
+        href: "/dashboard/settings/billing",
+        icon: CreditCard,
+        tone: "bg-[var(--tile-purple)]",
+        title: "Тариф и оплата",
+        desc: "Подписка, история платежей",
+      },
+    ],
+  },
   {
     title: "Команда",
     items: [
@@ -141,15 +182,11 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // "Личная информация" + "Тариф и оплата" used to live here and
+    // duplicated the "Личный кабинет" group above. Trimmed to just
+    // the multi-user / corporate-config rows.
     title: "Компания",
     items: [
-      {
-        href: "/dashboard/settings/account",
-        icon: UserCog,
-        tone: "bg-[var(--tile-blue)]",
-        title: "Аккаунт",
-        desc: "Email, бизнес, пароль, удаление",
-      },
       {
         href: "/dashboard/settings/team",
         icon: UsersIcon,
@@ -163,13 +200,6 @@ const NAV_GROUPS: NavGroup[] = [
         tone: "bg-[var(--tile-purple)]",
         title: "Реквизиты и VAT",
         desc: "Название, VAT-номер, ставка 19%",
-      },
-      {
-        href: "/dashboard/settings/billing",
-        icon: Building2,
-        tone: "bg-[var(--tile-blue)]",
-        title: "Тариф и оплата",
-        desc: "Free / Pro / Business, использование, счета",
       },
     ],
   },
@@ -359,14 +389,17 @@ function AccountHero() {
   return (
     <div className="section-card relative overflow-hidden">
       <div
-        className="absolute inset-x-0 top-0 h-20 opacity-90"
+        className="absolute inset-0 opacity-95"
         style={{
           background:
-            "linear-gradient(135deg, var(--accent) 0%, var(--system-indigo) 70%, var(--system-purple) 100%)",
+            "linear-gradient(135deg, var(--accent) 0%, var(--system-indigo) 60%, var(--system-purple) 100%)",
         }}
       />
-      <div className="relative px-4 pt-5 pb-4 flex items-center gap-3">
-        <div className="avatar-ring">
+      {/* Display-only — the four rows that used to live behind a
+          «Профиль» button are now in the «Личный кабинет» group below,
+          one tap away. */}
+      <div className="relative px-4 py-4 flex items-center gap-3">
+        <div className="avatar-ring shrink-0">
           <div className="w-14 h-14 flex items-center justify-center text-[20px] font-bold text-[var(--label)]">
             {initials}
           </div>
@@ -375,16 +408,10 @@ function AccountHero() {
           <div className="text-[17px] font-semibold text-[var(--label-on-accent)] truncate drop-shadow-sm">
             {name}
           </div>
-          <div className="text-[12px] text-[var(--label-on-accent)]/85 truncate">
+          <div className="text-[12px] text-[var(--label-on-accent)]/85 truncate mt-0.5">
             {email}
           </div>
         </div>
-        <Link
-          href="/dashboard/settings/account"
-          className="px-3 py-1.5 rounded-full bg-white/90 text-[13px] font-semibold text-[var(--accent)] active:scale-95 transition shrink-0"
-        >
-          Профиль
-        </Link>
       </div>
     </div>
   );

@@ -499,7 +499,8 @@ interface DashboardClientLayoutProps {
    *  truth for every repo call inside the dashboard tree. */
   tenantId: string;
   /** Live tenant name from the DB. Replaces the legacy "Babun CRM"
-   *  hardcode in the sidebar; user edits it via /dashboard/settings/account. */
+   *  hardcode in the sidebar; user edits it via
+   *  /dashboard/settings/account/personal. */
   tenantName: string;
   /** Shown in the sidebar footer. Empty string if not available. */
   userEmail: string;

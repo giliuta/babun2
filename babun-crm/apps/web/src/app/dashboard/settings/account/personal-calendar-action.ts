@@ -32,6 +32,7 @@ export async function setPersonalCalendarEnabled(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/settings/account");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/account/personal");
   return { ok: true };
 }

@@ -25,7 +25,7 @@ export default async function SecurityPage() {
 
   return (
     <>
-      <PageHeader title="Вход и безопасность" backHref="/dashboard/settings/account" />
+      <PageHeader title="Вход и безопасность" backHref="/dashboard/settings" />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-xl mx-auto px-4 py-4 space-y-5">
           <SecuritySection />
