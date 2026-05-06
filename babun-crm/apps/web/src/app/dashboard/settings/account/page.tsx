@@ -12,6 +12,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import AccountSection from "@/components/settings/account/AccountSection";
 import BusinessSection from "@/components/settings/account/BusinessSection";
+import BrandContactsSection from "@/components/settings/account/BrandContactsSection";
+import RegionSection from "@/components/settings/account/RegionSection";
 import PersonalCalendarSection from "@/components/settings/account/PersonalCalendarSection";
 import SecuritySection from "@/components/settings/account/SecuritySection";
 import ImportLocalAppointmentsSection from "@/components/settings/account/ImportLocalAppointmentsSection";
@@ -46,7 +48,11 @@ export default async function AccountSettingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: tenant } = await (supabase as any)
     .from("tenants")
-    .select("id, name, vertical, city, personal_calendar_enabled")
+    .select(
+      "id, name, vertical, city, personal_calendar_enabled, country, currency, " +
+        "booking_slug, logo_url, business_address, contact_phone, contact_email, " +
+        "contact_whatsapp, contact_telegram, contact_instagram",
+    )
     .eq("id", activeTenantId)
     .maybeSingle();
 
@@ -70,6 +76,22 @@ export default async function AccountSettingsPage() {
           />
           <PersonalCalendarSection
             initialEnabled={Boolean(tenant.personal_calendar_enabled)}
+          />
+          <RegionSection
+            initialCountry={tenant.country ?? "CY"}
+            initialCurrency={(tenant.currency ?? "EUR") as "EUR" | "USD" | "RUB" | "UAH" | "GBP"}
+          />
+          <BrandContactsSection
+            initial={{
+              booking_slug: tenant.booking_slug ?? null,
+              logo_url: tenant.logo_url ?? null,
+              business_address: tenant.business_address ?? null,
+              contact_phone: tenant.contact_phone ?? null,
+              contact_email: tenant.contact_email ?? null,
+              contact_whatsapp: tenant.contact_whatsapp ?? null,
+              contact_telegram: tenant.contact_telegram ?? null,
+              contact_instagram: tenant.contact_instagram ?? null,
+            }}
           />
           <SecuritySection />
           <ImportLocalAppointmentsSection />
