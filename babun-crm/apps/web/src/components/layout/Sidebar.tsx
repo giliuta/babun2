@@ -159,13 +159,20 @@ export default function Sidebar({
     onResync: refreshBadge,
   });
 
-  // STORY-064 — sidebar nav uses replace, mirrors BottomTabBar.
-  // Tabs + sidebar entries are sibling navigation; tapping shouldn't
-  // accumulate history (which fed iOS edge-swipe-back) or trigger a
-  // visible "back" trail when leaving the sidebar.
+  // STORY-064 used router.replace to keep the sidebar from accumulating
+  // history. STORY-085 reverted that: replace would null out the back
+  // stack so once the user opened Settings and tapped the back-arrow,
+  // pathname stayed at /dashboard/settings (the back-arrow's
+  // window.history.length-based fallback couldn't reach the previous
+  // route), and re-tapping "Настройки" in the sidebar then dispatched
+  // replace to the same path — which Next no-ops on equal pathnames.
+  // Net effect: Settings became unreachable on the second tap. Push is
+  // the right primitive here even though it adds a history entry per
+  // sidebar tap; iOS users still get the proper back-stack semantics
+  // they expect.
   const handleNav = (dialog: DialogType) => {
     if (dialog) {
-      router.replace(ROUTE_MAP[dialog]);
+      router.push(ROUTE_MAP[dialog]);
     }
     onClose();
   };
@@ -428,6 +435,18 @@ function NavRow({
     <button
       type="button"
       onClick={onClick}
+      // STORY-085 — block iOS callout/selection menu on long-press.
+      // Without these, a held tap on a sidebar row pops the native
+      // "Скопировать / Найти / Перевести" menu instead of triggering
+      // the press-and-hold app behaviour. touch-action: manipulation
+      // also kills the 300ms double-tap-zoom delay on iOS Safari, so
+      // the row feels instant.
+      style={{
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
+        touchAction: "manipulation",
+      }}
       className={`w-full flex items-center gap-3 px-3 mx-1 my-0.5 rounded-[10px] text-left min-h-[44px] transition-colors ${
         active
           ? "bg-[var(--accent-tint)]"
@@ -444,7 +463,7 @@ function NavRow({
         }
       />
       <span
-        className={`flex-1 truncate text-[15px] ${
+        className={`flex-1 truncate text-[15px] pointer-events-none ${
           active
             ? "text-[var(--accent)] font-semibold"
             : "text-[var(--label)] font-medium"
