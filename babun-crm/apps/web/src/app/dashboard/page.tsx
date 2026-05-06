@@ -32,8 +32,10 @@ import WeekView from "@/components/calendar/WeekView";
 import { useTenantQuota } from "@/lib/quota/useTenantQuota";
 import QuotaBanner from "@/components/quota/QuotaBanner";
 import { CalendarEmptyState } from "@/components/empty-states/CalendarEmptyState";
-import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
-import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
+// usePersonalCalendarEnabled / setPersonalCalendarEnabled removed in
+// v432: the calendar empty-state no longer forks on this flag and the
+// rest of the page doesn't read it. The toggle still lives in
+// Settings → Мой календарь and writes to the same column.
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import UndoToast from "@/components/ui/UndoToast";
@@ -158,8 +160,6 @@ function DashboardPageInner() {
   // STORY-052 G6 — quota state for the calendar's appointments_month banner.
   const { snapshot: quotaSnap } = useTenantQuota();
   const router = useRouter();
-  // STORY-073 — owns the personal-vs-team fork on the empty calendar state.
-  const personalCal = usePersonalCalendarEnabled();
   // Tracks `?new=1&kind=…` transitions so the create-sheet handler
   // re-runs when the FAB navigates here while we're already on
   // /dashboard. Using the search-params string as a stable dependency
@@ -1192,11 +1192,6 @@ function DashboardPageInner() {
           alternate path. */}
       <CalendarEmptyState
         appointmentsCount={appointments.length}
-        personalCalendarEnabled={personalCal.enabled}
-        onEnablePersonal={async () => {
-          await setPersonalCalendarEnabled(true);
-          await personalCal.refresh();
-        }}
         onCreateClick={() => {
           // Snap to a sensible work-hour default. If we just rolled
           // (now.hours + 1) % 24 we'd get "00:00" any time after

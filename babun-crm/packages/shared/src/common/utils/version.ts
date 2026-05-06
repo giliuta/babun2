@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v431-trim-settings-menu";
+export const BUILD_VERSION = "v432-drop-calendar-fork-state";
