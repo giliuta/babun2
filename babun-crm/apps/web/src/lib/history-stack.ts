@@ -93,8 +93,19 @@ export function registerModalBack(id: string, onPop: () => void): () => void {
     const idx = stack.lastIndexOf(entry);
     if (idx === -1) return; // already popped via hardware back
     stack = stack.filter((_, i) => i !== idx);
-    // Walk history back one step to undo our pushState.
-    window.history.back();
+
+    // STORY-085 — only walk history back when our sentinel is the
+    // current entry. If the user navigated away while the modal
+    // was open (e.g. tapped a sidebar nav row that does router.push),
+    // the new URL's state is on top, and an unconditional history.back
+    // would undo the navigation, ping-ponging the user back to where
+    // they came from. Detect by checking that the current state still
+    // carries OUR id; if it doesn't, the navigation already moved past
+    // our sentinel and there's nothing to unwind.
+    const currentState = (window.history.state ?? null) as BabunHistoryState | null;
+    if (currentState && currentState[STATE_KEY] === id) {
+      window.history.back();
+    }
   };
 }
 
