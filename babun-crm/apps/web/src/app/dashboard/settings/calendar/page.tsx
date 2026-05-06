@@ -157,14 +157,24 @@ export default function CalendarSettingsPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={personalName}
-                    onBlur={(e) => commitPersonalName(e.target.value)}
-                    placeholder="Мой календарь"
+                    // v435 — render the friendly default ("Мой календарь")
+                    // as a real value, not a placeholder. The value is
+                    // selected on focus so a single tap is enough to
+                    // start typing a custom name. On blur we treat
+                    // either an empty string OR the default literal
+                    // as "use the default" — so saving "Мой календарь"
+                    // doesn't pin that string into the DB.
+                    defaultValue={personalName || "Мой календарь"}
+                    onFocus={(e) => e.currentTarget.select()}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      commitPersonalName(v === "Мой календарь" ? "" : v);
+                    }}
                     maxLength={40}
-                    className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
+                    className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
                   />
                   <div className="text-[11px] text-[var(--label-tertiary)] mt-1">
-                    Пусто — покажется «Мой календарь».
+                    Тапни и набери своё — старое выделится автоматически.
                   </div>
                 </div>
 
