@@ -1,9 +1,13 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v413";
+const CACHE_VERSION = "babun-v414";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
+// Precache the main shells so first visits to each section after
+// install paint instantly from cache (stale-while-revalidate). When a
+// new section is added under /dashboard, list it here so users don't
+// pay the network cold-start on first navigation.
 const PRECACHE_URLS = [
   "/",
   "/login",
@@ -13,6 +17,14 @@ const PRECACHE_URLS = [
   "/dashboard/finances",
   "/dashboard/services",
   "/dashboard/sms-templates",
+  "/dashboard/teams",
+  "/dashboard/masters",
+  "/dashboard/inventory",
+  "/dashboard/recurring",
+  "/dashboard/analytics",
+  "/dashboard/income",
+  "/dashboard/close-day",
+  "/dashboard/settings",
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon-maskable.svg",
@@ -84,19 +96,58 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for HTML pages
+  // Stale-while-revalidate for HTML pages.
+  //
+  // OLD network-first: every navigation blocked on a network round-trip
+  // to Vercel before showing anything. On flaky LTE / wifi the page
+  // would just hang for tens of seconds, which the user read as "the
+  // page didn't open." Worse, network-first with no timeout means even
+  // when we DO have a cached copy, we wait for the network first —
+  // defeating the point of having a cache.
+  //
+  // NEW: serve cached HTML INSTANTLY (next paint), kick off a background
+  // fetch to refresh the cache for next time. Plus a 3-second network
+  // timeout — if the network hasn't returned anything AND we have no
+  // cache, fall back to the /dashboard shell so the user at least sees
+  // the app frame instead of a blank tab.
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match(request).then((c) => c || caches.match("/dashboard")))
-    );
+    event.respondWith(handleNavigate(request));
   }
 });
+
+async function handleNavigate(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = await cache.match(request);
+
+  // Background refresh — never awaited from the main flow. The next
+  // visit to this URL gets the fresh copy from cache.
+  const networkUpdate = fetch(request)
+    .then((response) => {
+      if (response && response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
+
+  // If we have a cached copy, return it immediately. The page paints
+  // while the background fetch quietly refreshes the cache.
+  if (cached) return cached;
+
+  // No cache — race the network against a 3s deadline. If the network
+  // wins we return its response. If the deadline wins, fall back to
+  // the precache shell so the user sees the app frame.
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
+  const winner = await Promise.race([networkUpdate, timeout]);
+  if (winner) return winner;
+
+  const fallback =
+    (await caches.match("/dashboard")) ||
+    (await caches.match("/")) ||
+    new Response("Babun загружается… проверьте подключение.", {
+      status: 503,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  return fallback;
+}
 
 // Push notification (for future use)
 self.addEventListener("push", (event) => {
