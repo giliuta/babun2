@@ -1,14 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { Lock, Check } from "@babun/shared/icons";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
+// STORY-041 G4 + STORY-076 — Password change + 2FA management.
+//
+// Password block: confirmation field guards typos that would brick
+// the account until forgot-password runs. Min length matches Supabase
+// default (8).
+//
+// 2FA block: TOTP via Supabase MFA (works out of the box with
+// Authenticator apps). Email + SMS rendered as "Скоро" cards because
+// they need additional plumbing (custom email-OTP table for email,
+// Supabase Phone provider config for SMS).
 
-// STORY-041 G4 — Inline change-password form. Confirmation field
-// guards against typos in the new password (which would brick the
-// account until the user runs forgot-password). Min length matches
-// LoginForm and Supabase's default policy (8).
+import { useEffect, useState } from "react";
+import { Lock, Check, Shield, ShieldCheck, Mail, Phone } from "@babun/shared/icons";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import TotpEnrollDialog from "./TotpEnrollDialog";
+
 export default function SecuritySection() {
+  return (
+    <div className="space-y-5">
+      <PasswordBlock />
+      <TwoFactorBlock />
+    </div>
+  );
+}
+
+// ─── Password ──────────────────────────────────────────────────
+
+function PasswordBlock() {
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
@@ -103,6 +122,151 @@ export default function SecuritySection() {
         </button>
       </div>
     </form>
+  );
+}
+
+// ─── 2FA ───────────────────────────────────────────────────────
+
+function TwoFactorBlock() {
+  const [hasTotp, setHasTotp] = useState(false);
+  const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showEnroll, setShowEnroll] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = async () => {
+    try {
+      const sb = getSupabaseBrowser();
+      const { data } = await sb.auth.mfa.listFactors();
+      const verified = data?.totp?.find((f) => f.status === "verified") ?? null;
+      setHasTotp(!!verified);
+      setTotpFactorId(verified?.id ?? null);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  const handleDisable = async () => {
+    if (!totpFactorId || busy) return;
+    if (!confirm("Отключить двухфакторную аутентификацию? Аккаунт станет менее защищён.")) return;
+    setBusy(true);
+    try {
+      const sb = getSupabaseBrowser();
+      await sb.auth.mfa.unenroll({ factorId: totpFactorId });
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="px-4 pb-2 text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider flex items-center gap-2">
+        <Shield size={14} />
+        <span>Двухфакторная аутентификация</span>
+      </div>
+      <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] divide-y divide-[var(--separator)] overflow-hidden">
+        {/* TOTP — main, fully working */}
+        <FactorRow
+          icon={hasTotp ? <ShieldCheck size={18} className="text-[var(--system-green)]" /> : <Shield size={18} />}
+          title="Приложение-аутентификатор"
+          subtitle={
+            hasTotp
+              ? "Подключено. При входе нужен 6-значный код из приложения."
+              : "Самый безопасный способ. Google Authenticator, Authy, 1Password, Yandex Key."
+          }
+          right={
+            loading ? (
+              <span className="text-[12px] text-[var(--label-tertiary)]">…</span>
+            ) : hasTotp ? (
+              <button
+                type="button"
+                onClick={handleDisable}
+                disabled={busy}
+                className="h-9 px-3.5 rounded-[10px] bg-[rgba(255,59,48,0.10)] border border-[rgba(255,59,48,0.30)] text-[var(--system-red)] text-[12px] font-semibold active:bg-[rgba(255,59,48,0.18)] disabled:opacity-50"
+              >
+                Отключить
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowEnroll(true)}
+                className="h-9 px-3.5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[12px] font-semibold active:scale-[0.98]"
+              >
+                Подключить
+              </button>
+            )
+          }
+        />
+
+        {/* Email — placeholder */}
+        <FactorRow
+          icon={<Mail size={18} className="text-[var(--label-tertiary)]" />}
+          title="Код на email"
+          subtitle="Babun будет присылать 6-значный код на твою почту при каждом входе."
+          right={<ComingSoonPill />}
+        />
+
+        {/* SMS — placeholder */}
+        <FactorRow
+          icon={<Phone size={18} className="text-[var(--label-tertiary)]" />}
+          title="Код по SMS"
+          subtitle="Код приходит в SMS на привязанный номер. Менее безопасно чем приложение, но надёжнее пароля."
+          right={<ComingSoonPill />}
+        />
+      </div>
+
+      {showEnroll && (
+        <TotpEnrollDialog
+          onClose={() => setShowEnroll(false)}
+          onSuccess={async () => {
+            setShowEnroll(false);
+            await refresh();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function FactorRow({
+  icon,
+  title,
+  subtitle,
+  right,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  right: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 px-4 py-3.5">
+      <div className="w-9 h-9 rounded-[10px] bg-[var(--fill-tertiary)] flex items-center justify-center shrink-0 mt-0.5">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-medium text-[var(--label)]">{title}</div>
+        <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+          {subtitle}
+        </div>
+      </div>
+      <div className="shrink-0 self-center">{right}</div>
+    </div>
+  );
+}
+
+function ComingSoonPill() {
+  return (
+    <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-[var(--fill-tertiary)] text-[10px] uppercase tracking-wider font-bold text-[var(--label-tertiary)]">
+      Скоро
+    </span>
   );
 }
 
