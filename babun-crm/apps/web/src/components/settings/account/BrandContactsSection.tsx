@@ -78,13 +78,20 @@ export default function BrandContactsSection({ initial }: Props) {
       <div className="px-4 pb-2 text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
         Бренд и контакты
       </div>
+      <div className="px-4 pb-3 text-[12px] text-[var(--label-tertiary)] leading-snug">
+        Эти данные подставляются в SMS-напоминания клиентам, в публичную страницу записи (когда подключим онлайн-бронирование), в инвойсы и в подпись email. Не обязательны — заполни то, что хочешь показывать клиентам.
+      </div>
       <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] divide-y divide-[var(--separator)] overflow-hidden">
-        <Row icon={<Globe size={16} />} label="Booking slug">
+        <Row
+          icon={<Globe size={16} />}
+          label="Booking slug"
+          hint="Короткое имя для публичной ссылки на онлайн-запись (когда появится). Латиница, цифры, дефис."
+        >
           <input
             type="text"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="airfix"
+            placeholder="имя-латиницей"
             maxLength={32}
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
@@ -94,7 +101,11 @@ export default function BrandContactsSection({ initial }: Props) {
             babun.app/book/{slug}
           </div>
         )}
-        <Row icon={<ImageIcon size={16} />} label="Лого URL">
+        <Row
+          icon={<ImageIcon size={16} />}
+          label="Лого URL"
+          hint="Ссылка на картинку с лого. Покажется на странице онлайн-записи и в инвойсах."
+        >
           <input
             type="url"
             value={logo}
@@ -103,57 +114,81 @@ export default function BrandContactsSection({ initial }: Props) {
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
-        <Row icon={<Building2 size={16} />} label="Адрес">
+        <Row
+          icon={<Building2 size={16} />}
+          label="Адрес"
+          hint="Адрес офиса/мастерской. Покажется клиенту при онлайн-записи."
+        >
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Лимассол, ул. Макариос 45"
+            placeholder="Город, улица, дом"
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
-        <Row icon={<Phone size={16} />} label="Телефон">
+        <Row
+          icon={<Phone size={16} />}
+          label="Телефон"
+          hint="Контактный номер для клиентов. Подставляется в SMS-подпись."
+        >
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+357 99 12 34 56"
+            placeholder="+код страны и номер"
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
-        <Row icon={<AtSign size={16} />} label="Email">
+        <Row
+          icon={<AtSign size={16} />}
+          label="Email"
+          hint="Контактный email компании для клиентов и инвойсов."
+        >
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="info@airfix.cy"
+            placeholder="hello@..."
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
-        <Row icon={<MessageCircle size={16} />} label="WhatsApp">
+        <Row
+          icon={<MessageCircle size={16} />}
+          label="WhatsApp"
+          hint="Куда клиент может написать. Кнопка 'Открыть WhatsApp' появится у него под записью."
+        >
           <input
             type="tel"
             value={whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
-            placeholder="+357 99 12 34 56"
+            placeholder="+код страны и номер"
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
-        <Row icon={<Send size={16} />} label="Telegram">
+        <Row
+          icon={<Send size={16} />}
+          label="Telegram"
+          hint="Канал для общения с клиентами в Telegram."
+        >
           <input
             type="text"
             value={telegram}
             onChange={(e) => setTelegram(e.target.value)}
-            placeholder="@airfix_cy"
+            placeholder="@username"
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
-        <Row icon={<InstagramIcon size={16} />} label="Instagram">
+        <Row
+          icon={<InstagramIcon size={16} />}
+          label="Instagram"
+          hint="Аккаунт компании. Покажется на странице онлайн-записи."
+        >
           <input
             type="text"
             value={instagram}
             onChange={(e) => setInstagram(e.target.value)}
-            placeholder="@airfix.cy"
+            placeholder="@username"
             className="flex-1 h-10 bg-transparent text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
           />
         </Row>
@@ -185,19 +220,28 @@ export default function BrandContactsSection({ initial }: Props) {
 function Row({
   icon,
   label,
+  hint,
   children,
 }: {
   icon: React.ReactNode;
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex items-center gap-3 px-4 h-12">
-      <span className="text-[var(--label-secondary)] shrink-0">{icon}</span>
-      <span className="w-[90px] text-[12px] text-[var(--label-secondary)] shrink-0">
-        {label}
-      </span>
-      {children}
-    </label>
+    <div className="px-4 py-2.5">
+      <label className="flex items-center gap-3 min-h-[44px]">
+        <span className="text-[var(--label-secondary)] shrink-0">{icon}</span>
+        <span className="w-[90px] text-[12px] text-[var(--label-secondary)] shrink-0">
+          {label}
+        </span>
+        {children}
+      </label>
+      {hint && (
+        <div className="ml-[110px] mt-0.5 text-[11px] text-[var(--label-tertiary)] leading-snug">
+          {hint}
+        </div>
+      )}
+    </div>
   );
 }

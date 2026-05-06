@@ -50,10 +50,10 @@ export default function LoginForm({
           <div className="text-[var(--label-secondary)]">
             Напиши нам, починим вручную:{" "}
             <a
-              href="mailto:airfix.cy@gmail.com?subject=Babun%3A%20tenant_missing"
+              href="mailto:support@babun.app?subject=Babun%3A%20tenant_missing"
               className="text-[var(--accent)] font-medium"
             >
-              airfix.cy@gmail.com
+              support@babun.app
             </a>
           </div>
         </div>

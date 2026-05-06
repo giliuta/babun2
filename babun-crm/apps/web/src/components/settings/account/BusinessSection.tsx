@@ -20,7 +20,10 @@ interface Props {
   tenantId: string;
   initialName: string;
   initialVertical: string;
-  initialCity: string;
+  /** STORY-074 — accepted for back-compat with the old form shape but
+   *  no longer rendered. Tenants pick city per-day on the calendar
+   *  (DayCityModal) so a single global city was always misleading. */
+  initialCity?: string;
 }
 
 // STORY-041 G4 — Editable business profile. One atomic UPDATE on
@@ -31,7 +34,6 @@ export default function BusinessSection({
   tenantId,
   initialName,
   initialVertical,
-  initialCity,
 }: Props) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -40,7 +42,6 @@ export default function BusinessSection({
       ? (initialVertical as Vertical)
       : "other"),
   );
-  const [city, setCity] = useState(initialCity);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -48,9 +49,7 @@ export default function BusinessSection({
   const trimmedName = name.trim();
   const valid = trimmedName.length >= 2;
   const dirty =
-    trimmedName !== initialName.trim() ||
-    vertical !== initialVertical ||
-    city.trim() !== initialCity.trim();
+    trimmedName !== initialName.trim() || vertical !== initialVertical;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +61,6 @@ export default function BusinessSection({
       await updateTenant(supabase, tenantId, {
         name: trimmedName,
         vertical,
-        city: city.trim() || null,
       });
       setSavedAt(Date.now());
       // Refresh server components so the dashboard layout / settings
@@ -88,7 +86,7 @@ export default function BusinessSection({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="AirFix"
+            placeholder="Название вашей компании"
             minLength={2}
             required
             className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
@@ -112,16 +110,6 @@ export default function BusinessSection({
               </option>
             ))}
           </select>
-        </Field>
-
-        <Field label="Город">
-          <input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Limassol"
-            className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
-          />
         </Field>
 
         {error && (

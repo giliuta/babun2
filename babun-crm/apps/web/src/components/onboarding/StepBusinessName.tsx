@@ -29,7 +29,7 @@ export default function StepBusinessName({ value, onChange, onNext }: Props) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Например, AirFix или Beauty Studio Анны"
+        placeholder="Название компании"
         maxLength={120}
         className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
       />

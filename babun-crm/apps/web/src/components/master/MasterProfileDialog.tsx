@@ -29,8 +29,8 @@ export default function MasterProfileDialog({
   const [activeTab, setActiveTab] = useState<TabId>("schedule");
 
   // Profile state
-  const [name, setName] = useState("AirFix");
-  const [phone, setPhone] = useState("+357 99 000000");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const country = "РљРёРїСЂ";
   const currency = "EUR";
 
