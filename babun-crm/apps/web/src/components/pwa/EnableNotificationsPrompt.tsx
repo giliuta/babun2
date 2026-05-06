@@ -232,14 +232,9 @@ function hasAnyAppointmentLocally(): boolean {
   }
 }
 
-/** Increments the session counter on every dashboard mount.
- *  Mount this once near the root of the dashboard layout so the count
- *  goes up on each fresh page load (good enough heuristic for "session"). */
-export function bumpSessionCount(): void {
-  try {
-    const current = parseInt(window.localStorage.getItem(SESSION_KEY) ?? "0", 10) || 0;
-    window.localStorage.setItem(SESSION_KEY, String(current + 1));
-  } catch {
-    // ignore
-  }
-}
+// `bumpSessionCount` lives in lib/session-count.ts now so the
+// dashboard layout can bump the counter without statically importing
+// this entire prompt component (which is lazy-loaded via next/dynamic).
+// Re-export kept here to avoid breaking any direct callers; new code
+// should import from "@/lib/session-count" directly.
+export { bumpSessionCount } from "@/lib/session-count";

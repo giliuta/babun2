@@ -1,17 +1,43 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Sidebar, { type DialogType } from "@/components/layout/Sidebar";
 import BottomTabBar from "@/components/layout/BottomTabBar";
-import { InstallPrompt } from "@/components/pwa/InstallPrompt";
-import { IOSInstallPrompt } from "@/components/install/IOSInstallPrompt";
-import { SplashScreen } from "@/components/splash/SplashScreen";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
-import {
-  EnableNotificationsPrompt,
-  bumpSessionCount,
-} from "@/components/pwa/EnableNotificationsPrompt";
+import { bumpSessionCount } from "@/lib/session-count";
+
+// PWA prompts + splash + sync panel are conditional UI that fires
+// after mount based on localStorage gates / platform detection /
+// queue depth. next/dynamic({ ssr: false }) lets the dashboard shell
+// paint first; the browser fetches these chunks in parallel/idle
+// instead of blocking initial JS execution on them. Each component
+// is still rendered unconditionally below — React just shows nothing
+// until its chunk lands, which is the same as the gated render path.
+const InstallPrompt = dynamic(
+  () => import("@/components/pwa/InstallPrompt").then((m) => ({ default: m.InstallPrompt })),
+  { ssr: false },
+);
+const IOSInstallPrompt = dynamic(
+  () => import("@/components/install/IOSInstallPrompt").then((m) => ({ default: m.IOSInstallPrompt })),
+  { ssr: false },
+);
+const SplashScreen = dynamic(
+  () => import("@/components/splash/SplashScreen").then((m) => ({ default: m.SplashScreen })),
+  { ssr: false },
+);
+const EnableNotificationsPrompt = dynamic(
+  () =>
+    import("@/components/pwa/EnableNotificationsPrompt").then((m) => ({
+      default: m.EnableNotificationsPrompt,
+    })),
+  { ssr: false },
+);
+const SyncQueuePanel = dynamic(
+  () => import("@/components/sync/SyncQueuePanel"),
+  { ssr: false },
+);
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 import {
@@ -141,7 +167,8 @@ import { setSyncToast } from "@/lib/sync/clientsCached";
 import { subscribeNetwork, isOnline } from "@/lib/sync/network";
 import { queueDepth } from "@babun/shared/db/cache";
 import OfflineIndicator from "@/components/sync/OfflineIndicator";
-import SyncQueuePanel from "@/components/sync/SyncQueuePanel";
+// SyncQueuePanel — lazy-loaded via the next/dynamic block at the top
+// of this file (only opens when the user taps the offline indicator).
 
 interface SidebarContextValue {
   open: () => void;
