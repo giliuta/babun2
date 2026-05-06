@@ -24,7 +24,10 @@ export async function GET(req: NextRequest) {
   const tokenHash = req.nextUrl.searchParams.get("token_hash");
   const type = req.nextUrl.searchParams.get("type") as EmailOtpType | null;
   const code = req.nextUrl.searchParams.get("code");
-  const next = req.nextUrl.searchParams.get("next") ?? "/dashboard/clients";
+  // STORY-073 — default landing is the calendar, not the clients list.
+  // Calendar is the daily-driver surface; the dashboard layout will
+  // bounce to /onboarding if onboarded_at is null.
+  const next = req.nextUrl.searchParams.get("next") ?? "/dashboard";
 
   if (tokenHash && type) {
     const supabase = await getSupabaseServer();

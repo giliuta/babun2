@@ -33,7 +33,7 @@ export default function LoginForm({
       setLoading(false);
       return;
     }
-    router.push("/dashboard/clients");
+    router.push("/dashboard");
     router.refresh();
   };
 

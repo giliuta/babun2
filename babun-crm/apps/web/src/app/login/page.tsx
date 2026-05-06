@@ -21,6 +21,6 @@ export default async function LoginPage({
   // STORY-041 G4 — same belt-and-suspenders for ?deleted=true: the
   // session may still be in the cookie when the redirect lands,
   // before the client-side signOut completes.
-  if (user && !error && !deleted) redirect("/dashboard/clients");
+  if (user && !error && !deleted) redirect("/dashboard");
   return <LoginForm errorCode={error ?? null} deleted={deleted === "true"} />;
 }

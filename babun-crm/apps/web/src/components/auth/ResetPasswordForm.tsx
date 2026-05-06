@@ -31,7 +31,7 @@ export default function ResetPasswordForm() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard/clients");
+    router.push("/dashboard");
     router.refresh();
   };
 

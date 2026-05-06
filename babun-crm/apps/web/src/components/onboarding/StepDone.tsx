@@ -5,9 +5,9 @@ import type { Vertical } from "./OnboardingWizard";
 interface Props {
   name: string;
   vertical: Vertical | null;
-  city: string;
+  personalCalendar: boolean;
   onBack: () => void;
-  onCommit: (next: "new-client" | "dashboard") => void | Promise<void>;
+  onCommit: (next: "calendar" | "team") => void | Promise<void>;
   saving: boolean;
   error: string | null;
 }
@@ -23,7 +23,7 @@ const VERTICAL_LABELS: Record<Vertical, string> = {
 export default function StepDone({
   name,
   vertical,
-  city,
+  personalCalendar,
   onBack,
   onCommit,
   saving,
@@ -36,7 +36,7 @@ export default function StepDone({
           Всё готово!
         </h2>
         <p className="text-[13px] text-[var(--label-secondary)] leading-snug">
-          Babun настроен. Можно добавить первого клиента — или сразу к панели.
+          Babun настроен. Дальше — открыть календарь или сразу собирать команду.
         </p>
       </div>
 
@@ -46,7 +46,10 @@ export default function StepDone({
           label="Тип"
           value={vertical ? VERTICAL_LABELS[vertical] : "—"}
         />
-        <SummaryRow label="Город" value={city || "не указан"} muted={!city} />
+        <SummaryRow
+          label="Календарь"
+          value={personalCalendar ? "Личный" : "Для команды"}
+        />
       </div>
 
       {error && (
@@ -58,20 +61,22 @@ export default function StepDone({
       <div className="space-y-2">
         <button
           type="button"
-          onClick={() => onCommit("new-client")}
+          onClick={() => onCommit("calendar")}
           disabled={saving}
           className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
         >
-          {saving ? "Сохраняем…" : "Добавить первого клиента"}
+          {saving ? "Сохраняем…" : "Открыть календарь"}
         </button>
-        <button
-          type="button"
-          onClick={() => onCommit("dashboard")}
-          disabled={saving}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--accent)] text-[17px] font-semibold active:bg-[var(--fill-quaternary)] disabled:opacity-50 transition"
-        >
-          Перейти к панели
-        </button>
+        {!personalCalendar && (
+          <button
+            type="button"
+            onClick={() => onCommit("team")}
+            disabled={saving}
+            className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--accent)] text-[17px] font-semibold active:bg-[var(--fill-quaternary)] disabled:opacity-50 transition"
+          >
+            Настроить команду
+          </button>
+        )}
       </div>
 
       <button

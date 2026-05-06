@@ -38,7 +38,7 @@ export default function RegisterForm() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
-      router.push("/dashboard/clients");
+      router.push("/dashboard");
       router.refresh();
     } else {
       setPending(true);

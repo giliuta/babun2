@@ -6,7 +6,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 import OnboardingShell from "./OnboardingShell";
 import StepBusinessName from "./StepBusinessName";
 import StepVertical from "./StepVertical";
-import StepCity from "./StepCity";
+import StepPersonalCalendar from "./StepPersonalCalendar";
 import StepDone from "./StepDone";
 
 export type Vertical = "hvac" | "beauty" | "auto" | "cleaning" | "other";
@@ -15,35 +15,41 @@ interface Props {
   tenantId: string;
   initialName: string;
   initialVertical: Vertical | null;
-  initialCity: string;
+  initialPersonalCalendar?: boolean;
 }
 
 export default function OnboardingWizard({
   tenantId,
   initialName,
   initialVertical,
-  initialCity,
+  initialPersonalCalendar = false,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [name, setName] = useState(initialName);
   const [vertical, setVertical] = useState<Vertical | null>(initialVertical);
-  const [city, setCity] = useState(initialCity);
+  const [personalCalendar, setPersonalCalendar] = useState<boolean>(
+    initialPersonalCalendar,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const commit = async (next: "new-client" | "dashboard") => {
+  // STORY-073 — post-onboarding lands on the calendar (formerly /clients).
+  // The calendar's empty state CTAs guide the next step (add appointment,
+  // toggle personal, invite team).
+  const commit = async (next: "calendar" | "team") => {
     if (saving) return;
     if (!name.trim() || !vertical) return;
     setSaving(true);
     setError(null);
     const supabase = getSupabaseBrowser();
-    const { error: err } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: err } = await (supabase as any)
       .from("tenants")
       .update({
         name: name.trim(),
         vertical,
-        city: city.trim() || null,
+        personal_calendar_enabled: personalCalendar,
         onboarded_at: new Date().toISOString(),
       })
       .eq("id", tenantId);
@@ -52,9 +58,7 @@ export default function OnboardingWizard({
       setSaving(false);
       return;
     }
-    router.push(
-      next === "new-client" ? "/dashboard/clients/new" : "/dashboard/clients",
-    );
+    router.push(next === "team" ? "/dashboard/teams" : "/dashboard");
     router.refresh();
   };
 
@@ -76,9 +80,9 @@ export default function OnboardingWizard({
         />
       )}
       {step === 3 && (
-        <StepCity
-          value={city}
-          onChange={setCity}
+        <StepPersonalCalendar
+          value={personalCalendar}
+          onChange={setPersonalCalendar}
           onBack={() => setStep(2)}
           onNext={() => setStep(4)}
         />
@@ -87,7 +91,7 @@ export default function OnboardingWizard({
         <StepDone
           name={name}
           vertical={vertical}
-          city={city}
+          personalCalendar={personalCalendar}
           onBack={() => setStep(3)}
           onCommit={commit}
           saving={saving}

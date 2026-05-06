@@ -1,4 +1,4 @@
-// STORY-040 — onboarding server gate.
+// STORY-040 + STORY-073 — onboarding server gate.
 //
 // Mirrors the dashboard layout's pattern: validate the session, fetch
 // the user's tenant, redirect on broken / already-onboarded states.
@@ -47,9 +47,10 @@ export default async function OnboardingPage() {
   if (!activeTenantId) {
     redirect("/login?error=tenant_missing");
   }
-  const { data: tenant, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tenant, error } = await (supabase as any)
     .from("tenants")
-    .select("id, name, vertical, city, onboarded_at")
+    .select("id, name, vertical, personal_calendar_enabled, onboarded_at")
     .eq("id", activeTenantId)
     .maybeSingle();
 
@@ -57,7 +58,7 @@ export default async function OnboardingPage() {
     redirect("/login?error=tenant_missing");
   }
   if (tenant.onboarded_at) {
-    redirect("/dashboard/clients");
+    redirect("/dashboard");
   }
 
   // Step 1 pre-fill heuristic (A6): the trigger from STORY-037 sets
@@ -71,7 +72,7 @@ export default async function OnboardingPage() {
       tenantId={tenant.id}
       initialName={initialName}
       initialVertical={asVertical(tenant.vertical)}
-      initialCity={tenant.city ?? ""}
+      initialPersonalCalendar={Boolean(tenant.personal_calendar_enabled)}
     />
   );
 }

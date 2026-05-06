@@ -12,6 +12,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import AccountSection from "@/components/settings/account/AccountSection";
 import BusinessSection from "@/components/settings/account/BusinessSection";
+import PersonalCalendarSection from "@/components/settings/account/PersonalCalendarSection";
 import SecuritySection from "@/components/settings/account/SecuritySection";
 import ImportLocalAppointmentsSection from "@/components/settings/account/ImportLocalAppointmentsSection";
 import ImportLocalScheduleSection from "@/components/settings/account/ImportLocalScheduleSection";
@@ -42,9 +43,10 @@ export default async function AccountSettingsPage() {
     activeTenantId = membership?.tenant_id ?? null;
   }
   if (!activeTenantId) redirect("/login?error=tenant_missing");
-  const { data: tenant } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tenant } = await (supabase as any)
     .from("tenants")
-    .select("id, name, vertical, city")
+    .select("id, name, vertical, city, personal_calendar_enabled")
     .eq("id", activeTenantId)
     .maybeSingle();
 
@@ -65,6 +67,9 @@ export default async function AccountSettingsPage() {
             initialName={tenant.name}
             initialVertical={tenant.vertical ?? "other"}
             initialCity={tenant.city ?? ""}
+          />
+          <PersonalCalendarSection
+            initialEnabled={Boolean(tenant.personal_calendar_enabled)}
           />
           <SecuritySection />
           <ImportLocalAppointmentsSection />
