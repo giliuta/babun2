@@ -6,7 +6,7 @@
 // Each field is optional in the input — only provided keys are
 // updated. Booking slug is normalised to lowercase + dash-only.
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -93,10 +93,6 @@ export async function updateTenantBrand(patch: BrandPatch): Promise<Result> {
   // Bust the unstable_cache entry for tenant data so the new name /
   // brand fields show up on the next page render instead of waiting
   // for the 60-second TTL.
-  // Next 16 — updateTag (was revalidateTag in 14/15) gives read-your-own
-  // -writes semantics inside server actions. Same effect: bust the
-  // tenant-context cache so the new name shows up next render.
-  updateTag("tenant");
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/settings/account/personal");
   revalidatePath("/dashboard");

@@ -9,7 +9,7 @@
 // client meant we couldn't call revalidateTag, so a freshly-onboarded
 // user could redirect-loop until the cache TTL expired.
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import type { Vertical } from "@/components/onboarding/OnboardingWizard";
 
@@ -51,7 +51,6 @@ export async function completeOnboarding(args: Args): Promise<Result> {
 
   if (error) return { ok: false, error: error.message };
 
-  updateTag("tenant");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
   return { ok: true };
