@@ -60,6 +60,18 @@
   --accent-pressed: #2D7BE5;
   --accent-tint: rgba(62, 136, 247, 0.12);
   --accent-on: #FFFFFF;
+  /* STORY-081 — system-red tints for danger-tinted buttons (Settings →
+     Security disable-2fa, DemoData remove). Previously hardcoded as
+     rgba inline. */
+  --system-red-tint: rgba(255, 59, 48, 0.10);
+  --system-red-tint-pressed: rgba(255, 59, 48, 0.18);
+  --system-red-border: rgba(255, 59, 48, 0.30);
+  /* Toast surface — darker than --surface-card so notifications read on
+     any background. Toast.tsx + UndoToast.tsx both target this. */
+  --surface-toast: #1C1C1E;
+  /* WhatsApp-style chat wallpaper. Off-cream so message bubbles read.
+     Promoted from inline #efeae2 in dashboard/chats/page.tsx. */
+  --chat-wallpaper: #efeae2;
   /* STORY-081 — single brand-mark gradient token. Three different
      blues had been hardcoded across Sidebar / AdminSidebar /
      AccountNavList / auth — all now read this. */

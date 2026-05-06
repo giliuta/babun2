@@ -232,7 +232,7 @@ export default function ImportLocalScheduleSection() {
                 setConfirmOpen(true);
               }}
               disabled={busy}
-              className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-40 transition flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition flex items-center justify-center gap-2"
             >
               {doneAt ? (
                 <>
@@ -320,7 +320,7 @@ export default function ImportLocalScheduleSection() {
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={busy}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-semibold active:bg-[var(--fill-secondary)] disabled:opacity-50 transition"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-semibold active:bg-[var(--fill-secondary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
               >
                 Отмена
               </button>
@@ -328,7 +328,7 @@ export default function ImportLocalScheduleSection() {
                 type="button"
                 onClick={runImport}
                 disabled={busy}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold disabled:opacity-40 active:scale-[0.98] transition"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] active:scale-[0.98] transition"
               >
                 {busy ? "Импортируем…" : "Импортировать"}
               </button>

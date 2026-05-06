@@ -121,7 +121,7 @@ function ToastPill({
 }) {
   const tone = (
     {
-      info: "bg-[#1C1C1E] text-white",
+      info: "bg-[var(--surface-toast)] text-white",
       success:
         "bg-[var(--system-green,#34C759)] text-white",
       error: "bg-[var(--system-red,#FF3B30)] text-white",

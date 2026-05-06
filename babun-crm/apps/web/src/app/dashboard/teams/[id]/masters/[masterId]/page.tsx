@@ -501,7 +501,7 @@ function RolePickerSheet({
                     type="button"
                     onClick={commitNew}
                     disabled={!newName.trim()}
-                    className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                    className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                   >
                     Создать и назначить
                   </button>

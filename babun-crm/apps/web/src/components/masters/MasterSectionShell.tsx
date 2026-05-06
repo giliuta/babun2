@@ -64,7 +64,7 @@ export default function MasterSectionShell({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="ml-auto h-9 px-3 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] press-scale disabled:opacity-40"
+            className="ml-auto h-9 px-3 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
           >
             {saveLabel}
           </button>

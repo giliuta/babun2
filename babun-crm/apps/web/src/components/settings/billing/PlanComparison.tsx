@@ -124,7 +124,7 @@ function Card({ name, current }: { name: "free" | BillingTier; current: boolean 
           type="button"
           onClick={onUpgrade}
           disabled={pending}
-          className={`w-full h-11 rounded-full text-[15px] font-semibold disabled:opacity-50 active:opacity-70 transition ${
+          className={`w-full h-11 rounded-full text-[15px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] active:opacity-70 transition ${
             meta.primary
               ? "bg-[var(--system-blue)] text-white"
               : "bg-[var(--surface-card-secondary)] text-[var(--label)]"

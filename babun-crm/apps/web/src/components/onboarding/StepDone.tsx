@@ -63,7 +63,7 @@ export default function StepDone({
           type="button"
           onClick={() => onCommit("calendar")}
           disabled={saving}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
         >
           {saving ? "Сохраняем…" : "Открыть календарь"}
         </button>
@@ -72,7 +72,7 @@ export default function StepDone({
             type="button"
             onClick={() => onCommit("team")}
             disabled={saving}
-            className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--accent)] text-[17px] font-semibold active:bg-[var(--fill-quaternary)] disabled:opacity-50 transition"
+            className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--accent)] text-[17px] font-semibold active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
           >
             Настроить команду
           </button>
@@ -83,7 +83,7 @@ export default function StepDone({
         type="button"
         onClick={onBack}
         disabled={saving}
-        className="block mx-auto h-9 px-4 text-[13px] font-medium text-[var(--label-secondary)] active:opacity-60 disabled:opacity-50"
+        className="block mx-auto h-9 px-4 text-[13px] font-medium text-[var(--label-secondary)] active:opacity-60 disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
       >
         ← Назад
       </button>

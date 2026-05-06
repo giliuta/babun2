@@ -26,13 +26,18 @@ function saveFinCategories(list: FinanceServiceCategory[]): void {
   }
 }
 
+// Hex values mirror --tile-* tokens in globals.css. Color persistence
+// is in localStorage so we duplicate the hex here, but the canonical
+// source of truth is the design-system tile palette — when those
+// tokens change, this seed list moves with them so the calendar
+// category dot matches the sidebar tile.
 const SEED_CATEGORIES: FinanceServiceCategory[] = [
-  { id: "cat-fin-cleaning", label: "A/C Чистка",         colorHex: "#3b82f6", defaultDurationMin: 45 },
-  { id: "cat-fin-freon",    label: "Фреон",               colorHex: "#10b981", defaultDurationMin: 30 },
-  { id: "cat-fin-leak",     label: "Утечка",              colorHex: "#ef4444", defaultDurationMin: 60 },
-  { id: "cat-fin-install",  label: "Монтаж",              colorHex: "#8b5cf6", defaultDurationMin: 120 },
-  { id: "cat-fin-time",     label: "ВРЕМЯ / Почасовая",   colorHex: "#f59e0b", defaultDurationMin: 60 },
-  { id: "cat-fin-service",  label: "Сервис / Диагностика",colorHex: "#64748b", defaultDurationMin: 60 },
+  { id: "cat-fin-cleaning", label: "A/C Чистка",         colorHex: "#3E88F7", defaultDurationMin: 45 }, // tile-blue
+  { id: "cat-fin-freon",    label: "Фреон",               colorHex: "#10B981", defaultDurationMin: 30 }, // tile-mint
+  { id: "cat-fin-leak",     label: "Утечка",              colorHex: "#F5483F", defaultDurationMin: 60 }, // tile-red
+  { id: "cat-fin-install",  label: "Монтаж",              colorHex: "#9B59B6", defaultDurationMin: 120 }, // tile-purple
+  { id: "cat-fin-time",     label: "ВРЕМЯ / Почасовая",   colorHex: "#F59E0B", defaultDurationMin: 60 }, // tile-orange
+  { id: "cat-fin-service",  label: "Сервис / Диагностика",colorHex: "#8E8E93", defaultDurationMin: 60 }, // tile-gray
 ];
 
 export function migration0004ServiceCategories(): void {

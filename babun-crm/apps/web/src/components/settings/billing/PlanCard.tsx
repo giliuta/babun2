@@ -100,7 +100,7 @@ export default function PlanCard({ billing, stripeConfigured }: Props) {
           type="button"
           onClick={onManage}
           disabled={pending}
-          className="w-full h-11 rounded-full bg-[var(--system-blue)] text-white text-[15px] font-semibold disabled:opacity-50 active:opacity-70 transition"
+          className="w-full h-11 rounded-full bg-[var(--system-blue)] text-white text-[15px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] active:opacity-70 transition"
         >
           {pending ? "Открываем…" : "Управлять подпиской"}
         </button>

@@ -22,7 +22,7 @@ import Footer from "@/components/landing/Footer";
 // blue across surfaces — landing themeColor now matches manifest.ts
 // and the icon gradient.
 export const viewport: Viewport = {
-  themeColor: "#1F66D7",
+  themeColor: "#3E88F7",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,

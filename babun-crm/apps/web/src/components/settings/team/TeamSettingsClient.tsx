@@ -264,7 +264,7 @@ export default function TeamSettingsClient({
             onClick={() => setInviteOpen(true)}
             disabled={teamAtCap}
             title={teamCapTooltip}
-            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition flex items-center justify-center gap-2 disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
           >
             <UserPlus size={16} />
             Пригласить участника
@@ -462,7 +462,7 @@ function InviteModal({
                 type="button"
                 onClick={onClose}
                 disabled={busy}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-medium active:bg-[var(--fill-secondary)] disabled:opacity-50 transition"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-medium active:bg-[var(--fill-secondary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
               >
                 Отмена
               </button>
@@ -470,7 +470,7 @@ function InviteModal({
                 type="button"
                 onClick={submit}
                 disabled={busy || !email}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold disabled:opacity-40 active:bg-[var(--accent-pressed)] transition"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] active:bg-[var(--accent-pressed)] transition"
               >
                 {busy ? "Создаём…" : "Создать"}
               </button>

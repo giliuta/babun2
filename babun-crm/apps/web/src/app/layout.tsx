@@ -70,7 +70,7 @@ export const viewport: Viewport = {
   // icon gradient so the iOS PWA status bar matches the home-screen
   // icon (currently we use statusBarStyle "default", so this colour
   // is what shows behind any translucent overlay).
-  themeColor: "#1F66D7",
+  themeColor: "#3E88F7",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -113,7 +113,7 @@ export default function DangerZoneSection() {
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={busy}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-semibold active:bg-[var(--fill-secondary)] disabled:opacity-50 transition"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-semibold active:bg-[var(--fill-secondary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
               >
                 Отмена
               </button>
@@ -121,7 +121,7 @@ export default function DangerZoneSection() {
                 type="button"
                 onClick={handleDelete}
                 disabled={!ready || busy}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold disabled:opacity-40 active:scale-[0.98] transition"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] active:scale-[0.98] transition"
               >
                 {busy ? "Удаляем…" : "Удалить аккаунт"}
               </button>

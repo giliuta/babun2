@@ -80,7 +80,7 @@ export default function UploadStep({ onParsed, onCancel }: UploadStepProps) {
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="mt-3 h-11 px-5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
+          className="mt-3 h-11 px-5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
         >
           {busy ? "Читаем…" : "Выбрать файл"}
         </button>
@@ -111,7 +111,7 @@ export default function UploadStep({ onParsed, onCancel }: UploadStepProps) {
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-medium active:bg-[var(--fill-secondary)] disabled:opacity-50 transition"
+          className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[15px] font-medium active:bg-[var(--fill-secondary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
         >
           Отмена
         </button>

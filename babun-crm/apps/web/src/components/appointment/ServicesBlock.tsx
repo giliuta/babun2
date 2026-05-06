@@ -54,7 +54,7 @@ export default function ServicesBlock({
             type="button"
             disabled={readonly}
             onClick={onOpenPicker}
-            className={`${rowBase} justify-center text-[15px] font-semibold text-[var(--accent)] disabled:opacity-50`}
+            className={`${rowBase} justify-center text-[15px] font-semibold text-[var(--accent)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed`}
           >
             <span className="text-[16px] leading-none">+</span>
             Выбрать услугу

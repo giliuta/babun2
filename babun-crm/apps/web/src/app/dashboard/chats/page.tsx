@@ -656,7 +656,13 @@ function ChatDetailView({
       </div>
 
       {/* Client link banner */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-[var(--separator)]" style={{ backgroundColor: linkedClient ? "#f0fdf4" : "#f5f3ff" }}>
+      <div
+        className={`flex-shrink-0 px-3 py-2 border-b border-[var(--separator)] ${
+          linkedClient
+            ? "bg-[var(--system-green)]/10"
+            : "bg-[var(--accent-tint)]"
+        }`}
+      >
         {linkedClient ? (
           <a
             href={`/dashboard/clients?id=${linkedClient.id}`}
@@ -676,7 +682,7 @@ function ChatDetailView({
 
       <div className="flex-1 flex flex-col min-h-0">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1" style={{ backgroundColor: "#efeae2" }}>
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1" style={{ backgroundColor: "var(--chat-wallpaper)" }}>
           {groupedMessages.map((group) => (
             <div key={group.date}>
               <div className="flex justify-center my-3">

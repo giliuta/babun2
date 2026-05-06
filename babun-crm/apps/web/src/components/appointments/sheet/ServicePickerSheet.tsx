@@ -161,7 +161,7 @@ export default function ServicePickerSheet({
           type="button"
           onClick={handleConfirm}
           disabled={totals.count === 0}
-          className="w-full h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition disabled:opacity-40 flex items-center justify-between px-4"
+          className="w-full h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] active:scale-[0.98] transition disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] flex items-center justify-between px-4"
         >
           <span>
             {totals.count > 0

@@ -207,7 +207,7 @@ export default function CreateClientModal({
               type="button"
               onClick={handleCreate}
               disabled={!name.trim()}
-              className="w-full h-12 rounded-xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-12 rounded-xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:scale-[0.98] transition disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
             >
               Создать и привязать
             </button>

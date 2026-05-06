@@ -58,7 +58,7 @@ export default function UndoToast({
         bottom: "calc(env(safe-area-inset-bottom, 8px) + 80px)",
       }}
     >
-      <div className="relative overflow-hidden rounded-[14px] bg-[#1C1C1E] text-[var(--label-on-accent)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)]">
+      <div className="relative overflow-hidden rounded-[14px] bg-[var(--surface-toast)] text-[var(--label-on-accent)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)]">
         <div className="flex items-center gap-3 px-4 py-3.5">
           <div className="flex-1 text-[14px] leading-snug">{message}</div>
           <button

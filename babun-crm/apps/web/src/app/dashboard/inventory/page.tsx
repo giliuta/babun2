@@ -645,7 +645,7 @@ export function EquipmentFormModal({
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
+            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
           >
             {mode === "create" ? "Создать" : "Сохранить"}
           </button>

@@ -100,7 +100,7 @@ export default function SenderApprovalRow({
             type="button"
             onClick={onApprove}
             disabled={pending}
-            className="flex-1 h-10 rounded-[10px] bg-[var(--system-green)] text-white text-[14px] font-semibold flex items-center justify-center gap-1.5 active:opacity-80 disabled:opacity-50"
+            className="flex-1 h-10 rounded-[10px] bg-[var(--system-green)] text-white text-[14px] font-semibold flex items-center justify-center gap-1.5 active:opacity-80 disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
           >
             <Check size={14} strokeWidth={2.5} />
             Одобрить
@@ -109,7 +109,7 @@ export default function SenderApprovalRow({
             type="button"
             onClick={() => setRejectMode(true)}
             disabled={pending}
-            className="flex-1 h-10 rounded-[10px] border border-[var(--separator)] text-[var(--system-red)] text-[14px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-tertiary)] disabled:opacity-50"
+            className="flex-1 h-10 rounded-[10px] border border-[var(--separator)] text-[var(--system-red)] text-[14px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-tertiary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
           >
             <X size={14} strokeWidth={2.5} />
             Отклонить
@@ -138,7 +138,7 @@ export default function SenderApprovalRow({
               type="button"
               onClick={onReject}
               disabled={pending || reason.trim().length === 0}
-              className="flex-1 h-9 rounded-[10px] bg-[var(--system-red)] text-white text-[13px] font-semibold disabled:opacity-50"
+              className="flex-1 h-9 rounded-[10px] bg-[var(--system-red)] text-white text-[13px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
             >
               {pending ? "..." : "Отклонить"}
             </button>

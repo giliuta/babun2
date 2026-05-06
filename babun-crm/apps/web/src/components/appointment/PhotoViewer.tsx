@@ -226,7 +226,7 @@ export default function PhotoViewer({
                   setMenuOpen(false);
                 }}
                 disabled={k === photo.kind}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--fill-tertiary)] border-b border-[var(--separator)] last:border-0 disabled:opacity-40"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--fill-tertiary)] border-b border-[var(--separator)] last:border-0 disabled:bg-[var(--fill-tertiary)] disabled:cursor-not-allowed"
               >
                 <KindBadge kind={k} />
                 <span className="text-[14px] font-medium text-[var(--label)]">

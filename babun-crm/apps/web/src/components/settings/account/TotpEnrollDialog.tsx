@@ -191,7 +191,7 @@ export default function TotpEnrollDialog({ onClose, onSuccess }: Props) {
             type="button"
             onClick={handleVerify}
             disabled={code.length !== 6 || busy || !factorId}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold disabled:opacity-40 active:scale-[0.98] transition"
+            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] active:scale-[0.98] transition"
           >
             {busy ? "Проверяем…" : "Подключить"}
           </button>

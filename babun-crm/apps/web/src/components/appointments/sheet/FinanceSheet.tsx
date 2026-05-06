@@ -216,7 +216,7 @@ export default function FinanceSheet({
                     typeof newExpenseAmount !== "number" ||
                     newExpenseAmount <= 0
                   }
-                  className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] text-[13px] font-semibold active:bg-[var(--accent-pressed)] disabled:opacity-40"
+                  className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] text-[13px] font-semibold active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                 >
                   Добавить
                 </button>

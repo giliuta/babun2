@@ -1467,7 +1467,7 @@ function ClientNotesSection({
               type="button"
               onClick={save}
               disabled={!text.trim()}
-              className="flex-1 h-9 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold press-scale disabled:opacity-40"
+              className="flex-1 h-9 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
             >
               Добавить
             </button>

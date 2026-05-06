@@ -108,7 +108,7 @@ export default function DemoDataSection() {
             type="button"
             onClick={handleSeed}
             disabled={busy}
-            className="h-11 px-4 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold flex items-center justify-center gap-2 active:opacity-80 disabled:opacity-50 transition"
+            className="h-11 px-4 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold flex items-center justify-center gap-2 active:opacity-80 disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
           >
             <Sparkles size={16} strokeWidth={2} />
             {phase === "seeding" ? "Загружаю…" : "Загрузить демо-данные"}
@@ -120,7 +120,7 @@ export default function DemoDataSection() {
             type="button"
             onClick={() => setConfirmRemove(true)}
             disabled={busy}
-            className="h-11 px-4 rounded-[12px] bg-[var(--system-red-tint,rgba(255,59,48,0.12))] text-[var(--system-red)] text-[15px] font-semibold flex items-center justify-center gap-2 active:opacity-80 disabled:opacity-50 transition"
+            className="h-11 px-4 rounded-[12px] bg-[var(--system-red-tint)] text-[var(--system-red)] text-[15px] font-semibold flex items-center justify-center gap-2 active:bg-[var(--system-red-tint-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
           >
             <Trash2 size={16} strokeWidth={2} />
             {phase === "removing"

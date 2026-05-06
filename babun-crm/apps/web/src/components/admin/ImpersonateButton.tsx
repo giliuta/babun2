@@ -40,7 +40,7 @@ export default function ImpersonateButton({ tenantId, tenantName }: Props) {
         type="button"
         onClick={() => setShowConfirm(true)}
         disabled={busy || isPending}
-        className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[13px] font-semibold active:bg-[var(--fill-secondary)] disabled:opacity-50 transition flex items-center justify-center gap-2"
+        className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[13px] font-semibold active:bg-[var(--fill-secondary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
       >
         <LogIn size={14} />
         {busy || isPending ? "Готовим ссылку…" : "Войти как владелец"}

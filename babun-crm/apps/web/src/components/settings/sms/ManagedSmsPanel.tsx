@@ -201,7 +201,7 @@ function SenderCard({ config }: { config: ManagedSmsConfig }) {
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="mt-3 w-full h-9 rounded-[10px] text-[13px] font-medium text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+            className="mt-3 w-full h-9 rounded-[10px] text-[13px] font-medium text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
           >
             Отменить заявку
           </button>
@@ -294,7 +294,7 @@ function TopupCard({ config }: { config: ManagedSmsConfig }) {
               type="button"
               onClick={() => onPick(p.id)}
               disabled={pending}
-              className="flex flex-col items-center justify-center gap-1 py-3 rounded-[14px] border border-[var(--separator)] active:bg-[var(--fill-tertiary)] disabled:opacity-50 transition relative"
+              className="flex flex-col items-center justify-center gap-1 py-3 rounded-[14px] border border-[var(--separator)] active:bg-[var(--fill-tertiary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition relative"
             >
               {p.bonusLabel && (
                 <span className="absolute top-1 right-1 inline-flex items-center px-1 h-4 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] text-[10px] font-bold tracking-wide">

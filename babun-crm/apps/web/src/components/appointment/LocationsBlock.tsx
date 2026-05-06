@@ -328,7 +328,7 @@ export default function LocationsBlock({
                   type="button"
                   onClick={saveForm}
                   disabled={!input.trim() && !label.trim()}
-                  className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:opacity-40"
+                  className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                 >
                   Сохранить
                 </button>

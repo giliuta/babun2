@@ -205,7 +205,7 @@ export default function BrandContactsSection({ initial }: Props) {
           type="button"
           onClick={save}
           disabled={isPending}
-          className="h-11 px-5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-50 transition"
+          className="h-11 px-5 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
         >
           {isPending ? "Сохраняем…" : "Сохранить"}
         </button>

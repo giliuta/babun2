@@ -88,7 +88,7 @@ export default function ServiceRow({
                   type="button"
                   onClick={() => setQty(line.quantity - 1)}
                   disabled={line.quantity <= 1}
-                  className="w-7 h-7 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] disabled:opacity-40 flex items-center justify-center"
+                  className="w-7 h-7 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   −
                 </button>

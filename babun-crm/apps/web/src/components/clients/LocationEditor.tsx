@@ -325,7 +325,7 @@ export default function LocationEditor({
             type="button"
             onClick={save}
             disabled={!draft.label.trim()}
-            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:opacity-50 disabled:active:scale-100"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:active:scale-100"
           >
             Сохранить
           </button>

@@ -108,7 +108,7 @@ function PasswordBlock() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:opacity-40 transition flex items-center justify-center gap-2"
+          className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition flex items-center justify-center gap-2"
         >
           {savedAt ? (
             <>
@@ -191,7 +191,7 @@ function TwoFactorBlock() {
                 type="button"
                 onClick={() => setShowDisableConfirm(true)}
                 disabled={busy}
-                className="h-11 px-4 rounded-[10px] bg-[rgba(255,59,48,0.10)] border border-[rgba(255,59,48,0.30)] text-[var(--system-red)] text-[13px] font-semibold active:bg-[rgba(255,59,48,0.18)] disabled:opacity-50"
+                className="h-11 px-4 rounded-[10px] bg-[var(--system-red-tint)] border border-[var(--system-red-border)] text-[var(--system-red)] text-[13px] font-semibold active:bg-[var(--system-red-tint-pressed)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
               >
                 Отключить
               </button>

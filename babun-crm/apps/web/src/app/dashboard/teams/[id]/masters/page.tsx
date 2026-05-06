@@ -364,7 +364,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
           setPickerOpen(true);
         }}
         disabled={availableMasters.length === 0}
-        className="w-full h-12 rounded-[var(--radius-card)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale shadow-[var(--shadow-card)] flex items-center justify-center gap-2 disabled:opacity-40"
+        className="w-full h-12 rounded-[var(--radius-card)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale shadow-[var(--shadow-card)] flex items-center justify-center gap-2 disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
       >
         <Plus size={16} strokeWidth={2.5} />
         Добавить мастера
@@ -679,7 +679,7 @@ function AddMemberPicker({
                           type="button"
                           onClick={commitNewRole}
                           disabled={!newRoleName.trim()}
-                          className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                          className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                         >
                           Создать роль
                         </button>
@@ -761,7 +761,7 @@ function AddMemberPicker({
                 type="button"
                 onClick={handleAdd}
                 disabled={!canAdd}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
+                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
               >
                 Добавить
               </button>
@@ -989,7 +989,7 @@ function EditMemberRolePicker({
                     type="button"
                     onClick={commitNew}
                     disabled={!newName.trim()}
-                    className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40"
+                    className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[13px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                   >
                     Создать и назначить
                   </button>
@@ -1139,7 +1139,7 @@ function RoleEditor({
             type="button"
             onClick={() => canSave && onSave(name, color)}
             disabled={!canSave}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:opacity-40 disabled:pointer-events-none"
+            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
           >
             {initial ? "Сохранить" : "Создать"}
           </button>

@@ -660,7 +660,7 @@ export default function ClientsPage() {
                 disabled={clientsAtCap}
                 title={clientsCapTooltip}
                 aria-label="Добавить клиента"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
               >
                 <Plus size={20} strokeWidth={2.2} />
               </button>
@@ -1253,7 +1253,7 @@ export default function ClientsPage() {
               setSmsBlastOpen(true);
             }}
             disabled={selectedIds.size === 0}
-            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--system-blue)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--system-blue)] active:bg-[var(--fill-quaternary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
           >
             <Send size={16} strokeWidth={2.2} />
             SMS · {selectedIds.size}
@@ -1266,7 +1266,7 @@ export default function ClientsPage() {
               setBulkConfirmDelete(true);
             }}
             disabled={selectedIds.size === 0}
-            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+            className="h-12 flex items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
           >
             <Trash2 size={16} strokeWidth={2.2} />
             Удалить · {selectedIds.size}
@@ -1832,7 +1832,7 @@ function BulkSmsSheet({
               type="button"
               onClick={sendSms}
               disabled={!text.trim() || phones.length === 0}
-              className="flex-1 h-11 rounded-[10px] bg-[var(--system-blue)] text-white text-[14px] font-semibold press-scale disabled:opacity-40"
+              className="flex-1 h-11 rounded-[10px] bg-[var(--system-blue)] text-white text-[14px] font-semibold press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
             >
               Открыть SMS
             </button>
@@ -1840,7 +1840,7 @@ function BulkSmsSheet({
               type="button"
               onClick={copyPhones}
               disabled={phones.length === 0}
-              className="h-11 px-4 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[14px] press-scale disabled:opacity-40"
+              className="h-11 px-4 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--label)] text-[14px] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
             >
               Скопировать номера
             </button>

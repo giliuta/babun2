@@ -150,7 +150,7 @@ export default function PhotoBlock({
           type="button"
           disabled={readonly || busy}
           onClick={() => setPickerOpen(true)}
-          className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-[var(--accent)]/40 text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-[var(--accent)]/40 text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center justify-center gap-2 disabled:text-[var(--label-tertiary)] disabled:border-[var(--separator)] disabled:cursor-not-allowed"
         >
           <Camera size={16} strokeWidth={2} />
           {busy ? "Сохраняем…" : "Добавить фото"}
@@ -174,7 +174,7 @@ export default function PhotoBlock({
               disabled={busy}
               onClick={() => setPickerOpen(true)}
               aria-label="Добавить фото"
-              className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-[var(--accent)]/40 text-[var(--accent)] text-[22px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)] disabled:opacity-40"
+              className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-[var(--accent)]/40 text-[var(--accent)] text-[22px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)] disabled:text-[var(--label-tertiary)] disabled:border-[var(--separator)] disabled:cursor-not-allowed"
             >
               {busy ? "…" : "+"}
             </button>

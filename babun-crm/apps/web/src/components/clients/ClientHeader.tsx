@@ -190,7 +190,7 @@ export default function ClientHeader({
             onClick={() => openMaps(activeLocation)}
             disabled={!activeLocation.address && !activeLocation.mapUrl}
             aria-label="Открыть в Картах"
-            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold bg-[rgba(0,122,255,0.10)] text-[var(--system-blue)] active:bg-[rgba(0,122,255,0.20)] disabled:opacity-40"
+            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold bg-[rgba(0,122,255,0.10)] text-[var(--system-blue)] active:bg-[rgba(0,122,255,0.20)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
           >
             <ArrowUpRight size={13} strokeWidth={2.5} />
             Карты

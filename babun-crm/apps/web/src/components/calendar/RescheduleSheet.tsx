@@ -128,7 +128,7 @@ export default function RescheduleSheet({
               onConfirm({ date, time_start: time, time_end: computedEnd });
               onClose();
             }}
-            className="flex-1 h-11 text-[17px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:opacity-40"
+            className="flex-1 h-11 text-[17px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
           >
             Перенести
           </button>

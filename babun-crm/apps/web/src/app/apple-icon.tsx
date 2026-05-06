@@ -15,7 +15,7 @@ export default function AppleIcon() {
       <div
         style={{
           fontSize: 130,
-          background: "linear-gradient(135deg, #1F66D7 0%, #1850A8 100%)",
+          background: "linear-gradient(135deg, #3E88F7 0%, #2D7BE5 100%)",
           width: "100%",
           height: "100%",
           display: "flex",

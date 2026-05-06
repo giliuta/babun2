@@ -395,7 +395,7 @@ export default function ClientPickerSheet({
                 type="button"
                 onClick={handleCreateNew}
                 disabled={!canCreateClient}
-                className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] disabled:opacity-40"
+                className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                 title={
                   !newName.trim()
                     ? "Введите имя"

@@ -277,7 +277,7 @@ export default function DayFinanceModal({
                     typeof newAmount !== "number" ||
                     newAmount <= 0
                   }
-                  className="flex-1 h-9 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:opacity-40"
+                  className="flex-1 h-9 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                 >
                   Добавить
                 </button>

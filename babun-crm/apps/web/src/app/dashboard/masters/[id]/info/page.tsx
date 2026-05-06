@@ -454,7 +454,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
               type="button"
               onClick={issueCredentials}
               disabled={!loginEmail.trim()}
-              className="w-full h-11 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] flex items-center justify-center gap-2"
             >
               {existing?.credentials_set ? (
                 <>
@@ -1005,7 +1005,7 @@ function IncidentEditor({
           type="button"
           onClick={save}
           disabled={!text.trim()}
-          className="flex-1 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:opacity-40"
+          className="flex-1 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
         >
           Добавить
         </button>
@@ -1134,7 +1134,7 @@ function DocEditor({
           type="button"
           onClick={save}
           disabled={!kind.trim()}
-          className="flex-1 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:opacity-40"
+          className="flex-1 h-10 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
         >
           Сохранить
         </button>
