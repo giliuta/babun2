@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
 } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
@@ -35,15 +36,38 @@ import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
-import MonthView from "@/components/calendar/MonthView";
-import CityPickerModal from "@/components/calendar/CityPickerModal";
-import DayFinanceModal from "@/components/calendar/DayFinanceModal";
-import SpecialScheduleModal from "@/components/calendar/SpecialScheduleModal";
-import RepeatCopyModal from "@/components/calendar/RepeatCopyModal";
 import UndoToast from "@/components/ui/UndoToast";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
-import AppointmentSheet from "@/components/appointment/AppointmentSheet";
+
+// Modal/sheet components: lazy-loaded so the calendar shell paints
+// without their JS in the initial parse step. WeekView + Swipeable-
+// Calendar + TimeColumn stay eagerly imported because they render
+// every mount; MonthView and the seven sheets/modals below render
+// only on demand (mode toggle, slot tap, day tap, etc.).
+const MonthView = dynamic(() => import("@/components/calendar/MonthView"), {
+  ssr: false,
+});
+const CityPickerModal = dynamic(
+  () => import("@/components/calendar/CityPickerModal"),
+  { ssr: false },
+);
+const DayFinanceModal = dynamic(
+  () => import("@/components/calendar/DayFinanceModal"),
+  { ssr: false },
+);
+const SpecialScheduleModal = dynamic(
+  () => import("@/components/calendar/SpecialScheduleModal"),
+  { ssr: false },
+);
+const RepeatCopyModal = dynamic(
+  () => import("@/components/calendar/RepeatCopyModal"),
+  { ssr: false },
+);
+const AppointmentSheet = dynamic(
+  () => import("@/components/appointment/AppointmentSheet"),
+  { ssr: false },
+);
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -65,10 +89,27 @@ import {
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import { sumExtras } from "@babun/shared/local/day-extras";
 import { loadChats } from "@babun/shared/local/chats";
-import SuccessOverlay from "@/components/appointment/SuccessOverlay";
-import PaymentSheet from "@/components/finance/PaymentSheet";
-import ExpenseSheet from "@/components/finance/ExpenseSheet";
-import RescheduleSheet from "@/components/calendar/RescheduleSheet";
+// Post-save and finance/reschedule sheets — also lazy. SuccessOverlay
+// is the brief checkmark animation after a save; PaymentSheet and
+// ExpenseSheet open from the day-finance modal; RescheduleSheet
+// opens via the appointment action menu. None of them paint on the
+// initial render path.
+const SuccessOverlay = dynamic(
+  () => import("@/components/appointment/SuccessOverlay"),
+  { ssr: false },
+);
+const PaymentSheet = dynamic(
+  () => import("@/components/finance/PaymentSheet"),
+  { ssr: false },
+);
+const ExpenseSheet = dynamic(
+  () => import("@/components/finance/ExpenseSheet"),
+  { ssr: false },
+);
+const RescheduleSheet = dynamic(
+  () => import("@/components/calendar/RescheduleSheet"),
+  { ssr: false },
+);
 import { EXPENSE_CATEGORIES } from "@babun/shared/local/finance/expense-categories";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
