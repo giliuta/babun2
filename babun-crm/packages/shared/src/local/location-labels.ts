@@ -12,7 +12,13 @@ export interface LocationLabel {
 
 const STORAGE_KEY = "babun2:settings:location-labels";
 
-export const SEED_LOCATION_LABELS: LocationLabel[] = [
+// STORY-078 leak fix — labels Дом / Квартира / Офис / Вилла are
+// HVAC/cleaning-flavoured. Beauty / auto-service tenants don't need
+// them. Default empty; preset kept exposed for the vertical-driven
+// onboarding seed (future story).
+export const SEED_LOCATION_LABELS: LocationLabel[] = [];
+
+export const HOME_SERVICE_LABELS_PRESET: LocationLabel[] = [
   { id: "loclbl-house",    name: "Дом" },
   { id: "loclbl-flat",     name: "Квартира" },
   { id: "loclbl-office",   name: "Офис" },
@@ -20,16 +26,14 @@ export const SEED_LOCATION_LABELS: LocationLabel[] = [
 ];
 
 export function loadLocationLabels(): LocationLabel[] {
-  if (typeof window === "undefined") return SEED_LOCATION_LABELS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return SEED_LOCATION_LABELS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0
-      ? parsed
-      : SEED_LOCATION_LABELS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return SEED_LOCATION_LABELS;
+    return [];
   }
 }
 

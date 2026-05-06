@@ -335,7 +335,9 @@ export function loadClients(): Client[] {
       };
     }) as Client[];
   } catch {
-    return MOCK_CLIENTS.map(mockToClient);
+    // STORY-078 leak fix — corrupt localStorage previously fell back
+    // to MOCK_CLIENTS (AirFix demo names). Empty list is safer.
+    return [];
   }
 }
 

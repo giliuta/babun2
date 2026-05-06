@@ -26,16 +26,18 @@ export interface CompanyInfo {
 
 const STORAGE_KEY = "babun:company-info";
 
+// STORY-078 leak fix — was returning {name:"AirFix", address:"Cyprus"}
+// to every fresh tenant. Now empty; the owner fills via Settings.
 export const DEFAULT_COMPANY: CompanyInfo = {
-  name: "AirFix",
+  name: "",
   legal_form: "",
   vat_number: "",
-  address: "Cyprus",
+  address: "",
   phone: "",
   email: "",
   website: "",
   vat_rate_percent: 19,
-  vat_mode: "inclusive",
+  vat_mode: "off",
 };
 
 export function loadCompany(): CompanyInfo {

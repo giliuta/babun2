@@ -105,6 +105,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing signature" }, { status: 403 });
   }
 
+  // STORY-078 hardening — verify HMAC FIRST against platform creds,
+  // BEFORE the row lookup. Previous order returned 200 ignored on
+  // unknown MessageSid which leaked an enumeration oracle (forger
+  // could probe SIDs without ever passing signature). Now any caller
+  // without a valid signature gets 403 regardless of whether we
+  // know the SID. Legacy BYOK rows get re-verified with their own
+  // creds further down — but the platform-creds gate is the cheap
+  // first filter.
+  const platformAccountSid = process.env.TWILIO_ACCOUNT_SID;
+  const platformAuthToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!platformAccountSid || !platformAuthToken) {
+    // eslint-disable-next-line no-console
+    console.error("twilio/status: platform creds missing in env");
+    return NextResponse.json({ error: "platform creds missing" }, { status: 500 });
+  }
+  const fullUrl = computeFullUrl(req);
+  const platformExpected = computeTwilioSignature(platformAuthToken, fullUrl, params);
+  const platformSigOk =
+    constantTimeStringEq(accountSid, platformAccountSid) &&
+    constantTimeStringEq(platformExpected, signature);
+
+  // For BYOK we'll re-verify after row lookup with per-tenant creds.
+  // For platform-mode (the only mode in v3+) the verification is now
+  // complete and any forgery is rejected before we touch the DB.
+  if (!platformSigOk) {
+    // We still don't know if this was a BYOK row — defer the 403 until
+    // after the row lookup. But we MUST NOT return 200 ignored on
+    // unknown SIDs anymore — fall through to lookup.
+  }
+
   // ── Lookup our row + decide which auth_token to verify with ────
   // Cast through `any` because the generated DB types don't yet
   // include the SMS tables (chore: regenerate after STORY-047 lands).
@@ -123,18 +153,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "lookup failed" }, { status: 500 });
   }
   if (!row) {
-    // No row matches this MessageSid. Could be a stale retry from a
-    // skeleton-mode test we since wiped, or genuinely a forgery.
-    // Either way, return 200 so Twilio stops retrying.
-    // eslint-disable-next-line no-console
-    console.warn("twilio/status: no sms_messages row for", messageSid);
+    // STORY-078 — must verify signature even on unknown SID,
+    // otherwise the response distinguishes "valid SID, sig OK" from
+    // "any SID, no check" and acts as an enumeration oracle.
+    if (!platformSigOk) {
+      return NextResponse.json({ error: "bad signature" }, { status: 403 });
+    }
+    // Signature was valid against platform creds but we don't have a
+    // matching row — could be a stale retry of a wiped skeleton-mode
+    // record. ACK so Twilio stops retrying.
     return NextResponse.json({ ok: true, ignored: true });
   }
 
-  // Resolve the credentials pair {account_sid, auth_token} for the
-  // matched row's mode.
-  let expectedAccountSid: string | undefined;
-  let authToken: string | undefined;
+  // STORY-078 — Row found. If platform-mode (modern path) the
+  // signature is already verified against platform creds above; if
+  // BYOK (legacy STORY-047 rows) re-verify with the tenant's own
+  // creds.
   if (row.mode === "byok") {
     const { data: cfgRaw, error: cfgErr } = await sb
       .from("tenant_sms_config")
@@ -147,39 +181,18 @@ export async function POST(req: Request) {
       console.error("twilio/status: BYOK creds missing", row.tenant_id, cfgErr);
       return NextResponse.json({ error: "byok creds missing" }, { status: 403 });
     }
-    expectedAccountSid = cfg.twilio_account_sid;
-    authToken = cfg.twilio_auth_token;
-  } else {
-    expectedAccountSid = process.env.TWILIO_ACCOUNT_SID;
-    authToken = process.env.TWILIO_AUTH_TOKEN;
-    if (!expectedAccountSid || !authToken) {
-      // eslint-disable-next-line no-console
-      console.error("twilio/status: platform creds missing in env");
-      return NextResponse.json({ error: "platform creds missing" }, { status: 500 });
+    const byokExpected = computeTwilioSignature(cfg.twilio_auth_token, fullUrl, params);
+    const byokSigOk =
+      constantTimeStringEq(accountSid, cfg.twilio_account_sid) &&
+      constantTimeStringEq(byokExpected, signature);
+    if (!byokSigOk) {
+      return NextResponse.json({ error: "bad signature" }, { status: 403 });
     }
-  }
-
-  // After the BYOK/platform branch above either expectedAccountSid
-  // and authToken are both set, or we already returned. Pin the
-  // narrowing for the rest of the function.
-  const verifyAccountSid: string = expectedAccountSid;
-  const verifyAuthToken: string = authToken;
-
-  // Stage 3 — AccountSid cross-check before HMAC compute. Forgery
-  // with a real MessageSid + wrong AccountSid 403's without burning
-  // a crypto compute.
-  if (!constantTimeStringEq(accountSid, verifyAccountSid)) {
-    return NextResponse.json({ error: "account mismatch" }, { status: 403 });
-  }
-
-  // Stage 4 — Twilio HMAC-SHA1 verification.
-  // Algorithm: sha1_hmac(authToken, fullUrl + sortedConcat(formParams))
-  // base64-encoded, compared with x-twilio-signature.
-  // See: https://www.twilio.com/docs/usage/security#validating-requests
-  const fullUrl = computeFullUrl(req);
-  const expected = computeTwilioSignature(verifyAuthToken, fullUrl, params);
-  if (!constantTimeStringEq(expected, signature)) {
-    return NextResponse.json({ error: "bad signature" }, { status: 403 });
+  } else {
+    // platform-mode — sig already verified above with platform creds
+    if (!platformSigOk) {
+      return NextResponse.json({ error: "bad signature" }, { status: 403 });
+    }
   }
 
   // ── Apply update ───────────────────────────────────────────────

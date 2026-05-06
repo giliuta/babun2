@@ -23,7 +23,13 @@ export const CITY_COLOR_PRESETS = PRESET_COLORS;
 
 const STORAGE_KEY = "babun2:settings:cities";
 
-export const SEED_CITIES: City[] = [
+// STORY-078 leak fix — Cyprus cities were leaking into every fresh
+// tenant regardless of country. Default is now empty; owner adds
+// cities in Settings → Cities. Old constant kept exposed for the
+// vertical-driven onboarding seed (future story).
+export const SEED_CITIES: City[] = [];
+
+export const CYPRUS_CITIES_PRESET: City[] = [
   { id: "city-limassol",  name: "Лимассол",  country: "Cyprus", isActive: true, color: "#FF9500" },
   { id: "city-paphos",    name: "Пафос",     country: "Cyprus", isActive: true, color: "#32ADE6" },
   { id: "city-larnaca",   name: "Ларнака",   country: "Cyprus", isActive: true, color: "#34C759" },
@@ -32,14 +38,14 @@ export const SEED_CITIES: City[] = [
 ];
 
 export function loadCities(): City[] {
-  if (typeof window === "undefined") return SEED_CITIES;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return SEED_CITIES;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_CITIES;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return SEED_CITIES;
+    return [];
   }
 }
 

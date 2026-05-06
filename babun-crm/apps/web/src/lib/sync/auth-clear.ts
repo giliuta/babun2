@@ -68,22 +68,31 @@ const LEGACY_LOCAL_KEYS = [
   "babun2:finance:brigade_members",
 ] as const;
 
-// Prefix-based wipe for keys we know are tenant-scoped but generated
-// dynamically (e.g. business-blocks: "babun-block-open:{kind}",
-// per-tenant tutorials hints: "babun:hint-*", per-tenant unread
-// trackers etc). Cheaper than an explicit list and survives new
-// keys being added without remembering to update this file.
-const PREFIX_WIPE = ["babun-block-open:", "babun:hint-", "babun:tutorial-"];
+// STORY-078 — Switched from explicit-list maintenance to a
+// prefix-sweep on three namespaces. Every Babun-owned localStorage
+// key starts with one of these, and any new module that adds storage
+// is automatically caught (no more "we forgot to add the key to the
+// wipe list" follow-up commits). The KEEP list pins the device-level
+// PWA state we DO want to survive an account switch (install banner
+// dismissal, last-used view mode, push notif consent).
+const TENANT_PREFIXES = ["babun-", "babun2:", "babun:"];
+const KEEP_KEYS = new Set([
+  "babun-pwa-install-dismissed",
+  "babun-push-prompt-dismissed-at",
+  "babun-view-mode",
+  "babun-session-count",
+]);
 
 function clearLegacyLocalStorage(): void {
   if (typeof window === "undefined") return;
+  // Belt-and-suspenders explicit list (untouched) — still runs in
+  // case a key in TENANT_PREFIXES list collides with KEEP_KEYS
+  // somewhere in legacy storage.
   for (const key of LEGACY_LOCAL_KEYS) {
     try {
       window.localStorage.removeItem(key);
     } catch {
-      // Safari private mode / quota-full / locked storage — swallow
-      // and continue. The next account login will overwrite read
-      // paths if the user actually saves anything.
+      // Safari private mode / quota-full / locked storage — swallow.
     }
   }
   // Prefix sweep — copy keys first because removeItem mutates the
@@ -93,7 +102,8 @@ function clearLegacyLocalStorage(): void {
     for (let i = 0; i < window.localStorage.length; i++) {
       const k = window.localStorage.key(i);
       if (!k) continue;
-      if (PREFIX_WIPE.some((p) => k.startsWith(p))) toRemove.push(k);
+      if (KEEP_KEYS.has(k)) continue;
+      if (TENANT_PREFIXES.some((p) => k.startsWith(p))) toRemove.push(k);
     }
     for (const k of toRemove) window.localStorage.removeItem(k);
   } catch {
