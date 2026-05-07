@@ -152,34 +152,36 @@ export default function CalendarSettingsPage() {
           {pcEnabled && (
             <>
 
-          {/* Time range — three rows in human language. v440 — old
-              labels (Видимо / Рабочие / Открывать) read like dev notes.
-              Switched to verb-style first-person phrasing that matches
-              how the user actually thinks about the settings. */}
+          {/* Time range — v441 wording. The personal calendar is a
+              personal-events surface, not a work shift, so "Рабочие /
+              Работаю" terminology was wrong. New labels describe each
+              row by its function in plain language: what's on the
+              grid, when events are planned, where the calendar lands
+              on open. */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
             <div className="px-4 pt-4 pb-2 text-[15px] font-semibold text-[var(--label)]">
               Часы дня
             </div>
 
             <HoursRangeRow
-              label="Показывать"
-              hint="что видно на сетке"
+              label="Видно"
+              hint="часы на сетке"
               from={draft.startHour}
               to={draft.endHour}
               onFromChange={(v) => patch({ startHour: v })}
               onToChange={(v) => patch({ endHour: v })}
             />
             <HoursRangeRow
-              label="Работаю"
-              hint="подсвечено как смена"
+              label="Активно"
+              hint="когда планируешь события"
               from={draft.workStartHour ?? draft.startHour}
               to={draft.workEndHour ?? draft.endHour}
               onFromChange={(v) => patch({ workStartHour: v })}
               onToChange={(v) => patch({ workEndHour: v })}
             />
             <HourRow
-              label="Открывать на"
-              hint="куда прыгает при входе"
+              label="Старт"
+              hint="куда смотрит при открытии"
               value={
                 draft.scrollOpenHour ??
                 draft.workStartHour ??
