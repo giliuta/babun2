@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Menu,
   ChevronDown,
   CalendarClock,
   Rows3,
@@ -105,14 +104,9 @@ export default function Header({
   return (
     <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] flex flex-col z-30">
       <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onMenuToggle}
-          aria-label="Меню"
-          className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale flex-shrink-0 transition"
-        >
-          <Menu size={22} strokeWidth={2} />
-        </button>
+        {/* v450 — мобильный бургер убран по запросу пользователя.
+            Навигация на phone живёт в нижней табе («Ещё»), а на desktop
+            sidebar и так всегда видим. */}
 
         <div className="relative min-w-0 flex-1">
           <button
