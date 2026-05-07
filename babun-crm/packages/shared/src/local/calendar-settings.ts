@@ -35,10 +35,14 @@ export interface CalendarSettings {
 const STORAGE_KEY = "babun2:settings:calendar";
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
-  startHour: 6,
-  endHour: 22,
-  workStartHour: 8,
-  workEndHour: 20,
+  // v439 — visible range covers the whole day (00:00 → 24:00) so the
+  // user can place a late event without changing settings first; the
+  // grid greys out anything outside workStartHour..workEndHour to
+  // visually separate "off-hours" from the work block.
+  startHour: 0,
+  endHour: 24,
+  workStartHour: 6,
+  workEndHour: 22,
   scrollOpenHour: 9,
   gridStep: 30,
   weekStart: "monday",
@@ -84,8 +88,12 @@ export function saveCalendarSettings(settings: CalendarSettings): void {
 }
 
 export function validateCalendarSettings(s: CalendarSettings): string | null {
+  // endHour can be 24 — treated as "midnight at the end of day".
   if (s.endHour <= s.startHour) {
     return "Конец видимого диапазона должен быть позже начала";
+  }
+  if (s.endHour > 24 || s.startHour < 0) {
+    return "Часы вне диапазона 00–24";
   }
   const ws = s.workStartHour ?? s.startHour;
   const we = s.workEndHour ?? s.endHour;
@@ -100,4 +108,21 @@ export function validateCalendarSettings(s: CalendarSettings): string | null {
     return "Время открытия должно быть внутри видимого диапазона";
   }
   return null;
+}
+
+// Helper for event/appointment forms: returns true when an event
+// scheduled at `startMin` (minutes from midnight) lasting
+// `durationMin` either starts before workStartHour, ends after
+// workEndHour, or both. The form reads this on Save and shows a
+// warning + confirm dialog ("выходит за рабочую норму, всё равно
+// сохранить?") before persisting.
+export function isOutsideWorkHours(
+  startMin: number,
+  durationMin: number,
+  s: CalendarSettings,
+): boolean {
+  const ws = (s.workStartHour ?? s.startHour) * 60;
+  const we = (s.workEndHour ?? s.endHour) * 60;
+  const endMin = startMin + durationMin;
+  return startMin < ws || endMin > we;
 }

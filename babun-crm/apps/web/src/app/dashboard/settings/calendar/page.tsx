@@ -320,7 +320,7 @@ function HoursRangeRow({
       <div className="flex-1 flex items-center gap-2 min-w-0">
         <HourSelect value={from} onChange={onFromChange} />
         <span className="text-[var(--label-tertiary)] text-[14px]">—</span>
-        <HourSelect value={to} onChange={onToChange} />
+        <HourSelect value={to} onChange={onToChange} includeMidnightEnd />
       </div>
     </div>
   );
@@ -358,17 +358,23 @@ function HourRow({
 function HourSelect({
   value,
   onChange,
+  // includeMidnightEnd lets a "to" picker offer 24:00 as an option,
+  // representing midnight at end-of-day. Default false (start picker /
+  // single-hour picker = 00..23 only).
+  includeMidnightEnd = false,
 }: {
   value: number;
   onChange: (v: number) => void;
+  includeMidnightEnd?: boolean;
 }) {
+  const length = includeMidnightEnd ? 25 : 24;
   return (
     <select
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
       className="h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[14px] text-[var(--label)] tabular-nums focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
     >
-      {Array.from({ length: 24 }, (_, h) => (
+      {Array.from({ length }, (_, h) => (
         <option key={h} value={h}>
           {String(h).padStart(2, "0")}:00
         </option>
