@@ -33,6 +33,12 @@ function rowToSettings(r: Row): CalendarSettings {
     bufferMinutes: r.buffer_minutes,
     hideCancelled: r.hide_cancelled,
     allowOvertime: r.allow_overtime,
+    // v449 — round-trip work / scroll-open hours through Supabase.
+    // Older rows return null here; the caller's sanitizer fills them
+    // with the visible-range defaults so the form never crashes.
+    workStartHour: r.work_start_hour ?? undefined,
+    workEndHour: r.work_end_hour ?? undefined,
+    scrollOpenHour: r.scroll_open_hour ?? undefined,
   };
 }
 
@@ -72,12 +78,46 @@ export async function updateCalendarSettings(
   if (patch.bufferMinutes !== undefined) insert.buffer_minutes = patch.bufferMinutes;
   if (patch.hideCancelled !== undefined) insert.hide_cancelled = patch.hideCancelled;
   if (patch.allowOvertime !== undefined) insert.allow_overtime = patch.allowOvertime;
+  if (patch.workStartHour !== undefined) insert.work_start_hour = patch.workStartHour;
+  if (patch.workEndHour !== undefined) insert.work_end_hour = patch.workEndHour;
+  if (patch.scrollOpenHour !== undefined) insert.scroll_open_hour = patch.scrollOpenHour;
 
   const { data, error } = await supabase
     .from("calendar_settings")
     .upsert(insert, { onConflict: "tenant_id" })
     .select("*")
     .single();
-  if (error) throw new Error(`updateCalendarSettings: ${error.message}`);
+
+  // v449 — graceful fallback when the 20260507_001 migration hasn't
+  // been applied to the target Supabase project yet. PostgREST
+  // returns 42703 ("column ... does not exist"); strip the new
+  // fields and retry once. localStorage already has the full save,
+  // so the user's edits aren't lost — they just don't cross-sync
+  // until the migration runs.
+  if (error) {
+    const isMissingCol =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (error as any).code === "42703" ||
+      /work_start_hour|work_end_hour|scroll_open_hour/i.test(error.message);
+    if (
+      isMissingCol &&
+      (patch.workStartHour !== undefined ||
+        patch.workEndHour !== undefined ||
+        patch.scrollOpenHour !== undefined)
+    ) {
+      delete insert.work_start_hour;
+      delete insert.work_end_hour;
+      delete insert.scroll_open_hour;
+      const retry = await supabase
+        .from("calendar_settings")
+        .upsert(insert, { onConflict: "tenant_id" })
+        .select("*")
+        .single();
+      if (retry.error)
+        throw new Error(`updateCalendarSettings: ${retry.error.message}`);
+      return rowToSettings(retry.data);
+    }
+    throw new Error(`updateCalendarSettings: ${error.message}`);
+  }
   return rowToSettings(data);
 }

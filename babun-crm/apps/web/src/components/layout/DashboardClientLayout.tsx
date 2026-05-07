@@ -831,7 +831,20 @@ export default function DashboardClientLayout({
           listDayExtrasRepo(supabase, tenantId),
         ]);
       setSchedulesState(scheduleMap);
-      setCalendarSettingsState(calSettings);
+      // v449 — hydration must NOT clobber local work/open hours when
+      // the DB row has them as undefined (older deploy where the
+      // 20260507_001 migration hasn't applied yet). Merge: if the
+      // server returned a value, take it; otherwise keep what we
+      // already have. localStorage is the safety net — saves continue
+      // through `setCalendarSettings → saveCalendarSettings` so a
+      // refresh restores the user's last edits even if Supabase
+      // forgets them.
+      setCalendarSettingsState((prev) => ({
+        ...calSettings,
+        workStartHour: calSettings.workStartHour ?? prev.workStartHour,
+        workEndHour: calSettings.workEndHour ?? prev.workEndHour,
+        scrollOpenHour: calSettings.scrollOpenHour ?? prev.scrollOpenHour,
+      }));
       setDayCitiesState(cityMap);
       setDayExtrasState(extrasMap);
     } catch (err) {

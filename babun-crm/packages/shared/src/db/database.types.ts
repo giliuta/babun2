@@ -349,6 +349,12 @@ export interface Database {
           buffer_minutes: number;
           hide_cancelled: boolean;
           allow_overtime: boolean;
+          // v449 — added by 20260507_001_calendar_settings_work_hours.
+          // Nullable in TS so older clients reading rows from a DB
+          // that has not run the migration still typecheck.
+          work_start_hour: number | null;
+          work_end_hour: number | null;
+          scroll_open_hour: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -362,6 +368,9 @@ export interface Database {
           buffer_minutes?: number;
           hide_cancelled?: boolean;
           allow_overtime?: boolean;
+          work_start_hour?: number | null;
+          work_end_hour?: number | null;
+          scroll_open_hour?: number | null;
           created_at?: string;
           updated_at?: string;
         };
