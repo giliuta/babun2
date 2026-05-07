@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { CalendarHeart } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
@@ -11,7 +11,7 @@ import {
   useMasters,
 } from "@/components/layout/DashboardClientLayout";
 import {
-  validateCalendarSettings,
+  DEFAULT_CALENDAR_SETTINGS,
   TIMEZONE_OPTIONS,
   type CalendarSettings,
 } from "@babun/shared/local/calendar-settings";
@@ -23,17 +23,28 @@ import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/per
 // sub-feature toggles in settings — the reminder/push lead-time will
 // be a per-event field inside the create-event sheet itself.
 
-// v434 — full 0-23 range for both bounds. Was 0-23 / 1-24 split which
-// surprised users who expected to set the day to end at midnight.
-const HOURS_0_23 = Array.from({ length: 24 }, (_, i) => i);
-
 export default function CalendarSettingsPage() {
   const { calendarSettings, setCalendarSettings } = useCalendarSettings();
   const { currentMasterId } = useCurrentMaster();
   const { masters, upsertMaster } = useMasters();
   const currentMaster = masters.find((m) => m.id === currentMasterId) ?? null;
-  const [draft, setDraft] = useState<CalendarSettings>({ ...calendarSettings });
-  const [saved, setSaved] = useState(false);
+  // v445 — auto-save. No Save button, no draft buffer; every change
+  // commits immediately through the context (which writes to
+  // localStorage + Supabase). A small green badge flashes for 1.5s
+  // after each commit so the user gets the "saved" feedback they
+  // would have got from a button label change.
+  const [savedFlash, setSavedFlash] = useState(false);
+  const flashTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    };
+  }, []);
+  const flashSaved = () => {
+    setSavedFlash(true);
+    if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = window.setTimeout(() => setSavedFlash(false), 1500);
+  };
 
   // Personal-calendar tenant toggle. v429 — moved here from "Личная
   // информация" so all calendar-shape settings live in one place.
@@ -71,22 +82,49 @@ export default function CalendarSettingsPage() {
     });
   };
 
-  const error = validateCalendarSettings(draft);
+  // v445 — single source of truth: the context's `calendarSettings`.
+  // No local draft; every control reads from context and writes
+  // through `patch` which auto-commits with cascade-clamp so a partial
+  // edit can never leave the settings in an invalid state.
+  const settings = calendarSettings;
 
   const patch = (p: Partial<CalendarSettings>) => {
-    setSaved(false);
-    setDraft((prev) => ({ ...prev, ...p }));
-  };
+    const next: CalendarSettings = { ...settings, ...p };
+    // Visible range — pushed boundary wins. If the user dragged
+    // startHour past endHour (or vice versa), nudge the OTHER side
+    // so the range stays at least one hour wide.
+    if (next.endHour <= next.startHour) {
+      if ("startHour" in p) {
+        next.endHour = Math.min(24, next.startHour + 1);
+      } else {
+        next.startHour = Math.max(0, next.endHour - 1);
+      }
+    }
+    // Work band must sit inside the visible range.
+    let ws = next.workStartHour ?? next.startHour;
+    let we = next.workEndHour ?? next.endHour;
+    ws = Math.max(next.startHour, Math.min(ws, next.endHour - 1));
+    we = Math.min(next.endHour, Math.max(we, next.startHour + 1));
+    if (we <= ws) {
+      if ("workStartHour" in p) we = Math.min(next.endHour, ws + 1);
+      else ws = Math.max(next.startHour, we - 1);
+    }
+    next.workStartHour = ws;
+    next.workEndHour = we;
+    // Scroll-open inside the visible range.
+    const open = next.scrollOpenHour ?? ws;
+    next.scrollOpenHour = Math.max(
+      next.startHour,
+      Math.min(open, next.endHour),
+    );
 
-  const handleSave = () => {
-    if (error) return;
-    setCalendarSettings(draft);
-    setSaved(true);
+    setCalendarSettings(next);
+    flashSaved();
   };
 
   const handleReset = () => {
-    setDraft({ ...calendarSettings });
-    setSaved(false);
+    setCalendarSettings({ ...DEFAULT_CALENDAR_SETTINGS });
+    flashSaved();
   };
 
   return (
@@ -165,33 +203,27 @@ export default function CalendarSettingsPage() {
 
             <HoursRangeRow
               label="Видимое время"
-              from={draft.startHour}
-              to={draft.endHour}
+              from={settings.startHour}
+              to={settings.endHour}
               onFromChange={(v) => patch({ startHour: v })}
               onToChange={(v) => patch({ endHour: v })}
             />
             <HoursRangeRow
               label="Рабочее время"
-              from={draft.workStartHour ?? draft.startHour}
-              to={draft.workEndHour ?? draft.endHour}
+              from={settings.workStartHour ?? settings.startHour}
+              to={settings.workEndHour ?? settings.endHour}
               onFromChange={(v) => patch({ workStartHour: v })}
               onToChange={(v) => patch({ workEndHour: v })}
             />
             <HourRow
               label="Открывается время"
               value={
-                draft.scrollOpenHour ??
-                draft.workStartHour ??
-                draft.startHour
+                settings.scrollOpenHour ??
+                settings.workStartHour ??
+                settings.startHour
               }
               onChange={(v) => patch({ scrollOpenHour: v })}
             />
-
-            {error && (
-              <div className="mx-4 mb-3 text-[12px] text-[var(--system-red)] bg-[var(--system-red-tint)] rounded-[10px] px-3 py-2">
-                {error}
-              </div>
-            )}
           </div>
 
           {/* Grid step */}
@@ -204,7 +236,7 @@ export default function CalendarSettingsPage() {
                   type="button"
                   onClick={() => patch({ gridStep: step })}
                   className={`flex-1 h-11 rounded-[10px] text-[14px] font-medium transition-all ${
-                    draft.gridStep === step
+                    settings.gridStep === step
                       ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                       : "bg-[var(--fill-tertiary)] text-[var(--label)]"
                   }`}
@@ -227,7 +259,7 @@ export default function CalendarSettingsPage() {
             </div>
             <div className="inline-flex p-0.5 rounded-[10px] bg-[var(--fill-tertiary)] shrink-0">
               {(["monday", "sunday"] as const).map((day) => {
-                const active = draft.weekStart === day;
+                const active = settings.weekStart === day;
                 return (
                   <button
                     key={day}
@@ -250,7 +282,7 @@ export default function CalendarSettingsPage() {
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">
             <div className="text-[15px] font-semibold text-[var(--label)]">Часовой пояс</div>
             <select
-              value={draft.timezone}
+              value={settings.timezone}
               onChange={(e) => patch({ timezone: e.target.value })}
               className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
             >
@@ -262,20 +294,22 @@ export default function CalendarSettingsPage() {
             </select>
           </div>
 
-          {/* Save */}
-          <div className="flex gap-3">
-            <Button variant="secondary" size="md" fullWidth onClick={handleReset}>
-              Сбросить
-            </Button>
-            <Button
-              variant={saved ? "primary" : "primary"}
-              size="md"
-              fullWidth
-              disabled={!!error}
-              onClick={handleSave}
-              className={saved ? "!bg-[var(--system-green)]" : ""}
+          {/* v445 — auto-save row. The right side of the row carries
+              the only remaining action (reset to defaults); the left
+              side is a small inline "saved" badge that pulses for
+              1.5 s after each commit so the user knows the change
+              landed without a button press. */}
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex-1 text-[13px] font-medium text-[var(--system-green)] transition-opacity duration-300 ${
+                savedFlash ? "opacity-100" : "opacity-0"
+              }`}
+              aria-live="polite"
             >
-              {saved ? "Сохранено!" : "Сохранить"}
+              ✓ Сохранено
+            </div>
+            <Button variant="secondary" size="md" onClick={handleReset}>
+              Сбросить
             </Button>
           </div>
 
