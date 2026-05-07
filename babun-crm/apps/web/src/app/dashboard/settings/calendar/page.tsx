@@ -152,33 +152,34 @@ export default function CalendarSettingsPage() {
           {pcEnabled && (
             <>
 
-          {/* Time range — three compact rows: what hours appear on the
-              grid, which of those count as working (highlighted), and
-              the hour the calendar auto-scrolls to on open. v438. */}
+          {/* Time range — three rows in human language. v440 — old
+              labels (Видимо / Рабочие / Открывать) read like dev notes.
+              Switched to verb-style first-person phrasing that matches
+              how the user actually thinks about the settings. */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
             <div className="px-4 pt-4 pb-2 text-[15px] font-semibold text-[var(--label)]">
-              Диапазон часов
+              Часы дня
             </div>
 
             <HoursRangeRow
-              label="Видимо"
-              hint="что отображается"
+              label="Показывать"
+              hint="что видно на сетке"
               from={draft.startHour}
               to={draft.endHour}
               onFromChange={(v) => patch({ startHour: v })}
               onToChange={(v) => patch({ endHour: v })}
             />
             <HoursRangeRow
-              label="Рабочие"
-              hint="подсвечиваются"
+              label="Работаю"
+              hint="подсвечено как смена"
               from={draft.workStartHour ?? draft.startHour}
               to={draft.workEndHour ?? draft.endHour}
               onFromChange={(v) => patch({ workStartHour: v })}
               onToChange={(v) => patch({ workEndHour: v })}
             />
             <HourRow
-              label="Открывать"
-              hint="точка прокрутки"
+              label="Открывать на"
+              hint="куда прыгает при входе"
               value={
                 draft.scrollOpenHour ??
                 draft.workStartHour ??
@@ -309,7 +310,7 @@ function HoursRangeRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
-      <div className="w-[88px] shrink-0">
+      <div className="w-[112px] shrink-0">
         <div className="text-[14px] text-[var(--label)]">{label}</div>
         {hint && (
           <div className="text-[11px] text-[var(--label-tertiary)] leading-tight mt-0.5">
@@ -340,7 +341,7 @@ function HourRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
-      <div className="w-[88px] shrink-0">
+      <div className="w-[112px] shrink-0">
         <div className="text-[14px] text-[var(--label)]">{label}</div>
         {hint && (
           <div className="text-[11px] text-[var(--label-tertiary)] leading-tight mt-0.5">
