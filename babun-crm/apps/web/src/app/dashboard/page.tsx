@@ -289,7 +289,23 @@ function DashboardPageInner() {
   // Sprint 033 — brigade calendar window. Must be computed BEFORE any
   // effect that reads it (scroll-to-time sits near the top of the
   // component). teams array is already captured above.
+  //
+  // v444 — personal-tab fix. Was: this memo only consulted the
+  // brigade's `calendar_window_start/end`, so for the personal tab
+  // (where `at` is undefined) it always returned 0..24 — which made
+  // "Видимое время" in the personal-calendar settings page look
+  // completely dead: the user changed the value, saved, but the grid
+  // kept rendering the full day. Now the personal tab uses
+  // calendarSettings.startHour/endHour, brigade tabs keep their
+  // per-team override.
   const windowBounds = useMemo(() => {
+    if (activeTeamId === PERSONAL_TAB_ID) {
+      const wsRaw = calendarSettings.startHour;
+      const weRaw = calendarSettings.endHour;
+      const ws = Math.max(0, Math.min(23, wsRaw));
+      const we = Math.max(ws + 1, Math.min(24, weRaw));
+      return { windowStart: ws, windowEnd: we };
+    }
     const parseHour = (s: string | undefined | null): number | null => {
       if (!s || !/^\d{1,2}:\d{2}$/.test(s)) return null;
       const [h, m] = s.split(":").map(Number);
@@ -301,7 +317,7 @@ function DashboardPageInner() {
     const weRaw = parseHour(at?.calendar_window_end) ?? 24;
     const we = Math.max(ws + 1, Math.min(24, weRaw));
     return { windowStart: ws, windowEnd: we };
-  }, [teams, activeTeamId]);
+  }, [teams, activeTeamId, calendarSettings.startHour, calendarSettings.endHour]);
   const { windowStart, windowEnd } = windowBounds;
 
   const activeSchedule = useMemo(
@@ -491,7 +507,19 @@ function DashboardPageInner() {
       requestAnimationFrame(assertScroll);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, activeTeamId, windowStart, windowEnd, activeBrigadeScroll]);
+  }, [
+    viewMode,
+    activeTeamId,
+    windowStart,
+    windowEnd,
+    activeBrigadeScroll,
+    // v444 — re-scroll when the personal-cal settings change so the
+    // user sees their new "Открывается время" land immediately after
+    // pressing Save instead of needing a tab switch to nudge the grid.
+    calendarSettings.scrollOpenHour,
+    calendarSettings.workStartHour,
+    calendarSettings.workEndHour,
+  ]);
 
   const { zoomBy, handleZoomIn, handleZoomOut } = useCalendarGestures({
     outerScrollerRef,
