@@ -121,11 +121,10 @@ export function ColorSwatchPopover({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Цвет события"
-        className="w-9 h-9 rounded-full border border-[var(--separator)] flex items-center justify-center active:scale-[0.97] transition"
+        className="w-7 h-7 rounded-full ring-2 ring-[var(--surface-card)] shadow-[0_0_0_1px_var(--separator)] active:scale-[0.97] transition"
         style={{ background: value }}
-      >
-        <span className="w-4 h-4 rounded-full bg-white/30" />
-      </button>
+      />
+
       {open && (
         <div className="absolute right-0 top-11 z-[80] bg-[var(--surface-card)] border border-[var(--separator)] shadow-[var(--shadow-card)] rounded-2xl p-2.5 w-[252px]">
           <div className="grid grid-cols-7 gap-1.5">
@@ -153,10 +152,9 @@ export function ColorSwatchPopover({
   );
 }
 
-// Chip control for "за 15 минут / за 24 часа / своё".
-// Stored as `offsets: number[]` so a future "Add second alert" feature
-// can extend this to multiple chips. For now the picker is single-pick:
-// tapping a chip replaces the array.
+// v453 — single-select push picker. iPhone Calendar / Reminders also
+// pick exactly ONE alert (with optional second). Multi-select chips
+// confused the user; radio matches their mental model.
 const PRESET_OFFSETS: { label: string; value: number }[] = [
   { label: "За 5 мин", value: 5 },
   { label: "За 15 мин", value: 15 },
@@ -176,15 +174,18 @@ export function PushOffsetPicker({
   onToggle: (next: boolean) => void;
   onChange: (next: number[]) => void;
 }) {
-  // "Custom" lives outside the preset list and exposes a text input so
-  // the user can type any minute count.
-  const customValue = (() => {
-    const v = offsets.find((o) => !PRESET_OFFSETS.some((p) => p.value === o));
-    return v ?? null;
-  })();
+  // Single-select model: exactly 0 or 1 entry in `offsets`. Legacy
+  // multi-select saves still load — we collapse to the first value.
+  const current = offsets.length > 0 ? offsets[0] : null;
+  const isPreset =
+    current !== null && PRESET_OFFSETS.some((p) => p.value === current);
+  const isCustom = current !== null && !isPreset;
+
   const [customDraft, setCustomDraft] = useState<string>(
-    customValue !== null ? String(customValue) : "",
+    isCustom ? String(current) : "",
   );
+
+  const setOne = (v: number | null) => onChange(v === null ? [] : [v]);
 
   return (
     <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
@@ -198,15 +199,11 @@ export function PushOffsetPicker({
               Push-уведомление
             </div>
             <div className="text-[12px] text-[var(--label-secondary)]">
-              {enabled
-                ? offsets.length
-                  ? offsets
-                      .slice()
-                      .sort((a, b) => a - b)
-                      .map(formatOffsetLabel)
-                      .join(", ")
-                  : "Выберите время"
-                : "Выкл"}
+              {!enabled
+                ? "Выкл"
+                : current === null
+                  ? "Не выбрано время"
+                  : formatOffsetLabel(current)}
             </div>
           </div>
         </div>
@@ -217,53 +214,69 @@ export function PushOffsetPicker({
         <div className="px-4 pb-4 pt-1 border-t border-[var(--separator)] space-y-3">
           <div className="flex flex-wrap gap-1.5">
             {PRESET_OFFSETS.map((p) => {
-              const active = offsets.includes(p.value);
+              const active = current === p.value;
               return (
                 <button
                   key={p.value}
                   type="button"
-                  onClick={() => {
-                    if (active) {
-                      onChange(offsets.filter((o) => o !== p.value));
-                    } else {
-                      onChange([...offsets, p.value]);
-                    }
-                  }}
+                  onClick={() => setOne(active ? null : p.value)}
                   className={`h-8 px-3 rounded-full text-[13px] font-semibold transition ${active ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
                 >
                   {p.label}
                 </button>
               );
             })}
-          </div>
-
-          {/* Custom HH:MM (typed as "minutes before") */}
-          <div className="flex items-center gap-2">
-            <div className="text-[13px] text-[var(--label-secondary)] w-[64px] shrink-0">Своё</div>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={10080}
-              value={customDraft}
-              onChange={(e) => setCustomDraft(e.target.value)}
-              onBlur={() => {
-                const n = Number(customDraft);
-                const cleaned = offsets.filter((o) =>
-                  PRESET_OFFSETS.some((p) => p.value === o),
-                );
-                if (Number.isFinite(n) && n > 0) {
-                  onChange([...cleaned, Math.min(10080, Math.round(n))]);
-                } else {
-                  onChange(cleaned);
+            <button
+              type="button"
+              onClick={() => {
+                // Tap "Своё" — make it the active option, seed input
+                // with the current minutes if any.
+                if (isCustom) {
+                  setOne(null);
                   setCustomDraft("");
+                } else {
+                  const seeded = customDraft.trim()
+                    ? Number(customDraft)
+                    : 10;
+                  if (Number.isFinite(seeded) && seeded > 0) {
+                    setOne(Math.min(10080, Math.round(seeded)));
+                    setCustomDraft(String(Math.min(10080, Math.round(seeded))));
+                  } else {
+                    setOne(10);
+                    setCustomDraft("10");
+                  }
                 }
               }}
-              placeholder="мин до начала"
-              className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-            />
-            <span className="text-[12px] text-[var(--label-tertiary)]">мин</span>
+              className={`h-8 px-3 rounded-full text-[13px] font-semibold transition ${isCustom ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
+            >
+              Своё
+            </button>
           </div>
+
+          {isCustom && (
+            <div className="flex items-center gap-2">
+              <div className="text-[13px] text-[var(--label-secondary)] w-[88px] shrink-0">
+                Минут до начала
+              </div>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={10080}
+                value={customDraft}
+                onChange={(e) => setCustomDraft(e.target.value)}
+                onBlur={() => {
+                  const n = Number(customDraft);
+                  if (Number.isFinite(n) && n > 0) {
+                    setOne(Math.min(10080, Math.round(n)));
+                  } else {
+                    setCustomDraft(String(current ?? ""));
+                  }
+                }}
+                className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -271,14 +284,111 @@ export function PushOffsetPicker({
 }
 
 function formatOffsetLabel(min: number): string {
-  if (min < 60) return `${min} мин`;
+  if (min < 60) return `За ${min} мин`;
   if (min % 60 === 0) {
     const h = min / 60;
-    if (h === 24) return "24 ч";
-    if (h % 24 === 0) return `${h / 24} дн`;
-    return `${h} ч`;
+    if (h === 24) return "За 24 часа";
+    if (h % 24 === 0) return `За ${h / 24} дн`;
+    return `За ${h} ч`;
   }
-  return `${min} мин`;
+  return `За ${min} мин`;
+}
+
+// v453 — Apple Maps on iOS, Google Maps elsewhere. Apple's URL scheme
+// `maps://?q=…` opens the system Maps app on iPhone/iPad PWAs without
+// the Safari prompt. Returns null when there's nothing to navigate to.
+export function buildMapsUrl(address: string): string | null {
+  const a = address.trim();
+  if (!a) return null;
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const q = encodeURIComponent(a);
+  return isIOS
+    ? `maps://?q=${q}`
+    : `https://www.google.com/maps/search/?api=1&query=${q}`;
+}
+
+// ─── Repeat picker ────────────────────────────────────────────────
+// v453 — Single-tap row that opens a small action sheet of preset
+// recurrence rules. Stays UI-only for now (occurrence expansion onto
+// the calendar grid is a follow-up); the picked rule is persisted
+// on the appointment for forward-compat.
+
+import type { PersonalEventRepeat } from "@babun/shared/local/appointments";
+
+const REPEAT_OPTIONS: { value: PersonalEventRepeat["kind"]; label: string }[] = [
+  { value: "none",    label: "Не повторять" },
+  { value: "daily",   label: "Ежедневно" },
+  { value: "weekly",  label: "Каждую неделю" },
+  { value: "monthly", label: "Каждый месяц" },
+  { value: "yearly",  label: "Каждый год" },
+];
+
+export function RepeatPickerRow({
+  value,
+  onChange,
+}: {
+  value: PersonalEventRepeat;
+  onChange: (next: PersonalEventRepeat) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current =
+    REPEAT_OPTIONS.find((o) => o.value === value.kind) ?? REPEAT_OPTIONS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-[var(--fill-quaternary)] transition"
+      >
+        <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+          <span className="text-[16px]">↻</span>
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="text-[15px] font-semibold text-[var(--label)]">Повтор</div>
+        </div>
+        <div className="text-[13px] font-medium text-[var(--label-tertiary)] shrink-0">
+          {current.label}
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-[var(--separator)] py-1">
+          {REPEAT_OPTIONS.map((opt) => {
+            const active = value.kind === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange({ kind: opt.value } as PersonalEventRepeat);
+                  setOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-[14px] text-[var(--label)] active:bg-[var(--fill-quaternary)]"
+              >
+                <span>{opt.label}</span>
+                {active && (
+                  <span className="text-[var(--accent)] font-semibold">✓</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Slim iOS toggle wrapper to dodge the heavier IOSSwitch barrel here.

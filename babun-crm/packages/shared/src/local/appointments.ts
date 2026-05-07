@@ -51,6 +51,17 @@ export interface AppointmentService {
 
 export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
 
+/** v453 — repeat rule for personal events. Discriminated union so
+ *  the runtime never has to parse an RRULE string. `until` is an
+ *  optional ISO date (YYYY-MM-DD); when omitted the event repeats
+ *  indefinitely. */
+export type PersonalEventRepeat =
+  | { kind: "none" }
+  | { kind: "daily"; until?: string }
+  | { kind: "weekly"; until?: string }
+  | { kind: "monthly"; until?: string }
+  | { kind: "yearly"; until?: string };
+
 /** Откуда пришла заявка. Совмещена со списком клиента
  *  (AcquisitionSource в lib/clients), но отдельный тип потому что у
  *  заявки может быть «phone» (позвонили напрямую), а у клиента этой
@@ -170,12 +181,19 @@ export interface Appointment {
   event_notes?: string;
   /** Optional URL — meeting link, document, map. Tappable in view. */
   event_url?: string;
+  /** All-day flag. When true the time pickers are hidden and the
+   *  event spans the whole day in the calendar grid. */
+  event_all_day?: boolean;
   /** Push self-reminder toggle. Independent from `reminder_enabled`,
    *  which handles client SMS for work appointments. */
   event_push_enabled?: boolean;
   /** Offsets in minutes before start at which to fire a push. E.g.
-   *  [15, 1440] → 15 min and 1 day before. Empty = no push. */
+   *  [15] → 15 min before. v453 — single-select; legacy multi-select
+   *  saves still load (we just take the first entry). */
   event_push_offsets?: number[];
+  /** Recurrence rule. Stored as a discriminated union so the
+   *  consumer doesn't need to parse RRULE strings. */
+  event_repeat?: PersonalEventRepeat;
 
   status: AppointmentStatus;
   created_at: string;
@@ -238,10 +256,12 @@ export function loadAppointments(): Appointment[] {
       event_type_id: p.event_type_id ?? null,
       event_notes: p.event_notes ?? "",
       event_url: p.event_url ?? "",
+      event_all_day: p.event_all_day ?? false,
       event_push_enabled: p.event_push_enabled ?? false,
       event_push_offsets: Array.isArray(p.event_push_offsets)
         ? p.event_push_offsets
         : [],
+      event_repeat: p.event_repeat ?? { kind: "none" },
       // Migrate legacy payments[] → payment (single object). Sum up
       // cash / card payments; anything else collapses to invoice.
       payment:

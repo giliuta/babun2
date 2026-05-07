@@ -1,20 +1,19 @@
 "use client";
 
-// Personal-calendar event sheet. iOS-Reminders-inspired layout for
-// the personal tab (master_id set, team_id null). Layout, top to bot:
-//   • Header: ● color swatch · 🗑 delete (edit-only) · ✕ close
-//   • TimeBlock (date + time-range + duration chip)         ← first
-//   • Title (autofocus, single line)
-//   • Notes (textarea, multi-line)
-//   • Тип события: configurable tile grid (PersonalEventType[])
-//   • Место: address text + Навигация button
-//   • URL
-//   • Push: toggle + chips (5/15/30 min, 1h, 24h) + custom min input
-// Sticky footer: «Создать событие» / «Сохранить» (single full-width).
+// v453 — full design pass. Personal-calendar event sheet structured
+// as iOS-Settings-style card groups. Order, top to bottom:
 //
-// CLAUDE.md notes:
-//   • RU in UI, EN in code.
-//   • Total file size kept under 400 lines via PersonalEventBlocks.tsx.
+//   • Header — color swatch · 🗑 (edit-only) · ✕
+//   • Card 1: Текст      → Title (hero) · Notes
+//   • Card 2: Время      → Весь день toggle · TimeBlock
+//   • Type tiles grid    → 5 presets + «⊕ Новый» link to settings
+//   • Card 3: Место/URL  → address+Maps · Ссылка
+//   • Card 4: Push       → toggle · single-select chips · «Своё»
+//   • Card 5: Повтор     → menu (Не повторять / Ежедневно / …)
+//
+// Sticky footer: «Создать событие» / «Сохранить».
+// Constraints: RU UI · EN code · file ≤ 400 LOC (sub-blocks live in
+// PersonalEventBlocks.tsx).
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -23,14 +22,17 @@ import {
   Navigation as NavigationIcon,
   Link as LinkIcon,
   StickyNote,
+  Plus as PlusIcon,
 } from "@babun/shared/icons";
-import type { Appointment } from "@babun/shared/local/appointments";
+import type { Appointment, PersonalEventRepeat } from "@babun/shared/local/appointments";
 import { usePersonalEventTypes } from "@/hooks/usePersonalEventTypes";
 import TimeBlock from "@/components/appointment/TimeBlock";
 import {
   ColorSwatchPopover,
   IconBadge,
   PushOffsetPicker,
+  RepeatPickerRow,
+  buildMapsUrl,
 } from "./PersonalEventBlocks";
 import type { PersonalEventType } from "@babun/shared/local/personal-event-types";
 
@@ -40,14 +42,13 @@ interface PersonalEventSheetProps {
   open: boolean;
   onClose: () => void;
   mode: PersonalEventSheetMode;
-  /** Seed for create mode (date + initial time slot from tap), or full
-   *  record for edit. Always carries kind="event" + master_id. */
   appointment: Appointment;
   onSave: (apt: Appointment) => void;
   onDelete?: (apt: Appointment) => void;
 }
 
-const DEFAULT_COLOR = "#007AFF"; // iOS system blue
+const DEFAULT_COLOR = "#007AFF";
+const NO_REPEAT: PersonalEventRepeat = { kind: "none" };
 
 export default function PersonalEventSheet({
   open,
@@ -63,6 +64,7 @@ export default function PersonalEventSheet({
   const [dateKey, setDateKey] = useState(appointment.date);
   const [timeStart, setTimeStart] = useState(appointment.time_start);
   const [timeEnd, setTimeEnd] = useState(appointment.time_end);
+  const [allDay, setAllDay] = useState(appointment.event_all_day ?? false);
   const [title, setTitle] = useState(appointment.comment ?? "");
   const [notes, setNotes] = useState(appointment.event_notes ?? "");
   const [eventTypeId, setEventTypeId] = useState<string | null>(
@@ -79,17 +81,17 @@ export default function PersonalEventSheet({
   const [pushOffsets, setPushOffsets] = useState<number[]>(
     appointment.event_push_offsets ?? [],
   );
+  const [repeat, setRepeat] = useState<PersonalEventRepeat>(
+    appointment.event_repeat ?? NO_REPEAT,
+  );
 
-  // Re-seed local state when a different appointment is opened
-  // (parent reuses the sheet across multiple events). The setState
-  // burst inside this effect is intentional — seeding form state from
-  // an identifying prop is the canonical use case for which the lint
-  // rule is overly strict.
+  // Re-seed when a different appointment is opened.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDateKey(appointment.date);
     setTimeStart(appointment.time_start);
     setTimeEnd(appointment.time_end);
+    setAllDay(appointment.event_all_day ?? false);
     setTitle(appointment.comment ?? "");
     setNotes(appointment.event_notes ?? "");
     setEventTypeId(appointment.event_type_id ?? null);
@@ -98,21 +100,20 @@ export default function PersonalEventSheet({
     setUrl(appointment.event_url ?? "");
     setPushEnabled(appointment.event_push_enabled ?? false);
     setPushOffsets(appointment.event_push_offsets ?? []);
+    setRepeat(appointment.event_repeat ?? NO_REPEAT);
   }, [appointment.id]); // eslint-disable-line react-hooks/exhaustive-deps
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Picking a type seeds the title (if blank), color (if untouched),
-  // and end-of-time (clamping to the day). Preserve the user's
-  // intent: don't blow away a non-empty title or a colour they
-  // already deliberately chose.
   const onPickType = (t: PersonalEventType) => {
     setEventTypeId(t.id);
     if (!title.trim()) setTitle(t.label);
     if (color === DEFAULT_COLOR) setColor(t.color);
     if (t.allDay) {
+      setAllDay(true);
       setTimeStart("00:00");
       setTimeEnd("23:59");
     } else {
+      setAllDay(false);
       const [h, m] = timeStart.split(":").map(Number);
       const endMin = Math.min(23 * 60 + 59, h * 60 + m + t.defaultDuration);
       const eh = Math.floor(endMin / 60);
@@ -133,27 +134,25 @@ export default function PersonalEventSheet({
   const buildPayload = (): Appointment => ({
     ...appointment,
     date: dateKey,
-    time_start: timeStart,
-    time_end: timeEnd,
+    time_start: allDay ? "00:00" : timeStart,
+    time_end: allDay ? "23:59" : timeEnd,
     comment: title.trim(),
     event_notes: notes.trim(),
     event_type_id: eventTypeId,
     color_override: color,
     address: address.trim(),
     event_url: url.trim(),
+    event_all_day: allDay,
     event_push_enabled: pushEnabled,
     event_push_offsets: pushEnabled ? pushOffsets : [],
+    event_repeat: repeat,
     kind: "event",
     updated_at: new Date().toISOString(),
   });
 
   if (!open) return null;
 
-  const navigationHref = (() => {
-    const a = address.trim();
-    if (!a) return null;
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
-  })();
+  const mapsHref = buildMapsUrl(address);
 
   return (
     <div
@@ -161,13 +160,13 @@ export default function PersonalEventSheet({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
+        className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header — color + delete + close (top-right per spec) */}
-        <div className="flex-shrink-0 px-4 pt-3 pb-2 flex items-center gap-2">
-          <div className="flex-1 text-[15px] font-semibold text-[var(--label)] truncate">
+        {/* Header */}
+        <div className="flex-shrink-0 px-4 pt-3 pb-2 flex items-center gap-2 bg-[var(--surface-card)] rounded-t-[20px] border-b border-[var(--separator)]">
+          <div className="flex-1 text-[17px] font-semibold text-[var(--label)] truncate tracking-tight">
             {mode === "edit" ? "Редактирование" : "Новое событие"}
           </div>
           <ColorSwatchPopover value={color} onChange={setColor} />
@@ -192,159 +191,192 @@ export default function PersonalEventSheet({
         </div>
 
         {/* Scroll body */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4 space-y-3">
-          {/* 1. Time first */}
-          <TimeBlock
-            date={dateKey}
-            timeStart={timeStart}
-            timeEnd={timeEnd}
-            onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-              setDateKey(d);
-              setTimeStart(s);
-              setTimeEnd(e);
-            }}
-          />
-
-          {/* 2. Title */}
-          <div className="px-4">
-            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-              Название
-            </div>
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4 px-4 pt-3 space-y-4">
+          {/* Card 1 — Title + Notes */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
             <input
               autoFocus={mode === "create"}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Событие"
-              className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              placeholder="Название"
+              className="w-full px-4 py-3.5 text-[18px] font-semibold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-normal bg-transparent border-0 focus:outline-none"
             />
+            <div className="border-t border-[var(--separator)]" />
+            <div className="px-4 py-3 flex items-start gap-3">
+              <StickyNote size={16} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0 mt-0.5" />
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Заметка"
+                rows={2}
+                className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none resize-none"
+              />
+            </div>
           </div>
 
-          {/* 3. Notes */}
-          <div className="px-4">
-            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5 flex items-center gap-1.5">
-              <StickyNote size={12} strokeWidth={2} />
-              Заметка
-            </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Подробности, ссылки, пожелания…"
-              rows={3}
-              className="w-full px-3.5 py-2.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] resize-none"
-            />
-          </div>
-
-          {/* 4. Event type tiles (configurable in settings) */}
-          <div className="px-4">
-            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5 flex items-center justify-between">
-              <span>Тип события</span>
-              <a
-                href="/dashboard/settings/calendar/event-types"
-                className="text-[var(--accent)] text-[11px] font-semibold normal-case tracking-normal"
-              >
-                Настроить
-              </a>
-            </div>
-            {types.length === 0 ? (
-              <div className="text-[13px] text-[var(--label-tertiary)] py-2">
-                Нет типов. Добавьте в настройках.
+          {/* Card 2 — Time + All-day */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="text-[15px] font-semibold text-[var(--label)]">
+                Весь день
               </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {types.map((t) => {
-                  const active = eventTypeId === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => onPickType(t)}
-                      className="py-3 rounded-[14px] border bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1.5 transition"
-                      style={{
-                        borderColor: active ? t.color : "var(--separator)",
-                        background: active ? `${t.color}14` : undefined,
-                      }}
-                    >
-                      <IconBadge
-                        icon={t.icon}
-                        color={t.color}
-                        size={16}
-                        className="w-7 h-7 rounded-full"
-                      />
-                      <span className="px-1 truncate max-w-full">{t.label}</span>
-                    </button>
-                  );
-                })}
+              <ToggleSlim
+                checked={allDay}
+                onChange={(v) => {
+                  setAllDay(v);
+                  if (v) {
+                    setTimeStart("00:00");
+                    setTimeEnd("23:59");
+                  }
+                }}
+                ariaLabel="Весь день"
+              />
+            </div>
+            {!allDay && (
+              <div className="border-t border-[var(--separator)]">
+                <TimeBlock
+                  date={dateKey}
+                  timeStart={timeStart}
+                  timeEnd={timeEnd}
+                  onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+                    setDateKey(d);
+                    setTimeStart(s);
+                    setTimeEnd(e);
+                  }}
+                />
+              </div>
+            )}
+            {allDay && (
+              <div className="border-t border-[var(--separator)] px-4 py-3 text-[13px] text-[var(--label-secondary)]">
+                {formatDateRu(dateKey)}
               </div>
             )}
           </div>
 
-          {/* 5. Place + Navigation */}
-          <div className="px-4">
-            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-              Место
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Адрес или название места"
-                className="flex-1 h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-              />
+          {/* Type tiles */}
+          <div>
+            <div className="px-1 mb-2 flex items-center justify-between">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+                Тип события
+              </div>
               <a
-                href={navigationHref ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Открыть в картах"
-                onClick={(e) => {
-                  if (!navigationHref) e.preventDefault();
-                }}
-                className={`h-11 px-3 rounded-[10px] flex items-center gap-1.5 text-[14px] font-semibold transition ${navigationHref ? "bg-[var(--accent-tint)] text-[var(--accent)] active:scale-[0.97]" : "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] pointer-events-none"}`}
+                href="/dashboard/settings/calendar/event-types"
+                className="text-[var(--accent)] text-[13px] font-semibold"
               >
-                <NavigationIcon size={16} strokeWidth={2} />
-                Карты
+                Настроить
+              </a>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {types.map((t) => {
+                const active = eventTypeId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => onPickType(t)}
+                    className="py-3 rounded-[14px] border bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1.5 transition"
+                    style={{
+                      borderColor: active ? t.color : "var(--separator)",
+                      background: active ? `${t.color}14` : undefined,
+                    }}
+                  >
+                    <IconBadge
+                      icon={t.icon}
+                      color={t.color}
+                      size={16}
+                      className="w-7 h-7 rounded-full"
+                    />
+                    <span className="px-1 truncate max-w-full">{t.label}</span>
+                  </button>
+                );
+              })}
+              {/* + Новый: links straight into the settings CRUD */}
+              <a
+                href="/dashboard/settings/calendar/event-types"
+                className="py-3 rounded-[14px] border border-dashed border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label-secondary)] active:scale-[0.98] flex flex-col items-center justify-center gap-1.5 transition"
+              >
+                <div className="w-7 h-7 rounded-full bg-[var(--fill-tertiary)] flex items-center justify-center text-[var(--label-secondary)]">
+                  <PlusIcon size={14} strokeWidth={2.5} />
+                </div>
+                <span>Новый</span>
               </a>
             </div>
           </div>
 
-          {/* 6. URL */}
-          <div className="px-4">
-            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5 flex items-center gap-1.5">
-              <LinkIcon size={12} strokeWidth={2} />
-              Ссылка
+          {/* Card 3 — Place + URL */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-4 py-3 flex items-center gap-2">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] w-[60px] shrink-0">
+                Место
+              </div>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Адрес"
+                className="flex-1 h-9 px-3 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+              {mapsHref && (
+                <a
+                  href={mapsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Открыть в картах"
+                  className="w-9 h-9 flex items-center justify-center rounded-[10px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
+                >
+                  <NavigationIcon size={16} strokeWidth={2} />
+                </a>
+              )}
             </div>
-            <input
-              type="url"
-              inputMode="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://"
-              className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-            />
+            <div className="border-t border-[var(--separator)]" />
+            <div className="px-4 py-3 flex items-center gap-2">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] w-[60px] shrink-0">
+                Ссылка
+              </div>
+              <input
+                type="url"
+                inputMode="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://"
+                className="flex-1 h-9 px-3 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+              {url.trim() && /^https?:\/\//i.test(url.trim()) && (
+                <a
+                  href={url.trim()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Открыть ссылку"
+                  className="w-9 h-9 flex items-center justify-center rounded-[10px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
+                >
+                  <LinkIcon size={16} strokeWidth={2} />
+                </a>
+              )}
+            </div>
           </div>
 
-          {/* 7. Push toggle + offsets */}
-          <div className="px-4">
-            <PushOffsetPicker
-              enabled={pushEnabled}
-              offsets={pushOffsets}
-              onToggle={setPushEnabled}
-              onChange={setPushOffsets}
-            />
-          </div>
+          {/* Card 4 — Push */}
+          <PushOffsetPicker
+            enabled={pushEnabled}
+            offsets={pushOffsets}
+            onToggle={setPushEnabled}
+            onChange={setPushOffsets}
+          />
 
-          {/* Selected type chip — small confirmation visual */}
+          {/* Card 5 — Repeat */}
+          <RepeatPickerRow value={repeat} onChange={setRepeat} />
+
           {selectedType && (
-            <div className="px-4 text-[11px] text-[var(--label-tertiary)] text-center">
-              Выбрано: {selectedType.label}
+            <div className="px-1 text-[11px] text-[var(--label-tertiary)] text-center">
+              Тип: {selectedType.label}
             </div>
           )}
         </div>
 
         {/* Sticky save */}
         <div
-          className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
+          className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] bg-[var(--surface-card)] rounded-b-[20px]"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
         >
           <button
@@ -361,5 +393,44 @@ export default function PersonalEventSheet({
         </div>
       </div>
     </div>
+  );
+}
+
+// Tiny RU date formatter for the all-day pill ("8 мая, четверг").
+function formatDateRu(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  if (!y || !m || !d) return dateKey;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    weekday: "long",
+  });
+}
+
+// Slim toggle (mirrors the helper in PersonalEventBlocks; kept inline
+// here to avoid an extra import roundtrip — LOC-cheap, semantic-equal).
+function ToggleSlim({
+  checked,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  ariaLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex w-[51px] h-[31px] rounded-full transition shrink-0 ${checked ? "bg-[var(--system-green)]" : "bg-[var(--fill-tertiary)]"}`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-[27px] h-[27px] rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[20px]" : "translate-x-0"}`}
+      />
+    </button>
   );
 }
