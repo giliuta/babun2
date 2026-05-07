@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v454-personal-event-redesign-2";
+export const BUILD_VERSION = "v455-time-on-top-allday-inline";

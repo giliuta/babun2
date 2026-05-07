@@ -9,6 +9,11 @@ interface TimeBlockProps {
   timeEnd: string; // HH:MM
   readOnly?: boolean;
   onChange: (next: { date: string; timeStart: string; timeEnd: string }) => void;
+  /** Optional element rendered at the right edge of the header row.
+   *  Used by PersonalEventSheet to drop the «Весь день» toggle in
+   *  line with the date/time chips so the user gets one compact row.
+   *  When set, the duration pill is hidden to make room. */
+  rightSlot?: React.ReactNode;
 }
 
 const WEEKDAYS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
@@ -87,6 +92,7 @@ export default function TimeBlock({
   timeEnd,
   readOnly,
   onChange,
+  rightSlot,
 }: TimeBlockProps) {
   const [expandedMode, setExpandedMode] = useState<"none" | "date" | "time">(
     "none"
@@ -179,9 +185,13 @@ export default function TimeBlock({
         </span>
         <ChevronDownIcon />
       </button>
-      <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[12px] font-semibold text-[var(--label-secondary)] tabular-nums">
-        {duration} мин
-      </span>
+      {rightSlot ? (
+        <span className="ml-auto flex items-center">{rightSlot}</span>
+      ) : (
+        <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--fill-tertiary)] text-[12px] font-semibold text-[var(--label-secondary)] tabular-nums">
+          {duration} мин
+        </span>
+      )}
     </div>
   );
 

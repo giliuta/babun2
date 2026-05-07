@@ -211,7 +211,62 @@ export default function PersonalEventSheet({
 
         {/* Scroll body */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-3 px-3.5 pt-3 space-y-3">
-          {/* Card 1 — Hero title + slim notes */}
+          {/* Card 1 — Time block at top (per user spec). Inline
+              «Весь день» toggle slots into the header row's right
+              edge via TimeBlock's `rightSlot` prop. When ON the
+              wheel pickers are hidden and we render the date alone. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            {!allDay ? (
+              <TimeBlock
+                date={dateKey}
+                timeStart={timeStart}
+                timeEnd={timeEnd}
+                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+                  setDateKey(d);
+                  setTimeStart(s);
+                  setTimeEnd(e);
+                }}
+                rightSlot={
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                      Весь день
+                    </span>
+                    <ToggleSlim
+                      checked={allDay}
+                      onChange={(v) => {
+                        setAllDay(v);
+                        if (v) {
+                          setTimeStart("00:00");
+                          setTimeEnd("23:59");
+                        }
+                      }}
+                      ariaLabel="Весь день"
+                    />
+                  </div>
+                }
+              />
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2.5 text-[13px]">
+                <span className="text-[var(--label-tertiary)]">⏰</span>
+                <span className="font-semibold text-[var(--label)]">
+                  {formatDateRu(dateKey)}
+                </span>
+                <span className="text-[var(--label-secondary)]">· весь день</span>
+                <span className="ml-auto flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
+                    Весь день
+                  </span>
+                  <ToggleSlim
+                    checked={allDay}
+                    onChange={(v) => setAllDay(v)}
+                    ariaLabel="Весь день"
+                  />
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2 — Hero title + slim notes (now below time) */}
           <div
             className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
             style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
@@ -232,45 +287,6 @@ export default function PersonalEventSheet({
               placeholder="Заметка"
               className="w-full px-4 py-2.5 text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
             />
-          </div>
-
-          {/* Card 2 — Time + All-day */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="flex items-center justify-between px-3.5 py-2.5">
-              <div className="text-[14px] font-semibold text-[var(--label)]">
-                Весь день
-              </div>
-              <ToggleSlim
-                checked={allDay}
-                onChange={(v) => {
-                  setAllDay(v);
-                  if (v) {
-                    setTimeStart("00:00");
-                    setTimeEnd("23:59");
-                  }
-                }}
-                ariaLabel="Весь день"
-              />
-            </div>
-            {!allDay && (
-              <div className="border-t border-[var(--separator)]">
-                <TimeBlock
-                  date={dateKey}
-                  timeStart={timeStart}
-                  timeEnd={timeEnd}
-                  onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                    setDateKey(d);
-                    setTimeStart(s);
-                    setTimeEnd(e);
-                  }}
-                />
-              </div>
-            )}
-            {allDay && (
-              <div className="border-t border-[var(--separator)] px-3.5 py-2 text-[12px] text-[var(--label-secondary)]">
-                {formatDateRu(dateKey)}
-              </div>
-            )}
           </div>
 
           {/* Type tiles — compact 4-column grid */}
