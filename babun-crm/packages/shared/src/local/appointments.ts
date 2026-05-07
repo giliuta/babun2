@@ -51,14 +51,16 @@ export interface AppointmentService {
 
 export type AppointmentKind = "work" | "event" | "personal"; // event = встреча/обед/перерыв
 
-/** v453 — repeat rule for personal events. Discriminated union so
+/** v454 — repeat rule for personal events. Discriminated union so
  *  the runtime never has to parse an RRULE string. `until` is an
  *  optional ISO date (YYYY-MM-DD); when omitted the event repeats
- *  indefinitely. */
+ *  indefinitely. v454 added "weekdays" (Mon–Fri) and "biweekly". */
 export type PersonalEventRepeat =
   | { kind: "none" }
   | { kind: "daily"; until?: string }
+  | { kind: "weekdays"; until?: string }   // Mon–Fri
   | { kind: "weekly"; until?: string }
+  | { kind: "biweekly"; until?: string }
   | { kind: "monthly"; until?: string }
   | { kind: "yearly"; until?: string };
 
@@ -189,8 +191,14 @@ export interface Appointment {
   event_push_enabled?: boolean;
   /** Offsets in minutes before start at which to fire a push. E.g.
    *  [15] → 15 min before. v453 — single-select; legacy multi-select
-   *  saves still load (we just take the first entry). */
+   *  saves still load (we just take the first entry). v454 — when
+   *  `event_push_at` is set, this is ignored. */
   event_push_offsets?: number[];
+  /** v454 — absolute ISO datetime at which to fire the push. Set
+   *  when the user picks "Своё" and dials in a specific moment
+   *  rather than a relative offset. Mutually exclusive with
+   *  event_push_offsets — `at` wins when both are set. */
+  event_push_at?: string | null;
   /** Recurrence rule. Stored as a discriminated union so the
    *  consumer doesn't need to parse RRULE strings. */
   event_repeat?: PersonalEventRepeat;
@@ -261,6 +269,7 @@ export function loadAppointments(): Appointment[] {
       event_push_offsets: Array.isArray(p.event_push_offsets)
         ? p.event_push_offsets
         : [],
+      event_push_at: p.event_push_at ?? null,
       event_repeat: p.event_repeat ?? { kind: "none" },
       // Migrate legacy payments[] → payment (single object). Sum up
       // cash / card payments; anything else collapses to invoice.

@@ -152,75 +152,82 @@ export function ColorSwatchPopover({
   );
 }
 
-// v453 — single-select push picker. iPhone Calendar / Reminders also
-// pick exactly ONE alert (with optional second). Multi-select chips
-// confused the user; radio matches their mental model.
+// v454 — push picker now supports BOTH relative offsets AND an
+// absolute datetime ("Своё" → datetime-local input). The user picks
+// either a preset chip ("За 15 мин"…) or "Своё" with a precise
+// moment when the notification fires. Internal mode flag keeps the
+// UI consistent regardless of whether absolute or relative is set.
 const PRESET_OFFSETS: { label: string; value: number }[] = [
-  { label: "За 5 мин", value: 5 },
-  { label: "За 15 мин", value: 15 },
-  { label: "За 30 мин", value: 30 },
-  { label: "За 1 час", value: 60 },
+  { label: "За 5 мин",   value: 5 },
+  { label: "За 15 мин",  value: 15 },
+  { label: "За 30 мин",  value: 30 },
+  { label: "За 1 час",   value: 60 },
   { label: "За 24 часа", value: 1440 },
 ];
 
-export function PushOffsetPicker({
-  enabled,
-  offsets,
-  onToggle,
-  onChange,
-}: {
+interface PushPickerValue {
   enabled: boolean;
-  offsets: number[];
-  onToggle: (next: boolean) => void;
-  onChange: (next: number[]) => void;
+  /** Relative offset in minutes; `null` if absolute or unset. */
+  offsetMin: number | null;
+  /** Absolute ISO datetime; `null` if relative or unset. */
+  at: string | null;
+}
+
+export function PushOffsetPicker({
+  value,
+  onChange,
+  /** Start time of the event. Used to format absolute hint. */
+  eventStartIso,
+}: {
+  value: PushPickerValue;
+  onChange: (next: PushPickerValue) => void;
+  eventStartIso?: string;
 }) {
-  // Single-select model: exactly 0 or 1 entry in `offsets`. Legacy
-  // multi-select saves still load — we collapse to the first value.
-  const current = offsets.length > 0 ? offsets[0] : null;
   const isPreset =
-    current !== null && PRESET_OFFSETS.some((p) => p.value === current);
-  const isCustom = current !== null && !isPreset;
-
-  const [customDraft, setCustomDraft] = useState<string>(
-    isCustom ? String(current) : "",
-  );
-
-  const setOne = (v: number | null) => onChange(v === null ? [] : [v]);
+    value.offsetMin !== null &&
+    PRESET_OFFSETS.some((p) => p.value === value.offsetMin);
+  const isAbsolute = value.at !== null;
 
   return (
     <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3.5">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
-            <Bell size={18} strokeWidth={2} />
+      <div className="flex items-center justify-between px-3.5 py-3 select-none">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+            <Bell size={16} strokeWidth={2} />
           </div>
           <div className="min-w-0">
-            <div className="text-[15px] font-semibold text-[var(--label)]">
+            <div className="text-[14px] font-semibold text-[var(--label)]">
               Push-уведомление
             </div>
-            <div className="text-[12px] text-[var(--label-secondary)]">
-              {!enabled
-                ? "Выкл"
-                : current === null
-                  ? "Не выбрано время"
-                  : formatOffsetLabel(current)}
+            <div className="text-[11px] text-[var(--label-secondary)]">
+              {summarizePush(value)}
             </div>
           </div>
         </div>
-        <ToggleSlim checked={enabled} onChange={onToggle} ariaLabel="Push-уведомление" />
+        <ToggleSlim
+          checked={value.enabled}
+          onChange={(next) => onChange({ ...value, enabled: next })}
+          ariaLabel="Push-уведомление"
+        />
       </div>
 
-      {enabled && (
-        <div className="px-4 pb-4 pt-1 border-t border-[var(--separator)] space-y-3">
+      {value.enabled && (
+        <div className="px-3.5 pb-3 pt-1 border-t border-[var(--separator)] space-y-2.5 select-none">
           <div className="flex flex-wrap gap-1.5">
             {PRESET_OFFSETS.map((p) => {
-              const active = current === p.value;
+              const active = isPreset && value.offsetMin === p.value;
               return (
                 <button
                   key={p.value}
                   type="button"
-                  onClick={() => setOne(active ? null : p.value)}
-                  className={`h-8 px-3 rounded-full text-[13px] font-semibold transition ${active ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
+                  onClick={() =>
+                    onChange({
+                      enabled: true,
+                      offsetMin: active ? null : p.value,
+                      at: null,
+                    })
+                  }
+                  className={`h-7 px-2.5 rounded-full text-[12px] font-semibold transition ${active ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
                 >
                   {p.label}
                 </button>
@@ -229,50 +236,42 @@ export function PushOffsetPicker({
             <button
               type="button"
               onClick={() => {
-                // Tap "Своё" — make it the active option, seed input
-                // with the current minutes if any.
-                if (isCustom) {
-                  setOne(null);
-                  setCustomDraft("");
+                if (isAbsolute) {
+                  onChange({ enabled: true, offsetMin: null, at: null });
                 } else {
-                  const seeded = customDraft.trim()
-                    ? Number(customDraft)
-                    : 10;
-                  if (Number.isFinite(seeded) && seeded > 0) {
-                    setOne(Math.min(10080, Math.round(seeded)));
-                    setCustomDraft(String(Math.min(10080, Math.round(seeded))));
-                  } else {
-                    setOne(10);
-                    setCustomDraft("10");
-                  }
+                  // Seed 1 hour before event start, or now+1h fallback.
+                  const seed = (() => {
+                    const base = eventStartIso
+                      ? new Date(eventStartIso)
+                      : new Date(Date.now() + 60 * 60_000);
+                    if (isNaN(base.getTime())) return new Date(Date.now() + 60 * 60_000);
+                    base.setMinutes(base.getMinutes() - 60);
+                    return base;
+                  })();
+                  onChange({
+                    enabled: true,
+                    offsetMin: null,
+                    at: isoToLocalInput(seed),
+                  });
                 }
               }}
-              className={`h-8 px-3 rounded-full text-[13px] font-semibold transition ${isCustom ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
+              className={`h-7 px-2.5 rounded-full text-[12px] font-semibold transition ${isAbsolute ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
             >
               Своё
             </button>
           </div>
 
-          {isCustom && (
-            <div className="flex items-center gap-2">
-              <div className="text-[13px] text-[var(--label-secondary)] w-[88px] shrink-0">
-                Минут до начала
+          {isAbsolute && (
+            <div className="flex items-center gap-2 select-text">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[72px] shrink-0">
+                Когда
               </div>
               <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={10080}
-                value={customDraft}
-                onChange={(e) => setCustomDraft(e.target.value)}
-                onBlur={() => {
-                  const n = Number(customDraft);
-                  if (Number.isFinite(n) && n > 0) {
-                    setOne(Math.min(10080, Math.round(n)));
-                  } else {
-                    setCustomDraft(String(current ?? ""));
-                  }
-                }}
+                type="datetime-local"
+                value={value.at ?? ""}
+                onChange={(e) =>
+                  onChange({ enabled: true, offsetMin: null, at: e.target.value || null })
+                }
                 className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
             </div>
@@ -281,6 +280,22 @@ export function PushOffsetPicker({
       )}
     </div>
   );
+}
+
+function summarizePush(v: PushPickerValue): string {
+  if (!v.enabled) return "Выкл";
+  if (v.at) {
+    const d = new Date(v.at);
+    if (isNaN(d.getTime())) return "Своё время";
+    return d.toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  if (v.offsetMin !== null) return formatOffsetLabel(v.offsetMin);
+  return "Не выбрано время";
 }
 
 function formatOffsetLabel(min: number): string {
@@ -292,6 +307,12 @@ function formatOffsetLabel(min: number): string {
     return `За ${h} ч`;
   }
   return `За ${min} мин`;
+}
+
+// datetime-local input wants `YYYY-MM-DDTHH:mm` in local time.
+function isoToLocalInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // v453 — Apple Maps on iOS, Google Maps elsewhere. Apple's URL scheme
@@ -318,12 +339,24 @@ export function buildMapsUrl(address: string): string | null {
 import type { PersonalEventRepeat } from "@babun/shared/local/appointments";
 
 const REPEAT_OPTIONS: { value: PersonalEventRepeat["kind"]; label: string }[] = [
-  { value: "none",    label: "Не повторять" },
-  { value: "daily",   label: "Ежедневно" },
-  { value: "weekly",  label: "Каждую неделю" },
-  { value: "monthly", label: "Каждый месяц" },
-  { value: "yearly",  label: "Каждый год" },
+  { value: "none",     label: "Не повторять" },
+  { value: "daily",    label: "Ежедневно" },
+  { value: "weekdays", label: "По будням (Пн–Пт)" },
+  { value: "weekly",   label: "Каждую неделю" },
+  { value: "biweekly", label: "Каждые 2 недели" },
+  { value: "monthly",  label: "Каждый месяц" },
+  { value: "yearly",   label: "Каждый год" },
 ];
+
+function repeatSummary(v: PersonalEventRepeat): string {
+  const opt = REPEAT_OPTIONS.find((o) => o.value === v.kind);
+  const base = opt?.label ?? "Не повторять";
+  if (v.kind === "none" || !("until" in v) || !v.until) return base;
+  const d = new Date(v.until);
+  if (isNaN(d.getTime())) return base;
+  const dateStr = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  return `${base} · до ${dateStr}`;
+}
 
 export function RepeatPickerRow({
   value,
@@ -334,8 +367,6 @@ export function RepeatPickerRow({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const current =
-    REPEAT_OPTIONS.find((o) => o.value === value.kind) ?? REPEAT_OPTIONS[0];
 
   useEffect(() => {
     if (!open) return;
@@ -346,45 +377,90 @@ export function RepeatPickerRow({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  const setKind = (k: PersonalEventRepeat["kind"]) => {
+    if (k === "none") {
+      onChange({ kind: "none" });
+      return;
+    }
+    // Preserve `until` when switching between repeating modes.
+    const until =
+      "until" in value && value.until ? value.until : undefined;
+    onChange({ kind: k, until } as PersonalEventRepeat);
+  };
+
+  const setUntil = (next: string | undefined) => {
+    if (value.kind === "none") return;
+    onChange({ kind: value.kind, until: next } as PersonalEventRepeat);
+  };
+
   return (
     <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-[var(--fill-quaternary)] transition"
+        className="w-full flex items-center gap-2.5 px-3.5 py-3 active:bg-[var(--fill-quaternary)] transition select-none"
       >
-        <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
-          <span className="text-[16px]">↻</span>
+        <div className="w-8 h-8 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+          <span className="text-[14px]">↻</span>
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <div className="text-[15px] font-semibold text-[var(--label)]">Повтор</div>
+          <div className="text-[14px] font-semibold text-[var(--label)]">Повтор</div>
+          {value.kind !== "none" && (
+            <div className="text-[11px] text-[var(--label-secondary)] truncate">
+              {repeatSummary(value)}
+            </div>
+          )}
         </div>
-        <div className="text-[13px] font-medium text-[var(--label-tertiary)] shrink-0">
-          {current.label}
+        <div className="text-[12px] font-medium text-[var(--label-tertiary)] shrink-0">
+          {value.kind === "none"
+            ? "Не повторять"
+            : (REPEAT_OPTIONS.find((o) => o.value === value.kind)?.label ?? "")}
         </div>
       </button>
 
       {open && (
-        <div className="border-t border-[var(--separator)] py-1">
-          {REPEAT_OPTIONS.map((opt) => {
-            const active = value.kind === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  onChange({ kind: opt.value } as PersonalEventRepeat);
-                  setOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-[14px] text-[var(--label)] active:bg-[var(--fill-quaternary)]"
-              >
-                <span>{opt.label}</span>
-                {active && (
-                  <span className="text-[var(--accent)] font-semibold">✓</span>
-                )}
-              </button>
-            );
-          })}
+        <div className="border-t border-[var(--separator)]">
+          <div className="py-1">
+            {REPEAT_OPTIONS.map((opt) => {
+              const active = value.kind === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setKind(opt.value)}
+                  className="w-full flex items-center justify-between px-4 py-2 text-[13px] text-[var(--label)] active:bg-[var(--fill-quaternary)] select-none"
+                >
+                  <span>{opt.label}</span>
+                  {active && (
+                    <span className="text-[var(--accent)] font-semibold">✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {value.kind !== "none" && (
+            <div className="border-t border-[var(--separator)] px-3.5 py-2.5 flex items-center gap-2 select-text">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[80px] shrink-0">
+                Завершить
+              </div>
+              <input
+                type="date"
+                value={"until" in value && value.until ? value.until : ""}
+                onChange={(e) => setUntil(e.target.value || undefined)}
+                className="flex-1 h-8 px-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[13px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+              {"until" in value && value.until && (
+                <button
+                  type="button"
+                  onClick={() => setUntil(undefined)}
+                  className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
+                >
+                  Снять
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

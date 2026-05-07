@@ -1,19 +1,21 @@
 "use client";
 
-// v453 — full design pass. Personal-calendar event sheet structured
-// as iOS-Settings-style card groups. Order, top to bottom:
+// v454 — full redesign per user feedback. Notable shifts vs v453:
 //
-//   • Header — color swatch · 🗑 (edit-only) · ✕
-//   • Card 1: Текст      → Title (hero) · Notes
-//   • Card 2: Время      → Весь день toggle · TimeBlock
-//   • Type tiles grid    → 5 presets + «⊕ Новый» link to settings
-//   • Card 3: Место/URL  → address+Maps · Ссылка
-//   • Card 4: Push       → toggle · single-select chips · «Своё»
-//   • Card 5: Повтор     → menu (Не повторять / Ежедневно / …)
+//   • Title + notes: borderless hero block — title at 22 px / 700,
+//     hairline, slim notes single-line input (textarea expands).
+//   • Push «Своё»: absolute datetime picker (`event_push_at`) —
+//     user dials the precise moment the notification fires, not a
+//     relative offset.
+//   • Repeat: extended presets (weekdays, biweekly) + «Завершить»
+//     date so the rule has an end.
+//   • Type tiles: compact 4-column grid, ~60 px tall, icon 22 px.
+//   • iOS callout / text-selection on sheet chrome disabled
+//     (`select-none` + `WebkitTouchCallout: none` on outer card),
+//     inputs / textareas keep `select-text`.
 //
-// Sticky footer: «Создать событие» / «Сохранить».
-// Constraints: RU UI · EN code · file ≤ 400 LOC (sub-blocks live in
-// PersonalEventBlocks.tsx).
+// Sub-blocks: PersonalEventBlocks (push picker, repeat picker,
+// color swatch, icon registry, Apple Maps deep-link helper).
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -21,10 +23,12 @@ import {
   X as XIcon,
   Navigation as NavigationIcon,
   Link as LinkIcon,
-  StickyNote,
   Plus as PlusIcon,
 } from "@babun/shared/icons";
-import type { Appointment, PersonalEventRepeat } from "@babun/shared/local/appointments";
+import type {
+  Appointment,
+  PersonalEventRepeat,
+} from "@babun/shared/local/appointments";
 import { usePersonalEventTypes } from "@/hooks/usePersonalEventTypes";
 import TimeBlock from "@/components/appointment/TimeBlock";
 import {
@@ -60,7 +64,6 @@ export default function PersonalEventSheet({
 }: PersonalEventSheetProps) {
   const { types } = usePersonalEventTypes();
 
-  // ─── State ───────────────────────────────────────────────────────
   const [dateKey, setDateKey] = useState(appointment.date);
   const [timeStart, setTimeStart] = useState(appointment.time_start);
   const [timeEnd, setTimeEnd] = useState(appointment.time_end);
@@ -78,14 +81,18 @@ export default function PersonalEventSheet({
   const [pushEnabled, setPushEnabled] = useState(
     appointment.event_push_enabled ?? false,
   );
-  const [pushOffsets, setPushOffsets] = useState<number[]>(
-    appointment.event_push_offsets ?? [],
+  const [pushOffset, setPushOffset] = useState<number | null>(
+    appointment.event_push_offsets && appointment.event_push_offsets.length > 0
+      ? appointment.event_push_offsets[0]
+      : null,
+  );
+  const [pushAt, setPushAt] = useState<string | null>(
+    appointment.event_push_at ?? null,
   );
   const [repeat, setRepeat] = useState<PersonalEventRepeat>(
     appointment.event_repeat ?? NO_REPEAT,
   );
 
-  // Re-seed when a different appointment is opened.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDateKey(appointment.date);
@@ -99,7 +106,12 @@ export default function PersonalEventSheet({
     setAddress(appointment.address ?? "");
     setUrl(appointment.event_url ?? "");
     setPushEnabled(appointment.event_push_enabled ?? false);
-    setPushOffsets(appointment.event_push_offsets ?? []);
+    setPushOffset(
+      appointment.event_push_offsets && appointment.event_push_offsets.length > 0
+        ? appointment.event_push_offsets[0]
+        : null,
+    );
+    setPushAt(appointment.event_push_at ?? null);
     setRepeat(appointment.event_repeat ?? NO_REPEAT);
   }, [appointment.id]); // eslint-disable-line react-hooks/exhaustive-deps
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -130,6 +142,7 @@ export default function PersonalEventSheet({
   );
 
   const canSave = title.trim().length > 0;
+  const eventStartIso = useMemo(() => `${dateKey}T${timeStart}`, [dateKey, timeStart]);
 
   const buildPayload = (): Appointment => ({
     ...appointment,
@@ -144,7 +157,8 @@ export default function PersonalEventSheet({
     event_url: url.trim(),
     event_all_day: allDay,
     event_push_enabled: pushEnabled,
-    event_push_offsets: pushEnabled ? pushOffsets : [],
+    event_push_offsets: pushEnabled && pushOffset !== null && !pushAt ? [pushOffset] : [],
+    event_push_at: pushEnabled && pushAt ? pushAt : null,
     event_repeat: repeat,
     kind: "event",
     updated_at: new Date().toISOString(),
@@ -161,12 +175,17 @@ export default function PersonalEventSheet({
     >
       <div
         className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
-        style={{ height: "92vh" }}
+        style={{
+          height: "92vh",
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
+          userSelect: "none",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex-shrink-0 px-4 pt-3 pb-2 flex items-center gap-2 bg-[var(--surface-card)] rounded-t-[20px] border-b border-[var(--separator)]">
-          <div className="flex-1 text-[17px] font-semibold text-[var(--label)] truncate tracking-tight">
+        <div className="flex-shrink-0 px-3.5 pt-3 pb-2 flex items-center gap-2 bg-[var(--surface-card)] rounded-t-[20px] border-b border-[var(--separator)]">
+          <div className="flex-1 text-[16px] font-semibold text-[var(--label)] truncate tracking-tight">
             {mode === "edit" ? "Редактирование" : "Новое событие"}
           </div>
           <ColorSwatchPopover value={color} onChange={setColor} />
@@ -175,50 +194,50 @@ export default function PersonalEventSheet({
               type="button"
               onClick={() => onDelete(appointment)}
               aria-label="Удалить событие"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[rgba(255,59,48,0.1)]"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[rgba(255,59,48,0.1)]"
             >
-              <Trash2 size={18} strokeWidth={2} />
+              <Trash2 size={16} strokeWidth={2} />
             </button>
           )}
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <XIcon size={18} strokeWidth={2.5} />
+            <XIcon size={16} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Scroll body */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4 px-4 pt-3 space-y-4">
-          {/* Card 1 — Title + Notes */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-3 px-3.5 pt-3 space-y-3">
+          {/* Card 1 — Hero title + slim notes */}
+          <div
+            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
+            style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+          >
             <input
               autoFocus={mode === "create"}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Название"
-              className="w-full px-4 py-3.5 text-[18px] font-semibold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-normal bg-transparent border-0 focus:outline-none"
+              className="w-full px-4 py-3 text-[22px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight bg-transparent border-0 focus:outline-none"
             />
             <div className="border-t border-[var(--separator)]" />
-            <div className="px-4 py-3 flex items-start gap-3">
-              <StickyNote size={16} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0 mt-0.5" />
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Заметка"
-                rows={2}
-                className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none resize-none"
-              />
-            </div>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Заметка"
+              className="w-full px-4 py-2.5 text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
+            />
           </div>
 
           {/* Card 2 — Time + All-day */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5">
-              <div className="text-[15px] font-semibold text-[var(--label)]">
+            <div className="flex items-center justify-between px-3.5 py-2.5">
+              <div className="text-[14px] font-semibold text-[var(--label)]">
                 Весь день
               </div>
               <ToggleSlim
@@ -248,26 +267,26 @@ export default function PersonalEventSheet({
               </div>
             )}
             {allDay && (
-              <div className="border-t border-[var(--separator)] px-4 py-3 text-[13px] text-[var(--label-secondary)]">
+              <div className="border-t border-[var(--separator)] px-3.5 py-2 text-[12px] text-[var(--label-secondary)]">
                 {formatDateRu(dateKey)}
               </div>
             )}
           </div>
 
-          {/* Type tiles */}
+          {/* Type tiles — compact 4-column grid */}
           <div>
-            <div className="px-1 mb-2 flex items-center justify-between">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+            <div className="px-1 mb-1.5 flex items-center justify-between">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Тип события
               </div>
               <a
                 href="/dashboard/settings/calendar/event-types"
-                className="text-[var(--accent)] text-[13px] font-semibold"
+                className="text-[var(--accent)] text-[12px] font-semibold"
               >
                 Настроить
               </a>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {types.map((t) => {
                 const active = eventTypeId === t.id;
                 return (
@@ -275,7 +294,7 @@ export default function PersonalEventSheet({
                     key={t.id}
                     type="button"
                     onClick={() => onPickType(t)}
-                    className="py-3 rounded-[14px] border bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1.5 transition"
+                    className="h-[68px] rounded-[12px] border bg-[var(--surface-card)] text-[11px] font-semibold text-[var(--label)] active:scale-[0.97] flex flex-col items-center justify-center gap-1 transition px-1"
                     style={{
                       borderColor: active ? t.color : "var(--separator)",
                       background: active ? `${t.color}14` : undefined,
@@ -284,20 +303,20 @@ export default function PersonalEventSheet({
                     <IconBadge
                       icon={t.icon}
                       color={t.color}
-                      size={16}
-                      className="w-7 h-7 rounded-full"
+                      size={14}
+                      className="w-6 h-6 rounded-full"
                     />
-                    <span className="px-1 truncate max-w-full">{t.label}</span>
+                    <span className="truncate max-w-full leading-tight">{t.label}</span>
                   </button>
                 );
               })}
-              {/* + Новый: links straight into the settings CRUD */}
               <a
                 href="/dashboard/settings/calendar/event-types"
-                className="py-3 rounded-[14px] border border-dashed border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label-secondary)] active:scale-[0.98] flex flex-col items-center justify-center gap-1.5 transition"
+                aria-label="Добавить тип"
+                className="h-[68px] rounded-[12px] border border-dashed border-[var(--separator)] bg-[var(--surface-card)] text-[11px] font-semibold text-[var(--label-secondary)] active:scale-[0.97] flex flex-col items-center justify-center gap-1 transition"
               >
-                <div className="w-7 h-7 rounded-full bg-[var(--fill-tertiary)] flex items-center justify-center text-[var(--label-secondary)]">
-                  <PlusIcon size={14} strokeWidth={2.5} />
+                <div className="w-6 h-6 rounded-full bg-[var(--fill-tertiary)] flex items-center justify-center text-[var(--label-secondary)]">
+                  <PlusIcon size={12} strokeWidth={2.5} />
                 </div>
                 <span>Новый</span>
               </a>
@@ -305,9 +324,12 @@ export default function PersonalEventSheet({
           </div>
 
           {/* Card 3 — Place + URL */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="px-4 py-3 flex items-center gap-2">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] w-[60px] shrink-0">
+          <div
+            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
+            style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+          >
+            <div className="px-3.5 py-2.5 flex items-center gap-2">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0">
                 Место
               </div>
               <input
@@ -315,7 +337,7 @@ export default function PersonalEventSheet({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Адрес"
-                className="flex-1 h-9 px-3 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                className="flex-1 h-8 px-2.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
               {mapsHref && (
                 <a
@@ -323,15 +345,15 @@ export default function PersonalEventSheet({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Открыть в картах"
-                  className="w-9 h-9 flex items-center justify-center rounded-[10px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
                 >
-                  <NavigationIcon size={16} strokeWidth={2} />
+                  <NavigationIcon size={14} strokeWidth={2} />
                 </a>
               )}
             </div>
             <div className="border-t border-[var(--separator)]" />
-            <div className="px-4 py-3 flex items-center gap-2">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] w-[60px] shrink-0">
+            <div className="px-3.5 py-2.5 flex items-center gap-2">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0">
                 Ссылка
               </div>
               <input
@@ -340,7 +362,7 @@ export default function PersonalEventSheet({
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://"
-                className="flex-1 h-9 px-3 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                className="flex-1 h-8 px-2.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
               {url.trim() && /^https?:\/\//i.test(url.trim()) && (
                 <a
@@ -348,9 +370,9 @@ export default function PersonalEventSheet({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Открыть ссылку"
-                  className="w-9 h-9 flex items-center justify-center rounded-[10px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
                 >
-                  <LinkIcon size={16} strokeWidth={2} />
+                  <LinkIcon size={14} strokeWidth={2} />
                 </a>
               )}
             </div>
@@ -358,17 +380,20 @@ export default function PersonalEventSheet({
 
           {/* Card 4 — Push */}
           <PushOffsetPicker
-            enabled={pushEnabled}
-            offsets={pushOffsets}
-            onToggle={setPushEnabled}
-            onChange={setPushOffsets}
+            value={{ enabled: pushEnabled, offsetMin: pushOffset, at: pushAt }}
+            onChange={(next) => {
+              setPushEnabled(next.enabled);
+              setPushOffset(next.offsetMin);
+              setPushAt(next.at);
+            }}
+            eventStartIso={eventStartIso}
           />
 
           {/* Card 5 — Repeat */}
           <RepeatPickerRow value={repeat} onChange={setRepeat} />
 
           {selectedType && (
-            <div className="px-1 text-[11px] text-[var(--label-tertiary)] text-center">
+            <div className="px-1 text-[10px] text-[var(--label-tertiary)] text-center">
               Тип: {selectedType.label}
             </div>
           )}
@@ -376,7 +401,7 @@ export default function PersonalEventSheet({
 
         {/* Sticky save */}
         <div
-          className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] bg-[var(--surface-card)] rounded-b-[20px]"
+          className="flex-shrink-0 px-3.5 pt-2 border-t border-[var(--separator)] bg-[var(--surface-card)] rounded-b-[20px]"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
         >
           <button
@@ -396,7 +421,6 @@ export default function PersonalEventSheet({
   );
 }
 
-// Tiny RU date formatter for the all-day pill ("8 мая, четверг").
 function formatDateRu(dateKey: string): string {
   const [y, m, d] = dateKey.split("-").map(Number);
   if (!y || !m || !d) return dateKey;
@@ -408,8 +432,6 @@ function formatDateRu(dateKey: string): string {
   });
 }
 
-// Slim toggle (mirrors the helper in PersonalEventBlocks; kept inline
-// here to avoid an extra import roundtrip — LOC-cheap, semantic-equal).
 function ToggleSlim({
   checked,
   onChange,
