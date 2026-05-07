@@ -17,28 +17,24 @@
 // Sub-blocks: PersonalEventBlocks (push picker, repeat picker,
 // color swatch, icon registry, Apple Maps deep-link helper).
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Trash2,
   X as XIcon,
   Navigation as NavigationIcon,
   Link as LinkIcon,
-  Plus as PlusIcon,
 } from "@babun/shared/icons";
 import type {
   Appointment,
   PersonalEventRepeat,
 } from "@babun/shared/local/appointments";
-import { usePersonalEventTypes } from "@/hooks/usePersonalEventTypes";
 import TimeBlock from "@/components/appointment/TimeBlock";
 import {
   ColorSwatchPopover,
-  IconBadge,
   PushOffsetPicker,
   RepeatPickerRow,
   buildMapsUrl,
 } from "./PersonalEventBlocks";
-import type { PersonalEventType } from "@babun/shared/local/personal-event-types";
 
 export type PersonalEventSheetMode = "create" | "edit";
 
@@ -62,17 +58,12 @@ export default function PersonalEventSheet({
   onSave,
   onDelete,
 }: PersonalEventSheetProps) {
-  const { types } = usePersonalEventTypes();
-
   const [dateKey, setDateKey] = useState(appointment.date);
   const [timeStart, setTimeStart] = useState(appointment.time_start);
   const [timeEnd, setTimeEnd] = useState(appointment.time_end);
   const [allDay, setAllDay] = useState(appointment.event_all_day ?? false);
   const [title, setTitle] = useState(appointment.comment ?? "");
   const [notes, setNotes] = useState(appointment.event_notes ?? "");
-  const [eventTypeId, setEventTypeId] = useState<string | null>(
-    appointment.event_type_id ?? null,
-  );
   const [color, setColor] = useState<string>(
     appointment.color_override ?? DEFAULT_COLOR,
   );
@@ -93,6 +84,15 @@ export default function PersonalEventSheet({
     appointment.event_repeat ?? NO_REPEAT,
   );
 
+  // Auto-grow notes textarea
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = notesRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, [notes, open]);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDateKey(appointment.date);
@@ -101,7 +101,6 @@ export default function PersonalEventSheet({
     setAllDay(appointment.event_all_day ?? false);
     setTitle(appointment.comment ?? "");
     setNotes(appointment.event_notes ?? "");
-    setEventTypeId(appointment.event_type_id ?? null);
     setColor(appointment.color_override ?? DEFAULT_COLOR);
     setAddress(appointment.address ?? "");
     setUrl(appointment.event_url ?? "");
@@ -116,31 +115,6 @@ export default function PersonalEventSheet({
   }, [appointment.id]); // eslint-disable-line react-hooks/exhaustive-deps
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const onPickType = (t: PersonalEventType) => {
-    setEventTypeId(t.id);
-    if (!title.trim()) setTitle(t.label);
-    if (color === DEFAULT_COLOR) setColor(t.color);
-    if (t.allDay) {
-      setAllDay(true);
-      setTimeStart("00:00");
-      setTimeEnd("23:59");
-    } else {
-      setAllDay(false);
-      const [h, m] = timeStart.split(":").map(Number);
-      const endMin = Math.min(23 * 60 + 59, h * 60 + m + t.defaultDuration);
-      const eh = Math.floor(endMin / 60);
-      const em = endMin % 60;
-      setTimeEnd(
-        `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`,
-      );
-    }
-  };
-
-  const selectedType = useMemo(
-    () => types.find((t) => t.id === eventTypeId) ?? null,
-    [types, eventTypeId],
-  );
-
   const canSave = title.trim().length > 0;
   const eventStartIso = useMemo(() => `${dateKey}T${timeStart}`, [dateKey, timeStart]);
 
@@ -151,7 +125,6 @@ export default function PersonalEventSheet({
     time_end: allDay ? "23:59" : timeEnd,
     comment: title.trim(),
     event_notes: notes.trim(),
-    event_type_id: eventTypeId,
     color_override: color,
     address: address.trim(),
     event_url: url.trim(),
@@ -266,76 +239,37 @@ export default function PersonalEventSheet({
             )}
           </div>
 
-          {/* Card 2 — Hero title + slim notes (now below time) */}
+          {/* Card 2 — Hero title + multi-line notes. v456 — color
+              stripe on the left edge tints the whole card with the
+              event color so the user sees it at a glance while
+              typing. Notes textarea auto-grows up to ~6 rows. */}
           <div
-            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
+            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative"
             style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
           >
-            <input
-              autoFocus={mode === "create"}
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Название"
-              className="w-full px-4 py-3 text-[22px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight bg-transparent border-0 focus:outline-none"
+            {/* color stripe */}
+            <div
+              aria-hidden
+              className="absolute left-0 top-0 bottom-0 w-1"
+              style={{ background: color }}
             />
-            <div className="border-t border-[var(--separator)]" />
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Заметка"
-              className="w-full px-4 py-2.5 text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
-            />
-          </div>
-
-          {/* Type tiles — compact 4-column grid */}
-          <div>
-            <div className="px-1 mb-1.5 flex items-center justify-between">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Тип события
-              </div>
-              <a
-                href="/dashboard/settings/calendar/event-types"
-                className="text-[var(--accent)] text-[12px] font-semibold"
-              >
-                Настроить
-              </a>
-            </div>
-            <div className="grid grid-cols-4 gap-1.5">
-              {types.map((t) => {
-                const active = eventTypeId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => onPickType(t)}
-                    className="h-[68px] rounded-[12px] border bg-[var(--surface-card)] text-[11px] font-semibold text-[var(--label)] active:scale-[0.97] flex flex-col items-center justify-center gap-1 transition px-1"
-                    style={{
-                      borderColor: active ? t.color : "var(--separator)",
-                      background: active ? `${t.color}14` : undefined,
-                    }}
-                  >
-                    <IconBadge
-                      icon={t.icon}
-                      color={t.color}
-                      size={14}
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="truncate max-w-full leading-tight">{t.label}</span>
-                  </button>
-                );
-              })}
-              <a
-                href="/dashboard/settings/calendar/event-types"
-                aria-label="Добавить тип"
-                className="h-[68px] rounded-[12px] border border-dashed border-[var(--separator)] bg-[var(--surface-card)] text-[11px] font-semibold text-[var(--label-secondary)] active:scale-[0.97] flex flex-col items-center justify-center gap-1 transition"
-              >
-                <div className="w-6 h-6 rounded-full bg-[var(--fill-tertiary)] flex items-center justify-center text-[var(--label-secondary)]">
-                  <PlusIcon size={12} strokeWidth={2.5} />
-                </div>
-                <span>Новый</span>
-              </a>
+            <div className="pl-4 pr-3 pt-3 pb-2.5">
+              <input
+                autoFocus={mode === "create"}
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Название"
+                className="w-full text-[24px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight leading-tight bg-transparent border-0 focus:outline-none"
+              />
+              <textarea
+                ref={notesRef}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Заметка"
+                rows={2}
+                className="block w-full mt-1 text-[14px] text-[var(--label-secondary)] placeholder:text-[var(--label-tertiary)] leading-snug bg-transparent border-0 focus:outline-none resize-none overflow-hidden"
+              />
             </div>
           </div>
 
@@ -407,12 +341,6 @@ export default function PersonalEventSheet({
 
           {/* Card 5 — Repeat */}
           <RepeatPickerRow value={repeat} onChange={setRepeat} />
-
-          {selectedType && (
-            <div className="px-1 text-[10px] text-[var(--label-tertiary)] text-center">
-              Тип: {selectedType.label}
-            </div>
-          )}
         </div>
 
         {/* Sticky save */}

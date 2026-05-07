@@ -152,44 +152,40 @@ export function ColorSwatchPopover({
   );
 }
 
-// v454 — push picker now supports BOTH relative offsets AND an
-// absolute datetime ("Своё" → datetime-local input). The user picks
-// either a preset chip ("За 15 мин"…) or "Своё" with a precise
-// moment when the notification fires. Internal mode flag keeps the
-// UI consistent regardless of whether absolute or relative is set.
+// v456 — full radio-list redesign. Mirrors iOS Calendar's «Alert»
+// sheet: when the toggle is on, the card expands into a vertical
+// list of options (one row per offset) plus a divided «Точное
+// время» row that reveals a datetime input.
 const PRESET_OFFSETS: { label: string; value: number }[] = [
-  { label: "За 5 мин",   value: 5 },
-  { label: "За 15 мин",  value: 15 },
-  { label: "За 30 мин",  value: 30 },
-  { label: "За 1 час",   value: 60 },
-  { label: "За 24 часа", value: 1440 },
+  { label: "За 5 минут",   value: 5 },
+  { label: "За 15 минут",  value: 15 },
+  { label: "За 30 минут",  value: 30 },
+  { label: "За 1 час",     value: 60 },
+  { label: "За 24 часа",   value: 1440 },
 ];
 
 interface PushPickerValue {
   enabled: boolean;
-  /** Relative offset in minutes; `null` if absolute or unset. */
   offsetMin: number | null;
-  /** Absolute ISO datetime; `null` if relative or unset. */
   at: string | null;
 }
 
 export function PushOffsetPicker({
   value,
   onChange,
-  /** Start time of the event. Used to format absolute hint. */
   eventStartIso,
 }: {
   value: PushPickerValue;
   onChange: (next: PushPickerValue) => void;
   eventStartIso?: string;
 }) {
-  const isPreset =
-    value.offsetMin !== null &&
-    PRESET_OFFSETS.some((p) => p.value === value.offsetMin);
   const isAbsolute = value.at !== null;
+  const isPreset = !isAbsolute && value.offsetMin !== null;
+  const noneSelected = !isPreset && !isAbsolute;
 
   return (
     <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+      {/* Header row */}
       <div className="flex items-center justify-between px-3.5 py-3 select-none">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
@@ -212,57 +208,55 @@ export function PushOffsetPicker({
       </div>
 
       {value.enabled && (
-        <div className="px-3.5 pb-3 pt-1 border-t border-[var(--separator)] space-y-2.5 select-none">
-          <div className="flex flex-wrap gap-1.5">
-            {PRESET_OFFSETS.map((p) => {
-              const active = isPreset && value.offsetMin === p.value;
-              return (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      enabled: true,
-                      offsetMin: active ? null : p.value,
-                      at: null,
-                    })
-                  }
-                  className={`h-7 px-2.5 rounded-full text-[12px] font-semibold transition ${active ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                if (isAbsolute) {
-                  onChange({ enabled: true, offsetMin: null, at: null });
-                } else {
-                  // Seed 1 hour before event start, or now+1h fallback.
-                  const seed = (() => {
-                    const base = eventStartIso
-                      ? new Date(eventStartIso)
-                      : new Date(Date.now() + 60 * 60_000);
-                    if (isNaN(base.getTime())) return new Date(Date.now() + 60 * 60_000);
-                    base.setMinutes(base.getMinutes() - 60);
-                    return base;
-                  })();
-                  onChange({
-                    enabled: true,
-                    offsetMin: null,
-                    at: isoToLocalInput(seed),
-                  });
-                }
-              }}
-              className={`h-7 px-2.5 rounded-full text-[12px] font-semibold transition ${isAbsolute ? "bg-[var(--accent)] text-white" : "bg-[var(--fill-tertiary)] text-[var(--label)]"}`}
-            >
-              Своё
-            </button>
-          </div>
-
+        <div className="border-t border-[var(--separator)] select-none">
+          {/* Не напоминать option */}
+          <RadioRow
+            label="Не напоминать"
+            active={noneSelected}
+            onClick={() =>
+              onChange({ enabled: true, offsetMin: null, at: null })
+            }
+          />
+          {PRESET_OFFSETS.map((p) => (
+            <RadioRow
+              key={p.value}
+              label={p.label}
+              active={isPreset && value.offsetMin === p.value}
+              onClick={() =>
+                onChange({ enabled: true, offsetMin: p.value, at: null })
+              }
+            />
+          ))}
+          <div className="border-t border-[var(--separator)]" />
+          <RadioRow
+            label="В точное время"
+            active={isAbsolute}
+            onClick={() => {
+              if (isAbsolute) {
+                onChange({ enabled: true, offsetMin: null, at: null });
+              } else {
+                const seed = (() => {
+                  const base = eventStartIso
+                    ? new Date(eventStartIso)
+                    : new Date(Date.now() + 60 * 60_000);
+                  if (isNaN(base.getTime()))
+                    return new Date(Date.now() + 60 * 60_000);
+                  base.setMinutes(base.getMinutes() - 60);
+                  return base;
+                })();
+                onChange({
+                  enabled: true,
+                  offsetMin: null,
+                  at: isoToLocalInput(seed),
+                });
+              }
+            }}
+          />
           {isAbsolute && (
-            <div className="flex items-center gap-2 select-text">
+            <div
+              className="px-4 py-2.5 flex items-center gap-2"
+              style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+            >
               <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[72px] shrink-0">
                 Когда
               </div>
@@ -270,7 +264,11 @@ export function PushOffsetPicker({
                 type="datetime-local"
                 value={value.at ?? ""}
                 onChange={(e) =>
-                  onChange({ enabled: true, offsetMin: null, at: e.target.value || null })
+                  onChange({
+                    enabled: true,
+                    offsetMin: null,
+                    at: e.target.value || null,
+                  })
                 }
                 className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
@@ -279,6 +277,30 @@ export function PushOffsetPicker({
         </div>
       )}
     </div>
+  );
+}
+
+// iOS-Settings-style radio row — left label, right ✓ when active.
+function RadioRow({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center justify-between px-4 py-2.5 text-[14px] active:bg-[var(--fill-quaternary)] transition ${active ? "text-[var(--accent)] font-semibold" : "text-[var(--label)]"}`}
+    >
+      <span>{label}</span>
+      {active && (
+        <span className="text-[var(--accent)] text-[16px] font-semibold">✓</span>
+      )}
+    </button>
   );
 }
 
@@ -295,7 +317,7 @@ function summarizePush(v: PushPickerValue): string {
     });
   }
   if (v.offsetMin !== null) return formatOffsetLabel(v.offsetMin);
-  return "Не выбрано время";
+  return "Не напоминать";
 }
 
 function formatOffsetLabel(min: number): string {
@@ -365,6 +387,9 @@ export function RepeatPickerRow({
   value: PersonalEventRepeat;
   onChange: (next: PersonalEventRepeat) => void;
 }) {
+  // v456 — repeat mirrors the Push picker pattern. Header row tappable
+  // → expands an iOS radio-list of options + a divided «Завершить»
+  // date row at the bottom. Same visual rhythm as PushOffsetPicker.
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -382,7 +407,6 @@ export function RepeatPickerRow({
       onChange({ kind: "none" });
       return;
     }
-    // Preserve `until` when switching between repeating modes.
     const until =
       "until" in value && value.until ? value.until : undefined;
     onChange({ kind: k, until } as PersonalEventRepeat);
@@ -398,68 +422,70 @@ export function RepeatPickerRow({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-3.5 py-3 active:bg-[var(--fill-quaternary)] transition select-none"
+        className="w-full flex items-center justify-between px-3.5 py-3 active:bg-[var(--fill-quaternary)] transition select-none"
       >
-        <div className="w-8 h-8 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
-          <span className="text-[14px]">↻</span>
-        </div>
-        <div className="flex-1 min-w-0 text-left">
-          <div className="text-[14px] font-semibold text-[var(--label)]">Повтор</div>
-          {value.kind !== "none" && (
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+            <span className="text-[14px]">↻</span>
+          </div>
+          <div className="text-left min-w-0">
+            <div className="text-[14px] font-semibold text-[var(--label)]">Повтор</div>
             <div className="text-[11px] text-[var(--label-secondary)] truncate">
               {repeatSummary(value)}
             </div>
-          )}
+          </div>
         </div>
-        <div className="text-[12px] font-medium text-[var(--label-tertiary)] shrink-0">
-          {value.kind === "none"
-            ? "Не повторять"
-            : (REPEAT_OPTIONS.find((o) => o.value === value.kind)?.label ?? "")}
+        <div className="text-[12px] text-[var(--label-tertiary)] shrink-0 ml-2">
+          {open ? "▴" : "▾"}
         </div>
       </button>
 
       {open && (
-        <div className="border-t border-[var(--separator)]">
-          <div className="py-1">
-            {REPEAT_OPTIONS.map((opt) => {
-              const active = value.kind === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setKind(opt.value)}
-                  className="w-full flex items-center justify-between px-4 py-2 text-[13px] text-[var(--label)] active:bg-[var(--fill-quaternary)] select-none"
-                >
-                  <span>{opt.label}</span>
-                  {active && (
-                    <span className="text-[var(--accent)] font-semibold">✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        <div className="border-t border-[var(--separator)] select-none">
+          {REPEAT_OPTIONS.map((opt) => {
+            const active = value.kind === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setKind(opt.value)}
+                className={`w-full flex items-center justify-between px-4 py-2.5 text-[14px] active:bg-[var(--fill-quaternary)] transition ${active ? "text-[var(--accent)] font-semibold" : "text-[var(--label)]"}`}
+              >
+                <span>{opt.label}</span>
+                {active && (
+                  <span className="text-[var(--accent)] text-[16px] font-semibold">✓</span>
+                )}
+              </button>
+            );
+          })}
 
           {value.kind !== "none" && (
-            <div className="border-t border-[var(--separator)] px-3.5 py-2.5 flex items-center gap-2 select-text">
-              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[80px] shrink-0">
-                Завершить
+            <>
+              <div className="border-t border-[var(--separator)]" />
+              <div
+                className="px-4 py-2.5 flex items-center gap-2"
+                style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+              >
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[72px] shrink-0">
+                  Завершить
+                </div>
+                <input
+                  type="date"
+                  value={"until" in value && value.until ? value.until : ""}
+                  onChange={(e) => setUntil(e.target.value || undefined)}
+                  className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                />
+                {"until" in value && value.until && (
+                  <button
+                    type="button"
+                    onClick={() => setUntil(undefined)}
+                    className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
+                  >
+                    Снять
+                  </button>
+                )}
               </div>
-              <input
-                type="date"
-                value={"until" in value && value.until ? value.until : ""}
-                onChange={(e) => setUntil(e.target.value || undefined)}
-                className="flex-1 h-8 px-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[13px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-              />
-              {"until" in value && value.until && (
-                <button
-                  type="button"
-                  onClick={() => setUntil(undefined)}
-                  className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
-                >
-                  Снять
-                </button>
-              )}
-            </div>
+            </>
           )}
         </div>
       )}
