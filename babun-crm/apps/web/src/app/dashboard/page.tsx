@@ -441,7 +441,15 @@ function DashboardPageInner() {
     // grid starts at windowStart hours, so visual top = (hour - windowStart) * hh.
     const toTop = (hourValue: number) =>
       Math.max(0, (hourValue - windowStart) * hh);
-    let targetTop = toTop(Math.max(calendarSettings.startHour, windowStart));
+    // v443 — auto-scroll target. The user's "Открывается время"
+    // setting wins. Fall back to the work-start, then the visible
+    // start, so an existing tenant who never opened the new settings
+    // still lands on a sane row instead of 00:00.
+    const scrollTarget =
+      calendarSettings.scrollOpenHour ??
+      calendarSettings.workStartHour ??
+      calendarSettings.startHour;
+    let targetTop = toTop(Math.max(scrollTarget, windowStart));
 
     // Brigade-level "Открывать на" override. When set, it wins over the
     // now-line anchor and the global startHour.
@@ -452,16 +460,15 @@ function DashboardPageInner() {
       targetTop = Math.max(0, toTop(brigadeHours) - viewportOffset);
     } else if (todayVisible) {
       const hoursNow = now.getHours() + now.getMinutes() / 60;
-      const inWorkHours =
-        hoursNow >= calendarSettings.startHour - 0.5 &&
-        hoursNow <= calendarSettings.endHour;
+      const workStart =
+        calendarSettings.workStartHour ?? calendarSettings.startHour;
+      const workEnd =
+        calendarSettings.workEndHour ?? calendarSettings.endHour;
+      const inWorkHours = hoursNow >= workStart - 0.5 && hoursNow <= workEnd;
       if (inWorkHours && hoursNow >= windowStart && hoursNow <= windowEnd) {
         const nowTop = toTop(hoursNow);
         const viewportOffset = el.clientHeight * 0.3;
-        targetTop = Math.max(
-          toTop(calendarSettings.startHour),
-          nowTop - viewportOffset
-        );
+        targetTop = Math.max(toTop(scrollTarget), nowTop - viewportOffset);
       }
     }
 
@@ -1003,6 +1010,12 @@ function DashboardPageInner() {
           cityLookup={cities}
           windowStart={windowStart}
           windowEnd={windowEnd}
+          workStart={
+            calendarSettings.workStartHour ?? calendarSettings.startHour
+          }
+          workEnd={
+            calendarSettings.workEndHour ?? calendarSettings.endHour
+          }
           snapMinutes={activeSlotMinutes}
           hasLabels={brigadeHasLabels}
           hideCancelled={effectiveHideCancelled}

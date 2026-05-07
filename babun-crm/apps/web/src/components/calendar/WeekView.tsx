@@ -34,6 +34,11 @@ interface WeekViewProps {
   /** Sprint 033: visible hour window (brigade calendar clipping). */
   windowStart?: number;
   windowEnd?: number;
+  /** v443 — work-hour band. Hours outside [workStart, workEnd] get a
+   *  light grey wash so the user can see at a glance when their
+   *  active period is. */
+  workStart?: number;
+  workEnd?: number;
   /** Phase I36 — snap granularity for empty-cell taps, minutes. Also
    *  the default duration of appointments created this way. 15/30/60. */
   snapMinutes?: number;
@@ -66,6 +71,8 @@ export default function WeekView({
   cityLookup,
   windowStart,
   windowEnd,
+  workStart,
+  workEnd,
   snapMinutes,
   hasLabels,
   hideCancelled,
@@ -119,8 +126,36 @@ export default function WeekView({
   // h-[82px] lg:h-[82px]). We replicate it here so the line sits
   // relative to the grid, not the page top.
   const HEADER_PX = 72; // mobile; DayColumn header is 72-82 px
+
+  // v443 — off-hours wash. Two semi-transparent overlays clamp to the
+  // visible window and cover the hours below workStart and above
+  // workEnd so the active band reads at a glance.
+  const winStartH = windowStart ?? 0;
+  const winEndH = windowEnd ?? 24;
+  const ws = workStart ?? winStartH;
+  const we = workEnd ?? winEndH;
+  const beforeWorkRows = Math.max(0, Math.min(ws, winEndH) - winStartH);
+  const afterWorkRows = Math.max(0, winEndH - Math.max(we, winStartH));
   return (
     <div className="relative flex w-full">
+      {beforeWorkRows > 0 && (
+        <div
+          className="absolute left-0 right-0 z-[8] pointer-events-none bg-[var(--fill-quaternary)]"
+          style={{
+            top: `${HEADER_PX}px`,
+            height: `calc(var(--hh) * ${beforeWorkRows})`,
+          }}
+        />
+      )}
+      {afterWorkRows > 0 && (
+        <div
+          className="absolute left-0 right-0 z-[8] pointer-events-none bg-[var(--fill-quaternary)]"
+          style={{
+            top: `calc(${HEADER_PX}px + var(--hh) * ${winEndH - winStartH - afterWorkRows})`,
+            height: `calc(var(--hh) * ${afterWorkRows})`,
+          }}
+        />
+      )}
       {nowLineVisible && (
         <div
           className="absolute z-[15] pointer-events-none"

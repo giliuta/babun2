@@ -1352,9 +1352,14 @@ export default function DashboardClientLayout({
 
   // STORY-044 — calendar settings are a singleton per tenant; upsert
   // through the repo (PRIMARY KEY = tenant_id, ON CONFLICT updates).
+  // v443 — also persist to localStorage on every change. Previously
+  // only Supabase was written, so a reload before the async repo
+  // round-trip completed showed stale settings (loadCalendarSettings
+  // reads from localStorage on initial mount).
   const handleCalendarSettingsChange = useCallback(
     (next: CalendarSettings) => {
       setCalendarSettingsState(next);
+      saveCalendarSettings(next);
       const supabase = getSupabaseBrowser();
       void updateCalendarSettingsRepo(supabase, tenantId, next).catch((err) => {
         // eslint-disable-next-line no-console

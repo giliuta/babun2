@@ -72,10 +72,29 @@ export function loadCalendarSettings(): CalendarSettings {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_CALENDAR_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<CalendarSettings>;
-    return { ...DEFAULT_CALENDAR_SETTINGS, ...parsed };
+    const merged = { ...DEFAULT_CALENDAR_SETTINGS, ...parsed };
+    return sanitizeCalendarSettings(merged);
   } catch {
     return DEFAULT_CALENDAR_SETTINGS;
   }
+}
+
+// Repair settings loaded from older saves: if a tenant's localStorage
+// holds the pre-v438 shape (startHour=9, endHour=20, no work-/scroll-
+// fields) the spread above pulls workEndHour=22 from the new defaults
+// — and 22 > 20 fails validation, blocking Save until the user
+// manually narrows the range. Clamp work/scroll into the persisted
+// visible range so existing saves load cleanly and validate.
+function sanitizeCalendarSettings(s: CalendarSettings): CalendarSettings {
+  const ws = s.workStartHour ?? s.startHour;
+  const we = s.workEndHour ?? s.endHour;
+  const open = s.scrollOpenHour ?? ws;
+  return {
+    ...s,
+    workStartHour: Math.max(s.startHour, Math.min(ws, s.endHour - 1)),
+    workEndHour: Math.min(s.endHour, Math.max(we, s.startHour + 1)),
+    scrollOpenHour: Math.max(s.startHour, Math.min(open, s.endHour)),
+  };
 }
 
 export function saveCalendarSettings(settings: CalendarSettings): void {
