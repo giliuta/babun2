@@ -161,6 +161,22 @@ export interface Appointment {
   reminder_offsets: number[]; // смещения в минутах ДО начала (например [1440, 60])
   reminder_template: string; // шаблон SMS, поддерживает {name} {date} {time} {address}
 
+  // ─── Personal-calendar fields (kind="event" + master_id set) ────────
+  /** ID of PersonalEventType. Drives default icon/colour/duration in
+   *  the personal-event sheet. Null = ad-hoc event, no template. */
+  event_type_id?: string | null;
+  /** Long-form note distinct from `comment` (which doubles as title
+   *  for legacy event records). Personal sheet writes notes here. */
+  event_notes?: string;
+  /** Optional URL — meeting link, document, map. Tappable in view. */
+  event_url?: string;
+  /** Push self-reminder toggle. Independent from `reminder_enabled`,
+   *  which handles client SMS for work appointments. */
+  event_push_enabled?: boolean;
+  /** Offsets in minutes before start at which to fire a push. E.g.
+   *  [15, 1440] → 15 min and 1 day before. Empty = no push. */
+  event_push_offsets?: number[];
+
   status: AppointmentStatus;
   created_at: string;
   updated_at: string;
@@ -219,6 +235,13 @@ export function loadAppointments(): Appointment[] {
       total_duration: p.total_duration ?? 0,
       cancel_reason: p.cancel_reason ?? null,
       source: (p.source ?? null) as AppointmentSource | null,
+      event_type_id: p.event_type_id ?? null,
+      event_notes: p.event_notes ?? "",
+      event_url: p.event_url ?? "",
+      event_push_enabled: p.event_push_enabled ?? false,
+      event_push_offsets: Array.isArray(p.event_push_offsets)
+        ? p.event_push_offsets
+        : [],
       // Migrate legacy payments[] → payment (single object). Sum up
       // cash / card payments; anything else collapses to invoice.
       payment:

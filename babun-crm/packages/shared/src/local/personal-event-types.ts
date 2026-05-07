@@ -1,0 +1,92 @@
+// Personal-calendar event types. Persisted in localStorage.
+//
+// User-configurable list of "kinds" of events that show up as a tile
+// grid in the new PersonalEventSheet. Each type carries an icon, a
+// label, a colour, a default duration, and an optional all-day flag.
+// Five iOS-Reminders-style defaults seed first-run; the user adds /
+// edits / deletes from /dashboard/settings/calendar/event-types.
+
+export type PersonalEventTypeIcon =
+  | "coffee"
+  | "briefcase"
+  | "navigation"
+  | "moon"
+  | "plane"
+  | "bell"
+  | "heart"
+  | "star"
+  | "dumbbell"
+  | "book"
+  | "music"
+  | "graduation-cap"
+  | "stethoscope"
+  | "car"
+  | "home"
+  | "users"
+  | "phone"
+  | "shopping-bag"
+  | "gift"
+  | "calendar"
+  | "tag";
+
+export interface PersonalEventType {
+  id: string;
+  label: string;
+  icon: PersonalEventTypeIcon;
+  color: string;            // hex
+  /** minutes; ignored when allDay=true */
+  defaultDuration: number;
+  allDay: boolean;
+  /** Lower number sorts first in the picker grid. */
+  order: number;
+}
+
+const STORAGE_KEY = "babun2:settings:personal-event-types";
+
+export const SEED_PERSONAL_EVENT_TYPES: PersonalEventType[] = [
+  { id: "ev-lunch",    label: "Обед",         icon: "coffee",     color: "#FF9500", defaultDuration: 60,  allDay: false, order: 0 },
+  { id: "ev-meeting",  label: "Встреча",      icon: "briefcase",  color: "#007AFF", defaultDuration: 60,  allDay: false, order: 1 },
+  { id: "ev-office",   label: "Выезд в офис", icon: "navigation", color: "#AF52DE", defaultDuration: 90,  allDay: false, order: 2 },
+  { id: "ev-dayoff",   label: "Выходной",     icon: "moon",       color: "#8E8E93", defaultDuration: 720, allDay: true,  order: 3 },
+  { id: "ev-vacation", label: "Отпуск",       icon: "plane",      color: "#34C759", defaultDuration: 720, allDay: true,  order: 4 },
+];
+
+export function loadPersonalEventTypes(): PersonalEventType[] {
+  if (typeof window === "undefined") return SEED_PERSONAL_EVENT_TYPES;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return SEED_PERSONAL_EVENT_TYPES;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return SEED_PERSONAL_EVENT_TYPES;
+    }
+    return parsed
+      .map((p, i) => ({
+        id: String(p.id ?? `ev-${Date.now()}-${i}`),
+        label: String(p.label ?? "").trim() || "Без названия",
+        icon: (p.icon ?? "tag") as PersonalEventTypeIcon,
+        color: String(p.color ?? "#007AFF"),
+        defaultDuration: Number.isFinite(p.defaultDuration)
+          ? Math.max(5, Math.min(24 * 60, Number(p.defaultDuration)))
+          : 60,
+        allDay: Boolean(p.allDay),
+        order: Number.isFinite(p.order) ? Number(p.order) : i,
+      }))
+      .sort((a, b) => a.order - b.order);
+  } catch {
+    return SEED_PERSONAL_EVENT_TYPES;
+  }
+}
+
+export function savePersonalEventTypes(types: PersonalEventType[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(types));
+  } catch {
+    // ignore quota errors
+  }
+}
+
+export function generatePersonalEventTypeId(): string {
+  return `pet-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}

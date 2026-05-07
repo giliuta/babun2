@@ -70,6 +70,10 @@ const AppointmentSheet = dynamic(
   () => import("@/components/appointment/AppointmentSheet"),
   { ssr: false },
 );
+const PersonalEventSheet = dynamic(
+  () => import("@/components/calendar/PersonalEventSheet"),
+  { ssr: false },
+);
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -1313,11 +1317,26 @@ function DashboardPageInner() {
         onReset={handleCityReset}
       />
 
+      {/* Personal calendar create — dedicated PersonalEventSheet (no
+          Клиент/Событие segment, iOS-Reminders style). Brigade flow
+          keeps the unified AppointmentSheet below. */}
+      {booking && bookingAppointment && isPersonalTab && (
+        <PersonalEventSheet
+          open
+          onClose={() => setBooking(null)}
+          mode="create"
+          appointment={bookingAppointment}
+          onSave={(apt) => {
+            upsertAppointment(apt);
+            setBooking(null);
+          }}
+        />
+      )}
+
       {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
           (тап по пустому слоту). Внутри sheet — segment Клиент/Событие.
-          Phase I37 — also opens on personal tab (activeTeam is null
-          for PERSONAL_TAB_ID). */}
-      {booking && bookingAppointment && (activeTeam || isPersonalTab) && (
+          Brigade-only after the personal-tab fork above. */}
+      {booking && bookingAppointment && activeTeam && !isPersonalTab && (
         <AppointmentSheet
           open={booking !== null}
           onClose={() => setBooking(null)}
@@ -1327,7 +1346,7 @@ function DashboardPageInner() {
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam ?? null}
-          personalMode={isPersonalTab}
+          personalMode={false}
           masters={masters}
           catalog={services}
           categories={serviceCategories}
@@ -1498,9 +1517,30 @@ function DashboardPageInner() {
       {/* Inline new/edit sheet — renders on top of the calendar, no route
           change. Keeps the calendar fully mounted so opening an
           appointment is instant. */}
+      {/* Personal event edit — dedicated sheet. Master_id-tagged events
+          live on the personal tab and use PersonalEventSheet for edit
+          and delete. */}
+      {inlineSheet && inlineSheet.initial.master_id && inlineSheet.initial.kind === "event" && (
+        <PersonalEventSheet
+          open
+          onClose={() => setInlineSheet(null)}
+          mode="edit"
+          appointment={inlineSheet.initial}
+          onSave={(apt) => {
+            upsertAppointment(apt);
+            setInlineSheet(null);
+          }}
+          onDelete={(apt) => {
+            deleteAppointment(apt.id);
+            setInlineSheet(null);
+          }}
+        />
+      )}
+
       {/* STORY-002-FINAL: view/done режимы единого sheet открываются
-          по тапу на существующую запись (handleAppointmentClick). */}
-      {inlineSheet && (activeTeam || inlineSheet.initial.master_id) && (
+          по тапу на существующую запись (handleAppointmentClick).
+          Brigade flow only — personal fork handled above. */}
+      {inlineSheet && activeTeam && !(inlineSheet.initial.master_id && inlineSheet.initial.kind === "event") && (
         <AppointmentSheet
           open
           onClose={() => setInlineSheet(null)}
