@@ -78,6 +78,18 @@ import {
 
 const QUOTA_TABLES = new Set<CachedTable>(["clients", "appointments"]);
 
+// v452 — every cached table targets a Supabase relation whose `id`
+// column is uuid. Ops carrying a non-uuid `row_id` are local orphans
+// (insert never succeeded server-side — typically because the row
+// included a column the migration hadn't reached yet). Replaying
+// them spends three retry windows on guaranteed-failure ops and
+// surfaces an unactionable error in SyncQueuePanel. Detect them up
+// front and mark them permanently failed so the user can drop them
+// from the panel.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (s: string): boolean => UUID_RE.test(s);
+
 function tableToQuotaKind(
   t: CachedTable,
 ): "clients" | "appointments_month" | null {
@@ -140,6 +152,24 @@ async function drain(opts: ReplayerOptions): Promise<void> {
     if (op.attempts >= MAX_ATTEMPTS) {
       // Already failed permanently — leave in queue so the UI can
       // show the manual-retry button. Manual retry resets attempts.
+      continue;
+    }
+
+    // v452 — fail-fast for non-UUID row_ids targeting uuid id
+    // columns. These are unrecoverable: the row was never accepted
+    // by Postgres in the first place, and replaying any op against
+    // a synthetic local id (`apt-...`) returns the same 22P02
+    // «invalid input syntax for type uuid» error. Mark perm-failed
+    // immediately so the SyncQueuePanel's «Удалить» button is the
+    // only action shown.
+    if ((op.op === "delete" || op.op === "update") && !isUuid(op.row_id)) {
+      const msg = `non-uuid row_id: "${op.row_id}" — local orphan, cannot replay`;
+      await markOpPermanentlyFailedAndEmit(op.id, msg);
+      opts.onPermanentFailure?.({
+        ...op,
+        attempts: MAX_ATTEMPTS,
+        last_error: msg,
+      });
       continue;
     }
 
