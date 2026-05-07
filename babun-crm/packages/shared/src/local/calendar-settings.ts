@@ -79,22 +79,45 @@ export function loadCalendarSettings(): CalendarSettings {
   }
 }
 
-// Repair settings loaded from older saves: if a tenant's localStorage
-// holds the pre-v438 shape (startHour=9, endHour=20, no work-/scroll-
-// fields) the spread above pulls workEndHour=22 from the new defaults
-// — and 22 > 20 fails validation, blocking Save until the user
-// manually narrows the range. Clamp work/scroll into the persisted
-// visible range so existing saves load cleanly and validate.
+// Repair settings loaded from older saves. v448 — flipped clamp
+// direction: if a saved row has work/scroll-open OUTSIDE the visible
+// range, EXPAND the visible range to include it. Previously work/
+// scroll were silently snapped back into [startHour..endHour], which
+// produced the "settings save+revert" surprise on the form.
 function sanitizeCalendarSettings(s: CalendarSettings): CalendarSettings {
-  const ws = s.workStartHour ?? s.startHour;
-  const we = s.workEndHour ?? s.endHour;
-  const open = s.scrollOpenHour ?? ws;
-  return {
-    ...s,
-    workStartHour: Math.max(s.startHour, Math.min(ws, s.endHour - 1)),
-    workEndHour: Math.min(s.endHour, Math.max(we, s.startHour + 1)),
-    scrollOpenHour: Math.max(s.startHour, Math.min(open, s.endHour)),
-  };
+  const next = { ...s };
+
+  // Hard bounds: visible range stays inside [0..24] and ≥ 1 h wide.
+  next.startHour = Math.max(0, Math.min(23, next.startHour));
+  next.endHour = Math.max(next.startHour + 1, Math.min(24, next.endHour));
+
+  // Expand visible to fit work / scroll-open — they win.
+  const ws = next.workStartHour ?? next.startHour;
+  const we = next.workEndHour ?? next.endHour;
+  const open = next.scrollOpenHour ?? ws;
+  if (Number.isFinite(ws) && ws < next.startHour) next.startHour = Math.max(0, ws);
+  if (Number.isFinite(we) && we > next.endHour) next.endHour = Math.min(24, we);
+  if (Number.isFinite(open)) {
+    if (open < next.startHour) next.startHour = Math.max(0, open);
+    if (open > next.endHour) next.endHour = Math.min(24, open);
+  }
+
+  // Final clamp — work / scroll-open inside the (possibly expanded)
+  // visible range, with a 1-hour minimum work band.
+  next.workStartHour = Math.max(
+    next.startHour,
+    Math.min(ws, next.endHour - 1),
+  );
+  next.workEndHour = Math.min(
+    next.endHour,
+    Math.max(we, next.startHour + 1),
+  );
+  next.scrollOpenHour = Math.max(
+    next.startHour,
+    Math.min(open, next.endHour),
+  );
+
+  return next;
 }
 
 export function saveCalendarSettings(settings: CalendarSettings): void {
@@ -119,13 +142,10 @@ export function validateCalendarSettings(s: CalendarSettings): string | null {
   if (we <= ws) {
     return "Конец рабочих часов должен быть позже начала";
   }
-  if (ws < s.startHour || we > s.endHour) {
-    return "Рабочие часы должны быть внутри видимого диапазона";
-  }
-  const open = s.scrollOpenHour ?? ws;
-  if (open < s.startHour || open > s.endHour) {
-    return "Время открытия должно быть внутри видимого диапазона";
-  }
+  // v448 — visible range is auto-expanded to include work / scroll-
+  // open by the patcher + sanitizer. We no longer reject when work /
+  // scroll-open fall outside visible; that situation is repaired on
+  // load instead of blocking Save.
   return null;
 }
 

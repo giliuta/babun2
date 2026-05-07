@@ -52,7 +52,10 @@ export default function CalendarSettingsPage() {
   const [pcError, setPcError] = useState<string | null>(null);
   const [, startPcTransition] = useTransition();
   useEffect(() => {
-    if (personalCal.loaded) setPcEnabled(personalCal.enabled);
+    if (personalCal.loaded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPcEnabled(personalCal.enabled);
+    }
   }, [personalCal.loaded, personalCal.enabled]);
   const togglePersonalCal = (next: boolean) => {
     setPcError(null);
@@ -87,19 +90,52 @@ export default function CalendarSettingsPage() {
   // edit can never leave the settings in an invalid state.
   const settings = calendarSettings;
 
+  // v448 — flipped clamp direction. Was: work / scroll-open were
+  // hard-clamped INSIDE the visible range, which meant if the user
+  // had visible=04..24 and tried to set «Открывается = 02:00», the
+  // value silently snapped back to 04. Now: when work / scroll-open
+  // is set to a value OUTSIDE the visible range, the visible range
+  // EXPANDS to include it. The user's mental model is "the picker
+  // lets me pick any hour"; the visible range is just the outer
+  // viewport and follows along.
   const patch = (p: Partial<CalendarSettings>) => {
     const next: CalendarSettings = { ...settings, ...p };
-    // Visible range — pushed boundary wins. If the user dragged
-    // startHour past endHour (or vice versa), nudge the OTHER side
-    // so the range stays at least one hour wide.
+
+    // 1. Visible range self-validation — if user inverted start/end,
+    //    push the OTHER side so the range stays ≥ 1 h wide.
     if (next.endHour <= next.startHour) {
       if ("startHour" in p) {
         next.endHour = Math.min(24, next.startHour + 1);
-      } else {
+      } else if ("endHour" in p) {
         next.startHour = Math.max(0, next.endHour - 1);
       }
     }
-    // Work band must sit inside the visible range.
+
+    // 2. Out-of-range work / scroll-open EXPANDS the visible range,
+    //    rather than getting silently clamped back. Hard bounds
+    //    [0..24] still apply.
+    const incomingWs = "workStartHour" in p ? p.workStartHour : undefined;
+    const incomingWe = "workEndHour" in p ? p.workEndHour : undefined;
+    const incomingOpen = "scrollOpenHour" in p ? p.scrollOpenHour : undefined;
+
+    if (incomingWs !== undefined && incomingWs < next.startHour) {
+      next.startHour = Math.max(0, incomingWs);
+    }
+    if (incomingWe !== undefined && incomingWe > next.endHour) {
+      next.endHour = Math.min(24, incomingWe);
+    }
+    if (incomingOpen !== undefined) {
+      if (incomingOpen < next.startHour) {
+        next.startHour = Math.max(0, incomingOpen);
+      }
+      if (incomingOpen > next.endHour) {
+        next.endHour = Math.min(24, incomingOpen);
+      }
+    }
+
+    // 3. Final clamp — work band must sit inside the (possibly
+    //    expanded) visible range. When the user shrunk visible past
+    //    existing work bounds, work narrows to fit.
     let ws = next.workStartHour ?? next.startHour;
     let we = next.workEndHour ?? next.endHour;
     ws = Math.max(next.startHour, Math.min(ws, next.endHour - 1));
@@ -110,7 +146,10 @@ export default function CalendarSettingsPage() {
     }
     next.workStartHour = ws;
     next.workEndHour = we;
-    // Scroll-open inside the visible range.
+
+    // 4. Scroll-open clamped to visible range. If the user set it
+    //    explicitly, that value won (visible was already expanded
+    //    above); otherwise fall back to workStart.
     const open = next.scrollOpenHour ?? ws;
     next.scrollOpenHour = Math.max(
       next.startHour,
