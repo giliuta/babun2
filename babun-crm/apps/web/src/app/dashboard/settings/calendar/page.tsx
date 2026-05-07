@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { CalendarHeart } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
   useCalendarSettings,
@@ -11,7 +10,6 @@ import {
   useMasters,
 } from "@/components/layout/DashboardClientLayout";
 import {
-  DEFAULT_CALENDAR_SETTINGS,
   TIMEZONE_OPTIONS,
   type CalendarSettings,
 } from "@babun/shared/local/calendar-settings";
@@ -119,11 +117,6 @@ export default function CalendarSettingsPage() {
     );
 
     setCalendarSettings(next);
-    flashSaved();
-  };
-
-  const handleReset = () => {
-    setCalendarSettings({ ...DEFAULT_CALENDAR_SETTINGS });
     flashSaved();
   };
 
@@ -294,23 +287,17 @@ export default function CalendarSettingsPage() {
             </select>
           </div>
 
-          {/* v445 — auto-save row. The right side of the row carries
-              the only remaining action (reset to defaults); the left
-              side is a small inline "saved" badge that pulses for
-              1.5 s after each commit so the user knows the change
-              landed without a button press. */}
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex-1 text-[13px] font-medium text-[var(--system-green)] transition-opacity duration-300 ${
-                savedFlash ? "opacity-100" : "opacity-0"
-              }`}
-              aria-live="polite"
-            >
-              ✓ Сохранено
-            </div>
-            <Button variant="secondary" size="md" onClick={handleReset}>
-              Сбросить
-            </Button>
+          {/* v446 — Reset button removed (юзер: «там и так мало
+              настроек»). Auto-save badge stays as the only feedback
+              chrome — centred below the last card and fades in/out
+              for 1.5 s after each commit. */}
+          <div
+            className={`text-center text-[13px] font-medium text-[var(--system-green)] transition-opacity duration-300 ${
+              savedFlash ? "opacity-100" : "opacity-0"
+            }`}
+            aria-live="polite"
+          >
+            ✓ Сохранено
           </div>
 
             </>
