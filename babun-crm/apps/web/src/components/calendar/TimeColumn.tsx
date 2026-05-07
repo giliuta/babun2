@@ -35,13 +35,19 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
           labels drift vs the grid rows under pinch-zoom. */}
       <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
 
-      {visibleHours.map((hour) => (
+      {visibleHours.map((hour, idx) => (
         <div
           key={hour}
           className="border-b border-[var(--separator)] flex items-start justify-end pr-1.5 lg:pr-2"
           style={{ height: "var(--hh)", boxSizing: "border-box" }}
         >
-          <span className="text-[12px] lg:text-[12px] font-medium text-[var(--label-tertiary)] -mt-2 select-none tabular-nums">
+          {/* v451 — первая метка не уходит в отрицательный margin,
+              иначе её обрезает верх viewport'а (юзер: «оно тут
+              закрывает кусочек времени»). Остальные сидят НА часовой
+              линии в iOS-стиле. */}
+          <span
+            className={`text-[12px] lg:text-[12px] font-medium text-[var(--label-tertiary)] select-none tabular-nums ${idx === 0 ? "mt-0.5" : "-mt-2"}`}
+          >
             {String(hour).padStart(2, "0")}:00
           </span>
         </div>
