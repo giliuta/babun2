@@ -164,24 +164,21 @@ export default function CalendarSettingsPage() {
             </div>
 
             <HoursRangeRow
-              label="Видно"
-              hint="часы на сетке"
+              label="Видимое время"
               from={draft.startHour}
               to={draft.endHour}
               onFromChange={(v) => patch({ startHour: v })}
               onToChange={(v) => patch({ endHour: v })}
             />
             <HoursRangeRow
-              label="Активно"
-              hint="когда планируешь события"
+              label="Рабочее время"
               from={draft.workStartHour ?? draft.startHour}
               to={draft.workEndHour ?? draft.endHour}
               onFromChange={(v) => patch({ workStartHour: v })}
               onToChange={(v) => patch({ workEndHour: v })}
             />
             <HourRow
-              label="Старт"
-              hint="куда смотрит при открытии"
+              label="Открывается время"
               value={
                 draft.scrollOpenHour ??
                 draft.workStartHour ??
@@ -312,7 +309,7 @@ function HoursRangeRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
-      <div className="w-[112px] shrink-0">
+      <div className="w-[140px] shrink-0">
         <div className="text-[14px] text-[var(--label)]">{label}</div>
         {hint && (
           <div className="text-[11px] text-[var(--label-tertiary)] leading-tight mt-0.5">
@@ -343,7 +340,7 @@ function HourRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-t border-[var(--separator)]">
-      <div className="w-[112px] shrink-0">
+      <div className="w-[140px] shrink-0">
         <div className="text-[14px] text-[var(--label)]">{label}</div>
         {hint && (
           <div className="text-[11px] text-[var(--label-tertiary)] leading-tight mt-0.5">
