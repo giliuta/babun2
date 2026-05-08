@@ -23,6 +23,7 @@ import {
   X as XIcon,
   Navigation as NavigationIcon,
   Link as LinkIcon,
+  Palette,
 } from "@babun/shared/icons";
 import type {
   Appointment,
@@ -30,11 +31,11 @@ import type {
 } from "@babun/shared/local/appointments";
 import TimeBlock from "@/components/appointment/TimeBlock";
 import {
-  ColorSwatchPopover,
   PushOffsetPicker,
   RepeatPickerRow,
   buildMapsUrl,
 } from "./PersonalEventBlocks";
+import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 
 export type PersonalEventSheetMode = "create" | "edit";
 
@@ -161,7 +162,6 @@ export default function PersonalEventSheet({
           <div className="flex-1 text-[16px] font-semibold text-[var(--label)] truncate tracking-tight">
             {mode === "edit" ? "Редактирование" : "Новое событие"}
           </div>
-          <ColorSwatchPopover value={color} onChange={setColor} />
           {mode === "edit" && onDelete && (
             <button
               type="button"
@@ -239,21 +239,21 @@ export default function PersonalEventSheet({
             )}
           </div>
 
-          {/* Card 2 — Hero title + multi-line notes. v456 — color
-              stripe on the left edge tints the whole card with the
-              event color so the user sees it at a glance while
-              typing. Notes textarea auto-grows up to ~6 rows. */}
+          {/* Card 2 — Hero title + multi-line notes. v457b — whole
+              card is tinted with the event color (~14% alpha); a
+              palette button in the top-right corner opens the color
+              picker. Replaces the previous left-edge stripe + header
+              swatch combo. */}
           <div
-            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative"
-            style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+            className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative transition-colors"
+            style={{
+              background: tintCardBg(color),
+              WebkitUserSelect: "text",
+              userSelect: "text",
+            } as React.CSSProperties}
           >
-            {/* color stripe */}
-            <div
-              aria-hidden
-              className="absolute left-0 top-0 bottom-0 w-1"
-              style={{ background: color }}
-            />
-            <div className="pl-4 pr-3 pt-3 pb-2.5">
+            <ColorPaletteButton value={color} onChange={setColor} />
+            <div className="pl-4 pr-12 pt-3 pb-2.5">
               <input
                 autoFocus={mode === "create"}
                 type="text"
@@ -398,5 +398,83 @@ function ToggleSlim({
         className={`absolute top-0.5 left-0.5 w-[27px] h-[27px] rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[20px]" : "translate-x-0"}`}
       />
     </button>
+  );
+}
+
+// v457b — soft tint for the title/notes card. The user picks a hex
+// from the 14-colour iOS palette; we render the card with that hex
+// at ~14 % alpha so the background is clearly tinted but text stays
+// fully legible. Falls back to the surface colour for invalid hex.
+function tintCardBg(hex: string): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return "var(--surface-card)";
+  // 0x24 = 36 / 255 ≈ 14 % alpha — the same value used on iOS chip
+  // backgrounds throughout the app.
+  return `${hex}24`;
+}
+
+// Palette icon button anchored to the top-right of the title card.
+// Tapping it opens an inline popover with the 14-colour palette;
+// clicking outside or pressing Escape closes it. Replaces the
+// header colour swatch from earlier versions.
+function ColorPaletteButton({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="absolute top-2 right-2 z-10">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Цвет события"
+        className="w-8 h-8 rounded-full bg-white/70 backdrop-blur flex items-center justify-center shadow-sm active:scale-[0.95] transition"
+        style={{ color: value }}
+      >
+        <Palette size={16} strokeWidth={2} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-10 bg-[var(--surface-card)] border border-[var(--separator)] shadow-[var(--shadow-card)] rounded-2xl p-2.5 w-[252px]">
+          <div className="grid grid-cols-7 gap-1.5">
+            {PRESET_COLORS.map((c) => {
+              const active = value.toLowerCase() === c.value.toLowerCase();
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(c.value);
+                    setOpen(false);
+                  }}
+                  aria-label={c.name}
+                  className={`h-8 rounded-full border-2 transition ${active ? "border-[var(--label)]" : "border-transparent"}`}
+                  style={{ background: c.value }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
