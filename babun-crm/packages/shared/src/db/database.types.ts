@@ -236,6 +236,11 @@ export interface Database {
           // in public.appointment_photos with blobs in Supabase Storage.
           global_discount: Json | null;
           total_duration: number;
+          // STORY-055 — author of the row, fk → auth.users(id). The
+          // BEFORE INSERT trigger fills it from auth.uid() so client
+          // code never needs to send it. Drives RLS for personal
+          // events (kind='event'/'personal').
+          created_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -276,6 +281,7 @@ export interface Database {
           payment?: Json | null;
           global_discount?: Json | null;
           total_duration?: number;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };

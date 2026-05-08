@@ -390,6 +390,10 @@ function makeOptimisticRow(
     payment: (input.payment ?? null) as CachedAppointment["payment"],
     global_discount: (input.global_discount ?? null) as CachedAppointment["global_discount"],
     total_duration: input.total_duration ?? 0,
+    // STORY-055 — created_by is filled server-side by the BEFORE
+    // INSERT trigger; the optimistic cache row carries null and gets
+    // rewritten on refetchAndCacheOne after the real insert.
+    created_by: null,
     created_at: input.created_at ?? nowIso,
     updated_at: nowIso,
   };
