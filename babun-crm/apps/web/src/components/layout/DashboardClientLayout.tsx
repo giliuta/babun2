@@ -1071,9 +1071,20 @@ export default function DashboardClientLayout({
 
   const deleteAppointment = useCallback(
     async (id: string) => {
-      const supabase = getSupabaseBrowser();
-      await deleteAppointmentRepo(supabase, id, tenantId);
+      // v457 — optimistic delete. Previously we awaited the Supabase
+      // round-trip BEFORE filtering the React state, which on a 4G/5G
+      // hop made the deletion feel laggy ("записи удаляются с
+      // задержкой"). Now the UI flips instantly; the network call
+      // runs in the background and the realtime subscription will
+      // re-add the row only if Supabase rejected the delete.
       setAppointmentsState((prev) => prev.filter((a) => a.id !== id));
+      try {
+        const supabase = getSupabaseBrowser();
+        await deleteAppointmentRepo(supabase, id, tenantId);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("deleteAppointment failed", err);
+      }
     },
     [tenantId],
   );
