@@ -327,7 +327,16 @@ export default function PersonalEventSheet({
                 setTimeStart("00:00");
                 setTimeEnd("23:59");
               } else {
-                const [h, m] = timeStart.split(":").map(Number);
+                // v468 fix — explicitly switch all-day OFF when picking
+                // a non-all-day preset, otherwise the toggle stays ON
+                // from the previous «Выходной» pick. Also restore a
+                // sane start time if we're coming out of all-day
+                // (00:00 isn't what the user means when they pick
+                // «Обед»).
+                setAllDay(false);
+                const baseStart = timeStart === "00:00" ? "10:00" : timeStart;
+                setTimeStart(baseStart);
+                const [h, m] = baseStart.split(":").map(Number);
                 const totalMin = h * 60 + m + preset.defaultDuration;
                 const eh = Math.floor(totalMin / 60) % 24;
                 const em = totalMin % 60;
