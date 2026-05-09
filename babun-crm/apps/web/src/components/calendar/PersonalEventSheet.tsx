@@ -85,6 +85,15 @@ export default function PersonalEventSheet({
       ? appointment.event_push_offsets[0]
       : null,
   );
+  // STORY-058 Sprint C — extra reminders beyond the primary offset.
+  // event_push_offsets[0] drives the existing PushOffsetPicker; the
+  // tail (indices 1+) is what we surface here. Cap at 3 extras so the
+  // form stays short (4 total including primary).
+  const [extraOffsets, setExtraOffsets] = useState<number[]>(
+    appointment.event_push_offsets && appointment.event_push_offsets.length > 1
+      ? appointment.event_push_offsets.slice(1)
+      : [],
+  );
   const [pushAt, setPushAt] = useState<string | null>(
     appointment.event_push_at ?? null,
   );
@@ -157,6 +166,11 @@ export default function PersonalEventSheet({
         ? appointment.event_push_offsets[0]
         : null,
     );
+    setExtraOffsets(
+      appointment.event_push_offsets && appointment.event_push_offsets.length > 1
+        ? appointment.event_push_offsets.slice(1)
+        : [],
+    );
     setPushAt(appointment.event_push_at ?? null);
     setRepeat(appointment.event_repeat ?? NO_REPEAT);
   }, [appointment.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -177,7 +191,19 @@ export default function PersonalEventSheet({
     event_url: url.trim(),
     event_all_day: allDay,
     event_push_enabled: pushEnabled,
-    event_push_offsets: pushEnabled && pushOffset !== null && !pushAt ? [pushOffset] : [],
+    // Primary offset (when not absolute) goes first; extras follow,
+    // de-duplicated and sorted ascending so older saves load in the
+    // same visual order. Absolute mode (`pushAt`) ignores extras —
+    // there's no useful semantic for «at exact time + relative offsets».
+    event_push_offsets:
+      pushEnabled && !pushAt
+        ? Array.from(
+            new Set([
+              ...(pushOffset !== null ? [pushOffset] : []),
+              ...extraOffsets,
+            ]),
+          ).sort((a, b) => a - b)
+        : [],
     event_push_at: pushEnabled && pushAt ? pushAt : null,
     event_repeat: repeat,
     kind: "event",
@@ -437,6 +463,19 @@ export default function PersonalEventSheet({
             eventStartIso={eventStartIso}
           />
 
+          {/* STORY-058 Sprint C — extra reminders. Only shown when push
+              is enabled AND in relative mode (absolute «В точное время»
+              has no useful semantic for «+ relative offsets»). Cap at
+              3 extras (4 total reminders including primary) to keep
+              the form short. */}
+          {pushEnabled && !pushAt && (
+            <ExtraOffsetsBlock
+              primary={pushOffset}
+              extras={extraOffsets}
+              onChange={setExtraOffsets}
+            />
+          )}
+
           {/* Card 5 — Repeat */}
           <RepeatPickerRow value={repeat} onChange={setRepeat} />
         </div>
@@ -510,6 +549,101 @@ function tintCardBg(hex: string): string {
   // 0x24 = 36 / 255 ≈ 14 % alpha — the same value used on iOS chip
   // backgrounds throughout the app.
   return `${hex}24`;
+}
+
+// STORY-058 Sprint C — extra-reminders block. Sits below
+// PushOffsetPicker. Renders existing extras as removable chips and a
+// quick-add row with the most-used relative offsets. Cap at 3 extras
+// (4 reminders total counting primary) to keep the form short.
+const QUICK_ADD_OFFSETS: { min: number; label: string }[] = [
+  { min: 5, label: "5 мин" },
+  { min: 15, label: "15 мин" },
+  { min: 30, label: "30 мин" },
+  { min: 60, label: "1 час" },
+  { min: 60 * 24, label: "1 день" },
+];
+const EXTRAS_CAP = 3;
+
+function formatOffsetChip(min: number): string {
+  if (min < 60) return `За ${min} мин`;
+  if (min === 60) return "За 1 час";
+  if (min < 60 * 24) return min % 60 === 0 ? `За ${min / 60} ч` : `За ${min} мин`;
+  if (min === 60 * 24) return "За 1 день";
+  if (min % (60 * 24) === 0) return `За ${min / (60 * 24)} дн`;
+  return `За ${min} мин`;
+}
+
+function ExtraOffsetsBlock({
+  primary,
+  extras,
+  onChange,
+}: {
+  primary: number | null;
+  extras: number[];
+  onChange: (next: number[]) => void;
+}) {
+  const used = new Set([
+    ...(primary !== null ? [primary] : []),
+    ...extras,
+  ]);
+  const canAddMore = extras.length < EXTRAS_CAP;
+  const addOffset = (m: number) => {
+    if (used.has(m) || !canAddMore) return;
+    onChange([...extras, m]);
+  };
+  const removeOffset = (m: number) => {
+    onChange(extras.filter((x) => x !== m));
+  };
+
+  return (
+    <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+      <div className="px-3.5 pt-3 pb-1 flex items-baseline justify-between">
+        <div className="text-[12px] uppercase tracking-wider font-semibold text-[var(--label-secondary)]">
+          Дополнительно
+        </div>
+        <div className="text-[11px] text-[var(--label-tertiary)]">
+          {extras.length}/{EXTRAS_CAP}
+        </div>
+      </div>
+      {extras.length > 0 && (
+        <div className="px-3.5 pb-2 flex flex-wrap gap-1.5">
+          {extras.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => removeOffset(m)}
+              className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-full text-[12px] font-semibold bg-[var(--accent-tint)] text-[var(--accent)] active:scale-[0.96] transition"
+            >
+              {formatOffsetChip(m)}
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[10px] leading-none">
+                ×
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="px-3.5 pb-3 flex flex-wrap gap-1.5">
+        {QUICK_ADD_OFFSETS.map((p) => {
+          const disabled = used.has(p.min) || !canAddMore;
+          return (
+            <button
+              key={p.min}
+              type="button"
+              onClick={() => addOffset(p.min)}
+              disabled={disabled}
+              className={`inline-flex items-center h-7 px-2.5 rounded-full text-[12px] font-medium border transition ${
+                disabled
+                  ? "border-transparent bg-[var(--fill-quaternary)] text-[var(--label-tertiary)]"
+                  : "border-[var(--separator)] text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+              }`}
+            >
+              + {p.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // Palette icon button anchored to the top-right of the title card.
