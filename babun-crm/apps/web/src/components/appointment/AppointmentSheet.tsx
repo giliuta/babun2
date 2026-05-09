@@ -473,7 +473,10 @@ export default function AppointmentSheet({
       onClick={attemptClose}
     >
       <div
-        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
+        // STORY-056 — desktop cap at 720 px so the modal reads as a
+        // proper dialog instead of a fullscreen takeover on a 1080-px
+        // monitor (92 vh = 994 px). Mobile keeps 92 vh.
+        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
       >

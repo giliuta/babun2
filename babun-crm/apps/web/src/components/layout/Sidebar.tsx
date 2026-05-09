@@ -208,7 +208,13 @@ export default function Sidebar({
         // aria-hidden would lie about the desktop state).
         role="navigation"
         aria-label="Главная навигация"
-        className={`fixed top-0 left-0 h-full w-[280px] bg-[var(--surface-grouped)] flex flex-col z-40 transition-transform duration-[250ms] ease-out shadow-[10px_0_30px_-20px_rgba(0,0,0,0.2)] lg:shadow-none ${
+        // STORY-056 — sidebar width was 280 px while <main> offset
+        // was lg:ml-[240px] — the last 40 px of the sidebar overlapped
+        // page content on desktop.  On mobile the drawer keeps its
+        // generous 280 px (fits Apple HIG list rows comfortably).  On
+        // lg+ we shrink to 240 px so the offsets line up.  Border on
+        // the right replaces the previous offscreen-only shadow.
+        className={`fixed top-0 left-0 h-full w-[280px] lg:w-[240px] bg-[var(--surface-grouped)] flex flex-col z-40 transition-transform duration-[250ms] ease-out shadow-[10px_0_30px_-20px_rgba(0,0,0,0.2)] lg:shadow-none lg:border-r lg:border-[var(--separator)] ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 
 interface SwipeableCalendarProps {
   /**
@@ -29,6 +30,19 @@ export default function SwipeableCalendar({
   onSwipeLeft,
   onSwipeRight,
 }: SwipeableCalendarProps) {
+  // STORY-056 — on desktop the parent provides prev/next buttons +
+  // ← / → keyboard shortcuts.  Swipe-via-drag is a poor mouse UX
+  // (it competes with text selection, scroll-bar grabbing, and
+  // accidental drags on long hover).  Skip the 3-page virtual track
+  // entirely and render the current page in its natural flow.
+  const isDesktop = useIsDesktop();
+  // Mouse-drag swipe could be added later via PointerEvents, but the
+  // keyboard / button path covers the use case without the gesture
+  // tax.  Suppress unused-var warnings for the swipe callbacks on
+  // desktop — they are still wired through props for the mobile path.
+  void onSwipeLeft;
+  void onSwipeRight;
+
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -197,6 +211,18 @@ export default function SwipeableCalendar({
       else if (dir === 1) onSwipeRight();
     });
   };
+
+  // STORY-056 — desktop short-circuit. No 3-page track, no touch
+  // handlers, no width measurement — we just render the current page
+  // in normal flow and let the parent control navigation via the
+  // header buttons / keyboard shortcuts.
+  if (isDesktop) {
+    return (
+      <div className="flex-1 min-w-0 relative flex flex-col">
+        {renderPage(0)}
+      </div>
+    );
+  }
 
   return (
     <div

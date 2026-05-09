@@ -71,7 +71,11 @@ export default function SheetShell({
       onClick={onClose}
     >
       <div
-        className={`w-full ${maxWidth} bg-[var(--surface-card)] rounded-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden animate-sheet-up`}
+        // STORY-056 — `height: 92vh` on a 1080-px desktop is ~994 px,
+        // which makes the modal feel like a fullscreen takeover.  On
+        // lg+ we cap at 720 px so it reads as a proper centred dialog.
+        // Mobile keeps 92 vh (the original PWA behaviour).
+        className={`w-full ${maxWidth} bg-[var(--surface-card)] rounded-[var(--radius-sheet)] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden animate-sheet-up lg:max-h-[720px]`}
         style={{ height }}
         onClick={(e) => e.stopPropagation()}
       >

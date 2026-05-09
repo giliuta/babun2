@@ -148,7 +148,9 @@ export default function PersonalEventSheet({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col"
+        // STORY-056 — cap height at 720 px on lg+ for proper desktop
+        // dialog feel (mobile keeps 92 vh).
+        className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
         style={{
           height: "92vh",
           WebkitTouchCallout: "none",
