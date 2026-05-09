@@ -323,10 +323,10 @@ export default function CalendarSettingsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-[var(--label)]">
-                  Типы событий
+                  Шаблоны быстрого применения
                 </div>
                 <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-                  Шаблоны для быстрого создания: Обед, Встреча, Тренировка…
+                  Чипы над названием события: Обед, Встреча, Выходной…
                 </div>
               </div>
               <ChevronRight size={18} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0" />

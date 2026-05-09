@@ -259,7 +259,7 @@ export default function EventTypesSettingsPage() {
   return (
     <>
       <PageHeader
-        title="Типы событий"
+        title="Шаблоны быстрого применения"
         leftContent={
           <Link
             href="/dashboard/settings/calendar"

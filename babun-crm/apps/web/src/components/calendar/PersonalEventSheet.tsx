@@ -35,6 +35,8 @@ import {
   RepeatPickerRow,
   buildMapsUrl,
 } from "./PersonalEventBlocks";
+import EventPresetChips from "./EventPresetChips";
+import type { PersonalEventType } from "@babun/shared/local/personal-event-types";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 
 export type PersonalEventSheetMode = "create" | "edit";
@@ -240,6 +242,31 @@ export default function PersonalEventSheet({
               </div>
             )}
           </div>
+
+          {/* STORY-058 Sprint A — quick-apply chips between time and
+              title. Tap a chip → fills label + color + duration + (if
+              all-day preset) all-day toggle. Reuses
+              `personal-event-types` (CRUD at
+              /dashboard/settings/calendar/event-types). */}
+          <EventPresetChips
+            onPick={(preset: PersonalEventType) => {
+              setTitle(preset.label);
+              setColor(preset.color);
+              if (preset.allDay) {
+                setAllDay(true);
+                setTimeStart("00:00");
+                setTimeEnd("23:59");
+              } else {
+                const [h, m] = timeStart.split(":").map(Number);
+                const totalMin = h * 60 + m + preset.defaultDuration;
+                const eh = Math.floor(totalMin / 60) % 24;
+                const em = totalMin % 60;
+                setTimeEnd(
+                  `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`,
+                );
+              }
+            }}
+          />
 
           {/* Card 2 — Hero title + multi-line notes. v457b — whole
               card is tinted with the event color (~14% alpha); a
