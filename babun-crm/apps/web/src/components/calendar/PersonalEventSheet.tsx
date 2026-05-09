@@ -25,6 +25,8 @@ import {
   Link as LinkIcon,
   Palette,
   LocateFixed,
+  MapPin,
+  Compass,
 } from "@babun/shared/icons";
 import {
   loadRecentPlaces,
@@ -606,20 +608,20 @@ function NavigationPopup({
         <div className="space-y-2">
           <NavOption
             label="Google Maps"
-            tone="bg-[#4285F4]"
-            initial="G"
+            tone="bg-[#EA4335]"
+            Icon={MapPin}
             onClick={() => open(links.google)}
           />
           <NavOption
             label="Apple Maps"
-            tone="bg-[var(--label)]"
-            initial=""
+            tone="bg-[#007AFF]"
+            Icon={Compass}
             onClick={() => open(links.apple)}
           />
           <NavOption
             label="Waze"
             tone="bg-[#33CCFF]"
-            initial="W"
+            Icon={NavigationIcon}
             onClick={() => open(links.waze)}
           />
         </div>
@@ -638,12 +640,12 @@ function NavigationPopup({
 function NavOption({
   label,
   tone,
-  initial,
+  Icon,
   onClick,
 }: {
   label: string;
   tone: string;
-  initial: string;
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   onClick: () => void;
 }) {
   return (
@@ -652,8 +654,10 @@ function NavOption({
       onClick={onClick}
       className="w-full flex items-center gap-3 h-12 px-3 rounded-[12px] bg-[var(--fill-quaternary)] active:bg-[var(--fill-tertiary)] transition text-left"
     >
-      <span className={`w-8 h-8 rounded-[8px] ${tone} text-white flex items-center justify-center text-[13px] font-bold shrink-0`}>
-        {initial || ""}
+      <span
+        className={`w-8 h-8 rounded-[8px] ${tone} text-white flex items-center justify-center shrink-0`}
+      >
+        <Icon size={18} strokeWidth={2.2} />
       </span>
       <span className="text-[14px] font-semibold text-[var(--label)]">
         {label}

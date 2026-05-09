@@ -370,44 +370,132 @@ export interface MapsLinks {
   isCoords: boolean;
 }
 
-const MAPS_URL_RE = /^(https?:\/\/)?(www\.)?(maps\.google\.com|google\.com\/maps|goo\.gl\/maps|maps\.app\.goo\.gl|maps\.apple\.com|waze\.com|ul\.waze\.com)\b/i;
+const MAPS_URL_RE = /^(https?:\/\/)?(www\.)?(maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|goo\.gl\/maps|maps\.app\.goo\.gl|maps\.apple\.com|waze\.com|ul\.waze\.com)\b/i;
+const SHORT_URL_RE = /^(https?:\/\/)?(www\.)?(goo\.gl\/maps|maps\.app\.goo\.gl|ul\.waze\.com\/[a-z0-9]+\b)/i;
 const COORDS_RE = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+
+// Try to pull lat/lng or a textual query out of a long-form maps URL.
+// Returns null for short links (goo.gl/maps, maps.app.goo.gl) — those
+// require an HTTP redirect to expand and can't be resolved client-side.
+function extractFromMapsUrl(
+  rawUrl: string,
+): { lat: number; lng: number } | { query: string } | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`);
+  } catch {
+    return null;
+  }
+
+  // 1. @LAT,LNG anywhere in href (Google's canonical pin form).
+  const atMatch = /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(url.href);
+  if (atMatch) {
+    const lat = parseFloat(atMatch[1]);
+    const lng = parseFloat(atMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  }
+
+  // 2. !3dLAT!4dLNG (Google's «place» URLs sometimes embed coords this way).
+  const placeMatch = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(url.href);
+  if (placeMatch) {
+    const lat = parseFloat(placeMatch[1]);
+    const lng = parseFloat(placeMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  }
+
+  // 3. Search params: ?ll=LAT,LNG | ?q=LAT,LNG | ?q=TEXT | ?address=TEXT.
+  for (const key of ["ll", "q", "query", "address"]) {
+    const v = url.searchParams.get(key);
+    if (!v) continue;
+    const m = /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/.exec(v.trim());
+    if (m) {
+      const lat = parseFloat(m[1]);
+      const lng = parseFloat(m[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+    if (v.trim()) return { query: v.trim() };
+  }
+
+  // 4. Pathname segments: /search/QUERY, /place/QUERY, /dir/.../QUERY.
+  for (const re of [/\/search\/([^/?@]+)/, /\/place\/([^/?@]+)/]) {
+    const m = re.exec(url.pathname);
+    if (m && m[1]) {
+      try {
+        return { query: decodeURIComponent(m[1].replace(/\+/g, " ")) };
+      } catch {
+        return { query: m[1] };
+      }
+    }
+  }
+
+  return null;
+}
+
+function linksFromCoords(lat: number, lng: number): MapsLinks {
+  // Use 6-decimal precision — enough for ~10 cm accuracy, matches what
+  // Google/Apple/Waze emit in their share URLs.
+  const la = lat.toFixed(6);
+  const ln = lng.toFixed(6);
+  return {
+    google: `https://www.google.com/maps/search/?api=1&query=${la},${ln}`,
+    apple: `https://maps.apple.com/?ll=${la},${ln}&q=${la},${ln}`,
+    waze: `https://waze.com/ul?ll=${la}%2C${ln}&navigate=yes`,
+    isUrl: false,
+    isCoords: true,
+  };
+}
+
+function linksFromQuery(q: string): MapsLinks {
+  const enc = encodeURIComponent(q);
+  return {
+    google: `https://www.google.com/maps/search/?api=1&query=${enc}`,
+    apple: `https://maps.apple.com/?q=${enc}`,
+    waze: `https://waze.com/ul?q=${enc}&navigate=yes`,
+    isUrl: false,
+    isCoords: false,
+  };
+}
 
 export function buildMapsLinks(address: string): MapsLinks | null {
   const raw = address.trim();
   if (!raw) return null;
 
-  // Pasted maps URL — open as-is in all three slots; UI collapses to
-  // a single «Открыть» button.
+  // Bare coords «35.12345, 33.45678» — straight to canonical pin URLs.
+  const coordsMatch = COORDS_RE.exec(raw);
+  if (coordsMatch) {
+    return linksFromCoords(parseFloat(coordsMatch[1]), parseFloat(coordsMatch[2]));
+  }
+
+  // Pasted maps URL.
   if (MAPS_URL_RE.test(raw)) {
     const url = raw.startsWith("http") ? raw : `https://${raw}`;
+
+    // Short links can't be resolved without an HTTP redirect call.
+    // Keep the «open as-is» fallback so the user still has a path.
+    if (SHORT_URL_RE.test(raw)) {
+      return { google: url, apple: url, waze: url, isUrl: true, isCoords: false };
+    }
+
+    // Long-form URL — extract coords or a query and rebuild for each
+    // provider, so the user always gets the three-app picker.
+    const extracted = extractFromMapsUrl(url);
+    if (extracted) {
+      if ("lat" in extracted) return linksFromCoords(extracted.lat, extracted.lng);
+      return linksFromQuery(extracted.query);
+    }
+
+    // Couldn't parse — fall back to «open as-is».
     return { google: url, apple: url, waze: url, isUrl: true, isCoords: false };
   }
 
-  // Bare coords «35.12345, 33.45678» — every provider has a canonical
-  // ll= or coords= form that opens the dot exactly.
-  const coordsMatch = COORDS_RE.exec(raw);
-  if (coordsMatch) {
-    const lat = coordsMatch[1];
-    const lng = coordsMatch[2];
-    return {
-      google: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-      apple: `maps://?ll=${lat},${lng}&q=${lat},${lng}`,
-      waze: `https://waze.com/ul?ll=${lat}%2C${lng}&navigate=yes`,
-      isUrl: false,
-      isCoords: true,
-    };
-  }
-
-  // Free-text address — let each provider geocode it themselves.
-  const q = encodeURIComponent(raw);
-  return {
-    google: `https://www.google.com/maps/search/?api=1&query=${q}`,
-    apple: `maps://?q=${q}`,
-    waze: `https://waze.com/ul?q=${q}&navigate=yes`,
-    isUrl: false,
-    isCoords: false,
-  };
+  // Free-text address.
+  return linksFromQuery(raw);
 }
 
 // ─── Repeat picker ────────────────────────────────────────────────
