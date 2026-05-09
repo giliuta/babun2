@@ -50,6 +50,7 @@ import {
   saveMasters,
   loadTeams,
   saveTeams,
+  defaultPermissionsForRole,
   type Master,
   type Team,
 } from "@babun/shared/local/masters";
@@ -719,8 +720,38 @@ export default function DashboardClientLayout({
   // admin, then first dispatcher, then any active master — whichever
   // is found first. Writes-through to localStorage so the setter is
   // persistent.
+  //
+  // v463 — bootstrap a default master on a fresh PWA install / new
+  // device. Without this the personal calendar pill stays empty
+  // (regression first reported 2026-05-09). The master is local-only
+  // for now; STORY-057 will move masters to Supabase so the user
+  // sees the same data across devices.
   useEffect(() => {
     if (currentMasterId && masters.some((m) => m.id === currentMasterId)) {
+      return;
+    }
+    if (masters.length === 0 && userEmail) {
+      const localPart = userEmail.split("@")[0] || "Я";
+      const displayName = localPart
+        .split(/[._-]+/)
+        .filter(Boolean)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ") || "Я";
+      const defaultMaster: Master = {
+        id: crypto.randomUUID(),
+        full_name: displayName,
+        phone: "",
+        team_id: null,
+        role: "admin",
+        is_active: true,
+        permissions: defaultPermissionsForRole("admin"),
+        created_at: new Date().toISOString(),
+        login_email: userEmail,
+      };
+      setMastersState([defaultMaster]);
+      saveMasters([defaultMaster]);
+      setCurrentMasterIdState(defaultMaster.id);
+      getStorage().setRaw(CURRENT_MASTER_KEY, defaultMaster.id);
       return;
     }
     const pick =
@@ -733,7 +764,7 @@ export default function DashboardClientLayout({
       getStorage().setRaw(CURRENT_MASTER_KEY, pick.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [masters]);
+  }, [masters, userEmail]);
 
   const setCurrentMasterId = useCallback((id: string | null) => {
     setCurrentMasterIdState(id);
