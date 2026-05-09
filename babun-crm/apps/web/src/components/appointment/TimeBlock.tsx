@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import WheelColumn from "./WheelColumn";
 
 interface TimeBlockProps {
@@ -154,6 +154,41 @@ export default function TimeBlock({
   const toggle = (mode: "date" | "time") =>
     setExpandedMode((prev) => (prev === mode ? "none" : mode));
 
+  // v469 — swipe-to-change-date on the date pill. Touch handlers live
+  // on the pill button itself; horizontal drag > 40 px → ±1 day.
+  // wasSwipeRef gates the synthetic click so that swiping doesn't
+  // also expand the date picker. Reset after each gesture.
+  const swipeStartXRef = useRef<number | null>(null);
+  const wasSwipeRef = useRef(false);
+  const handleDatePillTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    swipeStartXRef.current = e.touches[0].clientX;
+    wasSwipeRef.current = false;
+  };
+  const handleDatePillTouchEnd = (e: React.TouchEvent) => {
+    const startX = swipeStartXRef.current;
+    swipeStartXRef.current = null;
+    if (startX === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const dx = endX - startX;
+    if (Math.abs(dx) < 40) return;
+    wasSwipeRef.current = true;
+    const [yy, mm, dd] = date.split("-").map(Number);
+    const dt = new Date(yy, mm - 1, dd);
+    dt.setDate(dt.getDate() + (dx < 0 ? 1 : -1));
+    const nextKey = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+    onChange({ date: nextKey, timeStart, timeEnd });
+  };
+  const handleDatePillClick = () => {
+    // Synthetic click that follows a horizontal swipe — ignore so the
+    // user doesn't accidentally expand the picker after a drag.
+    if (wasSwipeRef.current) {
+      wasSwipeRef.current = false;
+      return;
+    }
+    toggle("date");
+  };
+
   const headerRow = (
     <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-card)] border-b border-[var(--separator)] text-[13px]">
       <span className="flex-shrink-0 text-[var(--label-tertiary)]">
@@ -161,7 +196,10 @@ export default function TimeBlock({
       </span>
       <button
         type="button"
-        onClick={() => toggle("date")}
+        onClick={handleDatePillClick}
+        onTouchStart={handleDatePillTouchStart}
+        onTouchEnd={handleDatePillTouchEnd}
+        aria-label="Дата — тап раскрывает выбор, свайп меняет день"
         className={`flex items-center gap-1 rounded-lg px-2 py-1 transition active:scale-[0.98] ${
           expandedMode === "date"
             ? "bg-[var(--accent-tint)] text-[var(--accent)]"

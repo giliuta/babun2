@@ -656,9 +656,12 @@ function ExtraOffsetsBlock({
 }
 
 // Palette icon button anchored to the top-right of the title card.
-// Tapping it opens an inline popover with the 14-colour palette;
-// clicking outside or pressing Escape closes it. Replaces the
-// header colour swatch from earlier versions.
+// v469 — popup is a centred modal instead of an inline absolute
+// popover. The hero card has `overflow-hidden` (needed for the tinted
+// background corners), which clipped the second row of the 7×2 grid
+// and made it look like only 7 colours existed. A fullscreen-overlay
+// modal sits above the sheet's stacking context and has room for all
+// 14 swatches comfortably.
 function ColorPaletteButton({
   value,
   onChange,
@@ -667,57 +670,71 @@ function ColorPaletteButton({
   onChange: (next: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   return (
-    <div ref={ref} className="absolute top-2 right-2 z-10">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
         aria-label="Цвет события"
-        className="w-8 h-8 rounded-full bg-white/70 backdrop-blur flex items-center justify-center shadow-sm active:scale-[0.95] transition"
+        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/70 backdrop-blur flex items-center justify-center shadow-sm active:scale-[0.95] transition"
         style={{ color: value }}
       >
         <Palette size={16} strokeWidth={2} />
       </button>
       {open && (
-        <div className="absolute right-0 top-10 bg-[var(--surface-card)] border border-[var(--separator)] shadow-[var(--shadow-card)] rounded-2xl p-2.5 w-[252px]">
-          <div className="grid grid-cols-7 gap-1.5">
-            {PRESET_COLORS.map((c) => {
-              const active = value.toLowerCase() === c.value.toLowerCase();
-              return (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(c.value);
-                    setOpen(false);
-                  }}
-                  aria-label={c.name}
-                  className={`h-8 rounded-full border-2 transition ${active ? "border-[var(--label)]" : "border-transparent"}`}
-                  style={{ background: c.value }}
-                />
-              );
-            })}
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[320px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-4">
+              Цвет события
+            </div>
+            <div className="grid grid-cols-7 gap-2.5">
+              {PRESET_COLORS.map((c) => {
+                const active = value.toLowerCase() === c.value.toLowerCase();
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(c.value);
+                      setOpen(false);
+                    }}
+                    aria-label={c.name}
+                    className={`w-9 h-9 rounded-full border-2 transition active:scale-[0.92] ${
+                      active
+                        ? "border-[var(--label)] ring-2 ring-offset-2 ring-[var(--label)]/20"
+                        : "border-transparent"
+                    }`}
+                    style={{ background: c.value }}
+                  />
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="w-full mt-5 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              Закрыть
+            </button>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
