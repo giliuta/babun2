@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v471-place-url-extract-icons";
+export const BUILD_VERSION = "v472-calendar-zoom-bg-fix";

@@ -1327,7 +1327,11 @@ function DashboardPageInner() {
         ) : (
           <div
             ref={outerScrollerRef}
-            className="flex-1 flex bg-[var(--surface-card)] min-h-0 relative"
+            // v472 — bg switched from surface-card (white) to
+            // surface-grouped (light gray) so that pinch-zoom-out leaves
+            // a neutral page-fill below the grid instead of a glaring
+            // white emptiness that reads as a layout bug.
+            className="flex-1 flex bg-[var(--surface-grouped)] min-h-0 relative"
             style={{
               overflowY: "auto",
               overflowX: "clip",
