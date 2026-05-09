@@ -161,6 +161,7 @@ import {
 import { warmUpHaptics } from "@/lib/haptics";
 import { getStorage } from "@babun/shared/storage";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 // useDashboardSwipeTrap removed in v428 — its sentinel-pushing
 // pattern collided with router.push from sidebar Links and from the
 // PageHeader back arrow, leaving users stuck on stale routes. Edge
@@ -564,6 +565,9 @@ export default function DashboardClientLayout({
   // G7 — sync panel state lives here, not in OfflineIndicator, so
   // dropping the queue to 0 doesn't unmount an open panel.
   const [syncPanelOpen, setSyncPanelOpen] = useState(false);
+  // STORY-056 — PWA prompts, EdgeGuard, and the floating offline pill
+  // are mobile-only artefacts. Hide them on desktop (≥ 1024 px).
+  const isDesktop = useIsDesktop();
 
   // useDashboardSwipeTrap removed in v428 — see import comment above.
 
@@ -1538,24 +1542,47 @@ export default function DashboardClientLayout({
                 first with `touch-action: none` and preventDefault
                 on touchstart so the gesture never starts.  They
                 sit above content (z-50) but only span 16 px wide —
-                no real UI lives there. */}
-            <EdgeGuard side="left" />
-            <EdgeGuard side="right" />
+                no real UI lives there.
+                STORY-056 — desktop has no edge-swipe gesture, the
+                strips would just trap mouse hover at the screen
+                margins.  Hide on lg+. */}
+            {!isDesktop && (
+              <>
+                <EdgeGuard side="left" />
+                <EdgeGuard side="right" />
+              </>
+            )}
           </main>
 
           <BottomTabBar />
-          <InstallPrompt />
-          <IOSInstallPrompt />
-          <SplashScreen tenantName={tenantName} />
+          {/* STORY-056 — PWA install / iOS install / notifications
+              prompts only make sense on mobile.  On desktop the user
+              is in a real browser tab, the SW still registers
+              silently, but the «Поставить приложение» / «Включить
+              уведомления» modals are noise.  ServiceWorkerRegister
+              stays unconditional — it does no UI, only side-effects
+              (cache warm-up, version bump). */}
+          {!isDesktop && (
+            <>
+              <InstallPrompt />
+              <IOSInstallPrompt />
+              <SplashScreen tenantName={tenantName} />
+              <EnableNotificationsPrompt />
+            </>
+          )}
           <ServiceWorkerRegister />
-          <EnableNotificationsPrompt />
           {/* STORY-054 G4 — top-center status pill. Renders nothing
               when online + queue empty; shows «Без сети» offline
               and «Синхронизация: N» while there are pending writes.
               Tappable (online only) → opens SyncQueuePanel. The
               panel itself is a sibling so it survives if the queue
-              empties while the user is reading it. */}
-          <OfflineIndicator onOpenPanel={() => setSyncPanelOpen(true)} />
+              empties while the user is reading it.
+              STORY-056 — desktop has the sidebar's «Синхр.» row in
+              the footer; the floating pill becomes redundant noise
+              on a wide layout. */}
+          {!isDesktop && (
+            <OfflineIndicator onOpenPanel={() => setSyncPanelOpen(true)} />
+          )}
           {syncPanelOpen && (
             <SyncQueuePanel onClose={() => setSyncPanelOpen(false)} />
           )}

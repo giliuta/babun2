@@ -926,6 +926,73 @@ function DashboardPageInner() {
     setCurrentMonday(monday);
   }, []);
 
+  // STORY-056 — desktop keyboard shortcuts. Active across the calendar
+  // shell whenever no input/textarea/contenteditable is focused. The
+  // ignore guard mirrors GitHub / Linear conventions so typing in the
+  // global search or a comment box doesn't accidentally page-flip the
+  // calendar. Disabled on touch-only devices to avoid surprise
+  // shortcuts on tablets with attached keyboards (we still respect
+  // Cmd+K, which is wired up in BottomTabBar).
+  useEffect(() => {
+    const isEditable = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (el.isContentEditable) return true;
+      return false;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // leave Cmd/Ctrl/Alt to other handlers
+      if (isEditable(e.target)) return;
+      switch (e.key) {
+        case "ArrowLeft":
+          e.preventDefault();
+          handlePrevWeek();
+          return;
+        case "ArrowRight":
+          e.preventDefault();
+          handleNextWeek();
+          return;
+        case "t":
+        case "T":
+          e.preventDefault();
+          handleToday();
+          return;
+        case "1":
+          e.preventDefault();
+          setViewMode("day");
+          return;
+        case "2":
+          e.preventDefault();
+          setViewMode("3days");
+          return;
+        case "3":
+          e.preventDefault();
+          setViewMode("week");
+          return;
+        case "4":
+          e.preventDefault();
+          setViewMode("month");
+          return;
+        case "n":
+        case "N":
+          e.preventDefault();
+          openNewAppointmentInline(null, null, "work");
+          return;
+        default:
+          return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [
+    handlePrevWeek,
+    handleNextWeek,
+    handleToday,
+    setViewMode,
+    openNewAppointmentInline,
+  ]);
+
   // ─── dnd-kit sensors: mouse for desktop only ───────────────────────────
   // Touch drag is intentionally disabled — on iPhone holding an
   // appointment must open the context menu, not start a drag. Users can

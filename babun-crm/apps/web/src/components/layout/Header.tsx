@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CalendarClock,
   Rows3,
   LayoutGrid,
@@ -49,8 +51,8 @@ export default function Header({
   teams,
   viewMode,
   allAppointments,
-  onPrevWeek: _onPrevWeek,
-  onNextWeek: _onNextWeek,
+  onPrevWeek,
+  onNextWeek,
   onToday,
   onTeamChange,
   onTeamLongPress,
@@ -63,6 +65,8 @@ export default function Header({
   // zoom controls are reachable via pinch/ctrl+wheel; silence unused-prop warning
   void onZoomIn;
   void onZoomOut;
+  // STORY-056 — onPrevWeek / onNextWeek are now wired up to the
+  // desktop-only chevrons rendered below.
 
   const monthName = getMonthName(currentDate.getMonth());
   const year = currentDate.getFullYear();
@@ -107,6 +111,27 @@ export default function Header({
         {/* v450 — мобильный бургер убран по запросу пользователя.
             Навигация на phone живёт в нижней табе («Ещё»), а на desktop
             sidebar и так всегда видим. */}
+
+        {/* STORY-056 — desktop prev/next chevrons.  On mobile users
+            swipe; on desktop the swipe gesture is disabled so we surface
+            explicit buttons here.  Hidden on mobile to keep the iOS
+            Calendar header silhouette intact. */}
+        <button
+          type="button"
+          onClick={onPrevWeek}
+          aria-label="Предыдущий период"
+          className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full text-[var(--label-secondary)] hover:bg-[var(--fill-quaternary)] transition shrink-0"
+        >
+          <ChevronLeft size={20} strokeWidth={2.2} />
+        </button>
+        <button
+          type="button"
+          onClick={onNextWeek}
+          aria-label="Следующий период"
+          className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full text-[var(--label-secondary)] hover:bg-[var(--fill-quaternary)] transition shrink-0"
+        >
+          <ChevronRight size={20} strokeWidth={2.2} />
+        </button>
 
         <div className="relative min-w-0 flex-1">
           <button

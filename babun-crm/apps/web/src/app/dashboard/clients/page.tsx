@@ -58,6 +58,7 @@ const ClientPanel = dynamic(
 );
 import { matchesClient } from "@babun/shared/local/selectors/client-search";
 import { haptic } from "@/lib/haptics";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
   buildStatsMap,
   getClientDisplayState,
@@ -144,6 +145,14 @@ export default function ClientsPage() {
   const clientsCapTooltip = clientsAtCap
     ? `Достигнут лимит ${quotaSnap.quotas.clients} клиентов. Перейдите на Pro в Настройках → Тариф и оплата.`
     : undefined;
+  const isDesktop = useIsDesktop();
+  // STORY-056 — desktop preview-in-dialog. On lg+ tapping a card sets
+  // this id and we render <ClientPanel> in a centred modal instead of
+  // routing to the dedicated /[id] page (which feels like a stretched
+  // mobile screen on a 1440-px monitor). Mobile keeps the route push
+  // so the back-button history works.
+  const [inlineProfileId, setInlineProfileId] = useState<string | null>(null);
+
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [segment, setSegment] = useState<Segment>("all");
@@ -980,9 +989,14 @@ export default function ClientsPage() {
                         else next.add(client.id);
                         return next;
                       });
+                    } else if (isDesktop) {
+                      // STORY-056 — on desktop we open the client
+                      // profile inline in a large centred dialog so
+                      // the user keeps the list as visual context.
+                      // Mobile keeps the canonical /[id] page push
+                      // (STORY-065) so the iOS back gesture works.
+                      setInlineProfileId(client.id);
                     } else {
-                      // STORY-065 — single-tap navigates to canonical
-                      // /[id] detail page instead of inline panel.
                       router.push(`/dashboard/clients/${client.id}`);
                     }
                   }}
@@ -1330,6 +1344,36 @@ export default function ClientsPage() {
             }}
             onClose={() => setBulkConfirmDelete(false)}
           />
+        );
+      })()}
+
+      {/* STORY-056 — desktop client preview dialog.  Renders ClientPanel
+          inside a large centred modal on lg+, so the user can review or
+          edit a client without leaving the list page (mobile still
+          pushes to /[id] for the native back-gesture experience). */}
+      {inlineProfileId && (() => {
+        const inlineClient = clients.find((c) => c.id === inlineProfileId);
+        if (!inlineClient) return null;
+        return (
+          <div
+            className="fixed inset-0 z-[70] hidden lg:flex items-center justify-center bg-black/40 p-6"
+            onClick={() => setInlineProfileId(null)}
+          >
+            <div
+              className="w-full max-w-[820px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
+              style={{ height: "min(85vh, 760px)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ClientPanel
+                client={inlineClient}
+                appointments={appointments}
+                onUpdate={(updated) => {
+                  void upsertClient(updated);
+                }}
+                onClose={() => setInlineProfileId(null)}
+              />
+            </div>
+          </div>
         );
       })()}
 
