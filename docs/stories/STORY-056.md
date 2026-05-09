@@ -15,8 +15,8 @@
 
 ## Acceptance criteria
 
-1. `AppointmentSheet.tsx` (`components/appointment/`) и `PersonalEventSheet.tsx` (`components/calendar/`) удалены. Везде `EventSheet`.
-2. На вкладке «Личный» tap на пустой слот открывает `EventSheet` в `mode='create'`, `defaultKind='event'`. На вкладке «Работа» — `defaultKind='work'`.
+1. `AppointmentSheet.tsx` переименован в `AppointmentDetailsSheet.tsx` с выкинутой `create`/`edit`-веткой; `PersonalEventSheet.tsx` удалён; `create+edit` любого `kind` через `EventSheet`; `view+done` work-записей через `AppointmentDetailsSheet`.
+2. На вкладке «Личный» tap на пустой слот открывает `EventSheet` в `mode='create'`, `defaultKind='event'`. На вкладке «Работа» — `defaultKind='work'`. Toggle разрешает переключить kind в обе стороны (вариант X).
 3. В `mode='create'` toggle «Личное · Работа» в top-bar переключает `kind` без потери совместимых полей (`title`, `time_start`, `time_end`, `date`).
 4. В `mode='edit'` toggle **скрыт**, вместо него статичный badge с текущим kind в top-bar.
 5. 6 системных preset-ов (Звонок 📞 15м, Встреча 🤝 1ч, Работа 💼 2ч, Обед 🍽️ 1ч, Тренировка 💪 1.5ч, Дорога 🚗 30м) видны строкой при `kind='event'`. Тап → автозаполнение `title`, `color`, `time_end = time_start + duration`, `event_push_offset_min`.
@@ -77,7 +77,7 @@ interface EventSheetProps {
 | `babun-crm/packages/shared/src/db/database.types.ts` | Modify | Регенерация после миграции |
 | `babun-crm/packages/shared/src/common/utils/version.ts` | Modify | `BUILD_VERSION = "v460-event-sheet"` |
 | `babun-crm/apps/web/public/sw.js` | Modify | `CACHE_VERSION = "babun-v460"` |
-| `babun-crm/apps/web/src/components/appointment/AppointmentSheet.tsx` | Delete | После grep на оставшиеся импорты |
+| `babun-crm/apps/web/src/components/appointment/AppointmentSheet.tsx` | Rename → `AppointmentDetailsSheet.tsx` | Выкинуть create/edit-ветку, segment Клиент/Событие, ClientPicker/ServicePicker create-trigger, IncomeBlock create-логика, SMS toggle на create. Оставить view+done+PaymentBlock+QuickActions+DoneBadge+ClientActionMenu+RepeatReminderSheet+jspdf+cancel toggle. Props: `{ mode: 'view'\|'done', appointment, onClose, onEditRequest, onReschedule, onCompleteQuick, ... }`. **KNOWN DEBT** (~900 строк, > golden 400) — split на sub-блоки в STORY-056-followup. |
 | `babun-crm/apps/web/src/components/calendar/PersonalEventSheet.tsx` | Delete | После grep на оставшиеся импорты |
 | `docs/stories/STORY-056.md` | Create | Этот файл |
 
@@ -198,6 +198,15 @@ export const SYSTEM_PRESETS: EventPreset[] = [
 ### Work-mode (гибрид)
 
 `client / service / master` — compact-row в стиле time-row. Тап → существующие `ClientPickerSheet` / `ServicePickerSheet` / `TeamPickerSheet`. `payments / photos / discount` — без изменений, через существующий `FinanceSheet`. AppointmentSheet НЕ переписываем построчно, а оркестрируем заново в EventSheet.
+
+### Wiring в dashboard/page.tsx
+
+- Tap на пустой слот → `EventSheet` (mode=create, defaultKind=tab, toggle разрешён)
+- Tap на existing work appointment в `scheduled` → `AppointmentDetailsSheet` (mode=view)
+- Tap на existing work appointment в `completed` → `AppointmentDetailsSheet` (mode=done)
+- Кнопка «Редактировать» внутри `AppointmentDetailsSheet` → `onEditRequest` callback → close details, open `EventSheet` (mode=edit, kind=appointment.kind)
+- Tap на existing event/personal → `EventSheet` (mode=edit, kind=event) сразу
+- 4 sheet-рендера → 2: `{EventSheet}` + `{AppointmentDetailsSheet}`
 
 ## Out of scope (V2)
 

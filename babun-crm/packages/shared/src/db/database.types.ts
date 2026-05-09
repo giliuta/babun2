@@ -433,6 +433,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["day_extras"]["Insert"]>;
         Relationships: [];
       };
+      // STORY-056 — custom event presets for the unified EventSheet.
+      // Per-user privacy via RLS on `created_by = auth.uid()`. The
+      // BEFORE INSERT trigger fills `created_by` from auth.uid(); TS
+      // never sends it explicitly.
+      event_templates: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          name: string;
+          emoji: string | null;
+          color: string;
+          duration_min: number;
+          push_offset_min: number | null;
+          sort_order: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          name: string;
+          emoji?: string | null;
+          color: string;
+          duration_min: number;
+          push_offset_min?: number | null;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["event_templates"]["Insert"]>;
+        Relationships: [];
+      };
       // STORY-050 — recurring HVAC follow-up reminders ("call back in
       // 6 months for next seasonal cleaning"). Lift-and-shift of the
       // localStorage RecurringReminder model; not an RRULE engine.
