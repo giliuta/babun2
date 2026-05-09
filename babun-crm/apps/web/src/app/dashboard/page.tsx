@@ -862,6 +862,10 @@ function DashboardPageInner() {
       const endH = Math.floor(endMin / 60) % 24;
       const endM = endMin % 60;
       const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+      // v460 debug — track every empty-slot tap to diagnose why some
+      // taps don't open a sheet. Remove once empty-slot regression is
+      // closed.
+      console.log("[empty-slot] tap fired", { date, time, timeEnd });
       setBooking({ dateKey: date, timeStart: time, timeEnd });
     },
     [activeSlotMinutes],
@@ -1058,6 +1062,22 @@ function DashboardPageInner() {
     activeTeam?.hide_cancelled ?? calendarSettings.hideCancelled ?? false;
   const effectiveBufferMinutes =
     activeTeam?.buffer_minutes ?? calendarSettings.bufferMinutes ?? 0;
+
+  // v460 debug — log every booking-state transition so we can see
+  // whether setBooking actually fires AND which sheet branch should
+  // render. Remove once empty-slot regression is closed.
+  useEffect(() => {
+    if (!booking) return;
+    console.log("[empty-slot] booking state changed", {
+      booking,
+      hasBookingAppointment: Boolean(bookingAppointment),
+      isPersonalTab,
+      activeTeamId,
+      hasActiveTeam: Boolean(activeTeam),
+      shouldRenderPersonal: Boolean(booking && bookingAppointment && isPersonalTab),
+      shouldRenderBrigade: Boolean(booking && bookingAppointment && !isPersonalTab),
+    });
+  }, [booking, bookingAppointment, isPersonalTab, activeTeamId, activeTeam]);
 
   const cityForDate = useCallback(
     (dateKey: string) => getCityFor(activeTeamId || null, dateKey, teamDefaultCity),
@@ -1402,8 +1422,12 @@ function DashboardPageInner() {
 
       {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
           (тап по пустому слоту). Внутри sheet — segment Клиент/Событие.
-          Brigade-only after the personal-tab fork above. */}
-      {booking && bookingAppointment && activeTeam && !isPersonalTab && (
+          Brigade-only after the personal-tab fork above.
+          v460: dropped `activeTeam` guard — sheet must still open when
+          the active brigade was deleted/inactive (race or ghost id),
+          otherwise the empty-slot tap silently no-ops. AppointmentSheet
+          is null-safe (Team | null prop). */}
+      {booking && bookingAppointment && !isPersonalTab && (
         <AppointmentSheet
           open={booking !== null}
           onClose={() => setBooking(null)}
