@@ -200,22 +200,23 @@ function DashboardPageInner() {
   // Header tabs need a stable shape: { id, name }. Sprint 025 (STORY-009):
   // show "Юра + Даня · Пафос" rather than the terse codename "Y&D" — the
   // dispatcher recognises faces, the tabs are rarely read by anyone else.
+  //
+  // v462 — personal tab is ALWAYS present, even when masters list is
+  // empty (fresh PWA install / new device / before any team setup).
+  // Previously the tab disappeared without a currentMaster, which left
+  // the user staring at an empty calendar with no way to create
+  // personal events — a critical first-run regression. Name falls
+  // back to «Мой календарь» when no master display name is known.
   const teamTabs = useMemo(() => {
     const brigadeTabs = teams
       .filter((t) => t.active)
       .map((t) => ({ id: t.id, name: getTeamDisplayName(t, masters) }));
-    // Personal tab comes first so new users find it quickly. Name
-    // comes from master.personal_calendar_name; falls back to «Мой
-    // календарь».
-    if (currentMaster) {
-      const personalName =
-        currentMaster.personal_calendar_name?.trim() || "Мой календарь";
-      return [
-        { id: PERSONAL_TAB_ID, name: personalName },
-        ...brigadeTabs,
-      ];
-    }
-    return brigadeTabs;
+    const personalName =
+      currentMaster?.personal_calendar_name?.trim() || "Мой календарь";
+    return [
+      { id: PERSONAL_TAB_ID, name: personalName },
+      ...brigadeTabs,
+    ];
   }, [teams, masters, currentMaster]);
   // SSR-safe: start on a deterministic epoch Monday, then move to today
   // in useEffect after mount. Previous `getMonday(new Date())` in the
@@ -544,7 +545,18 @@ function DashboardPageInner() {
   const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
   const visibleAppointments = useMemo(() => {
     if (isPersonalTab) {
-      if (!currentMasterId) return [];
+      // v462 — without a currentMaster (fresh PWA, no masters yet)
+      // fall back to "all personal events not bound to a brigade".
+      // RLS from v459 already restricts SELECT to created_by = auth.uid()
+      // server-side, so this won't leak other users' events; locally
+      // there's nothing else to leak (single-user state). Without this
+      // fallback the personal grid stays empty even after the user
+      // creates their first event, because master_id ends up null too.
+      if (!currentMasterId) {
+        return appointments.filter(
+          (a) => (a.kind === "event" || a.kind === "personal") && !a.team_id,
+        );
+      }
       return appointments.filter(
         (a) => a.master_id === currentMasterId && !a.team_id,
       );
@@ -862,10 +874,6 @@ function DashboardPageInner() {
       const endH = Math.floor(endMin / 60) % 24;
       const endM = endMin % 60;
       const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
-      // v460 debug — track every empty-slot tap to diagnose why some
-      // taps don't open a sheet. Remove once empty-slot regression is
-      // closed.
-      console.log("[empty-slot] tap fired", { date, time, timeEnd });
       setBooking({ dateKey: date, timeStart: time, timeEnd });
     },
     [activeSlotMinutes],
@@ -1063,21 +1071,21 @@ function DashboardPageInner() {
   const effectiveBufferMinutes =
     activeTeam?.buffer_minutes ?? calendarSettings.bufferMinutes ?? 0;
 
-  // v460 debug — log every booking-state transition so we can see
-  // whether setBooking actually fires AND which sheet branch should
-  // render. Remove once empty-slot regression is closed.
+  // v462 diagnostic — surface tab/data state so we can see at a glance
+  // whether masters/teams are populated. Fires only when the relevant
+  // counts change (mount + data loads), not on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!booking) return;
-    console.log("[empty-slot] booking state changed", {
-      booking,
-      hasBookingAppointment: Boolean(bookingAppointment),
-      isPersonalTab,
+    console.log("[diag v462]", {
+      mastersCount: masters.length,
+      teamsCount: teams.length,
+      teamTabsCount: teamTabs.length,
       activeTeamId,
-      hasActiveTeam: Boolean(activeTeam),
-      shouldRenderPersonal: Boolean(booking && bookingAppointment && isPersonalTab),
-      shouldRenderBrigade: Boolean(booking && bookingAppointment && !isPersonalTab),
+      isPersonalTab,
+      currentMasterId,
+      visibleAppointmentsCount: visibleAppointments.length,
     });
-  }, [booking, bookingAppointment, isPersonalTab, activeTeamId, activeTeam]);
+  }, [masters.length, teams.length, teamTabs.length, activeTeamId]);
 
   const cityForDate = useCallback(
     (dateKey: string) => getCityFor(activeTeamId || null, dateKey, teamDefaultCity),
