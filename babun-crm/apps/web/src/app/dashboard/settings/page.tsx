@@ -17,10 +17,10 @@ import {
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
-  useFormSettings,
   useTenantName,
   useUserEmail,
 } from "@/components/layout/DashboardClientLayout";
+import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { TutorialOverlay } from "@/components/onboarding/TutorialOverlay";
 import { useTutorialState } from "@/components/onboarding/useTutorialState";
 import { signOut } from "@/lib/supabase/auth-client";
@@ -32,38 +32,12 @@ import {
   getHapticsAudio,
   setHapticsAudio,
 } from "@/lib/haptics";
-import type {
-  FormFieldVisibility,
-  RequiredFields,
-} from "@babun/shared/local/appointments";
 
 // v316 — iOS 26 redesign:
 //   * Large title under glass nav
 //   * Hero account card with gradient avatar
 //   * Sections split by theme (Каталог / Команда / Оформление / Запись)
 //   * Gradient tiles via .tile-grad utility
-
-const FIELD_VIS_LABELS: Record<keyof FormFieldVisibility, string> = {
-  show_address: "Адрес",
-  show_comment: "Комментарий",
-  show_prepaid: "Аванс / предоплата",
-  show_payments: "Способы оплаты",
-  show_source: "Источник заявки (скоро)",
-  show_reminder: "Напоминание клиенту (скоро)",
-};
-
-const REQUIRED_LABELS: Record<keyof RequiredFields, string> = {
-  require_client: "Клиент обязателен",
-  require_phone: "Телефон клиента обязателен",
-  require_services: "Услуги обязательны",
-  require_address: "Адрес обязателен",
-  require_comment: "Комментарий обязателен",
-};
-
-const DISABLED_FIELD_VIS: (keyof FormFieldVisibility)[] = [
-  "show_source",
-  "show_reminder",
-];
 
 interface NavSection {
   href: string;
@@ -182,8 +156,6 @@ const NAV_GROUPS: NavGroup[] = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { fieldVisibility, setFieldVisibility, requiredFields, setRequiredFields } =
-    useFormSettings();
   // STORY-059b — first-visit tutorial pointing at the billing tile.
   // Discoverable nudge for users on Free plan to find paid tiers; only
   // fires once, then babun:tutorial-settings-billing-completed is set.
@@ -193,15 +165,6 @@ export default function SettingsPage() {
     await signOut();
     router.push("/login");
     router.refresh();
-  };
-
-  const toggleFieldVis = (key: keyof FormFieldVisibility) => {
-    if (DISABLED_FIELD_VIS.includes(key)) return;
-    setFieldVisibility({ ...fieldVisibility, [key]: !fieldVisibility[key] });
-  };
-
-  const toggleRequired = (key: keyof RequiredFields) => {
-    setRequiredFields({ ...requiredFields, [key]: !requiredFields[key] });
   };
 
   return (
@@ -259,44 +222,6 @@ export default function SettingsPage() {
             </Group>
           ))}
 
-          <Group
-            title="Поля записи"
-            footer="Какие поля показывать в форме создания визита"
-          >
-            <div className="divide-y divide-[var(--separator)]">
-              {(Object.keys(FIELD_VIS_LABELS) as (keyof FormFieldVisibility)[]).map(
-                (key) => {
-                  const disabled = DISABLED_FIELD_VIS.includes(key);
-                  return (
-                    <ToggleRow
-                      key={key}
-                      label={FIELD_VIS_LABELS[key]}
-                      checked={fieldVisibility[key]}
-                      onChange={() => toggleFieldVis(key)}
-                      disabled={disabled}
-                    />
-                  );
-                }
-              )}
-            </div>
-          </Group>
-
-          <Group
-            title="Обязательные поля"
-            footer="Без заполнения этих полей запись нельзя сохранить"
-          >
-            <div className="divide-y divide-[var(--separator)]">
-              {(Object.keys(REQUIRED_LABELS) as (keyof RequiredFields)[]).map((key) => (
-                <ToggleRow
-                  key={key}
-                  label={REQUIRED_LABELS[key]}
-                  checked={requiredFields[key]}
-                  onChange={() => toggleRequired(key)}
-                />
-              ))}
-            </div>
-          </Group>
-
           <HapticsSection />
 
           <button
@@ -309,7 +234,7 @@ export default function SettingsPage() {
           </button>
 
           <div className="text-center text-[11px] text-[var(--label-quaternary)] py-2">
-            Babun · v316
+            Babun · {BUILD_VERSION}
           </div>
         </div>
       </div>
