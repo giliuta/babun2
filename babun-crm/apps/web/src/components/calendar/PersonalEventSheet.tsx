@@ -38,7 +38,8 @@ import TimeBlock from "@/components/appointment/TimeBlock";
 import {
   PushOffsetPicker,
   RepeatPickerRow,
-  buildMapsUrl,
+  buildMapsLinks,
+  type MapsLinks,
 } from "./PersonalEventBlocks";
 import EventPresetChips from "./EventPresetChips";
 import type { PersonalEventType } from "@babun/shared/local/personal-event-types";
@@ -106,6 +107,8 @@ export default function PersonalEventSheet({
   // 📍 button into a spinner while we're waiting for getCurrentPosition.
   const [recentPlaces, setRecentPlaces] = useState<string[]>([]);
   const [gpsLoading, setGpsLoading] = useState(false);
+  // v470 — popup для выбора куда открыть навигацию (Google/Apple/Waze).
+  const [navOpen, setNavOpen] = useState(false);
   useEffect(() => {
     if (open) setRecentPlaces(loadRecentPlaces());
   }, [open]);
@@ -212,7 +215,7 @@ export default function PersonalEventSheet({
 
   if (!open) return null;
 
-  const mapsHref = buildMapsUrl(address);
+  const mapsLinks = buildMapsLinks(address);
 
   return (
     <div
@@ -381,30 +384,42 @@ export default function PersonalEventSheet({
             </div>
           </div>
 
-          {/* Card 3 — Place + URL */}
+          {/* Card 3 — Place + URL. v470 — accepts free-text address OR a
+              maps URL (Google / Apple / Waze share link). Navigation
+              button opens a popup with «Где открыть?» — Google Maps /
+              Apple Maps / Waze. Recent places chips above input. */}
           <div
             className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
             style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
           >
-            <div className="px-3.5 py-2.5 flex items-center gap-2">
-              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0">
+            {recentPlaces.length > 0 && !address.trim() && (
+              <div className="px-3.5 pt-2.5 pb-1 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--label-tertiary)] shrink-0">
+                  Недавно
+                </span>
+                {recentPlaces.slice(0, 3).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setAddress(p)}
+                    className="h-6 px-2 rounded-full bg-[var(--fill-tertiary)] text-[12px] text-[var(--label-secondary)] whitespace-nowrap shrink-0 active:bg-[var(--fill-quaternary)] truncate max-w-[160px]"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="px-3.5 py-2.5 flex items-start gap-2">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0 pt-1.5">
                 Место
               </div>
-              <input
-                type="text"
+              <textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Адрес"
-                list="event-recent-places"
-                className="flex-1 h-8 px-2.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                placeholder="Адрес или ссылка на карту"
+                rows={1}
+                className="flex-1 min-h-8 max-h-20 px-2.5 py-1.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] resize-none leading-snug focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
-              {recentPlaces.length > 0 && (
-                <datalist id="event-recent-places">
-                  {recentPlaces.map((p) => (
-                    <option key={p} value={p} />
-                  ))}
-                </datalist>
-              )}
               <button
                 type="button"
                 onClick={handleGpsClick}
@@ -422,16 +437,15 @@ export default function PersonalEventSheet({
                   className={gpsLoading ? "animate-pulse" : ""}
                 />
               </button>
-              {mapsHref && (
-                <a
-                  href={mapsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {mapsLinks && (
+                <button
+                  type="button"
+                  onClick={() => setNavOpen(true)}
                   aria-label="Открыть в картах"
                   className="w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
                 >
                   <NavigationIcon size={14} strokeWidth={2} />
-                </a>
+                </button>
               )}
             </div>
             <div className="border-t border-[var(--separator)]" />
@@ -509,7 +523,142 @@ export default function PersonalEventSheet({
           </button>
         </div>
       </div>
+      {navOpen && mapsLinks && (
+        <NavigationPopup
+          links={mapsLinks}
+          onClose={() => setNavOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+// v470 — «Где открыть?» popup with Google / Apple / Waze choices.
+// Single «Открыть» if input was already a maps URL (we can't reliably
+// re-route a third-party share link to a different provider).
+function NavigationPopup({
+  links,
+  onClose,
+}: {
+  links: MapsLinks;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const open = (href: string) => {
+    window.open(href, "_blank", "noopener,noreferrer");
+    onClose();
+  };
+
+  if (links.isUrl) {
+    return (
+      <div
+        className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6"
+        onClick={onClose}
+      >
+        <div
+          className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[300px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-3">
+            Открыть ссылку
+          </div>
+          <div className="text-[12px] text-[var(--label-secondary)] text-center mb-4">
+            Это ссылка из карт. Откроется в исходном приложении.
+          </div>
+          <button
+            type="button"
+            onClick={() => open(links.google)}
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98] transition"
+          >
+            Открыть
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full mt-2 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[300px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-4">
+          Где открыть?
+        </div>
+        <div className="space-y-2">
+          <NavOption
+            label="Google Maps"
+            tone="bg-[#4285F4]"
+            initial="G"
+            onClick={() => open(links.google)}
+          />
+          <NavOption
+            label="Apple Maps"
+            tone="bg-[var(--label)]"
+            initial=""
+            onClick={() => open(links.apple)}
+          />
+          <NavOption
+            label="Waze"
+            tone="bg-[#33CCFF]"
+            initial="W"
+            onClick={() => open(links.waze)}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full mt-4 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+        >
+          Отмена
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NavOption({
+  label,
+  tone,
+  initial,
+  onClick,
+}: {
+  label: string;
+  tone: string;
+  initial: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 h-12 px-3 rounded-[12px] bg-[var(--fill-quaternary)] active:bg-[var(--fill-tertiary)] transition text-left"
+    >
+      <span className={`w-8 h-8 rounded-[8px] ${tone} text-white flex items-center justify-center text-[13px] font-bold shrink-0`}>
+        {initial || ""}
+      </span>
+      <span className="text-[14px] font-semibold text-[var(--label)]">
+        {label}
+      </span>
+    </button>
   );
 }
 

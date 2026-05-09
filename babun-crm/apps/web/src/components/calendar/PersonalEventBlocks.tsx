@@ -352,6 +352,64 @@ export function buildMapsUrl(address: string): string | null {
     : `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
+// v470 — multi-provider navigation links. The user wants a popup with
+// Google Maps / Apple Maps / Waze choices instead of a single button.
+// Also accepts a pasted maps URL as input — in that case we route the
+// link verbatim to «Open as-is» and skip cross-provider rewriting
+// (extracting coordinates from a third-party share URL is unreliable
+// and would silently lose precision).
+export interface MapsLinks {
+  google: string;
+  apple: string;
+  waze: string;
+  /** True when the input was already a maps URL — UI shows a single
+   *  «Открыть» button instead of the three-provider popup. */
+  isUrl: boolean;
+  /** True when input parses as bare lat,lng coords. Lets us drive
+   *  navigation in Waze/Apple/Google with the canonical ll= form. */
+  isCoords: boolean;
+}
+
+const MAPS_URL_RE = /^(https?:\/\/)?(www\.)?(maps\.google\.com|google\.com\/maps|goo\.gl\/maps|maps\.app\.goo\.gl|maps\.apple\.com|waze\.com|ul\.waze\.com)\b/i;
+const COORDS_RE = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+
+export function buildMapsLinks(address: string): MapsLinks | null {
+  const raw = address.trim();
+  if (!raw) return null;
+
+  // Pasted maps URL — open as-is in all three slots; UI collapses to
+  // a single «Открыть» button.
+  if (MAPS_URL_RE.test(raw)) {
+    const url = raw.startsWith("http") ? raw : `https://${raw}`;
+    return { google: url, apple: url, waze: url, isUrl: true, isCoords: false };
+  }
+
+  // Bare coords «35.12345, 33.45678» — every provider has a canonical
+  // ll= or coords= form that opens the dot exactly.
+  const coordsMatch = COORDS_RE.exec(raw);
+  if (coordsMatch) {
+    const lat = coordsMatch[1];
+    const lng = coordsMatch[2];
+    return {
+      google: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+      apple: `maps://?ll=${lat},${lng}&q=${lat},${lng}`,
+      waze: `https://waze.com/ul?ll=${lat}%2C${lng}&navigate=yes`,
+      isUrl: false,
+      isCoords: true,
+    };
+  }
+
+  // Free-text address — let each provider geocode it themselves.
+  const q = encodeURIComponent(raw);
+  return {
+    google: `https://www.google.com/maps/search/?api=1&query=${q}`,
+    apple: `maps://?q=${q}`,
+    waze: `https://waze.com/ul?q=${q}&navigate=yes`,
+    isUrl: false,
+    isCoords: false,
+  };
+}
+
 // ─── Repeat picker ────────────────────────────────────────────────
 // v453 — Single-tap row that opens a small action sheet of preset
 // recurrence rules. Stays UI-only for now (occurrence expansion onto
