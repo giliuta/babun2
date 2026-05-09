@@ -14,6 +14,7 @@ import {
   Receipt,
   Shield,
   CreditCard,
+  Tag,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
@@ -153,6 +154,13 @@ const NAV_GROUPS: NavGroup[] = [
         tone: "bg-[var(--tile-cyan)]",
         title: "Онлайн запись",
         desc: "Адрес страницы, рабочие часы, предоплата",
+      },
+      {
+        href: "/dashboard/settings/templates",
+        icon: Tag,
+        tone: "bg-[var(--tile-purple)]",
+        title: "Шаблоны событий",
+        desc: "Свои быстрые шаблоны для личного календаря",
       },
     ],
   },

@@ -66,12 +66,12 @@ const RepeatCopyModal = dynamic(
   () => import("@/components/calendar/RepeatCopyModal"),
   { ssr: false },
 );
-const AppointmentSheet = dynamic(
-  () => import("@/components/appointment/AppointmentSheet"),
+const AppointmentDetailsSheet = dynamic(
+  () => import("@/components/appointment/AppointmentDetailsSheet"),
   { ssr: false },
 );
-const PersonalEventSheet = dynamic(
-  () => import("@/components/calendar/PersonalEventSheet"),
+const EventSheet = dynamic(
+  () => import("@/components/calendar/EventSheet"),
   { ssr: false },
 );
 import ActionMenuModal, {
@@ -634,6 +634,12 @@ function DashboardPageInner() {
     | { mode: "new" | "edit"; initial: Appointment }
     | null
   >(null);
+
+  // STORY-056 — separate state for "Edit work appointment" triggered
+  // from AppointmentDetailsSheet's ✎ button. Routes to EventSheet
+  // mode='edit' kind='work' without colliding with inlineSheet (which
+  // owns the read-only details path for the same record).
+  const [eventEditSheet, setEventEditSheet] = useState<Appointment | null>(null);
 
   // Day finance modal state
   const [financeDateKey, setFinanceDateKey] = useState<string | null>(null);
@@ -1317,44 +1323,29 @@ function DashboardPageInner() {
         onReset={handleCityReset}
       />
 
-      {/* Personal calendar create — dedicated PersonalEventSheet (no
-          Клиент/Событие segment, iOS-Reminders style). Brigade flow
-          keeps the unified AppointmentSheet below. */}
-      {booking && bookingAppointment && isPersonalTab && (
-        <PersonalEventSheet
+      {/* STORY-056 — единый EventSheet для create. defaultKind зависит
+          от текущей вкладки: personal-tab → event, brigade-tab → work.
+          Toggle внутри позволяет переключить kind в любую сторону. */}
+      {booking && bookingAppointment && (
+        <EventSheet
           open
           onClose={() => setBooking(null)}
           mode="create"
-          appointment={bookingAppointment}
-          onSave={(apt) => {
-            upsertAppointment(apt);
-            setBooking(null);
-          }}
-        />
-      )}
-
-      {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
-          (тап по пустому слоту). Внутри sheet — segment Клиент/Событие.
-          Brigade-only after the personal-tab fork above. */}
-      {booking && bookingAppointment && activeTeam && !isPersonalTab && (
-        <AppointmentSheet
-          open={booking !== null}
-          onClose={() => setBooking(null)}
-          mode="create"
+          defaultKind={isPersonalTab ? "event" : "work"}
           appointment={bookingAppointment}
           clients={clients}
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam ?? null}
-          personalMode={false}
           masters={masters}
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
-          onCancelAppointment={() => setBooking(null)}
           onSave={(apt) => {
             upsertAppointment(apt);
             setBooking(null);
+            // SuccessOverlay only fires for fresh work-mode bookings
+            // with a client; personal events skip the overlay.
             if (apt.kind === "work" && apt.client_id) {
               const c = clients.find((x) => x.id === apt.client_id);
               if (c) {
@@ -1514,18 +1505,50 @@ function DashboardPageInner() {
         />
       )}
 
-      {/* Inline new/edit sheet — renders on top of the calendar, no route
-          change. Keeps the calendar fully mounted so opening an
-          appointment is instant. */}
-      {/* Personal event edit — dedicated sheet. Master_id-tagged events
-          live on the personal tab and use PersonalEventSheet for edit
-          and delete. */}
-      {inlineSheet && inlineSheet.initial.master_id && inlineSheet.initial.kind === "event" && (
-        <PersonalEventSheet
+      {/* STORY-056 wiring — три развилки.
+          1) inlineSheet.mode='new' (URL ?new=1) → EventSheet mode='create'.
+          2) inlineSheet.mode='edit' для personal-event → EventSheet mode='edit'.
+          3) inlineSheet.mode='edit' для work → AppointmentDetailsSheet
+             (view/done). Тап ✎ внутри details → eventEditSheet → EventSheet
+             mode='edit' kind='work'. */}
+      {inlineSheet?.mode === "new" && (
+        <EventSheet
+          open
+          onClose={() => setInlineSheet(null)}
+          mode="create"
+          defaultKind={inlineSheet.initial.kind === "event" ? "event" : "work"}
+          appointment={inlineSheet.initial}
+          clients={clients}
+          recentClientIds={recentInChats}
+          teams={teams}
+          activeTeam={activeTeam ?? null}
+          masters={masters}
+          catalog={services}
+          categories={serviceCategories}
+          cityForDate={cityForDate}
+          onSave={(apt) => {
+            upsertAppointment(apt);
+            setInlineSheet(null);
+          }}
+        />
+      )}
+
+      {inlineSheet?.mode === "edit" &&
+        (inlineSheet.initial.kind === "event" || inlineSheet.initial.kind === "personal") && (
+        <EventSheet
           open
           onClose={() => setInlineSheet(null)}
           mode="edit"
+          defaultKind="event"
           appointment={inlineSheet.initial}
+          clients={clients}
+          recentClientIds={recentInChats}
+          teams={teams}
+          activeTeam={activeTeam ?? null}
+          masters={masters}
+          catalog={services}
+          categories={serviceCategories}
+          cityForDate={cityForDate}
           onSave={(apt) => {
             upsertAppointment(apt);
             setInlineSheet(null);
@@ -1537,45 +1560,66 @@ function DashboardPageInner() {
         />
       )}
 
-      {/* STORY-002-FINAL: view/done режимы единого sheet открываются
-          по тапу на существующую запись (handleAppointmentClick).
-          Brigade flow only — personal fork handled above. */}
-      {inlineSheet && activeTeam && !(inlineSheet.initial.master_id && inlineSheet.initial.kind === "event") && (
-        <AppointmentSheet
+      {inlineSheet?.mode === "edit" &&
+        inlineSheet.initial.kind !== "event" &&
+        inlineSheet.initial.kind !== "personal" &&
+        activeTeam && (
+        <AppointmentDetailsSheet
           open
           onClose={() => setInlineSheet(null)}
           mode={inlineSheet.initial.status === "completed" ? "done" : "view"}
           appointment={inlineSheet.initial}
           clients={clients}
-          recentClientIds={recentInChats}
           teams={teams}
-          activeTeam={activeTeam ?? null}
-          personalMode={Boolean(inlineSheet.initial.master_id)}
+          activeTeam={activeTeam}
           masters={masters}
           catalog={services}
-          categories={serviceCategories}
           cityForDate={cityForDate}
           onSave={(apt) => {
             upsertAppointment(apt);
             setInlineSheet(null);
           }}
-          onCancelAppointment={(apt) => {
-            upsertAppointment({
-              ...apt,
-              status: "cancelled",
-              updated_at: new Date().toISOString(),
-            });
-            setInlineSheet(null);
-          }}
           onReschedule={(apt) => {
-            // Close the view sheet first so RescheduleSheet stacks cleanly;
-            // parent re-renders and ReschedulingSheet's `open` flips true.
             setInlineSheet(null);
             setRescheduleApt(apt);
           }}
           onCompleteQuick={(apt) => {
             setInlineSheet(null);
             setPaymentApt(apt);
+          }}
+          onEditRequest={(apt) => {
+            setInlineSheet(null);
+            setEventEditSheet(apt);
+          }}
+        />
+      )}
+
+      {eventEditSheet && (
+        <EventSheet
+          open
+          onClose={() => setEventEditSheet(null)}
+          mode="edit"
+          defaultKind={
+            eventEditSheet.kind === "event" || eventEditSheet.kind === "personal"
+              ? "event"
+              : "work"
+          }
+          appointment={eventEditSheet}
+          clients={clients}
+          recentClientIds={recentInChats}
+          teams={teams}
+          activeTeam={activeTeam ?? null}
+          masters={masters}
+          catalog={services}
+          categories={serviceCategories}
+          cityForDate={cityForDate}
+          onSave={(apt) => {
+            upsertAppointment(apt);
+            setEventEditSheet(null);
+          }}
+          onDelete={(apt) => {
+            deleteAppointment(apt.id);
+            setEventEditSheet(null);
           }}
         />
       )}
