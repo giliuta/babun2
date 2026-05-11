@@ -664,7 +664,15 @@ export default function DashboardClientLayout({
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
   const [teams, setTeamsState] = useState<Team[]>([]);
-  const [appointments, setAppointmentsState] = useState<Appointment[]>([]);
+  // v482 — hydrate from localStorage synchronously so the UI paints
+  // any rows the user created right before closing the app, even if
+  // the IDB / Supabase round-trip from `reloadAppointments` is still
+  // in flight (or hasn't started because the network is slow). The
+  // localStorage mirror is written on every upsert / delete below, so
+  // it's the most recent client-side snapshot the app has.
+  const [appointments, setAppointmentsState] = useState<Appointment[]>(() =>
+    typeof window === "undefined" ? [] : loadAppointments(),
+  );
   // STORY-042 — appointments now live in Supabase. Hydrated on mount
   // via listAppointments(); calendar pages see [] until then.
   const [appointmentsLoading, setAppointmentsLoading] = useState<boolean>(true);
@@ -836,7 +844,20 @@ export default function DashboardClientLayout({
     try {
       const supabase = getSupabaseBrowser();
       const list = await listAppointmentsRepo(supabase, tenantId);
-      setAppointmentsState(list);
+      // v482 — merge: prefer the server list, but keep any locally
+      // persisted rows that haven't shown up server-side yet (e.g.
+      // pending sync, app was closed before Supabase round-trip).
+      // localStorage is the most recent client snapshot, so anything
+      // it has and the server doesn't is a pending unsync we don't
+      // want to lose.
+      const serverIds = new Set(list.map((a) => a.id));
+      const local = typeof window === "undefined" ? [] : loadAppointments();
+      const merged = [
+        ...list,
+        ...local.filter((a) => !serverIds.has(a.id)),
+      ];
+      setAppointmentsState(merged);
+      saveAppointments(merged);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Не удалось загрузить записи";
       setAppointmentsError(msg);
@@ -1084,11 +1105,21 @@ export default function DashboardClientLayout({
   const upsertAppointment = useCallback(
     async (apt: Appointment) => {
       const inMemory = appointments.some((a) => a.id === apt.id);
+      // v482 — sync localStorage mirror inside the state updater.
+      // localStorage.setItem is fully synchronous: the write is on
+      // disk by the time `saveAppointments` returns. This is the
+      // ONLY safe path for iOS PWA — if the user creates an event
+      // and immediately swipes the app away, the IDB transaction
+      // inside `createAppointmentRepo` may not commit in time, but
+      // localStorage already has the row.
       setAppointmentsState((prev) => {
         const idx = prev.findIndex((a) => a.id === apt.id);
-        return idx >= 0
-          ? prev.map((a, i) => (i === idx ? apt : a))
-          : [...prev, apt];
+        const next =
+          idx >= 0
+            ? prev.map((a, i) => (i === idx ? apt : a))
+            : [...prev, apt];
+        saveAppointments(next);
+        return next;
       });
       try {
         const supabase = getSupabaseBrowser();
@@ -1113,16 +1144,22 @@ export default function DashboardClientLayout({
           setAppointmentsState((prev) => {
             const filtered = prev.filter((a) => a.id !== apt.id);
             const idx = filtered.findIndex((a) => a.id === saved.id);
-            return idx >= 0
-              ? filtered.map((a, i) => (i === idx ? saved : a))
-              : [...filtered, saved];
+            const next =
+              idx >= 0
+                ? filtered.map((a, i) => (i === idx ? saved : a))
+                : [...filtered, saved];
+            saveAppointments(next);
+            return next;
           });
         } else {
           setAppointmentsState((prev) => {
             const idx = prev.findIndex((a) => a.id === saved.id);
-            return idx >= 0
-              ? prev.map((a, i) => (i === idx ? saved : a))
-              : [...prev, saved];
+            const next =
+              idx >= 0
+                ? prev.map((a, i) => (i === idx ? saved : a))
+                : [...prev, saved];
+            saveAppointments(next);
+            return next;
           });
         }
       } catch (err) {
@@ -1141,7 +1178,14 @@ export default function DashboardClientLayout({
       // задержкой"). Now the UI flips instantly; the network call
       // runs in the background and the realtime subscription will
       // re-add the row only if Supabase rejected the delete.
-      setAppointmentsState((prev) => prev.filter((a) => a.id !== id));
+      // v482 — also mirror the delete into localStorage so a fast
+      // app close after deletion doesn't resurrect the row on next
+      // launch.
+      setAppointmentsState((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        saveAppointments(next);
+        return next;
+      });
       try {
         const supabase = getSupabaseBrowser();
         await deleteAppointmentRepo(supabase, id, tenantId);
