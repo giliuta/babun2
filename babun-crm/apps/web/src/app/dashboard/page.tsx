@@ -325,10 +325,37 @@ function DashboardPageInner() {
   }, [teams, activeTeamId, calendarSettings.startHour, calendarSettings.endHour]);
   const { windowStart, windowEnd } = windowBounds;
 
-  const activeSchedule = useMemo(
-    () => getTeamSchedule(activeTeamId, schedules),
-    [activeTeamId, schedules]
-  );
+  // v477 — personal tab pulls its work hours from CalendarSettings
+  // (Видимое время / Рабочее время on /settings/calendar). Brigades
+  // keep their per-team TeamSchedule. Without this override the
+  // personal tab fell back to DEFAULT_SCHEDULE (08:00–22:00), so
+  // changing «Рабочее время» in settings did nothing visible — the
+  // off-hours wash kept lighting up the OLD 22:00 boundary on top of
+  // the new one from CalendarSettings, creating a double-shaded
+  // bottom strip.
+  const activeSchedule = useMemo(() => {
+    if (activeTeamId === PERSONAL_TAB_ID) {
+      const ws = Math.max(
+        0,
+        Math.min(23, calendarSettings.workStartHour ?? calendarSettings.startHour),
+      );
+      const we = Math.max(
+        ws + 1,
+        Math.min(24, calendarSettings.workEndHour ?? calendarSettings.endHour),
+      );
+      const fmt = (h: number) =>
+        `${String(Math.min(23, h)).padStart(2, "0")}:${h >= 24 ? "59" : "00"}`;
+      return { start: fmt(ws), end: fmt(we), breaks: [] };
+    }
+    return getTeamSchedule(activeTeamId, schedules);
+  }, [
+    activeTeamId,
+    schedules,
+    calendarSettings.workStartHour,
+    calendarSettings.workEndHour,
+    calendarSettings.startHour,
+    calendarSettings.endHour,
+  ]);
 
   // Single shared vertical scroller for time column + day columns
   const outerScrollerRef = useRef<HTMLDivElement>(null);

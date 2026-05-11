@@ -127,35 +127,17 @@ export default function WeekView({
   // relative to the grid, not the page top.
   const HEADER_PX = 72; // mobile; DayColumn header is 72-82 px
 
-  // v443 — off-hours wash. Two semi-transparent overlays clamp to the
-  // visible window and cover the hours below workStart and above
-  // workEnd so the active band reads at a glance.
-  const winStartH = windowStart ?? 0;
-  const winEndH = windowEnd ?? 24;
-  const ws = workStart ?? winStartH;
-  const we = workEnd ?? winEndH;
-  const beforeWorkRows = Math.max(0, Math.min(ws, winEndH) - winStartH);
-  const afterWorkRows = Math.max(0, winEndH - Math.max(we, winStartH));
+  // v477 — week-level off-hours wash removed. It used CalendarSettings,
+  // while DayColumn paints its own wash from the day's TeamSchedule, so
+  // the two stacked into a double-shaded strip (user: «подсвечивает
+  // старую настройку»). DayColumn now reads from the same calendar
+  // settings (via activeSchedule) on the personal tab, so a single
+  // wash per column is enough — and it correctly tracks per-day
+  // schedules on brigade tabs.
+  void workStart;
+  void workEnd;
   return (
     <div className="relative flex w-full">
-      {beforeWorkRows > 0 && (
-        <div
-          className="absolute left-0 right-0 z-[8] pointer-events-none bg-[var(--fill-quaternary)]"
-          style={{
-            top: `${HEADER_PX}px`,
-            height: `calc(var(--hh) * ${beforeWorkRows})`,
-          }}
-        />
-      )}
-      {afterWorkRows > 0 && (
-        <div
-          className="absolute left-0 right-0 z-[8] pointer-events-none bg-[var(--fill-quaternary)]"
-          style={{
-            top: `calc(${HEADER_PX}px + var(--hh) * ${winEndH - winStartH - afterWorkRows})`,
-            height: `calc(var(--hh) * ${afterWorkRows})`,
-          }}
-        />
-      )}
       {nowLineVisible && (
         <div
           className="absolute z-[15] pointer-events-none"
