@@ -27,10 +27,7 @@ import {
   MapPin,
   Compass,
 } from "@babun/shared/icons";
-import {
-  loadRecentPlaces,
-  pushRecentPlace,
-} from "@babun/shared/local/event-recent-places";
+import { pushRecentPlace } from "@babun/shared/local/event-recent-places";
 import type {
   Appointment,
   PersonalEventRepeat,
@@ -121,15 +118,10 @@ export default function PersonalEventSheet({
     appointment.event_repeat ?? NO_REPEAT,
   );
 
-  // STORY-058 Sprint D — recent places autocomplete for the address
-  // row. v478 dropped the «Сейчас здесь» GPS button (user: личное
-  // событие не возит свою геолокацию).
-  const [recentPlaces, setRecentPlaces] = useState<string[]>([]);
   // v470 — popup для выбора куда открыть навигацию (Google/Apple/Waze).
+  // v478 dropped the GPS «Сейчас здесь» button; v480 dropped the
+  // «Недавно» recent-places chip row.
   const [navOpen, setNavOpen] = useState(false);
-  useEffect(() => {
-    if (open) setRecentPlaces(loadRecentPlaces());
-  }, [open]);
 
   // Auto-grow notes textarea
   const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -387,23 +379,9 @@ export default function PersonalEventSheet({
             className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
             style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
           >
-            {recentPlaces.length > 0 && !address.trim() && (
-              <div className="px-3.5 pt-2.5 pb-1 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--label-tertiary)] shrink-0">
-                  Недавно
-                </span>
-                {recentPlaces.slice(0, 3).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setAddress(p)}
-                    className="h-6 px-2 rounded-full bg-[var(--fill-tertiary)] text-[12px] text-[var(--label-secondary)] whitespace-nowrap shrink-0 active:bg-[var(--fill-quaternary)] truncate max-w-[160px]"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* v480 — «Недавно» recent-places chip row removed. User
+                didn't want autocomplete from past addresses cluttering
+                the place card. */}
             <div className="px-3.5 py-2.5 flex items-start gap-2">
               <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0 pt-1.5">
                 Место
