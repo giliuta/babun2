@@ -347,7 +347,7 @@ export default function PersonalEventSheet({
             } as React.CSSProperties}
           >
             <ColorPaletteButton value={color} onChange={setColor} />
-            <div className="pl-4 pr-12 pt-3 pb-2.5">
+            <div className="pl-4 pr-12 pt-3 pb-3">
               <input
                 // v476 — removed autoFocus on create. iOS popped the
                 // keyboard the instant the sheet appeared, which hid
@@ -358,15 +358,23 @@ export default function PersonalEventSheet({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Название"
-                className="w-full text-[24px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight leading-tight bg-transparent border-0 focus:outline-none"
+                className="w-full text-[22px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight leading-tight bg-transparent border-0 focus:outline-none"
+              />
+              {/* v481 — hairline divider between title and notes.
+                  Sits at ~10% of the event colour so it always reads
+                  against the tinted card bg without looking heavy. */}
+              <div
+                aria-hidden
+                className="mt-2 mb-2 h-px w-full"
+                style={{ background: divider(color) }}
               />
               <textarea
                 ref={notesRef}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Заметка"
-                rows={2}
-                className="block w-full mt-1 text-[14px] text-[var(--label-secondary)] placeholder:text-[var(--label-tertiary)] leading-snug bg-transparent border-0 focus:outline-none resize-none overflow-hidden"
+                rows={1}
+                className="block w-full text-[13px] text-[var(--label-secondary)] placeholder:text-[var(--label-tertiary)] leading-snug bg-transparent border-0 focus:outline-none resize-none overflow-hidden"
               />
             </div>
           </div>
@@ -668,6 +676,14 @@ function tintCardBg(hex: string): string {
   // 0x24 = 36 / 255 ≈ 14 % alpha — the same value used on iOS chip
   // backgrounds throughout the app.
   return `${hex}24`;
+}
+
+// v481 — hairline between title and notes inside the tinted hero
+// card. Same hex as the event colour but at ~18 % alpha so it reads
+// against the ~14 % bg without looking heavy.
+function divider(hex: string): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return "rgba(60,60,67,0.12)";
+  return `${hex}2E`;
 }
 
 // STORY-058 Sprint C — extra-reminders block. Sits below

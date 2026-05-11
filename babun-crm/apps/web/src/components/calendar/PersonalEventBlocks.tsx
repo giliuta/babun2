@@ -208,56 +208,60 @@ export function PushOffsetPicker({
       </div>
 
       {value.enabled && (
-        <div className="border-t border-[var(--separator)] select-none">
-          {/* Не напоминать option */}
-          <RadioRow
-            label="Не напоминать"
-            active={noneSelected}
-            onClick={() =>
-              onChange({ enabled: true, offsetMin: null, at: null })
-            }
-          />
-          {PRESET_OFFSETS.map((p) => (
-            <RadioRow
-              key={p.value}
-              label={p.label}
-              active={isPreset && value.offsetMin === p.value}
+        <div className="border-t border-[var(--separator)] select-none px-3 pt-2.5 pb-3">
+          {/* v481 — chip row instead of the iOS-Settings radio list.
+              Same 7 options (Не напоминать + 5 presets + В точное
+              время), but laid out as wrap-chips so the whole picker
+              fits in two rows instead of seven stacked rows. */}
+          <div className="flex flex-wrap gap-1.5">
+            <ChipChoice
+              label="Не напоминать"
+              active={noneSelected}
               onClick={() =>
-                onChange({ enabled: true, offsetMin: p.value, at: null })
+                onChange({ enabled: true, offsetMin: null, at: null })
               }
             />
-          ))}
-          <div className="border-t border-[var(--separator)]" />
-          <RadioRow
-            label="В точное время"
-            active={isAbsolute}
-            onClick={() => {
-              if (isAbsolute) {
-                onChange({ enabled: true, offsetMin: null, at: null });
-              } else {
-                const seed = (() => {
-                  const base = eventStartIso
-                    ? new Date(eventStartIso)
-                    : new Date(Date.now() + 60 * 60_000);
-                  if (isNaN(base.getTime()))
-                    return new Date(Date.now() + 60 * 60_000);
-                  base.setMinutes(base.getMinutes() - 60);
-                  return base;
-                })();
-                onChange({
-                  enabled: true,
-                  offsetMin: null,
-                  at: isoToLocalInput(seed),
-                });
-              }
-            }}
-          />
+            {PRESET_OFFSETS.map((p) => (
+              <ChipChoice
+                key={p.value}
+                label={p.label}
+                active={isPreset && value.offsetMin === p.value}
+                onClick={() =>
+                  onChange({ enabled: true, offsetMin: p.value, at: null })
+                }
+              />
+            ))}
+            <ChipChoice
+              label="Точное время"
+              active={isAbsolute}
+              onClick={() => {
+                if (isAbsolute) {
+                  onChange({ enabled: true, offsetMin: null, at: null });
+                } else {
+                  const seed = (() => {
+                    const base = eventStartIso
+                      ? new Date(eventStartIso)
+                      : new Date(Date.now() + 60 * 60_000);
+                    if (isNaN(base.getTime()))
+                      return new Date(Date.now() + 60 * 60_000);
+                    base.setMinutes(base.getMinutes() - 60);
+                    return base;
+                  })();
+                  onChange({
+                    enabled: true,
+                    offsetMin: null,
+                    at: isoToLocalInput(seed),
+                  });
+                }
+              }}
+            />
+          </div>
           {isAbsolute && (
             <div
-              className="px-4 py-2.5 flex items-center gap-2"
+              className="mt-2.5 flex items-center gap-2"
               style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
             >
-              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[72px] shrink-0">
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0">
                 Когда
               </div>
               <input
@@ -270,7 +274,7 @@ export function PushOffsetPicker({
                     at: e.target.value || null,
                   })
                 }
-                className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                className="flex-1 h-8 px-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[13px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
             </div>
           )}
@@ -280,8 +284,10 @@ export function PushOffsetPicker({
   );
 }
 
-// iOS-Settings-style radio row — left label, right ✓ when active.
-function RadioRow({
+// v481 — compact pill choice. Used by both PushOffsetPicker and
+// RepeatPickerRow so the «Напоминание» / «Повтор» cards collapse
+// from a 7-row iOS-Settings list to a 2-row chip grid.
+function ChipChoice({
   label,
   active,
   onClick,
@@ -294,15 +300,19 @@ function RadioRow({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center justify-between px-4 py-2.5 text-[14px] active:bg-[var(--fill-quaternary)] transition ${active ? "text-[var(--accent)] font-semibold" : "text-[var(--label)]"}`}
+      className={`inline-flex items-center h-7 px-3 rounded-full text-[12px] font-semibold transition active:scale-[0.96] ${
+        active
+          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+          : "bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-quaternary)]"
+      }`}
     >
-      <span>{label}</span>
-      {active && (
-        <span className="text-[var(--accent)] text-[16px] font-semibold">✓</span>
-      )}
+      {label}
     </button>
   );
 }
+
+// Legacy RadioRow removed in v481 — replaced by the inline ChipChoice
+// pills used by both PushOffsetPicker and RepeatPickerRow.
 
 function summarizePush(v: PushPickerValue): string {
   if (!v.enabled) return "Выкл";
@@ -587,51 +597,44 @@ export function RepeatPickerRow({
       </button>
 
       {open && (
-        <div className="border-t border-[var(--separator)] select-none">
-          {REPEAT_OPTIONS.map((opt) => {
-            const active = value.kind === opt.value;
-            return (
-              <button
+        <div className="border-t border-[var(--separator)] select-none px-3 pt-2.5 pb-3">
+          {/* v481 — chip-wrap layout. Same 7 presets, 2 rows instead
+              of 7 stacked rows. */}
+          <div className="flex flex-wrap gap-1.5">
+            {REPEAT_OPTIONS.map((opt) => (
+              <ChipChoice
                 key={opt.value}
-                type="button"
+                label={opt.label}
+                active={value.kind === opt.value}
                 onClick={() => setKind(opt.value)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 text-[14px] active:bg-[var(--fill-quaternary)] transition ${active ? "text-[var(--accent)] font-semibold" : "text-[var(--label)]"}`}
-              >
-                <span>{opt.label}</span>
-                {active && (
-                  <span className="text-[var(--accent)] text-[16px] font-semibold">✓</span>
-                )}
-              </button>
-            );
-          })}
+              />
+            ))}
+          </div>
 
           {value.kind !== "none" && (
-            <>
-              <div className="border-t border-[var(--separator)]" />
-              <div
-                className="px-4 py-2.5 flex items-center gap-2"
-                style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
-              >
-                <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[72px] shrink-0">
-                  Завершить
-                </div>
-                <input
-                  type="date"
-                  value={"until" in value && value.until ? value.until : ""}
-                  onChange={(e) => setUntil(e.target.value || undefined)}
-                  className="flex-1 h-9 px-3 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-                />
-                {"until" in value && value.until && (
-                  <button
-                    type="button"
-                    onClick={() => setUntil(undefined)}
-                    className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
-                  >
-                    Снять
-                  </button>
-                )}
+            <div
+              className="mt-2.5 flex items-center gap-2"
+              style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+            >
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[60px] shrink-0">
+                Завершить
               </div>
-            </>
+              <input
+                type="date"
+                value={"until" in value && value.until ? value.until : ""}
+                onChange={(e) => setUntil(e.target.value || undefined)}
+                className="flex-1 h-8 px-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[13px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+              {"until" in value && value.until && (
+                <button
+                  type="button"
+                  onClick={() => setUntil(undefined)}
+                  className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
+                >
+                  Снять
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
