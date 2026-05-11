@@ -530,6 +530,7 @@ function DashboardPageInner() {
     outerScrollerRef,
     hourHeightRef,
     writeHourHeight,
+    windowDurationHours: windowEnd - windowStart,
   });
 
   // STORY-043 G1 — MOCK_APPOINTMENTS seed-on-mount removed. Pre-cloud
@@ -1327,11 +1328,13 @@ function DashboardPageInner() {
         ) : (
           <div
             ref={outerScrollerRef}
-            // v472 — bg switched from surface-card (white) to
-            // surface-grouped (light gray) so that pinch-zoom-out leaves
-            // a neutral page-fill below the grid instead of a glaring
-            // white emptiness that reads as a layout bug.
-            className="flex-1 flex bg-[var(--surface-grouped)] min-h-0 relative"
+            // v475 — bg back to surface-card (white). v474 already
+            // clamps pinch-zoom-out so the grid fills the viewport,
+            // so the gray «empty area below 23:59» from v472 is no
+            // longer needed — and it read as a bug to the user.
+            // White matches the personal calendar's column body, so
+            // any residual sub-pixel gap blends invisibly.
+            className="flex-1 flex bg-[var(--surface-card)] min-h-0 relative"
             style={{
               overflowY: "auto",
               overflowX: "clip",

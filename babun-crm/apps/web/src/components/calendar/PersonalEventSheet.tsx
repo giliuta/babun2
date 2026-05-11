@@ -46,6 +46,16 @@ import {
 import EventPresetChips from "./EventPresetChips";
 import type { PersonalEventType } from "@babun/shared/local/personal-event-types";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
+import { useCalendarSettings } from "@/components/layout/DashboardClientLayout";
+
+// v473 — "Весь день" must fit the user's working hours, not the
+// 00:00→23:59 calendar range. Falls back to a sensible default if
+// the calendar settings haven't been customised.
+function hourToTime(h: number): string {
+  const safe = Math.max(0, Math.min(24, Math.round(h)));
+  if (safe >= 24) return "23:59";
+  return `${String(safe).padStart(2, "0")}:00`;
+}
 
 export type PersonalEventSheetMode = "create" | "edit";
 
@@ -69,6 +79,14 @@ export default function PersonalEventSheet({
   onSave,
   onDelete,
 }: PersonalEventSheetProps) {
+  const { calendarSettings } = useCalendarSettings();
+  const workStartHr =
+    calendarSettings.workStartHour ?? calendarSettings.startHour ?? 8;
+  const workEndHr =
+    calendarSettings.workEndHour ?? calendarSettings.endHour ?? 22;
+  const allDayStart = hourToTime(workStartHr);
+  const allDayEnd = hourToTime(workEndHr);
+
   const [dateKey, setDateKey] = useState(appointment.date);
   const [timeStart, setTimeStart] = useState(appointment.time_start);
   const [timeEnd, setTimeEnd] = useState(appointment.time_end);
@@ -187,8 +205,8 @@ export default function PersonalEventSheet({
   const buildPayload = (): Appointment => ({
     ...appointment,
     date: dateKey,
-    time_start: allDay ? "00:00" : timeStart,
-    time_end: allDay ? "23:59" : timeEnd,
+    time_start: allDay ? allDayStart : timeStart,
+    time_end: allDay ? allDayEnd : timeEnd,
     comment: title.trim(),
     event_notes: notes.trim(),
     color_override: color,
@@ -288,8 +306,8 @@ export default function PersonalEventSheet({
                       onChange={(v) => {
                         setAllDay(v);
                         if (v) {
-                          setTimeStart("00:00");
-                          setTimeEnd("23:59");
+                          setTimeStart(allDayStart);
+                          setTimeEnd(allDayEnd);
                         }
                       }}
                       ariaLabel="Весь день"
@@ -329,17 +347,20 @@ export default function PersonalEventSheet({
               setColor(preset.color);
               if (preset.allDay) {
                 setAllDay(true);
-                setTimeStart("00:00");
-                setTimeEnd("23:59");
+                setTimeStart(allDayStart);
+                setTimeEnd(allDayEnd);
               } else {
                 // v468 fix — explicitly switch all-day OFF when picking
                 // a non-all-day preset, otherwise the toggle stays ON
                 // from the previous «Выходной» pick. Also restore a
-                // sane start time if we're coming out of all-day
-                // (00:00 isn't what the user means when they pick
-                // «Обед»).
+                // sane start time if we're coming out of all-day (an
+                // all-day start equal to workStart isn't what the user
+                // means when they pick «Обед»).
                 setAllDay(false);
-                const baseStart = timeStart === "00:00" ? "10:00" : timeStart;
+                const baseStart =
+                  allDay || timeStart === "00:00" || timeStart === allDayStart
+                    ? "10:00"
+                    : timeStart;
                 setTimeStart(baseStart);
                 const [h, m] = baseStart.split(":").map(Number);
                 const totalMin = h * 60 + m + preset.defaultDuration;
