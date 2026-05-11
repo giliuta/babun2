@@ -1075,31 +1075,60 @@ export default function DashboardClientLayout({
   // server allocates a UUID for new rows whose local id is the
   // legacy `apt_xxx` shape; `saved.id` is the source of truth after
   // the round-trip. Same race fallback as upsertClient.
+  //
+  // v473 — optimistic write. Previously we awaited the Supabase
+  // round-trip BEFORE updating React state, which on a 4G/5G hop
+  // made create/edit feel laggy («запись с задержкой»). Now the UI
+  // updates instantly; the network call runs in the background and
+  // we reconcile with the server-allocated id once it comes back.
   const upsertAppointment = useCallback(
     async (apt: Appointment) => {
-      const supabase = getSupabaseBrowser();
       const inMemory = appointments.some((a) => a.id === apt.id);
-      let saved: Appointment;
-      if (inMemory) {
-        saved = await updateAppointmentRepo(supabase, apt.id, apt, tenantId);
-      } else {
-        try {
-          saved = await createAppointmentRepo(supabase, apt, tenantId);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "";
-          if (/duplicate key|already exists|23505/i.test(msg)) {
-            saved = await updateAppointmentRepo(supabase, apt.id, apt, tenantId);
-          } else {
-            throw err;
+      setAppointmentsState((prev) => {
+        const idx = prev.findIndex((a) => a.id === apt.id);
+        return idx >= 0
+          ? prev.map((a, i) => (i === idx ? apt : a))
+          : [...prev, apt];
+      });
+      try {
+        const supabase = getSupabaseBrowser();
+        let saved: Appointment;
+        if (inMemory) {
+          saved = await updateAppointmentRepo(supabase, apt.id, apt, tenantId);
+        } else {
+          try {
+            saved = await createAppointmentRepo(supabase, apt, tenantId);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "";
+            if (/duplicate key|already exists|23505/i.test(msg)) {
+              saved = await updateAppointmentRepo(supabase, apt.id, apt, tenantId);
+            } else {
+              throw err;
+            }
           }
         }
+        if (saved.id !== apt.id) {
+          // Server reassigned the id (legacy `apt_xxx` → UUID). Drop
+          // the optimistic row and insert the canonical one.
+          setAppointmentsState((prev) => {
+            const filtered = prev.filter((a) => a.id !== apt.id);
+            const idx = filtered.findIndex((a) => a.id === saved.id);
+            return idx >= 0
+              ? filtered.map((a, i) => (i === idx ? saved : a))
+              : [...filtered, saved];
+          });
+        } else {
+          setAppointmentsState((prev) => {
+            const idx = prev.findIndex((a) => a.id === saved.id);
+            return idx >= 0
+              ? prev.map((a, i) => (i === idx ? saved : a))
+              : [...prev, saved];
+          });
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("upsertAppointment failed", err);
       }
-      setAppointmentsState((prev) => {
-        const idx = prev.findIndex((a) => a.id === saved.id);
-        return idx >= 0
-          ? prev.map((a, i) => (i === idx ? saved : a))
-          : [...prev, saved];
-      });
     },
     [appointments, tenantId],
   );

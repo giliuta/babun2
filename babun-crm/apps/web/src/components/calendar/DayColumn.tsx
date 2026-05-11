@@ -379,15 +379,18 @@ function DayColumnInner({
           // whether the label is a hardcoded city or a tenant-
           // created tag. When no label is picked the column falls
           // back to today's purple / weekend grey / plain white.
+          // v473 — dropped the `isWeekend` grey tint. The user reads
+          // weekends from the red weekday label / day number in the
+          // header; tinting the body column made Sat/Sun feel "off-
+          // duty" even on the personal calendar where every day is
+          // equal.
           backgroundColor: cityCfg
             ? isToday
               ? cityCfg.bgToday
               : cityCfg.bg
             : isToday
               ? "rgba(124,58,237,0.04)"
-              : isWeekend
-                ? "rgba(60,60,67,0.02)"
-                : "#FFFFFF",
+              : "#FFFFFF",
           // Hourly grid — hairlines at each hour line, softer at half-hour.
           backgroundImage: [
             "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgba(60,60,67,0.12) calc(var(--hh) - 1px), rgba(60,60,67,0.12) var(--hh))",
@@ -430,16 +433,21 @@ function DayColumnInner({
           );
         })()}
 
-        {/* Out-of-hours overlay: BEFORE work start (but only within window) */}
-        {workStart > windowStartMin && (
+        {/* Out-of-hours overlays — only meaningful for working days.
+            v473 — when `is_working` is false (Sat/Sun marked as off
+            on the personal calendar), workStart/workEnd both collapse
+            to 0, which made the AFTER overlay span the entire column
+            and lit weekends darker than weekdays. The user reads the
+            day-off signal from the red weekday header, so the body
+            stays plain white instead. */}
+        {daySched.is_working && workStart > windowStartMin && (
           <div
             className="absolute left-0 right-0 top-0 bg-[var(--fill-tertiary)] pointer-events-none"
             style={{ height: windowedMins(Math.max(workStart, windowStartMin)) }}
           />
         )}
 
-        {/* Out-of-hours overlay: AFTER work end (but only within window) */}
-        {workEnd < windowEndMin && (
+        {daySched.is_working && workEnd < windowEndMin && (
           <div
             className="absolute left-0 right-0 bg-[var(--fill-tertiary)] pointer-events-none"
             style={{
