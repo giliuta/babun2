@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 // ─── Constants (re-exported so dashboard/page.tsx stays in sync) ──────────
 
@@ -9,8 +9,14 @@ export const HOUR_HEIGHT_MAX = 480;
 export const HOUR_HEIGHT_DEFAULT = 60;
 export const HOUR_HEIGHT_STEP = 20;
 
-export function clampHourHeight(h: number): number {
-  return Math.max(HOUR_HEIGHT_MIN, Math.min(HOUR_HEIGHT_MAX, h));
+// v473 — header above the grid (sticky day-header + time-column label).
+// Used to compute the dynamic viewport floor so the grid fills the
+// scroller even at the lowest zoom level.
+const GRID_HEADER_PX = 72;
+
+export function clampHourHeight(h: number, floor = HOUR_HEIGHT_MIN): number {
+  const effectiveMin = Math.max(HOUR_HEIGHT_MIN, floor);
+  return Math.max(effectiveMin, Math.min(HOUR_HEIGHT_MAX, h));
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────
@@ -19,6 +25,10 @@ interface UseCalendarGesturesParams {
   outerScrollerRef: React.RefObject<HTMLDivElement | null>;
   hourHeightRef: React.MutableRefObject<number>;
   writeHourHeight: (h: number) => void;
+  /** v473 — number of hours visible in the calendar window. Drives a
+   *  dynamic min hour-height so pinch-zoom-out can't shrink the grid
+   *  below the viewport (no empty gap under 23:59). */
+  windowDurationHours: number;
 }
 
 interface UseCalendarGesturesResult {
@@ -31,7 +41,24 @@ export function useCalendarGestures({
   outerScrollerRef,
   hourHeightRef,
   writeHourHeight,
+  windowDurationHours,
 }: UseCalendarGesturesParams): UseCalendarGesturesResult {
+
+  // v473 — viewport-aware floor for --hh. The grid body height is
+  // `--hh * windowDurationHours`; if it ever falls below the scroller's
+  // viewport minus header, an empty gap appears under 23:59 («пропуск
+  // внизу при уменьшении»). Recompute live so orientation/keyboard/
+  // viewport changes flow through automatically.
+  const windowHoursRef = useRef(windowDurationHours);
+  windowHoursRef.current = windowDurationHours;
+
+  const getViewportFloor = useCallback((): number => {
+    const el = outerScrollerRef.current;
+    const wh = windowHoursRef.current;
+    if (!el || wh <= 0) return HOUR_HEIGHT_MIN;
+    const usable = Math.max(0, el.clientHeight - GRID_HEADER_PX);
+    return usable / wh;
+  }, [outerScrollerRef]);
 
   // Zoom around the vertical center of the viewport so the same time
   // stays visible. Writes directly to the DOM — no React re-render during
@@ -39,7 +66,7 @@ export function useCalendarGestures({
   const zoomBy = useCallback(
     (nextH: number) => {
       const el = outerScrollerRef.current;
-      const clamped = clampHourHeight(nextH);
+      const clamped = clampHourHeight(nextH, getViewportFloor());
       const prev = hourHeightRef.current;
       if (clamped === prev) return;
       let nextScroll: number | null = null;
@@ -57,8 +84,37 @@ export function useCalendarGestures({
         });
       }
     },
-    [outerScrollerRef, hourHeightRef, writeHourHeight]
+    [outerScrollerRef, hourHeightRef, writeHourHeight, getViewportFloor]
   );
+
+  // v473 — re-clamp on viewport / window-duration changes (orientation
+  // flip, switch to day/3-day view, brigade with smaller hour window).
+  // Without this, a previous pinch-out HH can leave the grid shorter
+  // than the new viewport, re-introducing the bottom gap.
+  useEffect(() => {
+    const el = outerScrollerRef.current;
+    if (!el) return;
+    const reclamp = () => {
+      const clamped = clampHourHeight(hourHeightRef.current, getViewportFloor());
+      if (Math.abs(clamped - hourHeightRef.current) > 0.5) {
+        writeHourHeight(clamped);
+      }
+    };
+    reclamp();
+    const ro = new ResizeObserver(reclamp);
+    ro.observe(el);
+    window.addEventListener("orientationchange", reclamp);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("orientationchange", reclamp);
+    };
+  }, [
+    outerScrollerRef,
+    hourHeightRef,
+    writeHourHeight,
+    getViewportFloor,
+    windowDurationHours,
+  ]);
 
   const handleZoomIn = useCallback(
     () => zoomBy(hourHeightRef.current + HOUR_HEIGHT_STEP),
@@ -115,7 +171,7 @@ export function useCalendarGestures({
       const d = distance(e.touches[0], e.touches[1]);
       if (pinchStartDist <= 0) return;
       const ratio = d / pinchStartDist;
-      const next = clampHourHeight(pinchStartH * ratio);
+      const next = clampHourHeight(pinchStartH * ratio, getViewportFloor());
       const anchor = (pinchStartScroll + pinchMidY) / pinchStartH;
       applyZoom(next, pinchMidY, anchor);
     };
@@ -142,7 +198,7 @@ export function useCalendarGestures({
       const ge = e as Event & { scale?: number };
       e.preventDefault();
       const scale = ge.scale ?? 1;
-      const next = clampHourHeight(gestureStartH * scale);
+      const next = clampHourHeight(gestureStartH * scale, getViewportFloor());
       const anchor = (gestureStartScroll + gestureMidY) / gestureStartH;
       applyZoom(next, gestureMidY, anchor);
     };
@@ -157,7 +213,10 @@ export function useCalendarGestures({
       e.preventDefault();
       const delta = -e.deltaY;
       const factor = Math.exp(delta * 0.005);
-      const next = clampHourHeight(hourHeightRef.current * factor);
+      const next = clampHourHeight(
+        hourHeightRef.current * factor,
+        getViewportFloor(),
+      );
       const rect = el.getBoundingClientRect();
       const focusY = e.clientY - rect.top;
       const anchor = (el.scrollTop + focusY) / hourHeightRef.current;

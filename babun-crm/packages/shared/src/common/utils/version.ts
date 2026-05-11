@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v473-event-save-allday-weekend";
+export const BUILD_VERSION = "v474-calendar-zoom-fill-viewport";

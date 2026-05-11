@@ -530,6 +530,7 @@ function DashboardPageInner() {
     outerScrollerRef,
     hourHeightRef,
     writeHourHeight,
+    windowDurationHours: windowEnd - windowStart,
   });
 
   // STORY-043 G1 — MOCK_APPOINTMENTS seed-on-mount removed. Pre-cloud
