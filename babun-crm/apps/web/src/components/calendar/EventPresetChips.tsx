@@ -92,10 +92,14 @@ export default function EventPresetChips({ onPick }: EventPresetChipsProps) {
 
   return (
     <div
+      // v481 — chips polish. Slightly tighter padding, hairline border
+      // matching the chip tone for definition on white cards, and a
+      // marker emoji-free flow. Negative-margin trick still lets the
+      // row bleed past the form's 14-px inner padding.
       className="overflow-x-auto -mx-3.5 px-3.5"
       style={{ scrollbarWidth: "none" }}
     >
-      <div className="flex items-center gap-2 pb-0.5">
+      <div className="flex items-center gap-1.5 pb-0.5">
         {types.map((p) => {
           const Icon = ICON_MAP[p.icon] ?? Tag;
           return (
@@ -103,13 +107,14 @@ export default function EventPresetChips({ onPick }: EventPresetChipsProps) {
               key={p.id}
               type="button"
               onClick={() => onPick(p)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-semibold whitespace-nowrap shrink-0 active:scale-[0.96] transition"
+              className="flex items-center gap-1.5 h-7 pl-2.5 pr-3 rounded-full text-[12px] font-semibold whitespace-nowrap shrink-0 active:scale-[0.96] transition border"
               style={{
                 background: tintBg(p.color),
                 color: p.color,
+                borderColor: borderTint(p.color),
               }}
             >
-              <Icon size={14} strokeWidth={2.4} />
+              <Icon size={13} strokeWidth={2.4} />
               {p.label}
             </button>
           );
@@ -117,4 +122,16 @@ export default function EventPresetChips({ onPick }: EventPresetChipsProps) {
       </div>
     </div>
   );
+}
+
+// Slightly stronger alpha than the bg for the hairline border, so the
+// chip reads as a defined pill on a white form card.
+function borderTint(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "transparent";
+  const v = m[1];
+  const r = parseInt(v.slice(0, 2), 16);
+  const g = parseInt(v.slice(2, 4), 16);
+  const b = parseInt(v.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.28)`;
 }
