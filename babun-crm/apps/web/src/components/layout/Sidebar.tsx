@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Settings as SettingsIcon,
   LogOut,
-  ChevronDown,
 } from "@babun/shared/icons";
 import { dueReminders } from "@babun/shared/local/recurring";
 import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
@@ -25,7 +24,6 @@ import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 // (NavRow no longer uses colored tile backgrounds). Type kept for
 // the optional `tone` prop on the API to avoid breaking call sites.
 import type { IconTone } from "@babun/shared/common/utils/design-tokens";
-import { getStorage } from "@babun/shared/storage";
 
 // Telegram-style drawer (Sprint 031). Accent-blue brand header with
 // avatar + company, grouped-list body below with coloured tile icons
@@ -70,8 +68,6 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   "sms-templates": "/dashboard/sms-templates",
 };
 
-const EXPAND_KEY = "babun-sidebar-expanded";
-
 export default function Sidebar({
   onLogout,
   open,
@@ -85,15 +81,6 @@ export default function Sidebar({
 
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    // Hydrate expanded flag from storage — same pattern as
-    // OfflineIndicator / usePwaInstallState. Lint is satisfied by an
-    // explicit suppression rather than restructuring the read.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExpanded(getStorage().getRaw(EXPAND_KEY) === "1");
-  }, []);
 
   // STORY-085 — close the drawer when the user navigates to a new
   // route. Tapping a Next.js <Link> changes the pathname; this effect
@@ -175,12 +162,6 @@ export default function Sidebar({
 
   const isActive = (dialog: Exclude<DialogType, null>) =>
     pathname === ROUTE_MAP[dialog];
-
-  const toggleExpanded = () => {
-    const next = !expanded;
-    setExpanded(next);
-    getStorage().setRaw(EXPAND_KEY, next ? "1" : "0");
-  };
 
   return (
     <>
@@ -291,53 +272,36 @@ export default function Sidebar({
             />
           </Group>
 
-          <button
-            type="button"
-            onClick={toggleExpanded}
-            // STORY-058 — 44px tap target per Apple HIG. min-h hits
-            // the floor; vertical content stays centred with flex.
-            // STORY-064 — softened from uppercase + tracking-wider to
-            // sentence-case 13 px medium. The ALL-CAPS read as a section
-            // header from a 2010-era CMS, not a tap target.
-            className="w-full flex items-center gap-2 px-3 mx-1 mt-3 mb-1 min-h-[36px] text-[13px] font-medium text-[var(--label-secondary)] active:text-[var(--label)] transition"
-          >
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${expanded ? "" : "-rotate-90"}`}
+          {/* v479 — admin section is always visible. The collapse
+              toggle was hiding Бригады / Мастера / SMS-шаблоны behind
+              an extra tap; user wants the full sidebar laid out top
+              to bottom in a single ordered list. */}
+          <Group>
+            <NavRow
+              icon={UsersIcon}
+              tone="blue"
+              label="Бригады"
+              href={ROUTE_MAP.teams}
+              active={isActive("teams")}
             />
-            <span className="flex-1 text-left">
-              {expanded ? "Скрыть админ-раздел" : "Показать админ-раздел"}
-            </span>
-          </button>
-
-          {expanded && (
-            <Group>
-              <NavRow
-                icon={UsersIcon}
-                tone="blue"
-                label="Бригады"
-                href={ROUTE_MAP.teams}
-                active={isActive("teams")}
-              />
-              <NavRow
-                icon={UserCircle2}
-                tone="indigo"
-                label="Мастера"
-                href={ROUTE_MAP.masters}
-                active={isActive("masters")}
-              />
-              {/* Sprint 033 Phase I29 — "Услуги" sidebar link removed
-                  per user feedback. Services are now per-brigade only
-                  (edited inside /teams/[id]/services). */}
-              <NavRow
-                icon={MessageSquare}
-                tone="mint"
-                label="SMS-шаблоны"
-                href={ROUTE_MAP["sms-templates"]}
-                active={isActive("sms-templates")}
-              />
-            </Group>
-          )}
+            <NavRow
+              icon={UserCircle2}
+              tone="indigo"
+              label="Мастера"
+              href={ROUTE_MAP.masters}
+              active={isActive("masters")}
+            />
+            {/* Sprint 033 Phase I29 — "Услуги" sidebar link removed
+                per user feedback. Services are now per-brigade only
+                (edited inside /teams/[id]/services). */}
+            <NavRow
+              icon={MessageSquare}
+              tone="mint"
+              label="SMS-шаблоны"
+              href={ROUTE_MAP["sms-templates"]}
+              active={isActive("sms-templates")}
+            />
+          </Group>
         </nav>
 
         <div className="flex-shrink-0 px-4 py-4 border-t border-[var(--separator)] bg-[var(--surface-card)]">
