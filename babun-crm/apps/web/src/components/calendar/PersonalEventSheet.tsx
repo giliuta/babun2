@@ -389,7 +389,11 @@ export default function PersonalEventSheet({
             <ColorPaletteButton value={color} onChange={setColor} />
             <div className="pl-4 pr-12 pt-3 pb-2.5">
               <input
-                autoFocus={mode === "create"}
+                // v476 — removed autoFocus on create. iOS popped the
+                // keyboard the instant the sheet appeared, which hid
+                // the time / preset rows the user wanted to tap first.
+                // They tap the title field themselves when they're
+                // ready to type.
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
