@@ -24,7 +24,6 @@ import {
   Navigation as NavigationIcon,
   Link as LinkIcon,
   Palette,
-  LocateFixed,
   MapPin,
   Compass,
 } from "@babun/shared/icons";
@@ -122,46 +121,15 @@ export default function PersonalEventSheet({
     appointment.event_repeat ?? NO_REPEAT,
   );
 
-  // STORY-058 Sprint D — recent places + GPS for the address row.
-  // recentPlaces seeds <datalist> autocomplete; gpsLoading toggles the
-  // 📍 button into a spinner while we're waiting for getCurrentPosition.
+  // STORY-058 Sprint D — recent places autocomplete for the address
+  // row. v478 dropped the «Сейчас здесь» GPS button (user: личное
+  // событие не возит свою геолокацию).
   const [recentPlaces, setRecentPlaces] = useState<string[]>([]);
-  const [gpsLoading, setGpsLoading] = useState(false);
   // v470 — popup для выбора куда открыть навигацию (Google/Apple/Waze).
   const [navOpen, setNavOpen] = useState(false);
   useEffect(() => {
     if (open) setRecentPlaces(loadRecentPlaces());
   }, [open]);
-
-  const handleGpsClick = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      // Fallback: explain instead of failing silently. iOS PWA Safari
-      // has geolocation under HTTPS; localhost works in dev.
-      alert("Геолокация недоступна на этом устройстве.");
-      return;
-    }
-    setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude.toFixed(5);
-        const lng = pos.coords.longitude.toFixed(5);
-        // Plain text — user can edit / replace with a proper address.
-        // Maps button picks this up via buildMapsUrl which already
-        // accepts comma-separated coords.
-        setAddress(`${lat}, ${lng}`);
-        setGpsLoading(false);
-      },
-      (err) => {
-        setGpsLoading(false);
-        alert(
-          err.code === err.PERMISSION_DENIED
-            ? "Доступ к геолокации запрещён. Разреши в настройках Safari."
-            : "Не удалось получить местоположение.",
-        );
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 },
-    );
-  };
 
   // Auto-grow notes textarea
   const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -447,23 +415,9 @@ export default function PersonalEventSheet({
                 rows={1}
                 className="flex-1 min-h-8 max-h-20 px-2.5 py-1.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] resize-none leading-snug focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
-              <button
-                type="button"
-                onClick={handleGpsClick}
-                disabled={gpsLoading}
-                aria-label="Использовать текущее местоположение"
-                className={`w-8 h-8 flex items-center justify-center rounded-[8px] active:scale-[0.95] shrink-0 ${
-                  gpsLoading
-                    ? "text-[var(--label-tertiary)] bg-[var(--fill-quaternary)]"
-                    : "text-[var(--accent)] bg-[var(--accent-tint)]"
-                }`}
-              >
-                <LocateFixed
-                  size={14}
-                  strokeWidth={2}
-                  className={gpsLoading ? "animate-pulse" : ""}
-                />
-              </button>
+              {/* v478 — GPS «Сейчас здесь» button removed. Personal
+                  events don't carry the user's geo, so the icon was
+                  dead weight. */}
               {mapsLinks && (
                 <button
                   type="button"
