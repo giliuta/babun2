@@ -162,6 +162,26 @@ export default function PersonalEventSheet({
   const canSave = title.trim().length > 0;
   const eventStartIso = useMemo(() => `${dateKey}T${timeStart}`, [dateKey, timeStart]);
 
+  // v485 — close confirmation. The X button has felt risky on create:
+  // the user fills time / colour / repeat, doesn't type a title, taps
+  // X out of habit and loses everything because the «Создать событие»
+  // button was disabled (no title). Popup gives an escape hatch.
+  const [closeConfirm, setCloseConfirm] = useState(false);
+  const dirty =
+    mode === "create" &&
+    (title.trim().length > 0 ||
+      notes.trim().length > 0 ||
+      address.trim().length > 0 ||
+      url.trim().length > 0 ||
+      pushEnabled ||
+      repeat.kind !== "none" ||
+      color !== DEFAULT_COLOR ||
+      allDay);
+  const handleCloseRequest = () => {
+    if (dirty) setCloseConfirm(true);
+    else onClose();
+  };
+
   const buildPayload = (): Appointment => ({
     ...appointment,
     date: dateKey,
@@ -199,8 +219,11 @@ export default function PersonalEventSheet({
 
   return (
     <div
+      // v485 — backdrop taps route through the same close handler so
+      // a stray tap outside the sheet also surfaces the «Сохранить /
+      // Не сохранять» popup when create-mode form is dirty.
       className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
-      onClick={onClose}
+      onClick={handleCloseRequest}
     >
       <div
         // STORY-056 — cap height at 720 px on lg+ for proper desktop
@@ -244,7 +267,7 @@ export default function PersonalEventSheet({
           <ColorPaletteButton value={color} onChange={setColor} />
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseRequest}
             aria-label="Закрыть"
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
@@ -507,6 +530,86 @@ export default function PersonalEventSheet({
           onClose={() => setNavOpen(false)}
         />
       )}
+      {/* v485 — Сохранить / Не сохранять prompt when the user taps X
+          on a dirty create-mode form. «Сохранить» bypasses the title
+          requirement and saves whatever the form has (so a quick
+          event with just a time / colour can be kept). */}
+      {closeConfirm && (
+        <CloseConfirmPopup
+          onSave={() => {
+            setCloseConfirm(false);
+            const payload = buildPayload();
+            if (payload.address) pushRecentPlace(payload.address);
+            onSave(payload);
+          }}
+          onDiscard={() => {
+            setCloseConfirm(false);
+            onClose();
+          }}
+          onKeep={() => setCloseConfirm(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// v485 — close-with-unsaved-changes confirm popup. iOS-style action
+// sheet: Сохранить (default accent), Не сохранять (destructive red),
+// Отмена (cancel — keeps the sheet open).
+function CloseConfirmPopup({
+  onSave,
+  onDiscard,
+  onKeep,
+}: {
+  onSave: () => void;
+  onDiscard: () => void;
+  onKeep: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onKeep();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onKeep]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6"
+      onClick={onKeep}
+    >
+      <div
+        className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[300px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-[15px] font-semibold text-[var(--label)] text-center">
+          Сохранить событие?
+        </div>
+        <div className="text-[12px] text-[var(--label-secondary)] text-center mt-1.5">
+          Без названия событие сохранится пустым.
+        </div>
+        <button
+          type="button"
+          onClick={onSave}
+          className="w-full mt-4 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98] transition"
+        >
+          Сохранить
+        </button>
+        <button
+          type="button"
+          onClick={onDiscard}
+          className="w-full mt-2 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] transition"
+        >
+          Не сохранять
+        </button>
+        <button
+          type="button"
+          onClick={onKeep}
+          className="w-full mt-2 h-10 rounded-[10px] text-[14px] font-medium text-[var(--label-secondary)] active:opacity-70 transition"
+        >
+          Отмена
+        </button>
+      </div>
     </div>
   );
 }
