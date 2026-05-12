@@ -31,7 +31,10 @@
       "mcp__chrome-devtools__press_key",
       "mcp__chrome-devtools__evaluate_script",
       "mcp__chrome-devtools__take_snapshot",
-      "PowerShell(Set-Location \"C:\\\\Users\\\\Dmitry\\\\Desktop\\\\Babun2\\\\babun-crm\\\\apps\\\\web\"; Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c npm run dev > C:\\\\Users\\\\Dmitry\\\\Desktop\\\\Babun2\\\\dev.log 2>&1\" -WindowStyle Hidden; Start-Sleep -Seconds 15; \\(Get-Content \"C:\\\\Users\\\\Dmitry\\\\Desktop\\\\Babun2\\\\dev.log\" -Tail 20\\) -join \"`n\")"
+      "PowerShell(Set-Location \"C:\\\\Users\\\\Dmitry\\\\Desktop\\\\Babun2\\\\babun-crm\\\\apps\\\\web\"; Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c npm run dev > C:\\\\Users\\\\Dmitry\\\\Desktop\\\\Babun2\\\\dev.log 2>&1\" -WindowStyle Hidden; Start-Sleep -Seconds 15; \\(Get-Content \"C:\\\\Users\\\\Dmitry\\\\Desktop\\\\Babun2\\\\dev.log\" -Tail 20\\) -join \"`n\")",
+      "mcp__b3fcc84d-6868-4dbe-989a-14277aafc026__list_teams",
+      "mcp__b3fcc84d-6868-4dbe-989a-14277aafc026__list_projects",
+      "mcp__b3fcc84d-6868-4dbe-989a-14277aafc026__list_deployments"
     ],
     "additionalDirectories": [
       "c:\\Users\\Dmitry\\Desktop\\Babun2\\.claude\\commands",
