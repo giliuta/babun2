@@ -167,11 +167,35 @@ export default function PersonalEventSheet({
   // X out of habit and loses everything because the «Создать событие»
   // button was disabled (no title). Popup gives an escape hatch.
   // v487 — popup shows in create mode regardless of whether the user
-  // typed anything (user explicitly asked for this). Edit mode keeps
-  // instant-close — there's nothing to «save» if nothing changed.
+  // typed anything (user explicitly asked for this).
+  // v488 — edit mode now also surfaces the popup when the user has
+  // changed anything. Untouched edits (просто открыл — закрыл) still
+  // close instantly so the popup isn't annoying.
   const [closeConfirm, setCloseConfirm] = useState(false);
+  const editDirty =
+    mode === "edit" &&
+    (dateKey !== appointment.date ||
+      timeStart !== appointment.time_start ||
+      timeEnd !== appointment.time_end ||
+      allDay !== (appointment.event_all_day ?? false) ||
+      title.trim() !== (appointment.comment ?? "").trim() ||
+      notes.trim() !== (appointment.event_notes ?? "").trim() ||
+      color !== (appointment.color_override ?? DEFAULT_COLOR) ||
+      address.trim() !== (appointment.address ?? "").trim() ||
+      url.trim() !== (appointment.event_url ?? "").trim() ||
+      pushEnabled !== (appointment.event_push_enabled ?? false) ||
+      pushAt !== (appointment.event_push_at ?? null) ||
+      !sameOffsets(
+        [
+          ...(pushOffset !== null ? [pushOffset] : []),
+          ...extraOffsets,
+        ],
+        appointment.event_push_offsets ?? [],
+      ) ||
+      JSON.stringify(repeat) !==
+        JSON.stringify(appointment.event_repeat ?? NO_REPEAT));
   const handleCloseRequest = () => {
-    if (mode === "create") setCloseConfirm(true);
+    if (mode === "create" || editDirty) setCloseConfirm(true);
     else onClose();
   };
 
@@ -529,6 +553,7 @@ export default function PersonalEventSheet({
           event with just a time / colour can be kept). */}
       {closeConfirm && (
         <CloseConfirmPopup
+          mode={mode}
           onSave={() => {
             setCloseConfirm(false);
             const payload = buildPayload();
@@ -550,10 +575,12 @@ export default function PersonalEventSheet({
 // sheet: Сохранить (default accent), Не сохранять (destructive red),
 // Отмена (cancel — keeps the sheet open).
 function CloseConfirmPopup({
+  mode,
   onSave,
   onDiscard,
   onKeep,
 }: {
+  mode: PersonalEventSheetMode;
   onSave: () => void;
   onDiscard: () => void;
   onKeep: () => void;
@@ -576,10 +603,12 @@ function CloseConfirmPopup({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[15px] font-semibold text-[var(--label)] text-center">
-          Сохранить событие?
+          {mode === "edit" ? "Сохранить изменения?" : "Сохранить событие?"}
         </div>
         <div className="text-[12px] text-[var(--label-secondary)] text-center mt-1.5">
-          Без названия событие сохранится пустым.
+          {mode === "edit"
+            ? "Иначе изменения не запишутся."
+            : "Без названия событие сохранится пустым."}
         </div>
         <button
           type="button"
@@ -799,6 +828,15 @@ function frameBorder(hex: string): string {
 function divider(hex: string): string {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return "rgba(60,60,67,0.12)";
   return `${hex}2E`;
+}
+
+// v488 — set-equality check for push offsets (order-insensitive). Used
+// in the edit-mode dirty check to ignore reorder noise.
+function sameOffsets(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort((x, y) => x - y);
+  const sb = [...b].sort((x, y) => x - y);
+  return sa.every((v, i) => v === sb[i]);
 }
 
 // STORY-058 Sprint C — extra-reminders block. Sits below
