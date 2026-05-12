@@ -205,9 +205,14 @@ export default function PersonalEventSheet({
       <div
         // STORY-056 — cap height at 720 px on lg+ for proper desktop
         // dialog feel (mobile keeps 92 vh).
-        className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
+        // v483 — sheet bg switches from the neutral --surface-grouped
+        // to a tint of the event colour. The header / footer stay
+        // white (own bg), the body shows the tint, so picking a colour
+        // instantly recolours the whole sheet.
+        className="w-full max-w-lg rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px] transition-colors"
         style={{
           height: "92vh",
+          background: tintCardBg(color),
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
           userSelect: "none",
@@ -229,6 +234,9 @@ export default function PersonalEventSheet({
               <Trash2 size={16} strokeWidth={2} />
             </button>
           )}
+          {/* v483 — palette button lives in the header (next to X).
+              Tapping it opens the same 14-colour modal as before. */}
+          <ColorPaletteButton value={color} onChange={setColor} />
           <button
             type="button"
             onClick={onClose}
@@ -333,21 +341,19 @@ export default function PersonalEventSheet({
             }}
           />
 
-          {/* Card 2 — Hero title + multi-line notes. v457b — whole
-              card is tinted with the event color (~14% alpha); a
-              palette button in the top-right corner opens the color
-              picker. Replaces the previous left-edge stripe + header
-              swatch combo. */}
+          {/* Card 2 — Hero title + notes. v483 — the in-card palette
+              swatch moved to the sheet header (next to the X), and
+              the tint moved to the whole sheet base. The card is now
+              a clean white surface so the title / notes read cleanly
+              against the coloured backdrop. */}
           <div
-            className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative transition-colors"
+            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative"
             style={{
-              background: tintCardBg(color),
               WebkitUserSelect: "text",
               userSelect: "text",
             } as React.CSSProperties}
           >
-            <ColorPaletteButton value={color} onChange={setColor} />
-            <div className="pl-4 pr-12 pt-3 pb-3">
+            <div className="px-4 pt-3 pb-3">
               <input
                 // v476 — removed autoFocus on create. iOS popped the
                 // keyboard the instant the sheet appeared, which hid
@@ -788,6 +794,11 @@ function ExtraOffsetsBlock({
 // and made it look like only 7 colours existed. A fullscreen-overlay
 // modal sits above the sheet's stacking context and has room for all
 // 14 swatches comfortably.
+// v483 — palette button moved out of the title card into the sheet
+// header (next to the X close button). The whole sheet base is now
+// tinted with the event colour, so the user sees their choice apply
+// to the entire surface at once — the title card no longer needs its
+// own swatch.
 function ColorPaletteButton({
   value,
   onChange,
@@ -812,7 +823,7 @@ function ColorPaletteButton({
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Цвет события"
-        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/70 backdrop-blur flex items-center justify-center shadow-sm active:scale-[0.95] transition"
+        className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
         style={{ color: value }}
       >
         <Palette size={16} strokeWidth={2} />
