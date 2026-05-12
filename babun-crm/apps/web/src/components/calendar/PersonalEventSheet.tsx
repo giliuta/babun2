@@ -166,19 +166,12 @@ export default function PersonalEventSheet({
   // the user fills time / colour / repeat, doesn't type a title, taps
   // X out of habit and loses everything because the «Создать событие»
   // button was disabled (no title). Popup gives an escape hatch.
+  // v487 — popup shows in create mode regardless of whether the user
+  // typed anything (user explicitly asked for this). Edit mode keeps
+  // instant-close — there's nothing to «save» if nothing changed.
   const [closeConfirm, setCloseConfirm] = useState(false);
-  const dirty =
-    mode === "create" &&
-    (title.trim().length > 0 ||
-      notes.trim().length > 0 ||
-      address.trim().length > 0 ||
-      url.trim().length > 0 ||
-      pushEnabled ||
-      repeat.kind !== "none" ||
-      color !== DEFAULT_COLOR ||
-      allDay);
   const handleCloseRequest = () => {
-    if (dirty) setCloseConfirm(true);
+    if (mode === "create") setCloseConfirm(true);
     else onClose();
   };
 
