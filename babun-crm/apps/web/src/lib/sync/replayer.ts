@@ -55,6 +55,7 @@ import type { Database } from "@babun/shared/db/database.types";
 import {
   dequeueAll,
   cacheUpsert,
+  cacheDelete,
   type QueuedOp,
   type CachedTable,
 } from "@babun/shared/db/cache";
@@ -266,11 +267,30 @@ async function dispatch(
   }
 
   if (op.op === "insert") {
-    const { error } = await supabase
-      .from(tableName)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .insert(op.payload as any);
+    // v489 — defensive: pre-v489 queued inserts may carry a non-UUID
+    // `id` (`apt-mp2we5l1-...`) inside the payload. Supabase's id
+    // columns are uuid → INSERT 22P02 «invalid input syntax for type
+    // uuid», stranding the row. Strip the id so the server allocates
+    // a fresh UUID, then drop the local-id row from IDB cache so
+    // the orphan optimistic row doesn't double up next list().
+    let payload = op.payload as Record<string, unknown>;
+    let stripped = false;
+    if (!isUuid(op.row_id) && typeof payload === "object" && payload !== null) {
+      const { id: _id, ...rest } = payload as { id?: string };
+      void _id;
+      payload = rest;
+      stripped = true;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabase.from(tableName).insert(payload as any);
     if (error) throw new Error(`replay insert: ${error.message}`);
+    if (stripped) {
+      try {
+        await cacheDelete(op.table, op.row_id);
+      } catch {
+        /* ignore — cache may already be gone */
+      }
+    }
     return false;
   }
 

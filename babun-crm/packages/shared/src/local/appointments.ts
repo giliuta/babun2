@@ -595,7 +595,21 @@ export function renderReminderPreview(
 export function createBlankAppointment(overrides: Partial<Appointment> = {}): Appointment {
   const now = new Date().toISOString();
   return {
-    id: generateId("apt"),
+    // v489 — generate a real UUID up front so the optimistic React /
+    // localStorage / IDB row, the Supabase INSERT, and the sync-queue
+    // replay all share the same id. Legacy `generateId("apt")` produced
+    // `apt-mp2we5l1-ow18u` style strings; Supabase's `appointments.id`
+    // is a uuid column, so the repo had to strip the id on insert and
+    // reconcile. Worst case (network blip): the op got queued in IDB
+    // with the apt-id payload, and replay then failed with «invalid
+    // input syntax for type uuid», stranding the event in «Очередь
+    // синхронизации». Using a UUID from the start removes the entire
+    // failure mode. Falls back to the legacy generator on environments
+    // without `crypto.randomUUID` (older Safari, but iOS 15.4+ has it).
+    id:
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : generateId("apt"),
     date: "",
     time_start: "10:00",
     time_end: "11:00",
