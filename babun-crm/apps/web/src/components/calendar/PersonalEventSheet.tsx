@@ -205,22 +205,27 @@ export default function PersonalEventSheet({
       <div
         // STORY-056 — cap height at 720 px on lg+ for proper desktop
         // dialog feel (mobile keeps 92 vh).
-        // v483 — sheet bg switches from the neutral --surface-grouped
-        // to a tint of the event colour. The header / footer stay
-        // white (own bg), the body shows the tint, so picking a colour
-        // instantly recolours the whole sheet.
-        className="w-full max-w-lg rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px] transition-colors"
+        // v484 — revert v483 whole-sheet tint. Body bg back to the
+        // neutral grouped surface (looks clean). The event colour now
+        // lives on the outer frame (border in tint) and the header
+        // strip — that's enough to telegraph the chosen colour without
+        // washing the entire sheet.
+        className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px] overflow-hidden border-2"
         style={{
           height: "92vh",
-          background: tintCardBg(color),
+          borderColor: frameBorder(color),
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
           userSelect: "none",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex-shrink-0 px-3.5 pt-3 pb-2 flex items-center gap-2 bg-[var(--surface-card)] rounded-t-[20px] border-b border-[var(--separator)]">
+        {/* Header — v484 tinted strip in the event colour. Sits inside
+            the bordered frame; cards / body underneath stay white. */}
+        <div
+          className="flex-shrink-0 px-3.5 pt-3 pb-2 flex items-center gap-2 border-b border-[var(--separator)] transition-colors"
+          style={{ background: tintCardBg(color) }}
+        >
           <div className="flex-1 text-[16px] font-semibold text-[var(--label)] truncate tracking-tight">
             {mode === "edit" ? "Редактирование" : "Новое событие"}
           </div>
@@ -682,6 +687,14 @@ function tintCardBg(hex: string): string {
   // 0x24 = 36 / 255 ≈ 14 % alpha — the same value used on iOS chip
   // backgrounds throughout the app.
   return `${hex}24`;
+}
+
+// v484 — solid-ish frame border around the whole sheet. ~50 % alpha
+// reads as a clear colour rim against the page backdrop without
+// looking neon. Falls back to a neutral border on bad hex.
+function frameBorder(hex: string): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return "var(--separator-opaque)";
+  return `${hex}80`;
 }
 
 // v481 — hairline between title and notes inside the tinted hero
