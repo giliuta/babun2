@@ -479,11 +479,6 @@ function DashboardPageInner() {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
     if (!el) return;
-    const now = new Date();
-    const stepDays = STEP_DAYS[viewMode];
-    const rangeEnd = new Date(currentMonday);
-    rangeEnd.setDate(rangeEnd.getDate() + stepDays);
-    const todayVisible = now >= currentMonday && now < rangeEnd;
     const hh = hourHeightRef.current;
     // Absolute-hour → grid-offset helper. With a brigade window the
     // grid starts at windowStart hours, so visual top = (hour - windowStart) * hh.
@@ -497,27 +492,24 @@ function DashboardPageInner() {
       calendarSettings.scrollOpenHour ??
       calendarSettings.workStartHour ??
       calendarSettings.startHour;
+    // v486 — «Открывается время» wins unconditionally. The old
+    // now-line anchor override (Math.max(scrollTarget, nowTop - vp))
+    // could scroll the grid past the user's setting when today's
+    // current time was later in the day — so после переключения
+    // между страницами календарь открывался на ~14:00 вместо
+    // выбранных 09:00. User explicitly asked the setting to be
+    // respected, so drop the override entirely. The brigade-level
+    // `default_scroll_time` is still honoured below since it's a
+    // per-team explicit choice, not a smart default.
     let targetTop = toTop(Math.max(scrollTarget, windowStart));
 
-    // Brigade-level "Открывать на" override. When set, it wins over the
-    // now-line anchor and the global startHour.
+    // Brigade-level "Открывать на" override. When set, it wins over
+    // the personal scrollOpenHour.
     if (activeBrigadeScroll && /^\d{1,2}:\d{2}$/.test(activeBrigadeScroll)) {
       const [bh, bm] = activeBrigadeScroll.split(":").map(Number);
       const brigadeHours = bh + bm / 60;
       const viewportOffset = el.clientHeight * 0.15;
       targetTop = Math.max(0, toTop(brigadeHours) - viewportOffset);
-    } else if (todayVisible) {
-      const hoursNow = now.getHours() + now.getMinutes() / 60;
-      const workStart =
-        calendarSettings.workStartHour ?? calendarSettings.startHour;
-      const workEnd =
-        calendarSettings.workEndHour ?? calendarSettings.endHour;
-      const inWorkHours = hoursNow >= workStart - 0.5 && hoursNow <= workEnd;
-      if (inWorkHours && hoursNow >= windowStart && hoursNow <= windowEnd) {
-        const nowTop = toTop(hoursNow);
-        const viewportOffset = el.clientHeight * 0.3;
-        targetTop = Math.max(toTop(scrollTarget), nowTop - viewportOffset);
-      }
     }
 
     // Belt-and-suspenders scroll commit. iOS Safari can swallow a
