@@ -570,21 +570,33 @@ function DashboardPageInner() {
   const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
   const visibleAppointments = useMemo(() => {
     if (isPersonalTab) {
-      // v462 — without a currentMaster (fresh PWA, no masters yet)
-      // fall back to "all personal events not bound to a brigade".
+      // v497 — CRITICAL data-visibility fix. v462 paired «no master»
+      // (fallback to all-personal-events) with «with-master» (strict
+      // master_id === current) — strict mode hid every event whose
+      // master_id was null OR a different master id. User report:
+      // «после деплоя все записи пропали». Root cause:
+      //   • A user creates events before masters bootstrap →
+      //     master_id = null (currentMasterId was null at create-time).
+      //   • Bootstrap kicks in on later load, picks a default master,
+      //     currentMasterId becomes that id.
+      //   • Strict filter `master_id === currentMasterId` drops the
+      //     null-master_id events → calendar appears empty.
+      //   • Same happens if the user's master list refetches and the
+      //     previously-selected master is no longer in the list.
+      //
       // RLS from v459 already restricts SELECT to created_by = auth.uid()
-      // server-side, so this won't leak other users' events; locally
-      // there's nothing else to leak (single-user state). Without this
-      // fallback the personal grid stays empty even after the user
-      // creates their first event, because master_id ends up null too.
-      if (!currentMasterId) {
-        return appointments.filter(
-          (a) => (a.kind === "event" || a.kind === "personal") && !a.team_id,
-        );
-      }
-      return appointments.filter(
-        (a) => a.master_id === currentMasterId && !a.team_id,
-      );
+      // server-side, so loosening locally can't leak other users' data.
+      // We keep the multi-master scoping when an event has an explicit
+      // master_id pointing somewhere else (so a manager who explicitly
+      // switches between masters in dev tools still gets the scoped view),
+      // but events with no master_id always render on the personal tab.
+      return appointments.filter((a) => {
+        if (a.team_id) return false;
+        if (a.kind !== "event" && a.kind !== "personal") return false;
+        if (!a.master_id) return true;
+        if (!currentMasterId) return true;
+        return a.master_id === currentMasterId;
+      });
     }
     return appointments.filter(
       (a) => a.team_id === activeTeamId && !a.master_id,
