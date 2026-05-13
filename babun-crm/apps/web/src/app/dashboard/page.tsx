@@ -570,38 +570,29 @@ function DashboardPageInner() {
   const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
   const visibleAppointments = useMemo(() => {
     if (isPersonalTab) {
-      // v497 — CRITICAL data-visibility fix. v462 paired «no master»
-      // (fallback to all-personal-events) with «with-master» (strict
-      // master_id === current) — strict mode hid every event whose
-      // master_id was null OR a different master id. User report:
-      // «после деплоя все записи пропали». Root cause:
-      //   • A user creates events before masters bootstrap →
-      //     master_id = null (currentMasterId was null at create-time).
-      //   • Bootstrap kicks in on later load, picks a default master,
-      //     currentMasterId becomes that id.
-      //   • Strict filter `master_id === currentMasterId` drops the
-      //     null-master_id events → calendar appears empty.
-      //   • Same happens if the user's master list refetches and the
-      //     previously-selected master is no longer in the list.
+      // v499 — ULTRA permissive personal-tab filter. Two prior fixes
+      // (v462, v497) still left a tail of «invisible events» where
+      // the master_id pointed to a master that's no longer the
+      // currentMasterId (user re-bootstrapped, master row deleted,
+      // master list refetched with a different default). User report:
+      // «опять записи удалились». Source of truth lives in Supabase
+      // and localStorage — never in this filter. The personal tab
+      // now shows EVERY appointment that isn't bound to a brigade.
       //
-      // RLS from v459 already restricts SELECT to created_by = auth.uid()
-      // server-side, so loosening locally can't leak other users' data.
-      // We keep the multi-master scoping when an event has an explicit
-      // master_id pointing somewhere else (so a manager who explicitly
-      // switches between masters in dev tools still gets the scoped view),
-      // but events with no master_id always render on the personal tab.
-      return appointments.filter((a) => {
-        if (a.team_id) return false;
-        if (a.kind !== "event" && a.kind !== "personal") return false;
-        if (!a.master_id) return true;
-        if (!currentMasterId) return true;
-        return a.master_id === currentMasterId;
-      });
+      // Why this is safe:
+      //   • Supabase RLS (created_by = auth.uid()) prevents another
+      //     user's events from ever entering the local state.
+      //   • Multi-master scoping inside a tenant is done via brigade
+      //     tabs (team_id filter); the personal tab is intentionally
+      //     the «mine, by exclusion» view.
+      //   • An appointment with team_id set is brigade-bound and
+      //     belongs on its brigade tab, not here.
+      return appointments.filter((a) => !a.team_id);
     }
     return appointments.filter(
       (a) => a.team_id === activeTeamId && !a.master_id,
     );
-  }, [appointments, activeTeamId, isPersonalTab, currentMasterId]);
+  }, [appointments, activeTeamId, isPersonalTab]);
 
   // Build clientsById map. STORY-007: Draft clients removed —
   // layout.tsx keeps `clients` fresh via the babun:clients-changed
