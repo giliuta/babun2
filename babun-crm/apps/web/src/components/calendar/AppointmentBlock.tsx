@@ -177,22 +177,31 @@ function AppointmentBlockInner({
         WebkitUserSelect: "none",
       }}
     >
-      <div className="px-1.5 py-0.5 h-full overflow-hidden relative">
-        {/* Line 1: time range */}
+      <div className="px-1.5 py-1 h-full overflow-hidden relative flex flex-col gap-[1px]">
+        {/* Line 1: time range — compact, always shown */}
         <div
-          className={`text-[11px] lg:text-[12px] font-medium opacity-80 leading-tight ${
+          className={`text-[10px] lg:text-[11px] font-semibold opacity-85 leading-tight tabular-nums shrink-0 ${
             isCancelled ? "line-through" : ""
           }`}
         >
-          {appointment.time_start}-{appointment.time_end}
+          {appointment.time_start}–{appointment.time_end}
         </div>
 
-        {/* Line 2: client name + AC count */}
+        {/* Line 2: title (client name OR personal event title). Wraps
+            up to 2 lines so long titles like «Чистка кондиционера для
+            Магнолии корт» stay readable instead of being truncated to
+            "Чистка..." */}
         {clientName && (
           <div
-            className={`text-[12px] lg:text-xs font-bold truncate leading-tight ${
+            className={`text-[11px] lg:text-[12px] font-bold leading-tight break-words shrink-0 ${
               isCancelled ? "line-through opacity-80" : ""
             }`}
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
           >
             {clientName}
             {appointment.service_ids.length > 0 && (
@@ -201,12 +210,37 @@ function AppointmentBlockInner({
           </div>
         )}
 
-        {/* Line 3: service or comment — useful context for the team */}
-        {serviceSummary && (
-          <div className="text-[12px] lg:text-[12px] truncate opacity-80 leading-tight">
-            {serviceSummary}
-          </div>
-        )}
+        {/* Line 3+: rich body — service summary, event notes, address,
+            URL. v500 — fills the remaining block height with multi-line
+            wrapping text (Bumpix-style rich event card). Each fragment
+            is on its own line; empty fragments are skipped. */}
+        {(() => {
+          const fragments: string[] = [];
+          if (serviceSummary) fragments.push(serviceSummary);
+          // Personal-event notes (event_notes) carry the free-form
+          // description the user typed in the «Заметка» field.
+          const notes = appointment.event_notes?.trim();
+          if (notes) fragments.push(notes);
+          // For non-event appointments, the comment beyond the first
+          // line carries the dispatcher's note. The first line is
+          // already used as `clientName`, so we surface the rest here.
+          if (!appointment.event_notes && appointment.comment) {
+            const rest = appointment.comment.split("\n").slice(1).join("\n").trim();
+            if (rest) fragments.push(rest);
+          }
+          const addr = appointment.address?.trim();
+          if (addr) fragments.push(addr);
+          const url = appointment.event_url?.trim();
+          if (url) fragments.push(url);
+          if (fragments.length === 0) return null;
+          return (
+            <div
+              className="text-[10px] lg:text-[11px] opacity-90 leading-snug break-words whitespace-pre-wrap min-w-0 flex-1 overflow-hidden"
+            >
+              {fragments.join("\n")}
+            </div>
+          );
+        })()}
 
         <div className="absolute bottom-0.5 right-1 flex gap-0.5 leading-none">
           {!appointment.address && colorKind === "no_address" && (
