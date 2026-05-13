@@ -1079,10 +1079,16 @@ function DashboardPageInner() {
   // Empty list AND empty default → DayColumn hides the per-day chip
   // entirely (nothing to pick, no confusion for SaaS tenants that
   // don't use region tags at all).
-  const brigadeHasLabels = Boolean(
-    activeTeam?.default_city?.trim() ||
-      (activeTeam?.cities?.length ?? 0) > 0,
-  );
+  // v490 — personal tab also gets per-day label chips. Uses the
+  // global `cities` pool directly (no per-master narrowing) so the
+  // user manages labels in one place at /dashboard/settings/cities
+  // and they're available everywhere — brigade and personal alike.
+  const brigadeHasLabels = isPersonalTab
+    ? cities.length > 0
+    : Boolean(
+        activeTeam?.default_city?.trim() ||
+          (activeTeam?.cities?.length ?? 0) > 0,
+      );
   // Phase I39 — effective «behaviour» for the active calendar.
   // Brigade value wins over the global «Мой календарь» one. Personal
   // tab (no activeTeam) falls back to global.
