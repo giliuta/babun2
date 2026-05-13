@@ -900,6 +900,16 @@ export default function DashboardClientLayout({
         workStartHour: calSettings.workStartHour ?? prev.workStartHour,
         workEndHour: calSettings.workEndHour ?? prev.workEndHour,
         scrollOpenHour: calSettings.scrollOpenHour ?? prev.scrollOpenHour,
+        // v493 — same defensive merge for personalLabels /
+        // personalDefaultLabel. Without this, the realtime
+        // calendar_settings subscription fired right after a save
+        // hydrated from a Supabase row that lacked these columns
+        // (pre-migration deploys), wiping the label the user had
+        // just created. localStorage already has the full save.
+        personalLabels:
+          calSettings.personalLabels ?? prev.personalLabels,
+        personalDefaultLabel:
+          calSettings.personalDefaultLabel ?? prev.personalDefaultLabel,
       }));
       setDayCitiesState(cityMap);
       setDayExtrasState(extrasMap);

@@ -94,9 +94,16 @@ export default function PersonalLabelsPage() {
     prev && next.includes(prev) ? prev : "";
 
   const persist = (nextLabels: string[], prevBase: string) => {
+    // v493 — pass the array as-is (even empty). The repo writes []
+    // to Supabase as null, but the explicit write is required to
+    // clear stale entries when the user removes the last label. The
+    // previous «empty → undefined» short-circuit left Supabase with
+    // the old labels because the repo's `if (patch !== undefined)`
+    // gate skipped the write, and the next realtime resync brought
+    // the deleted labels back.
     setCalendarSettings({
       ...calendarSettings,
-      personalLabels: nextLabels.length > 0 ? nextLabels : undefined,
+      personalLabels: nextLabels,
       personalDefaultLabel: resolveBase(nextLabels, prevBase) || undefined,
     });
   };

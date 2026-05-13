@@ -42,18 +42,24 @@ export default function PageHeader({
   const router = useRouter();
   const sidebar = useSidebar();
 
-  // v430 — back-arrow logic. Prefer explicit backHref via router.push:
-  // it always works and gives a deterministic landing route. When
-  // backHref isn't supplied we fall through to router.back(), which
-  // walks one step up the history. The previous window.history.length
-  // > 1 guard was unreliable on iOS PWA — sessions could rack up
-  // pushed entries while the browser still reported length 1, and
-  // the guard would short-circuit to push("/dashboard") instead of
-  // doing the actual back navigation the user expected.
+  // v493 — natural iOS back. v430 had the arrow do `router.push(backHref)`
+  // which (a) "пролакивает" / blinks because it adds a forward
+  // history entry instead of walking back, and (b) pollutes history:
+  // user goes A → B → tap back arrow → push A → history is [A, B, A],
+  // and subsequent browser-back loops them between B and A forever.
+  //
+  // New flow: walk history first (iOS bfcache + zero pollution), and
+  // only push `backHref` as a fallback when there's no history (cold
+  // deep-link entry / PWA reopened on this URL). Use router.replace
+  // for that fallback so we don't seed a duplicate entry there either.
   const goBack = () => {
     haptic("light");
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
     if (backHref) {
-      router.push(backHref);
+      router.replace(backHref);
       return;
     }
     router.back();
