@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarHeart, ChevronRight, Tag } from "@babun/shared/icons";
+import { CalendarHeart, ChevronRight, MapPin, Tag } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import {
@@ -327,6 +327,30 @@ export default function CalendarSettingsPage() {
                 </div>
                 <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
                   Чипы над названием события: Обед, Встреча, Выходной…
+                </div>
+              </div>
+              <ChevronRight size={18} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0" />
+            </div>
+          </Link>
+
+          {/* v490 — labels for the personal calendar. Same pool as the
+              brigade labels, managed at one place
+              (/dashboard/settings/cities). Tap the chip in the day
+              header on the personal calendar → label picker. */}
+          <Link
+            href="/dashboard/settings/cities"
+            className="block bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] active:bg-[var(--fill-quaternary)] transition"
+          >
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-9 h-9 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center shrink-0">
+                <MapPin size={18} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-semibold text-[var(--label)]">
+                  Метки
+                </div>
+                <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+                  Город / тег под датой. Тап по метке в шапке дня → выбор.
                 </div>
               </div>
               <ChevronRight size={18} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0" />
