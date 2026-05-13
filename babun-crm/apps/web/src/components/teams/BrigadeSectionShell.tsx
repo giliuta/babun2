@@ -50,13 +50,25 @@ export default function BrigadeSectionShell({
     router.push(backHref);
   };
 
+  // v493 — back-arrow parity with PageHeader: walk history first
+  // (snappy, doesn't pollute), fall back to backHref via replace().
+  // Pre-v493 always-push left the user looping between the brigade
+  // page and the section they just left because of duplicate entries.
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.replace(backHref);
+  };
+
   return (
     <div className="flex flex-col h-full bg-[var(--surface-grouped)]">
       {/* Flat iOS nav bar */}
       <div className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] h-12 flex items-center px-2 relative">
         <button
           type="button"
-          onClick={() => router.push(backHref)}
+          onClick={goBack}
           aria-label="Назад"
           className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-quaternary)] press-scale"
         >
