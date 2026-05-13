@@ -1079,17 +1079,24 @@ function DashboardPageInner() {
   // City picker state for the tapped day
   const [cityPickerDateKey, setCityPickerDateKey] = useState<string | null>(null);
   const activeTeam = teams.find((t) => t.id === activeTeamId);
-  const teamDefaultCity = activeTeam?.default_city ?? "";
+  // v492 — personal tab now has its own labels list + default,
+  // managed at /dashboard/settings/calendar/labels (CalendarSettings
+  // .personalLabels / .personalDefaultLabel). Brigade tabs keep
+  // team.cities / team.default_city.
+  const personalLabels = calendarSettings.personalLabels ?? [];
+  const personalDefaultLabel = calendarSettings.personalDefaultLabel ?? "";
+  const teamDefaultCity = isPersonalTab
+    ? personalDefaultLabel
+    : activeTeam?.default_city ?? "";
+  const activeLabelNames = isPersonalTab
+    ? personalLabels
+    : activeTeam?.cities;
   // Phase I38 — brigade has any labels configured?
   // Empty list AND empty default → DayColumn hides the per-day chip
   // entirely (nothing to pick, no confusion for SaaS tenants that
   // don't use region tags at all).
-  // v490 — personal tab also gets per-day label chips. Uses the
-  // global `cities` pool directly (no per-master narrowing) so the
-  // user manages labels in one place at /dashboard/settings/cities
-  // and they're available everywhere — brigade and personal alike.
   const brigadeHasLabels = isPersonalTab
-    ? cities.length > 0
+    ? Boolean(personalDefaultLabel.trim() || personalLabels.length > 0)
     : Boolean(
         activeTeam?.default_city?.trim() ||
           (activeTeam?.cities?.length ?? 0) > 0,
@@ -1444,7 +1451,7 @@ function DashboardPageInner() {
         defaultCity={teamDefaultCity}
         dateKey={cityPickerDateKey ?? undefined}
         cities={cities}
-        brigadeCities={activeTeam?.cities}
+        brigadeCities={activeLabelNames}
         onPick={handleCityPick}
         onReset={handleCityReset}
       />

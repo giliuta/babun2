@@ -30,6 +30,19 @@ export interface CalendarSettings {
   /** Hour the calendar auto-scrolls to on open. When undefined we
    *  use workStartHour, then startHour. */
   scrollOpenHour?: number;
+  /** v492 — personal calendar labels. Subset of the global `cities`
+   *  library that the user wants to surface on the personal calendar's
+   *  per-day chip + label picker. Same shape as brigade `team.cities`,
+   *  but scoped to the personal tab. Empty / undefined → no chip in
+   *  the day header (existing v490 behaviour falls back to the full
+   *  global pool, but with this list set the personal calendar is
+   *  narrowed to user-curated items). */
+  personalLabels?: string[];
+  /** v492 — primary personal label. Equivalent to brigade
+   *  `default_city`: when set, this label auto-paints on every day
+   *  that has no per-date override. Empty / undefined → grey «+ метка»
+   *  chip on every untagged day. */
+  personalDefaultLabel?: string;
 }
 
 const STORAGE_KEY = "babun2:settings:calendar";
