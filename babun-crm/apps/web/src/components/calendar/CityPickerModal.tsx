@@ -39,6 +39,7 @@ export default function CityPickerModal({
   cities,
   brigadeCities,
   onPick,
+  onReset,
 }: CityPickerModalProps) {
   // Build the single render list. Prefer settings.cities (the source of
   // truth that the brigade editor writes to). Each entry carries its
@@ -83,7 +84,21 @@ export default function CityPickerModal({
   if (!open) return null;
 
   const handlePick = (city: string) => {
+    // v501 — tap on the already-active label toggles it off. Without
+    // this the user had no way to remove the day's label («не могу
+    // отменить выбор метки»). Falls back to `onPick` when `onReset`
+    // isn't provided so the API stays back-compat.
+    if (city === current && onReset) {
+      onReset();
+      onClose();
+      return;
+    }
     onPick(city);
+    onClose();
+  };
+
+  const handleReset = () => {
+    if (onReset) onReset();
     onClose();
   };
 
@@ -153,6 +168,19 @@ export default function CityPickerModal({
               );
             })}
           </div>
+
+          {/* v501 — explicit «Снять метку» row when a label is active
+              for this day. Doubles up with the tap-active-to-toggle
+              gesture above so the action is discoverable as well. */}
+          {current && onReset && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="w-full mt-2 h-11 rounded-[12px] bg-[var(--surface-card)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              Снять метку
+            </button>
+          )}
         </div>
       </div>
     </div>
