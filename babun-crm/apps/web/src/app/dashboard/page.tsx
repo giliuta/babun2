@@ -465,15 +465,20 @@ function DashboardPageInner() {
     return t?.default_scroll_time ?? "";
   }, [teams, activeTeamId]);
 
-  // Phase I36 — snap + default-duration for empty-cell taps. Reads
-  // brigade.default_slot_minutes (15/30/60); falls back to 30 as a
-  // sensible middle ground when the brigade has never set one.
+  // Phase I36 — snap + default-duration for empty-cell taps.
+  // v491 — for the personal tab (no brigade) we fall back to
+  // `calendarSettings.gridStep` so the «Шаг сетки» setting actually
+  // bites: changing it to 15 or 60 used to do nothing because this
+  // hook returned a hardcoded 30. Brigade tabs still prefer the
+  // per-team `default_slot_minutes` when set.
   const activeSlotMinutes = useMemo<number>(() => {
     const t = teams.find((x) => x.id === activeTeamId);
     const raw = t?.default_slot_minutes;
     if (raw === 15 || raw === 30 || raw === 60) return raw;
+    const g = calendarSettings.gridStep;
+    if (g === 15 || g === 30 || g === 60) return g;
     return 30;
-  }, [teams, activeTeamId]);
+  }, [teams, activeTeamId, calendarSettings.gridStep]);
 
   useLayoutEffect(() => {
     if (viewMode === "month") return;

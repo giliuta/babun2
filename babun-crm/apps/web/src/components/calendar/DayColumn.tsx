@@ -391,11 +391,23 @@ function DayColumnInner({
             : isToday
               ? "rgba(124,58,237,0.04)"
               : "#FFFFFF",
-          // Hourly grid — hairlines at each hour line, softer at half-hour.
-          backgroundImage: [
-            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgba(60,60,67,0.12) calc(var(--hh) - 1px), rgba(60,60,67,0.12) var(--hh))",
-            "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / 2 - 1px), rgba(60,60,67,0.06) calc(var(--hh) / 2 - 1px), rgba(60,60,67,0.06) calc(var(--hh) / 2))",
-          ].join(","),
+          // v491 — grid lines follow the «Шаг сетки» setting. Hour
+          // line is always drawn (12% alpha hairline). Sub-hour lines
+          // appear when snapMinutes < 60:
+          //   • 30 → one half-hour line per hour
+          //   • 15 → quarter-hour lines (3 sub-lines per hour)
+          //   • 60 → no sub-lines, only hour separators.
+          // Sub-lines are softer (6% alpha) so the hourly rhythm
+          // stays the primary read.
+          backgroundImage: (() => {
+            const hourGrad =
+              "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgba(60,60,67,0.12) calc(var(--hh) - 1px), rgba(60,60,67,0.12) var(--hh))";
+            const divisions =
+              snapMinutes >= 60 ? 1 : Math.max(1, Math.round(60 / snapMinutes));
+            if (divisions <= 1) return hourGrad;
+            const subGrad = `repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / ${divisions} - 1px), rgba(60,60,67,0.06) calc(var(--hh) / ${divisions} - 1px), rgba(60,60,67,0.06) calc(var(--hh) / ${divisions}))`;
+            return `${hourGrad}, ${subGrad}`;
+          })(),
           contain: "layout paint",
         }}
       >
