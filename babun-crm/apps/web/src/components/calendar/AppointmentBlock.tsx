@@ -153,7 +153,7 @@ function AppointmentBlockInner({
       {...attributes}
       className={`absolute ${overlapStyle ? "" : "left-0 right-0"} ${
         appointment.color_override ? "" : `${colors.bg} ${colors.text}`
-      } text-left overflow-hidden touch-none will-change-transform ${
+      } text-left overflow-hidden touch-none will-change-transform rounded-[6px] ${
         isDragging ? "opacity-70 z-30" : dimmed ? "opacity-50" : ""
       }`}
       style={{
@@ -161,7 +161,15 @@ function AppointmentBlockInner({
         height: heightExpr,
         ...(overlapStyle ?? {}),
         backgroundColor: appointment.color_override ?? undefined,
+        // v498 — left-accent kept (3px solid in the event color) but
+        // we also stamp a thin white hairline outline around the whole
+        // card + a soft drop-shadow. The triple cue (radius + outline
+        // + shadow) reads as a distinct iOS-style card even when 3
+        // events stack side-by-side at ~40 px width. Subtle enough
+        // that a single non-overlapping event still looks calm.
         borderLeft: `3px solid ${accent || "rgba(0,0,0,0.25)"}`,
+        boxShadow:
+          "inset 0 0 0 1px rgba(255,255,255,0.55), 0 1px 2px rgba(0,0,0,0.08)",
         transform: CSS.Translate.toString(transform),
         transition: isDragging ? "none" : undefined,
         contain: "layout paint",

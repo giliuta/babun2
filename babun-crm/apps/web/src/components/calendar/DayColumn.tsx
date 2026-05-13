@@ -132,6 +132,14 @@ function computeOverlapLayout(apts: Appointment[]): Map<string, { col: number; t
 const ALL_DAY_STRIP_PX = 8;
 const ALL_DAY_STRIP_GAP_PX = 2;
 
+// v498 — visual separation between side-by-side overlapping events.
+// 3 px gap on the right of every block except the rightmost — enough
+// to read as «two distinct cards» on a phone column without stealing
+// significant width when 3+ events stack. Combined with the rounded
+// corners + shadow on AppointmentBlock, side-by-side now reads as
+// real cards instead of one merged blob.
+const OVERLAP_GAP_PX = 3;
+
 function DayColumnInner({
   date,
   today,
@@ -605,8 +613,13 @@ function DayColumnInner({
               })}
               {timed.map((apt) => {
                 const pos = layout.get(apt.id) ?? { col: 0, total: 1 };
-                const widthCalc = `calc((100% - ${timedOffset}) / ${pos.total})`;
-                const leftCalc = `calc(${timedOffset} + ${widthCalc} * ${pos.col})`;
+                // v498 — slot width includes gap reservation. Each block
+                // is `slot - gap` wide, leaving `OVERLAP_GAP_PX` between
+                // adjacent blocks (or to the column's right edge for
+                // the rightmost block, keeping the grid line clear).
+                const slotCalc = `((100% - ${timedOffset}) / ${pos.total})`;
+                const widthCalc = `calc(${slotCalc} - ${OVERLAP_GAP_PX}px)`;
+                const leftCalc = `calc(${timedOffset} + ${slotCalc} * ${pos.col})`;
                 if (pos.total === 1 && reservedPx === 0) {
                   return renderApt(apt, undefined);
                 }
