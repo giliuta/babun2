@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v493";
+const CACHE_VERSION = "babun-v494";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -132,20 +132,22 @@ async function handleNavigate(request) {
   // while the background fetch quietly refreshes the cache.
   if (cached) return cached;
 
-  // No cache — race the network against a 3s deadline. If the network
-  // wins we return its response. If the deadline wins, return a 503
-  // message page.
+  // v494 — no cache (most common right after a SW version bump that
+  // nuked all caches on activate). Previously we raced the network
+  // against a 3-second deadline and showed «Babun загружается…
+  // проверьте подключение» on timeout — which the user saw periodically
+  // because every cache-version bump invalidates the runtime cache,
+  // and on a wobbly 5G the first navigation can easily exceed 3 s.
+  // The bail-out also confused the user: the page was on its way,
+  // and they'd reload prematurely.
   //
-  // v443 — DO NOT fall back to a different cached URL (was: /dashboard
-  // or /). That hijacked the user from /settings/calendar to the
-  // calendar grid on flaky networks: the URL bar still showed
-  // /settings/calendar but the rendered HTML was the dashboard shell,
-  // making it look like a random "вылет с настроек в календарь" bug.
-  // A clear "no connection" message is better than wrong content under
-  // the right URL.
-  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
-  const winner = await Promise.race([networkUpdate, timeout]);
-  if (winner) return winner;
+  // New behaviour: await the network fully. The browser's own loading
+  // indicator covers the wait, and the page lands as soon as the
+  // network responds. Only fall through to the 503 shell when the
+  // network actually FAILS (offline / DNS error / 5xx) — those are
+  // the cases where waiting longer wouldn't help anyway.
+  const response = await networkUpdate;
+  if (response) return response;
 
   return new Response(
     "<!doctype html><meta charset=utf-8><title>Babun</title>" +
