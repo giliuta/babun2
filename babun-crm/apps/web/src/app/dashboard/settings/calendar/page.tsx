@@ -333,12 +333,13 @@ export default function CalendarSettingsPage() {
             </div>
           </Link>
 
-          {/* v490 — labels for the personal calendar. Same pool as the
-              brigade labels, managed at one place
-              (/dashboard/settings/cities). Tap the chip in the day
-              header on the personal calendar → label picker. */}
+          {/* v492 — personal-calendar labels: dedicated page with the
+              same swipe / star / edit / delete UX as brigade labels.
+              Writes to CalendarSettings.personalLabels — separate
+              namespace from per-brigade `team.cities`, but pulls
+              suggestions from labels you've already used elsewhere. */}
           <Link
-            href="/dashboard/settings/cities"
+            href="/dashboard/settings/calendar/labels"
             className="block bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] active:bg-[var(--fill-quaternary)] transition"
           >
             <div className="flex items-center gap-3 px-4 py-3.5">
@@ -350,7 +351,7 @@ export default function CalendarSettingsPage() {
                   Метки
                 </div>
                 <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-                  Город / тег под датой. Тап по метке в шапке дня → выбор.
+                  Город / тег под датой. Свайп → основной / удалить.
                 </div>
               </div>
               <ChevronRight size={18} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0" />
