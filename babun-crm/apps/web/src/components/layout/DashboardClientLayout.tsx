@@ -23,10 +23,13 @@ const IOSInstallPrompt = dynamic(
   () => import("@/components/install/IOSInstallPrompt").then((m) => ({ default: m.IOSInstallPrompt })),
   { ssr: false },
 );
-const SplashScreen = dynamic(
-  () => import("@/components/splash/SplashScreen").then((m) => ({ default: m.SplashScreen })),
-  { ssr: false },
-);
+// v495 — splash needs to be in the SSR HTML so the first paint
+// already covers the calendar. Previously `dynamic(..., {ssr:false})`
+// rendered nothing on the server, the calendar flashed during
+// hydration, and only then did the chunk arrive and the overlay
+// pop on top. Direct import = bundled with the layout chunk =
+// available on the very first paint.
+import { SplashScreen } from "@/components/splash/SplashScreen";
 const EnableNotificationsPrompt = dynamic(
   () =>
     import("@/components/pwa/EnableNotificationsPrompt").then((m) => ({

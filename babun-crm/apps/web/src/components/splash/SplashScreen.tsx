@@ -27,7 +27,7 @@
 // Animation budget: ~80ms per char + ~500ms hold + ~250ms fade out.
 // "Babun & AirFix" (14 chars) ≈ 1.87s end-to-end.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BabunMark } from "@/components/ui/BabunMark";
 
 const SESSION_KEY = "babun:splash-shown";
@@ -37,6 +37,13 @@ const HOLD_REDUCED_MS = 800;
 const FADE_MS = 250;
 const MAX_TENANT_CHARS = 20;
 
+// v495 — Next.js renders `useLayoutEffect` on the server (where it
+// becomes a no-op) but warns about it. Swap to plain useEffect on
+// the server, useLayoutEffect on the client — the swap is the
+// canonical workaround.
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 interface Props {
   /** Live tenant name from DashboardClientLayout server prop. May be
    *  empty during onboarding — we fall back to "Babun" alone. */
@@ -44,14 +51,21 @@ interface Props {
 }
 
 export function SplashScreen({ tenantName }: Props) {
+  // v495 — initial phase is "init" (visible overlay, no animation
+  // yet) so the SSR HTML and the first client paint both already
+  // cover the calendar. The previous "ssr" → null gate caused the
+  // calendar to flash before the splash arrived. useLayoutEffect
+  // runs BEFORE paint and either kicks off the animation (first
+  // session) or jumps to "done" (already shown this session, no
+  // visible overlay in the eventual paint).
   const [phase, setPhase] = useState<
-    "ssr" | "typing" | "hold" | "fade" | "done"
-  >("ssr");
+    "init" | "typing" | "hold" | "fade" | "done"
+  >("init");
   const [typed, setTyped] = useState("");
   const targetRef = useRef("");
   const reducedMotionRef = useRef(false);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (typeof window === "undefined") return;
 
     let shown = false;
@@ -127,7 +141,11 @@ export function SplashScreen({ tenantName }: Props) {
     return () => window.clearTimeout(t);
   }, [phase]);
 
-  if (phase === "ssr" || phase === "done") return null;
+  // v495 — only "done" hides the overlay. "init" renders the static
+  // splash (BabunMark + empty text) so the first paint covers the
+  // calendar; useLayoutEffect promotes init → typing/hold/done
+  // synchronously before paint settles.
+  if (phase === "done") return null;
 
   return (
     <div
