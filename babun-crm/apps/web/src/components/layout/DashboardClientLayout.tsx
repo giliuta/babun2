@@ -847,20 +847,40 @@ export default function DashboardClientLayout({
     try {
       const supabase = getSupabaseBrowser();
       const list = await listAppointmentsRepo(supabase, tenantId);
-      // v482 — merge: prefer the server list, but keep any locally
-      // persisted rows that haven't shown up server-side yet (e.g.
-      // pending sync, app was closed before Supabase round-trip).
-      // localStorage is the most recent client snapshot, so anything
-      // it has and the server doesn't is a pending unsync we don't
-      // want to lose.
-      const serverIds = new Set(list.map((a) => a.id));
-      const local = typeof window === "undefined" ? [] : loadAppointments();
-      const merged = [
-        ...list,
-        ...local.filter((a) => !serverIds.has(a.id)),
-      ];
-      setAppointmentsState(merged);
-      saveAppointments(merged);
+      // v499 — DEFENSIVE merge against accidental data loss.
+      // v482 already kept locally-persisted rows that the server
+      // hadn't seen yet, but it BLINDLY accepted server-empty as
+      // «truth» — and a transient empty response (auth flicker /
+      // RLS race / network blip / wrong tenantId in flight) then
+      // wiped `prev` state, which `saveAppointments` propagated to
+      // localStorage. The user lost a screenful of events.
+      //
+      // New rule: server is preferred for fields that exist on
+      // both sides, but a row that exists in `prev` (latest in-
+      // memory) or `localStorage` (durable client snapshot) and is
+      // ABSENT from server stays. Deletes via other devices won't
+      // propagate to this device until that device's user touches
+      // the row, but the trade-off is bullet-proof: data never
+      // disappears mysteriously.
+      setAppointmentsState((prev) => {
+        const local =
+          typeof window === "undefined" ? [] : loadAppointments();
+        const byId = new Map<string, Appointment>();
+        for (const a of prev) byId.set(a.id, a);
+        for (const a of local) byId.set(a.id, a);
+        for (const a of list) byId.set(a.id, a); // server wins on conflict
+        const merged = Array.from(byId.values());
+        if (list.length === 0 && prev.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[reloadAppointments] empty server response — keeping",
+            prev.length,
+            "local rows; possible auth / RLS / network flicker",
+          );
+        }
+        saveAppointments(merged);
+        return merged;
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Не удалось загрузить записи";
       setAppointmentsError(msg);
