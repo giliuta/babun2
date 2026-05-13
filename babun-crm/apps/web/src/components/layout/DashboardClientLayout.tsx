@@ -507,25 +507,49 @@ export function useLocationLabels() {
 //     screen edge unguarded. `position: fixed` anchors to the
 //     viewport so the strip always reaches the device edge.
 function EdgeGuard({ side }: { side: "left" | "right" }) {
-  // STORY-085 — bumped width from 24 to 40 px. iOS edge-swipe-back
-  // gesture is recognised when the touch starts within ~30 px of the
-  // screen edge; 24 was being beaten on small phones in landscape.
-  // Also attach a non-passive native touchstart listener via useEffect
-  // — React's onTouchStart is passive by default, so its preventDefault
-  // is silently ignored by the browser and the gesture wins anyway.
+  // STORY-085 — bumped width from 24 to 40 px to stop iOS edge-swipe
+  // gesture on small phones in landscape. Non-passive touchstart so
+  // preventDefault actually fires (React's onTouchStart is passive).
+  //
+  // v502 — taps inside the strip used to be eaten too (the original
+  // touchstart handler preventDefault-ed every single-finger touch
+  // unconditionally). Result: the rightmost 40 px of the calendar
+  // didn't respond to taps — user perceived this as «clicks land
+  // 40 px to the left». New logic: hold off on preventDefault until
+  // we actually see a horizontal swipe — a brief tap with no move
+  // (or a vertical scroll) passes through to the calendar untouched.
   return (
     <div
       aria-hidden
       ref={(el) => {
         if (!el) return;
-        // Non-passive listener: preventDefault actually fires.
-        const handler = (e: TouchEvent) => {
-          if (e.touches.length === 1) e.preventDefault();
+        let startX = 0;
+        let startY = 0;
+        let prevented = false;
+        const onStart = (e: TouchEvent) => {
+          if (e.touches.length !== 1) return;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          prevented = false;
         };
-        el.addEventListener("touchstart", handler, { passive: false });
-        // No cleanup — this element is mounted for the lifetime of
-        // the dashboard layout. When it unmounts, the listener goes
-        // with it.
+        const onMove = (e: TouchEvent) => {
+          if (prevented || e.touches.length !== 1) return;
+          const dx = Math.abs(e.touches[0].clientX - startX);
+          const dy = Math.abs(e.touches[0].clientY - startY);
+          // Treat as edge-swipe only when horizontal travel dominates
+          // AND has reached ~6 px (below this point it's still
+          // ambiguous; iOS hasn't decided either). Once it's a swipe,
+          // preventDefault to keep the browser's edge-back gesture
+          // from kicking in.
+          if (dx > 6 && dx > dy) {
+            e.preventDefault();
+            prevented = true;
+          }
+        };
+        el.addEventListener("touchstart", onStart, { passive: true });
+        el.addEventListener("touchmove", onMove, { passive: false });
+        // No cleanup — this element lives for the dashboard layout's
+        // entire lifetime; listeners go with it on unmount.
       }}
       style={{
         position: "fixed",
@@ -534,7 +558,11 @@ function EdgeGuard({ side }: { side: "left" | "right" }) {
         [side]: 0,
         width: 40,
         zIndex: 50,
-        touchAction: "none",
+        // touchAction: "pan-y" lets vertical scrolling work inside
+        // the strip (so the user can scroll the calendar grid even
+        // when their thumb starts in the edge band). Horizontal
+        // movement is what we suppress via preventDefault above.
+        touchAction: "pan-y",
         pointerEvents: "auto",
         background: "transparent",
       }}

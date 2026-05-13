@@ -283,7 +283,24 @@ async function dispatch(
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await supabase.from(tableName).insert(payload as any);
-    if (error) throw new Error(`replay insert: ${error.message}`);
+    if (error) {
+      // v502 — idempotent insert: a duplicate-key error means the row
+      // is already on the server (the previous attempt's HTTP response
+      // got lost — app closed mid-flight, network blip, etc.). Treat
+      // as success so the queue entry drops instead of getting stuck
+      // forever retrying the same DOA insert. Without this, the panel
+      // showed «replay insert: duplicate key value violates unique
+      // constraint "appointments_pkey"» indefinitely after the user's
+      // first successful save.
+      //
+      // PG code 23505 is the canonical signal; we also fall back to a
+      // message-match because supabase-js can wrap the error and lose
+      // the code in some paths.
+      const code = (error as { code?: string }).code;
+      const dup =
+        code === "23505" || /duplicate key/i.test(error.message);
+      if (!dup) throw new Error(`replay insert: ${error.message}`);
+    }
     if (stripped) {
       try {
         await cacheDelete(op.table, op.row_id);
