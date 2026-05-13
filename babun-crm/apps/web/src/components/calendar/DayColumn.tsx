@@ -79,8 +79,10 @@ const minsOffset = (m: number, offsetMin: number): string =>
   `calc(var(--hh) * ${(m - offsetMin) / 60})`;
 const mins = (m: number) => minsOffset(m, 0);
 
-// Compute side-by-side columns for overlapping appointments.
-// Returns a Map of aptId → { col: 0-based column, total: columns in group }.
+// Compute side-by-side columns for overlapping TIMED appointments.
+// All-day events are excluded — they get a separate left-strip render
+// pass so they don't squeeze the rest of the day's timed events into
+// narrow slices (v496).
 function computeOverlapLayout(apts: Appointment[]): Map<string, { col: number; total: number }> {
   const result = new Map<string, { col: number; total: number }>();
   if (apts.length === 0) return result;
@@ -122,6 +124,13 @@ function computeOverlapLayout(apts: Appointment[]): Map<string, { col: number; t
 
   return result;
 }
+
+// v496 — all-day events become left-edge strips so they don't fight
+// timed events for column width. Width is fixed (no overlap math);
+// when multiple all-day events stack on the same day, they slot in
+// next to each other from the left edge.
+const ALL_DAY_STRIP_PX = 8;
+const ALL_DAY_STRIP_GAP_PX = 2;
 
 function DayColumnInner({
   date,
@@ -523,28 +532,46 @@ function DayColumnInner({
           })}
 
         {/* Appointment blocks — with overlap detection.
-            When 2+ appointments overlap in time, they display
-            side-by-side (each gets a fraction of the width) so
-            nothing is hidden. */}
+            v496 — all-day events render as thin strips on the LEFT
+            edge of the column (no overlap math). Timed events
+            compute their side-by-side layout among themselves so
+            they always get the full remaining width, not a 1/N
+            slice next to the all-day bar. */}
         {(() => {
-          // Compute column layout for overlapping appointments
-          const layout = computeOverlapLayout(dayAppointments);
+          const allDay = dayAppointments.filter(
+            (a) => a.event_all_day === true,
+          );
+          const timed = dayAppointments.filter(
+            (a) => a.event_all_day !== true,
+          );
+
+          // Reserve the leftmost N strips (one per all-day event)
+          // so timed events know how far to offset.
+          const reservedPx =
+            allDay.length === 0
+              ? 0
+              : allDay.length * ALL_DAY_STRIP_PX +
+                Math.max(0, allDay.length - 1) * ALL_DAY_STRIP_GAP_PX;
+          const timedOffset = reservedPx > 0 ? `${reservedPx + 4}px` : "0px";
+
+          const layout = computeOverlapLayout(timed);
           // Phase I35 — appointments whose end time has passed get
           // rendered at reduced opacity so the dispatcher sees the
           // present/future stand out.
           const nowMs = Date.now();
-          return dayAppointments.map((apt) => {
+
+          const renderApt = (
+            apt: Appointment,
+            override?: { left: string; width: string },
+          ) => {
             const validation = validateApt(apt);
             const client = apt.client_id ? clientsById[apt.client_id] : null;
             const colorKind = getAppointmentColorKind(
               apt,
               validation,
               undefined,
-              client?.property_type ?? null
+              client?.property_type ?? null,
             );
-            const pos = layout.get(apt.id) ?? { col: 0, total: 1 };
-            const widthPct = 100 / pos.total;
-            const leftPct = pos.col * widthPct;
             const endIso = `${apt.date}T${apt.time_end}:00`;
             const endMs = Date.parse(endIso);
             const isPast = Number.isFinite(endMs) && endMs < nowMs;
@@ -555,23 +582,41 @@ function DayColumnInner({
                 colorKind={colorKind}
                 clientsById={clientsById}
                 services={services}
-                // Event card colour по спеке: "насыщенный цвет города
-                // этого дня". Если город известен — он побеждает team-color.
-                // Per-appointment color_override всё ещё выигрывает.
                 teamColor={cityHex ?? teamColorFor?.(apt) ?? null}
                 windowStartMin={windowStartMin}
                 onClick={onAppointmentClick}
                 onLongPress={onAppointmentLongPress}
                 draggable={dragEnabled}
                 dimmed={isPast}
-                overlapStyle={
-                  pos.total > 1
-                    ? { left: `${leftPct}%`, width: `${widthPct}%` }
-                    : undefined
-                }
+                overlapStyle={override}
               />
             );
-          });
+          };
+
+          return (
+            <>
+              {allDay.map((apt, idx) => {
+                const left =
+                  idx * (ALL_DAY_STRIP_PX + ALL_DAY_STRIP_GAP_PX);
+                return renderApt(apt, {
+                  left: `${left}px`,
+                  width: `${ALL_DAY_STRIP_PX}px`,
+                });
+              })}
+              {timed.map((apt) => {
+                const pos = layout.get(apt.id) ?? { col: 0, total: 1 };
+                const widthCalc = `calc((100% - ${timedOffset}) / ${pos.total})`;
+                const leftCalc = `calc(${timedOffset} + ${widthCalc} * ${pos.col})`;
+                if (pos.total === 1 && reservedPx === 0) {
+                  return renderApt(apt, undefined);
+                }
+                return renderApt(apt, {
+                  left: leftCalc,
+                  width: widthCalc,
+                });
+              })}
+            </>
+          );
         })()}
       </div>
 
