@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v503-idempotent-insert-replay";
+export const BUILD_VERSION = "v504-no-auth-clear-on-signed-out";

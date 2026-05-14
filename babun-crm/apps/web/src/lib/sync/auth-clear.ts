@@ -130,9 +130,40 @@ async function performWipe(): Promise<void> {
 export function attachAuthClearListener(): () => void {
   const supabase = getSupabaseBrowser();
   const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // v504 — CRITICAL: SIGNED_OUT used to unconditionally wipe
+    // localStorage + IDB. That was the right defence against
+    // cross-tenant data leak, but Supabase fires SIGNED_OUT for far
+    // more than intentional logouts:
+    //
+    //   * Refresh-token request fails during cold start on a flaky
+    //     network (very common on iOS PWA after a backgrounded app
+    //     is relaunched — the cached JWT is near-expired, Supabase
+    //     auto-refreshes, refresh hits a connection blip → SIGNED_OUT
+    //     fires, then SIGNED_IN once the retry succeeds milliseconds
+    //     later).
+    //   * iOS Safari storage eviction can drop the auth localStorage
+    //     entry → next session check sees no token → SIGNED_OUT.
+    //   * Hot-reload during dev or a tab freeze on iOS can also
+    //     produce a spurious SIGNED_OUT/SIGNED_IN pair.
+    //
+    // The user reported repeated total data loss after closing and
+    // reopening the PWA — calendar empty, brigades gone, labels
+    // vanished. That's exactly the spurious-SIGNED_OUT path nuking
+    // every localStorage key under `babun-*`, `babun:*`, `babun2:*`.
+    //
+    // The cross-tenant leak this guarded against only happens when
+    // a DIFFERENT user signs in on the same browser. That branch
+    // (SIGNED_IN with prev !== next) already wipes correctly. So the
+    // SIGNED_OUT-triggered wipe was strictly extra — and strictly
+    // harmful — for every other case.
+    //
+    // We still clear LAST_USER_KEY on SIGNED_OUT, but DELIBERATELY
+    // don't wipe local data. The next SIGNED_IN re-establishes the
+    // user_id stamp; if it's a different account, the leak-protection
+    // wipe fires there. If it's the same account (or the same one
+    // returning after a network blip), nothing was lost.
     if (event === "SIGNED_OUT") {
       try { window.localStorage.removeItem(LAST_USER_KEY); } catch {}
-      await performWipe();
       return;
     }
     if (event === "SIGNED_IN" && session?.user?.id) {
