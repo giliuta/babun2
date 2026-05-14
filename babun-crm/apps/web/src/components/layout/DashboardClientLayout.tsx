@@ -165,6 +165,11 @@ import {
 import { warmUpHaptics } from "@/lib/haptics";
 import { getStorage } from "@babun/shared/storage";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+import {
+  fetchTenantState,
+  restoreEmptyStoresFromBlob,
+  scheduleTenantStateSave,
+} from "@/lib/sync/tenant-state-backup";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 // useDashboardSwipeTrap removed in v428 — its sentinel-pushing
 // pattern collided with router.push from sidebar Links and from the
@@ -973,6 +978,66 @@ export default function DashboardClientLayout({
   useEffect(() => {
     void reloadSchedule();
   }, [reloadSchedule]);
+
+  // v505 — tenant_state backup hydration. Restores localStorage-only
+  // entities (teams / masters / services / sms-templates /
+  // expense-categories / equipment / cities / location-labels) from the
+  // jsonb blob on the server when the local store is empty. This is the
+  // safety net for any path that wipes localStorage — iOS Safari storage
+  // eviction, user clearing site data, corrupted Cache API entry, future
+  // regression of the auth-clear listener, etc. v504 stopped the most
+  // common one (spurious SIGNED_OUT), but the user lost real data once
+  // already; we never want to be one bug away from that again.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const blob = await fetchTenantState(getSupabaseBrowser(), tenantId);
+        if (cancelled || !blob) return;
+        const restored = restoreEmptyStoresFromBlob(blob);
+        if (!restored) return;
+        // Reflect the just-restored data into the React state owned by
+        // this layout. Without this, the dashboard would keep rendering
+        // its empty initial state until the next reload.
+        if (blob.masters?.length) setMastersState(blob.masters);
+        if (blob.teams?.length) setTeamsState(blob.teams);
+        if (blob.services?.length) setServicesState(blob.services);
+        if (blob.serviceCategories?.length)
+          setServiceCategoriesState(blob.serviceCategories);
+        if (blob.smsTemplates?.length) setSmsTemplatesState(blob.smsTemplates);
+        if (blob.expenseCategories?.length)
+          setExpenseCategoriesState(blob.expenseCategories);
+        if (blob.equipment?.length) setEquipmentState(blob.equipment);
+        if (blob.cities?.length) setCitiesState(blob.cities);
+        if (blob.locationLabels?.length)
+          setLocationLabelsState(blob.locationLabels);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[tenant-state] hydration failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  // v505 — debounced save of the local-only entity blob whenever any of
+  // them changes. Collapses bursts of writes (e.g. brigade editor
+  // tweaking multiple fields) into a single network round-trip.
+  useEffect(() => {
+    scheduleTenantStateSave(getSupabaseBrowser(), tenantId);
+  }, [
+    tenantId,
+    masters,
+    teams,
+    services,
+    serviceCategories,
+    smsTemplates,
+    expenseCategories,
+    equipment,
+    cities,
+    locationLabels,
+  ]);
 
   // STORY-048 — Supabase Realtime subscriptions for the seven
   // tenant-scoped tables that DashboardClientLayout owns. Each
