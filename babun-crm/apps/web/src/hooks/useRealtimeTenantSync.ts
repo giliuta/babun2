@@ -76,10 +76,19 @@ export function useRealtimeTenantSync<TRow extends { id: string }>(
   // Reconnect tracking — see file header comment for semantics.
   const wasDisconnectedRef = useRef(false);
 
+  // v506 — per-hook-instance suffix on the channel name. Two consumers
+  // of the same table (e.g. Sidebar's recurring-badge + the recurring
+  // inbox page itself) were colliding on identical channel names
+  // `tenant:<id>:<table>`; supabase-js v2 errors on the second
+  // .subscribe() and the page crashed. Each hook instance now gets its
+  // own channel so the same tenant+table can be observed by N callers
+  // without stepping on each other.
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2, 8));
+
   useEffect(() => {
     if (!enabled || !tenantId) return;
 
-    const channelName = `tenant:${tenantId}:${table}`;
+    const channelName = `tenant:${tenantId}:${table}:${instanceIdRef.current}`;
     const channel = supabase
       .channel(channelName)
       .on(

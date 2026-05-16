@@ -130,6 +130,8 @@ function AppointmentBlockInner({
   return (
     <button
       ref={setNodeRef}
+      data-appointment-id={appointment.id}
+      data-testid={`appointment-block-${appointment.id}`}
       onClick={(e) => {
         e.stopPropagation();
         if (isDragging) return;

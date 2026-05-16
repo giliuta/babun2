@@ -774,6 +774,21 @@ export default function DashboardClientLayout({
     if (currentMasterId && masters.some((m) => m.id === currentMasterId)) {
       return;
     }
+    // v506 — guard against a race with the localStorage hydration
+    // effect below. This effect is declared before the
+    // `setMastersState(loadMasters())` effect, so on the very first
+    // render `masters` is still the initial empty array even if
+    // localStorage already has masters from a previous session. Without
+    // this guard the bootstrap branch below saw `masters.length === 0`,
+    // wrote a brand-new owner-master with a fresh UUID, and called
+    // `saveMasters([defaultMaster])` — destroying any user-created
+    // masters that lived in localStorage. The fix: peek at
+    // localStorage directly; if it has masters, bail and let the
+    // hydration effect populate state on the next render.
+    if (masters.length === 0) {
+      const persisted = loadMasters();
+      if (persisted.length > 0) return;
+    }
     if (masters.length === 0 && userEmail) {
       const localPart = userEmail.split("@")[0] || "Я";
       const displayName = localPart
