@@ -885,6 +885,14 @@ function DashboardPageInner() {
       time_end: booking.timeEnd,
       team_id: personal ? null : activeTeamId || null,
       kind: personal ? "event" : "work",
+      // Brief #7 («Мой календарь»): a personal event without a
+      // reminder is dead weight — the whole point of putting it in
+      // the calendar is to be nudged. Seed push ON with a 15-minute
+      // lead so the user just confirms instead of having to discover
+      // the toggle on every new event. Editable in PersonalEventSheet.
+      ...(personal
+        ? { event_push_enabled: true, event_push_offsets: [15] }
+        : {}),
     });
     return personal
       ? { ...base, master_id: currentMasterId ?? null }

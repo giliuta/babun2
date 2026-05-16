@@ -14,7 +14,7 @@
 //                    patch = 513 % 100). This is what the user sees
 //                    in the sidebar footer and settings page footer.
 
-export const BUILD_VERSION = "v532-copy-month-and-neutral-phones";
+export const BUILD_VERSION = "v533-personal-cal-and-mini-cal-and-haptic";
 
 function deriveDisplayVersion(slug: string): string {
   const match = slug.match(/^v(\d+)/);

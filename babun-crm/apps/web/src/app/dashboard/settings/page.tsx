@@ -383,6 +383,35 @@ function HapticsSection() {
     setAudioState(getHapticsAudio());
   }, []);
 
+  // Brief #14 («Мой календарь»): vibration / Taptic Engine click is
+  // a phone-only concern. Desktop browsers have no haptic surface; the
+  // toggle is dead weight there. Hide on lg+ so the settings list stays
+  // honest. Tailwind `hidden lg:block` doesn't work for «hide on
+  // desktop» — we want `block on mobile, hidden on lg`, which is
+  // `lg:hidden`.
+  return (
+    <div className="lg:hidden">
+      <HapticsGroup
+        enabled={enabled}
+        audio={audio}
+        setEnabledState={setEnabledState}
+        setAudioState={setAudioState}
+      />
+    </div>
+  );
+}
+
+function HapticsGroup({
+  enabled,
+  audio,
+  setEnabledState,
+  setAudioState,
+}: {
+  enabled: boolean;
+  audio: boolean;
+  setEnabledState: (next: boolean) => void;
+  setAudioState: (next: boolean) => void;
+}) {
   return (
     <Group
       title="Тактильная отдача"
