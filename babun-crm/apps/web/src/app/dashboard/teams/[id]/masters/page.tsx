@@ -4,7 +4,7 @@
 // editing + searchable master picker.
 //
 // Changes from I43:
-//  · Removed the auto-seed of «Бригадир» + «Помощник». Fresh brigades
+//  · Removed the auto-seed of «Старший» + «Помощник». Fresh brigades
 //    open with an empty role list and empty member list — tenant
 //    authors both. Legacy brigades (lead_ids / helper_ids already
 //    populated) still migrate, but only with one role per bucket
@@ -98,7 +98,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     if (legacyLeadIds.length > 0) {
       migratedRoles.push({
         id: LEGACY_LEAD_ROLE_ID,
-        name: "Бригадир",
+        name: "Старший",
         color: "#FFCC00",
       });
     }
@@ -155,7 +155,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Команда" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -217,9 +217,9 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
   const removeMember = async (masterId: string) => {
     const master = masters.find((m) => m.id === masterId);
     const ok = await confirm({
-      title: `Убрать ${master?.full_name ?? "мастера"} из бригады?`,
+      title: `Убрать ${master?.full_name ?? "мастера"} из команды?`,
       message:
-        "Мастер останется в разделе Мастера, но больше не будет в этой бригаде.",
+        "Мастер останется в разделе Мастера, но больше не будет в этой команде.",
       confirmLabel: "Убрать",
     });
     if (!ok) return;
@@ -264,7 +264,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     const count = members.filter((m) => m.role_id === roleId).length;
     const msg =
       count > 0
-        ? `${count} ${count === 1 ? "мастер перейдёт" : "мастера перейдут"} в раздел «Без роли». Мастера в бригаде останутся.`
+        ? `${count} ${count === 1 ? "мастер перейдёт" : "мастера перейдут"} в раздел «Без роли». Мастера в команде останутся.`
         : "Роль пустая — можно удалить.";
     const ok = await confirm({
       title: `Удалить роль «${role?.name ?? ""}»?`,
@@ -371,7 +371,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
       </button>
       {availableMasters.length === 0 && members.length > 0 && (
         <div className="text-[12px] text-[var(--label-tertiary)] leading-snug px-4">
-          Все активные мастера уже в бригаде. Новых заведите в разделе
+          Все активные мастера уже в команде. Новых заведите в разделе
           «Мастера».
         </div>
       )}
@@ -621,7 +621,7 @@ function AddMemberPicker({
               {/* Role picker (top, inline like service groups) */}
               <section>
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1 mb-1.5">
-                  Роль в бригаде
+                  Роль в команде
                 </div>
                 <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
                   {roles.map((r) => (
@@ -787,7 +787,7 @@ function AddMemberPicker({
             <div className="p-4 overflow-y-auto flex-1">
               {availableMasters.length === 0 ? (
                 <div className="bg-[var(--surface-card)] rounded-[10px] px-4 py-8 text-center text-[13px] text-[var(--label-tertiary)]">
-                  Нет доступных мастеров. Все уже в этой бригаде.
+                  Нет доступных мастеров. Все уже в этой команде.
                 </div>
               ) : (
                 <div className="bg-[var(--surface-card)] rounded-[10px] overflow-hidden divide-y divide-[var(--separator)]">
@@ -923,7 +923,7 @@ function EditMemberRolePicker({
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Роль в бригаде
+            Роль в команде
           </div>
           {master && (
             <div className="mt-1 text-[12px] text-[var(--label-tertiary)]">
@@ -1072,7 +1072,7 @@ function RoleEditor({
           </div>
           <div className="mt-1 text-[12px] text-[var(--label-tertiary)] leading-snug">
             Название и цвет. Название видят все, кто заходит в эту
-            бригаду.
+            команду.
           </div>
         </div>
 

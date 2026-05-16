@@ -33,7 +33,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplate[] = [
     kind: "reminder",
     channel: "whatsapp",
     templateText:
-      "Здравствуйте, {clientName}! 👋\n\nНапоминаем о визите бригады *{brigadeName}*:\n📅 {date} в {time}\n📍 {address}\n🔧 {serviceList}\n💶 Итого: {totalEur}",
+      "Здравствуйте, {clientName}! 👋\n\nНапоминаем о визите команды *{brigadeName}*:\n📅 {date} в {time}\n📍 {address}\n🔧 {serviceList}\n💶 Итого: {totalEur}",
     offsetHoursBefore: 24,
     enabled: true,
     createdAt: NOW,

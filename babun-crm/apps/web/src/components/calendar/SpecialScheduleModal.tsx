@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import DialogModal from "@/components/appointments/sheet/DialogModal";
@@ -132,7 +132,7 @@ export default function SpecialScheduleModal({
         <p className="text-[12px] text-[var(--label-tertiary)] leading-snug">
           Это расписание применится только к{" "}
           <span className="font-semibold">{formatDateLongRu(dateKey)}</span>. Общий
-          рабочий график бригады не изменится.
+          рабочий график команды не изменится.
         </p>
       </div>
     </DialogModal>

@@ -452,7 +452,7 @@ function DashboardPageInner() {
   //
   // Sprint 033 — brigade-as-hub: if the active brigade has its own
   // `default_scroll_time` set (edit on /dashboard/teams/:id → section
-  // "Календарь бригады"), it wins over both the settings startHour and
+  // "Календарь команды"), it wins over both the settings startHour and
   // the now-line anchor. This way switching to a nightshift brigade
   // opens its calendar at the right time immediately.
   // Pull default_scroll_time off the currently-active team into a
@@ -892,7 +892,7 @@ function DashboardPageInner() {
 
   // Tap on empty slot → BookingSheet (STORY-002). Компонент сам
   // даёт выбор «Клиент/Событие» в сегмент-контроле. Phase I36 —
-  // длительность новой записи = слот-настройка активной бригады
+  // длительность новой записи = слот-настройка активной команды
   // (15/30/60), так же как и шаг снэпа. Дальше пересчитается по
   // выбранным услугам.
   const handleEmptySlotClick = useCallback(

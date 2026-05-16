@@ -13,7 +13,7 @@ interface ExpenseSheetProps {
   onClose: () => void;
   /** Человекочитаемый заголовок дня (например "Сегодня, 16 апр"). */
   dayLabel?: string;
-  /** Бригада для отображения в заголовке. */
+  /** Команда для отображения в заголовке. */
   teamLabel?: string;
   onSave: (payload: {
     category: ExpenseCategoryKey;
@@ -23,7 +23,7 @@ interface ExpenseSheetProps {
   }) => void;
 }
 
-// STORY-003 ExpenseSheet — быстрое добавление расхода бригады.
+// STORY-003 ExpenseSheet — быстрое добавление расхода команды.
 // Bottom sheet, категории 2×2, ряд быстрых сумм, textarea comment,
 // sticky-кнопка с итогом. Интегрируется с DayExtra через onSave.
 export default function ExpenseSheet({
@@ -86,7 +86,7 @@ export default function ExpenseSheet({
             </p>
           )}
           <h2 className="text-[17px] font-semibold tracking-tight text-[var(--label)] mt-0.5">
-            Расход бригады
+            Расход команды
           </h2>
         </div>
 

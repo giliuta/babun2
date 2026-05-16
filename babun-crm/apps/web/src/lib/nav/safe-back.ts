@@ -14,7 +14,7 @@
 //   * Plain-`router.push` was the bug: pushing the parent route
 //     onto the stack INSTEAD of popping created an ever-growing
 //     history that produced the "back-button loop" feedback the
-//     user reported between Команда / Бригада / Мастер pages.
+//     user reported between Команда / Команда / Мастер pages.
 //
 // SSR safety: `window` may be undefined during SSR — guard it.
 

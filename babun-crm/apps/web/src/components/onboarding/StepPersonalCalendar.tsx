@@ -91,7 +91,7 @@ export default function StepPersonalCalendar({
                 Календарь для команды
               </div>
               <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-                Бригады / мастера, общие визиты к клиентам. Команду пригласишь позже.
+                Команды / мастера, общие визиты к клиентам. Команду пригласишь позже.
               </div>
             </div>
           </div>

@@ -219,14 +219,14 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
       <div className="flex-1 flex items-center justify-center p-6 text-center bg-[var(--surface-grouped)]">
         <div>
           <div className="text-[17px] font-semibold text-[var(--label)] mb-2">
-            Бригада не найдена
+            Команда не найдена
           </div>
           <button
             type="button"
             onClick={() => router.push("/dashboard/teams")}
             className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
           >
-            К списку бригад
+            К списку команд
           </button>
         </div>
       </div>
@@ -236,11 +236,11 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const handleDelete = async () => {
     const orphanCount = appointments.filter((a) => a.team_id === team.id).length;
     const ok = await confirm({
-      title: `Удалить бригаду «${team.name}»?`,
+      title: `Удалить команду «${team.name}»?`,
       message:
         orphanCount > 0
-          ? `У ${orphanCount} записей сбросится привязка к бригаде (team_id будет пустым).`
-          : "Эта бригада нигде не используется.",
+          ? `У ${orphanCount} записей сбросится привязка к команде (team_id будет пустым).`
+          : "Эта команда нигде не используется.",
       confirmLabel: "Удалить",
     });
     if (!ok) return;
@@ -275,7 +275,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: team.color }}
           />
-          {team.name || "Бригада"}
+          {team.name || "Команда"}
         </h1>
       </div>
 
@@ -356,7 +356,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             <div className="flex items-center gap-3 px-4 min-h-[56px]">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] text-[var(--label)]">
-                  Бригада активна
+                  Команда активна
                 </div>
                 <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
                   {team.active
@@ -382,7 +382,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             className="w-full h-12 flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--surface-card)] text-[var(--system-red)] text-[15px] font-medium press-scale active:bg-[rgba(255,59,48,0.08)] shadow-[var(--shadow-card)]"
           >
             <Trash2 size={16} strokeWidth={2} />
-            Удалить бригаду
+            Удалить команду
           </button>
         </div>
       </div>

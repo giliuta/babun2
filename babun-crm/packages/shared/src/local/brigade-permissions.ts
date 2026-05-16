@@ -256,7 +256,7 @@ export const BRIGADE_PERMISSION_GROUPS: FlagGroup[] = [
     emoji: "📅",
     parent: "calendar_visible",
     rows: [
-      { key: "calendar_visible", label: "Видит календарь бригады" },
+      { key: "calendar_visible", label: "Видит календарь команды" },
       {
         key: "can_create_record",
         label: "Создавать записи",
@@ -443,11 +443,11 @@ export const BRIGADE_PERMISSION_GROUPS: FlagGroup[] = [
   },
   {
     id: "brigade_finance",
-    title: "Финансы бригады",
+    title: "Финансы команды",
     emoji: "📊",
     rows: [
-      { key: "brigade_finance_revenue", label: "Видит выручку бригады" },
-      { key: "brigade_finance_expenses", label: "Видит расходы бригады" },
+      { key: "brigade_finance_revenue", label: "Видит выручку команды" },
+      { key: "brigade_finance_expenses", label: "Видит расходы команды" },
       { key: "brigade_finance_profit", label: "Видит прибыль" },
       { key: "brigade_own_salary", label: "Видит свою ЗП" },
     ],

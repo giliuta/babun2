@@ -105,7 +105,7 @@ export function FirstRunCalendarChoice({ onEnabledRefresh }: Props) {
                   Календарь для записи клиентов
                 </span>
                 <span className="block text-[13px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-                  Запишем клиентов на бригаду или мастера, увидим расписание команды.
+                  Запишем клиентов на команду или мастера, увидим расписание команды.
                 </span>
               </span>
             </button>

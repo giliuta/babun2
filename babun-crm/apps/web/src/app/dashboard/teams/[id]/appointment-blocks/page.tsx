@@ -79,7 +79,7 @@ const OPTIONAL_BLOCKS: BlockMeta[] = [
   {
     key: "show_address_note",
     label: "Заметка к адресу",
-    description: "«Зелёная дверь, звонок» — подсказка бригаде у порога.",
+    description: "«Зелёная дверь, звонок» — подсказка команде у порога.",
     defaultOn: true,
     icon: StickyNote,
     tone: "bg-[var(--tile-yellow)]",
@@ -181,7 +181,7 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Запись" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -243,7 +243,7 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
           />
         </div>
         <div className="px-4 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
-          Это то, что бригада увидит, когда откроет запись. Долгое
+          Это то, что команда увидит, когда откроет запись. Долгое
           нажатие + перетаскивание — переставить блоки местами.
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
       {/* ── Опциональные блоки ─────────────────────────── */}
       <Group
         title="Дополнительные блоки"
-        footer="Перестраивает форму записи только в этой бригаде. Например, одна команда фоткает работу до/после — включаем; другая никогда — отключаем, и блок перестанет маячить в глазах."
+        footer="Перестраивает форму записи только в этой команде. Например, одна команда фоткает работу до/после — включаем; другая никогда — отключаем, и блок перестанет маячить в глазах."
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
           {orderedBlocks.map((b) => {

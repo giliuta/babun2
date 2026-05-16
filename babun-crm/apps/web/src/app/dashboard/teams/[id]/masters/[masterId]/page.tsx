@@ -3,7 +3,7 @@
 // Sprint 033 Phase I47 — Brigade Member access editor.
 //
 // Full page (not modal) per user spec: «если кликать на мастера —
-// переход на новую страницу где настраиваешь мастера под эту бригаду».
+// переход на новую страницу где настраиваешь мастера под эту команду».
 //
 // Structure:
 //  · Header: avatar (team tint + role ring) + name + role chip + edit
@@ -12,7 +12,7 @@
 //  · Grouped permission list (12 sections, ~50 flags)
 //    Parent rows gate their indented children: when parent is OFF the
 //    children render disabled.
-//  · «Убрать из бригады» at the bottom (destructive)
+//  · «Убрать из команды» at the bottom (destructive)
 
 import { use, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -171,9 +171,9 @@ export default function BrigadeMemberAccessPage({ params }: RouteParams) {
   // ── Remove from brigade ───────────────────────────────────────
   const handleRemove = async () => {
     const ok = await confirm({
-      title: `Убрать ${master.full_name} из бригады?`,
+      title: `Убрать ${master.full_name} из команды?`,
       message:
-        "Мастер останется в разделе Мастера, но больше не будет в этой бригаде.",
+        "Мастер останется в разделе Мастера, но больше не будет в этой команде.",
       confirmLabel: "Убрать",
     });
     if (!ok) return;
@@ -227,7 +227,7 @@ export default function BrigadeMemberAccessPage({ params }: RouteParams) {
               {master.full_name}
             </div>
             <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
-              В бригаде «{team.name}»
+              В команде «{team.name}»
             </div>
             <button
               type="button"
@@ -316,7 +316,7 @@ export default function BrigadeMemberAccessPage({ params }: RouteParams) {
             className="w-full h-12 flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--surface-card)] text-[var(--system-red)] text-[15px] font-medium press-scale active:bg-[rgba(255,59,48,0.08)] shadow-[var(--shadow-card)]"
           >
             <UserMinus size={16} strokeWidth={2} />
-            Убрать из бригады
+            Убрать из команды
           </button>
         </div>
       </div>
@@ -437,7 +437,7 @@ function RolePickerSheet({
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Роль в бригаде
+            Роль в команде
           </div>
           <div className="mt-1 text-[12px] text-[var(--label-tertiary)]">
             {masterName}

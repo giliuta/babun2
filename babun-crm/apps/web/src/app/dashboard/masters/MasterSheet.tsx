@@ -467,17 +467,17 @@ export default function MasterSheet({
 
           <AccordionSection
             title="Работа"
-            subtitle={`${ROLE_LABELS[role]} · ${teamId ? teams.find((t) => t.id === teamId)?.name ?? "бригада" : "без бригады"}`}
+            subtitle={`${ROLE_LABELS[role]} · ${teamId ? teams.find((t) => t.id === teamId)?.name ?? "команда" : "без команды"}`}
             open={open.job}
             onToggle={() => setOpen((p) => ({ ...p, job: !p.job }))}
           >
-            <Field label="Бригада">
+            <Field label="Команда">
               <select
                 value={teamId ?? ""}
                 onChange={(e) => setTeamId(e.target.value || null)}
                 className={inputCls}
               >
-                <option value="">— Без бригады —</option>
+                <option value="">— Без команды —</option>
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
@@ -691,7 +691,7 @@ export default function MasterSheet({
             <div className="space-y-1.5">
               <div className="px-1">
                 <div className="text-[12px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">
-                  Видимость бригад
+                  Видимость команд
                 </div>
                 <div className="text-[12px] text-[var(--label-tertiary)] mt-0.5">
                   Что мастер видит в списке команд
@@ -913,7 +913,7 @@ export default function MasterSheet({
 
 function salarySubtitle(model: SalaryModel, value: number, hybrid: number): string {
   if (model === "none") return "Не учитывается";
-  if (model === "percent_of_team") return "% от бригады";
+  if (model === "percent_of_team") return "% от команды";
   if (model === "hybrid") {
     const base = value ? `${value} €/мес` : "оклад";
     const extra = hybrid ? ` + ${hybrid}%` : "";

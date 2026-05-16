@@ -273,14 +273,14 @@ export default function Sidebar({
           </Group>
 
           {/* v479 — admin section is always visible. The collapse
-              toggle was hiding Бригады / Мастера / SMS-шаблоны behind
+              toggle was hiding Команды / Мастера / SMS-шаблоны behind
               an extra tap; user wants the full sidebar laid out top
               to bottom in a single ordered list. */}
           <Group>
             <NavRow
               icon={UsersIcon}
               tone="blue"
-              label="Бригады"
+              label="Команды"
               href={ROUTE_MAP.teams}
               active={isActive("teams")}
             />

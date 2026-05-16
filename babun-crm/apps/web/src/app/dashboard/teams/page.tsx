@@ -147,10 +147,10 @@ export default function TeamsPage() {
     ).length;
     const extra =
       orphanCount > 0
-        ? `У ${orphanCount} записей сбросится привязка к бригаде (сами записи останутся).`
-        : "Эта бригада нигде не используется.";
+        ? `У ${orphanCount} записей сбросится привязка к команде (сами записи останутся).`
+        : "Эта команда нигде не используется.";
     const ok = await confirm({
-      title: `Удалить бригаду «${team.name}»?`,
+      title: `Удалить команду «${team.name}»?`,
       message: extra,
       confirmLabel: "Удалить",
     });
@@ -213,7 +213,7 @@ export default function TeamsPage() {
 
   return (
     <>
-      <PageHeader title="Бригады" />
+      <PageHeader title="Команды" />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">
@@ -221,15 +221,15 @@ export default function TeamsPage() {
             <EmptyState
               variant="prominent"
               icon={<Users size={28} strokeWidth={2} />}
-              title="Пока нет ни одной бригады"
-              description="Бригада — это команда мастеров, которая вместе работает и появляется на календаре своим цветом."
+              title="Пока нет ни одной команды"
+              description="Команда — это группа мастеров, которая вместе работает и появляется на календаре своим цветом."
               action={
                 <button
                   type="button"
                   onClick={openNew}
                   className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
                 >
-                  Создать бригаду
+                  Создать команду
                 </button>
               }
             />
@@ -262,7 +262,7 @@ export default function TeamsPage() {
                   <Plus size={18} strokeWidth={2.5} />
                 </span>
                 <span className="flex-1 text-[15px] font-medium text-[var(--accent)]">
-                  Новая бригада
+                  Новая команда
                 </span>
               </button>
             </div>

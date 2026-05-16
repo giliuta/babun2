@@ -120,7 +120,7 @@ export default function InventoryPage() {
     Array.from(byTeam.entries()).forEach(([k, items]) => {
       if (k === null) return;
       if (teams.some((t) => t.id === k)) return;
-      out.push({ key: k, label: "Удалённая бригада", items });
+      out.push({ key: k, label: "Удалённая команда", items });
     });
     return out;
   }, [filtered, teams]);
@@ -151,7 +151,7 @@ export default function InventoryPage() {
         ...(menu.item.assigned_team_id
           ? [
               {
-                label: "Снять с бригады (на полку)",
+                label: "Снять с команды (на полку)",
                 icon: <UserMinus size={18} strokeWidth={2} />,
                 onSelect: () => transfer(menu.item, null),
               },
@@ -358,7 +358,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
           Пока нет оборудования
         </div>
         <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
-          Заведите инструмент, машины, приборы — потом можно закреплять за&nbsp;бригадами.
+          Заведите инструмент, машины, приборы — потом можно закреплять за&nbsp;командами.
         </div>
       </div>
       <button

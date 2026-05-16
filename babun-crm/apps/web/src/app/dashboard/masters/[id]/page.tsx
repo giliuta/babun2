@@ -171,7 +171,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
   const handleDelete = async () => {
     const ok = await confirm({
       title: `Удалить сотрудника «${master.full_name}»?`,
-      message: "Будет удалён из всех бригад где состоял. Отменить нельзя.",
+      message: "Будет удалён из всех команд где состоял. Отменить нельзя.",
       confirmLabel: "Удалить",
     });
     if (!ok) return;
@@ -281,7 +281,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
           {assignedTeams.length > 0 && (
             <div>
               <div className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
-                В бригадах
+                В командах
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {assignedTeams.map((team) => (
@@ -366,7 +366,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
                 </div>
                 <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
                   {master.is_active
-                    ? "Виден в календаре и выборе бригады."
+                    ? "Виден в календаре и выборе команды."
                     : "В архиве — можно вернуть в любой момент."}
                 </div>
               </div>
@@ -382,7 +382,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
           </ListGroup>
 
           {/* Мини-сводка за текущий месяц — считается из визитов в
-              бригадах, где участвует мастер. Тап по карточке уводит
+              командах, где участвует мастер. Тап по карточке уводит
               на полный экран «Статистика». */}
           {assignedTeams.length > 0 && (
             <button
@@ -417,7 +417,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
                 />
               </div>
               <div className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
-                Считается по всем бригадам, где участвует сотрудник.
+                Считается по всем командам, где участвует сотрудник.
                 {performance.cancelled > 0 && (
                   <> Отменённых: {performance.cancelled}.</>
                 )}

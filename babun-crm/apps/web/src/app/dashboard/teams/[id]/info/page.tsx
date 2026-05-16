@@ -66,7 +66,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Информация" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -119,7 +119,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
   return (
     <BrigadeSectionShell
       brigadeId={id}
-      title={isNew ? "Новая бригада" : "Информация"}
+      title={isNew ? "Новая команда" : "Информация"}
       {...sharedShellProps}
     >
       {/* ── Name ────────────────────────────────────────────────── */}
@@ -135,7 +135,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
             onBlur={(e) => {
               if (!isNew) commitName(e.target.value);
             }}
-            placeholder="Название бригады"
+            placeholder="Название команды"
             className="w-full h-11 bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
             maxLength={60}
           />
@@ -154,7 +154,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
             onBlur={(e) => {
               if (!isNew) commitDescription(e.target.value);
             }}
-            placeholder="Для себя — любые заметки о бригаде"
+            placeholder="Для себя — любые заметки о команде"
             rows={2}
             maxLength={300}
             className="w-full bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none resize-none py-1.5 leading-snug"
@@ -165,7 +165,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
       {/* ── Colour ──────────────────────────────────────────────── */}
       <div>
         <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
-          Цвет бригады
+          Цвет команды
         </div>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-4">
           <div className="grid grid-cols-7 gap-2">
@@ -195,7 +195,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
             })}
           </div>
           <div className="mt-3 text-[12px] text-[var(--label-tertiary)] leading-snug">
-            Этот цвет показывает записи бригады в календаре и метит её аватарку в списке.
+            Этот цвет показывает записи команды в календаре и метит её аватарку в списке.
           </div>
         </div>
       </div>

@@ -122,7 +122,7 @@ export default function MastersPage() {
   const handleDelete = async (master: Master) => {
     const ok = await confirm({
       title: `Удалить сотрудника «${master.full_name}»?`,
-      message: "Будет удалён из всех бригад где состоял. Отменить нельзя.",
+      message: "Будет удалён из всех команд где состоял. Отменить нельзя.",
       confirmLabel: "Удалить",
     });
     if (!ok) return;
@@ -189,7 +189,7 @@ export default function MastersPage() {
               variant="prominent"
               icon={<UserCircle2 size={28} strokeWidth={2} />}
               title="Пока нет сотрудников"
-              description="Добавьте первого — потом сможете закрепить его за бригадой и настроить доступы."
+              description="Добавьте первого — потом сможете закрепить его за командой и настроить доступы."
               action={
                 <button
                   type="button"
@@ -365,9 +365,9 @@ function MasterRow({
     ? `${ROLE_LABELS[master.role]} · ${master.title}`
     : ROLE_LABELS[master.role];
   pieces.push(roleBit);
-  if (assignedTeams.length === 0) pieces.push("без бригады");
+  if (assignedTeams.length === 0) pieces.push("без команды");
   else if (assignedTeams.length === 1) pieces.push(assignedTeams[0].name);
-  else pieces.push(`${assignedTeams.length} бригады`);
+  else pieces.push(`${assignedTeams.length} команды`);
   if (master.phone) pieces.push(master.phone);
   const subtitle = pieces.join(" · ");
 

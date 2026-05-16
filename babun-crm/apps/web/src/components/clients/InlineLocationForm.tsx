@@ -107,7 +107,7 @@ export function InlineLocationForm({
       </FormField>
 
       <FormField
-        label="Заметка для бригады"
+        label="Заметка для команды"
         hint="код домофона, собака, особенности входа"
       >
         <input

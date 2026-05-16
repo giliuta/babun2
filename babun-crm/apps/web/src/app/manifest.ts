@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Babun CRM",
     short_name: "Babun",
-    description: "CRM система для AirFix — управление записями, клиентами и бригадами",
+    description: "CRM система для AirFix — управление записями, клиентами и командами",
     start_url: "/dashboard",
     display: "standalone",
     orientation: "portrait",

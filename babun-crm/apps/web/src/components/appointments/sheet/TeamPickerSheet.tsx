@@ -21,11 +21,11 @@ export default function TeamPickerSheet({
   const activeTeams = teams.filter((t) => t.active);
 
   return (
-    <DialogModal open={open} onClose={onClose} title="Выбрать бригаду">
+    <DialogModal open={open} onClose={onClose} title="Выбрать команду">
       <div className="p-3 space-y-2">
         {activeTeams.length === 0 ? (
           <div className="py-8 text-center text-[13px] text-[var(--label-tertiary)]">
-            Нет активных бригад
+            Нет активных команд
           </div>
         ) : (
           activeTeams.map((t) => {

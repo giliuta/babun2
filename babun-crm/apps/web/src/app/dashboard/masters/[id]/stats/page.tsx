@@ -6,7 +6,7 @@
 // NavRow. Shows period-over-period numbers computed on the fly from
 // the shared appointments context:
 //   · визиты / закрыто / отменено / средний чек / выручка
-//   · сравнение с медианой бригады за тот же период
+//   · сравнение с медианой команды за тот же период
 //   · топ-5 клиентов по выручке
 //
 // Period toggle: Неделя · Месяц · Квартал · Год. Defaults to Month.
@@ -255,10 +255,10 @@ export default function MasterStatsPage({ params }: RouteParams) {
 
       {/* Team comparison */}
       {teamBenchmark && (
-        <Card title="Сравнение с бригадой">
+        <Card title="Сравнение с командой">
           <div className="space-y-2">
             <ComparisonRow
-              label="Место в бригаде"
+              label="Место в команде"
               value={`${teamBenchmark.rank} из ${teamBenchmark.total}`}
             />
             <ComparisonRow

@@ -211,7 +211,7 @@ export default function ImportLocalScheduleSection() {
               Не загружено в облако:
             </p>
             <ul className="text-[13px] text-[var(--label-secondary)] leading-snug space-y-1 pl-3">
-              {counts.schedule > 0 && <li>• Расписание бригад: {counts.schedule}</li>}
+              {counts.schedule > 0 && <li>• Расписание команд: {counts.schedule}</li>}
               {counts.calendar > 0 && <li>• Настройки календаря: 1</li>}
               {counts.dayCities > 0 && <li>• Городов по дням: {counts.dayCities}</li>}
               {counts.dayExtras > 0 && <li>• Доп. строк по дням: {counts.dayExtras}</li>}

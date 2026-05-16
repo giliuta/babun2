@@ -57,7 +57,7 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -302,7 +302,7 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
       {/* ── Vacations ───────────────────────────────────── */}
       <Group
         title="Отпуска"
-        footer="Бригада недоступна в календаре в эти дни. Праздники, отпуска, болезни — всё сюда."
+        footer="Команда недоступна в календаре в эти дни. Праздники, отпуска, болезни — всё сюда."
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
           {vacations.length === 0 && (

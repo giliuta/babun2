@@ -34,7 +34,7 @@ const MODE_LABELS: Record<Mode, string> = {
   expenses: "Расходы",
   summary: "Итого",
   debts: "Долги клиентов",
-  payroll: "Зарплата бригад",
+  payroll: "Зарплата команд",
 };
 
 export default function FinancesPage() {
@@ -508,7 +508,7 @@ function CashboxBlock({
         <KV label="Пришло на карту" value={`+${formatEUR(card)}`} tone="sky" />
         <div className="h-px bg-[var(--separator)] my-1" />
         <KV label="Расходы (из нала)" value={`−${formatEUR(expense)}`} tone="rose" />
-        <KV label="ЗП бригаде (расчётная)" value={`−${formatEUR(salary)}`} tone="violet" />
+        <KV label="ЗП команде (расчётная)" value={`−${formatEUR(salary)}`} tone="violet" />
         <div className="h-px bg-[var(--separator)] my-1.5" />
         <div className="flex items-center justify-between">
           <span className="text-[15px] font-semibold text-[var(--label)]">В кассе должно быть</span>

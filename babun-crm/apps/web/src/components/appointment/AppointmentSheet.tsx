@@ -1279,7 +1279,7 @@ function idsToServices(
     seen.add(line.serviceId);
     const svc = byId.get(line.serviceId);
     if (!svc) continue;
-    // Если бригада не трогала цену (pricePerUnit === originalPrice),
+    // Если команда не трогала цену (pricePerUnit === originalPrice),
     // пересчитываем с учётом bulk. Если трогала — сохраняем override.
     const userOverride = line.pricePerUnit !== line.originalPrice;
     const ppu = userOverride ? line.pricePerUnit : pricePerUnit(svc, q);

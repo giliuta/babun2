@@ -473,7 +473,7 @@ function ServiceEditorSheet({
           {/* Brigades */}
           <div>
             <label className="block text-xs text-[var(--label-secondary)] mb-1.5">
-              Бригады, которые делают (пусто = все)
+              Команды, которые делают (пусто = все)
             </label>
             <div className="flex flex-wrap gap-2">
               {teams

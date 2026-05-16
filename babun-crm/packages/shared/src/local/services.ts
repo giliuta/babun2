@@ -34,7 +34,7 @@ export interface Service {
   /** true = можно делать N штук одной услугой (чистка × 3); false
    *  = количество всегда 1 (диагностика, ремонт). */
   is_countable: boolean;
-  /** Бригады, которые делают эту услугу. Пусто = все бригады. */
+  /** Команды, которые делают эту услугу. Пусто = все команды. */
   brigade_ids: string[];
   /** Sprint 033 Phase I18 — explicit sort order inside the parent
    *  category. Services without a value sort after those that have
@@ -119,7 +119,7 @@ function svc(
     bulk_price: opts.bulkPrice ?? 0,
     cost_per_unit: opts.costPerUnit ?? 0,
     is_countable: opts.isCountable ?? true,
-    brigade_ids: [], // пусто = все бригады
+    brigade_ids: [], // пусто = все команды
   };
 }
 

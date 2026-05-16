@@ -55,7 +55,7 @@ export default function BrigadeEquipmentPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Оборудование" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -85,7 +85,7 @@ export default function BrigadeEquipmentPage({ params }: RouteParams) {
           onSelect: () => setEditing(menu.item),
         },
         {
-          label: "Снять с бригады (на полку)",
+          label: "Снять с команды (на полку)",
           icon: <UserMinus size={18} strokeWidth={2} />,
           onSelect: () => removeFromBrigade(menu.item),
         },
@@ -107,7 +107,7 @@ export default function BrigadeEquipmentPage({ params }: RouteParams) {
           </span>
           <div>
             <div className="text-[15px] font-semibold text-[var(--label)]">
-              За бригадой пока ничего нет
+              За командой пока ничего нет
             </div>
             <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
               Добавьте инструмент, машины или приборы — они появятся тут и на странице общего инвентаря.

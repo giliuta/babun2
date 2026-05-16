@@ -424,7 +424,7 @@ function InlineLocationForm({
         />
       </Field>
 
-      <Field label="Заметка для бригады" hint="код домофона, собака, особенности входа">
+      <Field label="Заметка для команды" hint="код домофона, собака, особенности входа">
         <input
           type="text"
           value={draft.note}

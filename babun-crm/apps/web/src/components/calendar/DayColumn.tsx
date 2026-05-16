@@ -248,7 +248,7 @@ function DayColumnInner({
     const totalHeight = rect.height;
     const pxPerMinute = totalHeight / windowDurationMin;
     const totalMinutes = windowStartMin + clickY / pxPerMinute;
-    // Phase I36 — snap to multiples of `snapMinutes` (бригадная
+    // Phase I36 — snap to multiples of `snapMinutes` (командная
     // настройка 15/30/60). 15 → 11:00/11:15/11:30/11:45; 30 → 11:00/
     // 11:30/12:00; 60 → 11:00/12:00. Floor so тап в 11:27 при 30 мин
     // ложится на 11:00, а не на 11:30 (user picks the start of the
@@ -276,7 +276,7 @@ function DayColumnInner({
             3. Число дня
           Весь столбец (и header и тело) тонируется в bg города
           (bgToday если сегодня). Тап открывает bottom sheet для
-          смены города бригады на этот день. */}
+          смены города команды на этот день. */}
       {/* Day header — edge-to-edge градиентная ячейка.
           Структура слоёв (z-снизу-вверх):
             1. Gradient 135° c1 → c2 (насыщенный фон)

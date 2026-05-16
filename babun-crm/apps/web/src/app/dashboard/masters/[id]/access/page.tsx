@@ -105,16 +105,16 @@ export default function MasterAccessPage({ params }: RouteParams) {
 
   return (
     <MasterSectionShell masterId={id} title="Доступы" hideSave>
-      {/* ── Видимость бригад ────────────────────────────────────── */}
+      {/* ── Видимость команд ────────────────────────────────────── */}
       <Section
-        title="Видимость бригад"
+        title="Видимость команд"
         footer="Что сотрудник увидит в календаре, когда войдёт в Babun."
       >
         {(
           [
-            { v: "own", label: "Только своя бригада" },
-            { v: "picked", label: "Выбранные бригады" },
-            { v: "all", label: "Все бригады" },
+            { v: "own", label: "Только своя команда" },
+            { v: "picked", label: "Выбранные команды" },
+            { v: "all", label: "Все команды" },
           ] as const
         ).map((opt, i, arr) => {
           const picked = currentVisibility === opt.v;
@@ -147,7 +147,7 @@ export default function MasterAccessPage({ params }: RouteParams) {
       </Section>
 
       {currentVisibility === "picked" && (
-        <Section title="Какие бригады видит">
+        <Section title="Какие команды видит">
           {activeTeams.map((t, i) => {
             const picked = (permissions.visible_team_ids ?? []).includes(t.id);
             const last = i === activeTeams.length - 1;
@@ -175,7 +175,7 @@ export default function MasterAccessPage({ params }: RouteParams) {
           })}
           {activeTeams.length === 0 && (
             <div className="px-4 py-4 text-center text-[13px] text-[var(--label-tertiary)]">
-              Нет активных бригад.
+              Нет активных команд.
             </div>
           )}
         </Section>

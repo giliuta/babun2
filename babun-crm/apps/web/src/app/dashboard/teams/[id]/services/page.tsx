@@ -121,7 +121,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
   // service attached to this brigade are listed. Global
   // `categories` is still the storage of truth (ServiceCategory
   // lives at tenant level), but this brigade only sees what IT
-  // uses. Fixes "откуда оно берёт группу если не в одной бригаде —
+  // uses. Fixes "откуда оно берёт группу если не в одной команде —
   // не указано". Empty brigades force the user to create a group
   // first via the modal.
   const brigadeCategories = useMemo(() => {
@@ -163,7 +163,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Услуги" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -176,7 +176,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
       // Legacy "everyone" service — confirm before global deletion.
       const ok = await confirm({
         title: `Удалить услугу «${svc.name}»?`,
-        message: "Эта услуга была доступна всем бригадам и пропадёт полностью.",
+        message: "Эта услуга была доступна всем командам и пропадёт полностью.",
         confirmLabel: "Удалить",
       });
       if (!ok) return;
@@ -194,7 +194,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     }
     const ok = await confirm({
       title: `Удалить услугу «${svc.name}»?`,
-      message: "Эта услуга используется только этой бригадой и пропадёт полностью.",
+      message: "Эта услуга используется только этой командой и пропадёт полностью.",
       confirmLabel: "Удалить",
     });
     if (!ok) return;
@@ -1104,7 +1104,7 @@ function ServiceFormModal({
             title="Длительность от объёма"
             hint={
               durationTiers.length === 0
-                ? "Если бригада укладывается быстрее при партии — укажите, сколько минут занимает от N штук."
+                ? "Если команда укладывается быстрее при партии — укажите, сколько минут занимает от N штук."
                 : undefined
             }
           >

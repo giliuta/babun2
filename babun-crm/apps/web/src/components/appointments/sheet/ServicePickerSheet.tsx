@@ -9,7 +9,7 @@ interface ServicePickerSheetProps {
   onClose: () => void;
   services: Service[];
   categories: ServiceCategory[];
-  /** Фильтр по бригаде: если задан, показываем только услуги где
+  /** Фильтр по команде: если задан, показываем только услуги где
    *  brigade_ids пуст (доступна всем) или содержит brigadeId. */
   brigadeId?: string | null;
   // Incoming selection — duplicates encode quantity (e.g. [id, id] = x2).

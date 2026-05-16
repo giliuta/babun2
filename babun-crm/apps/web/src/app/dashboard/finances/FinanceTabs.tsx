@@ -250,14 +250,14 @@ export function PayrollTab({
   if (entries.length === 0) {
     return (
       <div className="text-center text-[var(--label-tertiary)] py-10 text-[13px]">
-        Нет активных бригад.
+        Нет активных команд.
       </div>
     );
   }
   return (
     <>
       <div className="px-4 py-2 bg-[var(--accent-tint)] border-b border-[var(--separator)] text-[13px] text-[var(--label-secondary)]">
-        Зарплата = (доход − расход бригады) × процент выплаты. Настраивается в профиле бригады.
+        Зарплата = (доход − расход команды) × процент выплаты. Настраивается в профиле команды.
       </div>
       {entries.map((p) => (
         <div key={p.team.id} className="px-4 py-3 border-b border-[var(--separator)]">

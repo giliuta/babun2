@@ -111,7 +111,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Метки" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -316,7 +316,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
           </span>
           <div>
             <div className="text-[17px] font-semibold text-[var(--label)]">
-              У бригады пока нет меток
+              У команды пока нет меток
             </div>
             <div className="mt-1 text-[13px] leading-snug text-[var(--label-secondary)]">
               Добавьте пару меток и пометьте одну как основную — тогда

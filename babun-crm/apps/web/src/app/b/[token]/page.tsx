@@ -76,7 +76,7 @@ export default function SharePage(props: PageProps) {
 
           {services && <Row label="Услуги" value={services} />}
           {snapshot.c && <Row label="Имя" value={snapshot.c} />}
-          {snapshot.b && <Row label="Бригада" value={snapshot.b} />}
+          {snapshot.b && <Row label="Команда" value={snapshot.b} />}
           {snapshot.a && <AddressRow address={snapshot.a} />}
           {typeof snapshot.t === "number" && snapshot.t > 0 && (
             <Row

@@ -152,7 +152,7 @@ export interface Appointment {
   comment: string;
   address: string; // переопределяет client.address
   /** Короткая заметка к адресу (например «Зелёная дверь, звонок»).
-   *  Хранится отдельно от общего comment, чтобы бригада видела её
+   *  Хранится отдельно от общего comment, чтобы команда видела её
    *  прямо рядом с навигацией. */
   address_note: string;
   address_lat: number | null;
@@ -439,7 +439,7 @@ export type AppointmentColorKind =
   | "completed"     // gray — выполнена, в прошлом
   | "cancelled"     // red — отменена / отказался
   | "in_progress"   // green — в работе прямо сейчас
-  | "event"         // slate — личное событие / задача для бригады
+  | "event"         // slate — личное событие / задача для команды
   | "past";         // faded gray — прошлая, не выполнена
 
 /**
@@ -448,9 +448,9 @@ export type AppointmentColorKind =
  *
  * Приоритет (сверху вниз, первое совпадение побеждает):
  *   1. cancelled → красный
- *   2. event/personal → серый (задача для бригады)
+ *   2. event/personal → серый (задача для команды)
  *   3. completed → приглушённый серый
- *   4. in_progress → зелёный (бригада работает)
+ *   4. in_progress → зелёный (команда работает)
  *   5. нет адреса → ЖЁЛТЫЙ (⚠ нужно получить адрес!)
  *   6. коммерция (office/restaurant/shop) → оранжевый (другая лестница!)
  *   7. предварительная (дата > 30 дней) → голубой пунктир
@@ -555,7 +555,7 @@ export const COLOR_KIND_TAILWIND: Record<
     text: "text-[var(--label-on-accent)]",
   },
   past: {
-    // Dusty navy — время записи прошло, но бригада ещё не отметила
+    // Dusty navy — время записи прошло, но команда ещё не отметила
     // выполнение. Separate hue from completed (taupe) and scheduled
     // (forest) so «надо добить» reads instantly.
     bg: "bg-[var(--system-blue)]",

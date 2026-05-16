@@ -170,7 +170,7 @@ export interface SalaryRule {
 }
 
 export const PERCENT_SOURCE_LABELS: Record<PercentSource, string> = {
-  team: "от оборота бригады",
+  team: "от оборота команды",
   own: "от своих визитов",
 };
 
@@ -495,7 +495,7 @@ export interface Team {
   name: string;
   region: string;
   color: string; // hex
-  default_city: string; // Базовый город бригады — используется как дефолт для дней
+  default_city: string; // Базовый город команды — используется как дефолт для дней
   /** Primary lead id. Kept for backwards compat with records saved
    *  before Sprint 033 and still read by a few non-editor views
    *  (schedule picker, finances summary). New code should prefer
@@ -506,7 +506,7 @@ export interface Team {
    *  = first of `lead_ids` — so legacy readers keep working. */
   lead_ids?: string[];
   helper_ids: string[];
-  /** Зарплата бригады = этот процент от чистого дохода бригады
+  /** Зарплата команды = этот процент от чистого дохода команды
    *  (доходы минус расходы) за период. 0 = не считается. */
   payout_percentage: number;
   active: boolean;
@@ -556,7 +556,7 @@ export interface Team {
 
   // ── Sprint 033 Phase I43 — custom roles + explicit membership ──
   /** Tenant-authored role taxonomy for THIS brigade. Each member
-   *  below holds one of these. Defaults to [Бригадир, Помощник]
+   *  below holds one of these. Defaults to [Старший, Помощник]
    *  on first write from a legacy lead_ids/helper_ids brigade. */
   roles?: BrigadeRole[];
   /** Who's in this brigade and with what role. When defined this
@@ -568,7 +568,7 @@ export interface Team {
 
 // ─── Brigade custom roles & members (Sprint 033 Phase I43) ──────
 
-/** A brigade can define its own role taxonomy — «Бригадир»,
+/** A brigade can define its own role taxonomy — «Старший»,
  *  «Установщик», «Электрик», whatever the tenant thinks in. Unlike
  *  the system-level MasterRole (admin/dispatcher/lead/helper) these
  *  are display-only labels without permission semantics. */
@@ -766,12 +766,12 @@ export function defaultPermissionsForRole(role: MasterRole): MasterPermissions {
 export const ROLE_LABELS: Record<MasterRole, string> = {
   admin: "Администратор",
   dispatcher: "Диспетчер",
-  lead: "Бригадир",
+  lead: "Старший",
   helper: "Помощник",
 };
 
 export const SALARY_MODEL_LABELS: Record<SalaryModel, string> = {
-  percent_of_team: "% от чистой прибыли бригады",
+  percent_of_team: "% от чистой прибыли команды",
   percent_of_own: "% от своих работ",
   per_visit: "Фиксировано за визит",
   monthly: "Оклад в месяц",
@@ -782,7 +782,7 @@ export const SALARY_MODEL_LABELS: Record<SalaryModel, string> = {
 
 export const SALARY_MODEL_HINTS: Record<SalaryModel, string> = {
   percent_of_team:
-    "ЗП считается из payout_percentage бригады. Самый частый вариант для лида.",
+    "ЗП считается из payout_percentage команды. Самый частый вариант для лида.",
   percent_of_own:
     "Процент считается только с визитов, которые закрыл этот сотрудник.",
   per_visit: "Фиксированная ставка за каждый выполненный визит.",
@@ -825,7 +825,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   can_delete_appointments: "Удалять записи",
   can_complete_appointments: "Отмечать выполненные",
   can_reschedule_appointments: "Переносить записи",
-  can_see_all_teams_calendar: "Видеть календарь всех бригад",
+  can_see_all_teams_calendar: "Видеть календарь всех команд",
   see_prices: "Видеть цены услуг",
 
   // Клиенты
@@ -841,21 +841,21 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   // Финансы
   see_finances: "Видеть общие доходы и расходы",
   see_own_salary: "Видеть свою ЗП",
-  see_own_brigade_revenue: "Видеть доходы бригады",
-  see_own_brigade_expenses: "Видеть расходы бригады",
+  see_own_brigade_revenue: "Видеть доходы команды",
+  see_own_brigade_expenses: "Видеть расходы команды",
   see_all_company_finances: "Видеть финансы всей компании",
   can_add_expenses: "Добавлять расходы",
   can_record_payments: "Отмечать оплату визита",
   can_apply_discounts: "Применять скидки",
 
   // Чаты
-  see_brigade_chats: "Видеть чаты своей бригады",
+  see_brigade_chats: "Видеть чаты своей команды",
   see_all_chats: "Видеть все чаты компании",
   can_reply_chats: "Отвечать в чатах",
 
   // Админ
   can_manage_masters: "Управление мастерами",
-  can_manage_teams: "Управление бригадами",
+  can_manage_teams: "Управление командами",
   can_manage_services: "Управление услугами",
   can_manage_settings: "Настройки компании",
 };

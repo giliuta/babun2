@@ -92,9 +92,9 @@ const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
-  // v431 — "Команда" (Бригады, Мастера) and "Каталог" (Города,
+  // v431 — "Команда" (Команды, Мастера) and "Каталог" (Города,
   // Оборудование) groups dropped from settings per user request.
-  // Бригады/Мастера live in the sidebar (Ещё → Бригады/Мастера) and
+  // Команды/Мастера live in the sidebar (Ещё → Команды/Мастера) and
   // Города/Оборудование are configured inside the brigade/master
   // detail pages, not as standalone catalog screens.
   {

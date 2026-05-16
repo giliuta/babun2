@@ -44,7 +44,7 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     return (
       <BrigadeSectionShell brigadeId={id} title="Календарь" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Бригада не найдена.
+          Команда не найдена.
         </div>
       </BrigadeSectionShell>
     );
@@ -130,7 +130,7 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
 
       <Group
         title="Открывать на"
-        footer="При открытии бригады календарь проскроллится сюда. Пусто = как обычно."
+        footer="При открытии команды календарь проскроллится сюда. Пусто = как обычно."
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
           <input
@@ -187,7 +187,7 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
           global «Мой календарь» values when this brigade is active. */}
       <Group
         title="Поведение календаря"
-        footer="Действует только для этой бригады. Если пусто / выкл — подтягивается глобальный вариант из «Мой календарь»."
+        footer="Действует только для этой команды. Если пусто / выкл — подтягивается глобальный вариант из «Мой календарь»."
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
           {/* Buffer between appointments */}
