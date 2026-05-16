@@ -286,9 +286,42 @@ function DashboardPageInner() {
   // Restore last-used view mode from localStorage after mount so server
   // and client render the same tree. Server always ships "week"; the
   // phone may then upgrade to "day" based on its own width + saved pref.
+  //
+  // Brief 2 #2 («Мой календарь»): `?view=day&date=2026-05-15` URL deep
+  // links win over the localStorage default. The params are stripped
+  // after consumption (same pattern as `?team=` above) so a refresh
+  // doesn't keep snapping back to a stale date.
   const VIEW_MODE_KEY = "babun-view-mode";
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const viewParam = sp.get("view") as ViewMode | null;
+      const dateParam = sp.get("date");
+      let applied = false;
+      if (viewParam && ["day", "3days", "week", "month"].includes(viewParam)) {
+        setViewMode(viewParam);
+        applied = true;
+      }
+      if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+        const [y, m, d] = dateParam.split("-").map(Number);
+        const parsed = new Date(y, m - 1, d);
+        if (!Number.isNaN(parsed.getTime())) {
+          // For day mode the anchor IS the day; for week/3days/month
+          // we still want the Monday so the visible window is stable.
+          const isDay = (viewParam ?? "") === "day";
+          setCurrentMonday(isDay ? parsed : getMonday(parsed));
+          applied = true;
+        }
+      }
+      if (applied) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("view");
+        url.searchParams.delete("date");
+        window.history.replaceState({}, "", url.toString());
+        return;
+      }
+    }
     const saved = getStorage().getRaw(VIEW_MODE_KEY) as ViewMode | null;
     if (saved && ["day", "3days", "week", "month"].includes(saved)) {
       setViewMode(saved);
@@ -990,8 +1023,33 @@ function DashboardPageInner() {
   }, []);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
+    // Brief 2 #3 («Мой календарь»): when the user switches from
+    // week/3days into day view, land on TODAY if today is inside the
+    // currently visible window — not the Monday of the week. The
+    // dispatcher viewing week 11-17 May who taps «День» on Saturday
+    // expects to land on Saturday, not back at Monday 11. If today is
+    // outside the current window the anchor is preserved (they're
+    // looking at a different week deliberately).
+    if (mode === "day") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const winStart = new Date(currentMonday);
+      winStart.setHours(0, 0, 0, 0);
+      const winEnd = addDays(winStart, stepDays - 1);
+      if (today >= winStart && today <= winEnd) {
+        setCurrentMonday(today);
+      }
+    } else if (mode === "week" || mode === "3days" || mode === "month") {
+      // Going BACK to a multi-day window: snap to that window's Monday
+      // so the user sees a clean week boundary, not «week starting
+      // Saturday». Only when currentMonday isn't already a Monday.
+      const dow = currentMonday.getDay(); // 0=Sun..6=Sat
+      if (dow !== 1) {
+        setCurrentMonday(getMonday(currentMonday));
+      }
+    }
     setViewMode(mode);
-  }, []);
+  }, [currentMonday, stepDays]);
 
 
   const handleSelectDate = useCallback((monday: Date) => {
@@ -1407,8 +1465,23 @@ function DashboardPageInner() {
             currentDate={currentMonday}
             appointments={visibleAppointments}
             onDayClick={(date) => {
-              setCurrentMonday(getMonday(date));
+              // Brief 2 #2 («Мой календарь»): clicking 15 May should
+              // open day view on 15 May, not the Monday of that week.
+              // In day mode `currentMonday` is misleadingly named — it's
+              // the leftmost rendered date, with stepDays=1 → that single
+              // day. So we set it to the clicked date directly. The
+              // URL deep-link below makes it shareable.
+              setCurrentMonday(date);
               setViewMode("day");
+              if (typeof window !== "undefined") {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                const url = new URL(window.location.href);
+                url.searchParams.set("view", "day");
+                url.searchParams.set("date", `${y}-${m}-${d}`);
+                window.history.replaceState({}, "", url.toString());
+              }
             }}
           />
         ) : (
