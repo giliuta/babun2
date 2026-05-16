@@ -350,11 +350,28 @@ function MasterRow({
 
   const tile = assignedTeams[0]?.color ?? "#8E8E93";
 
+  // P0 #20 (CRM Core brief) — master row used to render the SYSTEM
+  // role («Помощник») which routinely contradicted the brigade-side
+  // role («Установщик») that the dispatcher actually thinks of the
+  // master as. When the master has a brigade membership with a
+  // tenant-authored role, that name wins; the system role stays as
+  // the fallback (no brigade / no custom role assigned yet).
+  const brigadeRole = (() => {
+    for (const t of assignedTeams) {
+      const member = t.members?.find((m) => m.master_id === master.id);
+      if (!member?.role_id) continue;
+      const r = t.roles?.find((rr) => rr.id === member.role_id);
+      if (r?.name) return r.name;
+    }
+    return null;
+  })();
+  const displayRole = brigadeRole ?? ROLE_LABELS[master.role];
+
   // Subtitle: role (+ custom title) · brigade(s) · phone.
   const pieces: string[] = [];
   const roleBit = master.title
-    ? `${ROLE_LABELS[master.role]} · ${master.title}`
-    : ROLE_LABELS[master.role];
+    ? `${displayRole} · ${master.title}`
+    : displayRole;
   pieces.push(roleBit);
   if (assignedTeams.length === 0) pieces.push("без команды");
   else if (assignedTeams.length === 1) pieces.push(assignedTeams[0].name);

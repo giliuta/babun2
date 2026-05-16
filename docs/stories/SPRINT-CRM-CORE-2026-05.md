@@ -44,7 +44,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 17 | «Подключить канал» на `/chats` | BLOCKED → STORY-047 (WA), STORY-048 (Realtime) | Integration page already a stub (commit `e7579ec`). |
 | 18 | Привязка чатов к клиентам по phone/handle | BLOCKED → STORY-047 | Backend feature. |
 | 19 | Manual reminder `+` button + create form | READY | `recurring` list page exists; add FAB + sheet. Persist in `babun-reminders` until STORY-050. |
-| 20 | Master role = position-in-team (1 поле, не 2) | READY | Tighten `lib/masters.ts`: drop separate `position`, use `role_id` everywhere. Migrate stored objects on load. |
+| 20 | Master role = position-in-team (1 поле, не 2) | **DONE (v555)** | `/masters` MasterRow now displays the brigade-membership role (`brigade.roles → name` via `brigade.members[i].role_id`) when present, falling back to the system role only when no brigade attaches a custom role. Same name surfaces in both `/masters` and `/teams/[id]`. The system role (`MasterRole` enum) stays as the internal permissions field — it's a different concept and intentionally kept. |
 
 ## 🟡 P1 — 15 items
 
@@ -61,7 +61,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 29 | Экспорт CSV/XLSX/PDF | READY (CSV only) | XLSX/PDF defer. CSV is 30 lines for clients + finances. |
 | 30 | Per-master зарплата + «Выплатить» | BLOCKED → STORY-057 | Needs payroll closure period in Supabase. |
 | 31 | Произвольный период во всех отчётах | **DONE-partial (v549)** | Finance PERIODS expanded: Сегодня / Эта неделя / Этот месяц / Этот год / Последние 7 дней / Последние 30 дней / За всё время. `computeRange` + `computePreviousRange` handle every new key with proper «week-over-week» / «year-over-year» comparisons. Custom-range picker deferred (separate UI story). |
-| 32 | `/finances/debts` раздел | READY | Already partly in `FinanceTabs.DebtsTab`. Promote to own route with sort + bulk action. |
+| 32 | `/finances/debts` раздел | **DONE-as-tab** | Full functionality exists as the «Долги клиентов» tab on `/finances` (DebtsTab in `FinanceTabs.tsx`): per-client groups sorted by debt amount + recency, per-row Phone/SMS quick actions. A standalone `/finances/debts` URL is just deep-link sugar — deferred to a tiny follow-up if a real shortcut surface (push notif / dashboard tile) needs to deep-link there. |
 | 33 | CSV import flow | BLOCKED → STORY-046 | Same as #10. |
 | 34 | `source` per-appointment | **DONE** | `appointments.source` field + required-on-create UI shipped in `d8cea33`. Source picker is the same dropdown used in `/clients/new`. |
 | 35 | Touch-only gesture hint | **DONE** | Commit `12d5f85` — desktop-aware. |
