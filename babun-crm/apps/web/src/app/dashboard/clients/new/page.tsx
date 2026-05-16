@@ -41,24 +41,19 @@ import { haptic } from "@/lib/haptics";
 // old {saving, saved, error} trio into one tagged union so the
 // button + indicator never disagree about which message is active.
 import { useSaveStatus } from "@/hooks/useSaveStatus";
+// P0 #6 (CRM Core brief) — shared object-form fields so the create
+// flow here matches the modal editor on /clients/[id].
+import ObjectFormFields, {
+  PROPERTY_CHOICES as SHARED_PROPERTY_CHOICES,
+} from "@/components/clients/ObjectFormFields";
 
 const DEFAULT_PHONE_PREFIX = "+357 ";
 
-// Property-type chips for inline object form. Six options, one row.
-// Drives both the Russian label (visible) and the schema enum.
-interface PropertyChoice {
-  value: PropertyType;
-  label: string;
-  defaultLabel: string;
-}
-const PROPERTY_CHOICES: PropertyChoice[] = [
-  { value: "house", label: "Дом", defaultLabel: "Дом" },
-  { value: "apartment", label: "Квартира", defaultLabel: "Квартира" },
-  { value: "office", label: "Офис", defaultLabel: "Офис" },
-  { value: "shop", label: "Магазин", defaultLabel: "Магазин" },
-  { value: "restaurant", label: "Ресторан", defaultLabel: "Ресторан" },
-  { value: "other", label: "Другое", defaultLabel: "Объект" },
-];
+// P0 #6 — Property-type chip palette moved into the shared
+// ObjectFormFields module; re-export under the legacy local name so
+// the inline-create flow's «start a fresh draft» seed still resolves
+// without touching every call site.
+const PROPERTY_CHOICES = SHARED_PROPERTY_CHOICES;
 
 interface LocationDraft {
   label: string;
@@ -459,59 +454,9 @@ function InlineLocationForm({
   const canSave = draft.address.trim().length > 0;
   return (
     <div className="mt-3 p-3 rounded-[12px] bg-[var(--fill-quaternary)] space-y-2.5">
-      <div className="flex flex-wrap gap-1.5">
-        {PROPERTY_CHOICES.map((p) => {
-          const active = draft.property_type === p.value;
-          return (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => {
-                haptic("tap");
-                onChange({
-                  ...draft,
-                  property_type: p.value,
-                  // Auto-fill the label when user picks a type — but
-                  // only if they haven't already typed a custom one.
-                  label: PROPERTY_CHOICES.some((c) => c.defaultLabel === draft.label)
-                    ? p.defaultLabel
-                    : draft.label,
-                });
-              }}
-              className={`h-8 px-3 rounded-full text-[13px] font-medium transition ${
-                active
-                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
-              }`}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <Field label="Адрес" required>
-        <input
-          type="text"
-          autoFocus
-          value={draft.address}
-          onChange={(e) => onChange({ ...draft, address: e.target.value })}
-          placeholder="ул. Архиепископу Макариу III, 12"
-          className={inputCls}
-          maxLength={200}
-        />
-      </Field>
-
-      <Field label="Заметка для команды" hint="код домофона, собака, особенности входа">
-        <input
-          type="text"
-          value={draft.note}
-          onChange={(e) => onChange({ ...draft, note: e.target.value })}
-          placeholder="зелёная дверь, домофон 25"
-          className={inputCls}
-          maxLength={140}
-        />
-      </Field>
+      {/* P0 #6 — fields delegated to the shared <ObjectFormFields>.
+          InlineLocationForm keeps only its inline Cancel/Save chrome. */}
+      <ObjectFormFields draft={draft} onChange={onChange} autoFocusAddress />
 
       <div className="flex gap-2 pt-1">
         <button
