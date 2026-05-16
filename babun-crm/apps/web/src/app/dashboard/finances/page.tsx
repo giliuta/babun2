@@ -9,8 +9,10 @@ import { useRouter } from "next/navigation";
 import FinanceSparkline, {
   type FinanceDailyPoint,
 } from "@/components/finance/FinanceSparkline";
-import { ChevronDown, SlidersHorizontal } from "@babun/shared/icons";
+import { ChevronDown, Plus, SlidersHorizontal } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
+import ManualTransactionSheet from "@/components/finance/ManualTransactionSheet";
+import { haptic } from "@/lib/haptics";
 import {
   useAppointments,
   useDayExtras,
@@ -47,7 +49,7 @@ const MODE_LABELS: Record<Mode, string> = {
 export default function FinancesPage() {
   const router = useRouter();
   const { appointments } = useAppointments();
-  const { getExtrasFor } = useDayExtras();
+  const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { categories, setCategories } = useExpenseCategories();
   const { services } = useServices();
   const { teams } = useTeams();
@@ -58,6 +60,10 @@ export default function FinancesPage() {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [activeTeam, setActiveTeam] = useState<string>("all");
   const [showCategories, setShowCategories] = useState(false);
+  // P0 #15 (CRM Core brief) — manual transaction sheet anchored to a
+  // floating action button at the bottom-right. Persists into the
+  // existing day-extras store; finance summaries pick it up next render.
+  const [showManualSheet, setShowManualSheet] = useState(false);
 
   const {
     teamTabs,
@@ -282,6 +288,36 @@ export default function FinancesPage() {
           }}
         />
       )}
+
+      {/* P0 #15 — floating action button. Bottom-right with the
+          system safe-area inset so it never lands under the iPhone
+          home indicator. Pinned to viewport so it survives long
+          scrolls in the year-view. */}
+      <button
+        type="button"
+        onClick={() => {
+          haptic("tap");
+          setShowManualSheet(true);
+        }}
+        aria-label="Новая транзакция"
+        title="Новая транзакция"
+        className="fixed z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center shadow-[0_8px_24px_-8px_rgba(0,0,0,0.35)] active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
+        style={{
+          right: "max(env(safe-area-inset-right), 16px)",
+          bottom: "calc(max(env(safe-area-inset-bottom), 16px) + var(--bottom-nav-height, 0px))",
+        }}
+      >
+        <Plus size={24} strokeWidth={2.4} />
+      </button>
+
+      <ManualTransactionSheet
+        open={showManualSheet}
+        onClose={() => setShowManualSheet(false)}
+        teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+        defaultTeamId={activeTeam === "all" ? "" : activeTeam}
+        getExtrasFor={getExtrasFor}
+        setExtrasFor={setExtrasFor}
+      />
     </>
   );
 }

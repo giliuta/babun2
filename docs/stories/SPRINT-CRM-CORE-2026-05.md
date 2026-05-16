@@ -39,7 +39,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 12 | 404 CTA «Открыть клиентов» → «На главную сайта» | **DONE (working tree)** | `not-found.tsx` already rewritten; commit pending. |
 | 13 | Auto-sync appointment → finance_transaction | BLOCKED → STORY-042 | DB triggers + unique constraint on `appointment_id`. |
 | 14 | `payment_status` + `payment_method` + `paid_amount` columns | BLOCKED → STORY-042 | Schema is in this doc § DB schema. |
-| 15 | Manual FAB → bottom-sheet «Новая транзакция» | READY | localStorage version using extra-income+expense stores. Connects to Supabase later. |
+| 15 | Manual FAB → bottom-sheet «Новая транзакция» | **DONE (v559)** | Floating «+» button on `/finances` opens `<ManualTransactionSheet />` (kind toggle, amount, description, team picker, date, expense-category). Persists into the existing `babun-day-extras` store via `useDayExtras().setExtrasFor`; finance summaries pick it up via `useFinanceData` on next render. Transfer kind + client/appointment linking intentionally deferred (cleaner to add when Supabase `finance_transactions` lands per STORY-042). |
 | 16 | Категории доходов (2nd tab) | **DONE (working tree)** | `FinanceTabs.tsx` + `income-categories.ts` in working tree. |
 | 17 | «Подключить канал» на `/chats` | BLOCKED → STORY-047 (WA), STORY-048 (Realtime) | Integration page already a stub (commit `e7579ec`). |
 | 18 | Привязка чатов к клиентам по phone/handle | BLOCKED → STORY-047 | Backend feature. |
