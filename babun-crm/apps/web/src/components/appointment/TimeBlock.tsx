@@ -380,28 +380,67 @@ export default function TimeBlock({
         )}
 
         {expandedMode === "time" && (
-          <div className="flex items-center justify-center">
-            <WheelGroup
-              minutes={MINUTES}
-              hourIdx={startHourIdx}
-              minIdx={startMinIdx}
-              onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
-              onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
-            />
-            <span
-              className="flex-shrink-0 text-[var(--label-tertiary)] select-none"
-              style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
-            >
-              <ArrowRightIcon />
-            </span>
-            <WheelGroup
-              minutes={MINUTES}
-              hourIdx={endHourIdx}
-              minIdx={endMinIdx}
-              onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
-              onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
-            />
-          </div>
+          <>
+            <div className="flex items-center justify-center">
+              <WheelGroup
+                minutes={MINUTES}
+                hourIdx={startHourIdx}
+                minIdx={startMinIdx}
+                onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
+                onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
+              />
+              <span
+                className="flex-shrink-0 text-[var(--label-tertiary)] select-none"
+                style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
+              >
+                <ArrowRightIcon />
+              </span>
+              <WheelGroup
+                minutes={MINUTES}
+                hourIdx={endHourIdx}
+                minIdx={endMinIdx}
+                onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
+                onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
+              />
+            </div>
+            {/* Brief 1 #2: keyboard text input as a parallel surface to
+                the wheels. Two `<input type="time">` boxes:
+                  - desktop: free typing, e.g. «11:45»
+                  - mobile: opens the native time picker which respects
+                    the `step` attribute (seconds)
+                Both feed back through onChange, snapping to the team's
+                step on commit (next clamp). Empty / invalid values are
+                ignored so a half-typed entry doesn't blow up state. */}
+            <div className="mt-2 flex items-center justify-center gap-2 text-[13px] text-[var(--label-secondary)] tabular-nums">
+              <input
+                type="time"
+                value={timeStart}
+                step={MIN_STEP * 60}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!/^\d{2}:\d{2}$/.test(v)) return;
+                  const [h, m] = v.split(":").map(Number);
+                  commitStart(h, m);
+                }}
+                aria-label="Время начала"
+                className="h-9 px-2 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label)] text-[14px] font-semibold focus:outline-none focus:border-[var(--accent)]"
+              />
+              <span aria-hidden>—</span>
+              <input
+                type="time"
+                value={timeEnd}
+                step={MIN_STEP * 60}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!/^\d{2}:\d{2}$/.test(v)) return;
+                  const [h, m] = v.split(":").map(Number);
+                  commitEnd(h, m);
+                }}
+                aria-label="Время окончания"
+                className="h-9 px-2 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label)] text-[14px] font-semibold focus:outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+          </>
         )}
 
         <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>

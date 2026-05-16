@@ -67,14 +67,28 @@ export default function SourceBlock({ value, readonly, onChange, required = fals
           Выберите источник заявки.
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5">
+      {/* Brief 1 #14: «Источник заявки → radio (один из 8)». The pill
+          strip stays — it's the right thumb-zone layout on a 375 px
+          screen — but the semantics are now a real radio group:
+          `role=radio` + `aria-checked`, and clicking the active pill no
+          longer toggles it off (single-select, not chip-deselect). */}
+      <div
+        role="radiogroup"
+        aria-label="Источник заявки"
+        className="flex flex-wrap gap-1.5"
+      >
         {ORDER.map((s) => {
           const active = value === s;
           return (
             <button
               key={s}
               type="button"
-              onClick={() => onChange?.(active ? null : s)}
+              role="radio"
+              aria-checked={active}
+              onClick={() => {
+                if (active) return;
+                onChange?.(s);
+              }}
               className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
                 active
                   ? "bg-[var(--accent)] text-[var(--label-on-accent)]"

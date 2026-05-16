@@ -77,7 +77,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
           onClick={() => setSplitOpen((v) => !v)}
           className="h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5"
         >
-          <ArrowLeftRight size={16} strokeWidth={2} /> Сплит
+          <ArrowLeftRight size={16} strokeWidth={2} /> Раздельно
         </button>
       </div>
 
@@ -119,7 +119,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
             disabled={!splitValid}
             className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)]"
           >
-            Подтвердить сплит
+            Подтвердить
           </button>
         </div>
       )}
