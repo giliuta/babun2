@@ -24,3 +24,11 @@ yarn-error.log*
 # Reference screenshots (Bumpix analysis, one-off captures)
 bumpix-*.png
 *.screenshot.png
+
+# Emergent agent (E1) tracking artifacts. Their sandbox auto-commits
+# `.emergent/emergent.yml` (job_id + timestamp) and a repo-level
+# `.gitconfig` (sets user.name=emergent-agent-e1) into the working
+# tree before push — both are sandbox-local metadata that has no
+# business being in this repo. Ignore so they stop landing on master.
+.emergent/
+.gitconfig
