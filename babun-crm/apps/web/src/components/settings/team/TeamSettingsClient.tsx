@@ -149,6 +149,23 @@ export default function TeamSettingsClient({
   }
 
   async function leaveTeam() {
+    // Brief 2 #24: an owner can't just «leave» — the tenant would be
+    // orphaned. The 23514 CHECK constraint blocks it server-side, but
+    // surface the right action to the user up front: ask them to make
+    // someone else owner first, via the role dropdown on that member's
+    // row. The actual transfer happens through the existing role-change
+    // path; this dialog is the explainer.
+    if (isOwner) {
+      await confirm({
+        title: "Передать владение",
+        message:
+          "Вы единственный или текущий владелец. Сначала назначьте «Владелец» другому участнику через выпадающее меню роли — после этого здесь появится обычная кнопка «Покинуть».",
+        confirmLabel: "Понятно",
+        cancelLabel: "Закрыть",
+        danger: false,
+      });
+      return;
+    }
     const confirmed = await confirm({
       title: "Покинуть команду?",
       message: "Вы потеряете доступ к данным этой команды.",
@@ -241,7 +258,9 @@ export default function TeamSettingsClient({
                   disabled={busy}
                   className="px-3 h-9 rounded-[10px] border border-[var(--separator)] text-[var(--label-secondary)] text-[13px] font-medium active:bg-[var(--fill-quaternary)] transition"
                 >
-                  Покинуть
+                  {/* Brief 2 #24: owners can't «leave» without transferring
+                      ownership; the label calls out the right action. */}
+                  {isOwner ? "Передать владение" : "Покинуть"}
                 </button>
               )}
             </div>
