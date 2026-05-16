@@ -304,6 +304,27 @@ export default function AppointmentSheet({
   const totalDur = calcDuration(appointmentServices);
 
   const isEditable = liveMode === "create" || liveMode === "edit";
+
+  // Live end-time recalc: end ≥ start + Σ service durations. Grows only
+  // — a manually-extended end is never shrunk back. Off in view/done
+  // (readonly) and for personal events (no service list). Clamps at
+  // 23:59 to avoid wrap-around; a visit that crosses midnight should be
+  // booked as two records.
+  useEffect(() => {
+    if (!isEditable || kind === "event") return;
+    if (totalDur <= 0) return;
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const [eh, em] = timeEnd.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = eh * 60 + em;
+    const requiredEnd = Math.min(23 * 60 + 59, startMin + totalDur);
+    if (requiredEnd > endMin) {
+      const nh = Math.floor(requiredEnd / 60);
+      const nm = requiredEnd % 60;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTimeEnd(`${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`);
+    }
+  }, [isEditable, kind, totalDur, timeStart, timeEnd]);
   const readonly = !isEditable;
   const isEventMode = kind === "event";
   // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
@@ -392,20 +413,9 @@ export default function AppointmentSheet({
       ...appointment,
       date: dateKey,
       time_start: timeStart,
-      // Auto-extend time_end by total duration for новой записи.
-      // Clamp at 23:59 instead of wrapping: a visit that spans midnight
-      // should be booked as two records (cancellable separately), not
-      // silently end at the same hour on the same day.
-      time_end:
-        liveMode === "create" && duration > 0
-          ? (() => {
-              const [h, m] = timeStart.split(":").map(Number);
-              const endMin = Math.min(23 * 60 + 59, h * 60 + m + duration);
-              const eh = Math.floor(endMin / 60);
-              const em = endMin % 60;
-              return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
-            })()
-          : timeEnd,
+      // `timeEnd` is kept in sync by the live-recalc effect above:
+      // end ≥ start + Σ service durations, clamped at 23:59. Trust it.
+      time_end: timeEnd,
       client_id: client.id,
       location_id: locationId,
       team_id: activeTeam?.id ?? null,
