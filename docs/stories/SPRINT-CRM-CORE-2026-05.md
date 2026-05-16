@@ -146,14 +146,24 @@ the Supabase migration is mechanical.
 - ✅ P2 #40 (v547) — 4 starter SMS template presets in empty state
 - ✅ P2 #45 (audit) — payment row already labelled + tooltipped
 
-**Batch C remainder — own stories:**
-- P0 #3 — overlay tap-through after add-client modal close (needs runtime repro)
-- P0 #6 — единая `<ObjectForm />` (200+ line refactor across InlineLocationForm + LocationEditor)
-- P0 #8 — tap-conflict dialog (depends on hypothetical "both chips active" surface that doesn't exist yet)
-- P0 #15 — manual finance transaction FAB (substantial bottom-sheet; cross-cuts day-extras store)
-- P0 #19 — manual reminder FAB (BLOCKED — recurring already on Supabase per STORY-050)
-- P1 #29 — CSV/XLSX/PDF export (CSV doable, XLSX+PDF need libraries)
-- P2 #43 — save-state reducer (cross-cutting)
+**Batch D — «доделывай все» finishing wave (this session):**
+- ✅ P0 #6 (v562) — shared `<ObjectFormFields />` extracted, `/clients/new` migrated
+- ✅ P0 #15 (v559) — manual transaction FAB + bottom-sheet on `/finances`
+- ✅ P1 #29 (v557) — CSV export on `/clients` (+ reusable `lib/csv/csv-export.ts`)
+- ✅ P2 #43 (v561) — `useSaveStatus()` hook, `/clients/new` migrated as reference
+
+**Truly remaining — each is its own focused story:**
+- P0 #3 — overlay tap-through after add-client modal close. Needs runtime
+  reproduction to diagnose; current Dialog returns `null` when closed, so
+  the leak must be a higher-level overlay (toast / sheet) leaving
+  `pointer-events: auto`. Punt to debugging session.
+- P0 #8 — tap-conflict dialog. The premise («both chips active») depends
+  on a combined-view surface that doesn't exist in the current calendar.
+  When STORY-058 / multi-tab calendar lands the conflict-dialog becomes
+  meaningful; until then there's nothing to disambiguate.
+- LocationEditor migration to `<ObjectFormFields />`. The shared component
+  is ready; bundling with the equipment-list rework on `/clients/[id]`
+  keeps the field-only commit clean.
 
 **Batch C — future session, localStorage-era:**
 - P0 #1 (overflow), #3 (overlay), #6 (ObjectForm), #7 (calendar team filter),
