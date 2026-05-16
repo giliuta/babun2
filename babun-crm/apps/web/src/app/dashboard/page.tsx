@@ -1117,6 +1117,17 @@ function DashboardPageInner() {
           e.preventDefault();
           openNewAppointmentInline(null, null, "work");
           return;
+        case "Escape":
+          // Brief 1 #26: Esc closes the long-press action menu when
+          // open. Other modals (AppointmentSheet, PersonalEventSheet,
+          // CityPickerModal) own their own Esc handlers that gate on
+          // their own dirty / open state.
+          if (longPressApt) {
+            e.preventDefault();
+            setLongPressApt(null);
+            return;
+          }
+          return;
         default:
           return;
       }
@@ -1129,6 +1140,7 @@ function DashboardPageInner() {
     handleToday,
     setViewMode,
     openNewAppointmentInline,
+    longPressApt,
   ]);
 
   // ─── dnd-kit sensors: mouse for desktop only ───────────────────────────
