@@ -29,11 +29,18 @@ interface Props {
   appointmentsCount: number;
   /** Tap-to-create handler. */
   onCreateClick: () => void;
+  /** v516 P0 #2.4 — switches the CTA copy + body so the button label
+   *  matches the sheet that will actually open. The parent decides
+   *  which sheet to mount based on the same flag, so without this
+   *  context the dispatcher saw «Добавить первую запись» that opened
+   *  the personal-event sheet («Обед / Встреча / Выезд в офис»). */
+  mode?: "appointment" | "event";
 }
 
 export function CalendarEmptyState({
   appointmentsCount,
   onCreateClick,
+  mode = "appointment",
 }: Props) {
   const [dismissed, setDismissed] = useState(true);
 
@@ -91,10 +98,12 @@ export function CalendarEmptyState({
           </span>
           <div className="flex-1 min-w-0">
             <div className="text-[15px] font-semibold text-[var(--label)] tracking-tight">
-              Пока нет записей
+              {mode === "event" ? "Пока нет событий" : "Пока нет записей"}
             </div>
             <div className="text-[13px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-              Тапни на любую ячейку времени, чтобы добавить первую запись. Или нажми кнопку ниже.
+              {mode === "event"
+                ? "Нажмите на ячейку времени, чтобы добавить событие в свой календарь. Или кнопку ниже."
+                : "Нажмите на ячейку времени, чтобы добавить запись клиента. Или кнопку ниже."}
             </div>
           </div>
           <button
@@ -111,7 +120,7 @@ export function CalendarEmptyState({
           onClick={handleCreate}
           className="mt-3 w-full h-11 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
         >
-          Добавить первую запись
+          {mode === "event" ? "Добавить событие" : "Добавить первую запись"}
         </button>
       </div>
     </div>

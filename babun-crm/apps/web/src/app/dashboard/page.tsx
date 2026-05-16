@@ -1449,6 +1449,7 @@ function DashboardPageInner() {
           alternate path. */}
       <CalendarEmptyState
         appointmentsCount={appointments.length}
+        mode={isPersonalTab ? "event" : "appointment"}
         onCreateClick={() => {
           // Snap to a sensible work-hour default. If we just rolled
           // (now.hours + 1) % 24 we'd get "00:00" any time after
