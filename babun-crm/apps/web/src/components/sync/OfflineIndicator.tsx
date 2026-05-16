@@ -28,6 +28,7 @@
 import { useEffect, useState } from "react";
 import { useIsOnline } from "@/lib/sync/network";
 import { useQueueDepth } from "@/lib/sync/queue-events";
+import { useSyncError, clearSyncError } from "@/lib/sync/sync-error-bus";
 
 interface Props {
   onOpenPanel: () => void;
@@ -51,21 +52,48 @@ export default function OfflineIndicator({ onOpenPanel }: Props) {
 
   const online = useIsOnline();
   const depth = useQueueDepth();
+  // v509 — sync-error bus surfaces failures of the kitchen-sink
+  // tenant_state.prototype_state backup path. Wins over the blue
+  // pending pill so the user notices an actual problem instead of
+  // assuming all writes landed.
+  const { lastError } = useSyncError();
 
   if (!mounted) return null;
 
   // Happy path — render nothing.
-  if (online && depth === 0) return null;
+  if (online && depth === 0 && !lastError) return null;
 
   const isOffline = !online;
-  const label = isOffline ? "Без сети" : `Синхронизация: ${depth}`;
-  const tappable = !isOffline; // queue panel only useful when online
+  const isError = !isOffline && !!lastError;
+  const label = isError
+    ? "Ошибка синхронизации"
+    : isOffline
+      ? "Без сети"
+      : `Синхронизация: ${depth}`;
+  const tappable = isError || !isOffline; // offline pill is informational only
 
   const pillBase =
     "pointer-events-auto inline-flex items-center gap-2 px-3 h-7 rounded-full text-[12px] font-semibold leading-none shadow-[0_4px_12px_-4px_rgba(0,0,0,0.18)] transition";
-  const pillStyle = isOffline
-    ? "bg-[var(--surface-card-secondary)] text-[var(--label-secondary)]"
-    : "bg-[var(--system-blue)] text-white active:opacity-70";
+  let pillStyle: string;
+  if (isError) {
+    pillStyle = "bg-[var(--system-red)] text-white active:opacity-70";
+  } else if (isOffline) {
+    pillStyle =
+      "bg-[var(--surface-card-secondary)] text-[var(--label-secondary)]";
+  } else {
+    pillStyle = "bg-[var(--system-blue)] text-white active:opacity-70";
+  }
+
+  const handleClick = () => {
+    if (isError) {
+      // Acknowledge so the pill goes away; a subsequent successful
+      // save will clear it again anyway, but the user can dismiss
+      // immediately and continue working.
+      clearSyncError();
+      return;
+    }
+    onOpenPanel();
+  };
 
   return (
     <div
@@ -79,14 +107,18 @@ export default function OfflineIndicator({ onOpenPanel }: Props) {
       {tappable ? (
         <button
           type="button"
-          onClick={onOpenPanel}
+          onClick={handleClick}
+          data-testid={isError ? "sync-status-error" : "sync-status-pending"}
           className={`${pillBase} ${pillStyle}`}
         >
           <Dot />
           {label}
         </button>
       ) : (
-        <div className={`${pillBase} ${pillStyle}`}>
+        <div
+          data-testid="sync-status-offline"
+          className={`${pillBase} ${pillStyle}`}
+        >
           <Dot dim />
           {label}
         </div>

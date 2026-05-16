@@ -18,6 +18,7 @@
 // migrations can come later once the data model is stable.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportSyncError, clearSyncError } from "./sync-error-bus";
 import {
   loadMasters,
   loadTeams,
@@ -98,6 +99,7 @@ export async function fetchTenantState(
   if (error) {
     // eslint-disable-next-line no-console
     console.warn("[tenant-state] fetch failed", error);
+    reportSyncError(error);
     return null;
   }
   if (!data?.prototype_state) return null;
@@ -121,7 +123,12 @@ export async function saveTenantState(
   if (error) {
     // eslint-disable-next-line no-console
     console.warn("[tenant-state] save failed", error);
+    reportSyncError(error);
+    return;
   }
+  // Success — clear any previously surfaced error so the red pill
+  // disappears as soon as the next save lands.
+  clearSyncError();
 }
 
 /** Restore any locally-empty store from the server blob.
