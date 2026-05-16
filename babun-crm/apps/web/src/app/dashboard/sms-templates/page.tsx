@@ -227,7 +227,7 @@ function TemplateEditor({
           {/* Token palette */}
           <div>
             <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
-              Доступные переменные (тап для вставки)
+              Доступные переменные (нажмите, чтобы вставить)
             </label>
             <div className="flex flex-wrap gap-2">
               {AVAILABLE_TOKENS.map(({ token, label }) => (

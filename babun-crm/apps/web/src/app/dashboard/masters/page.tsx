@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
   AlertTriangle,
   ArchiveRestore,
@@ -282,17 +283,7 @@ export default function MastersPage() {
                 </div>
               )}
 
-              <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
-                Тап — открыть. Свайп вправо —{" "}
-                <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
-                  в архив
-                </span>
-                . Свайп влево —{" "}
-                <span className="text-[var(--system-red)] font-medium">
-                  удалить
-                </span>
-                . Долгое нажатие — меню.
-              </div>
+              <GestureHint />
             </>
           )}
         </div>
@@ -493,4 +484,29 @@ function useLongPressOrTap({
       e.preventDefault();
     },
   };
+}
+
+// v519 §3.6 — desktop / mobile gesture hint split (matches the
+// teams list version in /dashboard/teams). Swipe / long-press only
+// mean something on touch; on lg+ we show right-click + drag-handle.
+function GestureHint() {
+  const isDesktop = useIsDesktop();
+  if (isDesktop) {
+    return (
+      <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
+        Клик — открыть. Правый клик — меню.
+      </div>
+    );
+  }
+  return (
+    <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
+      Нажмите — открыть. Свайп вправо —{" "}
+      <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
+        в архив
+      </span>
+      . Свайп влево —{" "}
+      <span className="text-[var(--system-red)] font-medium">удалить</span>.
+      Долгое нажатие — меню.
+    </div>
+  );
 }

@@ -362,7 +362,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
           )}
         </button>
         <div className="text-[13px] text-[var(--label-tertiary)]">
-          {isNew ? "Новая карточка" : "Тап — сменить фото"}
+          {isNew ? "Новая карточка" : "Нажмите, чтобы сменить фото"}
         </div>
       </div>
 

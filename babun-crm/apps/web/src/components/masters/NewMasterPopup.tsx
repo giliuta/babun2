@@ -181,7 +181,7 @@ export default function NewMasterPopup({
                 )}
               </button>
               <div className="text-[12px] text-[var(--label-tertiary)]">
-                Тап — выбрать фото
+                Нажмите, чтобы выбрать фото
               </div>
             </div>
 

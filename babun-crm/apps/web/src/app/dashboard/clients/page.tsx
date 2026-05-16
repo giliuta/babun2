@@ -615,7 +615,7 @@ export default function ClientsPage() {
       {tutorialClients.show && clients.length === 0 && !clientsLoading && (
         <TutorialOverlay
           targetId="clients-add"
-          text="Здесь добавляешь клиентов. Тапни «+», заполни имя и телефон — и контакт появится в списке."
+          text="Здесь добавляйте клиентов. Нажмите «+», заполните имя и телефон — и контакт появится в списке."
           onDismiss={tutorialClients.complete}
         />
       )}
