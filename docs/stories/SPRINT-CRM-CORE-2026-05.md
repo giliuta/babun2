@@ -128,10 +128,32 @@ the Supabase migration is mechanical.
 - ✅ P1 #22 — already gated in code (no commit needed)
 
 **Batch B remainder — current state:**
-- ✅ P2 #44 (v541) — kebab menu in `/masters/[id]` header
+- ✅ P2 #44 (v541/543) — kebab menu in `/masters/[id]` header
 - ⊘ P1 #21 — DROP-by-audit (no «Babun App» entry exists in code)
 - ⊘ P1 #26 — BLOCKED-on-data-model (no `country_code` on CompanyInfo)
 - ⏭ P2 #43 — deferred (cross-cutting save-state reducer needs its own pass)
+
+**Batch C — autonomous wave (this session, «делай все до конца»):**
+- ✅ P0 #1 (audit) — `ClientCardPage` already scrolls correctly
+- ✅ P0 #7 (v547) — calendar shows every brigade appointment regardless of `master_id`
+- ✅ P0 #9 (audit) — event types already from `personal-event-types` registry
+- ✅ P0 #20 (v555) — brigade-membership role wins in `/masters` MasterRow
+- ✅ P1 #23 (v553) — VIP / blacklist toggle chips in `/clients/new`
+- ✅ P1 #25 (v547) — city in `/clients/new` sourced from `cities` registry
+- ✅ P1 #31 (v549) — finance period presets (today / week / month / year / 7d / 30d / all)
+- ✅ P1 #32 (audit) — DebtsTab on `/finances` already implements the spec
+- ✅ P1 #34 (audit) — `appointments.source` shipped earlier (d8cea33)
+- ✅ P2 #40 (v547) — 4 starter SMS template presets in empty state
+- ✅ P2 #45 (audit) — payment row already labelled + tooltipped
+
+**Batch C remainder — own stories:**
+- P0 #3 — overlay tap-through after add-client modal close (needs runtime repro)
+- P0 #6 — единая `<ObjectForm />` (200+ line refactor across InlineLocationForm + LocationEditor)
+- P0 #8 — tap-conflict dialog (depends on hypothetical "both chips active" surface that doesn't exist yet)
+- P0 #15 — manual finance transaction FAB (substantial bottom-sheet; cross-cuts day-extras store)
+- P0 #19 — manual reminder FAB (BLOCKED — recurring already on Supabase per STORY-050)
+- P1 #29 — CSV/XLSX/PDF export (CSV doable, XLSX+PDF need libraries)
+- P2 #43 — save-state reducer (cross-cutting)
 
 **Batch C — future session, localStorage-era:**
 - P0 #1 (overflow), #3 (overlay), #6 (ObjectForm), #7 (calendar team filter),
