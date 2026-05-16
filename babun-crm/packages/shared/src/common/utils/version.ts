@@ -14,7 +14,7 @@
 //                    patch = 513 % 100). This is what the user sees
 //                    in the sidebar footer and settings page footer.
 
-export const BUILD_VERSION = "v519-desktop-aware-hints";
+export const BUILD_VERSION = "v520-register-name-and-terms";
 
 function deriveDisplayVersion(slug: string): string {
   const match = slug.match(/^v(\d+)/);
