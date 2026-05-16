@@ -194,8 +194,22 @@ export default function PersonalEventSheet({
       ) ||
       JSON.stringify(repeat) !==
         JSON.stringify(appointment.event_repeat ?? NO_REPEAT));
+  // v517 P0 #2.7 — close-confirm should NOT fire when the create-mode
+  // form is empty: user picked a slot, glanced at the sheet, tapped X
+  // — no reason to ask «Сохранить?» about nothing. Treat the form as
+  // empty when no user-supplied content fields are set; default colour
+  // / time / repeat=none alone don't count as «something to save».
+  const createDirty =
+    mode === "create" &&
+    (title.trim().length > 0 ||
+      notes.trim().length > 0 ||
+      address.trim().length > 0 ||
+      url.trim().length > 0 ||
+      pushEnabled ||
+      pushAt !== null ||
+      repeat.kind !== "none");
   const handleCloseRequest = () => {
-    if (mode === "create" || editDirty) setCloseConfirm(true);
+    if (editDirty || createDirty) setCloseConfirm(true);
     else onClose();
   };
 
@@ -558,6 +572,7 @@ export default function PersonalEventSheet({
       {closeConfirm && (
         <CloseConfirmPopup
           mode={mode}
+          canSave={canSave}
           onSave={() => {
             setCloseConfirm(false);
             const payload = buildPayload();
@@ -575,16 +590,22 @@ export default function PersonalEventSheet({
   );
 }
 
-// v485 — close-with-unsaved-changes confirm popup. iOS-style action
-// sheet: Сохранить (default accent), Не сохранять (destructive red),
-// Отмена (cancel — keeps the sheet open).
+// v517 P0 #2.7 — close-with-unsaved-changes confirm popup. Hierarchy
+// swapped vs v485: the destructive «Не сохранять» is now the primary
+// (filled red) action — closing the sheet is what the user has just
+// tried to do, so make that one easy. «Сохранить» is the secondary
+// outlined option and is only enabled when the form is valid enough
+// to save (controlled by the `canSave` prop). «Отмена» keeps the
+// sheet open.
 function CloseConfirmPopup({
   mode,
+  canSave,
   onSave,
   onDiscard,
   onKeep,
 }: {
   mode: PersonalEventSheetMode;
+  canSave: boolean;
   onSave: () => void;
   onDiscard: () => void;
   onKeep: () => void;
@@ -607,26 +628,30 @@ function CloseConfirmPopup({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[15px] font-semibold text-[var(--label)] text-center">
-          {mode === "edit" ? "Сохранить изменения?" : "Сохранить событие?"}
+          {mode === "edit" ? "Закрыть без сохранения?" : "Закрыть событие?"}
         </div>
         <div className="text-[12px] text-[var(--label-secondary)] text-center mt-1.5">
           {mode === "edit"
-            ? "Иначе изменения не запишутся."
-            : "Без названия событие сохранится пустым."}
+            ? "Изменения не запишутся."
+            : "Введённые данные не сохранятся."}
         </div>
-        <button
-          type="button"
-          onClick={onSave}
-          className="w-full mt-4 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98] transition"
-        >
-          Сохранить
-        </button>
+        {/* Primary — destructive discard. */}
         <button
           type="button"
           onClick={onDiscard}
-          className="w-full mt-2 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] transition"
+          className="w-full mt-4 h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[14px] font-semibold active:scale-[0.98] transition"
         >
           Не сохранять
+        </button>
+        {/* Secondary — save, only when the form is valid. */}
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave}
+          className="w-full mt-2 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
+          title={canSave ? "" : "Заполните название, чтобы сохранить"}
+        >
+          Сохранить
         </button>
         <button
           type="button"

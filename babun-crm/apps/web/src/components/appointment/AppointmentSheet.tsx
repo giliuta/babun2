@@ -984,14 +984,28 @@ export default function AppointmentSheet({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-              Сохранить запись?
+              {liveMode === "edit" ? "Закрыть без сохранения?" : "Закрыть запись?"}
             </div>
-            {!canSave && (
-              <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--system-red)]">
-                Не хватает данных для сохранения
-              </div>
-            )}
+            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
+              {canSave
+                ? "Введённые данные не сохранятся."
+                : "Не хватает данных для сохранения — закрыть форму?"}
+            </div>
+            {/* v517 P0 #2.7 — destructive «Не сохранять» promoted to
+                primary (filled red): closing the sheet is the user's
+                intent. «Сохранить» drops to secondary outlined and is
+                only enabled when canSave. */}
             <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCloseConfirm(false);
+                  onClose();
+                }}
+                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
+              >
+                Не сохранять
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -1000,23 +1014,9 @@ export default function AppointmentSheet({
                   setCloseConfirm(false);
                 }}
                 disabled={!canSave}
-                className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
-                  canSave
-                    ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-                    : "bg-[var(--fill-primary)] text-[var(--label-tertiary)] cursor-not-allowed"
-                }`}
+                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
               >
                 Сохранить
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCloseConfirm(false);
-                  onClose();
-                }}
-                className="w-full h-11 rounded-[10px] bg-[var(--surface-card)] border border-[var(--separator)] text-[15px] font-semibold text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)]"
-              >
-                Не сохранять
               </button>
             </div>
           </div>
