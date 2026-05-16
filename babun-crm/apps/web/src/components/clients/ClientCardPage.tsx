@@ -51,7 +51,7 @@ export default function ClientCardPage({
   onBack,
 }: ClientCardPageProps) {
   const router = useRouter();
-  const { clients, upsertClient, deleteClient } = useClients();
+  const { clients, clientsLoading, upsertClient, deleteClient } = useClients();
   const { appointments } = useAppointments();
   const { services } = useServices();
   const confirm = useConfirm();
@@ -89,6 +89,12 @@ export default function ClientCardPage({
   }, [client, activeLocationId]);
 
   if (!client) {
+    // P0 #1 (CRM Core brief): while the clients list is still being
+    // fetched from Supabase, `client` is undefined and the old branch
+    // misleadingly shouted «Клиент не найден» for a beat. Show a
+    // skeleton during hydration; reserve the not-found copy for the
+    // real case (URL hits a deleted / wrong id after load).
+    if (clientsLoading) return <ClientCardSkeleton />;
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-[var(--surface-grouped)] p-6">
         <div className="text-[14px] text-[var(--label-secondary)] mb-3">
@@ -344,5 +350,43 @@ function MenuRow({
         <ChevronLeft size={14} strokeWidth={2.5} className="rotate-180" />
       </span>
     </button>
+  );
+}
+
+// P0 #1 (CRM Core brief) — first-paint skeleton for the client card.
+// Mirrors the real layout coarsely: sticky header bar + avatar + name
+// + phone placeholders, two primary action chips, then two stub
+// content blocks. Renders only while `clientsLoading && !client`
+// (initial hydration). Once `clientsLoading` flips false, the real
+// not-found branch takes over.
+function ClientCardSkeleton() {
+  const bar = "bg-[var(--fill-secondary)] rounded animate-pulse";
+  return (
+    <div className="flex-1 flex flex-col bg-[var(--surface-grouped)]">
+      <div className="sticky top-0 z-10 bg-[var(--surface-card)] border-b border-[var(--separator)] px-4 py-3 flex items-center gap-3">
+        <div className={`w-7 h-7 rounded-full ${bar}`} />
+        <div className={`flex-1 h-4 ${bar}`} />
+        <div className={`w-7 h-7 rounded-full ${bar}`} />
+      </div>
+
+      <div className="px-4 pt-4 flex items-center gap-3">
+        <div className={`w-14 h-14 rounded-full ${bar}`} />
+        <div className="flex-1 space-y-2">
+          <div className={`h-4 w-2/3 ${bar}`} />
+          <div className={`h-3 w-1/2 ${bar}`} />
+        </div>
+      </div>
+
+      <div className="px-4 pt-4 flex items-center gap-2">
+        <div className={`flex-1 h-11 rounded-[10px] ${bar}`} />
+        <div className={`flex-1 h-11 rounded-[10px] ${bar}`} />
+        <div className={`w-11 h-11 rounded-full ${bar}`} />
+      </div>
+
+      <div className="px-4 pt-5 space-y-3">
+        <div className={`h-24 rounded-2xl ${bar}`} />
+        <div className={`h-32 rounded-2xl ${bar}`} />
+      </div>
+    </div>
   );
 }
