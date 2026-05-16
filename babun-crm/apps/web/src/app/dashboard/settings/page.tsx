@@ -179,62 +179,77 @@ export default function SettingsPage() {
       <PageHeader title="Настройки" backHref="/dashboard" />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
-        <div className="max-w-3xl mx-auto px-4 py-4 space-y-6 stagger-children">
+        {/* v529 §3.13 — wider container (max-w-5xl) on lg+ so the
+            2-column grid below has room to breathe. Mobile keeps the
+            standard 3xl reading width via the inner grid collapsing
+            to one column. */}
+        <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-4 stagger-children">
           <h1 className="large-title">Настройки</h1>
 
-          <AccountHero />
+          <div className="mt-6">
+            <AccountHero />
+          </div>
 
-          {NAV_GROUPS.map((group) => (
-            <Group key={group.title} title={group.title}>
-              <div className="divide-y divide-[var(--separator)]">
-                {group.items.map((s) => {
-                  const Icon = s.icon;
-                  const tutorialId =
-                    s.href === "/dashboard/settings/billing"
-                      ? "settings-billing"
-                      : undefined;
-                  return (
-                    <Link
-                      key={s.href}
-                      href={s.href}
-                      data-tutorial={tutorialId}
-                      className="flex items-center gap-3 px-4 py-3 min-h-[58px] active:bg-[var(--fill-tertiary)] transition-colors press-scale"
-                    >
-                      <span
-                        className={`tile tile-grad ${s.tone}`}
-                        style={{ width: 30, height: 30 }}
+          {/* v529 §3.13 — settings groups laid out in a 2-column
+              grid on lg+. Each Group keeps its internal divide-y row
+              styling; only the outer composition changes. Mobile
+              (default) falls back to single column with the same
+              space-y rhythm as before. */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {NAV_GROUPS.map((group) => (
+              <Group key={group.title} title={group.title}>
+                <div className="divide-y divide-[var(--separator)]">
+                  {group.items.map((s) => {
+                    const Icon = s.icon;
+                    const tutorialId =
+                      s.href === "/dashboard/settings/billing"
+                        ? "settings-billing"
+                        : undefined;
+                    return (
+                      <Link
+                        key={s.href}
+                        href={s.href}
+                        data-tutorial={tutorialId}
+                        className="flex items-center gap-3 px-4 py-3 min-h-[58px] active:bg-[var(--fill-tertiary)] transition-colors press-scale"
                       >
-                        <Icon size={18} strokeWidth={2.2} />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[15px] font-medium text-[var(--label)] truncate">
-                          {s.title}
+                        <span
+                          className={`tile tile-grad ${s.tone}`}
+                          style={{ width: 30, height: 30 }}
+                        >
+                          <Icon size={18} strokeWidth={2.2} />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[15px] font-medium text-[var(--label)] truncate">
+                            {s.title}
+                          </div>
+                          <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 truncate">
+                            {s.desc}
+                          </div>
                         </div>
-                        <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 truncate">
-                          {s.desc}
-                        </div>
-                      </div>
-                      <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
-                    </Link>
-                  );
-                })}
-              </div>
-            </Group>
-          ))}
+                        <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </Group>
+            ))}
+          </div>
 
-          <HapticsSection />
+          <div className="mt-6 space-y-6">
+            <HapticsSection />
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full section-card flex items-center justify-center gap-2 py-3.5 text-[15px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-tertiary)] transition press-scale"
-          >
-            <LogOut size={16} strokeWidth={2.2} />
-            Выйти из аккаунта
-          </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full section-card flex items-center justify-center gap-2 py-3.5 text-[15px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-tertiary)] transition press-scale"
+            >
+              <LogOut size={16} strokeWidth={2.2} />
+              Выйти из аккаунта
+            </button>
 
-          <div className="text-center text-[11px] text-[var(--label-quaternary)] py-2">
-            Babun · {DISPLAY_VERSION}
+            <div className="text-center text-[11px] text-[var(--label-quaternary)] py-2">
+              Babun · {DISPLAY_VERSION}
+            </div>
           </div>
         </div>
       </div>
