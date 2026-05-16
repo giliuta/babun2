@@ -14,7 +14,7 @@
 //                    patch = 513 % 100). This is what the user sees
 //                    in the sidebar footer and settings page footer.
 
-export const BUILD_VERSION = "v563-finance-csv-button";
+export const BUILD_VERSION = "v564-settings-adopt-save-hook";
 
 function deriveDisplayVersion(slug: string): string {
   const match = slug.match(/^v(\d+)/);
