@@ -18,6 +18,7 @@ import {
 // tells the truth about per-SMS bill (Cyrillic → 70 chars, Latin →
 // 160). 6 vitest cases cover the math.
 import { analyzeSmsEncoding } from "@babun/shared/local/sms-encoding";
+import { getSmsPresets, type SmsPreset } from "@babun/shared/local/sms-presets";
 
 // P2 #40 (CRM Core brief) — starter templates surfaced in the empty
 // state. Each one creates a draft that opens straight into the
@@ -265,6 +266,23 @@ function TemplateEditor({
   const encInfo = useMemo(() => analyzeSmsEncoding(preview), [preview]);
   const smsLength = encInfo.length;
   const smsCount = encInfo.segments;
+  // v547 §3.10 — per-kind preset chips. Surfaced as «Применить»
+  // tiles below the body textarea, but only when the body is still
+  // blank so we never silently clobber the user's draft. Re-renders
+  // the moment the user picks a different kind from the dropdown.
+  const presets = useMemo(() => getSmsPresets(draft.kind), [draft.kind]);
+
+  const applyPreset = (preset: SmsPreset) => {
+    setDraft((d) => ({
+      ...d,
+      // Auto-fill name only when blank — preserves the user's typing.
+      name: d.name.trim() ? d.name : preset.name,
+      body: preset.body,
+    }));
+    // After applying, refocus the textarea so the user can continue
+    // editing without a tap.
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
 
   const insertToken = (token: string) => {
     const ta = textareaRef.current;
@@ -365,6 +383,40 @@ function TemplateEditor({
               </div>
             )}
           </div>
+
+          {/* v547 §3.10 — preset library. Per-kind starter templates.
+              Only shows when body is empty so we never clobber a
+              draft the user already started. */}
+          {presets.length > 0 && !draft.body.trim() && (
+            <div>
+              <label className="block text-[12px] font-medium text-[var(--label-secondary)] mb-2 tracking-wide">
+                Готовые шаблоны для «{KIND_LABELS[draft.kind]}»
+              </label>
+              <div className="flex flex-col gap-2">
+                {presets.map((preset, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => applyPreset(preset)}
+                    data-testid={`sms-preset-${draft.kind}-${i}`}
+                    className="text-left px-3 py-2.5 bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] active:bg-[var(--fill-quaternary)] transition"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span className="text-[13px] font-semibold text-[var(--label)]">
+                        {preset.label}
+                      </span>
+                      <span className="text-[11px] text-[var(--accent)] font-medium shrink-0">
+                        Применить →
+                      </span>
+                    </div>
+                    <div className="text-[12px] text-[var(--label-secondary)] leading-snug line-clamp-2">
+                      {preset.body}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Token palette */}
           <div>
