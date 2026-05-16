@@ -60,7 +60,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 28 | Графики в Финансах (Recharts) | BLOCKED → STORY-044b (analytics) | Story exists. |
 | 29 | Экспорт CSV/XLSX/PDF | READY (CSV only) | XLSX/PDF defer. CSV is 30 lines for clients + finances. |
 | 30 | Per-master зарплата + «Выплатить» | BLOCKED → STORY-057 | Needs payroll closure period in Supabase. |
-| 31 | Произвольный период во всех отчётах | READY | Date-range picker already exists in some places; standardize. |
+| 31 | Произвольный период во всех отчётах | **DONE-partial (v549)** | Finance PERIODS expanded: Сегодня / Эта неделя / Этот месяц / Этот год / Последние 7 дней / Последние 30 дней / За всё время. `computeRange` + `computePreviousRange` handle every new key with proper «week-over-week» / «year-over-year» comparisons. Custom-range picker deferred (separate UI story). |
 | 32 | `/finances/debts` раздел | READY | Already partly in `FinanceTabs.DebtsTab`. Promote to own route with sort + bulk action. |
 | 33 | CSV import flow | BLOCKED → STORY-046 | Same as #10. |
 | 34 | `source` per-appointment | READY (already partial) | `appointments.source` already added per `d8cea33`. Make sure all forms surface it. |
