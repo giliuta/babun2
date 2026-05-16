@@ -20,7 +20,7 @@ import {
   useTenantName,
   useUserEmail,
 } from "@/components/layout/DashboardClientLayout";
-import { BUILD_VERSION } from "@babun/shared/common/utils/version";
+import { DISPLAY_VERSION } from "@babun/shared/common/utils/version";
 import { TutorialOverlay } from "@/components/onboarding/TutorialOverlay";
 import { useTutorialState } from "@/components/onboarding/useTutorialState";
 import { signOut } from "@/lib/supabase/auth-client";
@@ -234,7 +234,7 @@ export default function SettingsPage() {
           </button>
 
           <div className="text-center text-[11px] text-[var(--label-quaternary)] py-2">
-            Babun · {BUILD_VERSION}
+            Babun · {DISPLAY_VERSION}
           </div>
         </div>
       </div>

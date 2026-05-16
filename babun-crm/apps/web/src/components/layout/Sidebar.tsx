@@ -19,7 +19,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useTenantId } from "@/components/layout/DashboardClientLayout";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
-import { BUILD_VERSION } from "@babun/shared/common/utils/version";
+import { DISPLAY_VERSION } from "@babun/shared/common/utils/version";
 // STORY-064 — ICON_TONE_BG dropped in the visual modernization
 // (NavRow no longer uses colored tile backgrounds). Type kept for
 // the optional `tone` prop on the API to avoid breaking call sites.
@@ -321,7 +321,7 @@ export default function Sidebar({
             <SyncTime />
           </div>
           <div className="text-[12px] text-[var(--label-tertiary)] mt-1 font-mono tracking-wide">
-            {BUILD_VERSION}
+            {DISPLAY_VERSION}
           </div>
           <div className="text-[11px] text-[var(--label-tertiary)] mt-3 leading-tight">
             <a href="/privacy" className="underline">Конфиденциальность</a>
