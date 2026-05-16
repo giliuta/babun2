@@ -40,5 +40,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "supabase/functions/**"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions/**",
+    "e2e/**",
+    "playwright.config.ts"
+  ]
 }

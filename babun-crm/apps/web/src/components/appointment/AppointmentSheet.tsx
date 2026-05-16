@@ -612,6 +612,11 @@ export default function AppointmentSheet({
             timeStart={timeStart}
             timeEnd={timeEnd}
             readOnly={readonly}
+            // Brief 1 #2: honour the active team's slot granularity
+            // (15/30/60). Personal events keep the default 5-min wheel.
+            stepMinutes={
+              !isEventMode ? activeTeam?.default_slot_minutes : undefined
+            }
             onChange={({ date: d, timeStart: s, timeEnd: e }) => {
               setDateKey(d);
               setTimeStart(s);

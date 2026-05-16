@@ -11,6 +11,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:ui": "vitest --ui",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium",
     "db:types": "supabase gen types typescript --project-id rdtokosbqvgemicqeqwz > ../../packages/shared/src/db/database.types.ts"
   },
   "dependencies": {
@@ -33,6 +35,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.4",
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

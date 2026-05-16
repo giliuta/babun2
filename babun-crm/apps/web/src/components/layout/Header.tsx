@@ -179,6 +179,10 @@ export default function Header({
           type="button"
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
+          // Brief 2 #4: native hover tooltip for the desktop user.
+          // The icon (CalendarClock + day number) is recognizable but
+          // not self-explanatory until you've used the app.
+          title="Сегодня"
           hidden={isOnToday}
           data-testid="header-today"
           className="relative w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale flex-shrink-0 transition"

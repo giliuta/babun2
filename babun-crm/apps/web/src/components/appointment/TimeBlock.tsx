@@ -14,12 +14,18 @@ interface TimeBlockProps {
    *  line with the date/time chips so the user gets one compact row.
    *  When set, the duration pill is hidden to make room. */
   rightSlot?: React.ReactNode;
+  /** Brief 1 #2: minutes granularity for the wheel — driven by the
+   *  active team's `default_slot_minutes` (15 / 30 / 60). Falls back
+   *  to 5 for personal events and legacy callers. */
+  stepMinutes?: number;
 }
 
 const WEEKDAYS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
-const MIN_STEP = 5;
 const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i));
-const MINUTES = Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP));
+// Wheel minute step. Caller-controlled via `stepMinutes`. Acceptable
+// divisors of 60 only (5, 10, 15, 20, 30, 60); other values silently
+// clamp to 5 so the wheel never gets a non-evenly-spaced list.
+const VALID_MIN_STEPS = new Set([5, 10, 15, 20, 30, 60]);
 // STORY-010 compact dimensions. Item 30 × 3 rows = 90 px wheel height,
 // about half what STORY-009 shipped.
 const ITEM_HEIGHT = 30;
@@ -93,11 +99,22 @@ export default function TimeBlock({
   readOnly,
   onChange,
   rightSlot,
+  stepMinutes,
 }: TimeBlockProps) {
   const [expandedMode, setExpandedMode] = useState<"none" | "date" | "time">(
     "none"
   );
   const [weekOffset, setWeekOffset] = useState(0);
+
+  // Brief 1 #2: resolve the effective wheel step. Clamp unknown / out-
+  // of-range values to 5 so we never build a non-evenly-spaced wheel
+  // list (e.g. caller passes 7 → wheel would skip past 56).
+  const MIN_STEP =
+    stepMinutes && VALID_MIN_STEPS.has(stepMinutes) ? stepMinutes : 5;
+  const MINUTES = useMemo(
+    () => Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP)),
+    [MIN_STEP]
+  );
 
   useEffect(() => {
     // Resync the viewed week to the appointment's date. When the
@@ -365,6 +382,7 @@ export default function TimeBlock({
         {expandedMode === "time" && (
           <div className="flex items-center justify-center">
             <WheelGroup
+              minutes={MINUTES}
               hourIdx={startHourIdx}
               minIdx={startMinIdx}
               onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
@@ -377,6 +395,7 @@ export default function TimeBlock({
               <ArrowRightIcon />
             </span>
             <WheelGroup
+              minutes={MINUTES}
               hourIdx={endHourIdx}
               minIdx={endMinIdx}
               onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
@@ -423,11 +442,13 @@ function WeekArrow({
 }
 
 function WheelGroup({
+  minutes,
   hourIdx,
   minIdx,
   onHour,
   onMin,
 }: {
+  minutes: string[];
   hourIdx: number;
   minIdx: number;
   onHour: (idx: number) => void;
@@ -460,7 +481,7 @@ function WheelGroup({
       </span>
       <WheelWithLines>
         <WheelColumn
-          items={MINUTES}
+          items={minutes}
           selectedIndex={minIdx}
           onChange={onMin}
           width={COLUMN_WIDTH}

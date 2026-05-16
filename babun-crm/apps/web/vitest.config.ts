@@ -6,6 +6,8 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     clearMocks: true,
+    // Exclude Playwright E2E specs — they use @playwright/test, not vitest.
+    exclude: ["node_modules", "e2e/**"],
   },
   css: {
     // Bypass postcss.config.mjs to avoid missing enhanced-resolve in worktree
