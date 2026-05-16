@@ -170,6 +170,7 @@ import {
   restoreEmptyStoresFromBlob,
   scheduleTenantStateSave,
 } from "@/lib/sync/tenant-state-backup";
+import { reportSyncError } from "@/lib/sync/sync-error-bus";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 // useDashboardSwipeTrap removed in v428 — its sentinel-pushing
 // pattern collided with router.push from sidebar Links and from the
@@ -1304,8 +1305,15 @@ export default function DashboardClientLayout({
           });
         }
       } catch (err) {
+        // v513 — surface the failure via the sync-error bus so the
+        // dispatcher sees the red «Ошибка синхронизации» pill. Local
+        // state + localStorage already have the optimistic row, so
+        // they can keep working — but they need to know the server
+        // didn't accept the write (RLS rejection, validation,
+        // network error after the cached-wrapper queue gave up).
         // eslint-disable-next-line no-console
         console.warn("upsertAppointment failed", err);
+        reportSyncError(err);
       }
     },
     [appointments, tenantId],
@@ -1331,8 +1339,13 @@ export default function DashboardClientLayout({
         const supabase = getSupabaseBrowser();
         await deleteAppointmentRepo(supabase, id, tenantId);
       } catch (err) {
+        // v513 — same sync-error wiring as upsertAppointment. The
+        // realtime subscription will re-insert the row if Supabase
+        // rejected the delete; user sees both the row reappearing
+        // AND the error pill so it's clear something happened.
         // eslint-disable-next-line no-console
         console.warn("deleteAppointment failed", err);
+        reportSyncError(err);
       }
     },
     [tenantId],
