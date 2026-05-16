@@ -29,6 +29,16 @@ type Insert = Database["public"]["Tables"]["recurring_reminders"]["Insert"];
 // ─── Adapters ─────────────────────────────────────────────────────────
 
 function rowToReminder(r: Row): RecurringReminder {
+  // P0 #19 (CRM Core brief) — `type`, `manual`, `notify_channel`
+  // columns added in 20260517_002. The generated `Row` type catches
+  // up next time `supabase gen types` runs; until then we read the
+  // values via a cast so the round-trip is symmetric with the new
+  // writer below.
+  const x = r as Row & {
+    type?: string;
+    manual?: boolean;
+    notify_channel?: string;
+  };
   return {
     id: r.id,
     client_id: r.client_id ?? "",
@@ -44,6 +54,9 @@ function rowToReminder(r: Row): RecurringReminder {
     interval_months: r.interval_months,
     status: r.status as RecurringStatus,
     note: r.note,
+    type: (x.type as RecurringReminder["type"]) ?? undefined,
+    manual: x.manual ?? undefined,
+    notify_channel: (x.notify_channel as RecurringReminder["notify_channel"]) ?? undefined,
     created_at: r.created_at,
   };
 }
@@ -52,7 +65,11 @@ function inputToInsert(
   tenantId: string,
   input: CreateRecurringInput
 ): Insert {
-  return {
+  // P0 #19 — manual-reminder fields. Cast until `supabase gen types`
+  // catches up with the 20260517_002 migration; the DB carries
+  // sensible defaults so undefined values are equivalent to «server
+  // picks», not «null override».
+  const base: Insert = {
     tenant_id: tenantId,
     client_id: input.client_id || null,
     client_name: input.client_name,
@@ -66,6 +83,16 @@ function inputToInsert(
     status: "pending",
     note: input.note ?? "",
   };
+  if (input.type !== undefined) {
+    (base as Insert & { type?: string }).type = input.type;
+  }
+  if (input.manual !== undefined) {
+    (base as Insert & { manual?: boolean }).manual = input.manual;
+  }
+  if (input.notify_channel !== undefined) {
+    (base as Insert & { notify_channel?: string }).notify_channel = input.notify_channel;
+  }
+  return base;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────

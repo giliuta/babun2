@@ -97,6 +97,16 @@ export interface CreateRecurringInput {
   last_date: string;
   interval_months: number;
   note?: string;
+  /** P0 #19 (CRM Core brief) — kind of follow-up. Defaults to
+   *  'service' on the DB side so callers that don't care stay
+   *  backwards-compatible. */
+  type?: RecurringType;
+  /** True for ad-hoc reminders the operator creates from the inbox
+   *  FAB; the auto-seed path on completed appointments leaves it
+   *  false. */
+  manual?: boolean;
+  /** Notification channel. Default 'push'. */
+  notify_channel?: RecurringChannel;
 }
 
 /**
