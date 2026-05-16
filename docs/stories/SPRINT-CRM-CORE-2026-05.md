@@ -131,7 +131,7 @@ the Supabase migration is mechanical.
 - ✅ P2 #44 (v541/543) — kebab menu in `/masters/[id]` header
 - ⊘ P1 #21 — DROP-by-audit (no «Babun App» entry exists in code)
 - ⊘ P1 #26 — BLOCKED-on-data-model (no `country_code` on CompanyInfo)
-- ⏭ P2 #43 — deferred (cross-cutting save-state reducer needs its own pass)
+- ✅ P2 #43 (v561) — `useSaveStatus` hook lands as the canonical save-state reducer; `/clients/new` migrated as the reference call site. Other surfaces (settings sections, SMS config, etc.) can adopt incrementally.
 
 **Batch C — autonomous wave (this session, «делай все до конца»):**
 - ✅ P0 #1 (audit) — `ClientCardPage` already scrolls correctly

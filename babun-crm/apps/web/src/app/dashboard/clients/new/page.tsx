@@ -37,6 +37,10 @@ import {
 } from "@babun/shared/local/cities";
 import { Button } from "@/components/ui";
 import { haptic } from "@/lib/haptics";
+// P2 #43 (CRM Core brief) — shared save-state hook collapses the
+// old {saving, saved, error} trio into one tagged union so the
+// button + indicator never disagree about which message is active.
+import { useSaveStatus } from "@/hooks/useSaveStatus";
 
 const DEFAULT_PHONE_PREFIX = "+357 ";
 
@@ -99,8 +103,9 @@ export default function NewClientPage() {
     setCityList(getActiveCities(loadCities()));
   }, []);
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = useSaveStatus();
+  const saving = save.status === "saving";
+  const saveError = save.error;
 
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -151,8 +156,6 @@ export default function NewClientPage() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     haptic("medium");
-    setSaving(true);
-    setSaveError(null);
     const blank = createBlankClient({
       full_name: fullName.trim(),
       phone: trimmedPhone,
@@ -168,13 +171,12 @@ export default function NewClientPage() {
       tag_ids: vip ? ["tag-vip"] : [],
       blacklisted,
     });
-    try {
+    const ok = await save.run(async () => {
       await upsertClient(blank);
+      return true;
+    });
+    if (ok) {
       router.replace(`/dashboard/clients/${blank.id}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось сохранить";
-      setSaveError(msg);
-      setSaving(false);
     }
   };
 
@@ -203,7 +205,7 @@ export default function NewClientPage() {
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
           >
-            {saving ? "Сохраняем…" : "Сохранить"}
+            {save.label("Сохранить")}
           </Button>
         </div>
       </div>
