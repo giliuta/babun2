@@ -409,6 +409,18 @@ export default function ChatsPage() {
                 ? "Подключите WhatsApp / Instagram / Telegram чтобы вести переписку с клиентами в одном месте."
                 : "Попробуйте другой фильтр или обнулите поиск."}
             </div>
+            {/* v528 §3.11 — direct CTA to integrations stub page so the
+                empty state stops being a dead end. The page itself
+                shows «Скоро»-badged cards until §4.5 wires the real
+                OAuth / Business API flows. */}
+            {filter === "all" && (
+              <a
+                href="/dashboard/settings/integrations"
+                className="inline-flex items-center justify-center mt-3 h-11 px-5 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:bg-[var(--accent-pressed)] transition"
+              >
+                Подключить мессенджер
+              </a>
+            )}
           </div>
         )}
       </div>
