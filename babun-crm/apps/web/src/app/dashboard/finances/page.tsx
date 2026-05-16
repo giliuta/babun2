@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+// v557 §3.12 — daily sparkline above the summary tab. Aggregates the
+// already-filtered income/expense series from useFinanceData by
+// dateKey, so the chart respects the active period + team filters
+// without any extra business logic in this component.
+import FinanceSparkline, {
+  type FinanceDailyPoint,
+} from "@/components/finance/FinanceSparkline";
 import { ChevronDown, SlidersHorizontal } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
@@ -226,6 +233,10 @@ export default function FinancesPage() {
 
             {mode === "summary" && (
               <>
+                <SummarySparkline
+                  income={filteredIncome}
+                  expenses={filteredExpenses}
+                />
                 <CombinedSummary
                   incomeCount={filteredIncome.length}
                   expenseCount={filteredExpenses.length}
@@ -276,6 +287,42 @@ export default function FinancesPage() {
 }
 
 // ─── Local sub-components (UI only, no data logic) ─────────────────────────
+
+// v557 §3.12 — Summary-tab sparkline. Aggregates the already-
+// filtered income / expense lines by dateKey into a sorted
+// FinanceDailyPoint[] and hands it to FinanceSparkline. No business
+// logic — that lives in useFinanceData; this is purely a shaping
+// adapter so the chart contract stays clean.
+function SummarySparkline({
+  income,
+  expenses,
+}: {
+  income: { dateKey: string; amount: number }[];
+  expenses: { dateKey: string; amount: number }[];
+}) {
+  const data = useMemo<FinanceDailyPoint[]>(() => {
+    const byDay = new Map<string, { income: number; expense: number }>();
+    for (const e of income) {
+      const slot = byDay.get(e.dateKey) ?? { income: 0, expense: 0 };
+      slot.income += e.amount;
+      byDay.set(e.dateKey, slot);
+    }
+    for (const e of expenses) {
+      const slot = byDay.get(e.dateKey) ?? { income: 0, expense: 0 };
+      slot.expense += e.amount;
+      byDay.set(e.dateKey, slot);
+    }
+    return Array.from(byDay.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, v]) => ({ date, income: v.income, expense: v.expense }));
+  }, [income, expenses]);
+
+  return (
+    <div className="px-3 pt-3">
+      <FinanceSparkline data={data} formatEur={formatEUR} />
+    </div>
+  );
+}
 
 // Hero profit card — shows the dominant metric (profit) with a big
 // 32px tabular number and a coloured pill for delta.  Acts as the
