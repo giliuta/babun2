@@ -1,4 +1,78 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Babun autopilot. Merged from existing claude-flow config + plan §4.1 autopilot hooks. Hook commands rewritten from Windows `cmd /c node %VAR%/...` to portable bash `node \"$CLAUDE_PROJECT_DIR/...\"`. See docs/AUTOPILOT_DEVIATIONS.md D-005.",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_FORK_SUBAGENT": "1",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6",
+    "SLASH_COMMAND_TOOL_CHAR_BUDGET": "20000",
+    "CLAUDE_FLOW_V3_ENABLED": "true",
+    "CLAUDE_FLOW_HOOKS_ENABLED": "true"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node .claude/*)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push origin story/*)",
+      "Bash(git push origin bug/*)",
+      "Bash(git push origin polish/*)",
+      "Bash(git push origin regression/*)",
+      "Bash(git push origin chore/autopilot-*)",
+      "Bash(git push -u origin claude/*)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(gh repo view*)",
+      "Edit(babun-crm/apps/**)",
+      "Edit(babun-crm/packages/**)",
+      "Edit(babun-crm/apps/web/e2e/**)",
+      "Edit(babun-crm/supabase/migrations/**)",
+      "Edit(babun-crm/apps/web/supabase/migrations/**)",
+      "Edit(docs/**)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_extensions",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_logs",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__search_docs",
+      "mcp__playwright__*",
+      "mcp__sentry__*",
+      "mcp__sequential-thinking__*",
+      "mcp__memory__*",
+      "mcp__chrome-devtools__*"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push origin master*)",
+      "Bash(git push origin main*)",
+      "Bash(git reset --hard origin/master)",
+      "Bash(git reset --hard origin/main)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(babun-crm/apps/web/.env)",
+      "Edit(babun-crm/apps/web/.env.*)",
+      "Edit(babun-crm/supabase/config.toml)",
+      "Edit(babun-crm/apps/web/supabase/config.toml)",
+      "Edit(babun-crm/apps/web/src/components/ServiceWorkerRegister.tsx)",
+      "Edit(babun-crm/apps/web/src/middleware.ts)",
+      "Edit(.github/workflows/**)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__create_branch",
+      "mcp__supabase__merge_branch",
+      "mcp__supabase__reset_branch",
+      "mcp__supabase__delete_branch"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -6,7 +80,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs pre-bash",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous.sh\"",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" pre-bash; fi",
             "timeout": 5000
           }
         ]
@@ -16,7 +95,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs pre-edit",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-paths.sh\"",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" pre-edit; fi",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__supabase__execute_sql",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/sql-guard.sh\"",
             "timeout": 5000
           }
         ]
@@ -28,7 +122,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs post-edit",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" post-edit; fi",
             "timeout": 10000
           }
         ]
@@ -38,7 +132,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs post-bash",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" post-bash; fi",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-bash-typecheck.sh\"",
             "timeout": 5000
           }
         ]
@@ -49,7 +148,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs route",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" route; fi",
             "timeout": 10000
           }
         ]
@@ -60,12 +159,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs session-restore",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-init.sh\"",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" session-restore; fi",
             "timeout": 15000
           },
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/auto-memory-hook.mjs import",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/auto-memory-hook.mjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/auto-memory-hook.mjs\" import; fi",
             "timeout": 8000
           }
         ]
@@ -76,7 +180,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs session-end",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" session-end; fi",
             "timeout": 10000
           }
         ]
@@ -87,7 +191,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/auto-memory-hook.mjs sync",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-telegram.sh\"",
+            "timeout": 8000
+          },
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/auto-memory-hook.mjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/auto-memory-hook.mjs\" sync; fi",
             "timeout": 10000
           }
         ]
@@ -99,12 +208,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs compact-manual"
-          },
-          {
-            "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs session-end",
-            "timeout": 5000
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" compact-manual; fi"
           }
         ]
       },
@@ -113,23 +217,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs compact-auto"
-          },
-          {
-            "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs session-end",
-            "timeout": 6000
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs status",
-            "timeout": 3000
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" compact-auto; fi"
           }
         ]
       }
@@ -139,7 +227,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs post-task",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" post-task; fi",
             "timeout": 5000
           }
         ]
@@ -150,7 +238,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd /c node %CLAUDE_PROJECT_DIR%/.claude/helpers/hook-handler.cjs notify",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" ]; then node \"$CLAUDE_PROJECT_DIR/.claude/helpers/hook-handler.cjs\" notify; fi",
             "timeout": 3000
           }
         ]
@@ -159,131 +247,10 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/statusline.cjs\"'"
-  },
-  "permissions": {
-    "allow": [
-      "Bash(npx @claude-flow*)",
-      "Bash(npx claude-flow*)",
-      "Bash(node .claude/*)",
-      "mcp__claude-flow__:*"
-    ],
-    "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)"
-    ]
+    "command": "sh -c 'if [ -f \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/statusline.cjs\" ]; then exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/statusline.cjs\"; fi'"
   },
   "attribution": {
-    "commit": "Co-Authored-By: claude-flow <ruv@ruv.net>",
-    "pr": "🤖 Generated with [claude-flow](https://github.com/ruvnet/claude-flow)"
-  },
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_FLOW_V3_ENABLED": "true",
-    "CLAUDE_FLOW_HOOKS_ENABLED": "true"
-  },
-  "claudeFlow": {
-    "version": "3.0.0",
-    "enabled": true,
-    "platform": {
-      "os": "windows",
-      "arch": "x64",
-      "shell": "powershell"
-    },
-    "modelPreferences": {
-      "default": "claude-opus-4-6",
-      "routing": "claude-haiku-4-5-20251001"
-    },
-    "agentTeams": {
-      "enabled": true,
-      "teammateMode": "auto",
-      "taskListEnabled": true,
-      "mailboxEnabled": true,
-      "coordination": {
-        "autoAssignOnIdle": true,
-        "trainPatternsOnComplete": true,
-        "notifyLeadOnComplete": true,
-        "sharedMemoryNamespace": "agent-teams"
-      },
-      "hooks": {
-        "teammateIdle": {
-          "enabled": true,
-          "autoAssign": true,
-          "checkTaskList": true
-        },
-        "taskCompleted": {
-          "enabled": true,
-          "trainPatterns": true,
-          "notifyLead": true
-        }
-      }
-    },
-    "swarm": {
-      "topology": "hierarchical-mesh",
-      "maxAgents": 15
-    },
-    "memory": {
-      "backend": "hybrid",
-      "enableHNSW": true,
-      "learningBridge": {
-        "enabled": true
-      },
-      "memoryGraph": {
-        "enabled": true
-      },
-      "agentScopes": {
-        "enabled": true
-      }
-    },
-    "neural": {
-      "enabled": true
-    },
-    "daemon": {
-      "autoStart": false,
-      "workers": [
-        "map",
-        "audit",
-        "optimize"
-      ],
-      "schedules": {
-        "audit": {
-          "interval": "4h",
-          "priority": "critical"
-        },
-        "optimize": {
-          "interval": "2h",
-          "priority": "high"
-        }
-      }
-    },
-    "learning": {
-      "enabled": true,
-      "autoTrain": true,
-      "patterns": [
-        "coordination",
-        "optimization",
-        "prediction"
-      ],
-      "retention": {
-        "shortTerm": "24h",
-        "longTerm": "30d"
-      }
-    },
-    "adr": {
-      "autoGenerate": true,
-      "directory": "/docs/adr",
-      "template": "madr"
-    },
-    "ddd": {
-      "trackDomains": true,
-      "validateBoundedContexts": true,
-      "directory": "/docs/ddd"
-    },
-    "security": {
-      "autoScan": true,
-      "scanOnEdit": true,
-      "cveCheck": true,
-      "threatModel": true
-    }
+    "commit": "🤖 Babun autopilot — see docs/AUTOPILOT_DEVIATIONS.md",
+    "pr": "🤖 Generated by Babun autopilot pipeline"
   }
 }

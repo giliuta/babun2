@@ -1,0 +1,54 @@
+name: Post-Deploy Smoke + Auto-Revert
+on:
+  deployment_status:
+
+defaults:
+  run:
+    working-directory: babun-crm/apps/web
+
+jobs:
+  smoke:
+    if: github.event.deployment_status.state == 'success' && contains(github.event.deployment_status.environment, 'Production')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: babun-crm/package.json }
+      - run: cd .. && npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - id: smoke
+        continue-on-error: true
+        run: npx playwright test --grep "@smoke" --project=chromium-mobile
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.target_url }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+      - name: Auto-revert on failure
+        if: steps.smoke.outcome == 'failure'
+        working-directory: .
+        run: |
+          set -e
+          git config user.name "babun-autopilot"
+          git config user.email "autopilot@babun.app"
+          git revert --no-edit HEAD
+          git push origin master
+          if [ -n "${TELEGRAM:-}" ] && [ -n "${CHAT:-}" ]; then
+            curl -sS -X POST "$TELEGRAM" -d "chat_id=$CHAT" --data-urlencode "text=Auto-reverted master: production smoke failed on $PREVIEW"
+          fi
+        env:
+          TELEGRAM: ${{ secrets.TELEGRAM_BOT_URL }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PREVIEW: ${{ github.event.deployment_status.target_url }}
+      - if: steps.smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: babun-crm/apps/web/playwright-report/
+          retention-days: 30
