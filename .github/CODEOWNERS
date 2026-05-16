@@ -1,0 +1,28 @@
+# Babun CODEOWNERS — autopilot scope guardrails.
+# Anything matched here requires the owner's review before merge,
+# even when the PR otherwise meets all CI checks. The autopilot
+# `security-auditor` agent is not a substitute for these reviews.
+
+# Migrations — schema changes touch production data; must be human-reviewed.
+/babun-crm/supabase/migrations/                @giliuta
+/babun-crm/apps/web/supabase/migrations/       @giliuta
+
+# Secrets and infrastructure files — protected by `permissions.deny` in
+# `.claude/settings.json` and additionally CODEOWNER-gated for defence in depth.
+/.env*                                          @giliuta
+/babun-crm/apps/web/.env*                       @giliuta
+/babun-crm/supabase/config.toml                 @giliuta
+/babun-crm/apps/web/supabase/config.toml        @giliuta
+
+# CI/CD workflows — touching these is out of autopilot scope.
+/.github/workflows/                             @giliuta
+
+# Tenancy infrastructure — RLS helper, middleware, service-worker registration.
+/babun-crm/apps/web/src/middleware.ts           @giliuta
+/babun-crm/apps/web/src/components/ServiceWorkerRegister.tsx  @giliuta
+
+# Autopilot setup itself — anyone changing these has to coordinate with the owner.
+/.claude/                                       @giliuta
+/CLAUDE.md                                      @giliuta
+/.mcp.json                                      @giliuta
+/docs/AUTOPILOT_DEVIATIONS.md                   @giliuta

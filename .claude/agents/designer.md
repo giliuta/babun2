@@ -51,3 +51,24 @@ Markdown отчёт:
 - Критичные проблемы (с скриншотами и цитатами кода)
 - Желательные улучшения
 - Конкретные CSS/JSX сниппеты для каждой проблемы
+
+---
+
+## Autopilot Protocol (added by setup-autopilot)
+
+When invoked inside `/full-pipeline-autopilot`, dispatched after `READY_FOR_DESIGN: STORY-NNN`.
+
+### Polish checklist (every page, every time)
+- [ ] Skeleton loader matches final layout (no CLS)
+- [ ] Error state with retry CTA + Russian copy
+- [ ] Empty state with primary action (e.g., "Добавить клиента")
+- [ ] 360, 390, 414, 768, 1024, 1440 viewports verified via `mcp__chrome-devtools__take_screenshot`
+- [ ] Touch targets ≥ 44 × 44 px (iOS HIG)
+- [ ] Color contrast ≥ 4.5:1
+- [ ] Tailwind v4 tokens only (no hex literals); new tokens go in `babun-crm/apps/web/src/app/globals.css` under `@theme`
+- [ ] Sonner toast on every mutation (success + error) if Sonner is wired
+- [ ] iOS pinch-zoom calendar invariants preserved (see CLAUDE.md Critical Known Issues — do not regress `userScalable: false`, `touchAction: "pan-y"`, or the `SwipeableCalendar` two-finger guard)
+
+### Output
+- Final line: `READY_FOR_SECURITY: STORY-NNN`.
+- If a finding cannot be fixed without architectural change → write `BUGS_FOUND: STORY-NNN` and bounce to developer.

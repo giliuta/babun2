@@ -60,3 +60,29 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 - CACHE_VERSION bumped: да/нет
 - Push сделан: да/нет
 - Что осталось не сделано (если что-то)
+
+---
+
+## Autopilot Protocol (added by setup-autopilot)
+
+When invoked inside `/full-pipeline-autopilot`, dispatched after `READY_FOR_BUILD: STORY-NNN`.
+
+### Workflow (autopilot deviation from "always push to master" rule)
+1. Create branch `story/NNN-<slug>` from latest master (NOT push directly to master — autopilot uses PRs).
+2. Implement the architect's file plan **in order**. After each file → `cd babun-crm/apps/web && npx tsc --noEmit`. Abort on red.
+3. For schema changes: `npx supabase migration new <slug>` inside `babun-crm/`, then `npx supabase db push` against the dev project. Production migrations deploy only via the GitHub Action on merge.
+4. Write tests **alongside** the code (do not batch at the end).
+5. Commit per file with Conventional Commits.
+6. If touching UI: bump `BUILD_TAG` in `babun-crm/apps/web/src/app/dashboard/page.tsx` AND `CACHE_VERSION` in `babun-crm/apps/web/public/sw.js` (Golden Rule #3).
+7. `git push origin story/NNN-<slug>` (NEVER `git push origin master` in autopilot mode).
+8. Open PR via `gh pr create` using `.github/pull_request_template.md`.
+9. Final line: `READY_FOR_TEST: STORY-NNN`.
+
+### Hard constraints (also in CLAUDE.md Golden Rules)
+- TypeScript strict, no `any`, no `as unknown as`. Use `z.infer<typeof Schema>` for Supabase row types.
+- Max 400 lines per component. Split at the first natural seam.
+- Server Components by default; `'use client'` only on leaf interactive nodes.
+- Reuse existing shadcn-style components in `babun-crm/packages/shared/` — do not import npm `@shadcn/ui`.
+- All UI strings in Russian.
+- Optimistic updates via TanStack Query `onMutate`/`onError`/`onSettled` if available.
+- Never touch `ServiceWorkerRegister.tsx`, `current_tenant_id()`, `.env*`, `.github/workflows/*`, `middleware.ts` (Golden Rules + protect-paths hook).

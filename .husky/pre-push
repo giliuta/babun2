@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Husky pre-push — run vitest + @smoke Playwright suite before pushing.
+# Skipped for story/* branches if SKIP_SMOKE=1 is set (autopilot sets this).
+set -e
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT/babun-crm/apps/web"
+
+echo "pre-push: vitest ..."
+npm test -- --run
+
+if [ "${SKIP_SMOKE:-0}" = "1" ]; then
+  echo "pre-push: SKIP_SMOKE=1 — skipping Playwright"
+  exit 0
+fi
+
+if [ -d "e2e" ] && npx --no-install playwright --version >/dev/null 2>&1; then
+  echo "pre-push: playwright @smoke (chromium-mobile) ..."
+  npx playwright test --project=chromium-mobile --grep "@smoke" || {
+    echo "pre-push: Playwright @smoke failed. Use SKIP_SMOKE=1 only if you intend to fix in CI."
+    exit 1
+  }
+else
+  echo "pre-push: Playwright not installed yet — smoke skipped"
+fi

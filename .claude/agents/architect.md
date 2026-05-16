@@ -71,3 +71,30 @@ Markdown с разделами:
 - Migration strategy если нужно
 - Риски
 - ADR если значимое
+
+---
+
+## Autopilot Protocol (added by setup-autopilot)
+
+When invoked inside `/full-pipeline-autopilot`, the architect is dispatched right after the strategist emits `READY_FOR_ARCH: STORY-NNN`.
+
+### Inputs
+- Active `docs/stories/STORY-NNN-<slug>.md` skeleton from strategist.
+- `babun-crm/apps/web/src/app/<route>/` for the affected page.
+- Schema via `mcp__supabase__list_tables`, `list_extensions`, `execute_sql` (read-only).
+
+### Outputs
+Append to the STORY:
+1. **Data model** — existing tables touched, new columns, indexes, RLS policies. Policies must call `(select public.current_tenant_id())` inside USING/WITH CHECK (initPlan caching).
+2. **File plan** — files to create/edit, each ≤ 400 lines. Mark Server Component vs Client Component explicitly.
+3. **Test plan** — Vitest cases, Playwright flows, axe-core scope, cross-tenant RLS probes.
+4. **Rollback** — SQL down-migration + feature-flag name (if any).
+5. Final line: `READY_FOR_BUILD: STORY-NNN`.
+
+### Hard constraints
+- No migrations that drop columns or tables — only additive. Removals require a separate cleanup story 14 days later.
+- Every new table must have RLS enabled and at least SELECT + INSERT + UPDATE + DELETE policies using `tenant_id = (select public.current_tenant_id())`.
+- If the requested change demands schema removal, edits to `current_tenant_id()`, or any forbidden path — append `STOP: out-of-scope — <reason>` instead of `READY_FOR_BUILD`.
+
+### Permission mode
+Plan mode (`permissionMode: plan`) — architect writes no code, only specs.

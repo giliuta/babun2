@@ -24,3 +24,13 @@ yarn-error.log*
 # Reference screenshots (Bumpix analysis, one-off captures)
 bumpix-*.png
 *.screenshot.png
+
+# Claude-flow runtime cache (auto-generated; not source)
+.claude-flow/
+**/.claude-flow/
+
+# Playwright test artifacts
+babun-crm/apps/web/playwright-report/
+babun-crm/apps/web/test-results/
+babun-crm/apps/web/playwright/.cache/
+babun-crm/apps/web/e2e/.auth/*.json

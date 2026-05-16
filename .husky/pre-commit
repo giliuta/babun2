@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Husky pre-commit — typecheck the web app before each commit.
+# Repo has no root package.json; scripts live in babun-crm/apps/web.
+set -e
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT/babun-crm/apps/web"
+
+# Fast path: only typecheck if there are staged .ts/.tsx files anywhere in the repo.
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' || true)
+if [ -z "$STAGED_TS" ]; then
+  echo "pre-commit: no TS/TSX staged — skipping typecheck"
+  exit 0
+fi
+
+echo "pre-commit: tsc --noEmit on babun-crm/apps/web ..."
+npx tsc --noEmit
