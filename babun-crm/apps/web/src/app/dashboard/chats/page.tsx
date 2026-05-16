@@ -282,9 +282,17 @@ export default function ChatsPage() {
           buckets so first-time users don't see "WhatsApp (0)
           Instagram (0)" noise. The "Все" chip always shows its
           count (it's the canonical total). Other channels only show
-          the count when > 0 OR when the chip is active. */}
+          the count when > 0 OR when the chip is active.
+
+          P2 #38 (CRM Core brief) — SMS is one-way (outbound only,
+          no inbox), so a «SMS» filter chip implied a two-way channel
+          that doesn't exist. Removed. Any historical sms-channel
+          chats still surface under «Все»; the brief's proposed
+          «Голосовой звонок» substitute is deferred until the call
+          log feature actually exists (principle #4: no "coming soon"
+          chrome). */}
       <div className="flex-shrink-0 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b border-[var(--separator)]">
-        {(["all", "unanswered", "whatsapp", "instagram", "telegram", "sms"] as FilterChannel[]).map((ch) => {
+        {(["all", "unanswered", "whatsapp", "instagram", "telegram"] as FilterChannel[]).map((ch) => {
           const label = ch === "all" ? "Все" : ch === "unanswered" ? "Без ответа" : CHANNEL_LABELS[ch as ChatChannel];
           const count = ch === "all" ? chats.filter((c) => c.status !== "archived").length
             : ch === "unanswered" ? unansweredCount

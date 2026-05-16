@@ -15,6 +15,9 @@ import {
   type TemplateKind,
 } from "@babun/shared/local/sms-templates";
 
+// Keyed by canonical English names — renderTemplate's alias table
+// maps Russian palette tokens like [Имя] / [Цена] back onto these
+// entries, so we don't need to mirror the dictionary into Cyrillic.
 const SAMPLE_VARS: Record<string, string> = {
   Name: "Анастасия",
   Day: "Пятница",
@@ -23,12 +26,24 @@ const SAMPLE_VARS: Record<string, string> = {
   Master: "Y&D",
   Service: "x4 A/C Чистка",
   Address: "Лимассол",
+  Price: "€80",
+  Company: "AirFix",
+  CancelUrl: "babun.app/c/abc",
 };
 
 export default function SmsTemplatesPage() {
   const { templates, setTemplates, upsertTemplate } = useSmsTemplates();
   const [editing, setEditing] = useState<SmsTemplate | null>(null);
   const confirm = useConfirm();
+
+  // P2 #39 (CRM Core brief) — «Удалить» belongs to edit mode only.
+  // Drafts from createBlankTemplate() carry an id that's not yet in
+  // the saved list; we use that to detect «create» vs «edit» and pass
+  // it to the editor so the destructive button stays hidden until
+  // there's actually something to delete.
+  const isCreating = editing
+    ? !templates.some((t) => t.id === editing.id)
+    : false;
 
   const handleSave = (tpl: SmsTemplate) => {
     upsertTemplate(tpl);
@@ -122,6 +137,7 @@ export default function SmsTemplatesPage() {
       {editing && (
         <TemplateEditor
           template={editing}
+          mode={isCreating ? "create" : "edit"}
           onClose={() => setEditing(null)}
           onSave={handleSave}
           onDelete={handleDelete}
@@ -133,11 +149,13 @@ export default function SmsTemplatesPage() {
 
 function TemplateEditor({
   template,
+  mode,
   onClose,
   onSave,
   onDelete,
 }: {
   template: SmsTemplate;
+  mode: "create" | "edit";
   onClose: () => void;
   onSave: (tpl: SmsTemplate) => void;
   onDelete: (id: string) => void;
@@ -266,13 +284,15 @@ function TemplateEditor({
         </div>
 
         <div className="border-t border-[var(--separator)] px-4 py-3 flex gap-2 bg-[var(--surface-card)]">
-          <Button
-            variant="destructive"
-            size="md"
-            onClick={() => onDelete(template.id)}
-          >
-            Удалить
-          </Button>
+          {mode === "edit" && (
+            <Button
+              variant="destructive"
+              size="md"
+              onClick={() => onDelete(template.id)}
+            >
+              Удалить
+            </Button>
+          )}
           <div className="flex-1" />
           <Button variant="secondary" size="md" onClick={onClose}>
             Отмена
