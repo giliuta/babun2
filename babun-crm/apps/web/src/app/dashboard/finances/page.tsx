@@ -18,6 +18,7 @@ import {
 } from "@/lib/finance/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
 import ManualTransactionSheet from "@/components/finance/ManualTransactionSheet";
+import FinancePieChart from "@/components/finance/FinancePieChart";
 import { haptic } from "@/lib/haptics";
 import {
   useAppointments,
@@ -89,6 +90,7 @@ export default function FinancesPage() {
     payroll,
     totalPayroll,
     servicesBreakdown,
+    clientsBreakdown,
     expensesGrouped,
     comparableToPrev,
     selectedPeriodLabel,
@@ -295,6 +297,33 @@ export default function FinancesPage() {
                   totalIncome={totalIncome}
                   totalExpense={totalExpense}
                 />
+                {/* P1 #28 (CRM Core brief) — top-5 revenue pies for
+                    services and clients. Reuse the breakdowns the
+                    finance hook already computes; the chart is raw
+                    SVG (no recharts) per the FinanceSparkline
+                    precedent. Hidden when there's nothing to draw. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FinancePieChart
+                    title="Топ услуги"
+                    subtitle={selectedPeriodLabel}
+                    entries={servicesBreakdown.map((s) => ({
+                      id: s.name,
+                      name: s.name,
+                      value: s.revenue,
+                    }))}
+                    formatEur={formatEUR}
+                  />
+                  <FinancePieChart
+                    title="Топ клиенты"
+                    subtitle={selectedPeriodLabel}
+                    entries={clientsBreakdown.map((c) => ({
+                      id: c.id,
+                      name: c.name,
+                      value: c.revenue,
+                    }))}
+                    formatEur={formatEUR}
+                  />
+                </div>
                 <CashboxBlock
                   cash={cashbox.cash}
                   card={cashbox.card}

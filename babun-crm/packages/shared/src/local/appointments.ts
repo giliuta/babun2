@@ -139,6 +139,20 @@ export interface Appointment {
   /** STORY-002-FINAL: единый объект оплаты. Заполняется при
    *  переводе записи в status=completed через PaymentBlock. */
   payment: AppointmentPayment | null;
+  /** P0 #14 (CRM Core brief) — explicit status enum so reports +
+   *  the auto-sync trigger (Supabase 20260517_001) can branch
+   *  without summing the `payments` array. Defaults to 'unpaid' for
+   *  fresh rows; 'partial' / 'paid' / 'refunded' written by the
+   *  payment block when the operator marks the appointment paid. */
+  payment_status?: "unpaid" | "partial" | "paid" | "refunded";
+  /** Mirror of the Supabase column. Lets the UI badge surface
+   *  «Карта / Нал / Перевод» on the appointment block without
+   *  reading the `payment` jsonb. */
+  payment_method?: "cash" | "card" | "transfer" | "other";
+  /** Mirror — total actually received so far. The trigger uses
+   *  total_amount for the income row; this field lets the UI show
+   *  «частично оплачено» (paid_amount < total_amount). */
+  paid_amount?: number;
   /** MEGA-UPDATE: список услуг со степпером количества и per-line
    *  скидкой. Постепенно заменяет service_ids. */
   services: AppointmentService[];

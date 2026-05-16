@@ -50,6 +50,10 @@ export interface IncomeLine {
   teamId: string | null;
   sourceType: "appointment" | "extra";
   serviceIds: string[];
+  /** P1 #28 (CRM Core brief) — appointment id for appointment-sourced
+   *  lines, so callers can resolve the client without re-scanning the
+   *  whole appointments array. Undefined for `extra` (manual) lines. */
+  refId?: string;
 }
 
 export interface ExpenseLine {
@@ -199,6 +203,9 @@ function toIncomeLine(line: FinanceLine, appointments: Appointment[]): IncomeLin
     teamId: line.teamId,
     sourceType: isAppointmentLike ? "appointment" : "extra",
     serviceIds,
+    // P1 #28 — carry the source appointment id through so the
+    // clientsBreakdown can join back without scanning twice.
+    refId: line.source === "apt-payment" ? line.refId : undefined,
   };
 }
 
@@ -254,6 +261,9 @@ export interface UseFinanceDataResult {
   payroll: { team: Team; income: number; expense: number; net: number; percentage: number; payable: number }[];
   totalPayroll: number;
   servicesBreakdown: { name: string; count: number; revenue: number }[];
+  /** P1 #28 (CRM Core brief) — top-revenue clients in the active
+   *  period, used by FinancePieChart on /finances. */
+  clientsBreakdown: { id: string; name: string; revenue: number }[];
   expensesGrouped: [string, ExpenseLine[]][];
   comparableToPrev: boolean;
   selectedPeriodLabel: string;
@@ -485,6 +495,31 @@ export function useFinanceData({
     return Array.from(bucket.values()).sort((a, b) => b.revenue - a.revenue);
   }, [filteredIncome, servicesById]);
 
+  // P1 #28 — per-client revenue aggregation in the active period.
+  // Income lines carry the client id via the appointment they
+  // resolve from; standalone payments + manual extras (no client)
+  // collapse into a single «Без клиента» bucket.
+  const clientsBreakdown = useMemo(() => {
+    const bucket = new Map<string, { id: string; name: string; revenue: number }>();
+    for (const line of filteredIncome) {
+      let clientId: string | null = null;
+      let clientName = "Без клиента";
+      if (line.sourceType === "appointment") {
+        const apt = appointments.find((a) => a.id === line.refId);
+        clientId = apt?.client_id ?? null;
+        if (clientId) {
+          const c = clients.find((x) => x.id === clientId);
+          clientName = c?.full_name ?? "—";
+        }
+      }
+      const key = clientId ?? "__none__";
+      const cur = bucket.get(key) ?? { id: key, name: clientName, revenue: 0 };
+      cur.revenue += line.amount;
+      bucket.set(key, cur);
+    }
+    return Array.from(bucket.values()).sort((a, b) => b.revenue - a.revenue);
+  }, [filteredIncome, appointments, clients]);
+
   const expensesGrouped = useMemo(() => {
     const groups = new Map<string, ExpenseLine[]>();
     for (const e of filteredExpenses) {
@@ -518,6 +553,7 @@ export function useFinanceData({
     payroll,
     totalPayroll,
     servicesBreakdown,
+    clientsBreakdown,
     expensesGrouped,
     comparableToPrev: period !== "all",
     selectedPeriodLabel: PERIODS.find((p) => p.key === period)?.label ?? "",

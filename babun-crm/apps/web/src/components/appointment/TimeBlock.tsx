@@ -105,6 +105,12 @@ export default function TimeBlock({
     "none"
   );
   const [weekOffset, setWeekOffset] = useState(0);
+  // v570 — swipe-to-change-date refs. Declared BEFORE the readOnly
+  // early-return below so hook order stays stable between render
+  // paths (rules-of-hooks). The read-only path doesn't touch them
+  // but the cost of two unused refs is nil.
+  const swipeStartXRef = useRef<number | null>(null);
+  const wasSwipeRef = useRef(false);
 
   // Brief 1 #2: resolve the effective wheel step. Clamp unknown / out-
   // of-range values to 5 so we never build a non-evenly-spaced wheel
@@ -174,9 +180,9 @@ export default function TimeBlock({
   // v469 — swipe-to-change-date on the date pill. Touch handlers live
   // on the pill button itself; horizontal drag > 40 px → ±1 day.
   // wasSwipeRef gates the synthetic click so that swiping doesn't
-  // also expand the date picker. Reset after each gesture.
-  const swipeStartXRef = useRef<number | null>(null);
-  const wasSwipeRef = useRef(false);
+  // also expand the date picker. Reset after each gesture. Refs
+  // themselves are declared at the top of the component (see v570
+  // hook-ordering note above).
   const handleDatePillTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
     swipeStartXRef.current = e.touches[0].clientX;
