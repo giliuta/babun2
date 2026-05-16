@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,7 +17,10 @@ import {
 import { dueReminders } from "@babun/shared/local/recurring";
 import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import {
+  useAppointments,
+  useTenantId,
+} from "@/components/layout/DashboardClientLayout";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { DISPLAY_VERSION } from "@babun/shared/common/utils/version";
@@ -84,6 +87,23 @@ export default function Sidebar({
 
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
+
+  // v576 — live count of past-dated `scheduled` work appointments.
+  // Derived from the same context that drives /dashboard/unclosed, so
+  // the badge and the inbox always agree without an extra fetch.
+  const { appointments } = useAppointments();
+  const unclosedCount = useMemo(() => {
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    let n = 0;
+    for (const a of appointments) {
+      if (a.kind && a.kind !== "work") continue;
+      if (a.status !== "scheduled") continue;
+      if (a.date >= todayKey) continue;
+      n += 1;
+    }
+    return n;
+  }, [appointments]);
 
   // STORY-085 — close the drawer when the user navigates to a new
   // route. Tapping a Next.js <Link> changes the pathname; this effect
@@ -271,6 +291,7 @@ export default function Sidebar({
               tone="orange"
               label="Не закрыто"
               href={ROUTE_MAP.unclosed}
+              badge={unclosedCount > 0 ? unclosedCount : undefined}
               active={isActive("unclosed")}
             />
             <NavRow
