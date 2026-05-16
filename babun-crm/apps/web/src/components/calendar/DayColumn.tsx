@@ -21,6 +21,7 @@ import { getServiceMaterialCost } from "@babun/shared/local/services";
 import type { Client } from "@babun/shared/local/clients";
 import { getCityConfig, getCityBg, cityConfigFromColor, type CityConfig } from "@babun/shared/local/day-cities";
 import type { City } from "@babun/shared/local/cities";
+import { MapPin } from "@babun/shared/icons";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -350,20 +351,29 @@ function DayColumnInner({
               Phase I38: hide entirely when the brigade has no labels
               configured — nothing to offer, the day header falls back
               to just weekday + number. */}
+          {/* Brief 1 #9: label pill carries a pin icon + native hover
+              tooltip with the full city name, so a hovering dispatcher
+              sees «Пафос» without having to remember «ПАФ». */}
           {hasLabels &&
             (cityShort ? (
               <span
-                className="inline-flex items-center justify-center h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+                title={cityLabel}
                 style={{
                   background: cityCfg?.color ?? "var(--fill-primary)",
                   color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
                 }}
               >
+                <MapPin size={9} strokeWidth={2.5} aria-hidden />
                 {cityShort}
               </span>
             ) : (
-              <span className="inline-flex items-center justify-center h-[18px] px-1.5 rounded-full text-[11px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap">
-                + метка
+              <span
+                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[11px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap"
+                title="Добавить метку дня"
+              >
+                <MapPin size={9} strokeWidth={2.5} aria-hidden />
+                метка
               </span>
             ))}
         </div>
