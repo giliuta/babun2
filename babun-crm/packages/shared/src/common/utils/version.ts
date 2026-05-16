@@ -3,4 +3,4 @@
 // Bump on every meaningful change (UI tweaks don't need bumping —
 // SW cache version in public/sw.js drives PWA refresh).
 
-export const BUILD_VERSION = "v507-data-testid-pass";
+export const BUILD_VERSION = "v508-extended-testids";

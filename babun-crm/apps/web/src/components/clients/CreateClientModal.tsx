@@ -96,6 +96,7 @@ export default function CreateClientModal({
           <button
             type="button"
             onClick={onClose}
+            data-testid="create-client-cancel"
             className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -117,8 +118,8 @@ export default function CreateClientModal({
         <div className="flex-1 overflow-y-auto">
           {tab === "new" ? (
             <div className="p-4 space-y-4 pb-28">
-              <Field label="Имя *" value={name} onChange={setName} placeholder="Имя клиента" autoFocus />
-              <Field label="Телефон" value={phone} onChange={setPhone} placeholder="+357 99 ..." type="tel" />
+              <Field label="Имя *" value={name} onChange={setName} placeholder="Имя клиента" autoFocus testId="create-client-name" />
+              <Field label="Телефон" value={phone} onChange={setPhone} placeholder="+357 99 ..." type="tel" testId="create-client-phone" />
               <div>
                 <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1">Комментарий</div>
                 <textarea
@@ -207,6 +208,7 @@ export default function CreateClientModal({
               type="button"
               onClick={handleCreate}
               disabled={!name.trim()}
+              data-testid="create-client-save"
               className="w-full h-12 rounded-xl bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:scale-[0.98] transition disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
             >
               Создать и привязать
@@ -233,10 +235,10 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 }
 
 function Field({
-  label, value, onChange, placeholder, type = "text", autoFocus,
+  label, value, onChange, placeholder, type = "text", autoFocus, testId,
 }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; autoFocus?: boolean;
+  placeholder?: string; type?: string; autoFocus?: boolean; testId?: string;
 }) {
   return (
     <div>
@@ -247,6 +249,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        data-testid={testId}
         className="w-full h-12 px-3 rounded-xl bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
       />
     </div>

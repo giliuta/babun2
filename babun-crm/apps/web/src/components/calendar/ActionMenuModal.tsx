@@ -65,6 +65,7 @@ export default function ActionMenuModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-[var(--surface-overlay)]"
       onPointerDown={handleBackdropPointerDown}
+      data-testid="action-menu"
     >
       <div
         className="w-full max-w-md flex flex-col gap-2 select-none"
@@ -97,6 +98,8 @@ export default function ActionMenuModal({
                     opt.onSelect();
                     onClose();
                   }}
+                  data-testid={`action-menu-option-${i}`}
+                  data-action-label={opt.label}
                   className={`w-full text-center px-4 py-3 min-h-[48px] select-none transition ${
                     opt.disabled
                       ? "cursor-not-allowed"
@@ -127,6 +130,7 @@ export default function ActionMenuModal({
         <button
           type="button"
           onClick={onClose}
+          data-testid="action-menu-cancel"
           className="w-full h-[52px] bg-[var(--surface-card)] rounded-[14px] text-[17px] font-semibold text-[var(--accent)] shadow-[var(--shadow-sheet)] active:bg-[var(--fill-quaternary)] transition"
         >
           Отмена

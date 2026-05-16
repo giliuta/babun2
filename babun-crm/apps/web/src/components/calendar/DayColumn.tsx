@@ -265,7 +265,11 @@ function DayColumnInner({
   };
 
   return (
-    <div className="flex-1 min-w-0 border-r border-[var(--separator)] last:border-r-0 overflow-x-clip">
+    <div
+      data-testid={`calendar-day-column-${dateKey}`}
+      data-date-key={dateKey}
+      className="flex-1 min-w-0 border-r border-[var(--separator)] last:border-r-0 overflow-x-clip"
+    >
       {/* Day header — по спеке:
             1. City name в цвете города (крупно, bold) + ChevronDown
             2. Weekday (ПН/ВТ...) + короткий месяц
@@ -374,6 +378,7 @@ function DayColumnInner({
       {/* Time slots — total height is 24×hourHeight via CSS var. */}
       <div
         ref={setDroppableRef}
+        data-testid={`calendar-day-grid-${dateKey}`}
         className={`relative cursor-pointer border-r border-[var(--separator)] select-none ${
           isOver ? "ring-2 ring-[var(--accent)] ring-inset" : ""
         }`}

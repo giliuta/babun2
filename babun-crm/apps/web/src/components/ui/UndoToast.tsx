@@ -53,6 +53,7 @@ export default function UndoToast({
   return (
     <div
       role="status"
+      data-testid="undo-toast"
       className="fixed left-1/2 -translate-x-1/2 z-[60] w-[min(92vw,380px)]"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 8px) + 80px)",
@@ -67,6 +68,7 @@ export default function UndoToast({
               onUndo();
               onClose();
             }}
+            data-testid="undo-toast-undo-button"
             className="text-[14px] font-semibold text-[var(--system-blue)] active:opacity-60 transition"
           >
             Отменить
