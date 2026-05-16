@@ -1308,7 +1308,20 @@ function DashboardPageInner() {
   // an empty grid. Wait for personalCal.loaded so we don't flash the
   // gate-screen on already-configured tenants while the column is
   // being read.
-  if (personalCal.loaded && !personalCal.enabled && teams.length === 0) {
+  //
+  // v515 P0 #2.3 — also require `!onboardedAt`. Otherwise a tenant who
+  // picked «Календарь для команды» during onboarding (which records
+  // `personal_calendar_enabled=false` + `onboarded_at` but doesn't auto-
+  // create a team) bounces back to this binary-choice screen forever.
+  // After onboarding the user has decided; respect it and render the
+  // calendar (empty grid is fine — the team picker / FAB guide what's
+  // next).
+  if (
+    personalCal.loaded &&
+    !personalCal.enabled &&
+    !personalCal.onboardedAt &&
+    teams.length === 0
+  ) {
     return (
       <>
         <PageHeader
