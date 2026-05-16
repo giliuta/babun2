@@ -14,6 +14,10 @@ import {
   type SmsTemplate,
   type TemplateKind,
 } from "@babun/shared/local/sms-templates";
+// v547 §3.10 — proper GSM-7 vs UCS-2 segment math so the editor
+// tells the truth about per-SMS bill (Cyrillic → 70 chars, Latin →
+// 160). 6 vitest cases cover the math.
+import { analyzeSmsEncoding } from "@babun/shared/local/sms-encoding";
 
 // P2 #40 (CRM Core brief) — starter templates surfaced in the empty
 // state. Each one creates a draft that opens straight into the
@@ -253,8 +257,14 @@ function TemplateEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const preview = useMemo(() => renderTemplate(draft.body, SAMPLE_VARS), [draft.body]);
-  const smsLength = preview.length;
-  const smsCount = Math.ceil(smsLength / 160) || 1;
+  // v547 §3.10 — analyze the RENDERED preview (with sample client data
+  // substituted) because that's what the carrier actually charges
+  // for. Body «[Имя]» is 5 GSM-7 chars / 1 segment, but rendered as
+  // «Анастасия» it's 9 UCS-2 chars / still 1 segment but into the
+  // 70-char bucket. Counting the raw body would under-report cost.
+  const encInfo = useMemo(() => analyzeSmsEncoding(preview), [preview]);
+  const smsLength = encInfo.length;
+  const smsCount = encInfo.segments;
 
   const insertToken = (token: string) => {
     const ta = textareaRef.current;
@@ -317,8 +327,21 @@ function TemplateEditor({
               <label className="text-[12px] font-medium text-[var(--label-secondary)] tracking-wide">
                 Текст сообщения
               </label>
-              <span className="text-[12px] text-[var(--label-tertiary)] tabular-nums">
+              <span
+                className={`text-[12px] tabular-nums ${
+                  encInfo.segments > 1
+                    ? "text-[var(--system-orange)] font-semibold"
+                    : "text-[var(--label-tertiary)]"
+                }`}
+                title={
+                  encInfo.encoding === "ucs2"
+                    ? "Кириллица или эмодзи — 70 знаков на SMS (а не 160)."
+                    : "Латиница — 160 знаков на SMS."
+                }
+                data-testid="sms-counter"
+              >
                 {smsLength} знаков · {smsCount} SMS
+                {encInfo.encoding === "ucs2" ? " · UCS-2" : ""}
               </span>
             </div>
             <textarea
@@ -329,6 +352,18 @@ function TemplateEditor({
               placeholder="Введите текст шаблона..."
               className="w-full px-3.5 py-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] resize-none transition"
             />
+            {/* v547 §3.10 — when a Cyrillic body silently jumps to 2+
+                segments, surface the cost explicitly so the dispatcher
+                knows trimming ~10 chars halves their SMS bill on
+                every send. */}
+            {encInfo.segments > 1 && (
+              <div className="mt-1.5 text-[11px] text-[var(--system-orange)] leading-snug">
+                Сообщение разобьётся на {encInfo.segments} SMS. Чтобы
+                уложиться в одну — сократите до {encInfo.singleLimit}{" "}
+                знаков
+                {encInfo.encoding === "ucs2" ? " (кириллица)" : ""}.
+              </div>
+            )}
           </div>
 
           {/* Token palette */}
