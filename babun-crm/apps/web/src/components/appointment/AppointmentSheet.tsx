@@ -909,6 +909,7 @@ export default function AppointmentSheet({
                 }
                 handleCreate();
               }}
+              data-testid="appointment-sheet-save"
               className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
                 canSave
                   ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"

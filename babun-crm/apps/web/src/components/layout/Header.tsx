@@ -120,6 +120,7 @@ export default function Header({
           type="button"
           onClick={onPrevWeek}
           aria-label="Предыдущий период"
+          data-testid="header-prev"
           className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full text-[var(--label-secondary)] hover:bg-[var(--fill-quaternary)] transition shrink-0"
         >
           <ChevronLeft size={20} strokeWidth={2.2} />
@@ -128,6 +129,7 @@ export default function Header({
           type="button"
           onClick={onNextWeek}
           aria-label="Следующий период"
+          data-testid="header-next"
           className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full text-[var(--label-secondary)] hover:bg-[var(--fill-quaternary)] transition shrink-0"
         >
           <ChevronRight size={20} strokeWidth={2.2} />
@@ -167,6 +169,7 @@ export default function Header({
           onClick={onToday}
           aria-label={`Сегодня, ${todayNumber}`}
           hidden={isOnToday}
+          data-testid="header-today"
           className="relative w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale flex-shrink-0 transition"
         >
           <CalendarClock size={20} strokeWidth={2} />
@@ -180,6 +183,7 @@ export default function Header({
             type="button"
             onClick={() => setShowViewDropdown(!showViewDropdown)}
             aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
+            data-testid="header-view-mode"
             className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale transition"
           >
             <ActiveViewIcon size={20} strokeWidth={2} />
@@ -202,6 +206,7 @@ export default function Header({
                         onViewModeChange(mode);
                         setShowViewDropdown(false);
                       }}
+                      data-testid={`header-view-mode-option-${mode}`}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[14px] active:bg-[var(--fill-quaternary)] transition-colors ${
                         viewMode === mode
                           ? "text-[var(--accent)] font-semibold"
@@ -289,6 +294,7 @@ function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
         onLongPress?.();
         firedRef.current = true;
       }}
+      data-testid={`header-team-tab-${team.id}`}
       className={`flex-1 h-8 px-3 rounded-[7px] text-[13px] font-semibold whitespace-nowrap select-none transition ${
         active
           ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"

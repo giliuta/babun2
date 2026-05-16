@@ -250,6 +250,7 @@ export default function PersonalEventSheet({
         // lives on the outer frame (border in tint) and the header
         // strip — that's enough to telegraph the chosen colour without
         // washing the entire sheet.
+        data-testid="personal-event-sheet"
         className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px] overflow-hidden border-2"
         style={{
           height: "92vh",
@@ -274,6 +275,7 @@ export default function PersonalEventSheet({
               type="button"
               onClick={() => onDelete(appointment)}
               aria-label="Удалить событие"
+              data-testid="personal-event-sheet-delete"
               className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[rgba(255,59,48,0.1)]"
             >
               <Trash2 size={16} strokeWidth={2} />
@@ -286,6 +288,7 @@ export default function PersonalEventSheet({
             type="button"
             onClick={handleCloseRequest}
             aria-label="Закрыть"
+            data-testid="personal-event-sheet-close"
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
             <XIcon size={16} strokeWidth={2.5} />
@@ -535,6 +538,7 @@ export default function PersonalEventSheet({
               onSave(payload);
             }}
             disabled={!canSave}
+            data-testid="personal-event-sheet-save"
             className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${canSave ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]" : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"}`}
           >
             {mode === "edit" ? "Сохранить" : "Создать событие"}

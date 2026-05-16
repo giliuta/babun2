@@ -77,7 +77,7 @@ export default function LoginForm({
         <div className="flex-1 h-px bg-[var(--separator)]" />
       </div>
 
-      <form onSubmit={submit} className="space-y-3">
+      <form onSubmit={submit} className="space-y-3" data-testid="login-form">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] overflow-hidden divide-y divide-[var(--separator)] shadow-[var(--shadow-card)]">
           <label className="block">
             <span className="sr-only">Email</span>
@@ -89,6 +89,7 @@ export default function LoginForm({
               placeholder="Email"
               required
               aria-label="Email"
+              data-testid="login-email"
               className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
             />
           </label>
@@ -103,13 +104,17 @@ export default function LoginForm({
               required
               minLength={8}
               aria-label="Пароль"
+              data-testid="login-password"
               className="w-full h-12 px-4 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none bg-transparent"
             />
           </label>
         </div>
 
         {error && (
-          <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
+          <div
+            data-testid="login-error"
+            className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug"
+          >
             {error}
           </div>
         )}
@@ -117,6 +122,7 @@ export default function LoginForm({
         <button
           type="submit"
           disabled={loading}
+          data-testid="login-submit"
           className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition mt-2"
         >
           {loading ? "Входим…" : "Войти"}

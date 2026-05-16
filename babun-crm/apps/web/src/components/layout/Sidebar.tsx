@@ -307,6 +307,7 @@ export default function Sidebar({
         <div className="flex-shrink-0 px-4 py-4 border-t border-[var(--separator)] bg-[var(--surface-card)]">
           <button
             onClick={onLogout}
+            data-testid="sidebar-logout"
             // STORY-058 — 44px tap target. Negative left padding pulls
             // the icon back to the column edge so the visible label
             // stays aligned with the build-version row below it.
@@ -391,6 +392,7 @@ function NavRow({
   return (
     <Link
       href={href}
+      data-testid={`sidebar-nav-${href.split("/").filter(Boolean).pop() ?? "root"}`}
       // STORY-085 — block iOS callout/selection menu on long-press +
       // kill 300ms double-tap-zoom delay so the row feels instant.
       style={{
