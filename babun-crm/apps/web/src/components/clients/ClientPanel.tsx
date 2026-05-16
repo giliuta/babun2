@@ -19,6 +19,7 @@ import LocationsSection from "./LocationsSection";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount, getDebtAmount, STATUS_LABELS } from "@babun/shared/local/appointments";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import { useServices, useTeams } from "@/components/layout/DashboardClientLayout";
 import { loadChats, CHANNEL_LABELS, CHANNEL_COLORS, type Chat, type ChatChannel } from "@babun/shared/local/chats";
 import { generateId } from "@babun/shared/local/masters";
@@ -908,7 +909,10 @@ function RecordCard({
             className="w-2 h-2 rounded-full"
             style={{ background: team.color || "#8b5cf6" }}
           />
-          Мастер: {team.name}
+          {/* P0 #4 (CRM Core brief): the value is the team name, so the
+              label was «Мастер: Бригада X» — a lie. Individual masters
+              are tracked separately and aren't surfaced here yet. */}
+          Команда: {team.name}
         </div>
       )}
       {(serviceSummary || apt.comment) && (
@@ -918,25 +922,43 @@ function RecordCard({
           {apt.comment}
         </div>
       )}
-      {/* Payment row */}
-      <div className="flex items-center gap-3 mt-2 text-[12px]">
-        <span className="flex items-center gap-1 text-[var(--system-green)]">
-          <span className="w-4 h-4 rounded-full bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px]">
-            +
+      {/* Payment row — P0 #12 (CRM Core brief). Bare colored dots with
+          numbers were unreadable («0 / 150 / 150» without legend). Now
+          each amount is currency-formatted and carries an inline label
+          + tooltip. Debt is hidden when zero so a fully-paid visit
+          doesn't show a meaningless «€0 к оплате». */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[12px] tabular-nums">
+        <span
+          className="inline-flex items-center gap-1 text-[var(--system-green)]"
+          title="Оплачено"
+        >
+          <span className="w-2 h-2 rounded-full bg-[var(--system-green)]" />
+          <span className="font-semibold">{formatEUR(paid)}</span>
+          <span className="text-[var(--label-secondary)] font-normal">
+            оплачено
           </span>
-          {paid}
         </span>
-        <span className="flex items-center gap-1 text-[var(--system-red)]">
-          <span className="w-4 h-4 rounded-full bg-[var(--system-red)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px]">
-            −
+        {debt > 0 && (
+          <span
+            className="inline-flex items-center gap-1 text-[var(--system-red)]"
+            title="К оплате"
+          >
+            <span className="w-2 h-2 rounded-full bg-[var(--system-red)]" />
+            <span className="font-semibold">{formatEUR(debt)}</span>
+            <span className="text-[var(--label-secondary)] font-normal">
+              к оплате
+            </span>
           </span>
-          {debt}
-        </span>
-        <span className="flex items-center gap-1 text-[var(--system-blue)]">
-          <span className="w-4 h-4 rounded-full bg-[var(--system-blue)] text-[var(--label-on-accent)] flex items-center justify-center text-[10px]">
-            ·
+        )}
+        <span
+          className="inline-flex items-center gap-1 text-[var(--system-blue)]"
+          title="Итого"
+        >
+          <span className="w-2 h-2 rounded-full bg-[var(--system-blue)]" />
+          <span className="font-semibold">{formatEUR(total)}</span>
+          <span className="text-[var(--label-secondary)] font-normal">
+            итого
           </span>
-          {total}
         </span>
       </div>
     </div>
