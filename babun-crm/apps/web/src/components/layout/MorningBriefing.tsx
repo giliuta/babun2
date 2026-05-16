@@ -258,6 +258,18 @@ export default function MorningBriefing({
             Ответить в чатах
           </button>
         )}
+        {summary.unclosedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              dismiss();
+              router.push("/dashboard/unclosed");
+            }}
+            className="w-full h-11 rounded-[var(--radius-pill)] bg-[var(--accent-tint)] text-[var(--accent)] text-[15px] font-semibold active:opacity-75 transition"
+          >
+            Разобрать незакрытые
+          </button>
+        )}
         <button
           type="button"
           onClick={dismiss}

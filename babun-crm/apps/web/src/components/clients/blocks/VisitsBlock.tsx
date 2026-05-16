@@ -96,9 +96,22 @@ function VisitRow({
   })();
 
   const summary = (() => {
-    const named = (apt.services ?? [])
-      .map((s) => servicesById.get(s.serviceId))
-      .filter(Boolean) as string[];
+    // P0 #4 (CRM Core brief) — de-dupe by serviceId before counting.
+    // User report: «Сплит-система 7-9 BTU» appears twice on the same
+    // visit. Cause: legacy appointments occasionally carry two
+    // AppointmentService rows with the same serviceId (UI quirk +
+    // some import paths). Quantity lives ON each row, so the canonical
+    // single-row representation is one entry per service id with the
+    // quantities summed — for the activity summary string we only need
+    // distinct names, so a Set is enough.
+    const seenIds = new Set<string>();
+    const named: string[] = [];
+    for (const s of apt.services ?? []) {
+      if (seenIds.has(s.serviceId)) continue;
+      seenIds.add(s.serviceId);
+      const name = servicesById.get(s.serviceId);
+      if (name) named.push(name);
+    }
     if (named.length > 0)
       return named.length === 1 ? named[0] : `${named[0]} +${named.length - 1}`;
     return apt.comment || "—";

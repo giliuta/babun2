@@ -460,10 +460,26 @@ export default function AppointmentSheet({
   };
 
   const handlePay = (payment: AppointmentPayment) => {
+    // P0 #13 + #14 (CRM Core brief) — mirror the legacy `payment`
+    // jsonb into the explicit columns the Supabase trigger keys off
+    // (20260517_001_payment_status_and_finance_sync.sql). Invoice
+    // mode = company will pay later, so the appointment is completed
+    // but not yet `paid` — operator gets to flip it manually when the
+    // invoice clears.
+    const isInvoice = payment.method === "invoice";
+    const methodMap: Record<typeof payment.method, "cash" | "card" | "other" | null> = {
+      cash: "cash",
+      card: "card",
+      split: "other",
+      invoice: null,
+    };
     onSave({
       ...appointment,
       status: "completed",
       payment,
+      payment_status: isInvoice ? "unpaid" : "paid",
+      payment_method: methodMap[payment.method] ?? undefined,
+      paid_amount: isInvoice ? 0 : appointment.total_amount,
       total_amount: appointment.total_amount,
       updated_at: new Date().toISOString(),
     });
