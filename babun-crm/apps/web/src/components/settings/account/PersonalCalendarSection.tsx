@@ -5,10 +5,16 @@
 // Live tap-to-toggle. Shows current state, fires the server action
 // to flip the boolean, optimistically updates so the toggle feels
 // instant. Tied to the same boolean the calendar empty-state reads.
+//
+// STORY-066 — disabling is gated by a confirm dialog. Hiding the
+// personal calendar is a navigation-changing action and the user
+// might tap the toggle by mistake; settings are preserved, but the
+// section vanishes from the sidebar until re-enabled.
 
 import { useState, useTransition } from "react";
 import { CalendarHeart } from "@babun/shared/icons";
 import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Props {
   initialEnabled: boolean;
@@ -18,9 +24,24 @@ export default function PersonalCalendarSection({ initialEnabled }: Props) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  const toggle = (next: boolean) => {
+  const toggle = async (next: boolean) => {
     setError(null);
+    // STORY-066: confirm only on disable. Enabling is a clean opt-in
+    // and doesn't deserve a friction dialog.
+    if (!next) {
+      const ok = await confirm({
+        title: "Скрыть личный календарь?",
+        message:
+          "Все настройки сохранятся, но раздел исчезнет из навигации. " +
+          "Включите обратно в любой момент.",
+        confirmLabel: "Скрыть",
+        cancelLabel: "Отмена",
+        danger: false,
+      });
+      if (!ok) return;
+    }
     setEnabled(next); // optimistic
     startTransition(async () => {
       const res = await setPersonalCalendarEnabled(next);
@@ -54,7 +75,7 @@ export default function PersonalCalendarSection({ initialEnabled }: Props) {
               type="checkbox"
               className="sr-only peer"
               checked={enabled}
-              onChange={(e) => toggle(e.target.checked)}
+              onChange={(e) => { void toggle(e.target.checked); }}
               disabled={isPending}
             />
             <span className="relative w-11 h-6 bg-[var(--fill-secondary)] rounded-full transition-colors peer-checked:bg-[var(--accent)] peer-disabled:opacity-50">
