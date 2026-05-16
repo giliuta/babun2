@@ -9,7 +9,13 @@ import { useRouter } from "next/navigation";
 import FinanceSparkline, {
   type FinanceDailyPoint,
 } from "@/components/finance/FinanceSparkline";
-import { ChevronDown, Plus, SlidersHorizontal } from "@babun/shared/icons";
+import { ChevronDown, Plus, SlidersHorizontal, Download } from "@babun/shared/icons";
+import {
+  buildCsv,
+  downloadCsv,
+  FINANCE_CSV_COLUMNS,
+  type FinanceCsvRow,
+} from "@/lib/finance/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
 import ManualTransactionSheet from "@/components/finance/ManualTransactionSheet";
 import { haptic } from "@/lib/haptics";
@@ -102,14 +108,54 @@ export default function FinancesPage() {
       <PageHeader
         title="Финансы"
         rightContent={
-          <button
-            type="button"
-            onClick={() => setShowCategories(true)}
-            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg"
-          >
-            <SlidersHorizontal size={14} strokeWidth={2} />
-            Категории
-          </button>
+          <div className="flex items-center gap-1">
+            {/* v563 §3.12 — export the active filtered period (whatever
+                team + period the user has chosen) to CSV. UTF-8 BOM +
+                `;` separator + CRLF so Russian-locale Excel opens it
+                cleanly without an encoding prompt. */}
+            <button
+              type="button"
+              onClick={() => {
+                const rows: FinanceCsvRow[] = [
+                  ...filteredIncome.map((e) => ({
+                    dateKey: e.dateKey,
+                    description: e.description,
+                    amount: e.amount,
+                    teamName: e.teamId
+                      ? teamById.get(e.teamId) ?? "—"
+                      : "—",
+                    type: "income" as const,
+                  })),
+                  ...filteredExpenses.map((e) => ({
+                    dateKey: e.dateKey,
+                    description: e.description,
+                    amount: e.amount,
+                    teamName: e.teamId
+                      ? teamById.get(e.teamId) ?? "—"
+                      : "—",
+                    type: "expense" as const,
+                  })),
+                ].sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+                const csv = buildCsv(FINANCE_CSV_COLUMNS, rows);
+                downloadCsv(csv, `babun-finance-${period}`);
+              }}
+              aria-label="Экспорт в CSV"
+              data-testid="finance-export-csv"
+              disabled={filteredIncome.length + filteredExpenses.length === 0}
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
+            >
+              <Download size={14} strokeWidth={2} />
+              CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCategories(true)}
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg"
+            >
+              <SlidersHorizontal size={14} strokeWidth={2} />
+              Категории
+            </button>
+          </div>
         }
       />
 
