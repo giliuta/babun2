@@ -9,6 +9,13 @@ const MONTH_NAMES_GENITIVE = [
   "Января", "Февраля", "Марта", "Апреля", "Мая", "Июня",
   "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря",
 ];
+// Prepositional case ("в …"). Needed for hero strips like
+// «1 новый в мае» — toLocaleDateString("ru-RU", {month:"long"})
+// returns nominative ("май"), which reads as «1 новый в май».
+const MONTH_NAMES_PREPOSITIONAL = [
+  "январе", "феврале", "марте", "апреле", "мае", "июне",
+  "июле", "августе", "сентябре", "октябре", "ноябре", "декабре",
+];
 const MONTH_NAMES_SHORT = [
   "янв", "фев", "мар", "апр", "май", "июн",
   "июл", "авг", "сен", "окт", "ноя", "дек",
@@ -28,6 +35,10 @@ export function getMonthName(monthIndex: number): string {
 
 export function getMonthNameGenitive(monthIndex: number): string {
   return MONTH_NAMES_GENITIVE[monthIndex];
+}
+
+export function getMonthNamePrepositional(monthIndex: number): string {
+  return MONTH_NAMES_PREPOSITIONAL[monthIndex];
 }
 
 // Formats "2026-04-12" as "12 апреля 2026 г."

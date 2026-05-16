@@ -369,14 +369,21 @@ function ProfileForm({
 
 // ─── Phones (multiple) ──────────────────────────────────────────────────
 // Primary phone lives at client.phone — search, list display and the
-// sticky action bar all read from it. Additional phones (жены, рабочий,
-// WhatsApp на другой номер) go into client.phones.
+// sticky action bar all read from it. Additional phones (супруг/а,
+// арендатор, помощник, WhatsApp на другой номер) go into client.phones.
+//
+// P2 #36 (CRM Core brief) — Babun обслуживает сервисные бизнесы (HVAC,
+// сантехника, клининг). «Жена/Муж» из салонной лексики заменено на
+// нейтральные «Супруг(а)/Арендатор/Помощник», которые покрывают
+// реальные кейсы выезда (квартира арендатора, муж/жена на месте,
+// управляющий объектом).
 
 const PHONE_LABEL_OPTIONS = [
   "Основной",
   "WhatsApp",
-  "Жена",
-  "Муж",
+  "Супруг(а)",
+  "Арендатор",
+  "Помощник",
   "Рабочий",
   "Домашний",
   "Другое",
@@ -416,7 +423,7 @@ function PhonesSection({
       <div className="flex items-center justify-between">
         <div className="text-[12px] text-[var(--label-secondary)]">Телефоны</div>
         <span className="text-[11px] text-[var(--label-tertiary)]">
-          можно добавить жену / мужа на этой же карточке
+          супруг(а), арендатор, помощник — на этой же карточке
         </span>
       </div>
       <PhoneRow

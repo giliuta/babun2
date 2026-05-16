@@ -125,7 +125,7 @@ export interface Client {
   id: string;
   full_name: string;
   phone: string;
-  /** Дополнительные номера — клиент может дать жены/рабочий/WhatsApp. */
+  /** Дополнительные номера — супруг(а), арендатор, помощник, рабочий, WhatsApp на другом номере. */
   phones: PhoneEntry[];
   /** Если WhatsApp зарегистрирован на другой номер, не основной. */
   whatsapp_phone: string;

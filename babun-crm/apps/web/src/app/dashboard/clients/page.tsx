@@ -47,6 +47,7 @@ import { useClients, useAppointments } from "@/components/layout/DashboardClient
 import { type Client, type ClientTag, createBlankClient } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
+import { getMonthNamePrepositional } from "@babun/shared/common/utils/date-utils";
 // ClientPanel is the full client profile view (~1500 lines). Mobile
 // renders it as a slide-up sheet on row tap; desktop renders it as a
 // right-side panel only when a client is selected. Either way it's
@@ -297,11 +298,10 @@ export default function ClientsPage() {
     };
   }, [clients, statsMap]);
 
+  // P2 #37 (CRM Core brief) — Intl returns nominative ("май") so
+  // «1 новый в май» read wrong. Use the dedicated prepositional table.
   const currentMonthRu = useMemo(
-    () =>
-      new Date()
-        .toLocaleDateString("ru-RU", { month: "long" })
-        .toLowerCase(),
+    () => getMonthNamePrepositional(new Date().getMonth()),
     [],
   );
 
