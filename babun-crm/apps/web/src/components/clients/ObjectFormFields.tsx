@@ -40,9 +40,16 @@ export const PROPERTY_CHOICES: PropertyChoice[] = [
 
 export interface ObjectFormDraft {
   label: string;
-  property_type: PropertyType;
+  /** Undefined = «не выбран» (legacy localStorage rows that don't
+   *  carry a per-object type yet). The chip palette shows no active
+   *  state in that case; selecting one writes it through. */
+  property_type?: PropertyType;
   address: string;
   note: string;
+  /** Optional — only the modal editor currently surfaces this field.
+   *  Falsy values aren't rendered as a form input by consumers that
+   *  don't pass `showMapUrl`. */
+  mapUrl?: string;
 }
 
 interface Props {
@@ -53,6 +60,10 @@ interface Props {
    *  editor leaves it false so the modal's title is the first thing
    *  the user reads. */
   autoFocusAddress?: boolean;
+  /** When true, render the Google/Apple Maps link input under the
+   *  address. The inline-create flow keeps it off (kept compact);
+   *  LocationEditor turns it on. */
+  showMapUrl?: boolean;
 }
 
 const inputCls =
@@ -62,6 +73,7 @@ export default function ObjectFormFields({
   draft,
   onChange,
   autoFocusAddress,
+  showMapUrl,
 }: Props) {
   const setType = (next: PropertyType) => {
     haptic("tap");
@@ -71,12 +83,14 @@ export default function ObjectFormFields({
       // Auto-fill the label when picking a type — but only if the
       // user hasn't typed a custom one yet. We detect «hasn't typed»
       // by checking the label against every defaultLabel in the
-      // palette: if it's one of them, replace; otherwise keep what
-      // the user wrote.
-      label: PROPERTY_CHOICES.some((c) => c.defaultLabel === draft.label)
-        ? PROPERTY_CHOICES.find((c) => c.value === next)?.defaultLabel ??
-          draft.label
-        : draft.label,
+      // palette: if it's one of them, OR if the label is empty,
+      // replace; otherwise keep what the user wrote.
+      label:
+        draft.label === "" ||
+        PROPERTY_CHOICES.some((c) => c.defaultLabel === draft.label)
+          ? PROPERTY_CHOICES.find((c) => c.value === next)?.defaultLabel ??
+            draft.label
+          : draft.label,
     });
   };
 
@@ -125,6 +139,22 @@ export default function ObjectFormFields({
           maxLength={200}
         />
       </Field>
+
+      {showMapUrl && (
+        <Field
+          label="Ссылка на карту"
+          hint="Google Maps / Apple Maps — для нестандартного pin"
+        >
+          <input
+            type="url"
+            value={draft.mapUrl ?? ""}
+            onChange={(e) => onChange({ ...draft, mapUrl: e.target.value })}
+            placeholder="https://maps.google.com/…"
+            className={inputCls}
+            maxLength={300}
+          />
+        </Field>
+      )}
 
       <Field label="Заметка для команды" hint="код домофона, собака, особенности входа">
         <input

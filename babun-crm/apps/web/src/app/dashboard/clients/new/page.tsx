@@ -55,9 +55,12 @@ const DEFAULT_PHONE_PREFIX = "+357 ";
 // without touching every call site.
 const PROPERTY_CHOICES = SHARED_PROPERTY_CHOICES;
 
+// Structural alias of ObjectFormDraft so the shared `<ObjectFormFields />`
+// onChange handler can write straight back without a cast. property_type
+// stays optional to match the Location schema's new per-object field.
 interface LocationDraft {
   label: string;
-  property_type: PropertyType;
+  property_type?: PropertyType;
   address: string;
   note: string;
 }
@@ -131,6 +134,8 @@ export default function NewClientPage() {
       id: generateId("loc"),
       label: draftLoc.label.trim() || "Объект",
       address: draftLoc.address.trim(),
+      // P0 #6 — per-object type now persists from the create form.
+      property_type: draftLoc.property_type,
       isPrimary: locations.length === 0,
       note: draftLoc.note.trim() || undefined,
       equipment: [],
