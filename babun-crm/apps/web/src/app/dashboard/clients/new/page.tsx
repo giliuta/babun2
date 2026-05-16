@@ -81,6 +81,14 @@ export default function NewClientPage() {
   const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
+  // P1 #23 (CRM Core brief) — VIP / blacklist were settable only after
+  // save. Lifted into the create form so a dispatcher who hears
+  // «постоянный клиент, не теряем» on the call can flag it before
+  // the record is even persisted. «Постоянный» / «Новый» stay derived
+  // from visit count + ageDays — they're not real tags, ClientStatusBadges
+  // computes them at render time.
+  const [vip, setVip] = useState(false);
+  const [blacklisted, setBlacklisted] = useState(false);
   // P1 #25 (CRM Core brief) — city is now sourced from the
   // /dashboard/settings/cities reference book instead of a free-text
   // input. Empty list (e.g. brand-new tenant who hasn't seeded cities
@@ -157,6 +165,8 @@ export default function NewClientPage() {
       birthday: birthday || "",
       comment: comment.trim(),
       locations,
+      tag_ids: vip ? ["tag-vip"] : [],
+      blacklisted,
     });
     try {
       await upsertClient(blank);
@@ -301,6 +311,43 @@ export default function NewClientPage() {
                   : "Добавить ещё объект"}
               </button>
             )}
+          </Card>
+
+          {/* ───────── P1 #23 — status chips ───────── */}
+          <Card>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+                Статус
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <StatusChip
+                label="VIP"
+                active={vip}
+                onClick={() => {
+                  haptic("tap");
+                  setVip((v) => !v);
+                  // VIP and blacklist are mutually exclusive — a flagged
+                  // problem client shouldn't be lit up as a top-tier guest.
+                  if (!vip) setBlacklisted(false);
+                }}
+                tone="vip"
+              />
+              <StatusChip
+                label="Чёрный список"
+                active={blacklisted}
+                onClick={() => {
+                  haptic("tap");
+                  setBlacklisted((v) => !v);
+                  if (!blacklisted) setVip(false);
+                }}
+                tone="blacklist"
+              />
+            </div>
+            <div className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+              «Новый» и «Постоянный» система ставит сама — по визитам и
+              возрасту записи.
+            </div>
           </Card>
 
           {/* ───────── Дополнительно accordion ───────── */}
@@ -544,6 +591,40 @@ function Card({ children }: { children: React.ReactNode }) {
     <section className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3">
       {children}
     </section>
+  );
+}
+
+// P1 #23 — toggle chips for VIP / blacklist on the create form. Tones
+// match the read-side ClientStatusBadges so a chip lit here visually
+// echoes the badge the user will see later in /clients/[id].
+function StatusChip({
+  label,
+  active,
+  onClick,
+  tone,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  tone: "vip" | "blacklist";
+}) {
+  const activeCls =
+    tone === "vip"
+      ? "bg-[rgba(255,204,0,0.18)] text-[#B78600] border-[rgba(255,204,0,0.4)]"
+      : "bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] border-[rgba(255,59,48,0.3)]";
+  const idleCls =
+    "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] border-transparent";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`px-3 h-9 rounded-full text-[13px] font-semibold border transition active:scale-[0.97] ${
+        active ? activeCls : idleCls
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

@@ -52,7 +52,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 |---|-------|--------|-------|
 | 21 | «Babun App» убрать из списка мастеров | DROP-by-audit | No «Babun App» entry exists in code (DEFAULT_MASTERS is empty, no owner→master injection). Brief was written against legacy seed data. If a stored localStorage still has such a row, user can delete it via the kebab menu (#44). |
 | 22 | Action-bar показывать только при выборе | **DONE (already gated)** | Audit `app/dashboard/clients/page.tsx`: per-row [Закрепить/Записать/Напомнить/Удалить] live inside `<SwipeableRow>` (swipe-gated); bulk bar [Выбрать всех/SMS/Удалить] is wrapped in `{isSelecting && …}`. Brief was written against older state. |
-| 23 | Status badges в форме `/clients/new` | READY | Reuse `ClientStatusBadges` in editable mode in create form. |
+| 23 | Status badges в форме `/clients/new` | **DONE (v549)** | Status section with VIP / Чёрный список toggle chips (mutually exclusive). Hint clarifies that «Новый» / «Постоянный» are derived by the system from visit count + ageDays, not user-settable. |
 | 24 | Источник заявки на create клиента | **DONE** | Commit `d8cea33` adds it to appointment create. Client-create parity → still READY (small). |
 | 25 | Город — справочник, не свободный текст | **DONE (v547)** | `/clients/new` reads `getActiveCities(loadCities())`; if list is empty (fresh tenant) falls back to a plain input pointing at the cities settings page. Brigade-by-city auto-suggest deferred (own follow-up). |
 | 26 | Phone placeholder из `tenant.country_code` | BLOCKED-on-data-model | No `country_code` field exists on `CompanyInfo` or any tenant settings. Need a decision: (a) add field to CompanyInfo + settings/company form, or (b) derive from saved `company.phone` prefix at use site. Rolling the derived prefix across 7+ placeholders also needs an SSR-safe `usePhonePrefix()` hook to avoid hydration mismatches. Punted to a follow-up story. |
@@ -63,7 +63,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 31 | Произвольный период во всех отчётах | **DONE-partial (v549)** | Finance PERIODS expanded: Сегодня / Эта неделя / Этот месяц / Этот год / Последние 7 дней / Последние 30 дней / За всё время. `computeRange` + `computePreviousRange` handle every new key with proper «week-over-week» / «year-over-year» comparisons. Custom-range picker deferred (separate UI story). |
 | 32 | `/finances/debts` раздел | READY | Already partly in `FinanceTabs.DebtsTab`. Promote to own route with sort + bulk action. |
 | 33 | CSV import flow | BLOCKED → STORY-046 | Same as #10. |
-| 34 | `source` per-appointment | READY (already partial) | `appointments.source` already added per `d8cea33`. Make sure all forms surface it. |
+| 34 | `source` per-appointment | **DONE** | `appointments.source` field + required-on-create UI shipped in `d8cea33`. Source picker is the same dropdown used in `/clients/new`. |
 | 35 | Touch-only gesture hint | **DONE** | Commit `12d5f85` — desktop-aware. |
 
 ## 🟢 P2 — 10 items
@@ -79,7 +79,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 42 | Тестовая отправка SMS | BLOCKED → STORY-047 | Needs SMS provider. |
 | 43 | «Сохраняем... / Сохранено ✓» — one state at a time | READY | Reducer `idle / saving / saved / error`. |
 | 44 | «Удалить сотрудника» → «⋮» в шапке | **DONE (v541)** | Kebab in `/masters/[id]` header opens ContextMenu with Архивировать / Удалить. Confirm shows lifetime appointment count via master's teams + team count. Bottom destructive button removed. |
-| 45 | Подписи под €0/€150/€150 в Активности | READY-partial | Already labelled in latest commit. Add tooltips. |
+| 45 | Подписи под €0/€150/€150 в Активности | **DONE** | Each amount in the payment row in `ClientPanel.tsx` already carries an inline label («оплачено» / «к оплате» / «итого») + `title="..."` tooltip. Debt is hidden when zero so a fully-paid visit doesn't show a meaningless «€0 к оплате». |
 
 ## 🆕 Beta — 10 items
 
