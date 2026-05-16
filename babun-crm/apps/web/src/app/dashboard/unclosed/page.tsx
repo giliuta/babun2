@@ -85,6 +85,11 @@ export default function UnclosedVisitsPage() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [appointments]);
 
+  const totalAtRisk = useMemo(
+    () => unclosed.reduce((sum, a) => sum + (a.total_amount ?? 0), 0),
+    [unclosed]
+  );
+
   const handleComplete = async (apt: Appointment) => {
     await upsertAppointment({ ...apt, status: "completed" });
   };
@@ -112,6 +117,16 @@ export default function UnclosedVisitsPage() {
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
+          {unclosed.length > 0 && totalAtRisk > 0 && (
+            <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--separator)] shadow-[var(--shadow-card)] px-4 py-3 flex items-center justify-between">
+              <div className="text-[13px] text-[var(--label-secondary)]">
+                Под вопросом на сумму
+              </div>
+              <div className="text-[15px] font-semibold text-[var(--label)] tabular-nums">
+                {formatEUR(totalAtRisk)}
+              </div>
+            </div>
+          )}
           {unclosed.length === 0 ? (
             <EmptyState
               icon={<CheckCircle2 size={24} strokeWidth={2} />}
