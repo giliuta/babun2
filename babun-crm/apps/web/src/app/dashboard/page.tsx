@@ -208,13 +208,31 @@ function DashboardPageInner() {
   // personal events — a critical first-run regression. Name falls
   // back to «Мой календарь» when no master display name is known.
   const teamTabs = useMemo(() => {
+    // v511 — sort by sort_order so chip strip respects the user's
+    // drag-reorder. Falls back to created_at for legacy records that
+    // were saved before Sprint 033 Phase I25 introduced sort_order.
     const brigadeTabs = teams
       .filter((t) => t.active)
-      .map((t) => ({ id: t.id, name: getTeamDisplayName(t, masters) }));
+      .slice()
+      .sort((a, b) => {
+        const aOrd = a.sort_order ?? Number.POSITIVE_INFINITY;
+        const bOrd = b.sort_order ?? Number.POSITIVE_INFINITY;
+        if (aOrd !== bOrd) return aOrd - bOrd;
+        return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+      })
+      .map((t) => ({
+        id: t.id,
+        name: getTeamDisplayName(t, masters),
+        color: t.color,
+      }));
     const personalName =
       currentMaster?.personal_calendar_name?.trim() || "Мой календарь";
     return [
-      { id: PERSONAL_TAB_ID, name: personalName },
+      {
+        id: PERSONAL_TAB_ID,
+        name: personalName,
+        color: currentMaster?.personal_calendar_color ?? null,
+      },
       ...brigadeTabs,
     ];
   }, [teams, masters, currentMaster]);
@@ -653,16 +671,22 @@ function DashboardPageInner() {
     setActiveTeamId(teamId);
   }, []);
 
-  // Long-press on a team tab swaps its position with the next team
-  // in the list (wraps around). Lets the dispatcher re-order the
-  // brigade tabs from the header.
-  const handleTeamLongPress = useCallback(
-    (teamId: string) => {
-      const idx = teams.findIndex((t) => t.id === teamId);
-      if (idx === -1 || teams.length < 2) return;
-      const nextIdx = (idx + 1) % teams.length;
-      const next = [...teams];
-      [next[idx], next[nextIdx]] = [next[nextIdx], next[idx]];
+  // v511 — drag-reorder via the Header's chip strip (replaces the old
+  // hacky long-press-swap-with-next). Receives the new id order of the
+  // sortable brigade tabs (personal tab is pinned and excluded). We
+  // persist by stamping sort_order on each moved team in steps of 10
+  // — same shape as /dashboard/teams's reorder so both surfaces agree
+  // on the canonical ordering. Untouched teams (inactive / not in the
+  // strip) keep their existing sort_order.
+  const handleTeamsReorder = useCallback(
+    (newOrderIds: string[]) => {
+      const indexById = new Map(newOrderIds.map((id, i) => [id, i]));
+      const next = teams.map((t) => {
+        const i = indexById.get(t.id);
+        if (i === undefined) return t;
+        const nextOrder = (i + 1) * 10;
+        return t.sort_order === nextOrder ? t : { ...t, sort_order: nextOrder };
+      });
       setTeams(next);
     },
     [teams, setTeams]
@@ -1312,13 +1336,14 @@ function DashboardPageInner() {
         currentDate={currentMonday}
         activeTeamId={activeTeamId}
         teams={teamTabs}
+        pinnedTeamId={PERSONAL_TAB_ID}
         viewMode={viewMode}
         allAppointments={appointments}
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
         onToday={handleToday}
         onTeamChange={handleTeamChange}
-        onTeamLongPress={handleTeamLongPress}
+        onTeamsReorder={handleTeamsReorder}
         onViewModeChange={handleViewModeChange}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}

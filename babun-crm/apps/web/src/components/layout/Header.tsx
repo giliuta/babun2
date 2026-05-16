@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -13,6 +13,24 @@ import {
 } from "@babun/shared/icons";
 import { getMonthName } from "@babun/shared/common/utils/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { haptic } from "@/lib/haptics";
 
 interface HeaderAppointment {
   date: string;
@@ -20,17 +38,31 @@ interface HeaderAppointment {
 
 export type ViewMode = "day" | "3days" | "week" | "month";
 
+export interface HeaderTeamTab {
+  id: string;
+  name: string;
+  /** Hex tint for the leading dot. Personal tab and untinted brigades
+   *  may pass null/undefined; the dot is then omitted entirely. */
+  color?: string | null;
+}
+
 interface HeaderProps {
   currentDate: Date;
   activeTeamId: string;
-  teams: { id: string; name: string }[];
+  teams: HeaderTeamTab[];
+  /** Tab id that must stay locked at position 0 and NOT participate
+   *  in drag-reorder. Used for the always-first personal calendar. */
+  pinnedTeamId?: string;
   viewMode: ViewMode;
   allAppointments: HeaderAppointment[];
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onToday: () => void;
   onTeamChange: (teamId: string) => void;
-  onTeamLongPress?: (teamId: string) => void;
+  /** v511 — fired after a successful drag-reorder. Receives the new
+   *  order of brigade tab ids (excluding the pinned personal tab).
+   *  Parent persists by upserting `sort_order` on each team. */
+  onTeamsReorder?: (newOrderIds: string[]) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -49,36 +81,27 @@ export default function Header({
   currentDate,
   activeTeamId,
   teams,
+  pinnedTeamId,
   viewMode,
   allAppointments,
   onPrevWeek,
   onNextWeek,
   onToday,
   onTeamChange,
-  onTeamLongPress,
+  onTeamsReorder,
   onViewModeChange,
   onZoomIn,
   onZoomOut,
   onSelectDate,
   onMenuToggle,
 }: HeaderProps) {
-  // zoom controls are reachable via pinch/ctrl+wheel; silence unused-prop warning
   void onZoomIn;
   void onZoomOut;
-  // STORY-056 — onPrevWeek / onNextWeek are now wired up to the
-  // desktop-only chevrons rendered below.
+  void onMenuToggle;
 
   const monthName = getMonthName(currentDate.getMonth());
   const year = currentDate.getFullYear();
-  // `new Date()` in render caused a hydration mismatch when the Vercel
-  // build clock and the client crossed Cyprus midnight. Defer to
-  // useEffect so SSR ships a stable default (1) and the real number
-  // appears on the client only.
   const [todayNumber, setTodayNumber] = useState<number>(1);
-  // Sprint 025: when the dispatcher is already on today's column in
-  // day view, the "Сегодня" icon does nothing — hide it to reclaim
-  // thumb-space. In 3-day / week / month views keep it visible because
-  // "today" may scroll off the visible range.
   const [isOnToday, setIsOnToday] = useState(false);
   useEffect(() => {
     const now = new Date();
@@ -101,21 +124,9 @@ export default function Header({
   };
   const ActiveViewIcon = VIEW_ICONS[viewMode];
 
-  // Sprint 030: mobile header goes white (iOS Calendar style). Brand
-  // violet was a Bumpix holdover that clashed with the rest of the
-  // HIG-tokenised surfaces. Accent now lives inside active chips and
-  // icons, not as a big colored wash behind the nav.
   return (
     <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] flex flex-col z-30">
       <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1">
-        {/* v450 — мобильный бургер убран по запросу пользователя.
-            Навигация на phone живёт в нижней табе («Ещё»), а на desktop
-            sidebar и так всегда видим. */}
-
-        {/* STORY-056 — desktop prev/next chevrons.  On mobile users
-            swipe; on desktop the swipe gesture is disabled so we surface
-            explicit buttons here.  Hidden on mobile to keep the iOS
-            Calendar header silhouette intact. */}
         <button
           type="button"
           onClick={onPrevWeek}
@@ -224,84 +235,209 @@ export default function Header({
         </div>
       </div>
 
-      {/* Team tabs — iOS segmented pill. Active tab gets a white
-          pill on the fill-tertiary track, inactive stays grey text. */}
-      <div className="px-3 lg:px-4 pb-2 overflow-x-auto scrollbar-hide">
-        <div className="inline-flex rounded-[9px] bg-[var(--fill-tertiary)] p-[2px] min-w-full">
-          {teams.map((team) => (
-            <TeamTab
-              key={team.id}
-              team={team}
-              active={activeTeamId === team.id}
-              onClick={() => onTeamChange(team.id)}
-              onLongPress={
-                onTeamLongPress ? () => onTeamLongPress(team.id) : undefined
-              }
-            />
-          ))}
-        </div>
-      </div>
+      {/* v511 — team tabs reworked from a full-width iOS segmented
+          control into a compact horizontally-scrollable chip strip
+          (Telegram folder-tabs feel). Two reasons:
+            1. The old segmented row forced every chip to flex-1, which
+               clipped names with >2 brigades and ate the full row even
+               with only «Мой календарь» + 1 brigade.
+            2. The dispatcher asked for iPhone-jiggle reorder — long-press
+               a chip and drag it into a new position. Drag-reorder is
+               wired via @dnd-kit (same library as /dashboard/teams). The
+               pinned personal-calendar tab is excluded from the sortable
+               group so it always anchors position 0. */}
+      <TeamTabStrip
+        teams={teams}
+        activeTeamId={activeTeamId}
+        pinnedTeamId={pinnedTeamId}
+        onTeamChange={onTeamChange}
+        onTeamsReorder={onTeamsReorder}
+      />
     </header>
   );
 }
 
-interface TeamTabProps {
-  team: { id: string; name: string };
-  active: boolean;
-  onClick: () => void;
-  onLongPress?: () => void;
+// ─── Team tab strip ──────────────────────────────────────────────────
+
+interface TeamTabStripProps {
+  teams: HeaderTeamTab[];
+  activeTeamId: string;
+  pinnedTeamId?: string;
+  onTeamChange: (id: string) => void;
+  onTeamsReorder?: (newOrderIds: string[]) => void;
 }
 
-// Team tab with its own long-press detector so the parent can swap
-// the tab's position with its neighbor (AirFix style reorder).
-function TeamTab({ team, active, onClick, onLongPress }: TeamTabProps) {
-  const timerRef = useRef<number | null>(null);
-  const firedRef = useRef(false);
+function TeamTabStrip({
+  teams,
+  activeTeamId,
+  pinnedTeamId,
+  onTeamChange,
+  onTeamsReorder,
+}: TeamTabStripProps) {
+  const { pinnedTab, sortableTabs } = useMemo(() => {
+    if (!pinnedTeamId) {
+      return { pinnedTab: undefined, sortableTabs: teams };
+    }
+    const pinned = teams.find((t) => t.id === pinnedTeamId);
+    const rest = teams.filter((t) => t.id !== pinnedTeamId);
+    return { pinnedTab: pinned, sortableTabs: rest };
+  }, [teams, pinnedTeamId]);
 
-  const start = () => {
-    firedRef.current = false;
-    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
-      firedRef.current = true;
-      onLongPress?.();
-    }, 550);
+  // 500 ms hold + 6 px tolerance — matches the activation constraint
+  // used on /dashboard/teams sortable list, so taps and horizontal
+  // scrolling still belong to the strip while a deliberate hold opens
+  // the reorder gesture. TouchSensor mirrors PointerSensor for iOS PWA
+  // where pointer events sometimes arrive as touch only.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 500, tolerance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 500, tolerance: 6 },
+    })
+  );
+
+  const handleDragStart = (_event: DragStartEvent) => {
+    haptic("warning");
   };
 
-  const cancel = () => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = sortableTabs.findIndex((t) => t.id === active.id);
+    const newIdx = sortableTabs.findIndex((t) => t.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    haptic("tap");
+    const next = arrayMove(sortableTabs, oldIdx, newIdx);
+    onTeamsReorder?.(next.map((t) => t.id));
   };
 
   return (
+    <div className="px-3 lg:px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x">
+      <div className="inline-flex items-center gap-2 min-w-min">
+        {pinnedTab && (
+          <TeamChip
+            team={pinnedTab}
+            active={activeTeamId === pinnedTab.id}
+            onClick={() => onTeamChange(pinnedTab.id)}
+          />
+        )}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sortableTabs.map((t) => t.id)}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className="inline-flex items-center gap-2">
+              {sortableTabs.map((team) => (
+                <SortableTeamChip
+                  key={team.id}
+                  team={team}
+                  active={activeTeamId === team.id}
+                  onClick={() => onTeamChange(team.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+    </div>
+  );
+}
+
+// ─── Team chip (presentational) ──────────────────────────────────────
+
+interface TeamChipProps {
+  team: HeaderTeamTab;
+  active: boolean;
+  onClick: () => void;
+  // Drag-state props injected by SortableTeamChip wrapper. Plain chips
+  // (pinned personal tab) omit them entirely.
+  dragSetNodeRef?: (node: HTMLElement | null) => void;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
+  dragStyle?: React.CSSProperties;
+  isDragging?: boolean;
+}
+
+function TeamChip({
+  team,
+  active,
+  onClick,
+  dragSetNodeRef,
+  dragHandleProps,
+  dragStyle,
+  isDragging = false,
+}: TeamChipProps) {
+  // The dragged chip lifts above its peers (scale + shadow + rotate)
+  // for the iOS "picked up" feel. Other chips stay flat; SortableContext
+  // animates their translation as the dragged chip moves through them.
+  const tone = active
+    ? "bg-[var(--accent-tint)] text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]"
+    : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]";
+  return (
     <button
+      ref={dragSetNodeRef}
       type="button"
-      onClick={() => {
-        if (firedRef.current) {
-          firedRef.current = false;
-          return;
-        }
-        onClick();
-      }}
-      onPointerDown={start}
-      onPointerMove={cancel}
-      onPointerUp={cancel}
-      onPointerCancel={cancel}
-      onPointerLeave={cancel}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onLongPress?.();
-        firedRef.current = true;
-      }}
+      onClick={onClick}
       data-testid={`header-team-tab-${team.id}`}
-      className={`flex-1 h-8 px-3 rounded-[7px] text-[13px] font-semibold whitespace-nowrap select-none transition ${
-        active
-          ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-          : "text-[var(--label-secondary)]"
+      data-team-id={team.id}
+      {...dragHandleProps}
+      style={dragStyle}
+      className={`relative flex items-center gap-1.5 px-3 h-8 max-w-[180px] rounded-full text-[13px] font-semibold whitespace-nowrap select-none transition-shadow ${tone} ${
+        isDragging
+          ? "z-20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] scale-[1.06] rotate-[-1.5deg] cursor-grabbing"
+          : ""
       }`}
     >
-      {team.name}
+      {team.color && (
+        <span
+          aria-hidden
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: team.color }}
+        />
+      )}
+      <span className="truncate">{team.name}</span>
     </button>
+  );
+}
+
+// ─── Sortable chip wrapper ───────────────────────────────────────────
+
+function SortableTeamChip({
+  team,
+  active,
+  onClick,
+}: {
+  team: HeaderTeamTab;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: team.id });
+
+  const dragStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  // dnd-kit's listeners include onPointerDown — we want the button's
+  // onClick to still fire on a quick tap (the activation-constraint
+  // delay ensures drag never starts on a tap). Spreading listeners onto
+  // the button is the canonical pattern and is the same shape used in
+  // /dashboard/teams's SortableRow.
+  return (
+    <TeamChip
+      team={team}
+      active={active}
+      onClick={onClick}
+      dragSetNodeRef={setNodeRef}
+      dragHandleProps={{ ...attributes, ...listeners }}
+      dragStyle={dragStyle}
+      isDragging={isDragging}
+    />
   );
 }
