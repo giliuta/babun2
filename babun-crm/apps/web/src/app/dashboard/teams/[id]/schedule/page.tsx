@@ -146,6 +146,38 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   // (expandedDay state hoisted to before the early return — see bug-hunt
   // bugfix comment above.)
 
+  // Brief 1 #12: «Шаблоны расписаний». Three one-tap presets seed the
+  // most common service-business schedules in Cyprus:
+  //   · 9-18 будни   — Mon-Fri 09:00-18:00, Sat+Sun off
+  //   · 8-22 ежедневно — every day 08:00-22:00, no off days
+  //   · 6/1          — 6 days work 09:00-18:00, Sunday off
+  // Applying a template overwrites base start/end + replaces the
+  // overrides map with explicit off-day flags for the off days. Any
+  // existing per-day custom hours are wiped (the user just declared
+  // «I want this pattern»).
+  const applyTemplate = (preset: "weekdays-9-18" | "daily-8-22" | "six-one") => {
+    haptic("tap");
+    const offFlag: DaySchedule = {
+      is_working: false,
+      start: "09:00",
+      end: "18:00",
+      breaks: [],
+    };
+    const overrides: Record<string, DaySchedule> = {};
+    let start = "09:00";
+    let end = "18:00";
+    if (preset === "weekdays-9-18") {
+      overrides.sat = offFlag;
+      overrides.sun = offFlag;
+    } else if (preset === "daily-8-22") {
+      start = "08:00";
+      end = "22:00";
+    } else {
+      overrides.sun = offFlag;
+    }
+    persist({ ...schedule, start, end, overrides });
+  };
+
   // Read-only summary of off days for the general header
   const offDaysList = WEEKDAY_KEYS.filter((k) => {
     const ov = dayOverride(k);
@@ -157,7 +189,38 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   return (
     <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
       {/* ── Working hours (general) ─────────────────────── */}
-      <Group title="Время работы">
+      <Group
+        title="Время работы"
+        footer="Шаблоны выше — заполнят базу и выходные одним тапом. Дальше уточняйте по дням ниже."
+      >
+        {/* Brief 1 #12: schedule presets. Three buttons cover the
+            most common service-business schedules. */}
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden mb-2">
+          <div className="px-3 py-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => applyTemplate("weekdays-9-18")}
+              className="h-8 px-3 rounded-full text-[12px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)] press-scale"
+            >
+              9–18 будни
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTemplate("daily-8-22")}
+              className="h-8 px-3 rounded-full text-[12px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)] press-scale"
+            >
+              8–22 ежедневно
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTemplate("six-one")}
+              className="h-8 px-3 rounded-full text-[12px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)] press-scale"
+            >
+              6/1
+            </button>
+          </div>
+        </div>
+
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
           <div className="px-3 py-3">
             <div className="grid grid-cols-2 gap-2">
