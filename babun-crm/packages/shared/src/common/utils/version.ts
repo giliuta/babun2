@@ -14,7 +14,7 @@
 //                    patch = 513 % 100). This is what the user sees
 //                    in the sidebar footer and settings page footer.
 
-export const BUILD_VERSION = "v569-timeblock-hook-order";
+export const BUILD_VERSION = "v570-timeblock-hook-order-fix";
 
 function deriveDisplayVersion(slug: string): string {
   const match = slug.match(/^v(\d+)/);
