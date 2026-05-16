@@ -13,6 +13,24 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Repo-wide rule tweaks. Idiomatic underscore prefix marks
+  // «intentionally unused» — arguments kept for signature parity,
+  // destructured throwaways like `_cols`, caught-but-ignored
+  // errors. Without this pattern the codebase carries ~30 noise
+  // errors that hide the real ones.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
