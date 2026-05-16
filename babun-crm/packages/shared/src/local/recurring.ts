@@ -17,6 +17,17 @@
 
 export type RecurringStatus = "pending" | "booked" | "dismissed";
 
+/** P0 #19 (CRM Core brief) — kind of follow-up the operator wants
+ *  surfaced. «service» is the legacy «next A/C cleaning» reminder
+ *  the table was built around; the other four power ad-hoc reminders
+ *  («позвонить через неделю», «прислать каталог», custom note). */
+export type RecurringType = "call" | "visit" | "sms" | "service" | "custom";
+
+/** Channel the reminder ships through when it fires. Email path
+ *  exists for the receipts/portal flow; SMS routes through the
+ *  Twilio integration; push is the in-app default. */
+export type RecurringChannel = "push" | "sms" | "email";
+
 export interface RecurringReminder {
   id: string;
   client_id: string;
@@ -34,6 +45,16 @@ export interface RecurringReminder {
   interval_months: number;
   status: RecurringStatus;
   note: string;
+  /** P0 #19 — kind of follow-up. Optional for backward-compat;
+   *  Supabase column has `default 'service'` so the row is consistent
+   *  even when the writer forgot to fill it. */
+  type?: RecurringType;
+  /** True for ad-hoc reminders the operator created from the FAB;
+   *  false (default) for the auto-seeded post-visit follow-up. Drives
+   *  the visual distinction in the inbox («ручное» pill). */
+  manual?: boolean;
+  /** Notification channel for when the due date arrives. */
+  notify_channel?: RecurringChannel;
   created_at: string;
 }
 
