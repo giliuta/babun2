@@ -51,7 +51,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | # | Topic | Status | Notes |
 |---|-------|--------|-------|
 | 21 | «Babun App» убрать из списка мастеров | READY | Filter out `owner_id` row in `/masters`. Owner already on `/settings/team`. |
-| 22 | Action-bar показывать только при выборе | READY | `ClientsList` — wrap action bar in `selectionMode` gate. Long-press / swipe enters mode. |
+| 22 | Action-bar показывать только при выборе | **DONE (already gated)** | Audit `app/dashboard/clients/page.tsx`: per-row [Закрепить/Записать/Напомнить/Удалить] live inside `<SwipeableRow>` (swipe-gated); bulk bar [Выбрать всех/SMS/Удалить] is wrapped in `{isSelecting && …}`. Brief was written against older state. |
 | 23 | Status badges в форме `/clients/new` | READY | Reuse `ClientStatusBadges` in editable mode in create form. |
 | 24 | Источник заявки на create клиента | **DONE** | Commit `d8cea33` adds it to appointment create. Client-create parity → still READY (small). |
 | 25 | Город — справочник, не свободный текст | READY | Use `cities` dict from settings (exists). Auto-suggest brigade by city. |
@@ -70,12 +70,12 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 
 | # | Topic | Status | Notes |
 |---|-------|--------|-------|
-| 36 | «жена/мужа» → «контакт супруга/арендатора/помощника» | READY | Pure copy in `ContactsBlock` / client form. |
-| 37 | «1 новый в май» → «в мае» | READY | Russian month genitive. Find `Intl.DateTimeFormat` usage; switch to `month: "long"` in correct case. |
-| 38 | «SMS» chip в фильтре чатов — убрать | READY | `/chats` filter chip. SMS не двусторонний. |
-| 39 | «Удалить» в SMS-template create | READY | Show only when `mode === "edit"`. |
+| 36 | «жена/мужа» → «контакт супруга/арендатора/помощника» | **DONE (109a158)** | PHONE_LABEL_OPTIONS + hint copy switched to «Супруг(а) / Арендатор / Помощник» fitting service-business context. |
+| 37 | «1 новый в май» → «в мае» | **DONE (109a158)** | Added `getMonthNamePrepositional` helper (Intl returns nominative; prepositional table required for «в …»). |
+| 38 | «SMS» chip в фильтре чатов — убрать | **DONE (2fc4788)** | Dropped from filter list. Legacy sms-channel chats still surface under «Все». |
+| 39 | «Удалить» в SMS-template create | **DONE (2fc4788)** | `mode` prop on TemplateEditor, derived in parent from `templates.some(t => t.id === editing.id)`. |
 | 40 | Пресеты SMS-шаблонов | READY | Add 4 starter templates in empty state. |
-| 41 | Переменные SMS на русском | READY | `[Name]` → `[Имя]` etc. Update preview + insert helpers. |
+| 41 | Переменные SMS на русском | **DONE (2fc4788)** | Palette switched to `[Имя]/[Дата]/[Время]/[Мастер]/[Услуга]/[Адрес]/[День]` + new `[Цена]/[Компания]/[СсылкаНаОтмену]`. Backward-compat via `TOKEN_ALIASES` map; renderTemplate regex now Unicode-aware. |
 | 42 | Тестовая отправка SMS | BLOCKED → STORY-047 | Needs SMS provider. |
 | 43 | «Сохраняем... / Сохранено ✓» — one state at a time | READY | Reducer `idle / saving / saved / error`. |
 | 44 | «Удалить сотрудника» → «⋮» в шапке | READY | Move into kebab menu with confirm + dependency count. |
@@ -119,16 +119,18 @@ the Supabase migration is mechanical.
 - P0 #12 (not-found CTA) — `not-found.tsx`
 - P0 #16 (income categories tab) — `FinanceTabs.tsx` + `income-categories.ts`
 
-**Batch B — UI-only, this session:**
-- P1 #21 — strip owner from `/masters`
-- P1 #22 — gate action bar behind selection mode
-- P2 #36 — copy: жена/мужа → нейтральное
-- P2 #37 — «1 новый в мае» (genitive month)
-- P2 #38 — drop SMS chip from chats filter
-- P2 #39 — hide «Удалить» when creating SMS template
-- P2 #41 — RU SMS variables (`[Имя]` etc.)
-- P2 #43 — single-state save indicator
-- P2 #44 — kebab menu replaces bottom «Удалить сотрудника»
+**Batch B — UI-only, this session (shipped):**
+- ✅ P2 #36 (109a158) — copy: жена/мужа → нейтральное
+- ✅ P2 #37 (109a158) — «1 новый в мае» (prepositional month)
+- ✅ P2 #38 (2fc4788) — drop SMS chip from chats filter
+- ✅ P2 #39 (2fc4788) — hide «Удалить» when creating SMS template
+- ✅ P2 #41 (2fc4788) — RU SMS variables (`[Имя]` etc.)
+- ✅ P1 #22 — already gated in code (no commit needed)
+
+**Batch B remainder — deferred:**
+- P1 #21 — strip owner from `/masters` (parallel session has masters/[id]/access WIP)
+- P2 #43 — single-state save indicator (cross-cutting; needs own pass)
+- P2 #44 — kebab menu replaces bottom «Удалить сотрудника» (same parallel WIP)
 
 **Batch C — future session, localStorage-era:**
 - P0 #1 (overflow), #3 (overlay), #6 (ObjectForm), #7 (calendar team filter),
