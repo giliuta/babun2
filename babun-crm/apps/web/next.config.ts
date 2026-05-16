@@ -72,25 +72,37 @@ const nextConfig: NextConfig = {
   // these aliases the user lands on a 404 (Sprint 024 STORY-008/C5).
   async redirects() {
     return [
+      // Routes that have a real /dashboard/<slug> page — pass-through
+      // aliases for bookmarks and history search.
       { source: "/clients", destination: "/dashboard/clients", permanent: false },
       { source: "/finances", destination: "/dashboard/finances", permanent: false },
-      { source: "/expenses", destination: "/dashboard/expenses", permanent: false },
-      { source: "/payroll", destination: "/dashboard/payroll", permanent: false },
-      { source: "/reports", destination: "/dashboard/reports", permanent: false },
       { source: "/chats", destination: "/dashboard/chats", permanent: false },
-      { source: "/route", destination: "/dashboard/route", permanent: false },
-      { source: "/waitlist", destination: "/dashboard/waitlist", permanent: false },
       { source: "/recurring", destination: "/dashboard/recurring", permanent: false },
       { source: "/reminders", destination: "/dashboard/recurring", permanent: false },
       { source: "/settings", destination: "/dashboard/settings", permanent: false },
       { source: "/services", destination: "/dashboard/services", permanent: false },
       { source: "/teams", destination: "/dashboard/teams", permanent: false },
       { source: "/masters", destination: "/dashboard/masters", permanent: false },
-      { source: "/brigades", destination: "/dashboard/brigades", permanent: false },
-      { source: "/schedule", destination: "/dashboard/schedule", permanent: false },
       { source: "/sms", destination: "/dashboard/sms-templates", permanent: false },
       { source: "/today", destination: "/dashboard", permanent: false },
       { source: "/calendar", destination: "/dashboard", permanent: false },
+
+      // v512 — these short URLs used to redirect to /dashboard/<slug>
+      // pages that physically don't exist (finance got merged into
+      // /dashboard/finances as a tabbed UI; «бригады» was renamed to
+      // /dashboard/teams in v510; «расписание» lives on the calendar
+      // home). Without these rewrites the dispatcher's bookmarks hit
+      // a white 404. Point them at the live screens instead.
+      { source: "/expenses", destination: "/dashboard/finances?tab=expenses", permanent: false },
+      { source: "/payroll", destination: "/dashboard/finances?tab=payroll", permanent: false },
+      { source: "/reports", destination: "/dashboard/finances?tab=summary", permanent: false },
+      { source: "/brigades", destination: "/dashboard/teams", permanent: false },
+      { source: "/schedule", destination: "/dashboard", permanent: false },
+      // /route and /waitlist never had a real destination; route them
+      // to the calendar home — a sane default rather than a 404.
+      { source: "/route", destination: "/dashboard", permanent: false },
+      { source: "/waitlist", destination: "/dashboard", permanent: false },
+
       // Old separate /dashboard/appointment/new route was replaced by
       // an in-page AppointmentSheet — catch bookmarks and share links
       // with a ?new=1 flag the dashboard picks up at mount.
