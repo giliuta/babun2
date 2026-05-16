@@ -70,7 +70,11 @@ const NAV_GROUPS: NavGroup[] = [
         desc: "Бизнес, регион, бренд, контакты",
       },
       {
-        href: "/dashboard/settings/account/billing-info",
+        // Brief 2 #9 — was /settings/account/billing-info (a placeholder
+        // pointing here). The two pages held the same data; the
+        // placeholder is now a redirect, this menu row jumps straight to
+        // the editable form.
+        href: "/dashboard/settings/company",
         icon: Receipt,
         tone: "bg-[var(--tile-green)]",
         title: "Счёт компании",
