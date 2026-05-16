@@ -67,17 +67,22 @@ export function CsvImportHint({ clientsCount }: Props) {
         <Upload size={16} strokeWidth={2} />
       </span>
       <div className="flex-1 min-w-0">
+        {/* Brief 3 #5: don't promise an importer that doesn't exist
+            yet. The /clients/import target is currently a "coming
+            soon" stub (STORY-046, parked). Banner copy now sets the
+            right expectation — teaser, not active CTA — until the
+            real importer lands. */}
         <div className="text-[14px] font-semibold text-[var(--label)] leading-snug">
-          Импортируй базу клиентов из CSV
+          Импорт из CSV — в работе
         </div>
         <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-          Один файл — и все контакты в Babun. Экономит часы ручной работы.
+          Загрузка базы клиентов одним файлом скоро появится. Пока добавляйте вручную.
         </div>
         <Link
           href="/dashboard/clients/import"
           className="inline-block mt-1.5 text-[13px] font-semibold text-[var(--accent)] active:opacity-70 transition"
         >
-          Открыть импорт →
+          Подробнее →
         </Link>
       </div>
       <button
