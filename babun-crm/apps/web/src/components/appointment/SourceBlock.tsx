@@ -10,6 +10,11 @@ interface SourceBlockProps {
   value: AppointmentSource | null;
   readonly: boolean;
   onChange?: (next: AppointmentSource | null) => void;
+  /** v524 §3.9 — render the «Источник заявки» label with a red
+   *  asterisk + the «Выберите источник заявки» hint when the create
+   *  form is gating on this field. Edit mode passes `false` so a
+   *  legacy record without a source doesn't shame the user. */
+  required?: boolean;
 }
 
 const ORDER: AppointmentSource[] = [
@@ -23,7 +28,7 @@ const ORDER: AppointmentSource[] = [
   "other",
 ];
 
-export default function SourceBlock({ value, readonly, onChange }: SourceBlockProps) {
+export default function SourceBlock({ value, readonly, onChange, required = false }: SourceBlockProps) {
   if (readonly) {
     if (!value) return null;
     return (
@@ -39,11 +44,29 @@ export default function SourceBlock({ value, readonly, onChange }: SourceBlockPr
     );
   }
 
+  const missing = required && !value;
+
   return (
     <div className="px-4 pt-2">
-      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-        Источник заявки
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+          Источник заявки
+        </span>
+        {required && (
+          <span
+            aria-hidden
+            className="text-[12px] font-bold text-[var(--system-red)]"
+            title="Обязательное поле"
+          >
+            *
+          </span>
+        )}
       </div>
+      {missing && (
+        <div className="mb-1.5 text-[11px] text-[var(--system-red)]">
+          Выберите источник заявки.
+        </div>
+      )}
       <div className="flex flex-wrap gap-1.5">
         {ORDER.map((s) => {
           const active = value === s;

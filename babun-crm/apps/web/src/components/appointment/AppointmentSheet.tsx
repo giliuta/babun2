@@ -352,9 +352,17 @@ export default function AppointmentSheet({
   // В create: обязателен preset + клиент. В edit: если услуга уже
   // стоит (total_amount > 0 и status), сохранение разрешено и без
   // нового preset-выбора — меняем только поля что отредактировали.
+  //
+  // v524 §3.9 — Источник заявки теперь обязателен в CREATE-flow для
+  // work-записей. Это закрывает аналитический gap (откуда пришла
+  // заявка). Edit mode остаётся прежним: историческая запись без
+  // source не должна стать unsave-able только потому, что мы
+  // добавили валидацию.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : Boolean(clientId && appointmentServices.length > 0);
+    : liveMode === "create"
+      ? Boolean(clientId && appointmentServices.length > 0 && source)
+      : Boolean(clientId && appointmentServices.length > 0);
 
   // Whether the user has entered anything worth protecting on close.
   // Event mode uses eventLabel; work mode uses client + services + comment.
@@ -724,6 +732,7 @@ export default function AppointmentSheet({
                 value={source}
                 readonly={readonly}
                 onChange={setSource}
+                required={liveMode === "create"}
               />
 
               <ClientBlock
