@@ -30,7 +30,9 @@ import {
   Sparkles,
   Star,
   CloudUpload,
+  Download,
 } from "@babun/shared/icons";
+import { exportClientsCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
@@ -675,6 +677,25 @@ export default function ClientsPage() {
                   className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
                 >
                   <CloudUpload size={20} strokeWidth={2.2} />
+                </button>
+              )}
+              {/* P1 #29 (CRM Core brief) — CSV export. Filtered view
+                  wins over the full list so the user gets exactly
+                  what they see on screen; this matches how operators
+                  reason about «выгрузи мне сегмент». XLSX / PDF
+                  deferred (need libraries). */}
+              {clients.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic("tap");
+                    exportClientsCsv(filtered.length > 0 ? filtered : clients);
+                  }}
+                  aria-label="Экспорт CSV"
+                  title="Экспорт CSV"
+                  className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+                >
+                  <Download size={20} strokeWidth={2.2} />
                 </button>
               )}
               <button
