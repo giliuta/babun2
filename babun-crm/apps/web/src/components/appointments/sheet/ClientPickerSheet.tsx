@@ -339,7 +339,7 @@ export default function ClientPickerSheet({
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Комментарий (язык, особенности)"
+                placeholder="Заметки (язык, особенности, аллергии)"
                 rows={2}
                 className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none resize-none leading-[1.35]"
               />

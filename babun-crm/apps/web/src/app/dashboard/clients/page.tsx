@@ -1072,7 +1072,7 @@ export default function ClientsPage() {
               <EmptyState
                 variant="prominent"
                 icon={<Users size={28} strokeWidth={2} />}
-                title="Создай первого клиента"
+                title="Создайте первого клиента"
                 description="Контакт, телефон, объекты — всё на одном экране. Заполнишь — он сразу появится в календаре."
                 action={
                   <Button

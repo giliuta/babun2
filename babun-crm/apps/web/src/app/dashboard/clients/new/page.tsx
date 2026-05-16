@@ -341,7 +341,7 @@ export default function NewClientPage() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Комментарий">
+                <Field label="Заметки">
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}

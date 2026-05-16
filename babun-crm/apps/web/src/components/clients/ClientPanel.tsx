@@ -312,7 +312,7 @@ function ProfileForm({
 
       <ClientNotesSection client={client} update={update} />
 
-      <FieldRow icon={<IconComment />} label="Комментарий">
+      <FieldRow icon={<IconComment />} label="Заметки">
         <AutoGrowTextarea
           value={client.comment}
           onChange={(v) => update("comment", v)}

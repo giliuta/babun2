@@ -610,7 +610,7 @@ function EditableComment({
           setEditing(false);
         }}
         rows={2}
-        placeholder="Комментарий о клиенте…"
+        placeholder="Заметки о клиенте…"
         className="w-full mt-2 p-2 text-[12px] text-[var(--label)] bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.25)] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[rgba(255,149,0,0.35)]"
       />
     );
@@ -631,7 +631,7 @@ function EditableComment({
           <span>{value}</span>
         </div>
       ) : (
-        <span className="text-[var(--label-tertiary)]">+ Комментарий о клиенте</span>
+        <span className="text-[var(--label-tertiary)]">+ Заметки о клиенте</span>
       )}
     </button>
   );
