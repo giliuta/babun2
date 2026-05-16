@@ -50,12 +50,12 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 
 | # | Topic | Status | Notes |
 |---|-------|--------|-------|
-| 21 | «Babun App» убрать из списка мастеров | READY | Filter out `owner_id` row in `/masters`. Owner already on `/settings/team`. |
+| 21 | «Babun App» убрать из списка мастеров | DROP-by-audit | No «Babun App» entry exists in code (DEFAULT_MASTERS is empty, no owner→master injection). Brief was written against legacy seed data. If a stored localStorage still has such a row, user can delete it via the kebab menu (#44). |
 | 22 | Action-bar показывать только при выборе | **DONE (already gated)** | Audit `app/dashboard/clients/page.tsx`: per-row [Закрепить/Записать/Напомнить/Удалить] live inside `<SwipeableRow>` (swipe-gated); bulk bar [Выбрать всех/SMS/Удалить] is wrapped in `{isSelecting && …}`. Brief was written against older state. |
 | 23 | Status badges в форме `/clients/new` | READY | Reuse `ClientStatusBadges` in editable mode in create form. |
 | 24 | Источник заявки на create клиента | **DONE** | Commit `d8cea33` adds it to appointment create. Client-create parity → still READY (small). |
 | 25 | Город — справочник, не свободный текст | READY | Use `cities` dict from settings (exists). Auto-suggest brigade by city. |
-| 26 | Phone placeholder из `tenant.country_code` | READY | Read `tenant-settings` → derive default prefix. Currently hardcoded `+357`. |
+| 26 | Phone placeholder из `tenant.country_code` | BLOCKED-on-data-model | No `country_code` field exists on `CompanyInfo` or any tenant settings. Need a decision: (a) add field to CompanyInfo + settings/company form, or (b) derive from saved `company.phone` prefix at use site. Rolling the derived prefix across 7+ placeholders also needs an SSR-safe `usePhonePrefix()` hook to avoid hydration mismatches. Punted to a follow-up story. |
 | 27 | Карта в адресе объекта (Google Places) | DROP-for-now | Needs API key + billing. Defer to Supabase era. |
 | 28 | Графики в Финансах (Recharts) | BLOCKED → STORY-044b (analytics) | Story exists. |
 | 29 | Экспорт CSV/XLSX/PDF | READY (CSV only) | XLSX/PDF defer. CSV is 30 lines for clients + finances. |
@@ -78,7 +78,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 41 | Переменные SMS на русском | **DONE (2fc4788)** | Palette switched to `[Имя]/[Дата]/[Время]/[Мастер]/[Услуга]/[Адрес]/[День]` + new `[Цена]/[Компания]/[СсылкаНаОтмену]`. Backward-compat via `TOKEN_ALIASES` map; renderTemplate regex now Unicode-aware. |
 | 42 | Тестовая отправка SMS | BLOCKED → STORY-047 | Needs SMS provider. |
 | 43 | «Сохраняем... / Сохранено ✓» — one state at a time | READY | Reducer `idle / saving / saved / error`. |
-| 44 | «Удалить сотрудника» → «⋮» в шапке | READY | Move into kebab menu with confirm + dependency count. |
+| 44 | «Удалить сотрудника» → «⋮» в шапке | **DONE (v541)** | Kebab in `/masters/[id]` header opens ContextMenu with Архивировать / Удалить. Confirm shows lifetime appointment count via master's teams + team count. Bottom destructive button removed. |
 | 45 | Подписи под €0/€150/€150 в Активности | READY-partial | Already labelled in latest commit. Add tooltips. |
 
 ## 🆕 Beta — 10 items
@@ -127,10 +127,11 @@ the Supabase migration is mechanical.
 - ✅ P2 #41 (2fc4788) — RU SMS variables (`[Имя]` etc.)
 - ✅ P1 #22 — already gated in code (no commit needed)
 
-**Batch B remainder — deferred:**
-- P1 #21 — strip owner from `/masters` (parallel session has masters/[id]/access WIP)
-- P2 #43 — single-state save indicator (cross-cutting; needs own pass)
-- P2 #44 — kebab menu replaces bottom «Удалить сотрудника» (same parallel WIP)
+**Batch B remainder — current state:**
+- ✅ P2 #44 (v541) — kebab menu in `/masters/[id]` header
+- ⊘ P1 #21 — DROP-by-audit (no «Babun App» entry exists in code)
+- ⊘ P1 #26 — BLOCKED-on-data-model (no `country_code` on CompanyInfo)
+- ⏭ P2 #43 — deferred (cross-cutting save-state reducer needs its own pass)
 
 **Batch C — future session, localStorage-era:**
 - P0 #1 (overflow), #3 (overlay), #6 (ObjectForm), #7 (calendar team filter),

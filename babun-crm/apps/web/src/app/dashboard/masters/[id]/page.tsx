@@ -17,16 +17,20 @@ import { use, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  Archive,
+  ArchiveRestore,
   BarChart3,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   Info,
+  MoreVertical,
   ShieldCheck,
   Trash2,
 } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import MasterContactMenu from "@/components/masters/MasterContactMenu";
 import { safeBack } from "@/lib/nav/safe-back";
@@ -59,6 +63,10 @@ export default function MasterDetailPage({ params }: RouteParams) {
   const { appointments } = useAppointments();
 
   const [contactOpen, setContactOpen] = useState(false);
+  // P2 #44 (CRM Core brief) — header kebab replaces the bottom
+  // «Удалить сотрудника» button. Tap anchors a Telegram-style
+  // context menu with Архивировать / Удалить (red).
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const master = masters.find((m) => m.id === id);
 
@@ -168,10 +176,34 @@ export default function MasterDetailPage({ params }: RouteParams) {
 
   const tile = primaryTeam?.color ?? "#8E8E93";
 
+  // Lifetime appointment count through master's teams. Used to show
+  // dependency weight in the destructive-action confirm — operators
+  // routinely forget how much history a master has accumulated.
+  const linkedAppointmentCount = (() => {
+    if (assignedTeams.length === 0) return 0;
+    const teamIds = new Set(assignedTeams.map((t) => t.id));
+    return appointments.filter((a) => a.team_id != null && teamIds.has(a.team_id)).length;
+  })();
+
+  const handleToggleArchive = () => {
+    haptic("tap");
+    upsertMaster({ ...master, is_active: !master.is_active });
+  };
+
   const handleDelete = async () => {
+    const teamPart = assignedTeams.length > 0
+      ? `${assignedTeams.length} ${pluralTeamsRu(assignedTeams.length)}`
+      : null;
+    const apptPart = linkedAppointmentCount > 0
+      ? `${linkedAppointmentCount} ${pluralVisits(linkedAppointmentCount)}`
+      : null;
+    const depParts = [apptPart, teamPart].filter(Boolean).join(" · ");
+    const message = depParts
+      ? `Связан с: ${depParts}. Отменить нельзя.`
+      : "Будет удалён. Отменить нельзя.";
     const ok = await confirm({
       title: `Удалить сотрудника «${master.full_name}»?`,
-      message: "Будет удалён из всех команд где состоял. Отменить нельзя.",
+      message,
       confirmLabel: "Удалить",
     });
     if (!ok) return;
@@ -196,6 +228,26 @@ export default function MasterDetailPage({ params }: RouteParams) {
     setTeams(updatedTeams);
     router.push("/dashboard/masters");
   };
+
+  const menuOptions: ContextMenuOption[] = [
+    {
+      label: master.is_active ? "Архивировать" : "Вернуть из архива",
+      icon: master.is_active ? (
+        <Archive size={18} strokeWidth={2} />
+      ) : (
+        <ArchiveRestore size={18} strokeWidth={2} />
+      ),
+      onSelect: handleToggleArchive,
+    },
+    {
+      label: "Удалить",
+      icon: <Trash2 size={18} strokeWidth={2} />,
+      danger: true,
+      onSelect: () => {
+        void handleDelete();
+      },
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full bg-[var(--surface-grouped)]">
@@ -226,6 +278,21 @@ export default function MasterDetailPage({ params }: RouteParams) {
           </span>
           <span className="truncate">{master.full_name || "Сотрудник"}</span>
         </h1>
+        {/* P2 #44 (CRM Core brief) — kebab in the header is the new
+            home for archive + destructive actions. Replaces the
+            bottom «Удалить сотрудника» button (a primary surface for
+            a rare, destructive action). */}
+        <button
+          type="button"
+          onClick={(e) => {
+            haptic("tap");
+            setMenuAnchor({ x: e.clientX, y: e.clientY });
+          }}
+          aria-label="Действия"
+          className="ml-auto w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale"
+        >
+          <MoreVertical size={20} strokeWidth={2.2} />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -425,16 +492,17 @@ export default function MasterDetailPage({ params }: RouteParams) {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="w-full h-12 flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--surface-card)] text-[var(--system-red)] text-[15px] font-medium press-scale active:bg-[rgba(255,59,48,0.08)] shadow-[var(--shadow-card)]"
-          >
-            <Trash2 size={16} strokeWidth={2} />
-            Удалить сотрудника
-          </button>
+          {/* P2 #44 — bottom «Удалить сотрудника» moved to header kebab. */}
         </div>
       </div>
+
+      <ContextMenu
+        open={!!menuAnchor}
+        onClose={() => setMenuAnchor(null)}
+        anchor={menuAnchor}
+        title={master.full_name || "Сотрудник"}
+        options={menuOptions}
+      />
 
       <MasterContactMenu
         open={contactOpen}
@@ -451,6 +519,14 @@ function pluralVisits(n: number): string {
   if (mod10 === 1 && mod100 !== 11) return "визит";
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "визита";
   return "визитов";
+}
+
+function pluralTeamsRu(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "команда";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "команды";
+  return "команд";
 }
 
 // ─── Layout primitives ────────────────────────────────────────────────
