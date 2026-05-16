@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Settings as SettingsIcon,
   LogOut,
+  CircleAlert as AlertTriangleIcon,
 } from "@babun/shared/icons";
 import { dueReminders } from "@babun/shared/local/recurring";
 import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
@@ -36,6 +37,7 @@ export type DialogType =
   | "chats"
   | "finances"
   | "recurring"
+  | "unclosed"
   | "settings"
   | "masters"
   | "teams"
@@ -61,6 +63,7 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   chats: "/dashboard/chats",
   finances: "/dashboard/finances",
   recurring: "/dashboard/recurring",
+  unclosed: "/dashboard/unclosed",
   settings: "/dashboard/settings",
   masters: "/dashboard/masters",
   teams: "/dashboard/teams",
@@ -262,6 +265,13 @@ export default function Sidebar({
               href={ROUTE_MAP.recurring}
               badge={recurringDue > 0 ? recurringDue : undefined}
               active={isActive("recurring")}
+            />
+            <NavRow
+              icon={AlertTriangleIcon}
+              tone="orange"
+              label="Не закрыто"
+              href={ROUTE_MAP.unclosed}
+              active={isActive("unclosed")}
             />
             <NavRow
               icon={SettingsIcon}
