@@ -119,7 +119,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: MessageSquare,
         tone: "bg-[var(--tile-mint)]",
         title: "Автоматические SMS",
-        desc: "Напоминания за 24 ч / 2 ч, Twilio",
+        desc: "Возвраты за 24 ч / 2 ч, Twilio",
       },
       {
         href: "/dashboard/settings/online-booking",

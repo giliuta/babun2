@@ -180,7 +180,7 @@ export default function MastersPage() {
 
   return (
     <>
-      <PageHeader title="Мастера" />
+      <PageHeader title="Сотрудники" />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">

@@ -258,7 +258,7 @@ export default function Sidebar({
             <NavRow
               icon={RotateCcw}
               tone="red"
-              label="Напоминания"
+              label="Возвраты"
               href={ROUTE_MAP.recurring}
               badge={recurringDue > 0 ? recurringDue : undefined}
               active={isActive("recurring")}
@@ -287,7 +287,7 @@ export default function Sidebar({
             <NavRow
               icon={UserCircle2}
               tone="indigo"
-              label="Мастера"
+              label="Сотрудники"
               href={ROUTE_MAP.masters}
               active={isActive("masters")}
             />

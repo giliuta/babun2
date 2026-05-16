@@ -303,7 +303,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     : [];
 
   return (
-    <BrigadeSectionShell brigadeId={id} title="Мастера" hideSave>
+    <BrigadeSectionShell brigadeId={id} title="Сотрудники" hideSave>
       {/* ── Empty-state ─────────────────────────────────────── */}
       {members.length === 0 && roles.length === 0 ? (
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-6 py-8 text-center">
