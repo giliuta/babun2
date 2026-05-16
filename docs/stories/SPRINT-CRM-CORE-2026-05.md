@@ -25,15 +25,15 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 
 | # | Topic | Status | Notes |
 |---|-------|--------|-------|
-| 1 | Client card `overflow-y: hidden` → auto + sticky header/footer | READY | Audit `ClientCardPage`/`ClientProfileView`. Use `max-h-[90vh]` + scrollable middle. |
+| 1 | Client card `overflow-y: hidden` → auto + sticky header/footer | **DONE-by-audit** | `ClientCardPage` already uses `flex-1 overflow-y-auto` on its scroll container (line 155). The brief's "modal" framing no longer matches current full-route architecture. |
 | 2 | Client card load skeleton | **DONE** | Commit `38eb9fe` — replaces «не найден» flash with skeleton. |
 | 3 | `+` Add-client button reacts on first tap (overlay leak) | READY | `CreateClientModal` exit transition leaves `pointer-events: auto` on root. Fix with `inert` + transition cleanup. |
 | 4 | Дубль услуги в Активности клиента (DISTINCT join) | BLOCKED → STORY-042 | localStorage join already de-dupes; bug is Supabase-only. |
 | 5 | «Мастер:» vs «Команда:» в Активности | **DONE** | Commit `03dddac` — truthful crew label. |
 | 6 | Единая `<ObjectForm />` для `/clients/new` + карточки | READY | Extract from `LocationEditor` + `InlineLocationForm`. Reference `equipment_types` from settings dictionary (already exists). |
-| 7 | Календарь рисует appointments всех бригад (фильтр чипа) | READY | Audit `useCalendarEvents`. Filter must include `team_id ∈ visibleTeams`, не требовать `master_id`. |
+| 7 | Календарь рисует appointments всех бригад (фильтр чипа) | **DONE (v547)** | Dropped `&& !a.master_id` from the brigade-tab filter in `dashboard/page.tsx`. Brigade chip now shows every appointment for that team regardless of whether a specific master is also assigned. |
 | 8 | Конфликт чипов «Мой календарь» + «Бригада» → диалог выбора | READY | Tri-button mini-dialog. Persist `last_choice` in `localStorage:babun-tap-default`. |
-| 9 | Тип «Выезд в офис» во всех формах (event_types не хардкод) | READY | Pull list from existing `event-types.ts`; remove the inline arrays in create-event sheets. |
+| 9 | Тип «Выезд в офис» во всех формах (event_types не хардкод) | **DONE-by-audit** | All personal-event surfaces use `usePersonalEventTypes` / `loadPersonalEventTypes`. No hardcoded event-type arrays remain in app code; «Выезд в офис» seeded in `SEED_PERSONAL_EVENT_TYPES` and editable at `/settings/calendar/event-types`. |
 | 10 | CSV import — реализовать ИЛИ убрать оба входа | BLOCKED → STORY-046 | Story already scoped. Until shipped: hide the banner + header button (READY part). |
 | 11 | Публичная страница `/book/[slug]` | BLOCKED → STORY-045 | Landing+booking story. Out of localStorage scope. |
 | 12 | 404 CTA «Открыть клиентов» → «На главную сайта» | **DONE (working tree)** | `not-found.tsx` already rewritten; commit pending. |
@@ -54,7 +54,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 22 | Action-bar показывать только при выборе | **DONE (already gated)** | Audit `app/dashboard/clients/page.tsx`: per-row [Закрепить/Записать/Напомнить/Удалить] live inside `<SwipeableRow>` (swipe-gated); bulk bar [Выбрать всех/SMS/Удалить] is wrapped in `{isSelecting && …}`. Brief was written against older state. |
 | 23 | Status badges в форме `/clients/new` | READY | Reuse `ClientStatusBadges` in editable mode in create form. |
 | 24 | Источник заявки на create клиента | **DONE** | Commit `d8cea33` adds it to appointment create. Client-create parity → still READY (small). |
-| 25 | Город — справочник, не свободный текст | READY | Use `cities` dict from settings (exists). Auto-suggest brigade by city. |
+| 25 | Город — справочник, не свободный текст | **DONE (v547)** | `/clients/new` reads `getActiveCities(loadCities())`; if list is empty (fresh tenant) falls back to a plain input pointing at the cities settings page. Brigade-by-city auto-suggest deferred (own follow-up). |
 | 26 | Phone placeholder из `tenant.country_code` | BLOCKED-on-data-model | No `country_code` field exists on `CompanyInfo` or any tenant settings. Need a decision: (a) add field to CompanyInfo + settings/company form, or (b) derive from saved `company.phone` prefix at use site. Rolling the derived prefix across 7+ placeholders also needs an SSR-safe `usePhonePrefix()` hook to avoid hydration mismatches. Punted to a follow-up story. |
 | 27 | Карта в адресе объекта (Google Places) | DROP-for-now | Needs API key + billing. Defer to Supabase era. |
 | 28 | Графики в Финансах (Recharts) | BLOCKED → STORY-044b (analytics) | Story exists. |
@@ -74,7 +74,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 37 | «1 новый в май» → «в мае» | **DONE (109a158)** | Added `getMonthNamePrepositional` helper (Intl returns nominative; prepositional table required for «в …»). |
 | 38 | «SMS» chip в фильтре чатов — убрать | **DONE (2fc4788)** | Dropped from filter list. Legacy sms-channel chats still surface under «Все». |
 | 39 | «Удалить» в SMS-template create | **DONE (2fc4788)** | `mode` prop on TemplateEditor, derived in parent from `templates.some(t => t.id === editing.id)`. |
-| 40 | Пресеты SMS-шаблонов | READY | Add 4 starter templates in empty state. |
+| 40 | Пресеты SMS-шаблонов | **DONE (v547)** | Empty state on `/sms-templates` shows 4 starter cards (Напоминание / Подтверждение / Запрос отзыва / Поздравление с ДР). Each opens the editor with name + body pre-filled, in create mode — destructive button stays hidden per P2 #39. Bodies use Russian tokens from P2 #41. |
 | 41 | Переменные SMS на русском | **DONE (2fc4788)** | Palette switched to `[Имя]/[Дата]/[Время]/[Мастер]/[Услуга]/[Адрес]/[День]` + new `[Цена]/[Компания]/[СсылкаНаОтмену]`. Backward-compat via `TOKEN_ALIASES` map; renderTemplate regex now Unicode-aware. |
 | 42 | Тестовая отправка SMS | BLOCKED → STORY-047 | Needs SMS provider. |
 | 43 | «Сохраняем... / Сохранено ✓» — one state at a time | READY | Reducer `idle / saving / saved / error`. |

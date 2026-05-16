@@ -615,9 +615,9 @@ function DashboardPageInner() {
   // tenants now land on a genuinely empty calendar.
 
   // Filter appointments by active tab. Personal tab shows only this
-  // master's private events (master_id === current, team_id falsy).
-  // Brigade tabs show that brigade's appointments, and deliberately
-  // exclude personal ones so no-one else sees them.
+  // master's private events (no team_id). Brigade tabs show every
+  // appointment bound to that brigade, regardless of whether a
+  // specific master inside the brigade is also assigned.
   const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
   const visibleAppointments = useMemo(() => {
     if (isPersonalTab) {
@@ -640,9 +640,16 @@ function DashboardPageInner() {
       //     belongs on its brigade tab, not here.
       return appointments.filter((a) => !a.team_id);
     }
-    return appointments.filter(
-      (a) => a.team_id === activeTeamId && !a.master_id,
-    );
+    // P0 #7 (CRM Core brief) — dropped the trailing `&& !a.master_id`
+    // guard that was hiding every team appointment with a specific
+    // master assigned inside the brigade (user report: «назначена на
+    // Y&D — на чипе Y&D не появилась»). The whole point of the brigade
+    // chip is «show everything on this team's calendar»: an event
+    // assigned to «Y&D / Иван» still belongs to Y&D, just with an
+    // extra hint about who's leading it. The chip filter is now
+    // brigade-only; the master assignment is rendered inside the block
+    // via teamColorFor + the row's assignedTo label.
+    return appointments.filter((a) => a.team_id === activeTeamId);
   }, [appointments, activeTeamId, isPersonalTab]);
 
   // Build clientsById map. STORY-007: Draft clients removed —

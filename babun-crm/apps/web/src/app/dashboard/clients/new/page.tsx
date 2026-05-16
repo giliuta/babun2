@@ -30,6 +30,11 @@ import {
   type PropertyType,
 } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
+import {
+  loadCities,
+  getActiveCities,
+  type City,
+} from "@babun/shared/local/cities";
 import { Button } from "@/components/ui";
 import { haptic } from "@/lib/haptics";
 
@@ -76,6 +81,15 @@ export default function NewClientPage() {
   const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
+  // P1 #25 (CRM Core brief) — city is now sourced from the
+  // /dashboard/settings/cities reference book instead of a free-text
+  // input. Empty list (e.g. brand-new tenant who hasn't seeded cities
+  // yet) falls back to a plain input so creating clients doesn't
+  // block on a separate settings detour.
+  const [cityList, setCityList] = useState<City[]>([]);
+  useEffect(() => {
+    setCityList(getActiveCities(loadCities()));
+  }, []);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -317,11 +331,26 @@ export default function NewClientPage() {
             {moreOpen && (
               <div className="space-y-2.5 mt-3">
                 <Field label="Город">
-                  <Input
-                    value={city}
-                    onChange={setCity}
-                    placeholder="Лимассол / Никосия / ..."
-                  />
+                  {cityList.length > 0 ? (
+                    <select
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">— не указан —</option>
+                      {cityList.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      value={city}
+                      onChange={setCity}
+                      placeholder="Добавьте города в Настройках → Города"
+                    />
+                  )}
                 </Field>
                 <Field label="День рождения">
                   <input

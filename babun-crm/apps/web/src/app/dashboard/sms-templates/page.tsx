@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { X } from "@babun/shared/icons";
+import { MessageSquare, X } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Button, Input } from "@/components/ui";
@@ -14,6 +14,52 @@ import {
   type SmsTemplate,
   type TemplateKind,
 } from "@babun/shared/local/sms-templates";
+
+// P2 #40 (CRM Core brief) — starter templates surfaced in the empty
+// state. Each one creates a draft that opens straight into the
+// editor, so the operator sees how variables look in practice instead
+// of staring at a blank textarea. Bodies use the new Russian token
+// palette (P2 #41), which renderTemplate aliases back to canonical
+// English keys for substitution.
+const STARTER_PRESETS: ReadonlyArray<{
+  id: string;
+  kind: TemplateKind;
+  name: string;
+  body: string;
+}> = [
+  {
+    id: "preset-reminder",
+    kind: "reminder",
+    name: "Напоминание за 24ч",
+    body:
+      "[Имя], напоминаем: завтра в [Время] — [Услуга]. Адрес: [Адрес]. " +
+      "Если планы изменились, ответьте на это сообщение. — [Компания]",
+  },
+  {
+    id: "preset-confirm",
+    kind: "new_appointment",
+    name: "Подтверждение записи",
+    body:
+      "[Имя], запись подтверждена: [Дата], [Время]. Мастер — [Мастер]. " +
+      "Адрес: [Адрес]. — [Компания]",
+  },
+  {
+    id: "preset-feedback",
+    kind: "after_24h_short",
+    name: "Запрос отзыва",
+    body:
+      "[Имя], спасибо что выбрали нас. Поделитесь впечатлением — это " +
+      "займёт минуту: [СсылкаНаОтмену]. — [Компания]",
+  },
+  {
+    id: "preset-birthday",
+    kind: "after_24h_long",
+    name: "Поздравление с днём рождения",
+    body:
+      "[Имя], с днём рождения! В этом месяце скидка на сервис от " +
+      "[Компания]. Бронируйте по этой ссылке: [СсылкаНаОтмену].",
+  },
+];
 
 // Keyed by canonical English names — renderTemplate's alias table
 // maps Russian palette tokens like [Имя] / [Цена] back onto these
@@ -60,6 +106,14 @@ export default function SmsTemplatesPage() {
     setEditing(createBlankTemplate());
   };
 
+  // Open the editor with a starter preset pre-filled. We mint a fresh
+  // id via createBlankTemplate so isCreating === true and «Удалить»
+  // stays hidden until the user actually saves the draft.
+  const handlePreset = (preset: (typeof STARTER_PRESETS)[number]) => {
+    const draft = createBlankTemplate(preset.kind);
+    setEditing({ ...draft, name: preset.name, body: preset.body });
+  };
+
   const toggleEnabled = (id: string) => {
     const tpl = templates.find((t) => t.id === id);
     if (!tpl) return;
@@ -84,6 +138,41 @@ export default function SmsTemplatesPage() {
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-3xl mx-auto px-4 py-4 pb-24 space-y-3">
+          {templates.length === 0 && (
+            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <MessageSquare size={18} strokeWidth={2} className="text-[var(--accent)]" />
+                <h2 className="text-[15px] font-semibold text-[var(--label)]">
+                  Шаблонов пока нет
+                </h2>
+              </div>
+              <p className="text-[13px] text-[var(--label-secondary)] mb-4 leading-snug">
+                Начните с готового — потом подкрутите текст под себя.
+              </p>
+              <div className="space-y-2">
+                {STARTER_PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handlePreset(p)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-[12px] bg-[var(--fill-tertiary)] active:bg-[var(--fill-secondary)] text-left transition"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-medium text-[var(--label)] truncate">
+                        {p.name}
+                      </div>
+                      <div className="text-[12px] text-[var(--label-secondary)] truncate">
+                        {KIND_LABELS[p.kind]}
+                      </div>
+                    </div>
+                    <span className="text-[12px] text-[var(--accent)] font-semibold shrink-0">
+                      Использовать →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {templates.map((tpl) => (
             <div
               key={tpl.id}
