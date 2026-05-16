@@ -2,10 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@babun/shared/local/clients";
-import { createBlankClient, upsertClient } from "@babun/shared/local/clients";
+import { createBlankClient } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import DialogModal from "./DialogModal";
 import { matchesClient, findDuplicateCandidates } from "@babun/shared/local/selectors/client-search";
+// v514 P0 #2.2 — route inline-create through the dashboard's Supabase
+// client mutator (clientsCached → IDB optimistic + Supabase write +
+// offline queue) instead of the localStorage-only `upsertClient` we
+// previously imported from @babun/shared/local/clients. Without this,
+// a client created via the «+ Новый клиент» button never reached the
+// server and disappeared from /dashboard/clients on reload.
+import { useClients } from "@/components/layout/DashboardClientLayout";
+import { reportSyncError } from "@/lib/sync/sync-error-bus";
 
 interface ClientPickerSheetProps {
   open: boolean;
@@ -31,8 +39,15 @@ export default function ClientPickerSheet({
   clients,
   recentClientIds = [],
 }: ClientPickerSheetProps) {
+  const { upsertClient } = useClients();
   const [query, setQuery] = useState("");
   const [showNewForm, setShowNewForm] = useState(false);
+  // v514 P0 #2.2 — surface the in-flight Supabase write and any
+  // failure inline. Without this the dispatcher tapped «Добавить»,
+  // the form vanished, and (when the server rejected) the new
+  // client was silently gone.
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // STORY-011: comment is now always visible alongside name and
   // phone. Only Telegram / Instagram / extra phones stay behind "+ …"
@@ -113,7 +128,8 @@ export default function ClientPickerSheet({
   const phoneMissing = phoneDigitsCount < 7;
   const canCreateClient = newName.trim().length > 0 && !phoneMissing;
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
+    if (creating) return; // double-tap guard
     const name = newName.trim();
     if (!name) return;
     if (phoneMissing) return; // double-guard
@@ -130,11 +146,28 @@ export default function ClientPickerSheet({
       instagram_username: (newInstagram ?? "").trim().replace(/^@+/, ""),
       comment: newComment.trim(),
     });
-    upsertClient(client);
-    onSelect(client);
-    resetForm();
-    setShowNewForm(false);
-    onClose();
+    setCreating(true);
+    setCreateError(null);
+    try {
+      // v514 P0 #2.2 — await the Supabase round-trip BEFORE closing
+      // the sheet. The cached wrapper inside DashboardClientLayout
+      // does an optimistic IDB write + state update first, so the
+      // user-visible select-and-close is still fast; if Supabase
+      // rejects (RLS / validation / quota) we surface that here
+      // instead of silently dropping the row.
+      await upsertClient(client);
+      onSelect(client);
+      resetForm();
+      setShowNewForm(false);
+      onClose();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Не удалось сохранить клиента";
+      setCreateError(message);
+      reportSyncError(err);
+    } finally {
+      setCreating(false);
+    }
   };
 
   const resetForm = () => {
@@ -380,21 +413,32 @@ export default function ClientPickerSheet({
               </div>
             </div>
 
+            {createError && (
+              <div
+                role="alert"
+                className="rounded-[10px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.25)] px-3 py-2 text-[12px] text-[var(--system-red)]"
+              >
+                {createError}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setShowNewForm(false);
+                  setCreateError(null);
                   resetForm();
                 }}
-                className="flex-1 h-11 text-[var(--accent)] font-medium"
+                disabled={creating}
+                className="flex-1 h-11 text-[var(--accent)] font-medium disabled:text-[var(--label-tertiary)]"
               >
                 Отмена
               </button>
               <button
                 type="button"
                 onClick={handleCreateNew}
-                disabled={!canCreateClient}
+                disabled={!canCreateClient || creating}
                 className="flex-1 h-11 bg-[var(--accent)] text-[var(--label-on-accent)] rounded-[10px] font-semibold text-[15px] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
                 title={
                   !newName.trim()
@@ -404,7 +448,7 @@ export default function ClientPickerSheet({
                       : ""
                 }
               >
-                Добавить
+                {creating ? "Сохраняем…" : "Добавить"}
               </button>
             </div>
           </div>
