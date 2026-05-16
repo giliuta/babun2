@@ -5,20 +5,36 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Trash2 } from "@babun/shared/icons";
 import { signOut } from "@/lib/supabase/auth-client";
 
-const CONFIRM_WORD = "УДАЛИТЬ";
+interface DangerZoneSectionProps {
+  /** Brief 2 #22: the caller's own email — typing it confirms the
+   *  destructive delete. Empty string falls back to the legacy
+   *  «УДАЛИТЬ» typed confirmation so the flow never bricks when
+   *  the auth surface didn't provide an email (e.g. social-only
+   *  account where the field is null). */
+  email: string;
+}
 
 // STORY-041 G4 — Account self-delete. Modal forces typed confirmation
-// (CONFIRM_WORD) before the destructive action runs. The actual
-// cascade lives in /api/account/delete (server-only, uses service
-// role to drop auth.users after RLS-scoped DELETEs of tenant data).
-export default function DangerZoneSection() {
+// before the destructive action runs. The actual cascade lives in
+// /api/account/delete (server-only, uses service role to drop
+// auth.users after RLS-scoped DELETEs of tenant data).
+//
+// Brief 2 #22: confirmation phrase upgraded from the literal word
+// «УДАЛИТЬ» (guessable in two seconds) to the user's own email
+// address. Case-insensitive match — typing «User@Example.COM» when
+// the account is `user@example.com` still counts.
+export default function DangerZoneSection({ email }: DangerZoneSectionProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const ready = typed.trim() === CONFIRM_WORD;
+  const fallback = "УДАЛИТЬ";
+  const targetPhrase = email.trim() || fallback;
+  const ready =
+    typed.trim().toLowerCase() === targetPhrase.toLowerCase() &&
+    typed.trim().length > 0;
 
   const handleDelete = async () => {
     if (!ready || busy) return;
@@ -90,7 +106,10 @@ export default function DangerZoneSection() {
             </p>
             <label className="block">
               <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
-                Введите «{CONFIRM_WORD}» для подтверждения
+                Введите ваш email для подтверждения
+              </div>
+              <div className="text-[13px] text-[var(--label)] mb-1.5 font-mono tracking-tight break-all">
+                {targetPhrase}
               </div>
               <input
                 type="text"
@@ -98,6 +117,9 @@ export default function DangerZoneSection() {
                 onChange={(e) => setTyped(e.target.value)}
                 autoFocus
                 disabled={busy}
+                autoComplete="off"
+                spellCheck={false}
+                inputMode={email ? "email" : "text"}
                 className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--system-red)] transition"
               />
             </label>

@@ -81,7 +81,7 @@ export default function CompanySettingsPage() {
               label="Сайт"
               value={info.website}
               onChange={(v) => update("website", v)}
-              placeholder="airfix.cy"
+              placeholder="example.com"
             />
           </Section>
 

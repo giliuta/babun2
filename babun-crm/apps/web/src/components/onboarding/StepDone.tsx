@@ -52,6 +52,13 @@ export default function StepDone({
         />
       </div>
 
+      {/* v544 §3.2 (b) — «Что сделать дальше» checklist. Sets the
+          first-week-of-use expectation: which sections to visit and
+          in what order. Renders different items for personal vs
+          team mode so a solo owner doesn't see «Добавить сотрудника»
+          first when they explicitly opted into the personal calendar. */}
+      <ChecklistSection personalCalendar={personalCalendar} />
+
       {error && (
         <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
           {error}
@@ -112,6 +119,102 @@ function SummaryRow({
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+// v544 §3.2 (b) — what-to-do-next checklist. Sets the expectation for
+// the first week of use without forcing every step now (the wizard
+// stays a 4-step flow). Personal-calendar users see a personal-flavoured
+// list; team-calendar users see the team-flavoured one.
+//
+// Rendered as a passive checklist (no checkboxes) — the user discovers
+// each section by visiting it; we don't try to track completion here.
+// «Открыть календарь» from StepDone takes the user to /dashboard
+// where the calendar empty-state CTA + sidebar carry them through.
+interface ChecklistItem {
+  emoji: string;
+  title: string;
+  body: string;
+}
+
+const TEAM_CHECKLIST: ChecklistItem[] = [
+  {
+    emoji: "👥",
+    title: "Соберите команду",
+    body: "Сотрудники → «Новый сотрудник». Свяжите их с бригадами на странице «Команды».",
+  },
+  {
+    emoji: "🧰",
+    title: "Заведите услуги",
+    body: "Услуги → задайте цену, длительность, цвет. Они автоматически подставятся в новые записи.",
+  },
+  {
+    emoji: "📞",
+    title: "Создайте первую запись клиента",
+    body: "Нажмите ячейку в календаре, выберите клиента и услугу — запись появится в расписании.",
+  },
+  {
+    emoji: "📲",
+    title: "Подключите SMS-уведомления",
+    body: "Настройки → Автоматические SMS. Возвраты за 24 ч / 2 ч до визита.",
+  },
+];
+
+const PERSONAL_CHECKLIST: ChecklistItem[] = [
+  {
+    emoji: "🗓️",
+    title: "Добавьте первое событие",
+    body: "Нажмите ячейку в календаре, чтобы создать событие — обед, выезд, отпуск.",
+  },
+  {
+    emoji: "🎨",
+    title: "Настройте цвет и часы",
+    body: "Настройки → Календарь. Рабочие часы, цвет личного календаря, шаг сетки.",
+  },
+  {
+    emoji: "🔔",
+    title: "Включите push",
+    body: "Настройки → Личный календарь → «Уведомления» — за 15 минут до события.",
+  },
+  {
+    emoji: "👥",
+    title: "Пригласите команду позже",
+    body: "Когда появятся сотрудники — Сотрудники → «Новый сотрудник». Личный календарь остаётся вашим.",
+  },
+];
+
+function ChecklistSection({ personalCalendar }: { personalCalendar: boolean }) {
+  const items = personalCalendar ? PERSONAL_CHECKLIST : TEAM_CHECKLIST;
+  return (
+    <div className="mt-2">
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2 px-1">
+        Что сделать дальше
+      </div>
+      <ul className="bg-[var(--surface-card)] rounded-[12px] divide-y divide-[var(--separator)] overflow-hidden">
+        {items.map((item, i) => (
+          <li
+            key={i}
+            className="flex items-start gap-3 px-4 py-3"
+            data-testid={`onboarding-checklist-item-${i}`}
+          >
+            <span
+              className="text-[20px] shrink-0 leading-none mt-0.5"
+              aria-hidden
+            >
+              {item.emoji}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold text-[var(--label)] leading-snug">
+                {item.title}
+              </div>
+              <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+                {item.body}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

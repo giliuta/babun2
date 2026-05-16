@@ -111,7 +111,7 @@ const OPTIONAL_BLOCKS: BlockMeta[] = [
   {
     key: "show_payment",
     label: "Способы оплаты",
-    description: "Нал / карта / сплит при закрытии визита.",
+    description: "Нал / карта / раздельно при закрытии визита.",
     defaultOn: true,
     icon: CreditCard,
     tone: "bg-[var(--tile-green)]",

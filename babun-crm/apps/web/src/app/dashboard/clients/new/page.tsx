@@ -30,30 +30,37 @@ import {
   type PropertyType,
 } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
+import {
+  loadCities,
+  getActiveCities,
+  type City,
+} from "@babun/shared/local/cities";
 import { Button } from "@/components/ui";
 import { haptic } from "@/lib/haptics";
+// P2 #43 (CRM Core brief) — shared save-state hook collapses the
+// old {saving, saved, error} trio into one tagged union so the
+// button + indicator never disagree about which message is active.
+import { useSaveStatus } from "@/hooks/useSaveStatus";
+// P0 #6 (CRM Core brief) — shared object-form fields so the create
+// flow here matches the modal editor on /clients/[id].
+import ObjectFormFields, {
+  PROPERTY_CHOICES as SHARED_PROPERTY_CHOICES,
+} from "@/components/clients/ObjectFormFields";
 
 const DEFAULT_PHONE_PREFIX = "+357 ";
 
-// Property-type chips for inline object form. Six options, one row.
-// Drives both the Russian label (visible) and the schema enum.
-interface PropertyChoice {
-  value: PropertyType;
-  label: string;
-  defaultLabel: string;
-}
-const PROPERTY_CHOICES: PropertyChoice[] = [
-  { value: "house", label: "Дом", defaultLabel: "Дом" },
-  { value: "apartment", label: "Квартира", defaultLabel: "Квартира" },
-  { value: "office", label: "Офис", defaultLabel: "Офис" },
-  { value: "shop", label: "Магазин", defaultLabel: "Магазин" },
-  { value: "restaurant", label: "Ресторан", defaultLabel: "Ресторан" },
-  { value: "other", label: "Другое", defaultLabel: "Объект" },
-];
+// P0 #6 — Property-type chip palette moved into the shared
+// ObjectFormFields module; re-export under the legacy local name so
+// the inline-create flow's «start a fresh draft» seed still resolves
+// without touching every call site.
+const PROPERTY_CHOICES = SHARED_PROPERTY_CHOICES;
 
+// Structural alias of ObjectFormDraft so the shared `<ObjectFormFields />`
+// onChange handler can write straight back without a cast. property_type
+// stays optional to match the Location schema's new per-object field.
 interface LocationDraft {
   label: string;
-  property_type: PropertyType;
+  property_type?: PropertyType;
   address: string;
   note: string;
 }
@@ -76,9 +83,27 @@ export default function NewClientPage() {
   const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
+  // P1 #23 (CRM Core brief) — VIP / blacklist were settable only after
+  // save. Lifted into the create form so a dispatcher who hears
+  // «постоянный клиент, не теряем» on the call can flag it before
+  // the record is even persisted. «Постоянный» / «Новый» stay derived
+  // from visit count + ageDays — they're not real tags, ClientStatusBadges
+  // computes them at render time.
+  const [vip, setVip] = useState(false);
+  const [blacklisted, setBlacklisted] = useState(false);
+  // P1 #25 (CRM Core brief) — city is now sourced from the
+  // /dashboard/settings/cities reference book instead of a free-text
+  // input. Empty list (e.g. brand-new tenant who hasn't seeded cities
+  // yet) falls back to a plain input so creating clients doesn't
+  // block on a separate settings detour.
+  const [cityList, setCityList] = useState<City[]>([]);
+  useEffect(() => {
+    setCityList(getActiveCities(loadCities()));
+  }, []);
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = useSaveStatus();
+  const saving = save.status === "saving";
+  const saveError = save.error;
 
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +134,8 @@ export default function NewClientPage() {
       id: generateId("loc"),
       label: draftLoc.label.trim() || "Объект",
       address: draftLoc.address.trim(),
+      // P0 #6 — per-object type now persists from the create form.
+      property_type: draftLoc.property_type,
       isPrimary: locations.length === 0,
       note: draftLoc.note.trim() || undefined,
       equipment: [],
@@ -129,8 +156,6 @@ export default function NewClientPage() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     haptic("medium");
-    setSaving(true);
-    setSaveError(null);
     const blank = createBlankClient({
       full_name: fullName.trim(),
       phone: trimmedPhone,
@@ -143,14 +168,15 @@ export default function NewClientPage() {
       birthday: birthday || "",
       comment: comment.trim(),
       locations,
+      tag_ids: vip ? ["tag-vip"] : [],
+      blacklisted,
     });
-    try {
+    const ok = await save.run(async () => {
       await upsertClient(blank);
+      return true;
+    });
+    if (ok) {
       router.replace(`/dashboard/clients/${blank.id}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось сохранить";
-      setSaveError(msg);
-      setSaving(false);
     }
   };
 
@@ -179,7 +205,7 @@ export default function NewClientPage() {
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
           >
-            {saving ? "Сохраняем…" : "Сохранить"}
+            {save.label("Сохранить")}
           </Button>
         </div>
       </div>
@@ -289,6 +315,43 @@ export default function NewClientPage() {
             )}
           </Card>
 
+          {/* ───────── P1 #23 — status chips ───────── */}
+          <Card>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+                Статус
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <StatusChip
+                label="VIP"
+                active={vip}
+                onClick={() => {
+                  haptic("tap");
+                  setVip((v) => !v);
+                  // VIP and blacklist are mutually exclusive — a flagged
+                  // problem client shouldn't be lit up as a top-tier guest.
+                  if (!vip) setBlacklisted(false);
+                }}
+                tone="vip"
+              />
+              <StatusChip
+                label="Чёрный список"
+                active={blacklisted}
+                onClick={() => {
+                  haptic("tap");
+                  setBlacklisted((v) => !v);
+                  if (!blacklisted) setVip(false);
+                }}
+                tone="blacklist"
+              />
+            </div>
+            <div className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+              «Новый» и «Постоянный» система ставит сама — по визитам и
+              возрасту записи.
+            </div>
+          </Card>
+
           {/* ───────── Дополнительно accordion ───────── */}
           <Card>
             <button
@@ -317,11 +380,26 @@ export default function NewClientPage() {
             {moreOpen && (
               <div className="space-y-2.5 mt-3">
                 <Field label="Город">
-                  <Input
-                    value={city}
-                    onChange={setCity}
-                    placeholder="Лимассол / Никосия / ..."
-                  />
+                  {cityList.length > 0 ? (
+                    <select
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">— не указан —</option>
+                      {cityList.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      value={city}
+                      onChange={setCity}
+                      placeholder="Добавьте города в Настройках → Города"
+                    />
+                  )}
                 </Field>
                 <Field label="День рождения">
                   <input
@@ -341,7 +419,7 @@ export default function NewClientPage() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Комментарий">
+                <Field label="Заметки">
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
@@ -381,59 +459,9 @@ function InlineLocationForm({
   const canSave = draft.address.trim().length > 0;
   return (
     <div className="mt-3 p-3 rounded-[12px] bg-[var(--fill-quaternary)] space-y-2.5">
-      <div className="flex flex-wrap gap-1.5">
-        {PROPERTY_CHOICES.map((p) => {
-          const active = draft.property_type === p.value;
-          return (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => {
-                haptic("tap");
-                onChange({
-                  ...draft,
-                  property_type: p.value,
-                  // Auto-fill the label when user picks a type — but
-                  // only if they haven't already typed a custom one.
-                  label: PROPERTY_CHOICES.some((c) => c.defaultLabel === draft.label)
-                    ? p.defaultLabel
-                    : draft.label,
-                });
-              }}
-              className={`h-8 px-3 rounded-full text-[13px] font-medium transition ${
-                active
-                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
-              }`}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <Field label="Адрес" required>
-        <input
-          type="text"
-          autoFocus
-          value={draft.address}
-          onChange={(e) => onChange({ ...draft, address: e.target.value })}
-          placeholder="ул. Архиепископу Макариу III, 12"
-          className={inputCls}
-          maxLength={200}
-        />
-      </Field>
-
-      <Field label="Заметка для команды" hint="код домофона, собака, особенности входа">
-        <input
-          type="text"
-          value={draft.note}
-          onChange={(e) => onChange({ ...draft, note: e.target.value })}
-          placeholder="зелёная дверь, домофон 25"
-          className={inputCls}
-          maxLength={140}
-        />
-      </Field>
+      {/* P0 #6 — fields delegated to the shared <ObjectFormFields>.
+          InlineLocationForm keeps only its inline Cancel/Save chrome. */}
+      <ObjectFormFields draft={draft} onChange={onChange} autoFocusAddress />
 
       <div className="flex gap-2 pt-1">
         <button
@@ -515,6 +543,40 @@ function Card({ children }: { children: React.ReactNode }) {
     <section className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3">
       {children}
     </section>
+  );
+}
+
+// P1 #23 — toggle chips for VIP / blacklist on the create form. Tones
+// match the read-side ClientStatusBadges so a chip lit here visually
+// echoes the badge the user will see later in /clients/[id].
+function StatusChip({
+  label,
+  active,
+  onClick,
+  tone,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  tone: "vip" | "blacklist";
+}) {
+  const activeCls =
+    tone === "vip"
+      ? "bg-[rgba(255,204,0,0.18)] text-[#B78600] border-[rgba(255,204,0,0.4)]"
+      : "bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] border-[rgba(255,59,48,0.3)]";
+  const idleCls =
+    "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] border-transparent";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`px-3 h-9 rounded-full text-[13px] font-semibold border transition active:scale-[0.97] ${
+        active ? activeCls : idleCls
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

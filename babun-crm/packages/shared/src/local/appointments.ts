@@ -212,7 +212,10 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: "Наличные",
   card: "Карта",
   transfer: "Перевод",
-  split: "Сплит",
+  // Brief 1 #15: «Сплит» reads as the HVAC equipment type (used
+  // elsewhere as ACType.split = «Сплит»). For the payment-method
+  // surface use the plain RU word.
+  split: "Раздельно",
   invoice: "Счёт",
 };
 

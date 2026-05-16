@@ -22,7 +22,14 @@ export default function OnboardingWizard({
   tenantId,
   initialName,
   initialVertical,
-  initialPersonalCalendar = false,
+  // v526 §3.2 — default to personal=true for a fresh signup. A solo
+  // owner is the most common starting shape; flipping the default
+  // means the wizard pre-selects «Личный календарь» and the dispatcher
+  // doesn't have to think about it. Anyone who actually runs a team
+  // can switch on Step 3 in one tap. Existing tenants pass their
+  // saved value through `initialPersonalCalendar` so this default
+  // only affects fresh signups.
+  initialPersonalCalendar = true,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);

@@ -111,7 +111,7 @@ export default function StepPersonalCalendar({
           onClick={onNext}
           className="flex-1 h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
-          Дальше
+          Далее
         </button>
       </div>
     </div>

@@ -10,12 +10,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
   AlertTriangle,
   ArchiveRestore,
   Archive,
   ChevronRight,
   Copy,
+  Download,
   Pencil,
   Plus,
   Search,
@@ -23,6 +25,7 @@ import {
   UserCircle2,
   X,
 } from "@babun/shared/icons";
+import { exportMastersCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import EmptyState from "@/components/ui/EmptyState";
@@ -178,9 +181,57 @@ export default function MastersPage() {
       ]
     : [];
 
+  // P1 #29 (CRM Core brief) — CSV export of the current visible list
+  // (filtered + sorted). Resolves team names via the same union logic
+  // we use for the row subtitle so the export row matches what the
+  // operator sees on screen.
+  const teamNamesFor = (masterId: string): string => {
+    const names: string[] = [];
+    for (const t of teams) {
+      const inTeam =
+        t.id === masters.find((m) => m.id === masterId)?.team_id ||
+        getTeamLeadIds(t).includes(masterId) ||
+        t.helper_ids.includes(masterId);
+      if (inTeam) names.push(t.name);
+    }
+    return names.join(", ");
+  };
+  const handleExport = () => {
+    haptic("tap");
+    const source = sorted.length > 0 ? sorted : masters;
+    exportMastersCsv(
+      source.map((m) => ({
+        id: m.id,
+        full_name: m.full_name,
+        role: ROLE_LABELS[m.role],
+        title: m.title,
+        phone: m.phone ?? "",
+        email: m.email ?? "",
+        is_active: m.is_active,
+        created_at: m.created_at,
+      })),
+      teamNamesFor,
+    );
+  };
+
   return (
     <>
-      <PageHeader title="Мастера" />
+      <PageHeader
+        title="Сотрудники"
+        rightContent={
+          masters.length > 0 ? (
+            <button
+              type="button"
+              onClick={handleExport}
+              aria-label="Экспорт CSV"
+              title="Экспорт CSV"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+            >
+              <Download size={20} strokeWidth={2.2} />
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">
@@ -282,17 +333,7 @@ export default function MastersPage() {
                 </div>
               )}
 
-              <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
-                Тап — открыть. Свайп вправо —{" "}
-                <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
-                  в архив
-                </span>
-                . Свайп влево —{" "}
-                <span className="text-[var(--system-red)] font-medium">
-                  удалить
-                </span>
-                . Долгое нажатие — меню.
-              </div>
+              <GestureHint />
             </>
           )}
         </div>
@@ -359,11 +400,28 @@ function MasterRow({
 
   const tile = assignedTeams[0]?.color ?? "#8E8E93";
 
+  // P0 #20 (CRM Core brief) — master row used to render the SYSTEM
+  // role («Помощник») which routinely contradicted the brigade-side
+  // role («Установщик») that the dispatcher actually thinks of the
+  // master as. When the master has a brigade membership with a
+  // tenant-authored role, that name wins; the system role stays as
+  // the fallback (no brigade / no custom role assigned yet).
+  const brigadeRole = (() => {
+    for (const t of assignedTeams) {
+      const member = t.members?.find((m) => m.master_id === master.id);
+      if (!member?.role_id) continue;
+      const r = t.roles?.find((rr) => rr.id === member.role_id);
+      if (r?.name) return r.name;
+    }
+    return null;
+  })();
+  const displayRole = brigadeRole ?? ROLE_LABELS[master.role];
+
   // Subtitle: role (+ custom title) · brigade(s) · phone.
   const pieces: string[] = [];
   const roleBit = master.title
-    ? `${ROLE_LABELS[master.role]} · ${master.title}`
-    : ROLE_LABELS[master.role];
+    ? `${displayRole} · ${master.title}`
+    : displayRole;
   pieces.push(roleBit);
   if (assignedTeams.length === 0) pieces.push("без команды");
   else if (assignedTeams.length === 1) pieces.push(assignedTeams[0].name);
@@ -493,4 +551,29 @@ function useLongPressOrTap({
       e.preventDefault();
     },
   };
+}
+
+// v519 §3.6 — desktop / mobile gesture hint split (matches the
+// teams list version in /dashboard/teams). Swipe / long-press only
+// mean something on touch; on lg+ we show right-click + drag-handle.
+function GestureHint() {
+  const isDesktop = useIsDesktop();
+  if (isDesktop) {
+    return (
+      <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
+        Клик — открыть. Правый клик — меню.
+      </div>
+    );
+  }
+  return (
+    <div className="px-4 pt-0.5 text-[12px] leading-snug text-[var(--label-tertiary)]">
+      Нажмите — открыть. Свайп вправо —{" "}
+      <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
+        в архив
+      </span>
+      . Свайп влево —{" "}
+      <span className="text-[var(--system-red)] font-medium">удалить</span>.
+      Долгое нажатие — меню.
+    </div>
+  );
 }

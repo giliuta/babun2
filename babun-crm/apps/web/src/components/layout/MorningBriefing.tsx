@@ -7,6 +7,7 @@ import {
   Wallet as WalletIcon,
   MessageSquare,
   AlertTriangle,
+  CircleAlert,
 } from "@babun/shared/icons";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
@@ -113,6 +114,18 @@ export default function MorningBriefing({
       }
     }
 
+    // §4.2 — past-dated work visits still marked `scheduled`. These
+    // are «недозвоны» / forgotten visits: the day passed, no one
+    // closed the record. Surface them so the dispatcher either calls
+    // the client back or marks the visit cancelled/completed.
+    let unclosedCount = 0;
+    for (const a of appointments) {
+      if (a.kind && a.kind !== "work") continue;
+      if (a.status !== "scheduled") continue;
+      if (a.date >= todayKey) continue;
+      unclosedCount += 1;
+    }
+
     let unread = 0;
     if (typeof window !== "undefined") {
       try {
@@ -129,6 +142,7 @@ export default function MorningBriefing({
       expected: Math.round(expected),
       overdueDebt: Math.round(overdueDebt),
       overdueCount,
+      unclosedCount,
       unread,
     };
   }, [appointments, services, teams, dayExtrasOf]);
@@ -207,6 +221,15 @@ export default function MorningBriefing({
               icon={<AlertTriangle size={16} strokeWidth={2.25} />}
               value={`Должны ${formatEUR(summary.overdueDebt)}`}
               hint={`${summary.overdueCount} ${countWord(summary.overdueCount, "клиент", "клиента", "клиентов")} больше 14 дней`}
+            />
+          )}
+
+          {summary.unclosedCount > 0 && (
+            <Stat
+              tile="bg-[var(--tile-orange)]"
+              icon={<CircleAlert size={16} strokeWidth={2.25} />}
+              value={`${summary.unclosedCount} ${countWord(summary.unclosedCount, "визит", "визита", "визитов")} не закрыт${summary.unclosedCount === 1 ? "" : "ы"}`}
+              hint="Прошлые даты, статус «Запланирован» — перезвоните клиенту"
             />
           )}
         </div>

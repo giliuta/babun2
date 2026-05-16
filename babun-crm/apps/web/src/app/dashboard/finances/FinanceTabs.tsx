@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Phone, MessageSquare, Plus, X, Tag } from "@babun/shared/icons";
 import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 import { formatEUR, formatEURSigned } from "@babun/shared/common/utils/money";
@@ -8,6 +8,12 @@ import {
   createBlankExpenseCategory,
   type ExpenseCategory,
 } from "@babun/shared/local/expense-categories";
+import {
+  createBlankIncomeCategory,
+  loadIncomeCategories,
+  saveIncomeCategories,
+  type IncomeCategory,
+} from "@babun/shared/local/income-categories";
 import type { Client } from "@babun/shared/local/clients";
 import type { Team } from "@babun/shared/local/masters";
 import { sum, type IncomeLine, type ExpenseLine, type DebtLine } from "@/hooks/useFinanceData";
@@ -286,7 +292,15 @@ export function PayrollTab({
   );
 }
 
-// ─── Expense categories sheet ─────────────────────────────────────────────
+// ─── Finance categories sheet ─────────────────────────────────────────────
+//
+// P0 #11 (CRM Core brief) — used to be expense-only. Now a two-tab
+// sheet: Расходы (the legacy flow, driven by the parent via prop)
+// and Доходы (self-managed via local-storage helpers). Both lists use
+// the same row UI. Export aliased as the legacy name so the page.tsx
+// import doesn't have to move.
+
+type FinanceCategory = ExpenseCategory | IncomeCategory;
 
 export function ExpenseCategoriesSheet({
   categories,
@@ -297,19 +311,49 @@ export function ExpenseCategoriesSheet({
   onClose: () => void;
   onSave: (next: ExpenseCategory[]) => void;
 }) {
-  const [draft, setDraft] = useState<ExpenseCategory[]>(categories);
+  const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
 
-  const update = (id: string, patch: Partial<ExpenseCategory>) => {
-    setDraft((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  // Expense list — controlled by the parent (matches legacy contract).
+  const [expenseDraft, setExpenseDraft] = useState<ExpenseCategory[]>(categories);
+
+  // Income list — self-loaded on mount, self-saved on Save. Bypasses
+  // DashboardClientLayout context so this sheet stays a leaf change.
+  const [incomeDraft, setIncomeDraft] = useState<IncomeCategory[]>([]);
+  useEffect(() => {
+    setIncomeDraft(loadIncomeCategories());
+  }, []);
+
+  const updateExpense = (id: string, patch: Partial<ExpenseCategory>) =>
+    setExpenseDraft((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const removeExpense = (id: string) =>
+    setExpenseDraft((prev) => prev.filter((c) => c.id !== id));
+  const addExpense = () =>
+    setExpenseDraft((prev) => [...prev, createBlankExpenseCategory()]);
+
+  const updateIncome = (id: string, patch: Partial<IncomeCategory>) =>
+    setIncomeDraft((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const removeIncome = (id: string) =>
+    setIncomeDraft((prev) => prev.filter((c) => c.id !== id));
+  const addIncome = () =>
+    setIncomeDraft((prev) => [...prev, createBlankIncomeCategory()]);
+
+  const isIncome = activeTab === "income";
+  const visibleList: FinanceCategory[] = isIncome ? incomeDraft : expenseDraft;
+  const updateRow = (id: string, patch: Partial<FinanceCategory>) =>
+    isIncome ? updateIncome(id, patch) : updateExpense(id, patch);
+  const removeRow = (id: string) => (isIncome ? removeIncome(id) : removeExpense(id));
+  const addRow = () => (isIncome ? addIncome() : addExpense());
+
+  const handleSave = () => {
+    saveIncomeCategories(incomeDraft);
+    onSave(expenseDraft);
   };
-  const remove = (id: string) => setDraft((prev) => prev.filter((c) => c.id !== id));
-  const add = () => setDraft((prev) => [...prev, createBlankExpenseCategory()]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2">
       <div className="w-full lg:max-w-lg bg-[var(--surface-card)] rounded-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
-          <h2 className="text-[17px] font-semibold text-[var(--label)]">Категории расходов</h2>
+          <h2 className="text-[17px] font-semibold text-[var(--label)]">Категории</h2>
           <button
             type="button"
             onClick={onClose}
@@ -320,8 +364,21 @@ export function ExpenseCategoriesSheet({
           </button>
         </div>
 
+        <div className="flex gap-1 px-4 pt-3" role="tablist">
+          <TabButton
+            label="Расходы"
+            active={!isIncome}
+            onClick={() => setActiveTab("expense")}
+          />
+          <TabButton
+            label="Доходы"
+            active={isIncome}
+            onClick={() => setActiveTab("income")}
+          />
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {draft.map((c) => (
+          {visibleList.map((c) => (
             <div
               key={c.id}
               className="flex items-center gap-2 bg-[var(--fill-tertiary)] rounded-lg p-2"
@@ -329,26 +386,26 @@ export function ExpenseCategoriesSheet({
               <input
                 type="text"
                 value={c.icon}
-                onChange={(e) => update(c.id, { icon: e.target.value.slice(0, 2) })}
+                onChange={(e) => updateRow(c.id, { icon: e.target.value.slice(0, 2) })}
                 className="w-10 text-center text-xl bg-[var(--surface-card)] border border-[var(--separator)] rounded"
                 placeholder=""
               />
               <input
                 type="color"
                 value={c.color}
-                onChange={(e) => update(c.id, { color: e.target.value })}
+                onChange={(e) => updateRow(c.id, { color: e.target.value })}
                 className="w-10 h-10 border border-[var(--separator)] rounded cursor-pointer"
               />
               <input
                 type="text"
                 value={c.name}
-                onChange={(e) => update(c.id, { name: e.target.value })}
+                onChange={(e) => updateRow(c.id, { name: e.target.value })}
                 placeholder="Название"
                 className="flex-1 px-3 py-2 bg-[var(--surface-card)] border border-[var(--separator)] rounded text-[15px] text-[var(--label)]"
               />
               <button
                 type="button"
-                onClick={() => remove(c.id)}
+                onClick={() => removeRow(c.id)}
                 className="w-8 h-8 flex items-center justify-center text-[var(--system-red)] hover:bg-[var(--fill-tertiary)] rounded"
                 aria-label="Удалить"
               >
@@ -358,7 +415,7 @@ export function ExpenseCategoriesSheet({
           ))}
           <button
             type="button"
-            onClick={add}
+            onClick={addRow}
             className="w-full py-2 text-[13px] font-semibold text-[var(--accent)] border border-dashed border-[var(--accent)] rounded-lg hover:bg-[var(--accent-tint)] inline-flex items-center justify-center gap-1.5"
           >
             <Plus size={14} strokeWidth={2.5} />
@@ -376,7 +433,7 @@ export function ExpenseCategoriesSheet({
           </button>
           <button
             type="button"
-            onClick={() => onSave(draft)}
+            onClick={handleSave}
             className="flex-1 min-h-[44px] px-4 py-2 rounded-[10px] text-[15px] font-semibold text-[var(--label-on-accent)] bg-[var(--accent)] active:bg-[var(--accent-pressed)]"
           >
             Сохранить
@@ -384,6 +441,32 @@ export function ExpenseCategoriesSheet({
         </div>
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex-1 min-h-[36px] px-3 rounded-[8px] text-[14px] font-semibold transition ${
+        active
+          ? "bg-[var(--accent-tint)] text-[var(--accent)]"
+          : "bg-transparent text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)]"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

@@ -86,7 +86,16 @@ export default async function OnboardingPage() {
       tenantId={tenant.id}
       initialName={initialName}
       initialVertical={asVertical(tenant.vertical)}
-      initialPersonalCalendar={Boolean(tenant.personal_calendar_enabled)}
+      // v526 §3.2 — pre-onboarding tenants haven't decided yet, so
+      // we pre-select «Личный календарь» as the safe default. The
+      // most common signup shape is a solo owner; team workflows are
+      // a one-tap flip on Step 3. Onboarded tenants get redirected
+      // away at line ~75 so they never see this pre-select.
+      initialPersonalCalendar={
+        tenant.personal_calendar_enabled === false
+          ? false
+          : true
+      }
     />
   );
 }

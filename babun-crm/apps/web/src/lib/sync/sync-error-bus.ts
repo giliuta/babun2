@@ -17,6 +17,11 @@
 // once a follow-up save lands.
 
 import { useSyncExternalStore } from "react";
+// v541 §5.1 — every reported sync error is forwarded to the telemetry
+// façade. With no adapter installed (default) this is a no-op; when
+// Sentry is wired up at app bootstrap, the same failures land in
+// the dashboard with the «sync» tag attached.
+import { captureException } from "@/lib/observability/telemetry";
 
 export interface SyncErrorState {
   /** Latest unacknowledged error, or null when nothing's pending. */
@@ -34,6 +39,11 @@ export function reportSyncError(err: unknown): void {
   const message = err instanceof Error ? err.message : String(err);
   state = { lastError: { message, at: Date.now() } };
   emit();
+  // v541 §5.1 — fan out to telemetry. No-op without Sentry adapter;
+  // with Sentry installed, the error lands in the dashboard tagged
+  // `subsystem=sync` so the user-pill UX and the error inbox stay
+  // in sync (pun intended).
+  captureException(err, { subsystem: "sync" });
 }
 
 export function clearSyncError(): void {

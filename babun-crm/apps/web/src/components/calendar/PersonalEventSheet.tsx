@@ -26,6 +26,7 @@ import {
   Palette,
   MapPin,
   Compass,
+  Video,
 } from "@babun/shared/icons";
 import { pushRecentPlace } from "@babun/shared/local/event-recent-places";
 import type {
@@ -66,6 +67,28 @@ interface PersonalEventSheetProps {
 
 const DEFAULT_COLOR = "#007AFF";
 const NO_REPEAT: PersonalEventRepeat = { kind: "none" };
+
+// Brief 2 #19: classify a URL as a video-conference link by hostname.
+// Returns `null` for plain web links so the caller falls back to the
+// generic LinkIcon. The match is conservative — only the canonical
+// hostnames each service actually serves meetings on. Custom subdomains
+// (companyzoom.us etc) are intentionally not pattern-matched: a false
+// «Это Zoom-встреча» badge is worse than a missing one.
+function detectVideoConference(url: string): { label: string } | null {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host === "zoom.us" || host.endsWith(".zoom.us")) return { label: "Zoom" };
+    if (host === "meet.google.com") return { label: "Google Meet" };
+    if (host === "teams.microsoft.com" || host === "teams.live.com")
+      return { label: "Teams" };
+    if (host === "whereby.com" || host.endsWith(".whereby.com"))
+      return { label: "Whereby" };
+    if (host === "meet.jit.si") return { label: "Jitsi" };
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export default function PersonalEventSheet({
   open,
@@ -194,8 +217,22 @@ export default function PersonalEventSheet({
       ) ||
       JSON.stringify(repeat) !==
         JSON.stringify(appointment.event_repeat ?? NO_REPEAT));
+  // v517 P0 #2.7 — close-confirm should NOT fire when the create-mode
+  // form is empty: user picked a slot, glanced at the sheet, tapped X
+  // — no reason to ask «Сохранить?» about nothing. Treat the form as
+  // empty when no user-supplied content fields are set; default colour
+  // / time / repeat=none alone don't count as «something to save».
+  const createDirty =
+    mode === "create" &&
+    (title.trim().length > 0 ||
+      notes.trim().length > 0 ||
+      address.trim().length > 0 ||
+      url.trim().length > 0 ||
+      pushEnabled ||
+      pushAt !== null ||
+      repeat.kind !== "none");
   const handleCloseRequest = () => {
-    if (mode === "create" || editDirty) setCloseConfirm(true);
+    if (editDirty || createDirty) setCloseConfirm(true);
     else onClose();
   };
 
@@ -482,17 +519,41 @@ export default function PersonalEventSheet({
                 placeholder="https://"
                 className="flex-1 h-8 px-2.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
-              {url.trim() && /^https?:\/\//i.test(url.trim()) && (
-                <a
-                  href={url.trim()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Открыть ссылку"
-                  className="w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
-                >
-                  <LinkIcon size={14} strokeWidth={2} />
-                </a>
-              )}
+              {url.trim() && /^https?:\/\//i.test(url.trim()) && (() => {
+                // Brief 2 #19: auto-detect Zoom / Google Meet / MS Teams
+                // links by hostname. Shows a video icon + service badge
+                // instead of the generic link icon so the user reads
+                // «это видеоконф» at a glance. Anything else stays the
+                // plain Link icon.
+                const trimmed = url.trim();
+                const video = detectVideoConference(trimmed);
+                const aria = video
+                  ? `Открыть ${video.label}`
+                  : "Открыть ссылку";
+                return (
+                  <a
+                    href={trimmed}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={aria}
+                    title={video ? video.label : "Ссылка"}
+                    className={
+                      video
+                        ? "h-8 px-2 inline-flex items-center gap-1 rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0 text-[12px] font-semibold"
+                        : "w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"
+                    }
+                  >
+                    {video ? (
+                      <>
+                        <Video size={14} strokeWidth={2} />
+                        <span>{video.label}</span>
+                      </>
+                    ) : (
+                      <LinkIcon size={14} strokeWidth={2} />
+                    )}
+                  </a>
+                );
+              })()}
             </div>
           </div>
 
@@ -558,6 +619,7 @@ export default function PersonalEventSheet({
       {closeConfirm && (
         <CloseConfirmPopup
           mode={mode}
+          canSave={canSave}
           onSave={() => {
             setCloseConfirm(false);
             const payload = buildPayload();
@@ -575,16 +637,22 @@ export default function PersonalEventSheet({
   );
 }
 
-// v485 — close-with-unsaved-changes confirm popup. iOS-style action
-// sheet: Сохранить (default accent), Не сохранять (destructive red),
-// Отмена (cancel — keeps the sheet open).
+// v517 P0 #2.7 — close-with-unsaved-changes confirm popup. Hierarchy
+// swapped vs v485: the destructive «Не сохранять» is now the primary
+// (filled red) action — closing the sheet is what the user has just
+// tried to do, so make that one easy. «Сохранить» is the secondary
+// outlined option and is only enabled when the form is valid enough
+// to save (controlled by the `canSave` prop). «Отмена» keeps the
+// sheet open.
 function CloseConfirmPopup({
   mode,
+  canSave,
   onSave,
   onDiscard,
   onKeep,
 }: {
   mode: PersonalEventSheetMode;
+  canSave: boolean;
   onSave: () => void;
   onDiscard: () => void;
   onKeep: () => void;
@@ -607,26 +675,30 @@ function CloseConfirmPopup({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[15px] font-semibold text-[var(--label)] text-center">
-          {mode === "edit" ? "Сохранить изменения?" : "Сохранить событие?"}
+          {mode === "edit" ? "Закрыть без сохранения?" : "Закрыть событие?"}
         </div>
         <div className="text-[12px] text-[var(--label-secondary)] text-center mt-1.5">
           {mode === "edit"
-            ? "Иначе изменения не запишутся."
-            : "Без названия событие сохранится пустым."}
+            ? "Изменения не запишутся."
+            : "Введённые данные не сохранятся."}
         </div>
-        <button
-          type="button"
-          onClick={onSave}
-          className="w-full mt-4 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.98] transition"
-        >
-          Сохранить
-        </button>
+        {/* Primary — destructive discard. */}
         <button
           type="button"
           onClick={onDiscard}
-          className="w-full mt-2 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] transition"
+          className="w-full mt-4 h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[14px] font-semibold active:scale-[0.98] transition"
         >
           Не сохранять
+        </button>
+        {/* Secondary — save, only when the form is valid. */}
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave}
+          className="w-full mt-2 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
+          title={canSave ? "" : "Заполните название, чтобы сохранить"}
+        >
+          Сохранить
         </button>
         <button
           type="button"

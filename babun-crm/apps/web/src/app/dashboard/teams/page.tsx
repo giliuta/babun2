@@ -30,6 +30,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
   AlertTriangle,
   Archive,
@@ -268,19 +269,7 @@ export default function TeamsPage() {
             </div>
           )}
 
-          {teams.length > 0 && (
-            <div className="px-4 text-[12px] leading-snug text-[var(--label-tertiary)]">
-              Тап — открыть. Свайп вправо —{" "}
-              <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
-                в архив
-              </span>
-              . Свайп влево —{" "}
-              <span className="text-[var(--system-red)] font-medium">
-                удалить
-              </span>
-              . Долгое нажатие — меню. Потяните за ручку&nbsp;☰ — переместить.
-            </div>
-          )}
+          {teams.length > 0 && <GestureHint />}
         </div>
       </div>
 
@@ -579,4 +568,31 @@ function useLongPressOrTap({
       e.preventDefault();
     },
   };
+}
+
+// v519 §3.5 — desktop and mobile users get different interaction
+// hints: swipe / long-press / single-tap only mean something on
+// touch. On a viewport ≥ lg we show right-click + drag-handle copy
+// instead, matching what actually works there.
+function GestureHint() {
+  const isDesktop = useIsDesktop();
+  if (isDesktop) {
+    return (
+      <div className="px-4 text-[12px] leading-snug text-[var(--label-tertiary)]">
+        Клик — открыть. Правый клик — меню. Потяните за ручку&nbsp;☰ —
+        переместить.
+      </div>
+    );
+  }
+  return (
+    <div className="px-4 text-[12px] leading-snug text-[var(--label-tertiary)]">
+      Нажмите — открыть. Свайп вправо —{" "}
+      <span className="text-[color:var(--system-yellow-strong,#B78600)] font-medium">
+        в архив
+      </span>
+      . Свайп влево —{" "}
+      <span className="text-[var(--system-red)] font-medium">удалить</span>.
+      Долгое нажатие — меню. Потяните за ручку&nbsp;☰ — переместить.
+    </div>
+  );
 }

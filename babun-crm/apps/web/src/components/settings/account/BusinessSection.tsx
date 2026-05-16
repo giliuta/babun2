@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Building2, Check } from "@babun/shared/icons";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { updateTenant } from "@babun/shared/db/repositories/tenants";
+// P2 #43 (CRM Core brief) — single source of save-state. Replaces
+// the trio of {saving, error, savedAt} that used to disagree on
+// which message wins («Сохранено» + «Сохраняем» overlap).
+import { useSaveStatus } from "@/hooks/useSaveStatus";
 
 type Vertical = "hvac" | "beauty" | "auto" | "cleaning" | "other";
 
@@ -42,9 +46,10 @@ export default function BusinessSection({
       ? (initialVertical as Vertical)
       : "other"),
   );
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const save = useSaveStatus();
+  const saving = save.status === "saving";
+  const error = save.error;
+  const savedAt = save.status === "saved";
 
   const trimmedName = name.trim();
   const valid = trimmedName.length >= 2;
@@ -54,24 +59,16 @@ export default function BusinessSection({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
+    await save.run(async () => {
       const supabase = getSupabaseBrowser();
       await updateTenant(supabase, tenantId, {
         name: trimmedName,
         vertical,
       });
-      setSavedAt(Date.now());
       // Refresh server components so the dashboard layout / settings
       // hero pick up the new tenant name on next render.
       router.refresh();
-      window.setTimeout(() => setSavedAt(null), 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось сохранить");
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -126,16 +123,8 @@ export default function BusinessSection({
           disabled={!valid || !dirty || saving}
           className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition flex items-center justify-center gap-2"
         >
-          {savedAt ? (
-            <>
-              <Check size={16} />
-              Сохранено
-            </>
-          ) : saving ? (
-            "Сохраняем…"
-          ) : (
-            "Сохранить"
-          )}
+          {savedAt && <Check size={16} />}
+          {save.label("Сохранить")}
         </button>
       </div>
     </form>

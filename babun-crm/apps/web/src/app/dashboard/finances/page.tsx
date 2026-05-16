@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, SlidersHorizontal } from "@babun/shared/icons";
+// v557 §3.12 — daily sparkline above the summary tab. Aggregates the
+// already-filtered income/expense series from useFinanceData by
+// dateKey, so the chart respects the active period + team filters
+// without any extra business logic in this component.
+import FinanceSparkline, {
+  type FinanceDailyPoint,
+} from "@/components/finance/FinanceSparkline";
+import { ChevronDown, Plus, SlidersHorizontal, Download } from "@babun/shared/icons";
+import {
+  buildCsv,
+  downloadCsv,
+  FINANCE_CSV_COLUMNS,
+  type FinanceCsvRow,
+} from "@/lib/finance/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
+import ManualTransactionSheet from "@/components/finance/ManualTransactionSheet";
+import { haptic } from "@/lib/haptics";
 import {
   useAppointments,
   useDayExtras,
@@ -40,7 +55,7 @@ const MODE_LABELS: Record<Mode, string> = {
 export default function FinancesPage() {
   const router = useRouter();
   const { appointments } = useAppointments();
-  const { getExtrasFor } = useDayExtras();
+  const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { categories, setCategories } = useExpenseCategories();
   const { services } = useServices();
   const { teams } = useTeams();
@@ -51,6 +66,10 @@ export default function FinancesPage() {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [activeTeam, setActiveTeam] = useState<string>("all");
   const [showCategories, setShowCategories] = useState(false);
+  // P0 #15 (CRM Core brief) — manual transaction sheet anchored to a
+  // floating action button at the bottom-right. Persists into the
+  // existing day-extras store; finance summaries pick it up next render.
+  const [showManualSheet, setShowManualSheet] = useState(false);
 
   const {
     teamTabs,
@@ -89,14 +108,54 @@ export default function FinancesPage() {
       <PageHeader
         title="Финансы"
         rightContent={
-          <button
-            type="button"
-            onClick={() => setShowCategories(true)}
-            className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg"
-          >
-            <SlidersHorizontal size={14} strokeWidth={2} />
-            Категории
-          </button>
+          <div className="flex items-center gap-1">
+            {/* v563 §3.12 — export the active filtered period (whatever
+                team + period the user has chosen) to CSV. UTF-8 BOM +
+                `;` separator + CRLF so Russian-locale Excel opens it
+                cleanly without an encoding prompt. */}
+            <button
+              type="button"
+              onClick={() => {
+                const rows: FinanceCsvRow[] = [
+                  ...filteredIncome.map((e) => ({
+                    dateKey: e.dateKey,
+                    description: e.description,
+                    amount: e.amount,
+                    teamName: e.teamId
+                      ? teamById.get(e.teamId) ?? "—"
+                      : "—",
+                    type: "income" as const,
+                  })),
+                  ...filteredExpenses.map((e) => ({
+                    dateKey: e.dateKey,
+                    description: e.description,
+                    amount: e.amount,
+                    teamName: e.teamId
+                      ? teamById.get(e.teamId) ?? "—"
+                      : "—",
+                    type: "expense" as const,
+                  })),
+                ].sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+                const csv = buildCsv(FINANCE_CSV_COLUMNS, rows);
+                downloadCsv(csv, `babun-finance-${period}`);
+              }}
+              aria-label="Экспорт в CSV"
+              data-testid="finance-export-csv"
+              disabled={filteredIncome.length + filteredExpenses.length === 0}
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
+            >
+              <Download size={14} strokeWidth={2} />
+              CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCategories(true)}
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg"
+            >
+              <SlidersHorizontal size={14} strokeWidth={2} />
+              Категории
+            </button>
+          </div>
         }
       />
 
@@ -226,6 +285,10 @@ export default function FinancesPage() {
 
             {mode === "summary" && (
               <>
+                <SummarySparkline
+                  income={filteredIncome}
+                  expenses={filteredExpenses}
+                />
                 <CombinedSummary
                   incomeCount={filteredIncome.length}
                   expenseCount={filteredExpenses.length}
@@ -271,11 +334,77 @@ export default function FinancesPage() {
           }}
         />
       )}
+
+      {/* P0 #15 — floating action button. Bottom-right with the
+          system safe-area inset so it never lands under the iPhone
+          home indicator. Pinned to viewport so it survives long
+          scrolls in the year-view. */}
+      <button
+        type="button"
+        onClick={() => {
+          haptic("tap");
+          setShowManualSheet(true);
+        }}
+        aria-label="Новая транзакция"
+        title="Новая транзакция"
+        className="fixed z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center shadow-[0_8px_24px_-8px_rgba(0,0,0,0.35)] active:bg-[var(--accent-pressed)] active:scale-[0.96] transition"
+        style={{
+          right: "max(env(safe-area-inset-right), 16px)",
+          bottom: "calc(max(env(safe-area-inset-bottom), 16px) + var(--bottom-nav-height, 0px))",
+        }}
+      >
+        <Plus size={24} strokeWidth={2.4} />
+      </button>
+
+      <ManualTransactionSheet
+        open={showManualSheet}
+        onClose={() => setShowManualSheet(false)}
+        teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+        defaultTeamId={activeTeam === "all" ? "" : activeTeam}
+        getExtrasFor={getExtrasFor}
+        setExtrasFor={setExtrasFor}
+      />
     </>
   );
 }
 
 // ─── Local sub-components (UI only, no data logic) ─────────────────────────
+
+// v557 §3.12 — Summary-tab sparkline. Aggregates the already-
+// filtered income / expense lines by dateKey into a sorted
+// FinanceDailyPoint[] and hands it to FinanceSparkline. No business
+// logic — that lives in useFinanceData; this is purely a shaping
+// adapter so the chart contract stays clean.
+function SummarySparkline({
+  income,
+  expenses,
+}: {
+  income: { dateKey: string; amount: number }[];
+  expenses: { dateKey: string; amount: number }[];
+}) {
+  const data = useMemo<FinanceDailyPoint[]>(() => {
+    const byDay = new Map<string, { income: number; expense: number }>();
+    for (const e of income) {
+      const slot = byDay.get(e.dateKey) ?? { income: 0, expense: 0 };
+      slot.income += e.amount;
+      byDay.set(e.dateKey, slot);
+    }
+    for (const e of expenses) {
+      const slot = byDay.get(e.dateKey) ?? { income: 0, expense: 0 };
+      slot.expense += e.amount;
+      byDay.set(e.dateKey, slot);
+    }
+    return Array.from(byDay.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, v]) => ({ date, income: v.income, expense: v.expense }));
+  }, [income, expenses]);
+
+  return (
+    <div className="px-3 pt-3">
+      <FinanceSparkline data={data} formatEur={formatEUR} />
+    </div>
+  );
+}
 
 // Hero profit card — shows the dominant metric (profit) with a big
 // 32px tabular number and a coloured pill for delta.  Acts as the

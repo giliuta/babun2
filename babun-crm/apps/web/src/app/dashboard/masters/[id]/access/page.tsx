@@ -3,8 +3,13 @@
 // Sprint 033 Phase I32 — Master Access (permissions) subroute.
 // Account creds moved to /info; this page owns only the permissions
 // matrix plus brigade visibility. iOS Settings grouped cards.
+//
+// v533 — added preset chips (Менеджер / Мастер / Диспетчер /
+// Только просмотр / Кастомные), collapsible groups with persisted
+// expand-state, and a search field that auto-expands all groups
+// while filtering by label.
 
-import { use, useMemo } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useMasters, useTeams } from "@/components/layout/DashboardClientLayout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
@@ -14,8 +19,20 @@ import {
   defaultPermissionsForRole,
   mergePermissions,
   type MasterPermissions,
+  type PermissionGroupKey,
 } from "@babun/shared/local/masters";
 import MasterSectionShell from "@/components/masters/MasterSectionShell";
+import {
+  GROUPS_OPEN_KEY,
+  PRESETS,
+  type GroupsOpenState,
+  type PresetId,
+  defaultGroupsOpen,
+  detectPreset,
+  loadGroupsOpen,
+  normalizeLabel,
+  permissionsEqual,
+} from "./presets";
 
 type VisibilityMode = "own" | "picked" | "all";
 
@@ -38,16 +55,41 @@ export default function MasterAccessPage({ params }: RouteParams) {
   );
 
   // BUGFIX (bug-hunt sweep) — `currentVisibility` was below the
-  // `if (!master) early-return` which violated rules-of-hooks (the
-  // useMemo would be skipped on the missing-master branch, changing
-  // hook order between renders). Hoist above the early return so all
-  // hooks run unconditionally on every render.
+  // `if (!master) early-return` which violated rules-of-hooks. Keep
+  // all hooks above any conditional return.
   const currentVisibility: VisibilityMode = useMemo(() => {
     const v = permissions.visible_team_ids ?? [];
     if (v.includes("*")) return "all";
     if (v.length === 0) return "own";
     return "picked";
   }, [permissions.visible_team_ids]);
+
+  const activePreset: PresetId = useMemo(
+    () => detectPreset(permissions),
+    [permissions],
+  );
+
+  const [groupsOpen, setGroupsOpen] = useState<GroupsOpenState>(() =>
+    defaultGroupsOpen(),
+  );
+  const [groupsHydrated, setGroupsHydrated] = useState(false);
+  const [query, setQuery] = useState("");
+
+  // Hydrate expand-state from localStorage after mount to keep SSR happy.
+  useEffect(() => {
+    setGroupsOpen(loadGroupsOpen());
+    setGroupsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!groupsHydrated) return;
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(GROUPS_OPEN_KEY, JSON.stringify(groupsOpen));
+    } catch {
+      // ignore
+    }
+  }, [groupsOpen, groupsHydrated]);
 
   if (!master) {
     return (
@@ -63,6 +105,17 @@ export default function MasterAccessPage({ params }: RouteParams) {
     upsertMaster({
       ...master,
       permissions: { ...permissions, ...diff },
+    });
+  };
+
+  const applyPreset = (preset: Exclude<PresetId, "custom">) => {
+    const built = PRESETS.find((p) => p.id === preset);
+    if (!built) return;
+    if (permissionsEqual(permissions, built.build())) return;
+    haptic("tap");
+    upsertMaster({
+      ...master,
+      permissions: built.build(),
     });
   };
 
@@ -101,10 +154,66 @@ export default function MasterAccessPage({ params }: RouteParams) {
     });
   };
 
+  const toggleGroup = (key: PermissionGroupKey) => {
+    haptic("tap");
+    setGroupsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const activeTeams = teams.filter((t) => t.active !== false);
+
+  const normalizedQuery = normalizeLabel(query.trim());
+  const searchActive = normalizedQuery.length > 0;
+
+  // Filtered permissions per group (only matters when search is active).
+  const filteredGroups = PERMISSION_GROUPS.map((group) => ({
+    ...group,
+    permissions: searchActive
+      ? group.permissions.filter((p) =>
+          normalizeLabel(PERMISSION_LABELS[p]).includes(normalizedQuery),
+        )
+      : group.permissions,
+  })).filter((g) => g.permissions.length > 0);
 
   return (
     <MasterSectionShell masterId={id} title="Доступы" hideSave>
+      {/* ── Пресеты ──────────────────────────────────────────────── */}
+      <Section
+        title="Шаблоны прав"
+        footer="Быстрый набор: один тап вместо тридцати тумблеров."
+      >
+        <div className="flex flex-wrap gap-2 px-4 py-3">
+          {PRESETS.map((p) => {
+            const picked = activePreset === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                data-testid={`access-preset-${p.id}`}
+                onClick={() => applyPreset(p.id)}
+                title={p.description}
+                aria-pressed={picked}
+                className={`h-9 px-3.5 rounded-full text-[13px] font-medium press-scale transition-colors ${
+                  picked
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)] shadow-sm"
+                    : "bg-[var(--fill-quaternary)] text-[var(--label)] active:bg-[var(--fill-tertiary)]"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+          {activePreset === "custom" && (
+            <span
+              data-testid="access-preset-custom"
+              className="h-9 px-3.5 rounded-full text-[13px] font-medium bg-[var(--accent-tint)] text-[var(--accent)] inline-flex items-center"
+              aria-pressed
+            >
+              Кастомные
+            </span>
+          )}
+        </div>
+      </Section>
+
       {/* ── Видимость команд ────────────────────────────────────── */}
       <Section
         title="Видимость команд"
@@ -181,33 +290,91 @@ export default function MasterAccessPage({ params }: RouteParams) {
         </Section>
       )}
 
-      {/* ── Права по группам ─────────────────────────────────────── */}
-      {PERMISSION_GROUPS.map((group) => (
-        <Section key={group.key} title={group.title} footer={group.description}>
-          {group.permissions.map((p, i) => {
-            const last = i === group.permissions.length - 1;
-            return (
-              <div
-                key={p}
-                className={`flex items-center gap-3 px-4 min-h-[48px] ${
-                  last ? "" : "border-b border-[var(--separator)]"
-                }`}
-              >
-                <span className="text-[15px] text-[var(--label)] flex-1 leading-snug">
-                  {PERMISSION_LABELS[p]}
+      {/* ── Поиск по правам ─────────────────────────────────────── */}
+      <div className="px-4">
+        <input
+          type="search"
+          inputMode="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          data-testid="access-search"
+          placeholder="Найти право…"
+          aria-label="Поиск по правам доступа"
+          className="w-full h-10 px-3 rounded-[var(--radius-input)] bg-[var(--surface-card)] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] shadow-[var(--shadow-card)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        />
+      </div>
+
+      {/* ── Права по группам (collapsible) ──────────────────────── */}
+      {filteredGroups.map((group) => {
+        const expanded = searchActive ? true : groupsOpen[group.key];
+        const panelId = `access-group-${group.key}-panel`;
+        return (
+          <div key={group.key}>
+            <button
+              type="button"
+              data-testid={`access-group-${group.key}`}
+              onClick={() => !searchActive && toggleGroup(group.key)}
+              aria-expanded={expanded}
+              aria-controls={panelId}
+              disabled={searchActive}
+              className="w-full flex items-center justify-between gap-3 px-4 pb-1.5 text-left disabled:cursor-default"
+            >
+              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+                {group.title}
+              </span>
+              {!searchActive && (
+                <span
+                  className={`text-[12px] text-[var(--label-tertiary)] transition-transform ${
+                    expanded ? "rotate-90" : ""
+                  }`}
+                  aria-hidden
+                >
+                  ›
                 </span>
-                <IOSSwitch
-                  checked={Boolean(permissions[p as keyof MasterPermissions])}
-                  onChange={() =>
-                    togglePermission(p as keyof MasterPermissions)
-                  }
-                  ariaLabel={PERMISSION_LABELS[p]}
-                />
+              )}
+            </button>
+            <div
+              id={panelId}
+              hidden={!expanded}
+              className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden"
+            >
+              {group.permissions.map((p, i) => {
+                const last = i === group.permissions.length - 1;
+                return (
+                  <div
+                    key={p}
+                    className={`flex items-center gap-3 px-4 min-h-[48px] ${
+                      last ? "" : "border-b border-[var(--separator)]"
+                    }`}
+                  >
+                    <span className="text-[15px] text-[var(--label)] flex-1 leading-snug">
+                      {PERMISSION_LABELS[p]}
+                    </span>
+                    <IOSSwitch
+                      checked={Boolean(permissions[p as keyof MasterPermissions])}
+                      onChange={() =>
+                        togglePermission(p as keyof MasterPermissions)
+                      }
+                      ariaLabel={PERMISSION_LABELS[p]}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {expanded && group.description && (
+              <div className="px-4 pt-2 text-[12px] text-[var(--label-tertiary)] leading-snug">
+                {group.description}
               </div>
-            );
-          })}
-        </Section>
-      ))}
+            )}
+          </div>
+        );
+      })}
+
+      {searchActive && filteredGroups.length === 0 && (
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
+          По запросу «{query}» прав не найдено.
+        </div>
+      )}
 
       {/* ── Сброс ─────────────────────────────────────────────────── */}
       <button

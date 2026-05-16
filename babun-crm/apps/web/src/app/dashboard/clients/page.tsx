@@ -30,7 +30,9 @@ import {
   Sparkles,
   Star,
   CloudUpload,
+  Download,
 } from "@babun/shared/icons";
+import { exportClientsCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button, Input } from "@/components/ui";
@@ -47,6 +49,7 @@ import { useClients, useAppointments } from "@/components/layout/DashboardClient
 import { type Client, type ClientTag, createBlankClient } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
+import { getMonthNamePrepositional } from "@babun/shared/common/utils/date-utils";
 // ClientPanel is the full client profile view (~1500 lines). Mobile
 // renders it as a slide-up sheet on row tap; desktop renders it as a
 // right-side panel only when a client is selected. Either way it's
@@ -297,11 +300,10 @@ export default function ClientsPage() {
     };
   }, [clients, statsMap]);
 
+  // P2 #37 (CRM Core brief) — Intl returns nominative ("май") so
+  // «1 новый в май» read wrong. Use the dedicated prepositional table.
   const currentMonthRu = useMemo(
-    () =>
-      new Date()
-        .toLocaleDateString("ru-RU", { month: "long" })
-        .toLowerCase(),
+    () => getMonthNamePrepositional(new Date().getMonth()),
     [],
   );
 
@@ -615,7 +617,7 @@ export default function ClientsPage() {
       {tutorialClients.show && clients.length === 0 && !clientsLoading && (
         <TutorialOverlay
           targetId="clients-add"
-          text="Здесь добавляешь клиентов. Тапни «+», заполни имя и телефон — и контакт появится в списке."
+          text="Здесь добавляйте клиентов. Нажмите «+», заполните имя и телефон — и контакт появится в списке."
           onDismiss={tutorialClients.complete}
         />
       )}
@@ -675,6 +677,25 @@ export default function ClientsPage() {
                   className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
                 >
                   <CloudUpload size={20} strokeWidth={2.2} />
+                </button>
+              )}
+              {/* P1 #29 (CRM Core brief) — CSV export. Filtered view
+                  wins over the full list so the user gets exactly
+                  what they see on screen; this matches how operators
+                  reason about «выгрузи мне сегмент». XLSX / PDF
+                  deferred (need libraries). */}
+              {clients.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic("tap");
+                    exportClientsCsv(filtered.length > 0 ? filtered : clients);
+                  }}
+                  aria-label="Экспорт CSV"
+                  title="Экспорт CSV"
+                  className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+                >
+                  <Download size={20} strokeWidth={2.2} />
                 </button>
               )}
               <button
@@ -1072,7 +1093,7 @@ export default function ClientsPage() {
               <EmptyState
                 variant="prominent"
                 icon={<Users size={28} strokeWidth={2} />}
-                title="Создай первого клиента"
+                title="Создайте первого клиента"
                 description="Контакт, телефон, объекты — всё на одном экране. Заполнишь — он сразу появится в календаре."
                 action={
                   <Button

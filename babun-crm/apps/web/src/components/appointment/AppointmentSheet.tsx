@@ -304,6 +304,27 @@ export default function AppointmentSheet({
   const totalDur = calcDuration(appointmentServices);
 
   const isEditable = liveMode === "create" || liveMode === "edit";
+
+  // Live end-time recalc: end ≥ start + Σ service durations. Grows only
+  // — a manually-extended end is never shrunk back. Off in view/done
+  // (readonly) and for personal events (no service list). Clamps at
+  // 23:59 to avoid wrap-around; a visit that crosses midnight should be
+  // booked as two records.
+  useEffect(() => {
+    if (!isEditable || kind === "event") return;
+    if (totalDur <= 0) return;
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const [eh, em] = timeEnd.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = eh * 60 + em;
+    const requiredEnd = Math.min(23 * 60 + 59, startMin + totalDur);
+    if (requiredEnd > endMin) {
+      const nh = Math.floor(requiredEnd / 60);
+      const nm = requiredEnd % 60;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTimeEnd(`${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`);
+    }
+  }, [isEditable, kind, totalDur, timeStart, timeEnd]);
   const readonly = !isEditable;
   const isEventMode = kind === "event";
   // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
@@ -331,9 +352,17 @@ export default function AppointmentSheet({
   // В create: обязателен preset + клиент. В edit: если услуга уже
   // стоит (total_amount > 0 и status), сохранение разрешено и без
   // нового preset-выбора — меняем только поля что отредактировали.
+  //
+  // v524 §3.9 — Источник заявки теперь обязателен в CREATE-flow для
+  // work-записей. Это закрывает аналитический gap (откуда пришла
+  // заявка). Edit mode остаётся прежним: историческая запись без
+  // source не должна стать unsave-able только потому, что мы
+  // добавили валидацию.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : Boolean(clientId && appointmentServices.length > 0);
+    : liveMode === "create"
+      ? Boolean(clientId && appointmentServices.length > 0 && source)
+      : Boolean(clientId && appointmentServices.length > 0);
 
   // Whether the user has entered anything worth protecting on close.
   // Event mode uses eventLabel; work mode uses client + services + comment.
@@ -392,20 +421,9 @@ export default function AppointmentSheet({
       ...appointment,
       date: dateKey,
       time_start: timeStart,
-      // Auto-extend time_end by total duration for новой записи.
-      // Clamp at 23:59 instead of wrapping: a visit that spans midnight
-      // should be booked as two records (cancellable separately), not
-      // silently end at the same hour on the same day.
-      time_end:
-        liveMode === "create" && duration > 0
-          ? (() => {
-              const [h, m] = timeStart.split(":").map(Number);
-              const endMin = Math.min(23 * 60 + 59, h * 60 + m + duration);
-              const eh = Math.floor(endMin / 60);
-              const em = endMin % 60;
-              return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
-            })()
-          : timeEnd,
+      // `timeEnd` is kept in sync by the live-recalc effect above:
+      // end ≥ start + Σ service durations, clamped at 23:59. Trust it.
+      time_end: timeEnd,
       client_id: client.id,
       location_id: locationId,
       team_id: activeTeam?.id ?? null,
@@ -594,6 +612,11 @@ export default function AppointmentSheet({
             timeStart={timeStart}
             timeEnd={timeEnd}
             readOnly={readonly}
+            // Brief 1 #2: honour the active team's slot granularity
+            // (15/30/60). Personal events keep the default 5-min wheel.
+            stepMinutes={
+              !isEventMode ? activeTeam?.default_slot_minutes : undefined
+            }
             onChange={({ date: d, timeStart: s, timeEnd: e }) => {
               setDateKey(d);
               setTimeStart(s);
@@ -714,6 +737,7 @@ export default function AppointmentSheet({
                 value={source}
                 readonly={readonly}
                 onChange={setSource}
+                required={liveMode === "create"}
               />
 
               <ClientBlock
@@ -974,14 +998,28 @@ export default function AppointmentSheet({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-              Сохранить запись?
+              {liveMode === "edit" ? "Закрыть без сохранения?" : "Закрыть запись?"}
             </div>
-            {!canSave && (
-              <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--system-red)]">
-                Не хватает данных для сохранения
-              </div>
-            )}
+            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
+              {canSave
+                ? "Введённые данные не сохранятся."
+                : "Не хватает данных для сохранения — закрыть форму?"}
+            </div>
+            {/* v517 P0 #2.7 — destructive «Не сохранять» promoted to
+                primary (filled red): closing the sheet is the user's
+                intent. «Сохранить» drops to secondary outlined and is
+                only enabled when canSave. */}
             <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCloseConfirm(false);
+                  onClose();
+                }}
+                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
+              >
+                Не сохранять
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -990,23 +1028,9 @@ export default function AppointmentSheet({
                   setCloseConfirm(false);
                 }}
                 disabled={!canSave}
-                className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
-                  canSave
-                    ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-                    : "bg-[var(--fill-primary)] text-[var(--label-tertiary)] cursor-not-allowed"
-                }`}
+                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
               >
                 Сохранить
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCloseConfirm(false);
-                  onClose();
-                }}
-                className="w-full h-11 rounded-[10px] bg-[var(--surface-card)] border border-[var(--separator)] text-[15px] font-semibold text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)]"
-              >
-                Не сохранять
               </button>
             </div>
           </div>

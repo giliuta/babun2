@@ -17,12 +17,28 @@ import { loadExpenses, type Expense } from "@babun/shared/local/expenses";
 
 // ─── Public types ──────────────────────────────────────────────────────────
 
-export type PeriodKey = "7d" | "30d" | "month" | "all";
+// P1 #31 (CRM Core brief) — finance reports were stuck on a single
+// "last 30 days" lens. Added natural presets the dispatcher reads at
+// a glance: сегодня (для конца смены), эта неделя (плановый чекап),
+// текущий месяц, год, и две старые «X дней назад» опции для
+// сравнений периодом-к-периоду. Custom-range picker is a separate
+// follow-up (needs a date-range UI; intentionally not bundled here).
+export type PeriodKey =
+  | "today"
+  | "week"
+  | "month"
+  | "year"
+  | "7d"
+  | "30d"
+  | "all";
 
 export const PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: "7d", label: "За последние 7 дней" },
-  { key: "30d", label: "За последние 30 дней" },
-  { key: "month", label: "За текущий месяц" },
+  { key: "today", label: "Сегодня" },
+  { key: "week", label: "Эта неделя" },
+  { key: "month", label: "Этот месяц" },
+  { key: "year", label: "Этот год" },
+  { key: "7d", label: "Последние 7 дней" },
+  { key: "30d", label: "Последние 30 дней" },
   { key: "all", label: "За всё время" },
 ];
 
@@ -87,9 +103,22 @@ export function computeRange(period: PeriodKey): DateRange {
   today.setHours(0, 0, 0, 0);
   const end = toDateKey(today);
   if (period === "all") return { rangeStart: null, rangeEnd: end };
+  if (period === "today") return { rangeStart: end, rangeEnd: end };
   if (period === "month") {
     const first = new Date(today.getFullYear(), today.getMonth(), 1);
     return { rangeStart: toDateKey(first), rangeEnd: end };
+  }
+  if (period === "year") {
+    const first = new Date(today.getFullYear(), 0, 1);
+    return { rangeStart: toDateKey(first), rangeEnd: end };
+  }
+  if (period === "week") {
+    // ISO Monday-start week. JS Sunday=0, Monday=1, …
+    const day = today.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + diffToMonday);
+    return { rangeStart: toDateKey(monday), rangeEnd: end };
   }
   const days = period === "7d" ? 7 : 30;
   const start = new Date(today);
@@ -108,11 +137,28 @@ function computePreviousRange(period: PeriodKey, current: DateRange): DateRange 
   if (period === "all" || !current.rangeStart) {
     return { rangeStart: null, rangeEnd: current.rangeEnd };
   }
+  if (period === "today") {
+    const [y, m, d] = current.rangeStart.split("-").map(Number);
+    const prev = new Date(y, m - 1, d - 1);
+    return { rangeStart: toDateKey(prev), rangeEnd: toDateKey(prev) };
+  }
   if (period === "month") {
     const [y, m] = current.rangeStart.split("-").map(Number);
     const prevMonthStart = new Date(y, m - 2, 1);
     const prevMonthEnd = new Date(y, m - 1, 0);
     return { rangeStart: toDateKey(prevMonthStart), rangeEnd: toDateKey(prevMonthEnd) };
+  }
+  if (period === "year") {
+    const [y] = current.rangeStart.split("-").map(Number);
+    const prevYearStart = new Date(y - 1, 0, 1);
+    const prevYearEnd = new Date(y - 1, 11, 31);
+    return { rangeStart: toDateKey(prevYearStart), rangeEnd: toDateKey(prevYearEnd) };
+  }
+  if (period === "week") {
+    const [sy, sm, sd] = current.rangeStart.split("-").map(Number);
+    const prevStart = new Date(sy, sm - 1, sd - 7);
+    const prevEnd = new Date(sy, sm - 1, sd - 1);
+    return { rangeStart: toDateKey(prevStart), rangeEnd: toDateKey(prevEnd) };
   }
   const days = period === "7d" ? 7 : 30;
   const [sy, sm, sd] = current.rangeStart.split("-").map(Number);

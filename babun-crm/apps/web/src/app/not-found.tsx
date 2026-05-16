@@ -24,18 +24,24 @@ export default function NotFound() {
         Похоже, ссылка устарела или адрес введён с ошибкой. Возвращайтесь на
         главный экран.
       </p>
+      {/* P0 #7 (CRM Core brief) — this page is shared with public URLs
+          like /book/[slug]; pointing it at /dashboard or /dashboard/clients
+          deep-links logged-out visitors into the admin login. Primary
+          goes to the public root (the landing page short-circuits
+          logged-in users to /dashboard anyway), secondary is a plain
+          login link for people who actually wanted the app. */}
       <div className="mt-8 flex flex-col gap-2 w-full max-w-xs">
         <Link
-          href="/dashboard"
+          href="/"
           className="h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold flex items-center justify-center active:bg-[var(--accent-pressed)] active:scale-[0.98] transition"
         >
-          На главную
+          Вернуться на главную сайта
         </Link>
         <Link
-          href="/dashboard/clients"
+          href="/login"
           className="h-11 rounded-[var(--radius-pill)] bg-[var(--fill-primary)] text-[var(--label)] text-[15px] font-medium flex items-center justify-center active:bg-[var(--fill-secondary)] transition"
         >
-          Открыть клиентов
+          Войти в систему
         </Link>
       </div>
     </main>

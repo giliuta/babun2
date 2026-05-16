@@ -16,6 +16,10 @@ import { Lock, Check, Shield, ShieldCheck, Mail, Phone } from "@babun/shared/ico
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import TotpEnrollDialog from "./TotpEnrollDialog";
+// P2 #43 (CRM Core brief) — collapses the {saving, error, savedAt}
+// trio into one tagged union so the button label never disagrees
+// with the indicator.
+import { useSaveStatus } from "@/hooks/useSaveStatus";
 
 export default function SecuritySection() {
   return (
@@ -31,9 +35,10 @@ export default function SecuritySection() {
 function PasswordBlock() {
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const save = useSaveStatus();
+  const saving = save.status === "saving";
+  const error = save.error;
+  const savedAt = save.status === "saved";
 
   const tooShort = pwd.length > 0 && pwd.length < 8;
   const mismatch = confirm.length > 0 && pwd !== confirm;
@@ -42,21 +47,13 @@ function PasswordBlock() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    setSaving(true);
-    setError(null);
-    try {
+    await save.run(async () => {
       const supabase = getSupabaseBrowser();
       const { error: err } = await supabase.auth.updateUser({ password: pwd });
       if (err) throw new Error(err.message);
       setPwd("");
       setConfirm("");
-      setSavedAt(Date.now());
-      window.setTimeout(() => setSavedAt(null), 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось обновить пароль");
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -110,16 +107,12 @@ function PasswordBlock() {
           disabled={!canSubmit}
           className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition flex items-center justify-center gap-2"
         >
-          {savedAt ? (
-            <>
-              <Check size={16} />
-              Пароль обновлён
-            </>
-          ) : saving ? (
-            "Обновляем…"
-          ) : (
-            "Сменить пароль"
-          )}
+          {savedAt && <Check size={16} />}
+          {save.status === "saving"
+            ? "Обновляем…"
+            : save.status === "saved"
+            ? "Пароль обновлён"
+            : "Сменить пароль"}
         </button>
       </div>
     </form>

@@ -10,6 +10,11 @@ import {
 } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import { haptic } from "@/lib/haptics";
+// P0 #6 (CRM Core brief) — shared field stack (type chips + label +
+// address + mapUrl + note). LocationEditor wraps it with its own
+// modal chrome + equipment list so create-time inline form and
+// edit-time modal speak the same UI dialect.
+import ObjectFormFields from "@/components/clients/ObjectFormFields";
 
 interface LocationEditorProps {
   open: boolean;
@@ -24,15 +29,6 @@ interface LocationEditorProps {
 }
 
 const AC_TYPE_ORDER: ACType[] = ["split", "ducted", "cassette"];
-
-const LABEL_PRESETS = [
-  "Дом",
-  "Офис",
-  "Вилла",
-  "Квартира",
-  "Магазин",
-  "Ресторан",
-];
 
 export default function LocationEditor({
   open,
@@ -117,71 +113,33 @@ export default function LocationEditor({
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 bg-[var(--surface-grouped)]">
-          {/* ── Метка ─────────────────────────────────────── */}
-          <Group title="Тип / название">
-            <div className="px-3 py-2 flex flex-wrap gap-1.5 border-b border-[var(--separator)]">
-              {LABEL_PRESETS.map((p) => {
-                const active = draft.label === p;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => patch({ label: p })}
-                    className={`px-2.5 h-7 rounded-full text-[12px] font-semibold transition active:scale-[0.97] ${
-                      active
-                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                        : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)]"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-            </div>
-            <input
-              type="text"
-              value={draft.label}
-              onChange={(e) => patch({ label: e.target.value })}
-              placeholder="Своё название"
-              maxLength={40}
-              className="w-full h-11 px-4 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
+          {/* P0 #6 — type / label / address / mapUrl / note all live
+              in the shared <ObjectFormFields />. Modal-specific
+              chrome (equipment list, primary toggle) stays below in
+              its own group so the two surfaces (inline create vs
+              modal edit) share one base-field UI but each still owns
+              what's genuinely modal-only. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-3">
+            <ObjectFormFields
+              draft={{
+                label: draft.label,
+                property_type: draft.property_type,
+                address: draft.address,
+                note: draft.note ?? "",
+                mapUrl: draft.mapUrl,
+              }}
+              onChange={(next) =>
+                patch({
+                  label: next.label,
+                  property_type: next.property_type,
+                  address: next.address,
+                  note: next.note,
+                  mapUrl: next.mapUrl,
+                })
+              }
+              showMapUrl
             />
-          </Group>
-
-          {/* ── Адрес ─────────────────────────────────────── */}
-          <Group title="Адрес">
-            <input
-              type="text"
-              value={draft.address}
-              onChange={(e) => patch({ address: e.target.value })}
-              placeholder="Пафос, ул. Posidonos 12"
-              maxLength={160}
-              className="w-full h-11 px-4 bg-transparent text-[15px] text-[var(--label)] focus:outline-none border-b border-[var(--separator)]"
-            />
-            <input
-              type="url"
-              value={draft.mapUrl ?? ""}
-              onChange={(e) => patch({ mapUrl: e.target.value })}
-              placeholder="Google Maps / Apple Maps ссылка (необязательно)"
-              maxLength={300}
-              className="w-full h-11 px-4 bg-transparent text-[14px] text-[var(--label)] focus:outline-none"
-            />
-          </Group>
-
-          {/* ── Заметка для команды ────────────────────────── */}
-          <Group
-            title="Заметка для команды"
-            footer="Что команда увидит у порога — код домофона, особенности, ключи."
-          >
-            <textarea
-              value={draft.note ?? ""}
-              onChange={(e) => patch({ note: e.target.value })}
-              placeholder="«Зелёная дверь, домофон 25», «снимать обувь», «собака во дворе»"
-              rows={2}
-              maxLength={400}
-              className="w-full px-4 py-2 bg-transparent text-[14px] text-[var(--label)] focus:outline-none resize-none leading-snug"
-            />
-          </Group>
+          </div>
 
           {/* ── Оборудование ───────────────────────────────── */}
           <Group

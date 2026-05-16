@@ -376,7 +376,7 @@ export const BRIGADE_PERMISSION_GROUPS: FlagGroup[] = [
       {
         key: "finance_record_payment",
         label: "Фиксировать оплату",
-        description: "Наличные / карта / сплит при закрытии визита.",
+        description: "Наличные / карта / раздельно при закрытии визита.",
       },
       { key: "finance_see_prepaid", label: "Видит аванс" },
     ],

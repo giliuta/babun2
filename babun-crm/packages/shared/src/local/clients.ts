@@ -96,6 +96,12 @@ export interface Location {
   id: string;
   label: string;         // "Дом", "Офис", "Вилла"
   address: string;
+  /** P0 #6 (CRM Core brief) — per-object property type so a client
+   *  with «дом + офис» doesn't have to repurpose one global
+   *  client.property_type. Optional + additive: old localStorage
+   *  rows that don't have this field read as `undefined`, which the
+   *  shared `<ObjectFormFields />` treats as «not picked yet». */
+  property_type?: PropertyType;
   /** MEGA-UPDATE: ссылка на Google Maps / Apple Maps.
    *  Когда задана — кнопка «Навигация» ведёт по ссылке (точнее,
    *  клиент мог прислать нестандартный pin). Без неё —
@@ -125,7 +131,7 @@ export interface Client {
   id: string;
   full_name: string;
   phone: string;
-  /** Дополнительные номера — клиент может дать жены/рабочий/WhatsApp. */
+  /** Дополнительные номера — супруг(а), арендатор, помощник, рабочий, WhatsApp на другом номере. */
   phones: PhoneEntry[];
   /** Если WhatsApp зарегистрирован на другой номер, не основной. */
   whatsapp_phone: string;

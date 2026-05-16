@@ -121,7 +121,7 @@ export default function CreateClientModal({
               <Field label="Имя *" value={name} onChange={setName} placeholder="Имя клиента" autoFocus testId="create-client-name" />
               <Field label="Телефон" value={phone} onChange={setPhone} placeholder="+357 99 ..." type="tel" testId="create-client-phone" />
               <div>
-                <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1">Комментарий</div>
+                <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1">Заметки</div>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}

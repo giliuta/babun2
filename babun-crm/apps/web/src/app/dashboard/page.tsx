@@ -38,6 +38,7 @@ import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalendarChoice";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
+import CalendarLegend from "@/components/calendar/CalendarLegend";
 import UndoToast from "@/components/ui/UndoToast";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
@@ -286,9 +287,42 @@ function DashboardPageInner() {
   // Restore last-used view mode from localStorage after mount so server
   // and client render the same tree. Server always ships "week"; the
   // phone may then upgrade to "day" based on its own width + saved pref.
+  //
+  // Brief 2 #2 («Мой календарь»): `?view=day&date=2026-05-15` URL deep
+  // links win over the localStorage default. The params are stripped
+  // after consumption (same pattern as `?team=` above) so a refresh
+  // doesn't keep snapping back to a stale date.
   const VIEW_MODE_KEY = "babun-view-mode";
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const viewParam = sp.get("view") as ViewMode | null;
+      const dateParam = sp.get("date");
+      let applied = false;
+      if (viewParam && ["day", "3days", "week", "month"].includes(viewParam)) {
+        setViewMode(viewParam);
+        applied = true;
+      }
+      if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+        const [y, m, d] = dateParam.split("-").map(Number);
+        const parsed = new Date(y, m - 1, d);
+        if (!Number.isNaN(parsed.getTime())) {
+          // For day mode the anchor IS the day; for week/3days/month
+          // we still want the Monday so the visible window is stable.
+          const isDay = (viewParam ?? "") === "day";
+          setCurrentMonday(isDay ? parsed : getMonday(parsed));
+          applied = true;
+        }
+      }
+      if (applied) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("view");
+        url.searchParams.delete("date");
+        window.history.replaceState({}, "", url.toString());
+        return;
+      }
+    }
     const saved = getStorage().getRaw(VIEW_MODE_KEY) as ViewMode | null;
     if (saved && ["day", "3days", "week", "month"].includes(saved)) {
       setViewMode(saved);
@@ -582,9 +616,9 @@ function DashboardPageInner() {
   // tenants now land on a genuinely empty calendar.
 
   // Filter appointments by active tab. Personal tab shows only this
-  // master's private events (master_id === current, team_id falsy).
-  // Brigade tabs show that brigade's appointments, and deliberately
-  // exclude personal ones so no-one else sees them.
+  // master's private events (no team_id). Brigade tabs show every
+  // appointment bound to that brigade, regardless of whether a
+  // specific master inside the brigade is also assigned.
   const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
   const visibleAppointments = useMemo(() => {
     if (isPersonalTab) {
@@ -607,9 +641,16 @@ function DashboardPageInner() {
       //     belongs on its brigade tab, not here.
       return appointments.filter((a) => !a.team_id);
     }
-    return appointments.filter(
-      (a) => a.team_id === activeTeamId && !a.master_id,
-    );
+    // P0 #7 (CRM Core brief) — dropped the trailing `&& !a.master_id`
+    // guard that was hiding every team appointment with a specific
+    // master assigned inside the brigade (user report: «назначена на
+    // Y&D — на чипе Y&D не появилась»). The whole point of the brigade
+    // chip is «show everything on this team's calendar»: an event
+    // assigned to «Y&D / Иван» still belongs to Y&D, just with an
+    // extra hint about who's leading it. The chip filter is now
+    // brigade-only; the master assignment is rendered inside the block
+    // via teamColorFor + the row's assignedTo label.
+    return appointments.filter((a) => a.team_id === activeTeamId);
   }, [appointments, activeTeamId, isPersonalTab]);
 
   // Build clientsById map. STORY-007: Draft clients removed —
@@ -885,6 +926,14 @@ function DashboardPageInner() {
       time_end: booking.timeEnd,
       team_id: personal ? null : activeTeamId || null,
       kind: personal ? "event" : "work",
+      // Brief #7 («Мой календарь»): a personal event without a
+      // reminder is dead weight — the whole point of putting it in
+      // the calendar is to be nudged. Seed push ON with a 15-minute
+      // lead so the user just confirms instead of having to discover
+      // the toggle on every new event. Editable in PersonalEventSheet.
+      ...(personal
+        ? { event_push_enabled: true, event_push_offsets: [15] }
+        : {}),
     });
     return personal
       ? { ...base, master_id: currentMasterId ?? null }
@@ -982,8 +1031,33 @@ function DashboardPageInner() {
   }, []);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
+    // Brief 2 #3 («Мой календарь»): when the user switches from
+    // week/3days into day view, land on TODAY if today is inside the
+    // currently visible window — not the Monday of the week. The
+    // dispatcher viewing week 11-17 May who taps «День» on Saturday
+    // expects to land on Saturday, not back at Monday 11. If today is
+    // outside the current window the anchor is preserved (they're
+    // looking at a different week deliberately).
+    if (mode === "day") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const winStart = new Date(currentMonday);
+      winStart.setHours(0, 0, 0, 0);
+      const winEnd = addDays(winStart, stepDays - 1);
+      if (today >= winStart && today <= winEnd) {
+        setCurrentMonday(today);
+      }
+    } else if (mode === "week" || mode === "3days" || mode === "month") {
+      // Going BACK to a multi-day window: snap to that window's Monday
+      // so the user sees a clean week boundary, not «week starting
+      // Saturday». Only when currentMonday isn't already a Monday.
+      const dow = currentMonday.getDay(); // 0=Sun..6=Sat
+      if (dow !== 1) {
+        setCurrentMonday(getMonday(currentMonday));
+      }
+    }
     setViewMode(mode);
-  }, []);
+  }, [currentMonday, stepDays]);
 
 
   const handleSelectDate = useCallback((monday: Date) => {
@@ -1043,6 +1117,17 @@ function DashboardPageInner() {
           e.preventDefault();
           openNewAppointmentInline(null, null, "work");
           return;
+        case "Escape":
+          // Brief 1 #26: Esc closes the long-press action menu when
+          // open. Other modals (AppointmentSheet, PersonalEventSheet,
+          // CityPickerModal) own their own Esc handlers that gate on
+          // their own dirty / open state.
+          if (longPressApt) {
+            e.preventDefault();
+            setLongPressApt(null);
+            return;
+          }
+          return;
         default:
           return;
       }
@@ -1055,6 +1140,7 @@ function DashboardPageInner() {
     handleToday,
     setViewMode,
     openNewAppointmentInline,
+    longPressApt,
   ]);
 
   // ─── dnd-kit sensors: mouse for desktop only ───────────────────────────
@@ -1308,7 +1394,20 @@ function DashboardPageInner() {
   // an empty grid. Wait for personalCal.loaded so we don't flash the
   // gate-screen on already-configured tenants while the column is
   // being read.
-  if (personalCal.loaded && !personalCal.enabled && teams.length === 0) {
+  //
+  // v515 P0 #2.3 — also require `!onboardedAt`. Otherwise a tenant who
+  // picked «Календарь для команды» during onboarding (which records
+  // `personal_calendar_enabled=false` + `onboarded_at` but doesn't auto-
+  // create a team) bounces back to this binary-choice screen forever.
+  // After onboarding the user has decided; respect it and render the
+  // calendar (empty grid is fine — the team picker / FAB guide what's
+  // next).
+  if (
+    personalCal.loaded &&
+    !personalCal.enabled &&
+    !personalCal.onboardedAt &&
+    teams.length === 0
+  ) {
     return (
       <>
         <PageHeader
@@ -1386,8 +1485,23 @@ function DashboardPageInner() {
             currentDate={currentMonday}
             appointments={visibleAppointments}
             onDayClick={(date) => {
-              setCurrentMonday(getMonday(date));
+              // Brief 2 #2 («Мой календарь»): clicking 15 May should
+              // open day view on 15 May, not the Monday of that week.
+              // In day mode `currentMonday` is misleadingly named — it's
+              // the leftmost rendered date, with stepDays=1 → that single
+              // day. So we set it to the clicked date directly. The
+              // URL deep-link below makes it shareable.
+              setCurrentMonday(date);
               setViewMode("day");
+              if (typeof window !== "undefined") {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                const url = new URL(window.location.href);
+                url.searchParams.set("view", "day");
+                url.searchParams.set("date", `${y}-${m}-${d}`);
+                window.history.replaceState({}, "", url.toString());
+              }
             }}
           />
         ) : (
@@ -1436,6 +1550,7 @@ function DashboardPageInner() {
           alternate path. */}
       <CalendarEmptyState
         appointmentsCount={appointments.length}
+        mode={isPersonalTab ? "event" : "appointment"}
         onCreateClick={() => {
           // Snap to a sensible work-hour default. If we just rolled
           // (now.hours + 1) % 24 we'd get "00:00" any time after
@@ -1470,6 +1585,11 @@ function DashboardPageInner() {
           {BUILD_VERSION}
         </div>
       )}
+
+      {/* Brief 1 #10 — Floating color legend (desktop only). Tiny
+          info button bottom-right; opens a centred popover with the
+          6 most-meaningful kinds and one-line hints. */}
+      <CalendarLegend />
 
       {/* City picker bottom sheet */}
       <CityPickerModal

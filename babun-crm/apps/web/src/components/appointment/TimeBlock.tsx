@@ -14,12 +14,18 @@ interface TimeBlockProps {
    *  line with the date/time chips so the user gets one compact row.
    *  When set, the duration pill is hidden to make room. */
   rightSlot?: React.ReactNode;
+  /** Brief 1 #2: minutes granularity for the wheel — driven by the
+   *  active team's `default_slot_minutes` (15 / 30 / 60). Falls back
+   *  to 5 for personal events and legacy callers. */
+  stepMinutes?: number;
 }
 
 const WEEKDAYS = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
-const MIN_STEP = 5;
 const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i));
-const MINUTES = Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP));
+// Wheel minute step. Caller-controlled via `stepMinutes`. Acceptable
+// divisors of 60 only (5, 10, 15, 20, 30, 60); other values silently
+// clamp to 5 so the wheel never gets a non-evenly-spaced list.
+const VALID_MIN_STEPS = new Set([5, 10, 15, 20, 30, 60]);
 // STORY-010 compact dimensions. Item 30 × 3 rows = 90 px wheel height,
 // about half what STORY-009 shipped.
 const ITEM_HEIGHT = 30;
@@ -93,11 +99,22 @@ export default function TimeBlock({
   readOnly,
   onChange,
   rightSlot,
+  stepMinutes,
 }: TimeBlockProps) {
   const [expandedMode, setExpandedMode] = useState<"none" | "date" | "time">(
     "none"
   );
   const [weekOffset, setWeekOffset] = useState(0);
+
+  // Brief 1 #2: resolve the effective wheel step. Clamp unknown / out-
+  // of-range values to 5 so we never build a non-evenly-spaced wheel
+  // list (e.g. caller passes 7 → wheel would skip past 56).
+  const MIN_STEP =
+    stepMinutes && VALID_MIN_STEPS.has(stepMinutes) ? stepMinutes : 5;
+  const MINUTES = useMemo(
+    () => Array.from({ length: 60 / MIN_STEP }, (_, i) => pad2(i * MIN_STEP)),
+    [MIN_STEP]
+  );
 
   useEffect(() => {
     // Resync the viewed week to the appointment's date. When the
@@ -363,26 +380,67 @@ export default function TimeBlock({
         )}
 
         {expandedMode === "time" && (
-          <div className="flex items-center justify-center">
-            <WheelGroup
-              hourIdx={startHourIdx}
-              minIdx={startMinIdx}
-              onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
-              onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
-            />
-            <span
-              className="flex-shrink-0 text-[var(--label-tertiary)] select-none"
-              style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
-            >
-              <ArrowRightIcon />
-            </span>
-            <WheelGroup
-              hourIdx={endHourIdx}
-              minIdx={endMinIdx}
-              onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
-              onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
-            />
-          </div>
+          <>
+            <div className="flex items-center justify-center">
+              <WheelGroup
+                minutes={MINUTES}
+                hourIdx={startHourIdx}
+                minIdx={startMinIdx}
+                onHour={(h) => commitStart(h, startMinIdx * MIN_STEP)}
+                onMin={(m) => commitStart(startHourIdx, m * MIN_STEP)}
+              />
+              <span
+                className="flex-shrink-0 text-[var(--label-tertiary)] select-none"
+                style={{ padding: "0 8px", lineHeight: `${WHEEL_H}px` }}
+              >
+                <ArrowRightIcon />
+              </span>
+              <WheelGroup
+                minutes={MINUTES}
+                hourIdx={endHourIdx}
+                minIdx={endMinIdx}
+                onHour={(h) => commitEnd(h, endMinIdx * MIN_STEP)}
+                onMin={(m) => commitEnd(endHourIdx, m * MIN_STEP)}
+              />
+            </div>
+            {/* Brief 1 #2: keyboard text input as a parallel surface to
+                the wheels. Two `<input type="time">` boxes:
+                  - desktop: free typing, e.g. «11:45»
+                  - mobile: opens the native time picker which respects
+                    the `step` attribute (seconds)
+                Both feed back through onChange, snapping to the team's
+                step on commit (next clamp). Empty / invalid values are
+                ignored so a half-typed entry doesn't blow up state. */}
+            <div className="mt-2 flex items-center justify-center gap-2 text-[13px] text-[var(--label-secondary)] tabular-nums">
+              <input
+                type="time"
+                value={timeStart}
+                step={MIN_STEP * 60}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!/^\d{2}:\d{2}$/.test(v)) return;
+                  const [h, m] = v.split(":").map(Number);
+                  commitStart(h, m);
+                }}
+                aria-label="Время начала"
+                className="h-9 px-2 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label)] text-[14px] font-semibold focus:outline-none focus:border-[var(--accent)]"
+              />
+              <span aria-hidden>—</span>
+              <input
+                type="time"
+                value={timeEnd}
+                step={MIN_STEP * 60}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!/^\d{2}:\d{2}$/.test(v)) return;
+                  const [h, m] = v.split(":").map(Number);
+                  commitEnd(h, m);
+                }}
+                aria-label="Время окончания"
+                className="h-9 px-2 rounded-lg bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label)] text-[14px] font-semibold focus:outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+          </>
         )}
 
         <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
@@ -423,11 +481,13 @@ function WeekArrow({
 }
 
 function WheelGroup({
+  minutes,
   hourIdx,
   minIdx,
   onHour,
   onMin,
 }: {
+  minutes: string[];
   hourIdx: number;
   minIdx: number;
   onHour: (idx: number) => void;
@@ -460,7 +520,7 @@ function WheelGroup({
       </span>
       <WheelWithLines>
         <WheelColumn
-          items={MINUTES}
+          items={minutes}
           selectedIndex={minIdx}
           onChange={onMin}
           width={COLUMN_WIDTH}

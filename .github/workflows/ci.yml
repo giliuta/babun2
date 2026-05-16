@@ -1,0 +1,135 @@
+name: CI
+
+# v545 §5.3 — automated quality gates on every PR + push.
+#
+# Three jobs, all run in parallel against ubuntu-latest with Node 22:
+#
+#   typecheck — `tsc --noEmit` against the web app. Hard gate; failing
+#               typecheck blocks merge.
+#   test      — `vitest run` against unit tests. Hard gate.
+#   build     — `next build` (Turbopack) to verify prod-build still
+#               succeeds. Hard gate.
+#
+# Lint is intentionally NOT gated yet. The codebase has 149 pre-existing
+# React-Compiler problems (54 errors, 95 warnings) that are non-blocking
+# and have been triaged. Gating on lint right now would burn every PR
+# into a red sea. Plan: clean those up in a focused sprint, then flip
+# `continue-on-error: true` to `false` in the lint step below.
+#
+# Caching: npm cache via actions/setup-node + Next.js build cache via
+# the .next/cache pattern actions/cache supports for App Router. Saves
+# ~3 min on warm runs.
+
+on:
+  push:
+    branches:
+      - master
+      - "feat/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - master
+
+# Cancel in-flight runs on the same branch when a new push lands. A
+# warm push usually invalidates the older run, no reason to spend
+# minutes finishing a stale build.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: tsc --noEmit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: babun-crm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: babun-crm/package-lock.json
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck web app
+        working-directory: babun-crm/apps/web
+        run: npx tsc --noEmit
+
+  test:
+    name: vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: babun-crm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: babun-crm/package-lock.json
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+      - name: Run unit tests
+        working-directory: babun-crm/apps/web
+        run: npx vitest run
+
+  lint:
+    name: eslint (informational)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: babun-crm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: babun-crm/package-lock.json
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+      - name: ESLint
+        working-directory: babun-crm/apps/web
+        # NOT a hard gate yet — see header comment. Reports problems
+        # in the run summary so the trend is visible without blocking
+        # merges on pre-existing React-Compiler hints.
+        continue-on-error: true
+        run: npx eslint src --max-warnings 200
+
+  build:
+    name: next build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: babun-crm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: babun-crm/package-lock.json
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            babun-crm/apps/web/.next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('babun-crm/package-lock.json') }}-${{ hashFiles('babun-crm/apps/web/src/**/*.{ts,tsx,js,jsx}') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('babun-crm/package-lock.json') }}-
+            ${{ runner.os }}-next-
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+      - name: Build production
+        working-directory: babun-crm/apps/web
+        env:
+          # The build doesn't talk to Supabase but it does read
+          # NEXT_PUBLIC_* vars to bake into the bundle. CI uses
+          # placeholders so the static analysis passes; real values
+          # ship via Vercel's Project Environment Variables.
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder"
+        run: npm run build

@@ -107,6 +107,34 @@ export default function ServicesPage() {
             />
           )}
 
+          {/* v535 §4.1 — empty state when a fresh tenant lands here
+              and has no services yet. Without this the screen showed
+              just the categories collapse + a void below, with no
+              hint that the CRUD lives behind the «Создать» chip in
+              the header. Now there's an explicit CTA. */}
+          {services.length === 0 && (
+            <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-6 py-8 text-center">
+              <div className="mx-auto w-14 h-14 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center mb-3">
+                <Settings size={22} strokeWidth={2} />
+              </div>
+              <h2 className="text-[17px] font-semibold text-[var(--label)] mb-1.5 tracking-tight">
+                Пока нет услуг
+              </h2>
+              <p className="text-[13px] text-[var(--label-secondary)] leading-snug mb-4">
+                Услуга — это то, что продаёте: чистка, диагностика,
+                стрижка, выезд. Цена и длительность подставятся в запись
+                клиента автоматически.
+              </p>
+              <button
+                type="button"
+                onClick={handleNew}
+                className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition press-scale"
+              >
+                Создайте первую услугу
+              </button>
+            </div>
+          )}
+
           {grouped.map(([catKey, svcList]) => {
             const cat = categoryById.get(catKey);
             return (

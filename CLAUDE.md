@@ -132,3 +132,18 @@ git push origin master
 # 1. apps/web/public/sw.js → CACHE_VERSION = "babun-v{N+1}"
 # 2. apps/web/src/app/dashboard/page.tsx → BUILD_TAG = "v{N+1}-{feature}"
 ```
+
+## Working with claude-bridge MCP
+
+When element context arrives via claude-bridge MCP from the browser:
+1. Always read the linked component file fully before editing
+2. Respect existing patterns:
+   - Tailwind v4 brand colors: indigo-700, emerald-500, red-500, amber-400
+   - Components max 400 lines, split if needed
+   - RU strings in UI, EN in code/comments
+   - TypeScript strict, no `any`
+   - Named exports
+   - handle{Event} naming convention
+3. Show diff before applying changes
+4. Don't change unrelated code in the same file
+

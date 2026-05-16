@@ -79,7 +79,7 @@ export default function RecurringPage() {
   return (
     <>
       <PageHeader
-        title={`Напоминания${due.length > 0 ? ` (${due.length})` : ""}`}
+        title={`Возвраты${due.length > 0 ? ` (${due.length})` : ""}`}
       />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
