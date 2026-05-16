@@ -32,7 +32,7 @@ export default async function SecurityPage() {
           <FaceIdSection />
           <DevicesSection />
           <LoginHistorySection />
-          <DangerZoneSection />
+          <DangerZoneSection email={user.email ?? ""} />
         </div>
       </div>
     </>
