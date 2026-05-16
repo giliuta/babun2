@@ -113,3 +113,57 @@ export function clientsToCsv(clients: readonly Client[]): string {
 export function exportClientsCsv(clients: readonly Client[]): void {
   downloadCsv(`babun-clients-${todayStamp()}.csv`, clientsToCsv(clients));
 }
+
+// ─── Masters ─────────────────────────────────────────────────────────────
+
+const MASTER_HEADER: readonly string[] = [
+  "ID",
+  "Имя",
+  "Системная роль",
+  "Должность",
+  "Телефон",
+  "Email",
+  "Команды",
+  "Активен",
+  "Создан",
+];
+
+interface MasterCsvSource {
+  id: string;
+  full_name: string;
+  role: string;
+  /** Custom title — like «Старший техник» (may be undefined). */
+  title?: string | undefined;
+  phone: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export function mastersToCsv(
+  masters: readonly MasterCsvSource[],
+  teamNamesFor: (masterId: string) => string,
+): string {
+  const rows = masters.map((m) => [
+    m.id,
+    m.full_name,
+    m.role,
+    m.title ?? "",
+    m.phone,
+    m.email,
+    teamNamesFor(m.id),
+    m.is_active ? "да" : "архив",
+    m.created_at?.slice(0, 10) ?? "",
+  ]);
+  return toCsv(MASTER_HEADER, rows);
+}
+
+export function exportMastersCsv(
+  masters: readonly MasterCsvSource[],
+  teamNamesFor: (masterId: string) => string,
+): void {
+  downloadCsv(
+    `babun-masters-${todayStamp()}.csv`,
+    mastersToCsv(masters, teamNamesFor),
+  );
+}

@@ -17,6 +17,7 @@ import {
   Archive,
   ChevronRight,
   Copy,
+  Download,
   Pencil,
   Plus,
   Search,
@@ -24,6 +25,7 @@ import {
   UserCircle2,
   X,
 } from "@babun/shared/icons";
+import { exportMastersCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import EmptyState from "@/components/ui/EmptyState";
@@ -179,9 +181,57 @@ export default function MastersPage() {
       ]
     : [];
 
+  // P1 #29 (CRM Core brief) — CSV export of the current visible list
+  // (filtered + sorted). Resolves team names via the same union logic
+  // we use for the row subtitle so the export row matches what the
+  // operator sees on screen.
+  const teamNamesFor = (masterId: string): string => {
+    const names: string[] = [];
+    for (const t of teams) {
+      const inTeam =
+        t.id === masters.find((m) => m.id === masterId)?.team_id ||
+        getTeamLeadIds(t).includes(masterId) ||
+        t.helper_ids.includes(masterId);
+      if (inTeam) names.push(t.name);
+    }
+    return names.join(", ");
+  };
+  const handleExport = () => {
+    haptic("tap");
+    const source = sorted.length > 0 ? sorted : masters;
+    exportMastersCsv(
+      source.map((m) => ({
+        id: m.id,
+        full_name: m.full_name,
+        role: ROLE_LABELS[m.role],
+        title: m.title,
+        phone: m.phone ?? "",
+        email: m.email ?? "",
+        is_active: m.is_active,
+        created_at: m.created_at,
+      })),
+      teamNamesFor,
+    );
+  };
+
   return (
     <>
-      <PageHeader title="Сотрудники" />
+      <PageHeader
+        title="Сотрудники"
+        rightContent={
+          masters.length > 0 ? (
+            <button
+              type="button"
+              onClick={handleExport}
+              aria-label="Экспорт CSV"
+              title="Экспорт CSV"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+            >
+              <Download size={20} strokeWidth={2.2} />
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-4">
