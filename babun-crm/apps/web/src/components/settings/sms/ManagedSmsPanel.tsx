@@ -224,7 +224,7 @@ function SenderCard({ config }: { config: ManagedSmsConfig }) {
               setName(upper);
               setError(null);
             }}
-            placeholder="AIRFIX"
+            placeholder="MYSHOP"
             maxLength={11}
             className="w-full h-11 px-3 text-[16px] tracking-[0.04em] uppercase tabular-nums bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] focus:outline-none focus:border-[var(--accent)]"
           />

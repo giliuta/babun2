@@ -346,7 +346,7 @@ export default function MasterSheet({
                 type="email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="user@airfix.cy"
+                placeholder="name@example.com"
                 className={inputCls}
                 autoComplete="off"
               />
