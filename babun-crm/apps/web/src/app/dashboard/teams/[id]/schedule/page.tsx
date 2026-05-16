@@ -91,6 +91,28 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
     persist({ ...schedule, overrides });
   };
 
+  // Brief 1 #11 («Команды и Календарь»): «Скопировать на остальные
+  // дни». Takes the source day's override and applies it to every
+  // other weekday whose current state is "working" (skips days the
+  // tenant already marked as off — usually weekends). The source day's
+  // own override is preserved unchanged.
+  const copyDayToOthers = (sourceKey: WeekdayKey) => {
+    const sourceOverride = schedule.overrides?.[sourceKey];
+    if (!sourceOverride) return;
+    const overrides = { ...(schedule.overrides ?? {}) };
+    for (const k of WEEKDAY_KEYS) {
+      if (k === sourceKey) continue;
+      // Treat an off-day as off only if the user has an EXPLICIT
+      // override saying so; days without any override inherit the
+      // global schedule and are working by default — those get copied.
+      const existing = overrides[k];
+      if (existing && existing.is_working === false) continue;
+      overrides[k] = { ...sourceOverride };
+    }
+    haptic("tap");
+    persist({ ...schedule, overrides });
+  };
+
   // ── Vacations ──────────────────────────────────────────────────
   const addVacation = () => {
     haptic("tap");
@@ -269,17 +291,29 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                       />
                     </div>
                     {isCustom && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          haptic("tap");
-                          setDayOverride(k, null);
-                          setExpandedDay(null);
-                        }}
-                        className="w-full h-9 rounded-[10px] bg-[var(--surface-card)] text-[13px] text-[var(--accent)] font-medium press-scale"
-                      >
-                        Сбросить к общему
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            haptic("tap");
+                            setDayOverride(k, null);
+                            setExpandedDay(null);
+                          }}
+                          className="flex-1 h-9 rounded-[10px] bg-[var(--surface-card)] text-[13px] text-[var(--accent)] font-medium press-scale"
+                        >
+                          Сбросить к общему
+                        </button>
+                        {/* Brief 1 #11: one-tap propagate the current
+                            day's settings to every other day that
+                            isn't explicitly marked off. */}
+                        <button
+                          type="button"
+                          onClick={() => copyDayToOthers(k)}
+                          className="flex-1 h-9 rounded-[10px] bg-[var(--surface-card)] text-[13px] text-[var(--accent)] font-medium press-scale"
+                        >
+                          Скопировать на остальные
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
