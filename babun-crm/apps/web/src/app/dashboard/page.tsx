@@ -38,6 +38,7 @@ import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalendarChoice";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
+import CalendarLegend from "@/components/calendar/CalendarLegend";
 import UndoToast from "@/components/ui/UndoToast";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
@@ -1572,6 +1573,11 @@ function DashboardPageInner() {
           {BUILD_VERSION}
         </div>
       )}
+
+      {/* Brief 1 #10 — Floating color legend (desktop only). Tiny
+          info button bottom-right; opens a centred popover with the
+          6 most-meaningful kinds and one-line hints. */}
+      <CalendarLegend />
 
       {/* City picker bottom sheet */}
       <CityPickerModal
