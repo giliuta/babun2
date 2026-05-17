@@ -94,7 +94,8 @@ export default function WebhooksCard({ tenantId }: Props) {
     setSubmitting(true);
     try {
       const supabase = getSupabaseBrowser();
-      await supabase.from("webhooks").insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("webhooks").insert({
         tenant_id: tenantId,
         label: draftLabel.trim(),
         url: draftUrl.trim(),
@@ -118,7 +119,8 @@ export default function WebhooksCard({ tenantId }: Props) {
       prev.map((r) => (r.id === row.id ? { ...r, enabled: !r.enabled } : r)),
     );
     const supabase = getSupabaseBrowser();
-    await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
       .from("webhooks")
       .update({ enabled: !row.enabled })
       .eq("id", row.id);

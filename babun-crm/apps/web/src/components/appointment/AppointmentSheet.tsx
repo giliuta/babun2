@@ -137,6 +137,7 @@ export default function AppointmentSheet({
   clients,
   recentClientIds,
   activeTeam,
+  visitsForClient,
   masters,
   catalog,
   categories,
