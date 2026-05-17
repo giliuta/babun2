@@ -258,6 +258,7 @@ function TemplateEditor({
 }) {
   const [draft, setDraft] = useState<SmsTemplate>(template);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const toast = useToast();
 
   const preview = useMemo(() => renderTemplate(draft.body, SAMPLE_VARS), [draft.body]);
   // v547 §3.10 — analyze the RENDERED preview (with sample client data
