@@ -1236,12 +1236,25 @@ export default function DashboardClientLayout({
       const idx = prev.findIndex((t) => t.id === team.id);
       const next = idx >= 0 ? prev.map((t, i) => (i === idx ? team : t)) : [...prev, team];
       saveTeams(next);
+      logAudit({
+        entity: "team",
+        action: idx >= 0 ? "update" : "create",
+        summary: team.name,
+        entityId: team.id,
+      });
       return next;
     });
   }, []);
 
   const deleteTeam = useCallback((id: string) => {
     setTeamsState((prev) => {
+      const target = prev.find((t) => t.id === id);
+      logAudit({
+        entity: "team",
+        action: "delete",
+        summary: target?.name || id,
+        entityId: id,
+      });
       const next = prev.filter((t) => t.id !== id);
       saveTeams(next);
       return next;
