@@ -330,6 +330,57 @@ export type Database = {
           },
         ]
       }
+      client_attachments: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          filename: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          filename?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          filename?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_attachments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_attachments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tag_assignments: {
         Row: {
           client_id: string
@@ -1666,6 +1717,18 @@ export type Database = {
         Returns: undefined
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      lookup_rating_token: {
+        Args: { p_token: string }
+        Returns: {
+          appointment_id: string
+          brand_name: string
+          expires_at: string
+          master_id: string
+          tenant_id: string
+          token: string
+          used_at: string
+        }[]
+      }
       read_tenant_sms_config_safe: {
         Args: never
         Returns: {
@@ -1684,6 +1747,13 @@ export type Database = {
           twilio_auth_token_configured: boolean
           twilio_phone_number: string
           updated_at: string
+        }[]
+      }
+      submit_rating: {
+        Args: { p_comment: string; p_stars: number; p_token: string }
+        Returns: {
+          code: string
+          ok: boolean
         }[]
       }
       tenant_data_export: { Args: never; Returns: Json }
