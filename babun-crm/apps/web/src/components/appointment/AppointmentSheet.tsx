@@ -37,19 +37,10 @@ import {
   appointmentTotal,
   totalDuration as calcDuration,
 } from "@babun/shared/local/finance/appointment-calc";
-import { IOSSwitch } from "@/components/ui";
-
-import ClientBlock from "./ClientBlock";
-import LocationsBlock from "./LocationsBlock";
-import ServicesBlock from "./ServicesBlock";
-import IncomeBlock from "./IncomeBlock";
-import CommentBlock from "./CommentBlock";
-import PhotoBlock from "./PhotoBlock";
-import SourceBlock from "./SourceBlock";
-import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
+import { formatShortDate } from "./ClientHistoryStrip";
 import OverlapWarning from "./OverlapWarning";
 import EventForm from "@/components/event/EventForm";
-import CancelToggleBlock from "./CancelToggleBlock";
+import AppointmentWorkBody from "./AppointmentWorkBody";
 import AppointmentSubSheets from "./AppointmentSubSheets";
 import { SegmentSwitchConfirmDialog } from "./AppointmentConfirmDialogs";
 import TimePopup from "./TimePopup";
@@ -735,203 +726,56 @@ export default function AppointmentSheet({
             />
           )}
           {!isEventMode && (
-            <>
-              {/* v607 P0 #1 — block order: critical inputs up top,
-                  details collapsed. Order: Client → History →
-                  Location → Services → Income → <details>. Source,
-                  comment, photos, SMS, brigade live inside the
-                  collapsible so an "20 sec on a scooter" booking
-                  only touches the top half of the sheet. */}
-              <ClientBlock
-                client={client}
-                readonly={readonly}
-                onPick={() => setClientSheet(true)}
-                onChange={() => setClientId(null)}
-                onMenu={client ? () => setClientMenuOpen(true) : undefined}
-                recentClients={recentClientsResolved}
-                onPickRecent={(c) => {
-                  setClientId(c.id);
-                  const locs = c.locations ?? [];
-                  const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
-                  setLocationId(primary?.id ?? null);
-                }}
-              />
-
-              {/* Brief 1 #23 — last 5 past visits inline so dispatcher
-                  sees prior work without leaving the sheet. */}
-              {client && (
-                <ClientHistoryStrip
-                  clientId={client.id}
-                  excludeAppointmentId={appointment.id}
-                  appointments={otherApts}
-                  catalog={catalog}
-                />
-              )}
-
-              <LocationsBlock
-                client={client}
-                selectedLocationId={locationId}
-                readOnly={readonly}
-                addressNote={addressNote}
-                onSelectLocation={setLocationId}
-                onAddressNoteChange={setAddressNote}
-                anonymousAddress={anonymousAddress}
-                onAnonymousAddressChange={setAnonymousAddress}
-                placeholder={addressPlaceholder}
-              />
-
-              <ServicesBlock
-                services={appointmentServices}
-                globalDiscount={globalDiscount}
-                catalog={catalog}
-                readonly={readonly}
-                onServicesChange={setAppointmentServices}
-                onOpenPicker={() => {
-                  if (!clientId) {
-                    setAskClientFirst(true);
-                    return;
-                  }
-                  setServicePickerOpen(true);
-                }}
-                popularServices={popularServices}
-              />
-
-              <IncomeBlock
-                services={appointmentServices}
-                globalDiscount={globalDiscount}
-                catalog={catalog}
-                readonly={readonly}
-                onServicesChange={setAppointmentServices}
-                onGlobalDiscountChange={setGlobalDiscount}
-              />
-
-              {/* v607 P0 #1 — «Подробнее» collapsible. Closed by
-                  default in create-mode to keep the form short.
-                  Opened by default in view/edit so existing data is
-                  visible without an extra tap. */}
-              {isEditable ? (
-                <details
-                  className="group px-4 pt-3"
-                  open={liveMode === "edit"}
-                >
-                  <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
-                    <span>Подробнее</span>
-                    <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
-                  </summary>
-                  <div className="pt-1 -mx-4">
-                    <SourceBlock
-                      value={source}
-                      readonly={readonly}
-                      onChange={(next) => {
-                        setSource(next);
-                        if (next && typeof window !== "undefined") {
-                          window.localStorage.setItem("babun.lastSource", next);
-                          setLastUsedSource(next);
-                        }
-                      }}
-                      lastUsed={lastUsedSource}
-                    />
-
-                    {client && client.phone && (
-                      <div className="px-4 pt-4 flex items-center justify-between">
-                        <div>
-                          <div className="text-[15px] font-semibold text-[var(--label)]">
-                            SMS-напоминание
-                          </div>
-                          <div className="text-[12px] text-[var(--label-secondary)]">
-                            за сутки и за час до визита
-                          </div>
-                        </div>
-                        <IOSSwitch
-                          checked={smsEnabled}
-                          onChange={setSmsEnabled}
-                          ariaLabel="SMS-напоминание"
-                        />
-                      </div>
-                    )}
-
-                    <CommentBlock
-                      value={comment}
-                      readonly={readonly}
-                      onChange={setComment}
-                    />
-
-                    <div ref={photoScrollRef}>
-                      <PhotoBlock
-                        photos={photos}
-                        readonly={readonly}
-                        tenantId={tenantId}
-                        appointmentId={appointment.id}
-                        locationLabel={selectedLocation?.label}
-                        onChange={setPhotos}
-                      />
-                    </div>
-                  </div>
-                </details>
-              ) : (
-                <>
-                  <SourceBlock
-                    value={source}
-                    readonly={readonly}
-                    onChange={setSource}
-                  />
-                  <CommentBlock
-                    value={comment}
-                    readonly={readonly}
-                    onChange={setComment}
-                  />
-                  <div ref={photoScrollRef}>
-                    <PhotoBlock
-                      photos={photos}
-                      readonly={readonly}
-                      tenantId={tenantId}
-                      appointmentId={appointment.id}
-                      locationLabel={selectedLocation?.label}
-                      onChange={setPhotos}
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Readonly cancellation reason in view/done mode when
-                  record is already cancelled. Reuses the same red tint
-                  as the editable version below. */}
-              {!isEditable && appointment.status === "cancelled" && (
-                <div className="px-4 pt-3">
-                  <div className="px-3 py-2 rounded-[14px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] text-[var(--label)]">
-                    <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] mb-0.5">
-                      Запись отменена
-                    </div>
-                    <div>
-                      {appointment.cancel_reason?.trim() || "Причина не указана"}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Cancel-appointment toggle. v607 P0 #2 — only relevant
-                  for an existing record; in create mode we can't cancel
-                  something that doesn't exist yet. Visible in edit mode
-                  whenever the record isn't already completed. */}
-              {appointment.status !== "completed" && liveMode === "edit" && (
-                <CancelToggleBlock
-                  cancelFlag={cancelFlag}
-                  cancelReason={cancelReason}
-                  onFlagChange={setCancelFlag}
-                  onReasonChange={setCancelReason}
-                />
-              )}
-
-            </>
-          )}
-
-          {/* View-mode payment entry (scheduled → completed).
-              QuickActions + AdminActions removed — the ⋯ in the client
-              header carries those actions, and Call lives in-line as
-              the green phone icon. Every block stays visible so the
-              user sees the full record at a glance. */}
-          {liveMode === "view" && (
-            <PaymentBlock total={appointment.total_amount} onPay={handlePay} />
+            <AppointmentWorkBody
+              liveMode={liveMode}
+              isEditable={isEditable}
+              readonly={readonly}
+              client={client}
+              recentClientsResolved={recentClientsResolved}
+              setClientId={setClientId}
+              setLocationId={setLocationId}
+              setClientSheet={setClientSheet}
+              setClientMenuOpen={setClientMenuOpen}
+              appointment={appointment}
+              otherApts={otherApts}
+              catalog={catalog}
+              locationId={locationId}
+              addressNote={addressNote}
+              setAddressNote={setAddressNote}
+              anonymousAddress={anonymousAddress}
+              setAnonymousAddress={setAnonymousAddress}
+              addressPlaceholder={addressPlaceholder}
+              selectedLocation={selectedLocation}
+              appointmentServices={appointmentServices}
+              globalDiscount={globalDiscount}
+              popularServices={popularServices}
+              setAppointmentServices={setAppointmentServices}
+              setGlobalDiscount={setGlobalDiscount}
+              setAskClientFirst={setAskClientFirst}
+              setServicePickerOpen={setServicePickerOpen}
+              clientId={clientId}
+              source={source}
+              setSource={setSource}
+              lastUsedSource={lastUsedSource}
+              setLastUsedSource={setLastUsedSource}
+              smsEnabled={smsEnabled}
+              setSmsEnabled={setSmsEnabled}
+              comment={comment}
+              setComment={setComment}
+              photos={photos}
+              setPhotos={setPhotos}
+              tenantId={tenantId}
+              photoScrollRef={photoScrollRef}
+              cancelFlag={cancelFlag}
+              setCancelFlag={setCancelFlag}
+              cancelReason={cancelReason}
+              setCancelReason={setCancelReason}
+              viewBlocks={
+                liveMode === "view" ? (
+                  <PaymentBlock total={appointment.total_amount} onPay={handlePay} />
+                ) : null
+              }
+            />
           )}
         </div>
 
