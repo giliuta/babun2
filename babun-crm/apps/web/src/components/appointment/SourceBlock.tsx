@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Smartphone } from "@babun/shared/icons";
 import {
   APPOINTMENT_SOURCE_LABELS,
@@ -10,9 +11,14 @@ interface SourceBlockProps {
   value: AppointmentSource | null;
   readonly: boolean;
   onChange?: (next: AppointmentSource | null) => void;
+  /** v611 P1 §19 — most-recently-used source from localStorage.
+   *  When present, the matching pill is hoisted to the first
+   *  position and rendered with a coloured outline so the operator
+   *  doesn't have to find their usual source in the row. */
+  lastUsed?: AppointmentSource | null;
 }
 
-const ORDER: AppointmentSource[] = [
+const BASE_ORDER: AppointmentSource[] = [
   "phone",
   "whatsapp",
   "instagram",
@@ -23,7 +29,12 @@ const ORDER: AppointmentSource[] = [
   "other",
 ];
 
-export default function SourceBlock({ value, readonly, onChange }: SourceBlockProps) {
+export default function SourceBlock({ value, readonly, onChange, lastUsed }: SourceBlockProps) {
+  const order = useMemo<AppointmentSource[]>(() => {
+    if (!lastUsed) return BASE_ORDER;
+    return [lastUsed, ...BASE_ORDER.filter((s) => s !== lastUsed)];
+  }, [lastUsed]);
+
   if (readonly) {
     if (!value) return null;
     return (
@@ -54,8 +65,9 @@ export default function SourceBlock({ value, readonly, onChange }: SourceBlockPr
         aria-label="Источник заявки"
         className="flex flex-wrap gap-1.5"
       >
-        {ORDER.map((s) => {
+        {order.map((s) => {
           const active = value === s;
+          const isLastUsed = !active && lastUsed === s;
           return (
             <button
               key={s}
@@ -68,7 +80,9 @@ export default function SourceBlock({ value, readonly, onChange }: SourceBlockPr
               className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
                 active
                   ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                  : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                  : isLastUsed
+                    ? "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--accent)]"
+                    : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
               }`}
             >
               {APPOINTMENT_SOURCE_LABELS[s]}
