@@ -1,51 +1,46 @@
-// v528 §3.11 — /dashboard/settings/integrations.
+// Brief 3 #13 — /dashboard/settings/integrations.
 //
-// Stub page for messenger channel integrations. Three placeholder
-// cards (WhatsApp / Telegram / Instagram) with «Скоро» badges and
-// short status copy. Owner-gated like the rest of /settings/* —
-// non-owners get bounced to /dashboard.
+// Three messenger-channel cards:
+//   · Telegram — MVP working (TelegramIntegrationCard, client). User
+//     creates a bot via @BotFather, pastes the token, we save it
+//     locally in tenant-integrations. Real server-side dispatch +
+//     webhook receive lives in STORY-094-channels follow-up.
+//   · WhatsApp Business — still «Скоро», but the disabled «Подключить»
+//     became a mailto «Уведомить меня» so the user can subscribe to
+//     launch news instead of staring at a dead button.
+//   · Instagram Direct — same «Уведомить меня» pattern.
 //
-// Why a stub: the chats empty-state CTA now points here, so the user
-// has somewhere to land instead of a 404. Wiring real OAuth /
-// Business API flows lives in §4.5 (multi-week scope). Until then
-// the page documents intent + sets expectations.
+// Per user decision 2026-05-17 (response to «Подключить канал»).
 
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import PageHeader from "@/components/layout/PageHeader";
 import { MessageSquare } from "@babun/shared/icons";
+import TelegramIntegrationCard from "@/components/settings/integrations/TelegramIntegrationCard";
 
-interface IntegrationCard {
+interface SoonCard {
   id: string;
   name: string;
   description: string;
-  /** Lucide icon name to keep stub footprint small; rendered as
-   *  inline SVG below to avoid the dependency chain we'd need for
-   *  per-channel brand icons. Real icons land with §4.5. */
-  badge: "soon" | "beta";
+  /** ISO query string for the mailto subject so URL-encoding stays
+   *  consistent across the two cards. */
+  notifySubject: string;
 }
 
-const CARDS: IntegrationCard[] = [
+const SOON: SoonCard[] = [
   {
     id: "whatsapp",
     name: "WhatsApp Business",
     description:
-      "Принимайте заявки и отвечайте клиентам в WhatsApp прямо из Babun. Через Twilio или 360dialog.",
-    badge: "soon",
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    description:
-      "Бот для уведомлений сотрудникам и чат с клиентами. Подключение через @BotFather.",
-    badge: "soon",
+      "Принимайте заявки в WhatsApp прямо из Babun. Подключение через Cloud API (Meta) или 360dialog.",
+    notifySubject: "Babun: WhatsApp интеграция — уведомить о запуске",
   },
   {
     id: "instagram",
     name: "Instagram Direct",
     description:
-      "Входящие DM-сообщения и ответы в едином inbox. Через Meta Business API.",
-    badge: "soon",
+      "Входящие DM попадут в общий inbox. Подключение через Meta Business Suite (Instagram Business Account).",
+    notifySubject: "Babun: Instagram интеграция — уведомить о запуске",
   },
 ];
 
@@ -56,6 +51,9 @@ export default async function IntegrationsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const tenantId =
+    (user.app_metadata as { tenant_id?: string } | undefined)?.tenant_id ?? "";
+
   return (
     <>
       <PageHeader title="Интеграции" />
@@ -63,12 +61,14 @@ export default async function IntegrationsPage() {
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-3">
           <p className="px-1 text-[13px] text-[var(--label-secondary)] leading-snug">
-            Подключите мессенджеры, чтобы вся переписка с клиентами
-            попадала в раздел «Чаты» Babun. Сейчас интеграции в разработке —
-            мы напишем, когда они будут готовы.
+            Подключите мессенджеры, чтобы переписка с клиентами попадала
+            в раздел «Чаты». Сейчас доступен Telegram; WhatsApp и
+            Instagram — на подходе.
           </p>
 
-          {CARDS.map((card) => (
+          <TelegramIntegrationCard tenantId={tenantId} />
+
+          {SOON.map((card) => (
             <div
               key={card.id}
               className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-4 flex items-start gap-3"
@@ -88,20 +88,18 @@ export default async function IntegrationsPage() {
                 <div className="text-[13px] text-[var(--label-secondary)] leading-snug">
                   {card.description}
                 </div>
-                <button
-                  type="button"
-                  disabled
-                  className="mt-3 h-9 px-3.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] text-[13px] font-semibold cursor-not-allowed"
-                  title="Появится после релиза интеграции"
+                <a
+                  href={`mailto:support@babun.app?subject=${encodeURIComponent(card.notifySubject)}`}
+                  className="mt-3 inline-flex items-center h-9 px-3.5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label)] text-[13px] font-semibold active:bg-[var(--fill-secondary)] transition"
                 >
-                  Подключить
-                </button>
+                  Уведомить меня
+                </a>
               </div>
             </div>
           ))}
 
           <div className="px-1 pt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
-            Хотите интеграцию которой здесь нет? Напишите на{" "}
+            Нужна интеграция, которой здесь нет? Напишите на{" "}
             <a
               href="mailto:support@babun.app?subject=Babun%3A%20интеграция"
               className="text-[var(--accent)] underline"

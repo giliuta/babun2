@@ -12,7 +12,7 @@
 // Supabase Phone provider config for SMS).
 
 import { useEffect, useState } from "react";
-import { Lock, Check, Shield, ShieldCheck, Mail, Phone } from "@babun/shared/icons";
+import { Lock, Check, Shield, ShieldCheck } from "@babun/shared/icons";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import TotpEnrollDialog from "./TotpEnrollDialog";
@@ -200,21 +200,11 @@ function TwoFactorBlock() {
           }
         />
 
-        {/* Email — placeholder */}
-        <FactorRow
-          icon={<Mail size={18} className="text-[var(--label-tertiary)]" />}
-          title="Код на email"
-          subtitle="Babun будет присылать 6-значный код на твою почту при каждом входе."
-          right={<ComingSoonPill />}
-        />
-
-        {/* SMS — placeholder */}
-        <FactorRow
-          icon={<Phone size={18} className="text-[var(--label-tertiary)]" />}
-          title="Код по SMS"
-          subtitle="Код приходит в SMS на привязанный номер. Менее безопасно чем приложение, но надёжнее пароля."
-          right={<ComingSoonPill />}
-        />
+        {/* Brief 2 #21 — Email + SMS placeholder rows removed per
+            user decision 2026-05-17. TOTP factor above is real; the
+            others (custom email-OTP table for email, Supabase Phone
+            provider for SMS) live in STORY-098 in
+            REMAINING-WORK-2026-05-17.md and will land with real UI. */}
       </div>
 
       {showEnroll && (
@@ -265,14 +255,6 @@ function FactorRow({
       </div>
       <div className="shrink-0 self-center">{right}</div>
     </div>
-  );
-}
-
-function ComingSoonPill() {
-  return (
-    <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-[var(--fill-tertiary)] text-[10px] uppercase tracking-wider font-bold text-[var(--label-tertiary)]">
-      Скоро
-    </span>
   );
 }
 
