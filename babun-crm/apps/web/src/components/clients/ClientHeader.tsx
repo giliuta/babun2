@@ -13,13 +13,14 @@
 // Editable fields move into the per-block `ContactsBlock` /
 // `PersonalBlock` (Group 3) — header is read-only on purpose.
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   MoreHorizontal,
   MapPin,
   ArrowUpRight,
   Calendar as CalendarIcon,
+  Camera,
 } from "@babun/shared/icons";
 import { useRouter } from "next/navigation";
 import type { Client, Location } from "@babun/shared/local/clients";
@@ -28,6 +29,10 @@ import type { Appointment } from "@babun/shared/local/appointments";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { computeClientLtv, formatGapDays } from "@/lib/clients/ltv";
+import { uploadClientAvatar, AvatarUploadError } from "@/lib/clients/avatarUpload";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import { useToast } from "@/components/ui/Toast";
 import ClientStatusBadges from "./ClientStatusBadges";
 import { haptic } from "@/lib/haptics";
 
@@ -44,6 +49,8 @@ interface ClientHeaderProps {
    * chips. Legacy callers omit it — chips are hidden in that case.
    */
   appointments?: Appointment[];
+  /** F3.5 — persist a new avatar URL after upload. Omitted = read-only avatar. */
+  onAvatarChange?: (avatarUrl: string) => void;
 }
 
 // Detects iOS so the «Открыть в Картах» button picks Apple Maps
@@ -67,9 +74,44 @@ export default function ClientHeader({
   onOpenMenu,
   onBack,
   appointments,
+  onAvatarChange,
 }: ClientHeaderProps) {
   const router = useRouter();
+  const tenantId = useTenantId();
+  const toast = useToast();
   const color = getAvatarColor(client.full_name);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleAvatarClick = () => {
+    if (!onAvatarChange || uploading) return;
+    haptic("light");
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file || !onAvatarChange) return;
+    setUploading(true);
+    try {
+      const result = await uploadClientAvatar(getSupabaseBrowser(), {
+        tenantId,
+        clientId: client.id,
+        file,
+      });
+      onAvatarChange(result.publicUrl);
+      toast.show({ variant: "success", message: "Фото обновлено" });
+    } catch (err) {
+      const msg =
+        err instanceof AvatarUploadError
+          ? err.message
+          : "Не удалось загрузить фото";
+      toast.show({ variant: "error", message: msg });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // F3.7 — LTV / avg-check / frequency chips. Recomputed only when
   // the client id or the appointments array reference changes so the
@@ -137,13 +179,69 @@ export default function ClientHeader({
 
       {/* Identity */}
       <div className="px-4 pt-1 pb-3 flex items-start gap-3">
-        <span
-          className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--label-on-accent)] font-bold text-[15px] shrink-0"
-          style={{ backgroundColor: color }}
+        {/* clients-99 F3.5 — clickable avatar opens the file picker
+            when the parent supplied onAvatarChange. Falls back to a
+            non-interactive span (legacy callers, read-only). */}
+        {onAvatarChange ? (
+          <button
+            type="button"
+            onClick={handleAvatarClick}
+            disabled={uploading}
+            aria-label="Загрузить фото"
+            className="relative w-12 h-12 rounded-full shrink-0 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:opacity-80"
+            style={{
+              backgroundColor: client.avatar_url ? "transparent" : color,
+            }}
+          >
+            {client.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={client.avatar_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="flex w-full h-full items-center justify-center text-[var(--label-on-accent)] font-bold text-[15px]">
+                {getInitials(client.full_name || "?")}
+              </span>
+            )}
+            <span className="absolute inset-x-0 bottom-0 flex h-4 items-center justify-center bg-black/45 text-white opacity-0 hover:opacity-100 transition-opacity">
+              <Camera size={11} strokeWidth={2.4} aria-hidden />
+            </span>
+            {uploading && (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-[10px]">
+                …
+              </span>
+            )}
+          </button>
+        ) : (
+          <span
+            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 overflow-hidden text-[var(--label-on-accent)] font-bold text-[15px]"
+            style={{
+              backgroundColor: client.avatar_url ? "transparent" : color,
+            }}
+            aria-hidden
+          >
+            {client.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={client.avatar_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              getInitials(client.full_name || "?")
+            )}
+          </span>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={handleAvatarFile}
+          className="hidden"
           aria-hidden
-        >
-          {getInitials(client.full_name || "?")}
-        </span>
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-[20px] font-bold text-[var(--label)] truncate">
