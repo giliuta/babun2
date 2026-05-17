@@ -93,24 +93,58 @@ export default function AgendaView({
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
       <div className="max-w-2xl mx-auto px-4 py-3 space-y-4">
-        {items.map(([dateKey, dayApts]) => (
-          <section key={dateKey}>
-            <h3 className="px-2 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-              {formatHeaderRu(dateKey)}
-            </h3>
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] divide-y divide-[var(--separator)] overflow-hidden">
-              {dayApts.map((apt) => (
-                <AgendaRow
-                  key={apt.id}
-                  apt={apt}
-                  servicesById={servicesById}
-                  clientsById={clientsById}
-                  onClick={() => onAppointmentClick(apt)}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
+        {items.map(([dateKey, dayApts]) => {
+          // Beta #54 (CRM Core brief) — maps deep-link with the
+          // day's addresses as waypoints. We skip rows without an
+          // address (events, in-office, anonymous), encode the rest
+          // for the Google Maps directions URL, and hand the link to
+          // whichever maps app the device prefers. No proper route
+          // optimization (Google's Routes API needs paid quota) —
+          // but the dispatcher sees every address pinned in order,
+          // which is what the brief actually asks for at MVP scope.
+          const addresses = Array.from(
+            new Set(
+              dayApts
+                .map((a) => (a.address || "").trim())
+                .filter((s) => s.length > 0),
+            ),
+          );
+          const mapsHref = addresses.length > 0
+            ? `https://www.google.com/maps/dir/${addresses
+                .map((a) => encodeURIComponent(a))
+                .join("/")}`
+            : null;
+          return (
+            <section key={dateKey}>
+              <div className="flex items-center justify-between px-2 pb-1">
+                <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+                  {formatHeaderRu(dateKey)}
+                </h3>
+                {mapsHref && (
+                  <a
+                    href={mapsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-semibold text-[var(--accent)] active:opacity-70"
+                  >
+                    Маршрут дня →
+                  </a>
+                )}
+              </div>
+              <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] divide-y divide-[var(--separator)] overflow-hidden">
+                {dayApts.map((apt) => (
+                  <AgendaRow
+                    key={apt.id}
+                    apt={apt}
+                    servicesById={servicesById}
+                    clientsById={clientsById}
+                    onClick={() => onAppointmentClick(apt)}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </div>
   );

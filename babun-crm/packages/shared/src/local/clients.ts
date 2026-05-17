@@ -78,6 +78,14 @@ export interface ACUnit {
   ac_type: ACType;
   has_indoor: boolean;
   has_outdoor: boolean;
+  /** Beta #49 (CRM Core brief) — equipment service schedule. When
+   *  `service_interval_months` is set, the system computes
+   *  `next_service_date = max(installed_at, last_service_at) +
+   *  interval` and flags the unit as «пора обслуживать» when the
+   *  due date is within ≤ 14 days. */
+  installed_at?: string;        // YYYY-MM-DD
+  last_service_at?: string;     // YYYY-MM-DD
+  service_interval_months?: number;
 }
 
 export interface ClientNote {
