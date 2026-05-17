@@ -58,10 +58,27 @@ export default function VisitsBlock({
             <VisitRow
               key={apt.id}
               apt={apt}
+              clientId={clientId}
               servicesById={servicesById}
               onOpen={() => {
                 haptic("tap");
                 router.push(`/dashboard?date=${encodeURIComponent(apt.date)}`);
+              }}
+              onRepeat={() => {
+                // Beta #46 (CRM Core brief) — «повторить заказ в один
+                // клик». Builds the same /dashboard?new=1 link with
+                // the original service ids serialised so the new draft
+                // lands pre-filled. Date defaults to today on the
+                // dashboard side.
+                haptic("success");
+                const serviceIds = Array.from(
+                  new Set((apt.services ?? []).map((s) => s.serviceId).filter(Boolean)),
+                );
+                const sParam =
+                  serviceIds.length > 0 ? `&services=${serviceIds.join(",")}` : "";
+                router.push(
+                  `/dashboard?new=1&client_id=${clientId}${sParam}`,
+                );
               }}
             />
           ))}
@@ -78,12 +95,16 @@ export default function VisitsBlock({
 
 function VisitRow({
   apt,
+  clientId,
   servicesById,
   onOpen,
+  onRepeat,
 }: {
   apt: Appointment;
+  clientId: string;
   servicesById: Map<string, string>;
   onOpen: () => void;
+  onRepeat: () => void;
 }) {
   const status = (() => {
     if (apt.status === "completed")
@@ -144,38 +165,62 @@ function VisitRow({
     return null;
   })();
 
+  // Beta #46 — «Повторить» only makes sense for completed visits with
+  // at least one service the operator can re-seed. Cancelled and
+  // empty rows hide the button.
+  const canRepeat =
+    apt.status === "completed" &&
+    Array.isArray(apt.services) &&
+    apt.services.length > 0;
+
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full flex items-center gap-2 px-4 py-2.5 text-left active:bg-[var(--fill-quaternary)]"
-    >
-      <div className="flex-1 min-w-0">
-        <div className="text-[14px] text-[var(--label)] truncate">
-          {summary}
+    <div className="flex items-stretch active:bg-[var(--fill-quaternary)]">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex-1 flex items-center gap-2 px-4 py-2.5 text-left min-w-0"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] text-[var(--label)] truncate">
+            {summary}
+          </div>
+          <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
+            {formatVisitDate(apt.date)} · {apt.time_start}
+          </div>
         </div>
-        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
-          {formatVisitDate(apt.date)} · {apt.time_start}
-        </div>
-      </div>
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${status.cls}`}
-        >
-          {status.label}
-        </span>
-        {paymentBadge && (
+        <div className="flex flex-col items-end gap-1 shrink-0">
           <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${paymentBadge.cls}`}
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${status.cls}`}
           >
-            {paymentBadge.label}
+            {status.label}
           </span>
-        )}
-      </div>
-      <span className="shrink-0 w-14 text-right text-[13px] font-bold text-[var(--system-green)] tabular-nums">
-        {formatEUR(apt.total_amount)}
-      </span>
-    </button>
+          {paymentBadge && (
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${paymentBadge.cls}`}
+            >
+              {paymentBadge.label}
+            </span>
+          )}
+        </div>
+        <span className="shrink-0 w-14 text-right text-[13px] font-bold text-[var(--system-green)] tabular-nums">
+          {formatEUR(apt.total_amount)}
+        </span>
+      </button>
+      {canRepeat && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRepeat();
+          }}
+          aria-label="Повторить заказ"
+          title="Повторить заказ"
+          className="shrink-0 px-3 flex items-center justify-center text-[11px] font-semibold text-[var(--accent)] border-l border-[var(--separator)] active:bg-[var(--accent-tint)]"
+        >
+          ↻
+        </button>
+      )}
+    </div>
   );
 }
 

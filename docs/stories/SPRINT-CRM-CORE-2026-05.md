@@ -85,7 +85,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 
 | # | Topic | Status |
 |---|-------|--------|
-| 46 | Таб «Покупки/Заказы» в карточке клиента | BLOCKED → after STORY-042 |
+| 46 | Таб «Покупки/Заказы» в карточке клиента | **DONE (v591)** | The existing VisitsBlock already shows the full visit history; brief's «повторить заказ в один клик» lands as a `↻` action button on each completed visit row. Click → `/dashboard?new=1&client_id=X&services=svc1,svc2` opens an AppointmentSheet pre-filled with the same service ids. Dashboard handler parses the new `services` query param and seeds `service_ids` on the blank draft. |
 | 47 | Таб «Финансы» в карточке клиента (LTV) | **DONE (v589)** | `FinanceBlock` now renders LTV + Средний чек + Последняя оплата + Последний визит + Долг + История транзакций (last 5 paid visits, with date + method + amount). Data sourced from appointments where `payment_status` is `paid` / `partial`, with legacy fallback. «Подробнее» still deep-links to `/finances?client_id=…`. |
 | 48 | Таб «История обслуживания» на объекте | BLOCKED → after STORY-042 |
 | 49 | Equipment service schedule + auto-reminders | BLOCKED → after STORY-050 |
