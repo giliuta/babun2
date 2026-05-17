@@ -1010,6 +1010,15 @@ function DashboardPageInner() {
     if (kindParam === "expense") {
       setExpenseFor({ dateKey, dayLabel: "Сегодня" });
     } else {
+      // Beta #46 (CRM Core brief) — «Повторить заказ в один клик».
+      // VisitsBlock passes `services=svc1,svc2` so the new draft
+      // lands pre-filled with the same service ids. Each id is
+      // validated against the catalog at render time inside the
+      // AppointmentSheet; we just hand them through here.
+      const servicesParam = params.get("services");
+      const seededServiceIds = servicesParam
+        ? servicesParam.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
       const blank = createBlankAppointment({
         date: dateKey,
         time_start: "10:00",
@@ -1018,6 +1027,7 @@ function DashboardPageInner() {
         client_id: clientId || null,
         address: client?.address ?? "",
         kind: kindParam === "event" ? "event" : "work",
+        service_ids: seededServiceIds,
       });
       setInlineSheet({ mode: "new", initial: blank });
     }

@@ -1,11 +1,23 @@
 "use client";
 
-// STORY-034 — Finance block.  Read-only summary; deeper editing
-// happens on /dashboard/finances?client_id=X.  Hidden for the future
-// "crew" role (see business-blocks.ts).
+// Beta #47 (CRM Core brief) — Финансы block on the client card.
+//
+// Was a 3-row LTV / последний визит / долг summary; the brief asked
+// for а полную карточку: LTV, средний чек, последняя оплата, долг,
+// история транзакций. Each pixel here is read-only — deeper editing
+// happens on /dashboard/finances?client_id=X (the «Подробнее» link).
+//
+// Transaction list reads directly off the appointments array — paid
+// + completed only, last-N. That keeps us off the finance_transactions
+// ledger until the cross-tenant repository layer is fully wired
+// (STORY-042 follow-up); the data is the same modulo the auto-sync
+// trigger, just sourced one hop earlier.
 
+import { useMemo } from "react";
 import Link from "next/link";
-import { Wallet, ArrowUpRight } from "@babun/shared/icons";
+import { Wallet, ArrowUpRight, TrendingUp, Calendar } from "@babun/shared/icons";
+import type { Appointment } from "@babun/shared/local/appointments";
+import { getPaidAmount } from "@babun/shared/local/appointments";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import ClientCard from "../ClientCard";
@@ -13,12 +25,56 @@ import ClientCard from "../ClientCard";
 interface FinanceBlockProps {
   clientId: string;
   stats: ClientStats | undefined;
+  appointments: Appointment[];
 }
 
-export default function FinanceBlock({ clientId, stats }: FinanceBlockProps) {
+interface PaidVisit {
+  id: string;
+  date: string; // YYYY-MM-DD
+  amount: number;
+  method?: string; // cash/card/other/transfer (from payment_method)
+}
+
+const HISTORY_LIMIT = 5;
+
+export default function FinanceBlock({
+  clientId,
+  stats,
+  appointments,
+}: FinanceBlockProps) {
   const ltv = Math.round(stats?.totalSpent ?? 0);
   const debt = Math.round(stats?.debt ?? 0);
   const lastVisit = stats?.lastVisitDate ?? "";
+
+  // Paid + completed visits sorted recent-first. We use the explicit
+  // payment_status when present; legacy rows without the column fall
+  // back to «status=completed AND payment !== null».
+  const paidVisits: PaidVisit[] = useMemo(() => {
+    return appointments
+      .filter((a) => {
+        if (a.client_id !== clientId) return false;
+        if (a.status !== "completed") return false;
+        const ps = a.payment_status;
+        if (ps === "paid" || ps === "partial") return true;
+        // Legacy fallback for rows older than the v577 wiring.
+        return ps === undefined && a.payment !== null;
+      })
+      .map((a) => ({
+        id: a.id,
+        date: a.date,
+        amount: getPaidAmount(a) || a.total_amount,
+        method: a.payment_method,
+      }))
+      .sort((x, y) => y.date.localeCompare(x.date));
+  }, [appointments, clientId]);
+
+  const lastPaymentDate = paidVisits[0]?.date ?? "";
+  const avgTicket =
+    paidVisits.length > 0
+      ? Math.round(
+          paidVisits.reduce((s, v) => s + v.amount, 0) / paidVisits.length,
+        )
+      : 0;
 
   return (
     <ClientCard kind="finance" title="Финансы">
@@ -30,13 +86,53 @@ export default function FinanceBlock({ clientId, stats }: FinanceBlockProps) {
           tone="default"
         />
         <Row
+          icon={<TrendingUp size={14} strokeWidth={2.2} />}
+          label="Средний чек"
+          value={avgTicket > 0 ? formatEUR(avgTicket) : "—"}
+          tone="default"
+        />
+        <Row
+          icon={<Calendar size={14} strokeWidth={2.2} />}
+          label="Последняя оплата"
+          value={lastPaymentDate ? formatVisitDate(lastPaymentDate) : "—"}
+          tone="default"
+        />
+        <Row
           label="Последний визит"
           value={lastVisit ? formatVisitDate(lastVisit) : "—"}
           tone="default"
         />
-        {debt > 0 && (
-          <Row label="Долг" value={formatEUR(debt)} tone="bad" />
+        {debt > 0 && <Row label="Долг" value={formatEUR(debt)} tone="bad" />}
+
+        {paidVisits.length > 0 && (
+          <div className="pt-2 mt-2 border-t border-[var(--separator)]">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-1.5">
+              История транзакций
+            </div>
+            <ul className="space-y-1">
+              {paidVisits.slice(0, HISTORY_LIMIT).map((v) => (
+                <li
+                  key={v.id}
+                  className="flex items-center gap-2 text-[12px] tabular-nums"
+                >
+                  <span className="flex-1 truncate text-[var(--label-secondary)]">
+                    {formatVisitDate(v.date)}
+                    {v.method ? ` · ${methodLabel(v.method)}` : ""}
+                  </span>
+                  <span className="font-semibold text-[var(--system-green)]">
+                    +{formatEUR(v.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {paidVisits.length > HISTORY_LIMIT && (
+              <div className="text-[11px] text-[var(--label-tertiary)] mt-1">
+                + ещё {paidVisits.length - HISTORY_LIMIT} оплат
+              </div>
+            )}
+          </div>
         )}
+
         <Link
           href={`/dashboard/finances?client_id=${clientId}`}
           className="mt-3 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-[10px] bg-[var(--fill-tertiary)] text-[var(--accent)] text-[13px] font-semibold active:bg-[var(--fill-secondary)]"
@@ -47,6 +143,21 @@ export default function FinanceBlock({ clientId, stats }: FinanceBlockProps) {
       </div>
     </ClientCard>
   );
+}
+
+function methodLabel(method: string): string {
+  switch (method) {
+    case "cash":
+      return "нал";
+    case "card":
+      return "карта";
+    case "transfer":
+      return "перевод";
+    case "other":
+      return "сплит";
+    default:
+      return method;
+  }
 }
 
 function Row({
