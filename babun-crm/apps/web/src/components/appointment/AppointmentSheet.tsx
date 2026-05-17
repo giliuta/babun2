@@ -190,6 +190,10 @@ export default function AppointmentSheet({
       return raw && (raw as AppointmentSource) ? (raw as AppointmentSource) : null;
     }
   );
+  // v617 P1 §17 — single time chip in caption opens a popup with the
+  // date+time+duration editors. The inline cluster is removed from
+  // body so it stays focused on client / services.
+  const [timePopupOpen, setTimePopupOpen] = useState(false);
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -788,9 +792,10 @@ export default function AppointmentSheet({
 
         {/* Scroll body */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          {/* City/team caption — read-only info strip. No dropdown, no
-              click. City is edited from the calendar day header. */}
-          <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center gap-2 text-[13px]">
+          {/* City/team caption + v617 P1 §17 single time chip. Chip
+              shows date · time · duration and opens the time popup on
+              tap. City is still edited from the calendar day header. */}
+          <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center gap-2 text-[13px] flex-wrap">
             {city && (
               <span
                 className="font-semibold flex-shrink-0"
@@ -801,70 +806,25 @@ export default function AppointmentSheet({
             )}
             {city && <span className="text-[var(--label-tertiary)]">·</span>}
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
+            <button
+              type="button"
+              onClick={() => setTimePopupOpen(true)}
+              disabled={readonly}
+              className={`ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-7 rounded-full text-[12px] font-semibold tabular-nums transition active:scale-[0.97] ${
+                readonly
+                  ? "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] cursor-default"
+                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
+              }`}
+              aria-label="Изменить время"
+            >
+              <CalendarClock size={12} strokeWidth={2} />
+              {formatShortDate(dateKey)} · {timeStart}
+              {liveDurationMins > 0 && ` · ${liveDurationMins}м`}
+            </button>
           </div>
 
-          {/* v611 P0 §1.2 — quick-fill chips. One tap loads today/now,
-              today/+1h, or tomorrow/09:00 into the time wheel. Visible
-              only in create-mode for work records (events have their
-              own pacing). Honours the active team's slot granularity
-              so taps land on a real slot boundary, not 14:23. */}
-          {liveMode === "create" && !isEventMode && (
-            <div className="px-4 pt-2 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {(() => {
-                const step = activeTeam?.default_slot_minutes ?? 30;
-                const dur = totalDur > 0 ? totalDur : step;
-                const fmtKey = (d: Date) =>
-                  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                const fmtTime = (mins: number) => {
-                  const clamped = Math.min(23 * 60 + 59, Math.max(0, mins));
-                  return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
-                };
-                const apply = (d: Date, startMin: number) => {
-                  setDateKey(fmtKey(d));
-                  setTimeStart(fmtTime(startMin));
-                  setTimeEnd(fmtTime(startMin + dur));
-                };
-                const now = new Date();
-                const nowMins = now.getHours() * 60 + now.getMinutes();
-                const nextSlot = Math.ceil((nowMins + 1) / step) * step;
-                const tomorrow = new Date(now);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const chips = [
-                  { label: "⚡ Сейчас", onClick: () => apply(now, nextSlot) },
-                  { label: "Через час", onClick: () => apply(now, nextSlot + 60) },
-                  { label: "Завтра", onClick: () => apply(tomorrow, 9 * 60) },
-                ];
-                return chips.map((c) => (
-                  <button
-                    key={c.label}
-                    type="button"
-                    onClick={c.onClick}
-                    className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
-                  >
-                    {c.label}
-                  </button>
-                ));
-              })()}
-            </div>
-          )}
-
-          <TimeBlock
-            date={dateKey}
-            timeStart={timeStart}
-            timeEnd={timeEnd}
-            readOnly={readonly}
-            // Brief 1 #2: honour the active team's slot granularity
-            // (15/30/60). Personal events keep the default 5-min wheel.
-            stepMinutes={
-              !isEventMode ? activeTeam?.default_slot_minutes : undefined
-            }
-            onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-              setDateKey(d);
-              setTimeStart(s);
-              setTimeEnd(e);
-            }}
-          />
-
+          {/* v617 P1 §17 — quick chips + TimeBlock + duration row
+              moved into the time popup at the bottom of this file. */}
           {overlapConflict && overlapWarning && isEditable && !isEventMode && (
             <OverlapWarning
               conflict={overlapConflict}
@@ -872,44 +832,6 @@ export default function AppointmentSheet({
               catalog={catalog}
               clients={clients}
             />
-          )}
-
-          {/* v616 P1 §14/§15 — duration chip row. Operator picks 30 /
-              60 / 90 / 120 min and the end time recomputes. Picking
-              any of these sets `durationTouched`, which freezes the
-              service-list auto-extend effect so adding услуги doesn't
-              clobber the operator's pick. */}
-          {isEditable && !isEventMode && (
-            <div
-              className="px-4 pt-2 flex items-center gap-1.5 overflow-x-auto"
-              style={{ scrollbarWidth: "none" }}
-            >
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
-                Длит.
-              </span>
-              {[30, 60, 90, 120].map((m) => {
-                const active = liveDurationMins === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => applyDuration(m)}
-                    className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
-                      active
-                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                        : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-                    }`}
-                  >
-                    {m}м
-                  </button>
-                );
-              })}
-              {durationTouched && ![30, 60, 90, 120].includes(liveDurationMins) && (
-                <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
-                  {liveDurationMins}м
-                </span>
-              )}
-            </div>
           )}
 
           {/* Event mode body */}
@@ -1223,6 +1145,124 @@ export default function AppointmentSheet({
           setClientSheet(true);
         }}
       />
+
+      {/* v617 P1 §17 — time popup. Hosts the full date+time+duration
+          editing surface: quick chips, TimeBlock wheels, duration
+          chip row. State is mutated live by inner editors so closing
+          is a no-op (no commit/cancel split). */}
+      {timePopupOpen && (
+        <div
+          className="fixed inset-0 z-[92] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+          onClick={() => setTimePopupOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between border-b border-[var(--separator)]">
+              <span className="text-[13px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+                Время записи
+              </span>
+              <button
+                type="button"
+                onClick={() => setTimePopupOpen(false)}
+                className="px-3 h-8 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+              >
+                Готово
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto pb-3">
+              {liveMode === "create" && !isEventMode && (
+                <div className="px-4 pt-3 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                  {(() => {
+                    const step = activeTeam?.default_slot_minutes ?? 30;
+                    const dur = totalDur > 0 ? totalDur : step;
+                    const fmtKey = (d: Date) =>
+                      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                    const fmtTime = (mins: number) => {
+                      const clamped = Math.min(23 * 60 + 59, Math.max(0, mins));
+                      return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+                    };
+                    const apply = (d: Date, startMin: number) => {
+                      setDateKey(fmtKey(d));
+                      setTimeStart(fmtTime(startMin));
+                      setTimeEnd(fmtTime(startMin + dur));
+                    };
+                    const now = new Date();
+                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    const nextSlot = Math.ceil((nowMins + 1) / step) * step;
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const chips = [
+                      { label: "⚡ Сейчас", onClick: () => apply(now, nextSlot) },
+                      { label: "Через час", onClick: () => apply(now, nextSlot + 60) },
+                      { label: "Завтра", onClick: () => apply(tomorrow, 9 * 60) },
+                    ];
+                    return chips.map((c) => (
+                      <button
+                        key={c.label}
+                        type="button"
+                        onClick={c.onClick}
+                        className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
+                      >
+                        {c.label}
+                      </button>
+                    ));
+                  })()}
+                </div>
+              )}
+
+              <TimeBlock
+                date={dateKey}
+                timeStart={timeStart}
+                timeEnd={timeEnd}
+                readOnly={readonly}
+                stepMinutes={
+                  !isEventMode ? activeTeam?.default_slot_minutes : undefined
+                }
+                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+                  setDateKey(d);
+                  setTimeStart(s);
+                  setTimeEnd(e);
+                }}
+              />
+
+              {isEditable && !isEventMode && (
+                <div
+                  className="px-4 pt-3 flex items-center gap-1.5 overflow-x-auto"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
+                    Длит.
+                  </span>
+                  {[30, 60, 90, 120].map((m) => {
+                    const active = liveDurationMins === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => applyDuration(m)}
+                        className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
+                          active
+                            ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                            : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                        }`}
+                      >
+                        {m}м
+                      </button>
+                    );
+                  })}
+                  {durationTouched && ![30, 60, 90, 120].includes(liveDurationMins) && (
+                    <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
+                      {liveDurationMins}м
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {client && (
         <ClientActionMenu
