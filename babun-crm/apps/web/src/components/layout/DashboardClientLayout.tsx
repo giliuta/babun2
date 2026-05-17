@@ -1412,11 +1412,24 @@ export default function DashboardClientLayout({
       const idx = prev.findIndex((s) => s.id === svc.id);
       const next = idx >= 0 ? prev.map((s, i) => (i === idx ? svc : s)) : [...prev, svc];
       saveServices(next);
+      logAudit({
+        entity: "service",
+        action: idx >= 0 ? "update" : "create",
+        summary: svc.name,
+        entityId: svc.id,
+      });
       return next;
     });
   }, []);
   const deleteService = useCallback((id: string) => {
     setServicesState((prev) => {
+      const target = prev.find((s) => s.id === id);
+      logAudit({
+        entity: "service",
+        action: "delete",
+        summary: target?.name || id,
+        entityId: id,
+      });
       const next = prev.filter((s) => s.id !== id);
       saveServices(next);
       return next;
