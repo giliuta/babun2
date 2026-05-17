@@ -242,6 +242,8 @@ export function DebtsTab({
 export function PayrollTab({
   entries,
   total,
+  masterNameFor,
+  onPayMaster,
 }: {
   entries: {
     team: Team;
@@ -250,8 +252,21 @@ export function PayrollTab({
     net: number;
     percentage: number;
     payable: number;
+    masters: { masterId: string; visits: number; share: number }[];
   }[];
   total: number;
+  /** Resolves a master id to «Имя Фамилия». Falls back to the id when
+   *  the master row isn't loaded (rare — stale localStorage). */
+  masterNameFor: (id: string) => string;
+  /** P1 #30 — «Выплатить» button. Implementation lives outside the
+   *  tab so the modal book-keeping (insert into finance_transactions
+   *  + payroll_payouts) stays close to the Supabase repository. */
+  onPayMaster: (args: {
+    team: Team;
+    masterId: string;
+    masterName: string;
+    amount: number;
+  }) => void;
 }) {
   if (entries.length === 0) {
     return (
@@ -263,7 +278,7 @@ export function PayrollTab({
   return (
     <>
       <div className="px-4 py-2 bg-[var(--accent-tint)] border-b border-[var(--separator)] text-[13px] text-[var(--label-secondary)]">
-        Зарплата = (доход − расход команды) × процент выплаты. Настраивается в профиле команды.
+        Зарплата = (доход − расход команды) × процент выплаты. Доля мастера = его визиты / всего визитов команды.
       </div>
       {entries.map((p) => (
         <div key={p.team.id} className="px-4 py-3 border-b border-[var(--separator)]">
@@ -285,6 +300,43 @@ export function PayrollTab({
               {formatEUR(p.payable)}
             </span>
           </div>
+          {/* P1 #30 — per-master breakdown + «Выплатить» button. */}
+          {p.masters.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-dashed border-[var(--separator)] space-y-1.5">
+              {p.masters.map((m) => {
+                const name = masterNameFor(m.masterId);
+                return (
+                  <div
+                    key={m.masterId}
+                    className="flex items-center gap-2 text-[12px]"
+                  >
+                    <span className="flex-1 truncate text-[var(--label)]">{name}</span>
+                    <span className="text-[var(--label-tertiary)] tabular-nums shrink-0">
+                      {m.visits > 0 ? `${m.visits} визит.` : "поровну"}
+                    </span>
+                    <span className="font-semibold text-[var(--label)] tabular-nums shrink-0 w-16 text-right">
+                      {formatEUR(m.share)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onPayMaster({
+                          team: p.team,
+                          masterId: m.masterId,
+                          masterName: name,
+                          amount: m.share,
+                        })
+                      }
+                      disabled={m.share <= 0}
+                      className="shrink-0 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)]"
+                    >
+                      Выплатить
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ))}
       <TotalRow label="Всего к выплате" value={total} color="indigo" />
