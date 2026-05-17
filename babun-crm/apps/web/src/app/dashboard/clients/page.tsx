@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
+// clients-99 F2.11 — virtualization when filtered list > VIRTUAL_THRESHOLD.
+import { VirtualList, VIRTUAL_THRESHOLD } from "@/components/clients/VirtualList";
 import { track } from "@/lib/analytics/track";
 import { useToast } from "@/components/ui/Toast";
 import { Highlight } from "@/components/ui/Highlight";
@@ -1127,8 +1129,11 @@ export default function ClientsPage() {
           </div>
 
           {/* ── Client cards ─────────────────────────────────────── */}
-          <div className="space-y-2">
-            {filtered.map((client) => {
+          {/* clients-99 F2.11 — virtualize when the filtered list
+              exceeds VIRTUAL_THRESHOLD. Small tenants stay on the
+              .map() fast-path so iOS Safari scroll restoration works. */}
+          {(() => {
+            const renderRow = (client: Client) => {
               const stats = statsMap.get(client.id);
               const phoneDigits = client.phone.replace(/\D/g, "");
               const acTotal = acCount(client);
@@ -1143,8 +1148,6 @@ export default function ClientsPage() {
               const isPicked = selectedIds.has(client.id);
               const isPinned = Boolean(client.pinned_at);
 
-              // In selection mode swipe is disabled (multi-select takes
-              // priority and users tap cards to toggle).
               const card = (
                 <ClientCard
                   client={client}
@@ -1171,11 +1174,6 @@ export default function ClientsPage() {
                         return next;
                       });
                     } else if (isDesktop) {
-                      // STORY-056 — on desktop we open the client
-                      // profile inline in a large centred dialog so
-                      // the user keeps the list as visual context.
-                      // Mobile keeps the canonical /[id] page push
-                      // (STORY-065) so the iOS back gesture works.
                       setInlineProfileId(client.id);
                     } else {
                       router.push(`/dashboard/clients/${client.id}`);
@@ -1189,12 +1187,10 @@ export default function ClientsPage() {
                 />
               );
 
-              if (isSelecting) {
-                return <div key={client.id}>{card}</div>;
-              }
+              if (isSelecting) return <div>{card}</div>;
 
               return (
-                <div key={client.id} className="rounded-[14px] overflow-hidden">
+                <div className="rounded-[14px] overflow-hidden">
                   <SwipeableRow
                     leftActions={[
                       {
@@ -1243,7 +1239,26 @@ export default function ClientsPage() {
                   </SwipeableRow>
                 </div>
               );
-            })}
+            };
+
+            if (filtered.length > VIRTUAL_THRESHOLD) {
+              return (
+                <VirtualList
+                  items={filtered}
+                  scrollRef={scrollRef}
+                  renderRow={renderRow}
+                />
+              );
+            }
+            return (
+              <div className="space-y-2">
+                {filtered.map((client) => (
+                  <div key={client.id}>{renderRow(client)}</div>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="space-y-2">
             {/* STORY-059 — first-run vs filter-empty are now distinct.
                 First-run gets the prominent welcome variant; filter-
                 empty stays muted and short. clients.length is the
