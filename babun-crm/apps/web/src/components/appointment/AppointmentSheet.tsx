@@ -183,6 +183,12 @@ export default function AppointmentSheet({
   } | null>(null);
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
+  // v607 P0 #5 — anonymous (no-client) address. Lives on apt.address.
+  // Seeded from the appointment record so re-opening a no-client draft
+  // keeps the address visible.
+  const [anonymousAddress, setAnonymousAddress] = useState(
+    appointment.client_id ? "" : appointment.address ?? ""
+  );
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
   const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
@@ -229,6 +235,7 @@ export default function AppointmentSheet({
     setLocationId(appointment.location_id);
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
+    setAnonymousAddress(appointment.client_id ? "" : appointment.address ?? "");
     setCancelFlag(appointment.status === "cancelled");
     setCancelReason(appointment.cancel_reason ?? "");
     setSource(appointment.source ?? null);
@@ -322,10 +329,21 @@ export default function AppointmentSheet({
     return clientLocations.find((l) => l.isPrimary) ?? clientLocations[0];
   }, [clientLocations, locationId]);
 
-  const address = selectedLocation?.address ?? appointment.address ?? "";
+  // v607 P0 #5 — without a client, the address lives on the appointment
+  // row directly (anonymousAddress). With a client, the picked location
+  // wins as before.
+  const address = client
+    ? selectedLocation?.address ?? appointment.address ?? ""
+    : anonymousAddress.trim();
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
+  // v607 P0 #5 — placeholder hint follows the day's city-tag so an
+  // operator tapping a slot in a "ПТ = ЛИМ" column sees
+  // "Лимассол, ул. ..." instead of the generic prompt.
+  const addressPlaceholder = city
+    ? `${city}, ул. …`
+    : "Адрес или Google Maps ссылка";
 
   // Рассчитанный итог / длительность для sticky-кнопки + time end.
   const price = appointmentTotal(appointmentServices, globalDiscount);
@@ -416,20 +434,37 @@ export default function AppointmentSheet({
     photoScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // В create: обязателен preset + клиент. В edit: если услуга уже
-  // стоит (total_amount > 0 и status), сохранение разрешено и без
-  // нового preset-выбора — меняем только поля что отредактировали.
-  //
-  // v524 §3.9 — Источник заявки теперь обязателен в CREATE-flow для
-  // work-записей. Это закрывает аналитический gap (откуда пришла
-  // заявка). Edit mode остаётся прежним: историческая запись без
-  // source не должна стать unsave-able только потому, что мы
-  // добавили валидацию.
+  // v607 P0 #3 — Источник заявки больше не блокирует создание. KPI
+  // «20 секунд на мотороллере» важнее аналитического gap'а; источник
+  // переехал в свёрнутую секцию «Подробнее», по умолчанию null.
+  // Минимум для work-записи: клиент + хотя бы одна услуга.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : liveMode === "create"
-      ? Boolean(clientId && appointmentServices.length > 0 && source)
-      : Boolean(clientId && appointmentServices.length > 0);
+    : Boolean(clientId && appointmentServices.length > 0);
+
+  // v607 P0 #1.8 — live preview button text. Shows date · time ·
+  // duration · price when ready; lists what's missing otherwise so the
+  // operator doesn't have to scroll up to find the gap.
+  const missingParts: string[] = [];
+  if (!isEventMode) {
+    if (!clientId) missingParts.push("клиента");
+    if (appointmentServices.length === 0) missingParts.push("услугу");
+  } else if (!eventLabel.trim()) {
+    missingParts.push("название");
+  }
+  const savePreviewLabel = (() => {
+    if (!canSave) {
+      return missingParts.length > 0
+        ? `Заполните: ${missingParts.join(", ")} →`
+        : (liveMode === "edit" ? "Сохранить" : "Создать запись");
+    }
+    if (isEventMode) {
+      return liveMode === "edit" ? "Сохранить событие" : "Создать событие";
+    }
+    const shortDate = formatShortDate(dateKey);
+    const verb = liveMode === "edit" ? "Сохранить" : "Создать";
+    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}`;
+  })();
 
   // Whether the user has entered anything worth protecting on close.
   // Event mode uses eventLabel; work mode uses client + services + comment.
@@ -474,16 +509,12 @@ export default function AppointmentSheet({
     if (!client || appointmentServices.length === 0) return;
     const total = appointmentTotal(appointmentServices, globalDiscount);
     const duration = calcDuration(appointmentServices);
-    const serviceNames = appointmentServices
-      .map((l) => {
-        const svc = catalog.find((s) => s.id === l.serviceId);
-        return svc ? (l.quantity > 1 ? `x${l.quantity} ${svc.name}` : svc.name) : null;
-      })
-      .filter(Boolean)
-      .join(", ");
-    const finalComment = comment.trim()
-      ? `${serviceNames} — ${comment.trim()}`
-      : serviceNames;
+    // v607 P0 #7 — comment stores ONLY the dispatcher's note. The view
+    // layer derives the service summary from `service_ids` / `services`
+    // when it needs one. Prepending service names here was the cause of
+    // the yellow-pill bug where the "comment" badge displayed the
+    // service name instead of the actual note.
+    const finalComment = comment.trim();
     const saved: Appointment = {
       ...appointment,
       date: dateKey,
@@ -816,13 +847,12 @@ export default function AppointmentSheet({
             </div>
           ) : (
             <>
-              <SourceBlock
-                value={source}
-                readonly={readonly}
-                onChange={setSource}
-                required={liveMode === "create"}
-              />
-
+              {/* v607 P0 #1 — block order: critical inputs up top,
+                  details collapsed. Order: Client → History →
+                  Location → Services → Income → <details>. Source,
+                  comment, photos, SMS, brigade live inside the
+                  collapsible so an "20 sec on a scooter" booking
+                  only touches the top half of the sheet. */}
               <ClientBlock
                 client={client}
                 readonly={readonly}
@@ -849,6 +879,9 @@ export default function AppointmentSheet({
                 addressNote={addressNote}
                 onSelectLocation={setLocationId}
                 onAddressNoteChange={setAddressNote}
+                anonymousAddress={anonymousAddress}
+                onAnonymousAddressChange={setAnonymousAddress}
+                placeholder={addressPlaceholder}
               />
 
               <ServicesBlock
@@ -875,22 +908,86 @@ export default function AppointmentSheet({
                 onGlobalDiscountChange={setGlobalDiscount}
               />
 
-              <CommentBlock
-                value={comment}
-                readonly={readonly}
-                onChange={setComment}
-              />
+              {/* v607 P0 #1 — «Подробнее» collapsible. Closed by
+                  default in create-mode to keep the form short.
+                  Opened by default in view/edit so existing data is
+                  visible without an extra tap. */}
+              {isEditable ? (
+                <details
+                  className="group px-4 pt-3"
+                  open={liveMode === "edit"}
+                >
+                  <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
+                    <span>Подробнее</span>
+                    <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
+                  </summary>
+                  <div className="pt-1 -mx-4">
+                    <SourceBlock
+                      value={source}
+                      readonly={readonly}
+                      onChange={setSource}
+                    />
 
-              <div ref={photoScrollRef}>
-                <PhotoBlock
-                  photos={photos}
-                  readonly={readonly}
-                  tenantId={tenantId}
-                  appointmentId={appointment.id}
-                  locationLabel={selectedLocation?.label}
-                  onChange={setPhotos}
-                />
-              </div>
+                    {client && client.phone && (
+                      <div className="px-4 pt-4 flex items-center justify-between">
+                        <div>
+                          <div className="text-[15px] font-semibold text-[var(--label)]">
+                            SMS-напоминание
+                          </div>
+                          <div className="text-[12px] text-[var(--label-secondary)]">
+                            за сутки и за час до визита
+                          </div>
+                        </div>
+                        <IOSSwitch
+                          checked={smsEnabled}
+                          onChange={setSmsEnabled}
+                          ariaLabel="SMS-напоминание"
+                        />
+                      </div>
+                    )}
+
+                    <CommentBlock
+                      value={comment}
+                      readonly={readonly}
+                      onChange={setComment}
+                    />
+
+                    <div ref={photoScrollRef}>
+                      <PhotoBlock
+                        photos={photos}
+                        readonly={readonly}
+                        tenantId={tenantId}
+                        appointmentId={appointment.id}
+                        locationLabel={selectedLocation?.label}
+                        onChange={setPhotos}
+                      />
+                    </div>
+                  </div>
+                </details>
+              ) : (
+                <>
+                  <SourceBlock
+                    value={source}
+                    readonly={readonly}
+                    onChange={setSource}
+                  />
+                  <CommentBlock
+                    value={comment}
+                    readonly={readonly}
+                    onChange={setComment}
+                  />
+                  <div ref={photoScrollRef}>
+                    <PhotoBlock
+                      photos={photos}
+                      readonly={readonly}
+                      tenantId={tenantId}
+                      appointmentId={appointment.id}
+                      locationLabel={selectedLocation?.label}
+                      onChange={setPhotos}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Readonly cancellation reason in view/done mode when
                   record is already cancelled. Reuses the same red tint
@@ -908,11 +1005,11 @@ export default function AppointmentSheet({
                 </div>
               )}
 
-              {/* Cancel-appointment toggle — always visible when the
-                  appointment isn't already completed. Flipping on
-                  marks status as cancelled on save; flipping off in
-                  edit restores the previous status. */}
-              {appointment.status !== "completed" && isEditable && (
+              {/* Cancel-appointment toggle. v607 P0 #2 — only relevant
+                  for an existing record; in create mode we can't cancel
+                  something that doesn't exist yet. Visible in edit mode
+                  whenever the record isn't already completed. */}
+              {appointment.status !== "completed" && liveMode === "edit" && (
                 <>
                   <div className="px-4 pt-3 flex items-center justify-between">
                     <div>
@@ -974,24 +1071,6 @@ export default function AppointmentSheet({
                 </>
               )}
 
-              {/* SMS toggle только в create */}
-              {isEditable && client && client.phone && (
-                <div className="px-4 pt-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-[15px] font-semibold text-[var(--label)]">
-                      SMS-напоминание
-                    </div>
-                    <div className="text-[12px] text-[var(--label-secondary)]">
-                      за сутки и за час до визита
-                    </div>
-                  </div>
-                  <IOSSwitch
-                    checked={smsEnabled}
-                    onChange={setSmsEnabled}
-                    ariaLabel="SMS-напоминание"
-                  />
-                </div>
-              )}
             </>
           )}
 
@@ -1034,17 +1113,7 @@ export default function AppointmentSheet({
                   : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
               }`}
             >
-              {(() => {
-                if (liveMode === "edit") {
-                  return canSave
-                    ? `Сохранить · ${formatEUR(price)}`
-                    : "Сохранить";
-                }
-                if (isEventMode) return "Создать событие";
-                return canSave
-                  ? `Создать запись · ${formatEUR(price)}`
-                  : "Создать запись";
-              })()}
+              {savePreviewLabel}
             </button>
           </div>
         )}
@@ -1507,6 +1576,16 @@ function ClientHistoryStrip({
       </div>
     </div>
   );
+}
+
+// v607 P0 #1.8 — "12 мая" — short Russian day+month for the live
+// preview button. Same shape as ClientHistoryStrip's date, kept as a
+// separate helper so a future refactor can move the strip out.
+function formatShortDate(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, m - 1, d)
+    .toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+    .replace(/\.$/, "");
 }
 
 function formatHistoryDate(dateKey: string): string {
