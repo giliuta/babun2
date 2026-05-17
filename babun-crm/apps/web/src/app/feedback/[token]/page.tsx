@@ -1,20 +1,19 @@
 // Beta #52 (CRM Core brief) — public post-visit feedback page.
 //
 // URL is `/feedback/<token>` where token is the 192-bit one-shot the
-// post-visit SMS dispatcher attached. We:
-//   1. Look up the token row (service-role bypasses RLS for the slug
-//      check — the only field we surface is the master name).
-//   2. If unused + not expired → render the rating form.
-//   3. If used or expired → render a polite «уже принято» card.
+// post-visit SMS dispatcher attached. The page calls the
+// SECURITY DEFINER RPC `lookup_rating_token(p_token)` (migration
+// _007) which is grantable to anon — no service-role required on the
+// server. If the token doesn't exist, is used, or expired, the RPC
+// returns no rows / row.used_at / row.expires_at accordingly and we
+// render the appropriate state.
 //
-// Submission goes through `/api/feedback/submit` which inserts a
-// `master_ratings` row carrying the token. The RLS policy from
-// migration 20260517_004 only accepts inserts when the token row
-// exists, is unused, not expired, and matches tenant_id + master_id.
-// The trigger consumes the token on success.
+// Submission goes through `/api/feedback/submit` which calls the
+// `submit_rating(p_token, p_stars, p_comment)` RPC — the same
+// migration provides the atomic insert + token-consume path.
 
 import { notFound } from "next/navigation";
-import { getSupabaseService } from "@/lib/supabase/service";
+import { getSupabaseAnonServer } from "@/lib/supabase/anon-server";
 import FeedbackForm from "@/components/feedback/FeedbackForm";
 
 interface PageProps {
@@ -32,57 +31,21 @@ interface TokenLookup {
   appointment_id: string | null;
   used_at: string | null;
   expires_at: string;
-  master_name: string;
   brand_name: string | null;
 }
 
 async function loadToken(token: string): Promise<TokenLookup | null> {
   if (!/^[A-Za-z0-9_-]{16,200}$/.test(token)) return null;
-  const sb = getSupabaseService();
-  // Pull the token row + denormalised master name + tenant brand
-  // in a single round-trip. The master_ratings_tokens RLS lets
-  // service role read.
+  const sb = getSupabaseAnonServer();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (sb as any)
-    .from("master_rating_tokens")
-    .select(
-      "token, tenant_id, master_id, appointment_id, used_at, expires_at",
-    )
-    .eq("token", token)
-    .maybeSingle();
-  if (error || !data) return null;
-
-  // Display-friendly name lookups (best-effort — names aren't critical
-  // for the form to function; rating row will save fine with id only).
-  let masterName = "мастера";
-  let brandName: string | null = null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: mRow } = await (sb as any)
-      .from("masters")
-      .select("full_name")
-      .eq("id", data.master_id)
-      .maybeSingle();
-    if (mRow?.full_name) masterName = mRow.full_name;
-  } catch {
-    // ignore — masters table may live in localStorage for some tenants
-  }
-  try {
-    const { data: tRow } = await sb
-      .from("tenants")
-      .select("name")
-      .eq("id", data.tenant_id)
-      .maybeSingle();
-    if (tRow?.name) brandName = tRow.name;
-  } catch {
-    // ignore
-  }
-
-  return {
-    ...data,
-    master_name: masterName,
-    brand_name: brandName,
-  } as TokenLookup;
+  const { data, error } = await (sb as any).rpc("lookup_rating_token", {
+    p_token: token,
+  });
+  if (error) return null;
+  // RPC returns table → array; pick first row.
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return row as TokenLookup;
 }
 
 export default async function FeedbackPage(props: PageProps) {
@@ -134,11 +97,16 @@ export default async function FeedbackPage(props: PageProps) {
             Как прошёл визит?
           </h1>
           <p className="mt-1 text-[15px] text-[var(--label-secondary)] leading-snug">
-            Поставьте оценку мастеру{" "}
-            <span className="font-semibold text-[var(--label)]">
-              {row.master_name}
-            </span>
-            {row.brand_name ? <> · {row.brand_name}</> : null}.
+            Поставьте оценку мастеру
+            {row.brand_name ? (
+              <>
+                {" · "}
+                <span className="font-semibold text-[var(--label)]">
+                  {row.brand_name}
+                </span>
+              </>
+            ) : null}
+            .
           </p>
         </header>
 
