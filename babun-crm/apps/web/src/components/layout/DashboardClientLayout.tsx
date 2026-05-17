@@ -171,6 +171,7 @@ import {
   scheduleTenantStateSave,
 } from "@/lib/sync/tenant-state-backup";
 import { reportSyncError } from "@/lib/sync/sync-error-bus";
+import { logAudit } from "@/lib/audit/audit-log";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 // useDashboardSwipeTrap removed in v428 — its sentinel-pushing
 // pattern collided with router.push from sidebar Links and from the
@@ -1247,6 +1248,15 @@ export default function DashboardClientLayout({
   const upsertAppointment = useCallback(
     async (apt: Appointment) => {
       const inMemory = appointments.some((a) => a.id === apt.id);
+      // v603 §4.4 — feed the local audit log so /dashboard/audit
+      // surfaces every appointment write. Logged before the await
+      // so the entry exists even if the network drops later.
+      logAudit({
+        entity: "appointment",
+        action: inMemory ? "update" : "create",
+        summary: `${apt.date} ${apt.time_start} · ${apt.comment?.slice(0, 60) || "—"}`,
+        entityId: apt.id,
+      });
       // v482 — sync localStorage mirror inside the state updater.
       // localStorage.setItem is fully synchronous: the write is on
       // disk by the time `saveAppointments` returns. This is the
@@ -1321,6 +1331,17 @@ export default function DashboardClientLayout({
 
   const deleteAppointment = useCallback(
     async (id: string) => {
+      // v603 §4.4 — audit before the optimistic mutation so the
+      // entry captures the row's last-known state.
+      const target = appointments.find((a) => a.id === id);
+      logAudit({
+        entity: "appointment",
+        action: "delete",
+        summary: target
+          ? `${target.date} ${target.time_start} · ${target.comment?.slice(0, 60) || "—"}`
+          : id,
+        entityId: id,
+      });
       // v457 — optimistic delete. Previously we awaited the Supabase
       // round-trip BEFORE filtering the React state, which on a 4G/5G
       // hop made the deletion feel laggy ("записи удаляются с
@@ -1389,6 +1410,12 @@ export default function DashboardClientLayout({
     async (client: Client) => {
       const supabase = getSupabaseBrowser();
       const inMemory = clients.some((c) => c.id === client.id);
+      logAudit({
+        entity: "client",
+        action: inMemory ? "update" : "create",
+        summary: client.full_name || client.phone || "—",
+        entityId: client.id,
+      });
       let saved: Client;
       if (inMemory) {
         saved = await updateClientRepo(supabase, client.id, client, tenantId);
@@ -1417,11 +1444,18 @@ export default function DashboardClientLayout({
   );
   const deleteClient = useCallback(
     async (id: string) => {
+      const target = clients.find((c) => c.id === id);
+      logAudit({
+        entity: "client",
+        action: "delete",
+        summary: target?.full_name || target?.phone || id,
+        entityId: id,
+      });
       const supabase = getSupabaseBrowser();
       await deleteClientRepo(supabase, id, tenantId);
       setClientsState((prev) => prev.filter((c) => c.id !== id));
     },
-    [tenantId],
+    [clients, tenantId],
   );
   const handleClientTagsChange = useCallback((next: ClientTag[]) => {
     setClientTagsState(next);
