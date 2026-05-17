@@ -42,7 +42,6 @@ import {
 } from "@babun/shared/local/finance/appointment-calc";
 import { IOSSwitch } from "@/components/ui";
 
-import TimeBlock from "./TimeBlock";
 import ClientBlock from "./ClientBlock";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
@@ -55,6 +54,7 @@ import OverlapWarning from "./OverlapWarning";
 import EventForm from "@/components/event/EventForm";
 import CancelToggleBlock from "./CancelToggleBlock";
 import AppointmentSubSheets from "./AppointmentSubSheets";
+import TimePopup from "./TimePopup";
 import PaymentBlock from "./PaymentBlock";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
@@ -1252,123 +1252,25 @@ export default function AppointmentSheet({
         </div>
       )}
 
-      {/* v617 P1 §17 — time popup. Hosts the full date+time+duration
-          editing surface: quick chips, TimeBlock wheels, duration
-          chip row. State is mutated live by inner editors so closing
-          is a no-op (no commit/cancel split). */}
-      {timePopupOpen && (
-        <div
-          className="fixed inset-0 z-[92] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
-          onClick={() => setTimePopupOpen(false)}
-        >
-          <div
-            className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between border-b border-[var(--separator)]">
-              <span className="text-[13px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Время записи
-              </span>
-              <button
-                type="button"
-                onClick={() => setTimePopupOpen(false)}
-                className="px-3 h-8 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-              >
-                Готово
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto pb-3">
-              {liveMode === "create" && !isEventMode && (
-                <div className="px-4 pt-3 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-                  {(() => {
-                    const step = activeTeam?.default_slot_minutes ?? 30;
-                    const dur = totalDur > 0 ? totalDur : step;
-                    const fmtKey = (d: Date) =>
-                      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                    const fmtTime = (mins: number) => {
-                      const clamped = Math.min(23 * 60 + 59, Math.max(0, mins));
-                      return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
-                    };
-                    const apply = (d: Date, startMin: number) => {
-                      setDateKey(fmtKey(d));
-                      setTimeStart(fmtTime(startMin));
-                      setTimeEnd(fmtTime(startMin + dur));
-                    };
-                    const now = new Date();
-                    const nowMins = now.getHours() * 60 + now.getMinutes();
-                    const nextSlot = Math.ceil((nowMins + 1) / step) * step;
-                    const tomorrow = new Date(now);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const chips = [
-                      { label: "⚡ Сейчас", onClick: () => apply(now, nextSlot) },
-                      { label: "Через час", onClick: () => apply(now, nextSlot + 60) },
-                      { label: "Завтра", onClick: () => apply(tomorrow, 9 * 60) },
-                    ];
-                    return chips.map((c) => (
-                      <button
-                        key={c.label}
-                        type="button"
-                        onClick={c.onClick}
-                        className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
-                      >
-                        {c.label}
-                      </button>
-                    ));
-                  })()}
-                </div>
-              )}
-
-              <TimeBlock
-                date={dateKey}
-                timeStart={timeStart}
-                timeEnd={timeEnd}
-                readOnly={readonly}
-                stepMinutes={
-                  !isEventMode ? activeTeam?.default_slot_minutes : undefined
-                }
-                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                  setDateKey(d);
-                  setTimeStart(s);
-                  setTimeEnd(e);
-                }}
-              />
-
-              {isEditable && !isEventMode && (
-                <div
-                  className="px-4 pt-3 flex items-center gap-1.5 overflow-x-auto"
-                  style={{ scrollbarWidth: "none" }}
-                >
-                  <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
-                    Длит.
-                  </span>
-                  {[30, 60, 90, 120].map((m) => {
-                    const active = liveDurationMins === m;
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => applyDuration(m)}
-                        className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
-                          active
-                            ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                            : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-                        }`}
-                      >
-                        {m}м
-                      </button>
-                    );
-                  })}
-                  {durationTouched && ![30, 60, 90, 120].includes(liveDurationMins) && (
-                    <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
-                      {liveDurationMins}м
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <TimePopup
+        open={timePopupOpen}
+        onClose={() => setTimePopupOpen(false)}
+        liveMode={liveMode}
+        isEventMode={isEventMode}
+        isEditable={isEditable}
+        readonly={readonly}
+        activeTeam={activeTeam}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        totalDur={totalDur}
+        durationTouched={durationTouched}
+        liveDurationMins={liveDurationMins}
+        setDateKey={setDateKey}
+        setTimeStart={setTimeStart}
+        setTimeEnd={setTimeEnd}
+        applyDuration={applyDuration}
+      />
 
 
       {/* Keep reference list silenced */}
