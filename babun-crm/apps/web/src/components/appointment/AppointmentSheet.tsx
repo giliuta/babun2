@@ -119,6 +119,7 @@ export default function AppointmentSheet({
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
   // sheet родителем.
   const [liveMode, setLiveMode] = useState<AppointmentSheetMode>(mode);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setLiveMode(mode), [mode, appointment.id]);
 
   const [kind, setKind] = useState<Kind>(
@@ -213,6 +214,11 @@ export default function AppointmentSheet({
 
   // Resolve initial preset from appointment.total_amount (для view/done
   // показываем как преднастроенный пресет).
+  //
+  // Form-reset block — 18 setters batch into one re-render per
+  // {open, appointment} change. Canonical pattern; React-Compiler's
+  // cascade flag is a false positive here.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
     setTimeStart(appointment.time_start);
@@ -248,6 +254,7 @@ export default function AppointmentSheet({
         : "work"
     );
   }, [open, appointment]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const client = useMemo<Client | null>(
     () => (clientId ? clients.find((c) => c.id === clientId) ?? null : null),
