@@ -38,12 +38,10 @@ import CancelToggleBlock from "./CancelToggleBlock";
 import type { AppointmentSheetMode } from "./AppointmentSheet";
 
 interface AppointmentWorkBodyProps {
-  // Mode / readonly flags
   liveMode: AppointmentSheetMode;
   isEditable: boolean;
   readonly: boolean;
 
-  // Client
   client: Client | null;
   recentClientsResolved: Client[];
   setClientId: (id: string | null) => void;
@@ -51,12 +49,10 @@ interface AppointmentWorkBodyProps {
   setClientSheet: (open: boolean) => void;
   setClientMenuOpen: (open: boolean) => void;
 
-  // Client history strip
   appointment: Appointment;
   otherApts: Appointment[];
   catalog: Service[];
 
-  // Location
   locationId: string | null;
   addressNote: string;
   setAddressNote: (next: string) => void;
@@ -65,17 +61,15 @@ interface AppointmentWorkBodyProps {
   addressPlaceholder: string;
   selectedLocation: Location | null;
 
-  // Services / Income
   appointmentServices: AppointmentService[];
   globalDiscount: Discount | null;
   popularServices: Service[];
   setAppointmentServices: (next: AppointmentService[]) => void;
-  setGlobalDiscount: (next: Discount | null) => void;
+  setGlobalDiscount: React.Dispatch<React.SetStateAction<Discount | null>>;
   setAskClientFirst: (open: boolean) => void;
   setServicePickerOpen: (open: boolean) => void;
   clientId: string | null;
 
-  // Подробнее: source / sms / comment / photos
   source: AppointmentSource | null;
   setSource: (next: AppointmentSource | null) => void;
   lastUsedSource: AppointmentSource | null;
@@ -89,13 +83,11 @@ interface AppointmentWorkBodyProps {
   tenantId: string;
   photoScrollRef: MutableRefObject<HTMLDivElement | null>;
 
-  // Cancel toggle
   cancelFlag: boolean;
   setCancelFlag: (next: boolean) => void;
   cancelReason: string;
   setCancelReason: (next: string) => void;
 
-  // PaymentBlock or other view-mode-only blocks slot via children.
   viewBlocks?: ReactNode;
 }
 
@@ -147,9 +139,6 @@ export default function AppointmentWorkBody({
 }: AppointmentWorkBodyProps) {
   return (
     <>
-      {/* v607 P0 #1 — block order: critical inputs up top, details
-          collapsed. Order: Client → History → Location → Services →
-          Income → <details>. */}
       <ClientBlock
         client={client}
         readonly={readonly}
@@ -165,8 +154,6 @@ export default function AppointmentWorkBody({
         }}
       />
 
-      {/* Brief 1 #23 — last 5 past visits inline so dispatcher sees
-          prior work without leaving the sheet. */}
       {client && (
         <ClientHistoryStrip
           clientId={client.id}
@@ -213,8 +200,6 @@ export default function AppointmentWorkBody({
         onGlobalDiscountChange={setGlobalDiscount}
       />
 
-      {/* v607 P0 #1 — «Подробнее» collapsible. Closed by default in
-          create; opened in edit so existing data stays visible. */}
       {isEditable ? (
         <details className="group px-4 pt-3" open={liveMode === "edit"}>
           <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
@@ -284,8 +269,6 @@ export default function AppointmentWorkBody({
         </>
       )}
 
-      {/* Readonly cancellation reason in view/done mode when the
-          record is already cancelled. */}
       {!isEditable && appointment.status === "cancelled" && (
         <div className="px-4 pt-3">
           <div className="px-3 py-2 rounded-[14px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] text-[var(--label)]">
@@ -297,8 +280,6 @@ export default function AppointmentWorkBody({
         </div>
       )}
 
-      {/* Cancel-appointment toggle. Only in edit mode for an
-          existing-and-not-completed record. */}
       {appointment.status !== "completed" && liveMode === "edit" && (
         <CancelToggleBlock
           cancelFlag={cancelFlag}

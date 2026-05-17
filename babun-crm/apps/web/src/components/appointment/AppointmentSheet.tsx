@@ -45,6 +45,7 @@ import AppointmentSubSheets from "./AppointmentSubSheets";
 import { SegmentSwitchConfirmDialog } from "./AppointmentConfirmDialogs";
 import TimePopup from "./TimePopup";
 import AppointmentHeader from "./AppointmentHeader";
+import AppointmentSaveButton from "./AppointmentSaveButton";
 import PaymentBlock from "./PaymentBlock";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
@@ -191,7 +192,6 @@ export default function AppointmentSheet({
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
-  const [bottomWarning, setBottomWarning] = useState<string | null>(null);
   const [askClientFirst, setAskClientFirst] = useState(false);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
@@ -779,45 +779,12 @@ export default function AppointmentSheet({
           )}
         </div>
 
-        {/* Sticky save: в create и в edit — single full-width button.
-            Cancel lives as the header ✕; backdrop/Esc also prompt.
-            v615 P1 §16 — backdrop-blur so scrolled content shows
-            through softly instead of a hard cut.
-            Sprint #4 P0 §4: hidden in event mode — EventForm has its
-            own overlay and sticky footer. */}
         {isEditable && !isEventMode && (
-          <div
-            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] sticky bottom-0 z-10 backdrop-blur-[12px]"
-            style={{
-              paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
-              background: "color-mix(in srgb, var(--surface-card) 80%, transparent)",
-            }}
-          >
-            {bottomWarning && (
-              <div className="mb-2 px-3 py-2 rounded-[10px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] font-semibold text-[var(--system-red)] text-center">
-                {bottomWarning}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                if (!canSave) {
-                  setBottomWarning("Заполните сначала данные");
-                  window.setTimeout(() => setBottomWarning(null), 4000);
-                  return;
-                }
-                handleCreate();
-              }}
-              data-testid="appointment-sheet-save"
-              className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
-                canSave
-                  ? "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-                  : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
-              }`}
-            >
-              {savePreviewLabel}
-            </button>
-          </div>
+          <AppointmentSaveButton
+            canSave={canSave}
+            label={savePreviewLabel}
+            onSave={handleCreate}
+          />
         )}
       </div>
 
