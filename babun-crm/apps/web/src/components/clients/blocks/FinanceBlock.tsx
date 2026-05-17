@@ -13,13 +13,18 @@
 // (STORY-042 follow-up); the data is the same modulo the auto-sync
 // trigger, just sourced one hop earlier.
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Wallet, ArrowUpRight, TrendingUp, Calendar } from "@babun/shared/icons";
+import { Wallet, ArrowUpRight, TrendingUp, Calendar, Star } from "@babun/shared/icons";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount } from "@babun/shared/local/appointments";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { formatEUR } from "@babun/shared/common/utils/money";
+import {
+  loadLoyalty,
+  tierForVisits,
+  type LoyaltySettings,
+} from "@babun/shared/local/loyalty";
 import ClientCard from "../ClientCard";
 
 interface FinanceBlockProps {
@@ -76,6 +81,21 @@ export default function FinanceBlock({
         )
       : 0;
 
+  // Beta #53 (CRM Core brief) — show the loyalty tier the client
+  // has reached. Reads settings on mount + listens for the
+  // babun:loyalty-changed event so editing tiers in Settings
+  // reflects in the open card without a reload.
+  const [loyalty, setLoyalty] = useState<LoyaltySettings | null>(null);
+  useEffect(() => {
+    setLoyalty(loadLoyalty());
+    const onChange = () => setLoyalty(loadLoyalty());
+    window.addEventListener("babun:loyalty-changed", onChange);
+    return () => window.removeEventListener("babun:loyalty-changed", onChange);
+  }, []);
+  const tier = loyalty
+    ? tierForVisits(stats?.visits ?? 0, loyalty)
+    : null;
+
   return (
     <ClientCard kind="finance" title="Финансы">
       <div className="px-4 py-3 space-y-2">
@@ -103,6 +123,22 @@ export default function FinanceBlock({
           tone="default"
         />
         {debt > 0 && <Row label="Долг" value={formatEUR(debt)} tone="bad" />}
+
+        {tier && (
+          <div className="flex items-center gap-2 px-2 py-2 rounded-[10px] bg-[rgba(255,204,0,0.10)]">
+            <Star
+              size={14}
+              strokeWidth={2.2}
+              className="text-[#B78600] shrink-0"
+            />
+            <span className="flex-1 text-[13px] font-semibold text-[#B78600]">
+              {tier.label}
+            </span>
+            <span className="text-[13px] font-bold text-[#B78600] tabular-nums">
+              −{tier.percent}%
+            </span>
+          </div>
+        )}
 
         {paidVisits.length > 0 && (
           <div className="pt-2 mt-2 border-t border-[var(--separator)]">

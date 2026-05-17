@@ -469,6 +469,44 @@ function TemplateEditor({
               Удалить
             </Button>
           )}
+          {/* P2 #42 (CRM Core brief) — «Отправить тест». Prompts for
+              a phone, sends the rendered preview to it via the
+              /api/sms/test wrapper. Costs 1 SMS off the tenant
+              balance per the edge function. */}
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={async () => {
+              const phone = window.prompt(
+                "Номер для теста (+357...)",
+                "",
+              );
+              if (!phone || !phone.trim()) return;
+              const res = await fetch("/api/sms/test", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  to_phone: phone.trim(),
+                  body: preview,
+                }),
+              });
+              if (res.ok) {
+                window.alert("Тест отправлен. С баланса списан 1 SMS.");
+              } else {
+                let err = "";
+                try {
+                  const j = await res.json();
+                  err = j.error ?? j.hint ?? "";
+                } catch {
+                  err = String(res.status);
+                }
+                window.alert(`Ошибка: ${err || res.statusText}`);
+              }
+            }}
+            disabled={!draft.body.trim()}
+          >
+            Тест
+          </Button>
           <div className="flex-1" />
           <Button variant="secondary" size="md" onClick={onClose}>
             Отмена

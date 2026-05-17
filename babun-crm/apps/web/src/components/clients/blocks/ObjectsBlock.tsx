@@ -5,9 +5,10 @@
 // the LocationEditor sheet. The full editor (with equipment) still
 // lives at LocationEditor.tsx and remains the path for advanced edits.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowUpRight, Home, MapPin, Trash2 } from "@babun/shared/icons";
 import type { Client, Location } from "@babun/shared/local/clients";
+import type { Appointment } from "@babun/shared/local/appointments";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { generateId } from "@babun/shared/local/masters";
 import ClientCard from "../ClientCard";
@@ -24,6 +25,10 @@ interface ObjectsBlockProps {
   /** Wired from ClientCardPage so add/remove persist via the
    *  Supabase repo (and survive realtime). */
   onUpdate: (next: Client) => void;
+  /** Beta #48 (CRM Core brief) — used to render «N визитов · last
+   *  date» inline on each object card. Falls back to no-history
+   *  rendering when omitted. */
+  appointments?: Appointment[];
 }
 
 function preferAppleMaps(): boolean {
@@ -34,8 +39,27 @@ function preferAppleMaps(): boolean {
   );
 }
 
-export default function ObjectsBlock({ client, onUpdate }: ObjectsBlockProps) {
+export default function ObjectsBlock({
+  client,
+  onUpdate,
+  appointments,
+}: ObjectsBlockProps) {
   const all = client.locations ?? [];
+
+  // Beta #48 — pre-compute per-location visit counts so each
+  // ObjectRow can show «N визитов · last date» without re-scanning.
+  const historyByLocation = useMemo(() => {
+    const map = new Map<string, { count: number; lastDate: string }>();
+    if (!appointments) return map;
+    for (const a of appointments) {
+      if (!a.location_id) continue;
+      const cur = map.get(a.location_id) ?? { count: 0, lastDate: "" };
+      cur.count += 1;
+      if (a.date > cur.lastDate) cur.lastDate = a.date;
+      map.set(a.location_id, cur);
+    }
+    return map;
+  }, [appointments]);
   // Header shows the primary one already; the block lists everything
   // the user has so they can edit/remove ANY of them, including the
   // primary (otherwise removing a now-stale primary is a dead-end).
@@ -97,6 +121,7 @@ export default function ObjectsBlock({ client, onUpdate }: ObjectsBlockProps) {
           <ObjectRow
             key={loc.id}
             loc={loc}
+            history={historyByLocation.get(loc.id)}
             onRemove={() => handleRemove(loc.id)}
           />
         ))}
@@ -119,9 +144,11 @@ export default function ObjectsBlock({ client, onUpdate }: ObjectsBlockProps) {
 function ObjectRow({
   loc,
   onRemove,
+  history,
 }: {
   loc: Location;
   onRemove: () => void;
+  history?: { count: number; lastDate: string };
 }) {
   const openMaps = () => {
     haptic("light");
@@ -152,6 +179,17 @@ function ObjectRow({
             {loc.note}
           </div>
         )}
+        {history && history.count > 0 && (
+          <div className="text-[11px] text-[var(--label-secondary)] mt-0.5 tabular-nums">
+            {history.count}{" "}
+            {history.count === 1
+              ? "визит"
+              : history.count < 5
+                ? "визита"
+                : "визитов"}
+            {history.lastDate && ` · посл. ${formatHistDate(history.lastDate)}`}
+          </div>
+        )}
       </div>
       {(loc.address || loc.mapUrl) && (
         <button
@@ -173,4 +211,13 @@ function ObjectRow({
       </button>
     </div>
   );
+}
+
+function formatHistDate(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return ymd;
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+  });
 }

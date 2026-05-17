@@ -318,6 +318,109 @@ function planSend(
 
 // ─── Main handler ────────────────────────────────────────────────
 
+// P2 #42 — single test-send. Validates tenant is enabled + has
+// balance, calls Twilio once, decrements balance, logs to
+// sms_messages with trigger_type='test'. Returns the message id +
+// status so the UI can show «Отправлено · SID...» feedback.
+async function handleTestSend(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  body: { tenant_id?: string; to_phone?: string; body?: string },
+): Promise<Response> {
+  const tenantId = body.tenant_id?.trim() ?? "";
+  const toPhone = body.to_phone?.trim() ?? "";
+  const message = body.body?.trim() ?? "";
+  if (!tenantId || !toPhone || !message) {
+    return jsonResponse(400, {
+      error: "test_send_invalid",
+      hint: "tenant_id, to_phone and body are all required.",
+    });
+  }
+
+  const twilio = readTwilioCreds();
+  if (!twilio) {
+    return jsonResponse(503, {
+      error: "twilio_not_configured",
+      hint: "Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN in Edge Function Secrets.",
+    });
+  }
+
+  const { data: cfg, error: cfgErr } = await supabase
+    .from("tenant_sms_config")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .single();
+  if (cfgErr || !cfg) {
+    return jsonResponse(404, {
+      error: "tenant_sms_config_missing",
+      hint: cfgErr?.message ?? "no config row for this tenant",
+    });
+  }
+
+  // Balance check — free slot first, otherwise charge balance_cents.
+  const useFree = (cfg.free_sms_remaining ?? 0) > 0;
+  if (!useFree && (cfg.balance_cents ?? 0) < PER_SMS_COST_CENTS) {
+    return jsonResponse(402, {
+      error: "balance_exhausted",
+      hint: "Buy more SMS credit before sending a test.",
+    });
+  }
+
+  const sender =
+    cfg.sender_status === "approved" && cfg.sender_name
+      ? cfg.sender_name
+      : PLATFORM_DEFAULT_SENDER;
+
+  const send = await twilioSend(twilio, sender, toPhone, message);
+  if (!send.ok) {
+    return jsonResponse(502, {
+      error: "twilio_send_failed",
+      status: send.status,
+      errorCode: send.errorCode,
+      errorMessage: send.errorMessage,
+    });
+  }
+
+  // Charge.
+  const update: Record<string, unknown> = {
+    total_sent_count: (cfg.total_sent_count ?? 0) + 1,
+  };
+  if (useFree) {
+    update.free_sms_remaining = (cfg.free_sms_remaining ?? 0) - 1;
+  } else {
+    update.balance_cents = (cfg.balance_cents ?? 0) - PER_SMS_COST_CENTS;
+  }
+  await supabase
+    .from("tenant_sms_config")
+    .update(update)
+    .eq("tenant_id", tenantId);
+
+  // Log to both tables — the legacy sms_messages and the new
+  // sms_logs — so /admin + history UI both reflect the test send.
+  const nowIso = new Date().toISOString();
+  await supabase.from("sms_messages").insert({
+    tenant_id: tenantId,
+    appointment_id: null,
+    trigger_type: "test",
+    twilio_sid: send.sid,
+    to_phone: toPhone,
+    body_preview: message.slice(0, 80),
+    status: send.status,
+    sent_at: nowIso,
+  });
+  await supabase.from("sms_logs").insert({
+    tenant_id: tenantId,
+    trigger_type: "test",
+    twilio_sid: send.sid,
+    to_phone: toPhone,
+    body_preview: message.slice(0, 80),
+    status: send.status,
+    created_at: nowIso,
+  });
+
+  return jsonResponse(200, { ok: true, sid: send.sid, status: send.status });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") {
@@ -327,6 +430,23 @@ Deno.serve(async (req: Request) => {
   const supabase = buildServiceClient();
   if (!supabase) {
     return jsonResponse(500, { error: "service-role client unavailable" });
+  }
+
+  // P2 #42 (CRM Core brief) — test-send mode. Bypasses the
+  // sweep/cron path entirely: the caller hands us {mode:"test",
+  // tenant_id, to_phone, body}, we charge one SMS to the tenant's
+  // balance (or a free-trial slot) and dispatch via Twilio. Logged
+  // with `trigger_type: 'test'` so the history UI labels it
+  // distinctly.
+  let body: { mode?: string; tenant_id?: string; to_phone?: string; body?: string } | null = null;
+  try {
+    const text = await req.clone().text();
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = null;
+  }
+  if (body?.mode === "test") {
+    return handleTestSend(supabase, body);
   }
 
   // ── Master switch ────────────────────────────────────────────

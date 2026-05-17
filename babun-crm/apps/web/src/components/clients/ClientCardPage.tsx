@@ -167,6 +167,9 @@ export default function ClientCardPage({
                       key={cfg.kind}
                       client={client}
                       onUpdate={(next) => upsertClient(next)}
+                      appointments={appointments.filter(
+                        (a) => a.client_id === client.id,
+                      )}
                     />
                   );
                 case "visits":

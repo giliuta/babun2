@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, X } from "@babun/shared/icons";
 import {
   AC_TYPE_LABELS,
@@ -8,7 +8,9 @@ import {
   type ACUnit,
   type Location,
 } from "@babun/shared/local/clients";
+import type { Appointment } from "@babun/shared/local/appointments";
 import { generateId } from "@babun/shared/local/masters";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import { haptic } from "@/lib/haptics";
 // P0 #6 (CRM Core brief) — shared field stack (type chips + label +
 // address + mapUrl + note). LocationEditor wraps it with its own
@@ -26,6 +28,12 @@ interface LocationEditorProps {
   onSave: (next: Location) => void;
   onDelete?: () => void;
   onClose: () => void;
+  /** Beta #48 (CRM Core brief) — used to render the «История
+   *  обслуживания» section for an existing location. The editor
+   *  filters by `appointment.location_id === location.id`. Pass an
+   *  empty array (or omit) on the create flow — there's no history
+   *  for a brand-new object yet. */
+  appointments?: Appointment[];
 }
 
 const AC_TYPE_ORDER: ACType[] = ["split", "ducted", "cassette"];
@@ -37,6 +45,7 @@ export default function LocationEditor({
   onSave,
   onDelete,
   onClose,
+  appointments,
 }: LocationEditorProps) {
   const [draft, setDraft] = useState<Location>(() =>
     location ?? blankLocation(),
@@ -237,6 +246,14 @@ export default function LocationEditor({
             </button>
           </Group>
 
+          {/* ── Beta #48 — История обслуживания ──────────────── */}
+          {location && Array.isArray(appointments) && (
+            <LocationServiceHistory
+              locationId={location.id}
+              appointments={appointments}
+            />
+          )}
+
           {/* ── Основной объект тоггл ───────────────────────── */}
           <Group title="Признак">
             <label className="flex items-center gap-3 px-4 min-h-[44px]">
@@ -301,6 +318,87 @@ function blankLocation(): Location {
     isPrimary: false,
     equipment: [],
   };
+}
+
+// Beta #48 (CRM Core brief) — service history for this specific
+// object. Filters the client's appointments by `location_id` and
+// renders date + status pill + amount + comment. The brief mentioned
+// «диагностика, использованные материалы, фото до/после» — those
+// already live in the appointment record; we surface them via a tap
+// that opens the appointment on the calendar (same as VisitsBlock).
+function LocationServiceHistory({
+  locationId,
+  appointments,
+}: {
+  locationId: string;
+  appointments: Appointment[];
+}) {
+  const visits = useMemo(() => {
+    return appointments
+      .filter((a) => a.location_id === locationId)
+      .sort((a, b) =>
+        `${b.date}${b.time_start}`.localeCompare(`${a.date}${a.time_start}`),
+      )
+      .slice(0, 12);
+  }, [appointments, locationId]);
+
+  return (
+    <Group
+      title="История обслуживания"
+      footer="Только визиты на этот объект. Тап — открыть запись в календаре."
+    >
+      {visits.length === 0 ? (
+        <div className="px-4 py-3 text-[13px] text-[var(--label-tertiary)]">
+          Визитов на этот объект ещё нет.
+        </div>
+      ) : (
+        <ul className="divide-y divide-[var(--separator)]">
+          {visits.map((apt) => {
+            const status = (() => {
+              if (apt.status === "completed")
+                return { label: "Выполнено", cls: "bg-[rgba(52,199,89,0.15)] text-[var(--system-green)]" };
+              if (apt.status === "cancelled")
+                return { label: "Отменено", cls: "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]" };
+              if (apt.status === "in_progress")
+                return { label: "В работе", cls: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" };
+              return { label: "Запланировано", cls: "bg-[rgba(0,122,255,0.12)] text-[var(--system-blue)]" };
+            })();
+            return (
+              <li key={apt.id} className="px-4 py-2.5 flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] text-[var(--label)] truncate">
+                    {apt.comment?.trim() || "—"}
+                  </div>
+                  <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
+                    {formatLocHistoryDate(apt.date)} · {apt.time_start}
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${status.cls}`}
+                >
+                  {status.label}
+                </span>
+                <span className="shrink-0 w-14 text-right text-[13px] font-bold text-[var(--system-green)] tabular-nums">
+                  {formatEUR(apt.total_amount)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Group>
+  );
+}
+
+function formatLocHistoryDate(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return ymd;
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function Group({
