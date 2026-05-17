@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import {
-  Check,
-  Camera,
-  CalendarClock,
-} from "@babun/shared/icons";
+import { CalendarClock } from "@babun/shared/icons";
 import type {
   Appointment,
   AppointmentPayment,
@@ -55,6 +51,7 @@ import EventForm from "@/components/event/EventForm";
 import CancelToggleBlock from "./CancelToggleBlock";
 import AppointmentSubSheets from "./AppointmentSubSheets";
 import TimePopup from "./TimePopup";
+import AppointmentHeader from "./AppointmentHeader";
 import PaymentBlock from "./PaymentBlock";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
@@ -717,108 +714,21 @@ export default function AppointmentSheet({
         }}
       >
 
-        {/* Header */}
-        <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
-          {liveMode === "create" ? (
-            personalMode ? (
-              // Personal calendar — always event; no segment toggle.
-              <div className="inline-flex items-center h-8 px-3 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold">
-                Личное событие
-              </div>
-            ) : (
-              <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
-                {(["work", "event"] as Kind[]).map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => {
-                      if (k === kind) return;
-                      // v619 — guard the kind swap. If we're leaving an
-                      // event draft with content, confirm first; the
-                      // EventForm child unmounts on kind change and its
-                      // internal state (notes / url / push / repeat /
-                      // place) would be silently dropped.
-                      if (kind === "event" && eventFormDirty) {
-                        setSegmentSwitchConfirm(true);
-                        return;
-                      }
-                      setKind(k);
-                    }}
-                    className={`px-4 py-1.5 rounded-[8px] transition ${
-                      kind === k
-                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-                        : "text-[var(--label-secondary)]"
-                    }`}
-                  >
-                    {k === "work" ? "Клиент" : "Событие"}
-                  </button>
-                ))}
-              </div>
-            )
-          ) : liveMode === "edit" ? (
-            <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
-              Редактирование
-            </div>
-          ) : liveMode === "done" ? (
-            <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
-              {doneBadge}
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* Sprint 025 STORY-005 — one-tap shortcuts on open visits:
-              ✓ complete, 📷 add photo, ↻ reschedule. They mirror the
-              three actions the dispatcher reaches for most; the slower
-              admin options still live in the ⋯ menu inside ClientBlock. */}
-          {showQuickActions && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {onCompleteQuick && (
-                <button
-                  type="button"
-                  onClick={() => onCompleteQuick(appointment)}
-                  aria-label="Отметить выполненной"
-                  title="Выполнено"
-                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
-                >
-                  <Check size={22} strokeWidth={2.5} />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={scrollToPhotos}
-                aria-label="Перейти к фото"
-                title="Фото"
-                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
-              >
-                <Camera size={20} strokeWidth={2} />
-              </button>
-              {onReschedule && (
-                <button
-                  type="button"
-                  onClick={() => onReschedule(appointment)}
-                  aria-label="Перенести запись"
-                  title="Перенести"
-                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
-                >
-                  <CalendarClock size={20} strokeWidth={2} />
-                </button>
-              )}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={attemptClose}
-            aria-label="Закрыть"
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        <AppointmentHeader
+          liveMode={liveMode}
+          personalMode={personalMode}
+          kind={kind}
+          eventFormDirty={eventFormDirty}
+          doneBadge={doneBadge}
+          showQuickActions={showQuickActions}
+          onCompleteQuick={onCompleteQuick}
+          onReschedule={onReschedule}
+          appointment={appointment}
+          scrollToPhotos={scrollToPhotos}
+          setKind={setKind}
+          setSegmentSwitchConfirm={setSegmentSwitchConfirm}
+          attemptClose={attemptClose}
+        />
 
         {/* Scroll body */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-4" data-appt-scroll>
