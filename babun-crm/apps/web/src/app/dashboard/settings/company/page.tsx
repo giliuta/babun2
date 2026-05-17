@@ -19,6 +19,13 @@ export default function CompanySettingsPage() {
   const [info, setInfo] = useState<CompanyInfo | null>(null);
 
   useEffect(() => {
+    // Client-only hydration: loadCompany() reads localStorage which
+    // is unavailable on the server. The initial null render is
+    // intentional so SSR + client produce identical markup; this
+    // effect replaces it with real data after mount. React-Compiler
+    // flags the pattern as a cascading render, but no externally
+    // observable cascade exists — render-once-then-edit.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setInfo(loadCompany());
   }, []);
 

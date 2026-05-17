@@ -75,9 +75,15 @@ export default function MasterAccessPage({ params }: RouteParams) {
   const [groupsHydrated, setGroupsHydrated] = useState(false);
   const [query, setQuery] = useState("");
 
-  // Hydrate expand-state from localStorage after mount to keep SSR happy.
+  // Hydrate expand-state from localStorage after mount to keep SSR
+  // happy. React-Compiler flags both setState calls as cascading
+  // renders, but this is the canonical client-only hydration pattern
+  // — first paint matches SSR (defaults), then this effect upgrades
+  // to the persisted state in one synchronous batch.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGroupsOpen(loadGroupsOpen());
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGroupsHydrated(true);
   }, []);
 
