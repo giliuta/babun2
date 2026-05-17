@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   CalendarRange,
   Calendar as CalendarOneDay,
+  List as ListIcon,
 } from "@babun/shared/icons";
 import { getMonthName } from "@babun/shared/common/utils/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
@@ -36,7 +37,7 @@ interface HeaderAppointment {
   date: string;
 }
 
-export type ViewMode = "day" | "3days" | "week" | "month";
+export type ViewMode = "day" | "3days" | "week" | "month" | "agenda";
 
 export interface HeaderTeamTab {
   id: string;
@@ -75,6 +76,7 @@ const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   "3days": "3 дня",
   week: "Неделя",
   month: "Месяц",
+  agenda: "Агенда",
 };
 
 export default function Header({
@@ -121,6 +123,7 @@ export default function Header({
     "3days": Rows3,
     week: CalendarRange,
     month: LayoutGrid,
+    agenda: ListIcon,
   };
   const ActiveViewIcon = VIEW_ICONS[viewMode];
 
@@ -211,7 +214,7 @@ export default function Header({
                 onClick={() => setShowViewDropdown(false)}
               />
               <div className="absolute right-0 top-full mt-2 bg-[var(--surface-card)] rounded-[12px] shadow-[var(--shadow-sheet)] py-1 z-50 min-w-[140px] border border-[var(--separator)]">
-                {(["day", "3days", "week", "month"] as ViewMode[]).map((mode) => {
+                {(["day", "3days", "week", "month", "agenda"] as ViewMode[]).map((mode) => {
                   const Icon = VIEW_ICONS[mode];
                   return (
                     <button

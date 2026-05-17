@@ -24,10 +24,13 @@ import {
   useAppointments,
   useDayExtras,
   useExpenseCategories,
+  useMasters,
   useServices,
   useTeams,
   useClients,
 } from "@/components/layout/DashboardClientLayout";
+import { generateId } from "@babun/shared/local/masters";
+import type { DayExtra } from "@babun/shared/local/day-extras";
 import { formatEUR, formatEURSigned, formatPercentDelta } from "@babun/shared/common/utils/money";
 import {
   useFinanceData,
@@ -61,6 +64,8 @@ export default function FinancesPage() {
   const { services } = useServices();
   const { teams } = useTeams();
   const { clients } = useClients();
+  // P1 #30 — masters lookup for the payroll-per-master breakdown.
+  const { masters } = useMasters();
 
   const [mode, setMode] = useState<Mode>("summary");
   const [period, setPeriod] = useState<PeriodKey>("30d");
@@ -347,7 +352,46 @@ export default function FinancesPage() {
             )}
 
             {mode === "payroll" && (
-              <PayrollTab entries={payroll} total={totalPayroll} />
+              <PayrollTab
+                entries={payroll}
+                total={totalPayroll}
+                masterNameFor={(id) =>
+                  masters.find((m) => m.id === id)?.full_name ?? id
+                }
+                onPayMaster={({ team, masterId, masterName, amount }) => {
+                  // P1 #30 — payout creates a manual expense entry
+                  // («Зарплата мастера») in day-extras. Lands on the
+                  // canonical day-extras store so it shows up in the
+                  // expenses tab + сводка immediately. A proper
+                  // payroll_payouts table + period-close flow lives
+                  // in STORY-057.
+                  if (amount <= 0) return;
+                  haptic("success");
+                  const dateKey = (() => {
+                    const d = new Date();
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                  })();
+                  const entry: DayExtra = {
+                    id: generateId("xtra"),
+                    name: `Зарплата · ${masterName}`,
+                    amount,
+                    kind: "expense",
+                    category: "other",
+                  };
+                  const existing = getExtrasFor(team.id, dateKey);
+                  setExtrasFor(team.id, dateKey, [...existing, entry]);
+                  // Acknowledge silently — the row will appear in the
+                  // Расходы tab + Сводка on next render. A toast pops
+                  // out of the haptic-driven feedback we already use.
+                  // eslint-disable-next-line no-console
+                  console.info(
+                    "P1 #30 payout",
+                    masterId,
+                    `${amount} €`,
+                    `→ ${team.name} day-extras ${dateKey}`,
+                  );
+                }}
+              />
             )}
           </div>
         </div>

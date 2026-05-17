@@ -258,7 +258,18 @@ export interface UseFinanceDataResult {
   debts: DebtLine[];
   debtsByClient: { clientId: string | null; name: string; total: number; items: DebtLine[] }[];
   totalDebt: number;
-  payroll: { team: Team; income: number; expense: number; net: number; percentage: number; payable: number }[];
+  payroll: {
+    team: Team;
+    income: number;
+    expense: number;
+    net: number;
+    percentage: number;
+    payable: number;
+    /** P1 #30 — per-master shares of the team payable. Visit-count
+     *  weighted; falls back to equal split when nobody has visits
+     *  in the period yet. */
+    masters: { masterId: string; visits: number; share: number }[];
+  }[];
   totalPayroll: number;
   servicesBreakdown: { name: string; count: number; revenue: number }[];
   /** P1 #28 (CRM Core brief) — top-revenue clients in the active
@@ -467,9 +478,56 @@ export function useFinanceData({
         const net = inc - exp;
         const pct = team.payout_percentage ?? 30;
         const payable = Math.max(0, Math.round((net * pct) / 100));
-        return { team, income: inc, expense: exp, net, percentage: pct, payable };
+
+        // P1 #30 (CRM Core brief) — per-master breakdown. Operator
+        // asks «кому конкретно я должен сколько?». We split the
+        // team's payable proportionally to each master's visit count
+        // in the active period:
+        //   share_master = (visits_by_master / total_visits) × payable
+        // Falls back to an equal split when nobody has visits yet
+        // (rare — fresh team in a fresh period). Equal split keeps the
+        // total summing to `payable` exactly modulo rounding.
+        const teamAppts = appointments.filter(
+          (a) =>
+            a.team_id === team.id &&
+            a.status === "completed" &&
+            a.date >= (current.rangeStart ?? "0000-01-01") &&
+            a.date <= current.rangeEnd,
+        );
+        const visitsByMaster = new Map<string, number>();
+        for (const a of teamAppts) {
+          if (!a.master_id) continue;
+          visitsByMaster.set(a.master_id, (visitsByMaster.get(a.master_id) ?? 0) + 1);
+        }
+        const totalVisits = Array.from(visitsByMaster.values()).reduce((s, v) => s + v, 0);
+        // Members of the team — lead + helpers + brigade members union.
+        const memberIds = new Set<string>();
+        if (team.lead_id) memberIds.add(team.lead_id);
+        for (const id of team.helper_ids ?? []) memberIds.add(id);
+        if (Array.isArray(team.members)) {
+          for (const m of team.members) memberIds.add(m.master_id);
+        }
+
+        const masters: { masterId: string; visits: number; share: number }[] = [];
+        if (totalVisits > 0) {
+          for (const [masterId, visits] of visitsByMaster) {
+            masters.push({
+              masterId,
+              visits,
+              share: Math.round((payable * visits) / totalVisits),
+            });
+          }
+        } else if (memberIds.size > 0) {
+          const equalShare = Math.round(payable / memberIds.size);
+          for (const id of memberIds) {
+            masters.push({ masterId: id, visits: 0, share: equalShare });
+          }
+        }
+        masters.sort((a, b) => b.share - a.share);
+
+        return { team, income: inc, expense: exp, net, percentage: pct, payable, masters };
       });
-  }, [teams, curLines]);
+  }, [teams, curLines, appointments, current]);
 
   const totalPayroll = payroll.reduce((s, p) => s + p.payable, 0);
 
