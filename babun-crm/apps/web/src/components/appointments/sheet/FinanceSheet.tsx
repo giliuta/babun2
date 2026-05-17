@@ -42,6 +42,10 @@ export default function FinanceSheet({
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Reset 8 form fields when the sheet opens. Canonical form-reset
+    // pattern; React batches all setters into one re-render per
+    // {open, discount, expenses, priceOverrides} change.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (open) {
       setLocalDiscount(discount);
       setLocalExpenses(expenses);
@@ -52,6 +56,7 @@ export default function FinanceSheet({
       setShowAddExpense(false);
       setEditingServiceId(null);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, discount, expenses, priceOverrides]);
 
   useEffect(() => {

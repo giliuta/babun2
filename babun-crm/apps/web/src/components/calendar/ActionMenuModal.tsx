@@ -33,6 +33,10 @@ export default function ActionMenuModal({
   const openedAt = useRef(0);
 
   useEffect(() => {
+    // Reset «armed» on close, then arm after 300ms on open. Two
+    // separate state writes; React-Compiler false-positive for
+    // cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!open) {
       setArmed(false);
       return;
