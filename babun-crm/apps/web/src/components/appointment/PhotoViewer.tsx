@@ -38,11 +38,16 @@ export default function PhotoViewer({
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
+    // Reset viewer state on open. Three setters batch into one
+    // re-render per {open, initialIndex} change. Canonical form-
+    // reset pattern; React-Compiler cascade flag is a false positive.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (open) {
       setIndex(initialIndex);
       setCaptionEditing(false);
       setMenuOpen(false);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, initialIndex]);
 
   useEffect(() => {
