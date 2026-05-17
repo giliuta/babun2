@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, Trash2 } from "@babun/shared/icons";
+import { ClipboardList, Trash2, Search, X } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -77,6 +77,7 @@ export default function AuditLogPage() {
   const confirm = useConfirm();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [filter, setFilter] = useState<AuditEntityKind | "all">("all");
+  const [query, setQuery] = useState("");
 
   const refresh = useCallback(() => {
     setEntries(loadAuditLog());
@@ -93,11 +94,14 @@ export default function AuditLogPage() {
     };
   }, [refresh]);
 
-  const visible = useMemo(
-    () =>
-      filter === "all" ? entries : entries.filter((e) => e.entity === filter),
-    [entries, filter],
-  );
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (filter !== "all" && e.entity !== filter) return false;
+      if (q && !e.summary.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [entries, filter, query]);
 
   const presentKinds = useMemo(() => {
     const set = new Set<AuditEntityKind>();
@@ -146,6 +150,33 @@ export default function AuditLogPage() {
             />
           ) : (
             <>
+              {/* v607 — search by summary text. Useful when the
+                  journal accumulates a few hundred entries and the
+                  dispatcher needs to find «Иван» or «отменено». */}
+              <div className="relative">
+                <Search
+                  size={14}
+                  strokeWidth={2}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] pointer-events-none"
+                />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Поиск по описанию"
+                  className="w-full h-10 pl-9 pr-9 bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:border-[var(--accent)] transition"
+                />
+                {query.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    aria-label="Очистить поиск"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-tertiary)]"
+                  >
+                    <X size={14} strokeWidth={2.2} />
+                  </button>
+                )}
+              </div>
               {presentKinds.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
                   <FilterChip
@@ -169,7 +200,9 @@ export default function AuditLogPage() {
                 ))}
                 {visible.length === 0 && (
                   <div className="px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-                    В этой категории пока ничего нет
+                    {query.length > 0
+                      ? `Ничего не найдено по запросу «${query}»`
+                      : "В этой категории пока ничего нет"}
                   </div>
                 )}
               </div>
