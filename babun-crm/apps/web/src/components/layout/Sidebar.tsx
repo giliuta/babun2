@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   LogOut,
   CircleAlert as AlertTriangleIcon,
+  ClipboardList as ClipboardListIcon,
 } from "@babun/shared/icons";
 import { dueReminders } from "@babun/shared/local/recurring";
 import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
@@ -41,6 +42,7 @@ export type DialogType =
   | "finances"
   | "recurring"
   | "unclosed"
+  | "audit"
   | "settings"
   | "masters"
   | "teams"
@@ -67,6 +69,7 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   finances: "/dashboard/finances",
   recurring: "/dashboard/recurring",
   unclosed: "/dashboard/unclosed",
+  audit: "/dashboard/audit",
   settings: "/dashboard/settings",
   masters: "/dashboard/masters",
   teams: "/dashboard/teams",
@@ -293,6 +296,13 @@ export default function Sidebar({
               href={ROUTE_MAP.unclosed}
               badge={unclosedCount > 0 ? unclosedCount : undefined}
               active={isActive("unclosed")}
+            />
+            <NavRow
+              icon={ClipboardListIcon}
+              tone="purple"
+              label="Журнал"
+              href={ROUTE_MAP.audit}
+              active={isActive("audit")}
             />
             <NavRow
               icon={SettingsIcon}
