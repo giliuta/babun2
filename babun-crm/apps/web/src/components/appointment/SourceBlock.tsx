@@ -1,11 +1,34 @@
 "use client";
 
 import { useMemo } from "react";
-import { Smartphone } from "@babun/shared/icons";
+import {
+  Smartphone,
+  Phone,
+  MessageCircle,
+  AtSign,
+  Globe,
+  Users,
+  RefreshCw,
+  Footprints,
+  HelpCircle,
+} from "@babun/shared/icons";
 import {
   APPOINTMENT_SOURCE_LABELS,
   type AppointmentSource,
 } from "@babun/shared/local/appointments";
+
+// v616 P2 — lucide line icons per source. Replaces flat text pills
+// with icon+label pairs that scan faster on a 375 px screen.
+const SOURCE_ICONS: Record<AppointmentSource, React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
+  phone: Phone,
+  whatsapp: MessageCircle,
+  instagram: AtSign,
+  online: Globe,
+  referral: Users,
+  repeat: RefreshCw,
+  walk_in: Footprints,
+  other: HelpCircle,
+};
 
 interface SourceBlockProps {
   value: AppointmentSource | null;
@@ -68,6 +91,7 @@ export default function SourceBlock({ value, readonly, onChange, lastUsed }: Sou
         {order.map((s) => {
           const active = value === s;
           const isLastUsed = !active && lastUsed === s;
+          const Icon = SOURCE_ICONS[s];
           return (
             <button
               key={s}
@@ -77,7 +101,7 @@ export default function SourceBlock({ value, readonly, onChange, lastUsed }: Sou
               onClick={() => {
                 onChange?.(active ? null : s);
               }}
-              className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
+              className={`inline-flex items-center gap-1.5 pl-2.5 pr-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
                 active
                   ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                   : isLastUsed
@@ -85,6 +109,7 @@ export default function SourceBlock({ value, readonly, onChange, lastUsed }: Sou
                     : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
               }`}
             >
+              <Icon size={13} strokeWidth={2} />
               {APPOINTMENT_SOURCE_LABELS[s]}
             </button>
           );

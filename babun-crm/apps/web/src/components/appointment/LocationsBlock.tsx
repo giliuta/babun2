@@ -243,13 +243,16 @@ export default function LocationsBlock({
   return (
     <div className="px-4 pt-2">
       <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden">
-        {/* Multi-address chip switcher + [+] at the right edge */}
+        {/* v616 §6 — multi-address chip switcher + [+] at the right
+            edge. Chips themselves only render for 2+ locations; with
+            a single one the row collapses to just the [+] add button
+            so the operator can still add a sibling location. */}
         {realLocations.length >= 1 && mode !== "form" && (
           <div
             className="px-2 pt-2 pb-1 flex items-center gap-1.5 overflow-x-auto"
             style={{ scrollbarWidth: "none" }}
           >
-            {realLocations.map((loc) => {
+            {realLocations.length >= 2 && realLocations.map((loc) => {
               const active = loc.id === selected?.id;
               return (
                 <button

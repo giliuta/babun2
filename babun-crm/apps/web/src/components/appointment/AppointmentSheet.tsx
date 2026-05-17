@@ -28,7 +28,7 @@ import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
-import { pricePerUnit } from "@babun/shared/local/services";
+import { servicesToIds, idsToServices } from "@/lib/appointment-services";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
 import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
 import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
@@ -54,6 +54,7 @@ import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
 import OverlapWarning from "./OverlapWarning";
 import EventModeBody from "./EventModeBody";
 import CancelToggleBlock from "./CancelToggleBlock";
+import { CloseConfirmDialog, AskClientFirstDialog } from "./AppointmentConfirmDialogs";
 import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
 import ClientProfileView from "@/components/clients/ClientProfileView";
@@ -196,6 +197,12 @@ export default function AppointmentSheet({
   const tenantId = useTenantId();
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
+  // v616 P2 — operator-picked event accent override. null = derive from
+  // the preset name (legacy behaviour). When set, beats the preset's
+  // intrinsic colour on save.
+  const [eventColorOverride, setEventColorOverride] = useState<string | null>(
+    appointment.color_override ?? null,
+  );
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
@@ -247,6 +254,8 @@ export default function AppointmentSheet({
         });
     }
     setEventLabel(appointment.comment || "");
+    setEventColorOverride(appointment.color_override ?? null);
+    setDurationTouched(false);
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
     setGlobalDiscount(appointment.global_discount ?? null);
@@ -418,13 +427,21 @@ export default function AppointmentSheet({
 
   const isEditable = liveMode === "create" || liveMode === "edit";
 
+  // v616 P1 §14/§15 — `durationTouched` flag. When the operator picks
+  // a duration explicitly (chip row below), service-list changes stop
+  // auto-extending the end time. Reset implicitly when the sheet
+  // opens for a new appointment.
+  const [durationTouched, setDurationTouched] = useState(false);
+
   // Live end-time recalc: end ≥ start + Σ service durations. Grows only
   // — a manually-extended end is never shrunk back. Off in view/done
-  // (readonly) and for personal events (no service list). Clamps at
-  // 23:59 to avoid wrap-around; a visit that crosses midnight should be
+  // (readonly), for personal events, and once `durationTouched` is
+  // set (the operator chose a duration deliberately). Clamps at 23:59
+  // to avoid wrap-around; a visit that crosses midnight should be
   // booked as two records.
   useEffect(() => {
     if (!isEditable || kind === "event") return;
+    if (durationTouched) return;
     if (totalDur <= 0) return;
     const [sh, sm] = timeStart.split(":").map(Number);
     const [eh, em] = timeEnd.split(":").map(Number);
@@ -437,7 +454,26 @@ export default function AppointmentSheet({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeEnd(`${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`);
     }
-  }, [isEditable, kind, totalDur, timeStart, timeEnd]);
+  }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched]);
+
+  // Apply an explicit duration in minutes — sets end_time and locks
+  // out the live-recalc effect above. Clamps at 23:59.
+  const applyDuration = (mins: number) => {
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = Math.min(23 * 60 + 59, startMin + mins);
+    setTimeEnd(
+      `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+    );
+    setDurationTouched(true);
+  };
+
+  // Current live duration (minutes between start and end).
+  const liveDurationMins = (() => {
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const [eh, em] = timeEnd.split(":").map(Number);
+    return Math.max(0, eh * 60 + em - (sh * 60 + sm));
+  })();
   const readonly = !isEditable;
   const isEventMode = kind === "event";
   // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
@@ -522,10 +558,14 @@ export default function AppointmentSheet({
         kind: "event",
         comment: eventLabel.trim(),
         team_id: activeTeam?.id ?? null,
+        // v616 P2 — manual color override wins; fall back to the preset's
+        // intrinsic colour when the operator hasn't picked one.
         color_override:
+          eventColorOverride ??
           EVENT_PRESETS.find((e) =>
             eventLabel.toLowerCase().startsWith(e.label.toLowerCase())
-          )?.color ?? null,
+          )?.color ??
+          null,
         total_amount: 0,
         custom_total: true,
         status: "scheduled",
@@ -834,14 +874,54 @@ export default function AppointmentSheet({
             />
           )}
 
+          {/* v616 P1 §14/§15 — duration chip row. Operator picks 30 /
+              60 / 90 / 120 min and the end time recomputes. Picking
+              any of these sets `durationTouched`, which freezes the
+              service-list auto-extend effect so adding услуги doesn't
+              clobber the operator's pick. */}
+          {isEditable && !isEventMode && (
+            <div
+              className="px-4 pt-2 flex items-center gap-1.5 overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
+                Длит.
+              </span>
+              {[30, 60, 90, 120].map((m) => {
+                const active = liveDurationMins === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => applyDuration(m)}
+                    className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
+                      active
+                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                        : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                    }`}
+                  >
+                    {m}м
+                  </button>
+                );
+              })}
+              {durationTouched && ![30, 60, 90, 120].includes(liveDurationMins) && (
+                <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
+                  {liveDurationMins}м
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Event mode body */}
           {isEventMode && isEditable ? (
             <EventModeBody
               eventLabel={eventLabel}
               timeStart={timeStart}
+              colorOverride={eventColorOverride}
               onLabelChange={setEventLabel}
               onTimeStartChange={setTimeStart}
               onTimeEndChange={setTimeEnd}
+              onColorChange={setEventColorOverride}
             />
           ) : (
             <>
@@ -1045,11 +1125,16 @@ export default function AppointmentSheet({
         </div>
 
         {/* Sticky save: в create и в edit — single full-width button.
-            Cancel lives as the header ✕; backdrop/Esc also prompt. */}
+            Cancel lives as the header ✕; backdrop/Esc also prompt.
+            v615 P1 §16 — backdrop-blur so scrolled content shows
+            through softly instead of a hard cut. */}
         {isEditable && (
           <div
-            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
+            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] sticky bottom-0 z-10 backdrop-blur-[12px]"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
+              background: "color-mix(in srgb, var(--surface-card) 80%, transparent)",
+            }}
           >
             {bottomWarning && (
               <div className="mb-2 px-3 py-2 rounded-[10px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] font-semibold text-[var(--system-red)] text-center">
@@ -1110,99 +1195,34 @@ export default function AppointmentSheet({
         clientPhone={client?.phone ?? null}
       />
 
-      {/* Close-confirmation modal — centered, minimalist, 2 buttons. */}
-      {closeConfirm && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setCloseConfirm(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-              {liveMode === "edit" ? "Закрыть без сохранения?" : "Закрыть запись?"}
-            </div>
-            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
-              {canSave
-                ? "Введённые данные не сохранятся."
-                : "Не хватает данных для сохранения — закрыть форму?"}
-            </div>
-            {/* v517 P0 #2.7 — destructive «Не сохранять» promoted to
-                primary (filled red): closing the sheet is the user's
-                intent. «Сохранить» drops to secondary outlined and is
-                only enabled when canSave. */}
-            <div className="pt-2 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCloseConfirm(false);
-                  onClose();
-                }}
-                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
-              >
-                Не сохранять
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!canSave) return;
-                  handleCreate();
-                  setCloseConfirm(false);
-                }}
-                disabled={!canSave}
-                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CloseConfirmDialog
+        open={closeConfirm}
+        mode={liveMode}
+        canSave={canSave}
+        onCancel={() => setCloseConfirm(false)}
+        onDiscard={() => {
+          setCloseConfirm(false);
+          onClose();
+        }}
+        onSave={() => {
+          if (!canSave) return;
+          handleCreate();
+          setCloseConfirm(false);
+        }}
+      />
 
-      {/* "Pick client first?" prompt — fires when the dispatcher taps
-          the service button before a client is set. Mirrors the common
-          two-step flow. "Да" opens ClientPicker; "Нет" goes straight
-          to the services. */}
-      {askClientFirst && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setAskClientFirst(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[15px] text-[var(--label)] py-2 px-1 leading-snug">
-              Клиент для записи ещё не выбран.
-              <br />
-              Выбрать клиента сейчас?
-            </div>
-            <div className="pt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAskClientFirst(false);
-                  setServicePickerOpen(true);
-                }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] active:bg-[var(--fill-secondary)]"
-              >
-                Нет
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAskClientFirst(false);
-                  setClientSheet(true);
-                }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-              >
-                Да
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AskClientFirstDialog
+        open={askClientFirst}
+        onCancel={() => setAskClientFirst(false)}
+        onContinue={() => {
+          setAskClientFirst(false);
+          setServicePickerOpen(true);
+        }}
+        onPickClient={() => {
+          setAskClientFirst(false);
+          setClientSheet(true);
+        }}
+      />
 
       {client && (
         <ClientActionMenu
@@ -1389,70 +1409,4 @@ export default function AppointmentSheet({
   );
 }
 
-// ─── id ↔ AppointmentService helpers ────────────────────────────────────
-// ServicePickerSheet оперирует `string[]` с дубликатами (quantity = кол-во
-// повторов id). AppointmentService[] нужен для корректного расчёта bulk
-// price и per-line пользовательских переопределений цены. Эти две
-// функции мостят два представления, сохраняя overrides из prev.
-
-function servicesToIds(list: AppointmentService[]): string[] {
-  const out: string[] = [];
-  for (const s of list) {
-    for (let i = 0; i < s.quantity; i++) out.push(s.serviceId);
-  }
-  return out;
-}
-
-function idsToServices(
-  ids: string[],
-  catalog: Service[],
-  prev: AppointmentService[]
-): AppointmentService[] {
-  const byId = new Map<string, Service>();
-  for (const svc of catalog) byId.set(svc.id, svc);
-  const prevById = new Map<string, AppointmentService>();
-  for (const line of prev) prevById.set(line.serviceId, line);
-
-  const qty = new Map<string, number>();
-  for (const id of ids) qty.set(id, (qty.get(id) ?? 0) + 1);
-
-  const out: AppointmentService[] = [];
-  // Сохраняем исходный порядок: сначала строки, которые уже были в prev
-  // (это сохраняет ручные перестановки в UI), потом новые.
-  const seen = new Set<string>();
-  for (const line of prev) {
-    const q = qty.get(line.serviceId);
-    if (!q) continue;
-    seen.add(line.serviceId);
-    const svc = byId.get(line.serviceId);
-    if (!svc) continue;
-    // Если команда не трогала цену (pricePerUnit === originalPrice),
-    // пересчитываем с учётом bulk. Если трогала — сохраняем override.
-    const userOverride = line.pricePerUnit !== line.originalPrice;
-    const ppu = userOverride ? line.pricePerUnit : pricePerUnit(svc, q);
-    out.push({
-      ...line,
-      quantity: q,
-      pricePerUnit: ppu,
-      originalPrice: svc.price,
-      totalPrice: q * ppu,
-      duration: q * svc.duration_minutes,
-    });
-  }
-  for (const [id, q] of qty) {
-    if (seen.has(id)) continue;
-    const svc = byId.get(id);
-    if (!svc) continue;
-    const ppu = pricePerUnit(svc, q);
-    out.push({
-      serviceId: id,
-      quantity: q,
-      pricePerUnit: ppu,
-      originalPrice: svc.price,
-      totalPrice: q * ppu,
-      duration: q * svc.duration_minutes,
-    });
-  }
-  return out;
-}
 
