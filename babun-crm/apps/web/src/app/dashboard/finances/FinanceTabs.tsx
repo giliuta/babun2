@@ -175,11 +175,17 @@ export function DebtsTab({
   total,
   onOpenClient,
   clientsById,
+  onMarkPaid,
 }: {
   groups: { clientId: string | null; name: string; total: number; items: DebtLine[] }[];
   total: number;
   onOpenClient: (clientId: string | null) => void;
   clientsById: Map<string, Client>;
+  /** P1 #32 (CRM Core brief) — «быстрое действие "Отметить
+   *  оплаченным"». Closes every outstanding appointment of the
+   *  client in one tap; the v577 wiring + Supabase trigger book the
+   *  matching income rows automatically. */
+  onMarkPaid?: (appointmentIds: string[]) => void;
 }) {
   if (groups.length === 0) {
     return (
@@ -211,24 +217,35 @@ export function DebtsTab({
                 −{formatEUR(g.total)}
               </div>
             </button>
-            {phoneDigits && (
-              <div className="px-4 pb-3 flex gap-2">
-                <a
-                  href={`tel:${phoneDigits}`}
-                  className="flex-1 h-9 rounded-lg bg-[var(--fill-tertiary)] text-[var(--system-green)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
+            <div className="px-4 pb-3 flex gap-2">
+              {phoneDigits && (
+                <>
+                  <a
+                    href={`tel:${phoneDigits}`}
+                    className="flex-1 h-9 rounded-lg bg-[var(--fill-tertiary)] text-[var(--system-green)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
+                  >
+                    <Phone size={14} strokeWidth={2} />
+                    Позвонить
+                  </a>
+                  <a
+                    href={`sms:${phoneDigits}?body=${encodeURIComponent(`Здравствуйте! Напоминаем про оплату €${g.total}. AirFix.`)}`}
+                    className="flex-1 h-9 rounded-lg bg-[var(--fill-tertiary)] text-[var(--system-blue)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
+                  >
+                    <MessageSquare size={14} strokeWidth={2} />
+                    SMS
+                  </a>
+                </>
+              )}
+              {onMarkPaid && (
+                <button
+                  type="button"
+                  onClick={() => onMarkPaid(g.items.map((it) => it.appointmentId))}
+                  className="flex-1 h-9 rounded-lg bg-[rgba(52,199,89,0.16)] text-[var(--system-green)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[rgba(52,199,89,0.24)]"
                 >
-                  <Phone size={14} strokeWidth={2} />
-                  Позвонить
-                </a>
-                <a
-                  href={`sms:${phoneDigits}?body=${encodeURIComponent(`Здравствуйте! Напоминаем про оплату €${g.total}. AirFix.`)}`}
-                  className="flex-1 h-9 rounded-lg bg-[var(--fill-tertiary)] text-[var(--system-blue)] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-secondary)]"
-                >
-                  <MessageSquare size={14} strokeWidth={2} />
-                  SMS напоминание
-                </a>
-              </div>
-            )}
+                  ✓ Оплачено
+                </button>
+              )}
+            </div>
           </div>
         );
       })}

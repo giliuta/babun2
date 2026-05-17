@@ -58,7 +58,7 @@ const MODE_LABELS: Record<Mode, string> = {
 
 export default function FinancesPage() {
   const router = useRouter();
-  const { appointments } = useAppointments();
+  const { appointments, upsertAppointment } = useAppointments();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
   const { categories, setCategories } = useExpenseCategories();
   const { services } = useServices();
@@ -348,6 +348,25 @@ export default function FinancesPage() {
                   router.push(`/dashboard/clients?id=${clientId}`);
                 }}
                 clientsById={clientsById}
+                onMarkPaid={(appointmentIds) => {
+                  // P1 #32 (CRM Core brief) — close every outstanding
+                  // appointment of the client in one tap. The v577
+                  // wiring + v572 Supabase trigger book the income
+                  // rows automatically when payment_status flips to
+                  // 'paid'. Sets paid_amount = total_amount so the
+                  // debt drops to zero on next render.
+                  haptic("success");
+                  for (const id of appointmentIds) {
+                    const apt = appointments.find((a) => a.id === id);
+                    if (!apt) continue;
+                    void upsertAppointment({
+                      ...apt,
+                      payment_status: "paid",
+                      paid_amount: apt.total_amount,
+                      updated_at: new Date().toISOString(),
+                    });
+                  }
+                }}
               />
             )}
 
