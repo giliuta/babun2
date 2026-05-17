@@ -326,6 +326,10 @@ function DashboardPageInner() {
   // from `activeTeamId` so the visible grid stays coherent.
   const [combinedView, setCombinedView] = useState<boolean>(false);
   useEffect(() => {
+    // Client-only Monday seed — Date() differs between SSR / CSR so
+    // we sync on mount. External-state-sync; React-Compiler's
+    // cascade flag is a false positive here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentMonday(getMonday(new Date()));
   }, []);
 
@@ -343,6 +347,12 @@ function DashboardPageInner() {
     }
   }, []);
   useEffect(() => {
+    // Reconcile activeTeamId with the available teamTabs every time
+    // teams change. setActiveTeamId is a guarded conditional setter
+    // so it doesn't loop. React-Compiler flags the call as a
+    // cascading render, but the conditions ensure it only fires when
+    // the current selection is invalid.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (teamTabs.length === 0) {
       setActiveTeamId("");
       return;
@@ -363,6 +373,7 @@ function DashboardPageInner() {
     if (!teamTabs.some((t) => t.id === activeTeamId)) {
       setActiveTeamId(teamTabs[0].id);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [teamTabs, activeTeamId]);
 
   // Restore last-used view mode from localStorage after mount so server
@@ -385,7 +396,12 @@ function DashboardPageInner() {
   const VIEW_STATE_KEY = "babun-calendar-view-state";
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const viewStateHydratedRef = useRef(false);
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    // STORY-060 §F1.4 — hydration of {viewMode, currentMonday,
+    // activeTeamId} from URL params + localStorage. Several setters
+    // batch into one re-render per mount. Canonical external-state-
+    // sync pattern; React-Compiler's cascade flag is a false positive.
     if (typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
       const viewParam = sp.get("view") as ViewMode | null;
@@ -471,6 +487,7 @@ function DashboardPageInner() {
     }
     viewStateHydratedRef.current = true;
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
   // Persist legacy single-key view mode (rollback path).
   useEffect(() => {
     getStorage().setRaw(VIEW_MODE_KEY, viewMode);
