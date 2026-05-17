@@ -76,7 +76,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 39 | «Удалить» в SMS-template create | **DONE (2fc4788)** | `mode` prop on TemplateEditor, derived in parent from `templates.some(t => t.id === editing.id)`. |
 | 40 | Пресеты SMS-шаблонов | **DONE (v547)** | Empty state on `/sms-templates` shows 4 starter cards (Напоминание / Подтверждение / Запрос отзыва / Поздравление с ДР). Each opens the editor with name + body pre-filled, in create mode — destructive button stays hidden per P2 #39. Bodies use Russian tokens from P2 #41. |
 | 41 | Переменные SMS на русском | **DONE (2fc4788)** | Palette switched to `[Имя]/[Дата]/[Время]/[Мастер]/[Услуга]/[Адрес]/[День]` + new `[Цена]/[Компания]/[СсылкаНаОтмену]`. Backward-compat via `TOKEN_ALIASES` map; renderTemplate regex now Unicode-aware. |
-| 42 | Тестовая отправка SMS | BLOCKED → STORY-047 | Needs SMS provider. |
+| 42 | Тестовая отправка SMS | **DONE (v594)** | «Тест» button in `/sms-templates` editor prompts for a phone and posts to `/api/sms/test` → forwards to the `send_sms` edge function with `mode: "test"`. Function path bypasses the cron sweep: validates tenant + balance, dispatches via Twilio, charges 1 SMS, logs to `sms_messages` + `sms_logs` with `trigger_type='test'`. |
 | 43 | «Сохраняем... / Сохранено ✓» — one state at a time | READY | Reducer `idle / saving / saved / error`. |
 | 44 | «Удалить сотрудника» → «⋮» в шапке | **DONE (v541)** | Kebab in `/masters/[id]` header opens ContextMenu with Архивировать / Удалить. Confirm shows lifetime appointment count via master's teams + team count. Bottom destructive button removed. |
 | 45 | Подписи под €0/€150/€150 в Активности | **DONE** | Each amount in the payment row in `ClientPanel.tsx` already carries an inline label («оплачено» / «к оплате» / «итого») + `title="..."` tooltip. Debt is hidden when zero so a fully-paid visit doesn't show a meaningless «€0 к оплате». |
@@ -87,12 +87,12 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 |---|-------|--------|
 | 46 | Таб «Покупки/Заказы» в карточке клиента | **DONE (v591)** | The existing VisitsBlock already shows the full visit history; brief's «повторить заказ в один клик» lands as a `↻` action button on each completed visit row. Click → `/dashboard?new=1&client_id=X&services=svc1,svc2` opens an AppointmentSheet pre-filled with the same service ids. Dashboard handler parses the new `services` query param and seeds `service_ids` on the blank draft. |
 | 47 | Таб «Финансы» в карточке клиента (LTV) | **DONE (v589)** | `FinanceBlock` now renders LTV + Средний чек + Последняя оплата + Последний визит + Долг + История транзакций (last 5 paid visits, with date + method + amount). Data sourced from appointments where `payment_status` is `paid` / `partial`, with legacy fallback. «Подробнее» still deep-links to `/finances?client_id=…`. |
-| 48 | Таб «История обслуживания» на объекте | BLOCKED → after STORY-042 |
+| 48 | Таб «История обслуживания» на объекте | **DONE (v594)** | Inline «N визитов · посл. дата» line under each `ObjectRow` in `ObjectsBlock`. Full per-location list also rendered in the LocationEditor modal under «История обслуживания» (Group with last 12 visits, date + status pill + amount). Diagnostics + photos already on each appointment; tap drills in. |
 | 49 | Equipment service schedule + auto-reminders | BLOCKED → after STORY-050 |
 | 50 | Webhooks для разработчиков | BLOCKED → backend story (new) |
 | 51 | Документы мастера | BLOCKED → after STORY-049 (photos storage) |
 | 52 | Рейтинг мастера через post-visit SMS | BLOCKED → STORY-047 |
-| 53 | Программа лояльности | BLOCKED → after STORY-042 |
+| 53 | Программа лояльности | **DONE-MVP (v594)** | `/dashboard/settings/loyalty` ships master switch + tier editor (threshold → percent + label). Starter preset (Бронза/Серебро/Золото — 3/10/25 визитов → 5/10/15%) one-tap activator. `LoyaltySettings` persisted in localStorage today; `tierForVisits()` selector picks the highest qualifying tier. Tier shown as a yellow Star pill in `FinanceBlock` on the client card. Auto-apply at appointment-create still a follow-up (sheet-side hook). |
 | 54 | Маршрут дня (Google Maps) | DROP-for-now (billing) |
 | 55 | AI-ассистент «спроси у Babun» | BLOCKED → STORY-010 (roadmap) |
 

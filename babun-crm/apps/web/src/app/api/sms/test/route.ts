@@ -1,0 +1,112 @@
+// P2 #42 (CRM Core brief) — POST /api/sms/test
+//
+// Forwards a single test SMS to the send_sms Edge Function in
+// `mode: "test"`. Server-side wrapper so the browser doesn't carry
+// the edge function's bearer token — the route reads the current
+// user's tenant from RLS-aware Supabase and proxies the call with
+// the service-role-equivalent token already configured.
+//
+// Body: { to_phone: string, body: string }
+// Response: { ok: true, sid: string } on success.
+
+import { NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabase/server";
+import { isSameOriginRequest } from "@/lib/http/csrf";
+
+// Pull the test endpoint URL from env when set, otherwise derive from
+// the public Supabase URL. Edge Functions live at <project>/functions/v1/<name>.
+function resolveEdgeUrl(): string | null {
+  const explicit = process.env.SEND_SMS_FUNCTION_URL;
+  if (explicit) return explicit;
+  const base =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  if (!base) return null;
+  return `${base.replace(/\/$/, "")}/functions/v1/send_sms`;
+}
+
+export async function POST(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const supabase = await getSupabaseServer();
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+  if (authErr || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  type Body = { to_phone?: unknown; body?: unknown };
+  let payload: Body;
+  try {
+    payload = (await req.json()) as Body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const toPhone =
+    typeof payload.to_phone === "string" ? payload.to_phone.trim() : "";
+  const messageBody =
+    typeof payload.body === "string" ? payload.body.trim() : "";
+  if (!toPhone || !messageBody) {
+    return NextResponse.json(
+      { error: "to_phone and body are required" },
+      { status: 400 },
+    );
+  }
+  if (messageBody.length > 1000) {
+    return NextResponse.json(
+      { error: "body too long (>1000 chars)" },
+      { status: 400 },
+    );
+  }
+
+  // RLS surface — pull the tenant for the current user.
+  const { data: profile, error: profErr } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (profErr || !profile?.tenant_id) {
+    return NextResponse.json(
+      { error: "no_tenant_for_user", detail: profErr?.message },
+      { status: 400 },
+    );
+  }
+
+  const url = resolveEdgeUrl();
+  if (!url) {
+    return NextResponse.json(
+      { error: "edge_url_not_configured" },
+      { status: 500 },
+    );
+  }
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    "";
+
+  const fnResponse = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: serviceKey ? `Bearer ${serviceKey}` : "",
+    },
+    body: JSON.stringify({
+      mode: "test",
+      tenant_id: profile.tenant_id,
+      to_phone: toPhone,
+      body: messageBody,
+    }),
+  });
+
+  const text = await fnResponse.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = { raw: text };
+  }
+  return NextResponse.json(parsed, { status: fnResponse.status });
+}

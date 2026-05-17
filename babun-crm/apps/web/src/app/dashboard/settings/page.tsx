@@ -14,6 +14,7 @@ import {
   Receipt,
   Shield,
   CreditCard,
+  Star,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
@@ -131,6 +132,14 @@ const NAV_GROUPS: NavGroup[] = [
         tone: "bg-[var(--tile-cyan)]",
         title: "Онлайн запись",
         desc: "Адрес страницы, рабочие часы, предоплата",
+      },
+      {
+        // Beta #53 (CRM Core brief) — loyalty tiers.
+        href: "/dashboard/settings/loyalty",
+        icon: Star,
+        tone: "bg-[var(--tile-yellow)]",
+        title: "Программа лояльности",
+        desc: "Скидки постоянным клиентам по числу визитов",
       },
     ],
   },
