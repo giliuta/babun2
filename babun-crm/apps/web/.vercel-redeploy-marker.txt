@@ -1,0 +1,6 @@
+# Marker file forcing Vercel to react to a new commit SHA.
+# Master's Vercel check-suite has been queued (never picked up) for hours
+# despite the GH Actions on master being all-green. This branch creates a
+# fresh SHA so the Vercel App's webhook delivery is re-triggered and the
+# build queue starts processing the latest tree.
+2026-05-17T14:30:00Z — feedback RPC fix waiting on deploy.
