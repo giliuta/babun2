@@ -48,6 +48,10 @@ export default function AddLabelModal({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Reset form state on open/close/initial-prop change. Two
+    // setters batch into a single re-render per change, so the
+    // React-Compiler cascade warning is a false positive here.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!open) {
       setName("");
       setColor(CITY_COLOR_PRESETS[0].value);
@@ -60,6 +64,7 @@ export default function AddLabelModal({
       const t = window.setTimeout(() => inputRef.current?.focus(), 40);
       return () => window.clearTimeout(t);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, initial]);
 
   useEffect(() => {

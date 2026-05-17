@@ -173,8 +173,11 @@ export default function MasterSheet({
   }, [onCancel]);
 
   // Keep loginEmail synced with personal email on create if the user
-  // hasn't typed a custom login yet.
+  // hasn't typed a custom login yet. React-Compiler flags the setter
+  // as a cascading render but the guard fires at most once per fresh
+  // email — no loop, no perf cost.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!isEditing && !loginEmail && email) setLoginEmail(email);
   }, [isEditing, email, loginEmail]);
 
