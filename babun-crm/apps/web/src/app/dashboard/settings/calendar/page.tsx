@@ -285,6 +285,55 @@ export default function CalendarSettingsPage() {
             </div>
           </div>
 
+          {/* STORY-060 §F2.5 — Выходные дни.
+              7 чипов (Пн..Вс). Тап переключает день в массиве
+              settings.days_off. JS weekday: Sun=0..Sat=6 — мы
+              показываем по-человечески слева-направо начиная с Пн. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">
+            <div className="text-[15px] font-semibold text-[var(--label)]">
+              Выходные дни
+            </div>
+            <div className="flex gap-1.5">
+              {(
+                [
+                  { label: "Пн", weekday: 1 },
+                  { label: "Вт", weekday: 2 },
+                  { label: "Ср", weekday: 3 },
+                  { label: "Чт", weekday: 4 },
+                  { label: "Пт", weekday: 5 },
+                  { label: "Сб", weekday: 6 },
+                  { label: "Вс", weekday: 0 },
+                ] as const
+              ).map(({ label, weekday }) => {
+                const isOff = settings.days_off.includes(weekday);
+                return (
+                  <button
+                    key={weekday}
+                    type="button"
+                    aria-pressed={isOff}
+                    onClick={() => {
+                      const set = new Set<number>(settings.days_off);
+                      if (set.has(weekday)) set.delete(weekday);
+                      else set.add(weekday);
+                      const nextDays = Array.from(set).sort((a, b) => a - b);
+                      patch({ days_off: nextDays });
+                    }}
+                    className={`flex-1 h-10 rounded-[10px] text-[13px] font-semibold transition-all ${
+                      isOff
+                        ? "bg-[var(--system-red)] text-white"
+                        : "bg-[var(--fill-tertiary)] text-[var(--label)]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
+              В эти дни заголовок будет красным, а сетка приглушённой.
+            </div>
+          </div>
+
           {/* Week start — compact iOS segmented control */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 py-3.5 flex items-center gap-3">
             <div className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--label)]">

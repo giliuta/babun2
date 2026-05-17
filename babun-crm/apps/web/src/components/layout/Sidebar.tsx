@@ -24,6 +24,18 @@ import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { useUnclosedCount } from "@/hooks/useUnclosedCount";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { DISPLAY_VERSION } from "@babun/shared/common/utils/version";
+// STORY-060 §F3.4 + §F3.5 — sync health badge and bug-report channel
+// in the sidebar footer. Lazy-loaded so the heavy modal + popover
+// don't ship in the sidebar's first paint.
+import dynamic from "next/dynamic";
+const SyncIndicator = dynamic(
+  () => import("@/components/calendar/SyncIndicator"),
+  { ssr: false },
+);
+const BugReportButton = dynamic(
+  () => import("@/components/system/BugReportButton"),
+  { ssr: false },
+);
 // STORY-064 — ICON_TONE_BG dropped in the visual modernization
 // (NavRow no longer uses colored tile backgrounds). Type kept for
 // the optional `tone` prop on the API to avoid breaking call sites.
@@ -358,12 +370,20 @@ export default function Sidebar({
             <LogOut size={16} strokeWidth={2} />
             Выход
           </button>
-          <div className="text-[12px] text-[var(--label-tertiary)] mt-3 flex items-center gap-1 tabular-nums">
-            <span>Синхр.</span>
-            <SyncTime />
+          {/* STORY-060 §F3.4 — sync health badge replaces the bare time
+              label. Currently uses now() as `lastSyncAt` (placeholder
+              until the sync layer reports a real timestamp). */}
+          <div className="mt-3">
+            <SyncIndicator lastSyncAt={new Date().toISOString()} />
           </div>
           <div className="text-[12px] text-[var(--label-tertiary)] mt-1 font-mono tracking-wide">
             {DISPLAY_VERSION}
+          </div>
+          {/* STORY-060 §F3.5 — bug-report button. Opens a centered
+              modal; auto-attaches version, URL, viewport, last
+              console.error lines. */}
+          <div className="mt-2">
+            <BugReportButton pageLabel="sidebar" />
           </div>
           <div className="text-[11px] text-[var(--label-tertiary)] mt-3 leading-tight">
             <a href="/privacy" className="underline">Конфиденциальность</a>
@@ -374,24 +394,6 @@ export default function Sidebar({
       </aside>
     </>
   );
-}
-
-function SyncTime() {
-  const [label, setLabel] = useState<string>("…");
-  useEffect(() => {
-    const tick = () =>
-      setLabel(
-        new Date().toLocaleString("ru-RU", {
-          timeZone: "Asia/Nicosia",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      );
-    tick();
-    const t = window.setInterval(tick, 60_000);
-    return () => window.clearInterval(t);
-  }, []);
-  return <span suppressHydrationWarning>{label}</span>;
 }
 
 // STORY-064 — Group used to be a card-shaped wrapper with row

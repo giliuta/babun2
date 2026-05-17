@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import {
-  Check,
-  Camera,
-  CalendarClock,
-} from "@babun/shared/icons";
+import { CalendarClock } from "@babun/shared/icons";
 import type {
   Appointment,
   AppointmentPayment,
@@ -28,24 +24,20 @@ import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
-import { servicesToIds, idsToServices } from "@/lib/appointment-services";
 import {
   buildSavedWorkAppointment,
   buildCompletedAppointment,
 } from "@/lib/appointment-builders";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
-import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
+import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
   appointmentTotal,
   totalDuration as calcDuration,
 } from "@babun/shared/local/finance/appointment-calc";
-import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
-import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
 import { IOSSwitch } from "@/components/ui";
 
-import TimeBlock from "./TimeBlock";
 import ClientBlock from "./ClientBlock";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
@@ -57,17 +49,11 @@ import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
 import OverlapWarning from "./OverlapWarning";
 import EventForm from "@/components/event/EventForm";
 import CancelToggleBlock from "./CancelToggleBlock";
-import { CloseConfirmDialog, AskClientFirstDialog } from "./AppointmentConfirmDialogs";
-import ClientActionMenu from "./ClientActionMenu";
-import SendMessagePopup from "./SendMessagePopup";
-import ClientProfileView from "@/components/clients/ClientProfileView";
-import { useRouter } from "next/navigation";
-import { loadChats } from "@babun/shared/local/chats";
+import AppointmentSubSheets from "./AppointmentSubSheets";
+import TimePopup from "./TimePopup";
+import AppointmentHeader from "./AppointmentHeader";
 import PaymentBlock from "./PaymentBlock";
-import { buildShareUrl } from "@babun/shared/common/utils/share-link";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
-import RepeatReminderSheet from "./RepeatReminderSheet";
-import { loadCompany } from "@babun/shared/local/finance/company";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
 // demand when the dispatcher actually taps "Скачать счёт" instead of
 // shipping the module in the main dashboard bundle.
@@ -134,7 +120,6 @@ export default function AppointmentSheet({
   onCompleteQuick,
   personalMode = false,
 }: AppointmentSheetProps) {
-  const router = useRouter();
   const toast = useToast();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
@@ -160,13 +145,6 @@ export default function AppointmentSheet({
   const [globalDiscount, setGlobalDiscount] = useState<Discount | null>(
     appointment.global_discount ?? null
   );
-  // Beta #53 — track whether the current globalDiscount came from
-  // the auto-apply path (so we can replace it on a client switch)
-  // vs a manual edit (which wins and stays put).
-  const [loyaltyApplied, setLoyaltyApplied] = useState<{
-    clientId: string;
-    percent: number;
-  } | null>(null);
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   // v607 P0 #5 — anonymous (no-client) address. Lives on apt.address.
@@ -319,57 +297,13 @@ export default function AppointmentSheet({
   }, [clients, recentClientIds]);
 
 
-  // Beta #53 (CRM Core brief) — auto-apply loyalty discount when
-  // the operator picks a client. Reads tier on every clientId
-  // change; replaces only auto-applied discounts so a manual edit
-  // («скидка постоянному = 8%, индивидуально») is preserved.
-  useEffect(() => {
-    if (!visitsForClient || !clientId) {
-      // Drop a stale auto-applied discount when the client is cleared.
-      if (loyaltyApplied !== null) {
-        setGlobalDiscount((current) =>
-          current?.type === "percent" && current.value === loyaltyApplied.percent
-            ? null
-            : current,
-        );
-        setLoyaltyApplied(null);
-      }
-      return;
-    }
-    const visits = visitsForClient(clientId);
-    const tier = tierForVisits(visits, loadLoyalty());
-    if (!tier) {
-      // Client doesn't qualify (or program is off) — drop the
-      // previously auto-applied tier if any.
-      if (loyaltyApplied !== null) {
-        setGlobalDiscount((current) =>
-          current?.type === "percent" && current.value === loyaltyApplied.percent
-            ? null
-            : current,
-        );
-        setLoyaltyApplied(null);
-      }
-      return;
-    }
-    // Apply the tier discount. Skip when the operator has already
-    // typed a non-loyalty discount we shouldn't overwrite.
-    setGlobalDiscount((current) => {
-      const wasAutoApplied =
-        loyaltyApplied?.clientId === clientId &&
-        current?.type === "percent" &&
-        current.value === loyaltyApplied.percent;
-      if (!current || wasAutoApplied) {
-        return {
-          type: "percent",
-          value: tier.percent,
-          reason: tier.label,
-        };
-      }
-      return current; // manual edit wins
-    });
-    setLoyaltyApplied({ clientId, percent: tier.percent });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, visitsForClient]);
+  // Beta #53 — auto-apply loyalty tier discount on client pick.
+  useLoyaltyAutoApply({
+    clientId,
+    visitsForClient,
+    globalDiscount,
+    setGlobalDiscount,
+  });
 
   const clientLocations = useMemo<Location[]>(
     () => client?.locations ?? [],
@@ -729,108 +663,21 @@ export default function AppointmentSheet({
         }}
       >
 
-        {/* Header */}
-        <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
-          {liveMode === "create" ? (
-            personalMode ? (
-              // Personal calendar — always event; no segment toggle.
-              <div className="inline-flex items-center h-8 px-3 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold">
-                Личное событие
-              </div>
-            ) : (
-              <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
-                {(["work", "event"] as Kind[]).map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => {
-                      if (k === kind) return;
-                      // v619 — guard the kind swap. If we're leaving an
-                      // event draft with content, confirm first; the
-                      // EventForm child unmounts on kind change and its
-                      // internal state (notes / url / push / repeat /
-                      // place) would be silently dropped.
-                      if (kind === "event" && eventFormDirty) {
-                        setSegmentSwitchConfirm(true);
-                        return;
-                      }
-                      setKind(k);
-                    }}
-                    className={`px-4 py-1.5 rounded-[8px] transition ${
-                      kind === k
-                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-                        : "text-[var(--label-secondary)]"
-                    }`}
-                  >
-                    {k === "work" ? "Клиент" : "Событие"}
-                  </button>
-                ))}
-              </div>
-            )
-          ) : liveMode === "edit" ? (
-            <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
-              Редактирование
-            </div>
-          ) : liveMode === "done" ? (
-            <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
-              {doneBadge}
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* Sprint 025 STORY-005 — one-tap shortcuts on open visits:
-              ✓ complete, 📷 add photo, ↻ reschedule. They mirror the
-              three actions the dispatcher reaches for most; the slower
-              admin options still live in the ⋯ menu inside ClientBlock. */}
-          {showQuickActions && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {onCompleteQuick && (
-                <button
-                  type="button"
-                  onClick={() => onCompleteQuick(appointment)}
-                  aria-label="Отметить выполненной"
-                  title="Выполнено"
-                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
-                >
-                  <Check size={22} strokeWidth={2.5} />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={scrollToPhotos}
-                aria-label="Перейти к фото"
-                title="Фото"
-                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
-              >
-                <Camera size={20} strokeWidth={2} />
-              </button>
-              {onReschedule && (
-                <button
-                  type="button"
-                  onClick={() => onReschedule(appointment)}
-                  aria-label="Перенести запись"
-                  title="Перенести"
-                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
-                >
-                  <CalendarClock size={20} strokeWidth={2} />
-                </button>
-              )}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={attemptClose}
-            aria-label="Закрыть"
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        <AppointmentHeader
+          liveMode={liveMode}
+          personalMode={personalMode}
+          kind={kind}
+          eventFormDirty={eventFormDirty}
+          doneBadge={doneBadge}
+          showQuickActions={showQuickActions}
+          onCompleteQuick={onCompleteQuick}
+          onReschedule={onReschedule}
+          appointment={appointment}
+          scrollToPhotos={scrollToPhotos}
+          setKind={setKind}
+          setSegmentSwitchConfirm={setSegmentSwitchConfirm}
+          attemptClose={attemptClose}
+        />
 
         {/* Scroll body */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-4" data-appt-scroll>
@@ -1148,64 +995,77 @@ export default function AppointmentSheet({
         )}
       </div>
 
-      {/* Sub-sheets */}
-      <ClientPickerSheet
-        open={clientSheet}
-        onClose={() => setClientSheet(false)}
-        onSelect={(c) => {
+      {/* v625 §9 step 2 — all portal-level pickers/dialogs/overlays
+          live in AppointmentSubSheets. State stays here; the wrapper
+          just renders + forwards callbacks. */}
+      <AppointmentSubSheets
+        clientSheet={clientSheet}
+        setClientSheet={setClientSheet}
+        clients={clients}
+        recentClientIds={recentClientIds}
+        onClientSelect={(c) => {
           setClientId(c.id);
           const locs = c.locations;
           const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
           setLocationId(primary?.id ?? null);
-          setClientSheet(false);
         }}
-        clients={clients}
-        recentClientIds={recentClientIds}
-      />
-
-      <ServicePickerSheet
-        open={servicePickerOpen}
-        onClose={() => setServicePickerOpen(false)}
-        services={catalog}
+        servicePickerOpen={servicePickerOpen}
+        setServicePickerOpen={setServicePickerOpen}
+        catalog={catalog}
         categories={categories}
-        brigadeId={activeTeam?.id ?? null}
-        initialSelectedIds={servicesToIds(appointmentServices)}
-        onConfirm={(ids) => {
-          setAppointmentServices(
-            idsToServices(ids, catalog, appointmentServices)
-          );
-        }}
-        clientName={client?.full_name ?? null}
-        clientPhone={client?.phone ?? null}
-      />
-
-      <CloseConfirmDialog
-        open={closeConfirm}
-        mode={liveMode}
+        activeTeam={activeTeam}
+        appointmentServices={appointmentServices}
+        onServicesConfirm={setAppointmentServices}
+        client={client}
+        closeConfirm={closeConfirm}
+        setCloseConfirm={setCloseConfirm}
+        liveMode={liveMode}
         canSave={canSave}
-        onCancel={() => setCloseConfirm(false)}
-        onDiscard={() => {
-          setCloseConfirm(false);
-          onClose();
+        onClose={onClose}
+        onSaveAndClose={handleCreate}
+        askClientFirst={askClientFirst}
+        setAskClientFirst={setAskClientFirst}
+        clientMenuOpen={clientMenuOpen}
+        setClientMenuOpen={setClientMenuOpen}
+        setClientProfileOpen={setClientProfileOpen}
+        setSendMsgOpen={setSendMsgOpen}
+        setRepeatSheetOpen={setRepeatSheetOpen}
+        appointment={appointment}
+        isEventMode={isEventMode}
+        photos={photos}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        address={address}
+        price={price}
+        sendMsgOpen={sendMsgOpen}
+        repeatSheetOpen={repeatSheetOpen}
+        onRepeatConfirm={(months, note) => {
+          if (!client) return;
+          const serviceSummary = appointmentServices
+            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
+            .filter((n): n is string => Boolean(n))
+            .join(" · ");
+          const supabase = getSupabaseBrowser();
+          void createRecurringReminder(supabase, tenantId, {
+            client_id: client.id,
+            client_name: client.full_name,
+            phone: client.phone ?? "",
+            team_id: activeTeam?.id ?? null,
+            service_ids: appointmentServices.map((l) => l.serviceId),
+            service_summary: serviceSummary,
+            last_date: appointment.date,
+            interval_months: months,
+            note,
+          }).then(() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("babun:recurring-changed"));
+            }
+          }).catch((err) => {
+            console.warn("STORY-050: createRecurringReminder failed", err);
+          });
         }}
-        onSave={() => {
-          if (!canSave) return;
-          handleCreate();
-          setCloseConfirm(false);
-        }}
-      />
-
-      <AskClientFirstDialog
-        open={askClientFirst}
-        onCancel={() => setAskClientFirst(false)}
-        onContinue={() => {
-          setAskClientFirst(false);
-          setServicePickerOpen(true);
-        }}
-        onPickClient={() => {
-          setAskClientFirst(false);
-          setClientSheet(true);
-        }}
+        clientProfileOpen={clientProfileOpen}
       />
 
       {/* v619 — segment-toggle dirty-guard. Fires when user taps
@@ -1251,302 +1111,26 @@ export default function AppointmentSheet({
         </div>
       )}
 
-      {/* v617 P1 §17 — time popup. Hosts the full date+time+duration
-          editing surface: quick chips, TimeBlock wheels, duration
-          chip row. State is mutated live by inner editors so closing
-          is a no-op (no commit/cancel split). */}
-      {timePopupOpen && (
-        <div
-          className="fixed inset-0 z-[92] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
-          onClick={() => setTimePopupOpen(false)}
-        >
-          <div
-            className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between border-b border-[var(--separator)]">
-              <span className="text-[13px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Время записи
-              </span>
-              <button
-                type="button"
-                onClick={() => setTimePopupOpen(false)}
-                className="px-3 h-8 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-              >
-                Готово
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto pb-3">
-              {liveMode === "create" && !isEventMode && (
-                <div className="px-4 pt-3 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-                  {(() => {
-                    const step = activeTeam?.default_slot_minutes ?? 30;
-                    const dur = totalDur > 0 ? totalDur : step;
-                    const fmtKey = (d: Date) =>
-                      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                    const fmtTime = (mins: number) => {
-                      const clamped = Math.min(23 * 60 + 59, Math.max(0, mins));
-                      return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
-                    };
-                    const apply = (d: Date, startMin: number) => {
-                      setDateKey(fmtKey(d));
-                      setTimeStart(fmtTime(startMin));
-                      setTimeEnd(fmtTime(startMin + dur));
-                    };
-                    const now = new Date();
-                    const nowMins = now.getHours() * 60 + now.getMinutes();
-                    const nextSlot = Math.ceil((nowMins + 1) / step) * step;
-                    const tomorrow = new Date(now);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const chips = [
-                      { label: "⚡ Сейчас", onClick: () => apply(now, nextSlot) },
-                      { label: "Через час", onClick: () => apply(now, nextSlot + 60) },
-                      { label: "Завтра", onClick: () => apply(tomorrow, 9 * 60) },
-                    ];
-                    return chips.map((c) => (
-                      <button
-                        key={c.label}
-                        type="button"
-                        onClick={c.onClick}
-                        className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
-                      >
-                        {c.label}
-                      </button>
-                    ));
-                  })()}
-                </div>
-              )}
+      <TimePopup
+        open={timePopupOpen}
+        onClose={() => setTimePopupOpen(false)}
+        liveMode={liveMode}
+        isEventMode={isEventMode}
+        isEditable={isEditable}
+        readonly={readonly}
+        activeTeam={activeTeam}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        totalDur={totalDur}
+        durationTouched={durationTouched}
+        liveDurationMins={liveDurationMins}
+        setDateKey={setDateKey}
+        setTimeStart={setTimeStart}
+        setTimeEnd={setTimeEnd}
+        applyDuration={applyDuration}
+      />
 
-              <TimeBlock
-                date={dateKey}
-                timeStart={timeStart}
-                timeEnd={timeEnd}
-                readOnly={readonly}
-                stepMinutes={
-                  !isEventMode ? activeTeam?.default_slot_minutes : undefined
-                }
-                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                  setDateKey(d);
-                  setTimeStart(s);
-                  setTimeEnd(e);
-                }}
-              />
-
-              {isEditable && !isEventMode && (
-                <div
-                  className="px-4 pt-3 flex items-center gap-1.5 overflow-x-auto"
-                  style={{ scrollbarWidth: "none" }}
-                >
-                  <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
-                    Длит.
-                  </span>
-                  {[30, 60, 90, 120].map((m) => {
-                    const active = liveDurationMins === m;
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => applyDuration(m)}
-                        className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
-                          active
-                            ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                            : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-                        }`}
-                      >
-                        {m}м
-                      </button>
-                    );
-                  })}
-                  {durationTouched && ![30, 60, 90, 120].includes(liveDurationMins) && (
-                    <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
-                      {liveDurationMins}м
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {client && (
-        <ClientActionMenu
-          open={clientMenuOpen}
-          onClose={() => setClientMenuOpen(false)}
-          client={client}
-          onProfile={() => setClientProfileOpen(true)}
-          onSendMessage={() => setSendMsgOpen(true)}
-          onOpenChat={() => {
-            const existing = loadChats().find((ch) => ch.client_id === client.id);
-            if (existing) {
-              router.push(`/dashboard/chats?chat_id=${existing.id}`);
-            } else {
-              router.push(`/dashboard/chats?client_id=${client.id}`);
-            }
-          }}
-          onShare={async () => {
-            const parts = [client.full_name];
-            if (client.phone) parts.push(client.phone);
-            const text = parts.join(" · ");
-            if (typeof navigator !== "undefined" && navigator.share) {
-              try {
-                await navigator.share({ title: client.full_name, text });
-              } catch {
-                // user dismissed
-              }
-            } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-              try {
-                await navigator.clipboard.writeText(text);
-              } catch {
-                // ignore
-              }
-            }
-          }}
-          onScheduleRepeat={
-            appointment.status === "completed" && !isEventMode && client
-              ? () => setRepeatSheetOpen(true)
-              : undefined
-          }
-          onDownloadInvoice={
-            appointment.status === "completed" && !isEventMode && client
-              ? async () => {
-                  // Dynamic import keeps jspdf (+ renderer) out of the
-                  // initial bundle. First tap incurs a one-off chunk
-                  // load; subsequent taps are cached.
-                  const { generateInvoicePDF, downloadBlob } = await import(
-                    "@babun/shared/local/finance/invoice"
-                  );
-                  const { blob, filename } = generateInvoicePDF({
-                    appointment,
-                    client,
-                    services: catalog,
-                    team: activeTeam,
-                    company: loadCompany(),
-                    includePhotos: photos.length > 0,
-                  });
-                  downloadBlob(blob, filename);
-                }
-              : undefined
-          }
-          onShareAppointment={
-            liveMode === "create" || isEventMode
-              ? undefined
-              : async () => {
-                  const serviceNames = appointmentServices
-                    .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-                    .filter((n): n is string => Boolean(n));
-                  const origin =
-                    typeof window !== "undefined" ? window.location.origin : "";
-                  const url = buildShareUrl(origin, {
-                    d: dateKey,
-                    ts: timeStart,
-                    te: timeEnd,
-                    c: client.full_name,
-                    s: serviceNames,
-                    a: address || undefined,
-                    b: activeTeam?.name,
-                    t: Math.round(price),
-                    st: appointment.status,
-                  });
-                  const title = `Запись ${dateKey} · ${timeStart}`;
-                  if (typeof navigator !== "undefined" && navigator.share) {
-                    try {
-                      await navigator.share({ title, url });
-                      return;
-                    } catch {
-                      // user dismissed — fall through to clipboard.
-                    }
-                  }
-                  if (typeof navigator !== "undefined" && navigator.clipboard) {
-                    try {
-                      await navigator.clipboard.writeText(url);
-                      toast.show({
-                        variant: "success",
-                        message: "Ссылка скопирована — отправьте клиенту",
-                      });
-                    } catch {
-                      toast.show({
-                        variant: "error",
-                        message: "Не удалось скопировать. Скопируйте вручную в адресной строке.",
-                      });
-                    }
-                  } else {
-                    toast.show({
-                      variant: "error",
-                      message: "Копирование не поддерживается в этом браузере.",
-                    });
-                  }
-                }
-          }
-        />
-      )}
-
-      {client && (
-        <SendMessagePopup
-          open={sendMsgOpen}
-          onClose={() => setSendMsgOpen(false)}
-          phone={client.phone ?? null}
-          clientName={client.full_name}
-        />
-      )}
-
-      {client && (
-        <RepeatReminderSheet
-          open={repeatSheetOpen}
-          clientName={client.full_name}
-          serviceSummary={appointmentServices
-            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-            .filter(Boolean)
-            .join(" · ")}
-          lastDate={appointment.date}
-          onClose={() => setRepeatSheetOpen(false)}
-          onConfirm={(months, note) => {
-            const serviceSummary = appointmentServices
-              .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-              .filter((n): n is string => Boolean(n))
-              .join(" · ");
-            const supabase = getSupabaseBrowser();
-            void createRecurringReminder(supabase, tenantId, {
-              client_id: client.id,
-              client_name: client.full_name,
-              phone: client.phone ?? "",
-              team_id: activeTeam?.id ?? null,
-              service_ids: appointmentServices.map((l) => l.serviceId),
-              service_summary: serviceSummary,
-              last_date: appointment.date,
-              interval_months: months,
-              note,
-            }).then(() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new Event("babun:recurring-changed"));
-              }
-            }).catch((err) => {
-              console.warn("STORY-050: createRecurringReminder failed", err);
-            });
-          }}
-        />
-      )}
-
-      {/* Client profile overlay — rendered on top of the appointment
-          sheet so picking ⋯ → Профиль doesn't navigate away. Tapping
-          ← inside closes the overlay and leaves the draft intact. */}
-      {clientProfileOpen && client && (
-        <div
-          className="fixed inset-0 z-[95] bg-[var(--surface-overlay)] backdrop-blur-[2px] flex items-center justify-center p-2"
-          onClick={() => setClientProfileOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
-            style={{ height: "92vh" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ClientProfileView
-              clientId={client.id}
-              onBack={() => setClientProfileOpen(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Keep reference list silenced */}
       <div className="hidden">{CITY_LIST.length}</div>

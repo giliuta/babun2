@@ -43,6 +43,8 @@ const SyncQueuePanel = dynamic(
 );
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
+import { useOfflineToast } from "@/hooks/useOfflineToast";
+import { installConsoleErrorBuffer } from "@/lib/observability/consoleErrorBuffer";
 import {
   loadSchedules,
   saveSchedules,
@@ -1967,6 +1969,15 @@ export default function DashboardClientLayout({
  *  children verbatim. */
 function SyncToastBridge({ children }: { children: React.ReactNode }) {
   const toast = useToast();
+  // STORY-060 §F3.4 — bridge browser online/offline events into the
+  // toast surface. Bridge sits BELOW ToastProvider so useToast() resolves.
+  useOfflineToast();
+  // STORY-060 §F3.5 — install the ring-buffer wrapper around
+  // console.error so the bug-report modal has the last 20 errors to
+  // attach. Idempotent; safe on every layout mount.
+  useEffect(() => {
+    installConsoleErrorBuffer();
+  }, []);
   useEffect(() => {
     setSyncToast((msg) => {
       toast.show({ variant: "info", message: msg });

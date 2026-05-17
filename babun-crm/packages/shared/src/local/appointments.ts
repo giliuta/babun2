@@ -699,3 +699,97 @@ export function createPayment(method: PaymentMethod, amount: number): Payment {
     paid_at: new Date().toISOString(),
   };
 }
+
+// ─── STORY-060 §F1.3 ───────────────────────────────────────────────
+// Unified appointment selectors. Used by the dashboard grid, the
+// date-picker dots, and /dashboard/unclosed so the three consumers
+// can never drift on a record (the bug that surfaced "Анна Петрова,
+// 15.05 11:00 visible in unclosed + dot but missing from grid").
+//
+// Dates are compared as YYYY-MM-DD strings — string-lex matches the
+// chronological order for ISO dates and avoids the TZ pitfalls of
+// `new Date()` inside a hot path.
+
+export interface AppointmentRangeFilters {
+  /** undefined = no team filter (combined view); null = personal tab
+   *  (master_id set AND team_id null); string = strict team match. */
+  teamId?: string | null;
+  /** Narrows the personal-tab subset to a single master's events. */
+  masterId?: string | null;
+  /** Default false. Ignored when `includeStatuses` is provided. */
+  includeCancelled?: boolean;
+  /** Explicit allow-list of statuses. Overrides `includeCancelled`. */
+  includeStatuses?: AppointmentStatus[];
+}
+
+function matchesFilters(
+  apt: Appointment,
+  filters: AppointmentRangeFilters | undefined,
+): boolean {
+  if (!filters) {
+    return apt.status !== "cancelled";
+  }
+  if (filters.includeStatuses && filters.includeStatuses.length > 0) {
+    if (!filters.includeStatuses.includes(apt.status)) return false;
+  } else if (apt.status === "cancelled" && !filters.includeCancelled) {
+    return false;
+  }
+  if (filters.teamId === null) {
+    // Personal scope: master_id set AND team_id null.
+    if (!apt.master_id) return false;
+    if (apt.team_id) return false;
+    if (filters.masterId !== undefined && apt.master_id !== filters.masterId) {
+      return false;
+    }
+  } else if (filters.teamId !== undefined) {
+    if (apt.team_id !== filters.teamId) return false;
+  }
+  return true;
+}
+
+/** STORY-060 §F1.3 — single source of truth for "appointments in
+ *  this window". Inclusive on both ends. Sorted by (date, time). */
+export function getAppointmentsForRange(
+  all: Appointment[],
+  fromYmd: string,
+  toYmd: string,
+  filters?: AppointmentRangeFilters,
+): Appointment[] {
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd;
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd;
+  const out = all.filter(
+    (a) => a.date >= lo && a.date <= hi && matchesFilters(a, filters),
+  );
+  out.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return a.time_start < b.time_start ? -1 : a.time_start > b.time_start ? 1 : 0;
+  });
+  return out;
+}
+
+/** STORY-060 §F1.3 — single-day variant. */
+export function getAppointmentsByDate(
+  all: Appointment[],
+  ymd: string,
+  filters?: AppointmentRangeFilters,
+): Appointment[] {
+  return getAppointmentsForRange(all, ymd, ymd, filters);
+}
+
+/** STORY-060 §F1.3 — date → count, for date-picker dot indicators.
+ *  Days with zero appointments are omitted from the map; callers
+ *  should `map.get(ymd) ?? 0`. */
+export function getDatesWithAppointments(
+  all: Appointment[],
+  fromYmd: string,
+  toYmd: string,
+  filters?: AppointmentRangeFilters,
+): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const a of all) {
+    if (!matchesFilters(a, filters)) continue;
+    if (a.date < fromYmd || a.date > toYmd) continue;
+    result.set(a.date, (result.get(a.date) ?? 0) + 1);
+  }
+  return result;
+}

@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CalendarClock,
-  Rows3,
-  LayoutGrid,
-  CalendarRange,
-  Calendar as CalendarOneDay,
-  List as ListIcon,
 } from "@babun/shared/icons";
 import { getMonthName } from "@babun/shared/common/utils/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
@@ -76,8 +72,16 @@ const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   "3days": "3 дня",
   week: "Неделя",
   month: "Месяц",
-  agenda: "Агенда",
+  agenda: "Список",
 };
+
+const VIEW_MODE_ORDER: readonly ViewMode[] = [
+  "day",
+  "3days",
+  "week",
+  "month",
+  "agenda",
+];
 
 export default function Header({
   currentDate,
@@ -116,16 +120,6 @@ export default function Header({
     );
   }, [currentDate, viewMode]);
   const [showMiniCalendar, setShowMiniCalendar] = useState(false);
-  const [showViewDropdown, setShowViewDropdown] = useState(false);
-
-  const VIEW_ICONS: Record<ViewMode, typeof CalendarOneDay> = {
-    day: CalendarOneDay,
-    "3days": Rows3,
-    week: CalendarRange,
-    month: LayoutGrid,
-    agenda: ListIcon,
-  };
-  const ActiveViewIcon = VIEW_ICONS[viewMode];
 
   return (
     <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] flex flex-col z-30">
@@ -196,50 +190,10 @@ export default function Header({
           </span>
         </button>
 
-        <div className="relative flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowViewDropdown(!showViewDropdown)}
-            aria-label={`Вид: ${VIEW_MODE_LABELS[viewMode]}`}
-            data-testid="header-view-mode"
-            className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] press-scale transition"
-          >
-            <ActiveViewIcon size={20} strokeWidth={2} />
-          </button>
-
-          {showViewDropdown && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowViewDropdown(false)}
-              />
-              <div className="absolute right-0 top-full mt-2 bg-[var(--surface-card)] rounded-[12px] shadow-[var(--shadow-sheet)] py-1 z-50 min-w-[140px] border border-[var(--separator)]">
-                {(["day", "3days", "week", "month", "agenda"] as ViewMode[]).map((mode) => {
-                  const Icon = VIEW_ICONS[mode];
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => {
-                        onViewModeChange(mode);
-                        setShowViewDropdown(false);
-                      }}
-                      data-testid={`header-view-mode-option-${mode}`}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[14px] active:bg-[var(--fill-quaternary)] transition-colors ${
-                        viewMode === mode
-                          ? "text-[var(--accent)] font-semibold"
-                          : "text-[var(--label)]"
-                      }`}
-                    >
-                      <Icon size={16} strokeWidth={2} />
-                      {VIEW_MODE_LABELS[mode]}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
+        <ViewModeDropdown
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
       </div>
 
       {/* v511 — team tabs reworked from a full-width iOS segmented
@@ -261,6 +215,199 @@ export default function Header({
         onTeamsReorder={onTeamsReorder}
       />
     </header>
+  );
+}
+
+// ─── View-mode dropdown ──────────────────────────────────────────────
+//
+// STORY-060 §F2.8 — replaces the icon-only pill toggle with a labeled
+// button + accessible dropdown menu. Hand-rolled (no radix) so we stay
+// free of the runtime dependency. Keyboard contract:
+//   • Enter / Space / ArrowDown on the trigger → opens & focuses current
+//   • ArrowUp / ArrowDown inside the menu      → moves highlight
+//   • Home / End                                → jumps to first / last
+//   • Enter                                     → selects highlighted
+//   • Escape / Tab                              → closes, returns focus
+//   • Outside pointerdown                       → closes
+// Menu items are role="menuitemradio" + aria-checked, the canonical
+// pattern for "exactly one selected" sets per WAI-ARIA APG.
+
+interface ViewModeDropdownProps {
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+}
+
+function ViewModeDropdown({
+  viewMode,
+  onViewModeChange,
+}: ViewModeDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState<number>(() =>
+    Math.max(0, VIEW_MODE_ORDER.indexOf(viewMode)),
+  );
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // Sync highlight to the active mode every time the menu opens so the
+  // user lands on the current selection rather than wherever the
+  // highlight was when they closed it last time.
+  useEffect(() => {
+    if (open) {
+      const idx = Math.max(0, VIEW_MODE_ORDER.indexOf(viewMode));
+      setHighlightIdx(idx);
+      // Focus is moved on the next tick so the menu has actually
+      // mounted and the ref is populated.
+      const id = window.requestAnimationFrame(() => {
+        itemRefs.current[idx]?.focus();
+      });
+      return () => window.cancelAnimationFrame(id);
+    }
+  }, [open, viewMode]);
+
+  // Outside pointerdown closes the menu. pointerdown (not click) so the
+  // close happens before any focus / click on the outside target — this
+  // matches iOS sheet dismiss behaviour and avoids a flash where the
+  // menu briefly stays open after tapping outside.
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (buttonRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
+
+  const closeAndReturnFocus = useCallback(() => {
+    setOpen(false);
+    buttonRef.current?.focus();
+  }, []);
+
+  const selectMode = useCallback(
+    (mode: ViewMode) => {
+      onViewModeChange(mode);
+      closeAndReturnFocus();
+    },
+    [onViewModeChange, closeAndReturnFocus],
+  );
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const lastIdx = VIEW_MODE_ORDER.length - 1;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = highlightIdx >= lastIdx ? 0 : highlightIdx + 1;
+      setHighlightIdx(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const next = highlightIdx <= 0 ? lastIdx : highlightIdx - 1;
+      setHighlightIdx(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setHighlightIdx(0);
+      itemRefs.current[0]?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setHighlightIdx(lastIdx);
+      itemRefs.current[lastIdx]?.focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeAndReturnFocus();
+    } else if (e.key === "Tab") {
+      // Let Tab move focus out naturally, but close so the open menu
+      // doesn't trap a screen-reader user after they've moved away.
+      setOpen(false);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const mode = VIEW_MODE_ORDER[highlightIdx];
+      if (mode) selectMode(mode);
+    }
+  };
+
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        onKeyDown={handleTriggerKeyDown}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Режим календаря: ${VIEW_MODE_LABELS[viewMode]}`}
+        data-testid="header-view-mode"
+        className="h-11 px-3 inline-flex items-center gap-1.5 rounded-full text-[15px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] press-scale transition"
+      >
+        <span className="whitespace-nowrap">{VIEW_MODE_LABELS[viewMode]}</span>
+        <ChevronDown
+          size={16}
+          strokeWidth={2.5}
+          className={`text-[var(--label-tertiary)] flex-shrink-0 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Режим календаря"
+          onKeyDown={handleMenuKeyDown}
+          className="absolute right-0 top-full mt-2 bg-[var(--surface-card)] rounded-[12px] shadow-[var(--shadow-sheet)] py-1 z-50 min-w-[180px] border border-[var(--separator)] outline-none"
+        >
+          {VIEW_MODE_ORDER.map((mode, idx) => {
+            const isCurrent = mode === viewMode;
+            return (
+              <button
+                key={mode}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
+                type="button"
+                role="menuitemradio"
+                aria-checked={isCurrent}
+                tabIndex={highlightIdx === idx ? 0 : -1}
+                onMouseEnter={() => setHighlightIdx(idx)}
+                onClick={() => selectMode(mode)}
+                data-testid={`header-view-mode-option-${mode}`}
+                className={`w-full min-h-[40px] flex items-center justify-between px-3 text-[15px] active:bg-[var(--fill-quaternary)] focus:bg-[var(--fill-quaternary)] focus:outline-none transition-colors ${
+                  isCurrent
+                    ? "text-[var(--accent)] font-semibold"
+                    : "text-[var(--label)]"
+                }`}
+              >
+                <span className="whitespace-nowrap">
+                  {VIEW_MODE_LABELS[mode]}
+                </span>
+                {isCurrent ? (
+                  <Check
+                    size={16}
+                    strokeWidth={2.5}
+                    className="text-[var(--accent)] flex-shrink-0 ml-3"
+                  />
+                ) : (
+                  <span aria-hidden className="w-4 ml-3" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
