@@ -6,24 +6,7 @@ import {
   Check,
   Camera,
   CalendarClock,
-  Coffee,
-  Briefcase,
-  Navigation as NavigationIcon,
-  Moon,
-  Plane,
 } from "@babun/shared/icons";
-import type { EventPreset } from "@babun/shared/common/utils/event-presets";
-
-// Lucide icon components keyed by the preset's `icon` string. Replaces
-// the inline emoji rendering (☕💼🧭🌙✈️) with system-style line icons
-// — cleaner on iOS and respects the user's "no emojis" directive.
-const EVENT_ICONS: Record<EventPreset["icon"], React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
-  coffee: Coffee,
-  briefcase: Briefcase,
-  navigation: NavigationIcon,
-  moon: Moon,
-  plane: Plane,
-};
 import type {
   Appointment,
   AppointmentPayment,
@@ -67,6 +50,10 @@ import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
 import PhotoBlock from "./PhotoBlock";
 import SourceBlock from "./SourceBlock";
+import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
+import OverlapWarning from "./OverlapWarning";
+import EventModeBody from "./EventModeBody";
+import CancelToggleBlock from "./CancelToggleBlock";
 import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
 import ClientProfileView from "@/components/clients/ClientProfileView";
@@ -137,6 +124,7 @@ export default function AppointmentSheet({
   clients,
   recentClientIds,
   activeTeam,
+  visitsForClient,
   masters,
   catalog,
   categories,
@@ -182,9 +170,25 @@ export default function AppointmentSheet({
   } | null>(null);
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
+  // v607 P0 #5 — anonymous (no-client) address. Lives on apt.address.
+  // Seeded from the appointment record so re-opening a no-client draft
+  // keeps the address visible.
+  const [anonymousAddress, setAnonymousAddress] = useState(
+    appointment.client_id ? "" : appointment.address ?? ""
+  );
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
   const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
+  // v611 P1 §19 — remember the last source the operator picked so the
+  // chip appears first + outlined in the next create flow. Stored in
+  // localStorage (tenant-agnostic — a single-master UX choice).
+  const [lastUsedSource, setLastUsedSource] = useState<AppointmentSource | null>(
+    () => {
+      if (typeof window === "undefined") return null;
+      const raw = window.localStorage.getItem("babun.lastSource");
+      return raw && (raw as AppointmentSource) ? (raw as AppointmentSource) : null;
+    }
+  );
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -228,6 +232,7 @@ export default function AppointmentSheet({
     setLocationId(appointment.location_id);
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
+    setAnonymousAddress(appointment.client_id ? "" : appointment.address ?? "");
     setCancelFlag(appointment.status === "cancelled");
     setCancelReason(appointment.cancel_reason ?? "");
     setSource(appointment.source ?? null);
@@ -256,6 +261,22 @@ export default function AppointmentSheet({
     () => (clientId ? clients.find((c) => c.id === clientId) ?? null : null),
     [clientId, clients]
   );
+
+  // v611 P1 §13 — resolve the top-5 recent client ids into real
+  // records so ClientBlock can render the avatar chip strip without
+  // doing its own lookup. Filtered against the current `clients`
+  // list so a deleted-but-still-listed id doesn't render a "?" chip.
+  const recentClientsResolved = useMemo<Client[]>(() => {
+    const byId = new Map(clients.map((c) => [c.id, c]));
+    const out: Client[] = [];
+    for (const id of recentClientIds) {
+      const c = byId.get(id);
+      if (c) out.push(c);
+      if (out.length >= 5) break;
+    }
+    return out;
+  }, [clients, recentClientIds]);
+
 
   // Beta #53 (CRM Core brief) — auto-apply loyalty discount when
   // the operator picks a client. Reads tier on every clientId
@@ -321,10 +342,21 @@ export default function AppointmentSheet({
     return clientLocations.find((l) => l.isPrimary) ?? clientLocations[0];
   }, [clientLocations, locationId]);
 
-  const address = selectedLocation?.address ?? appointment.address ?? "";
+  // v607 P0 #5 — without a client, the address lives on the appointment
+  // row directly (anonymousAddress). With a client, the picked location
+  // wins as before.
+  const address = client
+    ? selectedLocation?.address ?? appointment.address ?? ""
+    : anonymousAddress.trim();
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
+  // v607 P0 #5 — placeholder hint follows the day's city-tag so an
+  // operator tapping a slot in a "ПТ = ЛИМ" column sees
+  // "Лимассол, ул. ..." instead of the generic prompt.
+  const addressPlaceholder = city
+    ? `${city}, ул. …`
+    : "Адрес или Google Maps ссылка";
 
   // Рассчитанный итог / длительность для sticky-кнопки + time end.
   const price = appointmentTotal(appointmentServices, globalDiscount);
@@ -342,6 +374,21 @@ export default function AppointmentSheet({
     if (!open) return;
     setOtherApts(loadAppointments().filter((a) => a.id !== appointment.id));
   }, [open, appointment.id]);
+
+  // v611 P0 §1.6 — top-3 most-used services across the tenant's
+  // appointment history. Lives here because it needs `otherApts`
+  // (loaded above for the double-booking check), so we reuse it.
+  const popularServices = useMemo<Service[]>(() => {
+    const freq = new Map<string, number>();
+    for (const a of otherApts) {
+      for (const id of a.service_ids) freq.set(id, (freq.get(id) ?? 0) + 1);
+    }
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => catalog.find((s) => s.id === id))
+      .filter((s): s is Service => Boolean(s))
+      .slice(0, 3);
+  }, [otherApts, catalog]);
 
   const overlapConflict = useMemo<Appointment | null>(() => {
     if (!activeTeam || kind === "event") return null;
@@ -415,20 +462,37 @@ export default function AppointmentSheet({
     photoScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // В create: обязателен preset + клиент. В edit: если услуга уже
-  // стоит (total_amount > 0 и status), сохранение разрешено и без
-  // нового preset-выбора — меняем только поля что отредактировали.
-  //
-  // v524 §3.9 — Источник заявки теперь обязателен в CREATE-flow для
-  // work-записей. Это закрывает аналитический gap (откуда пришла
-  // заявка). Edit mode остаётся прежним: историческая запись без
-  // source не должна стать unsave-able только потому, что мы
-  // добавили валидацию.
+  // v607 P0 #3 — Источник заявки больше не блокирует создание. KPI
+  // «20 секунд на мотороллере» важнее аналитического gap'а; источник
+  // переехал в свёрнутую секцию «Подробнее», по умолчанию null.
+  // Минимум для work-записи: клиент + хотя бы одна услуга.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : liveMode === "create"
-      ? Boolean(clientId && appointmentServices.length > 0 && source)
-      : Boolean(clientId && appointmentServices.length > 0);
+    : Boolean(clientId && appointmentServices.length > 0);
+
+  // v607 P0 #1.8 — live preview button text. Shows date · time ·
+  // duration · price when ready; lists what's missing otherwise so the
+  // operator doesn't have to scroll up to find the gap.
+  const missingParts: string[] = [];
+  if (!isEventMode) {
+    if (!clientId) missingParts.push("клиента");
+    if (appointmentServices.length === 0) missingParts.push("услугу");
+  } else if (!eventLabel.trim()) {
+    missingParts.push("название");
+  }
+  const savePreviewLabel = (() => {
+    if (!canSave) {
+      return missingParts.length > 0
+        ? `Заполните: ${missingParts.join(", ")} →`
+        : (liveMode === "edit" ? "Сохранить" : "Создать запись");
+    }
+    if (isEventMode) {
+      return liveMode === "edit" ? "Сохранить событие" : "Создать событие";
+    }
+    const shortDate = formatShortDate(dateKey);
+    const verb = liveMode === "edit" ? "Сохранить" : "Создать";
+    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}`;
+  })();
 
   // Whether the user has entered anything worth protecting on close.
   // Event mode uses eventLabel; work mode uses client + services + comment.
@@ -473,16 +537,12 @@ export default function AppointmentSheet({
     if (!client || appointmentServices.length === 0) return;
     const total = appointmentTotal(appointmentServices, globalDiscount);
     const duration = calcDuration(appointmentServices);
-    const serviceNames = appointmentServices
-      .map((l) => {
-        const svc = catalog.find((s) => s.id === l.serviceId);
-        return svc ? (l.quantity > 1 ? `x${l.quantity} ${svc.name}` : svc.name) : null;
-      })
-      .filter(Boolean)
-      .join(", ");
-    const finalComment = comment.trim()
-      ? `${serviceNames} — ${comment.trim()}`
-      : serviceNames;
+    // v607 P0 #7 — comment stores ONLY the dispatcher's note. The view
+    // layer derives the service summary from `service_ids` / `services`
+    // when it needs one. Prepending service names here was the cause of
+    // the yellow-pill bug where the "comment" badge displayed the
+    // service name instead of the actual note.
+    const finalComment = comment.trim();
     const saved: Appointment = {
       ...appointment,
       date: dateKey,
@@ -533,6 +593,14 @@ export default function AppointmentSheet({
     // but not yet `paid` — operator gets to flip it manually when the
     // invoice clears.
     const isInvoice = payment.method === "invoice";
+    // P0 #14 — partial payment support. PaymentBlock now emits a
+    // payment with cashAmount + cardAmount < total when the operator
+    // picks «Частично». We detect the shortfall here and write
+    // payment_status='partial'; trigger holds off booking income
+    // until the row flips to 'paid'.
+    const actualPaid = (payment.cashAmount ?? 0) + (payment.cardAmount ?? 0);
+    const fullyPaid = !isInvoice && actualPaid >= appointment.total_amount;
+    const isPartial = !isInvoice && !fullyPaid && actualPaid > 0;
     const methodMap: Record<typeof payment.method, "cash" | "card" | "other" | null> = {
       cash: "cash",
       card: "card",
@@ -543,9 +611,15 @@ export default function AppointmentSheet({
       ...appointment,
       status: "completed",
       payment,
-      payment_status: isInvoice ? "unpaid" : "paid",
+      payment_status: isInvoice
+        ? "unpaid"
+        : fullyPaid
+          ? "paid"
+          : isPartial
+            ? "partial"
+            : "unpaid",
       payment_method: methodMap[payment.method] ?? undefined,
-      paid_amount: isInvoice ? 0 : appointment.total_amount,
+      paid_amount: isInvoice ? 0 : actualPaid,
       total_amount: appointment.total_amount,
       updated_at: new Date().toISOString(),
     });
@@ -689,6 +763,51 @@ export default function AppointmentSheet({
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
           </div>
 
+          {/* v611 P0 §1.2 — quick-fill chips. One tap loads today/now,
+              today/+1h, or tomorrow/09:00 into the time wheel. Visible
+              only in create-mode for work records (events have their
+              own pacing). Honours the active team's slot granularity
+              so taps land on a real slot boundary, not 14:23. */}
+          {liveMode === "create" && !isEventMode && (
+            <div className="px-4 pt-2 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {(() => {
+                const step = activeTeam?.default_slot_minutes ?? 30;
+                const dur = totalDur > 0 ? totalDur : step;
+                const fmtKey = (d: Date) =>
+                  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                const fmtTime = (mins: number) => {
+                  const clamped = Math.min(23 * 60 + 59, Math.max(0, mins));
+                  return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+                };
+                const apply = (d: Date, startMin: number) => {
+                  setDateKey(fmtKey(d));
+                  setTimeStart(fmtTime(startMin));
+                  setTimeEnd(fmtTime(startMin + dur));
+                };
+                const now = new Date();
+                const nowMins = now.getHours() * 60 + now.getMinutes();
+                const nextSlot = Math.ceil((nowMins + 1) / step) * step;
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const chips = [
+                  { label: "⚡ Сейчас", onClick: () => apply(now, nextSlot) },
+                  { label: "Через час", onClick: () => apply(now, nextSlot + 60) },
+                  { label: "Завтра", onClick: () => apply(tomorrow, 9 * 60) },
+                ];
+                return chips.map((c) => (
+                  <button
+                    key={c.label}
+                    type="button"
+                    onClick={c.onClick}
+                    className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
+                  >
+                    {c.label}
+                  </button>
+                ));
+              })()}
+            </div>
+          )}
+
           <TimeBlock
             date={dateKey}
             timeStart={timeStart}
@@ -707,127 +826,44 @@ export default function AppointmentSheet({
           />
 
           {overlapConflict && overlapWarning && isEditable && !isEventMode && (
-            <div className="px-4 pt-2">
-              <details className="group rounded-[14px] bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.2)] text-[12px] text-[var(--label)]">
-                <summary className="flex items-start gap-2 px-3 py-2 cursor-pointer list-none">
-                  <span aria-hidden className="text-[var(--system-orange)]">⚠</span>
-                  <div className="flex-1">
-                    <div className="font-semibold">Пересечение с записью</div>
-                    <div className="text-[var(--label-secondary)]">{overlapWarning}</div>
-                  </div>
-                  <span className="text-[var(--system-orange)] text-[12px] group-open:rotate-180 transition">
-                    ▾
-                  </span>
-                </summary>
-                <div className="px-3 pb-2 pt-0.5 text-[var(--label)] border-t border-[rgba(255,149,0,0.2)] space-y-0.5">
-                  {(() => {
-                    const cc = overlapConflict;
-                    const serviceNames = cc.service_ids
-                      .map((sid) => catalog.find((s) => s.id === sid)?.name)
-                      .filter(Boolean)
-                      .join(", ");
-                    const phone = cc.client_id
-                      ? clients.find((c) => c.id === cc.client_id)?.phone ?? ""
-                      : "";
-                    const statusLabel =
-                      cc.status === "completed"
-                        ? "выполнена"
-                        : cc.status === "in_progress"
-                          ? "в работе"
-                          : "запланирована";
-                    return (
-                      <>
-                        {serviceNames && (
-                          <div className="truncate">Услуги: {serviceNames}</div>
-                        )}
-                        <div>Статус: {statusLabel}</div>
-                        {phone && (
-                          <a
-                            href={`tel:${phone.replace(/\D/g, "")}`}
-                            className="inline-flex items-center gap-1 font-semibold underline decoration-[var(--system-orange)] decoration-1 underline-offset-2 text-[var(--system-orange)]"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Позвонить {phone}
-                          </a>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </details>
-            </div>
+            <OverlapWarning
+              conflict={overlapConflict}
+              summary={overlapWarning}
+              catalog={catalog}
+              clients={clients}
+            />
           )}
 
           {/* Event mode body */}
           {isEventMode && isEditable ? (
-            <div className="px-4 pt-4 space-y-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Тип события
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {EVENT_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      setEventLabel(p.label);
-                      // Adjust end by duration; allDay = 8:00–20:00
-                      if (p.allDay) {
-                        setTimeStart("08:00");
-                        setTimeEnd("20:00");
-                      } else {
-                        const [h, m] = timeStart.split(":").map(Number);
-                        // Clamp at 23:59 rather than wrapping past midnight.
-                        const endMin = Math.min(23 * 60 + 59, h * 60 + m + p.duration);
-                        const eh = Math.floor(endMin / 60);
-                        const em = endMin % 60;
-                        setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
-                      }
-                    }}
-                    className="py-3 rounded-[14px] border border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1"
-                    style={eventLabel === p.label ? { borderColor: p.color, background: `${p.color}14` } : undefined}
-                  >
-                    {(() => {
-                      const Icon = EVENT_ICONS[p.icon];
-                      return (
-                        <Icon
-                          size={20}
-                          strokeWidth={2}
-                        />
-                      );
-                    })()}
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-                  Название
-                </div>
-                <input
-                  type="text"
-                  value={eventLabel}
-                  onChange={(e) => setEventLabel(e.target.value)}
-                  placeholder="Событие"
-                  className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-                />
-              </div>
-            </div>
+            <EventModeBody
+              eventLabel={eventLabel}
+              timeStart={timeStart}
+              onLabelChange={setEventLabel}
+              onTimeStartChange={setTimeStart}
+              onTimeEndChange={setTimeEnd}
+            />
           ) : (
             <>
-              <SourceBlock
-                value={source}
-                readonly={readonly}
-                onChange={setSource}
-                required={liveMode === "create"}
-              />
-
+              {/* v607 P0 #1 — block order: critical inputs up top,
+                  details collapsed. Order: Client → History →
+                  Location → Services → Income → <details>. Source,
+                  comment, photos, SMS, brigade live inside the
+                  collapsible so an "20 sec on a scooter" booking
+                  only touches the top half of the sheet. */}
               <ClientBlock
                 client={client}
                 readonly={readonly}
                 onPick={() => setClientSheet(true)}
                 onChange={() => setClientId(null)}
                 onMenu={client ? () => setClientMenuOpen(true) : undefined}
+                recentClients={recentClientsResolved}
+                onPickRecent={(c) => {
+                  setClientId(c.id);
+                  const locs = c.locations ?? [];
+                  const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
+                  setLocationId(primary?.id ?? null);
+                }}
               />
 
               {/* Brief 1 #23 — last 5 past visits inline so dispatcher
@@ -848,6 +884,9 @@ export default function AppointmentSheet({
                 addressNote={addressNote}
                 onSelectLocation={setLocationId}
                 onAddressNoteChange={setAddressNote}
+                anonymousAddress={anonymousAddress}
+                onAnonymousAddressChange={setAnonymousAddress}
+                placeholder={addressPlaceholder}
               />
 
               <ServicesBlock
@@ -863,6 +902,7 @@ export default function AppointmentSheet({
                   }
                   setServicePickerOpen(true);
                 }}
+                popularServices={popularServices}
               />
 
               <IncomeBlock
@@ -874,22 +914,93 @@ export default function AppointmentSheet({
                 onGlobalDiscountChange={setGlobalDiscount}
               />
 
-              <CommentBlock
-                value={comment}
-                readonly={readonly}
-                onChange={setComment}
-              />
+              {/* v607 P0 #1 — «Подробнее» collapsible. Closed by
+                  default in create-mode to keep the form short.
+                  Opened by default in view/edit so existing data is
+                  visible without an extra tap. */}
+              {isEditable ? (
+                <details
+                  className="group px-4 pt-3"
+                  open={liveMode === "edit"}
+                >
+                  <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
+                    <span>Подробнее</span>
+                    <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
+                  </summary>
+                  <div className="pt-1 -mx-4">
+                    <SourceBlock
+                      value={source}
+                      readonly={readonly}
+                      onChange={(next) => {
+                        setSource(next);
+                        if (next && typeof window !== "undefined") {
+                          window.localStorage.setItem("babun.lastSource", next);
+                          setLastUsedSource(next);
+                        }
+                      }}
+                      lastUsed={lastUsedSource}
+                    />
 
-              <div ref={photoScrollRef}>
-                <PhotoBlock
-                  photos={photos}
-                  readonly={readonly}
-                  tenantId={tenantId}
-                  appointmentId={appointment.id}
-                  locationLabel={selectedLocation?.label}
-                  onChange={setPhotos}
-                />
-              </div>
+                    {client && client.phone && (
+                      <div className="px-4 pt-4 flex items-center justify-between">
+                        <div>
+                          <div className="text-[15px] font-semibold text-[var(--label)]">
+                            SMS-напоминание
+                          </div>
+                          <div className="text-[12px] text-[var(--label-secondary)]">
+                            за сутки и за час до визита
+                          </div>
+                        </div>
+                        <IOSSwitch
+                          checked={smsEnabled}
+                          onChange={setSmsEnabled}
+                          ariaLabel="SMS-напоминание"
+                        />
+                      </div>
+                    )}
+
+                    <CommentBlock
+                      value={comment}
+                      readonly={readonly}
+                      onChange={setComment}
+                    />
+
+                    <div ref={photoScrollRef}>
+                      <PhotoBlock
+                        photos={photos}
+                        readonly={readonly}
+                        tenantId={tenantId}
+                        appointmentId={appointment.id}
+                        locationLabel={selectedLocation?.label}
+                        onChange={setPhotos}
+                      />
+                    </div>
+                  </div>
+                </details>
+              ) : (
+                <>
+                  <SourceBlock
+                    value={source}
+                    readonly={readonly}
+                    onChange={setSource}
+                  />
+                  <CommentBlock
+                    value={comment}
+                    readonly={readonly}
+                    onChange={setComment}
+                  />
+                  <div ref={photoScrollRef}>
+                    <PhotoBlock
+                      photos={photos}
+                      readonly={readonly}
+                      tenantId={tenantId}
+                      appointmentId={appointment.id}
+                      locationLabel={selectedLocation?.label}
+                      onChange={setPhotos}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Readonly cancellation reason in view/done mode when
                   record is already cancelled. Reuses the same red tint
@@ -907,90 +1018,19 @@ export default function AppointmentSheet({
                 </div>
               )}
 
-              {/* Cancel-appointment toggle — always visible when the
-                  appointment isn't already completed. Flipping on
-                  marks status as cancelled on save; flipping off in
-                  edit restores the previous status. */}
-              {appointment.status !== "completed" && isEditable && (
-                <>
-                  <div className="px-4 pt-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-[15px] font-semibold text-[var(--label)]">
-                        Запись отменена
-                      </div>
-                      <div className="text-[12px] text-[var(--label-secondary)]">
-                        Клиент отказался от услуги
-                      </div>
-                    </div>
-                    <IOSSwitch
-                      checked={cancelFlag}
-                      onChange={setCancelFlag}
-                      ariaLabel="Запись отменена"
-                    />
-                  </div>
-                  {cancelFlag && (
-                    <div className="px-4 pt-2">
-                      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] mb-1.5">
-                        Причина отмены
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {[
-                          "Клиент перенёс",
-                          "Не дозвонились",
-                          "Погода",
-                          "Нет материала",
-                          "Клиент не на месте",
-                          "Другое",
-                        ].map((preset) => {
-                          const active = cancelReason === preset;
-                          return (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() =>
-                                setCancelReason(active ? "" : preset)
-                              }
-                              className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
-                                active
-                                  ? "bg-[var(--system-red)] text-white"
-                                  : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-                              }`}
-                            >
-                              {preset}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <input
-                        type="text"
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        placeholder="Или своя причина…"
-                        className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-                      />
-                    </div>
-                  )}
-                </>
+              {/* Cancel-appointment toggle. v607 P0 #2 — only relevant
+                  for an existing record; in create mode we can't cancel
+                  something that doesn't exist yet. Visible in edit mode
+                  whenever the record isn't already completed. */}
+              {appointment.status !== "completed" && liveMode === "edit" && (
+                <CancelToggleBlock
+                  cancelFlag={cancelFlag}
+                  cancelReason={cancelReason}
+                  onFlagChange={setCancelFlag}
+                  onReasonChange={setCancelReason}
+                />
               )}
 
-              {/* SMS toggle только в create */}
-              {isEditable && client && client.phone && (
-                <div className="px-4 pt-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-[15px] font-semibold text-[var(--label)]">
-                      SMS-напоминание
-                    </div>
-                    <div className="text-[12px] text-[var(--label-secondary)]">
-                      за сутки и за час до визита
-                    </div>
-                  </div>
-                  <IOSSwitch
-                    checked={smsEnabled}
-                    onChange={setSmsEnabled}
-                    ariaLabel="SMS-напоминание"
-                  />
-                </div>
-              )}
             </>
           )}
 
@@ -1033,17 +1073,7 @@ export default function AppointmentSheet({
                   : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
               }`}
             >
-              {(() => {
-                if (liveMode === "edit") {
-                  return canSave
-                    ? `Сохранить · ${formatEUR(price)}`
-                    : "Сохранить";
-                }
-                if (isEventMode) return "Создать событие";
-                return canSave
-                  ? `Создать запись · ${formatEUR(price)}`
-                  : "Создать запись";
-              })()}
+              {savePreviewLabel}
             </button>
           </div>
         )}
@@ -1426,91 +1456,3 @@ function idsToServices(
   return out;
 }
 
-// Brief 1 #23 — Client history strip. Last 5 past non-cancelled
-// visits for the picked client. Read-only inline; full history is at
-// /dashboard/clients/[id].
-function ClientHistoryStrip({
-  clientId,
-  excludeAppointmentId,
-  appointments,
-  catalog,
-}: {
-  clientId: string;
-  excludeAppointmentId: string;
-  appointments: Appointment[];
-  catalog: Service[];
-}) {
-  const HORIZON = 5;
-  const servicesById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const s of catalog) m.set(s.id, s.name);
-    return m;
-  }, [catalog]);
-
-  const history = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    return appointments
-      .filter(
-        (a) =>
-          a.client_id === clientId &&
-          a.id !== excludeAppointmentId &&
-          a.status !== "cancelled" &&
-          a.date <= todayKey,
-      )
-      .sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-        return b.time_start.localeCompare(a.time_start);
-      })
-      .slice(0, HORIZON);
-  }, [appointments, clientId, excludeAppointmentId]);
-
-  if (history.length === 0) return null;
-
-  return (
-    <div className="px-4 pt-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-        Прошлые визиты ({history.length})
-      </div>
-      <div className="bg-[var(--surface-card)] rounded-[14px] border border-[var(--separator)] divide-y divide-[var(--separator)] overflow-hidden">
-        {history.map((apt) => {
-          const qty = new Map<string, number>();
-          for (const id of apt.service_ids)
-            qty.set(id, (qty.get(id) ?? 0) + 1);
-          const summary = Array.from(qty.entries())
-            .map(([id, q]) => {
-              const name = servicesById.get(id) ?? "Услуга";
-              return q > 1 ? `x${q} ${name}` : name;
-            })
-            .join(", ");
-          return (
-            <div
-              key={apt.id}
-              className="px-3 py-2 flex items-start gap-2 text-[12px]"
-            >
-              <span className="w-[68px] shrink-0 tabular-nums text-[var(--label-secondary)]">
-                {formatHistoryDate(apt.date)}
-              </span>
-              <span className="flex-1 min-w-0 text-[var(--label)] truncate">
-                {summary || "Без услуг"}
-              </span>
-              {apt.total_amount > 0 && (
-                <span className="shrink-0 tabular-nums font-semibold text-[var(--label)]">
-                  {formatEUR(apt.total_amount)}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function formatHistoryDate(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  return new Date(y, m - 1, d)
-    .toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
-    .replace(/\.$/, "");
-}

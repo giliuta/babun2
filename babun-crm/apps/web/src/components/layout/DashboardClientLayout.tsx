@@ -1201,12 +1201,25 @@ export default function DashboardClientLayout({
       const idx = prev.findIndex((m) => m.id === master.id);
       const next = idx >= 0 ? prev.map((m, i) => (i === idx ? master : m)) : [...prev, master];
       saveMasters(next);
+      logAudit({
+        entity: "master",
+        action: idx >= 0 ? "update" : "create",
+        summary: master.full_name,
+        entityId: master.id,
+      });
       return next;
     });
   }, []);
 
   const deleteMaster = useCallback((id: string) => {
     setMastersState((prev) => {
+      const target = prev.find((m) => m.id === id);
+      logAudit({
+        entity: "master",
+        action: "delete",
+        summary: target?.full_name || id,
+        entityId: id,
+      });
       const next = prev.filter((m) => m.id !== id);
       saveMasters(next);
       return next;
@@ -1223,12 +1236,25 @@ export default function DashboardClientLayout({
       const idx = prev.findIndex((t) => t.id === team.id);
       const next = idx >= 0 ? prev.map((t, i) => (i === idx ? team : t)) : [...prev, team];
       saveTeams(next);
+      logAudit({
+        entity: "team",
+        action: idx >= 0 ? "update" : "create",
+        summary: team.name,
+        entityId: team.id,
+      });
       return next;
     });
   }, []);
 
   const deleteTeam = useCallback((id: string) => {
     setTeamsState((prev) => {
+      const target = prev.find((t) => t.id === id);
+      logAudit({
+        entity: "team",
+        action: "delete",
+        summary: target?.name || id,
+        entityId: id,
+      });
       const next = prev.filter((t) => t.id !== id);
       saveTeams(next);
       return next;
@@ -1386,11 +1412,24 @@ export default function DashboardClientLayout({
       const idx = prev.findIndex((s) => s.id === svc.id);
       const next = idx >= 0 ? prev.map((s, i) => (i === idx ? svc : s)) : [...prev, svc];
       saveServices(next);
+      logAudit({
+        entity: "service",
+        action: idx >= 0 ? "update" : "create",
+        summary: svc.name,
+        entityId: svc.id,
+      });
       return next;
     });
   }, []);
   const deleteService = useCallback((id: string) => {
     setServicesState((prev) => {
+      const target = prev.find((s) => s.id === id);
+      logAudit({
+        entity: "service",
+        action: "delete",
+        summary: target?.name || id,
+        entityId: id,
+      });
       const next = prev.filter((s) => s.id !== id);
       saveServices(next);
       return next;
