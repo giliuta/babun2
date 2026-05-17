@@ -52,7 +52,7 @@ import PhotoBlock from "./PhotoBlock";
 import SourceBlock from "./SourceBlock";
 import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
 import OverlapWarning from "./OverlapWarning";
-import EventModeBody from "./EventModeBody";
+import EventForm from "@/components/event/EventForm";
 import CancelToggleBlock from "./CancelToggleBlock";
 import { CloseConfirmDialog, AskClientFirstDialog } from "./AppointmentConfirmDialogs";
 import ClientActionMenu from "./ClientActionMenu";
@@ -486,6 +486,24 @@ export default function AppointmentSheet({
   })();
   const readonly = !isEditable;
   const isEventMode = kind === "event";
+
+  // Sprint #4 P0 §4 — seed appointment for EventForm when event-mode
+  // is active. Merges current AppointmentSheet time/date/label state
+  // onto the incoming appointment record so EventForm opens pre-filled.
+  // Memoised on the fields that EventForm reads; appointment.id as
+  // reset-key keeps it in sync when the sheet reopens for a new record.
+  const eventSeed = useMemo<Appointment>(() => ({
+    ...appointment,
+    date: dateKey,
+    time_start: timeStart,
+    time_end: timeEnd,
+    kind: "event",
+    comment: eventLabel,
+    color_override: eventColorOverride,
+    team_id: activeTeam?.id ?? null,
+    master_id: null,
+  }), [appointment.id, dateKey, timeStart, timeEnd, eventLabel, eventColorOverride]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
   // "Y&D" when masters are available. Falls back to team.name otherwise.
   const teamLabel = activeTeam
@@ -866,18 +884,34 @@ export default function AppointmentSheet({
             />
           )}
 
-          {/* Event mode body */}
-          {isEventMode && isEditable ? (
-            <EventModeBody
-              eventLabel={eventLabel}
-              timeStart={timeStart}
-              colorOverride={eventColorOverride}
-              onLabelChange={setEventLabel}
-              onTimeStartChange={setTimeStart}
-              onTimeEndChange={setTimeEnd}
-              onColorChange={setEventColorOverride}
+          {/* Event mode body — Sprint #4 P0 §4: unified EventForm overlay.
+              Renders above the AppointmentSheet chrome when the operator
+              picks "Событие" in the segment toggle. EventForm takes the
+              event seed (time/date/label pre-filled), saves via the sheet's
+              onSave, and closes back to this sheet on discard (create mode
+              switches the segment back to "work"; edit mode closes the outer
+              sheet). */}
+          {isEventMode && isEditable && (
+            <EventForm
+              open
+              onClose={() => {
+                if (liveMode === "create") {
+                  // Switch back to work tab so AppointmentSheet stays open.
+                  setKind("work");
+                } else {
+                  onClose();
+                }
+              }}
+              mode={liveMode === "edit" ? "edit" : "create"}
+              event={eventSeed}
+              context="team"
+              onSave={(evt) => {
+                onSave(evt);
+                onClose();
+              }}
             />
-          ) : (
+          )}
+          {!isEventMode && (
             <>
               {/* v607 P0 #1 — block order: critical inputs up top,
                   details collapsed. Order: Client → History →
@@ -1081,8 +1115,10 @@ export default function AppointmentSheet({
         {/* Sticky save: в create и в edit — single full-width button.
             Cancel lives as the header ✕; backdrop/Esc also prompt.
             v615 P1 §16 — backdrop-blur so scrolled content shows
-            through softly instead of a hard cut. */}
-        {isEditable && (
+            through softly instead of a hard cut.
+            Sprint #4 P0 §4: hidden in event mode — EventForm has its
+            own overlay and sticky footer. */}
+        {isEditable && !isEventMode && (
           <div
             className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] sticky bottom-0 z-10 backdrop-blur-[12px]"
             style={{
