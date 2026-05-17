@@ -220,11 +220,17 @@ export function useTenantId(): string {
   return ctx.id;
 }
 
-/** Tenant display name. Resolved server-side, synchronous on the client. */
+/** Tenant display name. Resolved server-side, synchronous on the client.
+ *  STORY-060 §F3.3 — canonical fallback "Моя компания" when the DB row has
+ *  an empty/whitespace-only name (legacy onboarding gap, hand-rolled SQL,
+ *  pre-onboarded shells). Centralising the fallback here keeps every
+ *  consumer free of `name || "..."` boilerplate and guarantees we never
+ *  surface a blank string to the user. */
 export function useTenantName(): string {
   const ctx = useContext(TenantContext);
   if (!ctx) throw new Error("useTenantName must be used within DashboardLayout");
-  return ctx.name;
+  const trimmed = ctx.name?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : "Моя компания";
 }
 
 /** Authenticated user's email. Empty string when unavailable. */
@@ -733,7 +739,20 @@ export default function DashboardClientLayout({
   const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
   const [dayExtras, setDayExtrasState] = useState<DayExtrasMap>({});
   const [calendarSettings, setCalendarSettingsState] = useState<CalendarSettings>(() => {
-    if (typeof window === "undefined") return { startHour: 9, endHour: 20, gridStep: 30, weekStart: "monday", timezone: "Europe/Nicosia" };
+    if (typeof window === "undefined") {
+      // SSR default — full shape so the type checker is happy.
+      return {
+        startHour: 9,
+        endHour: 20,
+        gridStep: 30,
+        weekStart: "monday",
+        timezone: "Europe/Nicosia",
+        bufferMinutes: 0,
+        hideCancelled: false,
+        allowOvertime: false,
+        days_off: [0],
+      };
+    }
     return loadCalendarSettings();
   });
   const [cities, setCitiesState] = useState<City[]>([]);
