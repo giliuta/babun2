@@ -9,13 +9,18 @@ import { useRouter } from "next/navigation";
 import FinanceSparkline, {
   type FinanceDailyPoint,
 } from "@/components/finance/FinanceSparkline";
-import { ChevronDown, Plus, SlidersHorizontal, Download } from "@babun/shared/icons";
+import { ChevronDown, Plus, SlidersHorizontal, Download, FileText } from "@babun/shared/icons";
 import {
   buildCsv,
   downloadCsv,
   FINANCE_CSV_COLUMNS,
   type FinanceCsvRow,
 } from "@/lib/finance/csv-export";
+import {
+  downloadPdfTable,
+  FINANCE_PDF_COLUMNS,
+  type FinancePdfRow,
+} from "@/lib/finance/pdf-export";
 import PageHeader from "@/components/layout/PageHeader";
 import ManualTransactionSheet from "@/components/finance/ManualTransactionSheet";
 import FinancePieChart from "@/components/finance/FinancePieChart";
@@ -153,6 +158,54 @@ export default function FinancesPage() {
             >
               <Download size={14} strokeWidth={2} />
               CSV
+            </button>
+            {/* v588 §3.12 — PDF export. Same row set as the CSV
+                button above (active filter + period), but rendered as
+                a typeset A4 table so the dispatcher can email it
+                straight to the accountant without recipient-side
+                formatting. */}
+            <button
+              type="button"
+              onClick={() => {
+                const rows: FinancePdfRow[] = [
+                  ...filteredIncome.map((e) => ({
+                    dateKey: e.dateKey,
+                    description: e.description,
+                    amount: e.amount,
+                    teamName: e.teamId
+                      ? teamById.get(e.teamId) ?? "—"
+                      : "—",
+                    type: "income" as const,
+                  })),
+                  ...filteredExpenses.map((e) => ({
+                    dateKey: e.dateKey,
+                    description: e.description,
+                    amount: e.amount,
+                    teamName: e.teamId
+                      ? teamById.get(e.teamId) ?? "—"
+                      : "—",
+                    type: "expense" as const,
+                  })),
+                ].sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+                const today = new Date().toLocaleDateString("ru-RU");
+                downloadPdfTable(
+                  FINANCE_PDF_COLUMNS,
+                  rows,
+                  `babun-finance-${period}`,
+                  {
+                    title: "Финансовый отчёт",
+                    subtitle: `Период: ${selectedPeriodLabel}`,
+                    footer: `Сформировано Babun · ${today}`,
+                  },
+                );
+              }}
+              aria-label="Экспорт в PDF"
+              data-testid="finance-export-pdf"
+              disabled={filteredIncome.length + filteredExpenses.length === 0}
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
+            >
+              <FileText size={14} strokeWidth={2} />
+              PDF
             </button>
             <button
               type="button"
