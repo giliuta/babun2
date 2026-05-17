@@ -51,9 +51,20 @@ function rowToSettings(r: Row): CalendarSettings {
     // v449 — round-trip work / scroll-open hours through Supabase.
     // Older rows return null here; the caller's sanitizer fills them
     // with the visible-range defaults so the form never crashes.
-    workStartHour: r.work_start_hour ?? undefined,
-    workEndHour: r.work_end_hour ?? undefined,
-    scrollOpenHour: r.scroll_open_hour ?? undefined,
+    // Cast to any: post-Sprint #3 migrations regen dropped these
+    // columns from the generated Database type even though the live
+    // schema still carries them on older tenants. Graceful-fallback
+    // below (line 142) handles the «column does not exist» 42703 case.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    workStartHour: (r as any).work_start_hour ?? undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    workEndHour: (r as any).work_end_hour ?? undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    scrollOpenHour: (r as any).scroll_open_hour ?? undefined,
+    // STORY-060 F2.5 — days_off lives on the live schema even when
+    // not in the regen'd type. Default to [0] (Sunday) on missing rows.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    days_off: Array.isArray((r as any).days_off) ? (r as any).days_off : [0],
     personalLabels,
     personalDefaultLabel,
   };
@@ -95,9 +106,16 @@ export async function updateCalendarSettings(
   if (patch.bufferMinutes !== undefined) insert.buffer_minutes = patch.bufferMinutes;
   if (patch.hideCancelled !== undefined) insert.hide_cancelled = patch.hideCancelled;
   if (patch.allowOvertime !== undefined) insert.allow_overtime = patch.allowOvertime;
-  if (patch.workStartHour !== undefined) insert.work_start_hour = patch.workStartHour;
-  if (patch.workEndHour !== undefined) insert.work_end_hour = patch.workEndHour;
-  if (patch.scrollOpenHour !== undefined) insert.scroll_open_hour = patch.scrollOpenHour;
+  // Cast through any — see rowToSettings comment for context.
+  if (patch.workStartHour !== undefined)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (insert as any).work_start_hour = patch.workStartHour;
+  if (patch.workEndHour !== undefined)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (insert as any).work_end_hour = patch.workEndHour;
+  if (patch.scrollOpenHour !== undefined)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (insert as any).scroll_open_hour = patch.scrollOpenHour;
   // v493 — round-trip personalLabels / personalDefaultLabel. Written
   // through an indexed cast since older builds of `database.types`
   // may not have the columns yet. The graceful-fallback below strips
@@ -140,9 +158,12 @@ export async function updateCalendarSettings(
         error.message,
       );
     if (isMissingCol) {
-      delete insert.work_start_hour;
-      delete insert.work_end_hour;
-      delete insert.scroll_open_hour;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (insert as any).work_start_hour;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (insert as any).work_end_hour;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (insert as any).scroll_open_hour;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (insert as any).personal_labels;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
