@@ -28,7 +28,7 @@ import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
-import { pricePerUnit } from "@babun/shared/local/services";
+import { servicesToIds, idsToServices } from "@/lib/appointment-services";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
 import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
 import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
@@ -1389,70 +1389,4 @@ export default function AppointmentSheet({
   );
 }
 
-// ─── id ↔ AppointmentService helpers ────────────────────────────────────
-// ServicePickerSheet оперирует `string[]` с дубликатами (quantity = кол-во
-// повторов id). AppointmentService[] нужен для корректного расчёта bulk
-// price и per-line пользовательских переопределений цены. Эти две
-// функции мостят два представления, сохраняя overrides из prev.
-
-function servicesToIds(list: AppointmentService[]): string[] {
-  const out: string[] = [];
-  for (const s of list) {
-    for (let i = 0; i < s.quantity; i++) out.push(s.serviceId);
-  }
-  return out;
-}
-
-function idsToServices(
-  ids: string[],
-  catalog: Service[],
-  prev: AppointmentService[]
-): AppointmentService[] {
-  const byId = new Map<string, Service>();
-  for (const svc of catalog) byId.set(svc.id, svc);
-  const prevById = new Map<string, AppointmentService>();
-  for (const line of prev) prevById.set(line.serviceId, line);
-
-  const qty = new Map<string, number>();
-  for (const id of ids) qty.set(id, (qty.get(id) ?? 0) + 1);
-
-  const out: AppointmentService[] = [];
-  // Сохраняем исходный порядок: сначала строки, которые уже были в prev
-  // (это сохраняет ручные перестановки в UI), потом новые.
-  const seen = new Set<string>();
-  for (const line of prev) {
-    const q = qty.get(line.serviceId);
-    if (!q) continue;
-    seen.add(line.serviceId);
-    const svc = byId.get(line.serviceId);
-    if (!svc) continue;
-    // Если команда не трогала цену (pricePerUnit === originalPrice),
-    // пересчитываем с учётом bulk. Если трогала — сохраняем override.
-    const userOverride = line.pricePerUnit !== line.originalPrice;
-    const ppu = userOverride ? line.pricePerUnit : pricePerUnit(svc, q);
-    out.push({
-      ...line,
-      quantity: q,
-      pricePerUnit: ppu,
-      originalPrice: svc.price,
-      totalPrice: q * ppu,
-      duration: q * svc.duration_minutes,
-    });
-  }
-  for (const [id, q] of qty) {
-    if (seen.has(id)) continue;
-    const svc = byId.get(id);
-    if (!svc) continue;
-    const ppu = pricePerUnit(svc, q);
-    out.push({
-      serviceId: id,
-      quantity: q,
-      pricePerUnit: ppu,
-      originalPrice: svc.price,
-      totalPrice: q * ppu,
-      duration: q * svc.duration_minutes,
-    });
-  }
-  return out;
-}
 
