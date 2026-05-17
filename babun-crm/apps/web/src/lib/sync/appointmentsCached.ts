@@ -130,6 +130,9 @@ function rowToAppointment(r: CachedAppointment): Appointment {
     reminder_template: r.reminder_template ?? "",
     global_discount: (r.global_discount ?? null) as Appointment["global_discount"],
     total_duration: r.total_duration,
+    payment_status: (r.payment_status ?? "unpaid") as Appointment["payment_status"],
+    payment_method: (r.payment_method ?? undefined) as Appointment["payment_method"],
+    paid_amount: r.paid_amount ?? 0,
     photos: [], // not cached — fetched separately by photo viewer
     created_at: r.created_at,
     updated_at: r.updated_at,
@@ -390,6 +393,9 @@ function makeOptimisticRow(
     payment: (input.payment ?? null) as CachedAppointment["payment"],
     global_discount: (input.global_discount ?? null) as CachedAppointment["global_discount"],
     total_duration: input.total_duration ?? 0,
+    payment_status: input.payment_status ?? "unpaid",
+    payment_method: input.payment_method ?? null,
+    paid_amount: input.paid_amount ?? 0,
     // STORY-055 — created_by is filled server-side by the BEFORE
     // INSERT trigger; the optimistic cache row carries null and gets
     // rewritten on refetchAndCacheOne after the real insert.
@@ -435,5 +441,8 @@ function patchToRow(patch: Partial<Appointment>): Partial<CachedAppointment> {
   if (patch.payment !== undefined) out.payment = patch.payment as CachedAppointment["payment"];
   if (patch.global_discount !== undefined) out.global_discount = patch.global_discount as CachedAppointment["global_discount"];
   if (patch.total_duration !== undefined) out.total_duration = patch.total_duration;
+  if (patch.payment_status !== undefined) out.payment_status = patch.payment_status;
+  if (patch.payment_method !== undefined) out.payment_method = patch.payment_method ?? null;
+  if (patch.paid_amount !== undefined) out.paid_amount = patch.paid_amount;
   return out;
 }
