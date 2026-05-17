@@ -62,6 +62,10 @@ export interface EventFormProps {
   context: "team" | "personal";
   onSave: (event: Appointment) => void;
   onDelete?: (event: Appointment) => void;
+  /** v619 — emit dirty state changes so the parent can guard external
+   *  unmount paths (e.g. AppointmentSheet's segment toggle). Optional;
+   *  PersonalEventSheet doesn't need it. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -349,7 +353,7 @@ function ToggleSlim({ checked, onChange, ariaLabel }: { checked: boolean; onChan
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function EventForm({
-  open, onClose, mode, event, context, onSave, onDelete,
+  open, onClose, mode, event, context, onSave, onDelete, onDirtyChange,
 }: EventFormProps) {
   const { calendarSettings } = useCalendarSettings();
   const workStartHr = calendarSettings.workStartHour ?? calendarSettings.startHour ?? 8;
@@ -452,6 +456,14 @@ export default function EventForm({
     if (editDirty || createDirty) setCloseConfirm(true);
     else onClose();
   };
+
+  // v619 — surface dirty state to parent so external unmount paths
+  // (segment toggle in AppointmentSheet) can show a confirm before
+  // dropping the draft.
+  const isDirty = editDirty || createDirty;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const buildPayload = (): Appointment => ({
     ...event,

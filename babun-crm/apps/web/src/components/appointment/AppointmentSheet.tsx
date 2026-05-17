@@ -192,6 +192,12 @@ export default function AppointmentSheet({
   // date+time+duration editors. The inline cluster is removed from
   // body so it stays focused on client / services.
   const [timePopupOpen, setTimePopupOpen] = useState(false);
+  // v619 — data-loss guard: EventForm reports its dirty state up so
+  // the [Клиент/Событие] segment toggle can warn before dropping the
+  // draft. EventForm's internal close-confirm already protects
+  // backdrop/Esc; this protects the segment-toggle exit path.
+  const [eventFormDirty, setEventFormDirty] = useState(false);
+  const [segmentSwitchConfirm, setSegmentSwitchConfirm] = useState(false);
   // v617 P1 §20 — swipe-down dirty-guard. Track touch on the modal
   // container; if the operator drags down past 90 px and the scroll
   // body is at the top, treat it as a close-attempt (which routes
@@ -675,7 +681,19 @@ export default function AppointmentSheet({
                   <button
                     key={k}
                     type="button"
-                    onClick={() => setKind(k)}
+                    onClick={() => {
+                      if (k === kind) return;
+                      // v619 — guard the kind swap. If we're leaving an
+                      // event draft with content, confirm first; the
+                      // EventForm child unmounts on kind change and its
+                      // internal state (notes / url / push / repeat /
+                      // place) would be silently dropped.
+                      if (kind === "event" && eventFormDirty) {
+                        setSegmentSwitchConfirm(true);
+                        return;
+                      }
+                      setKind(k);
+                    }}
                     className={`px-4 py-1.5 rounded-[8px] transition ${
                       kind === k
                         ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
@@ -810,6 +828,7 @@ export default function AppointmentSheet({
                 if (liveMode === "create") {
                   // Switch back to work tab so AppointmentSheet stays open.
                   setKind("work");
+                  setEventFormDirty(false);
                 } else {
                   onClose();
                 }
@@ -821,6 +840,7 @@ export default function AppointmentSheet({
                 onSave(evt);
                 onClose();
               }}
+              onDirtyChange={setEventFormDirty}
             />
           )}
           {!isEventMode && (
@@ -1125,6 +1145,49 @@ export default function AppointmentSheet({
           setClientSheet(true);
         }}
       />
+
+      {/* v619 — segment-toggle dirty-guard. Fires when user taps
+          «Клиент» while in event mode with a non-empty EventForm draft.
+          «Не сохранять» drops the event draft and switches; «Назад»
+          stays in event mode. */}
+      {segmentSwitchConfirm && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
+          onClick={() => setSegmentSwitchConfirm(false)}
+        >
+          <div
+            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
+              Сменить на «Клиент»?
+            </div>
+            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
+              Введённые данные события не сохранятся.
+            </div>
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSegmentSwitchConfirm(false);
+                  setEventFormDirty(false);
+                  setKind("work");
+                }}
+                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
+              >
+                Не сохранять
+              </button>
+              <button
+                type="button"
+                onClick={() => setSegmentSwitchConfirm(false)}
+                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] transition"
+              >
+                Назад
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* v617 P1 §17 — time popup. Hosts the full date+time+duration
           editing surface: quick chips, TimeBlock wheels, duration
