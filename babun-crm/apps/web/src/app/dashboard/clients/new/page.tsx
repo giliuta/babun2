@@ -98,6 +98,12 @@ export default function NewClientPage() {
   // block on a separate settings detour.
   const [cityList, setCityList] = useState<City[]>([]);
   useEffect(() => {
+    // Client-only hydration: loadCities() reads localStorage which
+    // is undefined during SSR. Empty initial render matches the
+    // server, this effect upgrades to the persisted city catalogue
+    // after mount. React-Compiler flags the pattern; the cascade is
+    // intentional and bounded to one extra render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCityList(getActiveCities(loadCities()));
   }, []);
 
