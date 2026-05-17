@@ -121,6 +121,9 @@ export default function ServicesBlock({
           services.map((line, idx) => {
             const svc = byId.get(line.serviceId) ?? null;
             const total = lineTotal(line);
+            // v616 P2 — 4 px category-colour stripe on the left edge so
+            // the operator scans the list by category at a glance.
+            const stripe = svc?.color ?? "transparent";
             // Row is a div with role="button" so the inner ✕ can be a
             // real <button> without nesting two native buttons (invalid
             // HTML, trips a11y tools). Keyboard support: Enter/Space on
@@ -140,6 +143,7 @@ export default function ServicesBlock({
                 }}
                 aria-label={readonly ? undefined : "Изменить услугу"}
                 className={rowBase}
+                style={{ borderLeft: `4px solid ${stripe}` }}
               >
                 <span className="flex-shrink-0 w-7 text-center text-[13px] font-bold text-[var(--accent)] tabular-nums">
                   ×{line.quantity}

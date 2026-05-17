@@ -197,6 +197,12 @@ export default function AppointmentSheet({
   const tenantId = useTenantId();
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
+  // v616 P2 — operator-picked event accent override. null = derive from
+  // the preset name (legacy behaviour). When set, beats the preset's
+  // intrinsic colour on save.
+  const [eventColorOverride, setEventColorOverride] = useState<string | null>(
+    appointment.color_override ?? null,
+  );
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
@@ -248,6 +254,7 @@ export default function AppointmentSheet({
         });
     }
     setEventLabel(appointment.comment || "");
+    setEventColorOverride(appointment.color_override ?? null);
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
     setGlobalDiscount(appointment.global_discount ?? null);
@@ -523,10 +530,14 @@ export default function AppointmentSheet({
         kind: "event",
         comment: eventLabel.trim(),
         team_id: activeTeam?.id ?? null,
+        // v616 P2 — manual color override wins; fall back to the preset's
+        // intrinsic colour when the operator hasn't picked one.
         color_override:
+          eventColorOverride ??
           EVENT_PRESETS.find((e) =>
             eventLabel.toLowerCase().startsWith(e.label.toLowerCase())
-          )?.color ?? null,
+          )?.color ??
+          null,
         total_amount: 0,
         custom_total: true,
         status: "scheduled",
@@ -840,9 +851,11 @@ export default function AppointmentSheet({
             <EventModeBody
               eventLabel={eventLabel}
               timeStart={timeStart}
+              colorOverride={eventColorOverride}
               onLabelChange={setEventLabel}
               onTimeStartChange={setTimeStart}
               onTimeEndChange={setTimeEnd}
+              onColorChange={setEventColorOverride}
             />
           ) : (
             <>

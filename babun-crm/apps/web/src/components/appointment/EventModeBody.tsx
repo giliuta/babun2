@@ -25,20 +25,39 @@ const EVENT_ICONS: Record<EventPreset["icon"], React.ComponentType<{ size?: numb
   plane: Plane,
 };
 
+// v616 P2 — 8 named palette colors for event accent override.
+// Slate / red / orange / amber / green / cyan / blue / violet.
+// Operator picks the colour after picking the preset; default
+// stays the preset's intrinsic colour when no override is set.
+export const EVENT_COLOR_PRESETS = [
+  { id: "slate", hex: "#64748B", label: "Slate" },
+  { id: "red", hex: "#EF4444", label: "Red" },
+  { id: "orange", hex: "#F97316", label: "Orange" },
+  { id: "amber", hex: "#F59E0B", label: "Amber" },
+  { id: "green", hex: "#10B981", label: "Green" },
+  { id: "cyan", hex: "#06B6D4", label: "Cyan" },
+  { id: "blue", hex: "#3B82F6", label: "Blue" },
+  { id: "violet", hex: "#8B5CF6", label: "Violet" },
+] as const;
+
 interface EventModeBodyProps {
   eventLabel: string;
   timeStart: string;
+  colorOverride?: string | null;
   onLabelChange: (next: string) => void;
   onTimeStartChange: (next: string) => void;
   onTimeEndChange: (next: string) => void;
+  onColorChange?: (next: string | null) => void;
 }
 
 export default function EventModeBody({
   eventLabel,
   timeStart,
+  colorOverride = null,
   onLabelChange,
   onTimeStartChange,
   onTimeEndChange,
+  onColorChange,
 }: EventModeBodyProps) {
   const applyPreset = (p: EventPreset) => {
     onLabelChange(p.label);
@@ -95,6 +114,31 @@ export default function EventModeBody({
           className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
         />
       </div>
+      {onColorChange && (
+        <div>
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
+            Цвет
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {EVENT_COLOR_PRESETS.map((c) => {
+              const active = colorOverride === c.hex;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onColorChange(active ? null : c.hex)}
+                  aria-label={c.label}
+                  className="w-8 h-8 rounded-full active:scale-[0.95] transition border-2"
+                  style={{
+                    background: c.hex,
+                    borderColor: active ? "var(--label)" : "transparent",
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
