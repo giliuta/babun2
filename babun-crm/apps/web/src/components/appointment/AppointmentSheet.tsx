@@ -28,7 +28,6 @@ import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
-import { servicesToIds, idsToServices } from "@/lib/appointment-services";
 import {
   buildSavedWorkAppointment,
   buildCompletedAppointment,
@@ -41,8 +40,6 @@ import {
   appointmentTotal,
   totalDuration as calcDuration,
 } from "@babun/shared/local/finance/appointment-calc";
-import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
-import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
 import { IOSSwitch } from "@/components/ui";
 
 import TimeBlock from "./TimeBlock";
@@ -57,17 +54,9 @@ import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
 import OverlapWarning from "./OverlapWarning";
 import EventForm from "@/components/event/EventForm";
 import CancelToggleBlock from "./CancelToggleBlock";
-import { CloseConfirmDialog, AskClientFirstDialog } from "./AppointmentConfirmDialogs";
-import ClientActionMenu from "./ClientActionMenu";
-import SendMessagePopup from "./SendMessagePopup";
-import ClientProfileView from "@/components/clients/ClientProfileView";
-import { useRouter } from "next/navigation";
-import { loadChats } from "@babun/shared/local/chats";
+import AppointmentSubSheets from "./AppointmentSubSheets";
 import PaymentBlock from "./PaymentBlock";
-import { buildShareUrl } from "@babun/shared/common/utils/share-link";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
-import RepeatReminderSheet from "./RepeatReminderSheet";
-import { loadCompany } from "@babun/shared/local/finance/company";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
 // demand when the dispatcher actually taps "Скачать счёт" instead of
 // shipping the module in the main dashboard bundle.
@@ -134,7 +123,6 @@ export default function AppointmentSheet({
   onCompleteQuick,
   personalMode = false,
 }: AppointmentSheetProps) {
-  const router = useRouter();
   const toast = useToast();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
@@ -1148,64 +1136,77 @@ export default function AppointmentSheet({
         )}
       </div>
 
-      {/* Sub-sheets */}
-      <ClientPickerSheet
-        open={clientSheet}
-        onClose={() => setClientSheet(false)}
-        onSelect={(c) => {
+      {/* v625 §9 step 2 — all portal-level pickers/dialogs/overlays
+          live in AppointmentSubSheets. State stays here; the wrapper
+          just renders + forwards callbacks. */}
+      <AppointmentSubSheets
+        clientSheet={clientSheet}
+        setClientSheet={setClientSheet}
+        clients={clients}
+        recentClientIds={recentClientIds}
+        onClientSelect={(c) => {
           setClientId(c.id);
           const locs = c.locations;
           const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
           setLocationId(primary?.id ?? null);
-          setClientSheet(false);
         }}
-        clients={clients}
-        recentClientIds={recentClientIds}
-      />
-
-      <ServicePickerSheet
-        open={servicePickerOpen}
-        onClose={() => setServicePickerOpen(false)}
-        services={catalog}
+        servicePickerOpen={servicePickerOpen}
+        setServicePickerOpen={setServicePickerOpen}
+        catalog={catalog}
         categories={categories}
-        brigadeId={activeTeam?.id ?? null}
-        initialSelectedIds={servicesToIds(appointmentServices)}
-        onConfirm={(ids) => {
-          setAppointmentServices(
-            idsToServices(ids, catalog, appointmentServices)
-          );
-        }}
-        clientName={client?.full_name ?? null}
-        clientPhone={client?.phone ?? null}
-      />
-
-      <CloseConfirmDialog
-        open={closeConfirm}
-        mode={liveMode}
+        activeTeam={activeTeam}
+        appointmentServices={appointmentServices}
+        onServicesConfirm={setAppointmentServices}
+        client={client}
+        closeConfirm={closeConfirm}
+        setCloseConfirm={setCloseConfirm}
+        liveMode={liveMode}
         canSave={canSave}
-        onCancel={() => setCloseConfirm(false)}
-        onDiscard={() => {
-          setCloseConfirm(false);
-          onClose();
+        onClose={onClose}
+        onSaveAndClose={handleCreate}
+        askClientFirst={askClientFirst}
+        setAskClientFirst={setAskClientFirst}
+        clientMenuOpen={clientMenuOpen}
+        setClientMenuOpen={setClientMenuOpen}
+        setClientProfileOpen={setClientProfileOpen}
+        setSendMsgOpen={setSendMsgOpen}
+        setRepeatSheetOpen={setRepeatSheetOpen}
+        appointment={appointment}
+        isEventMode={isEventMode}
+        photos={photos}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        address={address}
+        price={price}
+        sendMsgOpen={sendMsgOpen}
+        repeatSheetOpen={repeatSheetOpen}
+        onRepeatConfirm={(months, note) => {
+          if (!client) return;
+          const serviceSummary = appointmentServices
+            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
+            .filter((n): n is string => Boolean(n))
+            .join(" · ");
+          const supabase = getSupabaseBrowser();
+          void createRecurringReminder(supabase, tenantId, {
+            client_id: client.id,
+            client_name: client.full_name,
+            phone: client.phone ?? "",
+            team_id: activeTeam?.id ?? null,
+            service_ids: appointmentServices.map((l) => l.serviceId),
+            service_summary: serviceSummary,
+            last_date: appointment.date,
+            interval_months: months,
+            note,
+          }).then(() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("babun:recurring-changed"));
+            }
+          }).catch((err) => {
+            console.warn("STORY-050: createRecurringReminder failed", err);
+          });
         }}
-        onSave={() => {
-          if (!canSave) return;
-          handleCreate();
-          setCloseConfirm(false);
-        }}
-      />
-
-      <AskClientFirstDialog
-        open={askClientFirst}
-        onCancel={() => setAskClientFirst(false)}
-        onContinue={() => {
-          setAskClientFirst(false);
-          setServicePickerOpen(true);
-        }}
-        onPickClient={() => {
-          setAskClientFirst(false);
-          setClientSheet(true);
-        }}
+        clientProfileOpen={clientProfileOpen}
       />
 
       {/* v619 — segment-toggle dirty-guard. Fires when user taps
@@ -1369,184 +1370,6 @@ export default function AppointmentSheet({
         </div>
       )}
 
-      {client && (
-        <ClientActionMenu
-          open={clientMenuOpen}
-          onClose={() => setClientMenuOpen(false)}
-          client={client}
-          onProfile={() => setClientProfileOpen(true)}
-          onSendMessage={() => setSendMsgOpen(true)}
-          onOpenChat={() => {
-            const existing = loadChats().find((ch) => ch.client_id === client.id);
-            if (existing) {
-              router.push(`/dashboard/chats?chat_id=${existing.id}`);
-            } else {
-              router.push(`/dashboard/chats?client_id=${client.id}`);
-            }
-          }}
-          onShare={async () => {
-            const parts = [client.full_name];
-            if (client.phone) parts.push(client.phone);
-            const text = parts.join(" · ");
-            if (typeof navigator !== "undefined" && navigator.share) {
-              try {
-                await navigator.share({ title: client.full_name, text });
-              } catch {
-                // user dismissed
-              }
-            } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-              try {
-                await navigator.clipboard.writeText(text);
-              } catch {
-                // ignore
-              }
-            }
-          }}
-          onScheduleRepeat={
-            appointment.status === "completed" && !isEventMode && client
-              ? () => setRepeatSheetOpen(true)
-              : undefined
-          }
-          onDownloadInvoice={
-            appointment.status === "completed" && !isEventMode && client
-              ? async () => {
-                  // Dynamic import keeps jspdf (+ renderer) out of the
-                  // initial bundle. First tap incurs a one-off chunk
-                  // load; subsequent taps are cached.
-                  const { generateInvoicePDF, downloadBlob } = await import(
-                    "@babun/shared/local/finance/invoice"
-                  );
-                  const { blob, filename } = generateInvoicePDF({
-                    appointment,
-                    client,
-                    services: catalog,
-                    team: activeTeam,
-                    company: loadCompany(),
-                    includePhotos: photos.length > 0,
-                  });
-                  downloadBlob(blob, filename);
-                }
-              : undefined
-          }
-          onShareAppointment={
-            liveMode === "create" || isEventMode
-              ? undefined
-              : async () => {
-                  const serviceNames = appointmentServices
-                    .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-                    .filter((n): n is string => Boolean(n));
-                  const origin =
-                    typeof window !== "undefined" ? window.location.origin : "";
-                  const url = buildShareUrl(origin, {
-                    d: dateKey,
-                    ts: timeStart,
-                    te: timeEnd,
-                    c: client.full_name,
-                    s: serviceNames,
-                    a: address || undefined,
-                    b: activeTeam?.name,
-                    t: Math.round(price),
-                    st: appointment.status,
-                  });
-                  const title = `Запись ${dateKey} · ${timeStart}`;
-                  if (typeof navigator !== "undefined" && navigator.share) {
-                    try {
-                      await navigator.share({ title, url });
-                      return;
-                    } catch {
-                      // user dismissed — fall through to clipboard.
-                    }
-                  }
-                  if (typeof navigator !== "undefined" && navigator.clipboard) {
-                    try {
-                      await navigator.clipboard.writeText(url);
-                      toast.show({
-                        variant: "success",
-                        message: "Ссылка скопирована — отправьте клиенту",
-                      });
-                    } catch {
-                      toast.show({
-                        variant: "error",
-                        message: "Не удалось скопировать. Скопируйте вручную в адресной строке.",
-                      });
-                    }
-                  } else {
-                    toast.show({
-                      variant: "error",
-                      message: "Копирование не поддерживается в этом браузере.",
-                    });
-                  }
-                }
-          }
-        />
-      )}
-
-      {client && (
-        <SendMessagePopup
-          open={sendMsgOpen}
-          onClose={() => setSendMsgOpen(false)}
-          phone={client.phone ?? null}
-          clientName={client.full_name}
-        />
-      )}
-
-      {client && (
-        <RepeatReminderSheet
-          open={repeatSheetOpen}
-          clientName={client.full_name}
-          serviceSummary={appointmentServices
-            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-            .filter(Boolean)
-            .join(" · ")}
-          lastDate={appointment.date}
-          onClose={() => setRepeatSheetOpen(false)}
-          onConfirm={(months, note) => {
-            const serviceSummary = appointmentServices
-              .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-              .filter((n): n is string => Boolean(n))
-              .join(" · ");
-            const supabase = getSupabaseBrowser();
-            void createRecurringReminder(supabase, tenantId, {
-              client_id: client.id,
-              client_name: client.full_name,
-              phone: client.phone ?? "",
-              team_id: activeTeam?.id ?? null,
-              service_ids: appointmentServices.map((l) => l.serviceId),
-              service_summary: serviceSummary,
-              last_date: appointment.date,
-              interval_months: months,
-              note,
-            }).then(() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new Event("babun:recurring-changed"));
-              }
-            }).catch((err) => {
-              console.warn("STORY-050: createRecurringReminder failed", err);
-            });
-          }}
-        />
-      )}
-
-      {/* Client profile overlay — rendered on top of the appointment
-          sheet so picking ⋯ → Профиль doesn't navigate away. Tapping
-          ← inside closes the overlay and leaves the draft intact. */}
-      {clientProfileOpen && client && (
-        <div
-          className="fixed inset-0 z-[95] bg-[var(--surface-overlay)] backdrop-blur-[2px] flex items-center justify-center p-2"
-          onClick={() => setClientProfileOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
-            style={{ height: "92vh" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ClientProfileView
-              clientId={client.id}
-              onBack={() => setClientProfileOpen(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Keep reference list silenced */}
       <div className="hidden">{CITY_LIST.length}</div>
