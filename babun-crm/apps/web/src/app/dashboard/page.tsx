@@ -41,6 +41,11 @@ import TimeColumn from "@/components/calendar/TimeColumn";
 import CalendarLegend from "@/components/calendar/CalendarLegend";
 import AgendaView from "@/components/calendar/AgendaView";
 import UndoToast from "@/components/ui/UndoToast";
+import { useToast } from "@/components/ui/Toast";
+import {
+  findOverlap,
+  describeOverlap,
+} from "@babun/shared/common/utils/appointment-overlap";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
 
@@ -167,6 +172,7 @@ function DashboardPageInner() {
   // STORY-052 G6 — quota state for the calendar's appointments_month banner.
   const { snapshot: quotaSnap } = useTenantQuota();
   const router = useRouter();
+  const toast = useToast();
   // STORY-085 — first-run gate. When the tenant has no teams configured
   // AND personal_calendar_enabled is false, the calendar grid is
   // meaningless. We render <FirstRunCalendarChoice> instead, asking
@@ -1190,15 +1196,44 @@ function DashboardPageInner() {
       // No change? bail out
       if (dateKey === apt.date && newStart === sh * 60 + sm) return;
 
+      const nextStart = fmt(newStart);
+      const nextEnd = fmt(newEnd);
+
+      // Brief 1 #20 — conflict detection on drag-drop. Same rules as
+      // AppointmentSheet's pre-save check, extracted to a shared
+      // helper so both surfaces stay in sync. We warn but don't
+      // block — two overlapping visits happen by accident in HVAC
+      // dispatch all the time and the user is the source of truth.
+      const overlap = findOverlap(
+        {
+          id: apt.id,
+          date: dateKey,
+          time_start: nextStart,
+          time_end: nextEnd,
+          team_id: apt.team_id,
+          kind: apt.kind,
+        },
+        appointments,
+      );
+      if (overlap) {
+        const detail = describeOverlap(overlap, (cid: string | null | undefined) =>
+          cid ? clients.find((c) => c.id === cid)?.full_name ?? null : null,
+        );
+        toast.show({
+          variant: "info",
+          message: `Пересечение: ${detail}`,
+        });
+      }
+
       upsertAppointment({
         ...apt,
         date: dateKey,
-        time_start: fmt(newStart),
-        time_end: fmt(newEnd),
+        time_start: nextStart,
+        time_end: nextEnd,
         updated_at: new Date().toISOString(),
       });
     },
-    [appointments, upsertAppointment]
+    [appointments, clients, toast, upsertAppointment]
   );
 
   // City picker state for the tapped day
