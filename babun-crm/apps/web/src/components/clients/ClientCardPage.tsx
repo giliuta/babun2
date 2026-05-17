@@ -151,6 +151,7 @@ export default function ClientCardPage({
         onOpenMenu={() => setMenuOpen(true)}
         onBack={onBack}
         appointments={appointments}
+        onAvatarChange={(url) => upsertClient({ ...client, avatar_url: url })}
       />
 
       <div className="flex-1 overflow-y-auto">
