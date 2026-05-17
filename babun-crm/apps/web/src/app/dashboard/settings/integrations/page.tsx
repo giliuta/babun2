@@ -17,6 +17,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import PageHeader from "@/components/layout/PageHeader";
 import { MessageSquare } from "@babun/shared/icons";
 import TelegramIntegrationCard from "@/components/settings/integrations/TelegramIntegrationCard";
+// Beta #50 (CRM Core brief) — webhooks CRUD card.
+import WebhooksCard from "@/components/settings/integrations/WebhooksCard";
 
 interface SoonCard {
   id: string;
@@ -67,6 +69,8 @@ export default async function IntegrationsPage() {
           </p>
 
           <TelegramIntegrationCard tenantId={tenantId} />
+
+          <WebhooksCard tenantId={tenantId} />
 
           {SOON.map((card) => (
             <div
