@@ -403,15 +403,18 @@ export type Database = {
         Row: {
           acquisition_source: string
           address: string
+          avatar_url: string | null
           balance: number
           birthday: string
           blacklisted: boolean
           city: string
           comment: string
           created_at: string
+          deleted_at: string | null
           discount: number
           email: string
           equipment: Json
+          favorite_master_id: string | null
           first_contact_date: string | null
           full_name: string
           id: string
@@ -420,6 +423,7 @@ export type Database = {
           locations: Json
           notes: Json
           phone: string
+          phone_e164: string | null
           phones: Json
           pinned_at: string | null
           property_type: string
@@ -434,15 +438,18 @@ export type Database = {
         Insert: {
           acquisition_source?: string
           address?: string
+          avatar_url?: string | null
           balance?: number
           birthday?: string
           blacklisted?: boolean
           city?: string
           comment?: string
           created_at?: string
+          deleted_at?: string | null
           discount?: number
           email?: string
           equipment?: Json
+          favorite_master_id?: string | null
           first_contact_date?: string | null
           full_name: string
           id?: string
@@ -451,6 +458,7 @@ export type Database = {
           locations?: Json
           notes?: Json
           phone?: string
+          phone_e164?: string | null
           phones?: Json
           pinned_at?: string | null
           property_type?: string
@@ -465,15 +473,18 @@ export type Database = {
         Update: {
           acquisition_source?: string
           address?: string
+          avatar_url?: string | null
           balance?: number
           birthday?: string
           blacklisted?: boolean
           city?: string
           comment?: string
           created_at?: string
+          deleted_at?: string | null
           discount?: number
           email?: string
           equipment?: Json
+          favorite_master_id?: string | null
           first_contact_date?: string | null
           full_name?: string
           id?: string
@@ -482,6 +493,7 @@ export type Database = {
           locations?: Json
           notes?: Json
           phone?: string
+          phone_e164?: string | null
           phones?: Json
           pinned_at?: string | null
           property_type?: string

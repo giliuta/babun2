@@ -150,6 +150,7 @@ export default function ClientCardPage({
         onChangeLocation={setActiveLocationId}
         onOpenMenu={() => setMenuOpen(true)}
         onBack={onBack}
+        appointments={appointments}
       />
 
       <div className="flex-1 overflow-y-auto">

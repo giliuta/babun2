@@ -23,9 +23,12 @@ import {
   Plus,
   X,
 } from "@babun/shared/icons";
-import { useClients } from "@/components/layout/DashboardClientLayout";
+import { useClients, useTenantId } from "@/components/layout/DashboardClientLayout";
 import {
   createBlankClient,
+  ACQUISITION_LABELS,
+  type AcquisitionSource,
+  type Client,
   type Location,
   type PropertyType,
 } from "@babun/shared/local/clients";
@@ -46,8 +49,13 @@ import { useSaveStatus } from "@/hooks/useSaveStatus";
 import ObjectFormFields, {
   PROPERTY_CHOICES as SHARED_PROPERTY_CHOICES,
 } from "@/components/clients/ObjectFormFields";
-
-const DEFAULT_PHONE_PREFIX = "+357 ";
+// clients-99 F2.7 / F1.5 — country-aware phone + dedup guard.
+import { CountryPhoneInput } from "@/components/ui/CountryPhoneInput";
+import { tryToE164, type CountryCode } from "@/lib/phone/normalize";
+import { findClientByPhoneE164 } from "@babun/shared/db/repositories/clients";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { DuplicateClientModal } from "@/components/clients/DuplicateClientModal";
+import { track } from "@/lib/analytics/track";
 
 // P0 #6 — Property-type chip palette moved into the shared
 // ObjectFormFields module; re-export under the legacy local name so
@@ -68,12 +76,27 @@ interface LocationDraft {
 export default function NewClientPage() {
   const router = useRouter();
   const { upsertClient } = useClients();
+  const tenantId = useTenantId();
 
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState(DEFAULT_PHONE_PREFIX);
+  // clients-99 F2.7 — country comes from a flag selector. No more
+  // "+357 " hardcoded prefix.
+  const [country, setCountry] = useState<CountryCode>("CY");
+  const [phone, setPhone] = useState("");
+  // clients-99 F3.11 — WhatsApp shares the phone in 90% of cases.
+  const [waSameAsPhone, setWaSameAsPhone] = useState(true);
   const [whatsapp, setWhatsapp] = useState("");
   const [telegram, setTelegram] = useState("");
   const [instagram, setInstagram] = useState("");
+  // clients-99 F2.8 — acquisition source / favorite master.
+  const [source, setSource] = useState<AcquisitionSource>("unknown");
+  const [favoriteMasterId] = useState<string | null>(null);
+  // clients-99 F1.5 — duplicate guard.
+  const [duplicate, setDuplicate] = useState<{
+    existing: Client;
+    attempted: string;
+  } | null>(null);
+  const [forceCreateDuplicate, setForceCreateDuplicate] = useState(false);
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [draftLoc, setDraftLoc] = useState<LocationDraft | null>(null);
@@ -118,8 +141,7 @@ export default function NewClientPage() {
   }, []);
 
   const trimmedPhone = phone.trim();
-  const phoneFilled =
-    trimmedPhone.length > 0 && trimmedPhone !== DEFAULT_PHONE_PREFIX.trim();
+  const phoneFilled = trimmedPhone.length > 0;
   const canSubmit = fullName.trim().length > 0 && phoneFilled && !saving;
 
   const handleStartObject = () => {
@@ -162,11 +184,35 @@ export default function NewClientPage() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     haptic("medium");
+    // clients-99 F1.4 — normalize to E.164 for index + dedup.
+    const e164 = tryToE164(trimmedPhone, country);
+
+    // clients-99 F1.5 — block silent same-tenant dup creation.
+    if (e164 && !forceCreateDuplicate) {
+      try {
+        const existing = await findClientByPhoneE164(
+          getSupabaseBrowser(),
+          e164,
+          tenantId,
+        );
+        if (existing) {
+          track("clients.duplicate_blocked", { phone_e164: e164 });
+          setDuplicate({ existing, attempted: e164 });
+          return;
+        }
+      } catch {
+        // Network blip — let the save proceed; DB unique index is the
+        // ultimate guarantee.
+      }
+    }
+
+    const waPhone = waSameAsPhone ? "" : whatsapp.trim();
     const blank = createBlankClient({
       full_name: fullName.trim(),
       phone: trimmedPhone,
+      phone_e164: e164,
       sms_name: fullName.trim().split(/\s+/)[0] || "",
-      whatsapp_phone: whatsapp.trim(),
+      whatsapp_phone: waPhone,
       telegram_username: telegram.trim().replace(/^@/, ""),
       instagram_username: instagram.trim().replace(/^@/, ""),
       email: email.trim(),
@@ -176,6 +222,8 @@ export default function NewClientPage() {
       locations,
       tag_ids: vip ? ["tag-vip"] : [],
       blacklisted,
+      acquisition_source: source,
+      favorite_master_id: favoriteMasterId,
     });
     const ok = await save.run(async () => {
       await upsertClient(blank);
@@ -232,31 +280,36 @@ export default function NewClientPage() {
                 />
               </Field>
               <Field label="Телефон" required>
-                <input
-                  type="tel"
-                  inputMode="tel"
+                <CountryPhoneInput
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  onFocus={(e) => {
-                    if (e.currentTarget.value === DEFAULT_PHONE_PREFIX) {
-                      const len = DEFAULT_PHONE_PREFIX.length;
-                      e.currentTarget.setSelectionRange(len, len);
-                    }
-                  }}
-                  placeholder="+357 99 ..."
-                  className={inputCls + " tabular-nums"}
+                  onChange={setPhone}
+                  country={country}
+                  onCountryChange={setCountry}
+                  defaultCountry={country}
+                  placeholder="Номер телефона"
                 />
               </Field>
-              <Field label="WhatsApp" hint="если номер отличается от основного">
+              <label className="flex items-center gap-2 text-[13px] text-[var(--label-secondary)] -mt-1 select-none">
                 <input
-                  type="tel"
-                  inputMode="tel"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="+357 ..."
-                  className={inputCls + " tabular-nums"}
+                  type="checkbox"
+                  checked={waSameAsPhone}
+                  onChange={(e) => setWaSameAsPhone(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--accent)]"
                 />
-              </Field>
+                WhatsApp на этом номере
+              </label>
+              {!waSameAsPhone && (
+                <Field label="Другой WhatsApp">
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="+357 ..."
+                    className={inputCls + " tabular-nums"}
+                  />
+                </Field>
+              )}
               <Field label="Telegram">
                 <Input
                   value={telegram}
@@ -425,6 +478,22 @@ export default function NewClientPage() {
                     className={inputCls}
                   />
                 </Field>
+                {/* clients-99 F2.8 — acquisition source. */}
+                <Field label="Источник">
+                  <select
+                    value={source}
+                    onChange={(e) => setSource(e.target.value as AcquisitionSource)}
+                    className={inputCls}
+                  >
+                    {(Object.keys(ACQUISITION_LABELS) as AcquisitionSource[]).map(
+                      (key) => (
+                        <option key={key} value={key}>
+                          {ACQUISITION_LABELS[key]}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </Field>
                 <Field label="Заметки">
                   <textarea
                     value={comment}
@@ -445,6 +514,27 @@ export default function NewClientPage() {
           )}
         </div>
       </div>
+
+      {/* clients-99 F1.5 — duplicate guard surface. */}
+      {duplicate && (
+        <DuplicateClientModal
+          existing={duplicate.existing}
+          attemptedPhoneE164={duplicate.attempted}
+          onOpenExisting={() => {
+            const id = duplicate.existing.id;
+            setDuplicate(null);
+            router.replace(`/dashboard/clients/${id}`);
+          }}
+          onSaveAnyway={() => {
+            setDuplicate(null);
+            setForceCreateDuplicate(true);
+            queueMicrotask(() => {
+              void handleSubmit();
+            });
+          }}
+          onCancel={() => setDuplicate(null)}
+        />
+      )}
     </div>
   );
 }

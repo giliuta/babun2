@@ -14,6 +14,7 @@ import ClientCard from "../ClientCard";
 import { setBlockOpen } from "@babun/shared/local/business-blocks";
 import { haptic } from "@/lib/haptics";
 import { Button } from "@/components/ui";
+import { MarkdownLite } from "@/components/ui/MarkdownLite";
 
 interface NotesBlockProps {
   client: Client;
@@ -106,6 +107,12 @@ export default function NotesBlock({
               Добавить
             </Button>
           </div>
+          <div className="text-[11px] text-[var(--label-tertiary)] leading-tight">
+            Поддерживается: <span className="font-semibold">**жирный**</span>,{" "}
+            <em>*курсив*</em>,{" "}
+            <span className="rounded px-1 bg-[rgba(255,59,48,0.12)] text-[var(--system-red)]">::red::АЛЛЕРГИЯ::</span>,
+            списки через «- ».
+          </div>
           {client.notes.length === 0 ? (
             <div className="text-[12px] text-[var(--label-tertiary)] italic flex items-center gap-1.5 py-1">
               <StickyNote size={11} strokeWidth={2.2} />
@@ -118,11 +125,11 @@ export default function NotesBlock({
                   key={n.id}
                   className="flex items-start gap-2 p-2 rounded-lg bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.25)]"
                 >
-                  <div className="flex-1 text-[13px] text-[var(--system-orange)] whitespace-pre-wrap">
+                  <div className="flex-1 text-[13px] text-[var(--system-orange)]">
                     <span className="text-[12px] mr-1 tabular-nums">
                       {formatNoteDate(n.created_at)}
                     </span>
-                    {n.text}
+                    <MarkdownLite text={n.text} className="inline" />
                   </div>
                   <button
                     type="button"

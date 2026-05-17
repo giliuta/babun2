@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { track } from "@/lib/analytics/track";
+import { useToast } from "@/components/ui/Toast";
+import { Highlight } from "@/components/ui/Highlight";
+import { ReactivationWidget } from "@/components/clients/ReactivationWidget";
+import { downloadGdprExport } from "@/lib/clients/gdprExport";
+import {
+  softDeleteClient as repoSoftDeleteClient,
+  softDeleteClients as repoSoftDeleteClients,
+  restoreClient as repoRestoreClient,
+  restoreClients as repoRestoreClients,
+} from "@babun/shared/db/repositories/clients";
 import {
   Trash2,
   Phone as PhoneIcon,
@@ -31,6 +42,7 @@ import {
   Star,
   CloudUpload,
   Download,
+  Pencil,
 } from "@babun/shared/icons";
 import { exportClientsCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
@@ -156,10 +168,31 @@ export default function ClientsPage() {
   // so the back-button history works.
   const [inlineProfileId, setInlineProfileId] = useState<string | null>(null);
 
+  const toast = useToast();
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [segment, setSegment] = useState<Segment>("all");
-  const [sort, setSort] = useState<SortKey>("recent");
+  // clients-99 F2.10 — sort mirrors `?sort=…` so a deep-link survives
+  // refresh + share.
+  const searchParams = useSearchParams();
+  const sortFromUrl = (searchParams?.get("sort") as SortKey | null) ?? null;
+  const VALID_SORT: SortKey[] = ["recent", "name", "revenue", "equipment"];
+  const initialSort: SortKey =
+    sortFromUrl && VALID_SORT.includes(sortFromUrl) ? sortFromUrl : "recent";
+  const [sort, setSort] = useState<SortKey>(initialSort);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (sort === "recent") params.delete("sort");
+    else params.set("sort", sort);
+    const qs = params.toString();
+    const next = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [sort]);
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Client | null>(null);
@@ -224,6 +257,103 @@ export default function ClientsPage() {
       searchRef.current.offsetHeight + 12;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // clients-99 F4.5 — keyboard shortcuts (ignored while typing).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || t?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        const input = searchRef.current?.querySelector("input");
+        input?.focus();
+      } else if (e.key === "n" || e.key === "т") {
+        if (clientsAtCap) return;
+        e.preventDefault();
+        router.push("/dashboard/clients/new");
+      } else if (e.key === "Escape" && isSelecting) {
+        setIsSelecting(false);
+        setSelectedIds(new Set());
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [clientsAtCap, isSelecting, router]);
+
+  // clients-99 F4.9 — page-view ping (once per mount).
+  useEffect(() => {
+    track("clients.page_view", { count: clients.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // clients-99 F4.9 — debounced search ping.
+  useEffect(() => {
+    if (!search.trim()) return;
+    const t = window.setTimeout(() => {
+      track("clients.search", { length: search.trim().length });
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  // clients-99 F3.2 — soft-delete with 10s undo.
+  const softDelete = useCallback(
+    async (client: Client) => {
+      const supabase = getSupabaseBrowser();
+      try {
+        await repoSoftDeleteClient(supabase, client.id, tenantId);
+        await reloadClients();
+        track("clients.client_deleted", { id: client.id });
+        toast.show({
+          variant: "info",
+          durationMs: 10_000,
+          message: `Удалён клиент: ${client.full_name || "—"}. Нажмите, чтобы отменить.`,
+        });
+        const undo = async () => {
+          try {
+            await repoRestoreClient(supabase, client.id, tenantId);
+            await reloadClients();
+            track("clients.client_restored", { id: client.id });
+          } catch {
+            toast.show({ variant: "error", message: "Не удалось отменить удаление" });
+          }
+        };
+        (window as unknown as { __babunLastUndo?: () => void }).__babunLastUndo = undo;
+      } catch {
+        toast.show({ variant: "error", message: "Не удалось удалить клиента" });
+      }
+    },
+    [tenantId, reloadClients, toast],
+  );
+
+  const softDeleteMany = useCallback(
+    async (ids: string[]) => {
+      const supabase = getSupabaseBrowser();
+      try {
+        await repoSoftDeleteClients(supabase, ids, tenantId);
+        await reloadClients();
+        track("clients.bulk_delete", { count: ids.length });
+        toast.show({
+          variant: "info",
+          durationMs: 10_000,
+          message: `Удалено: ${ids.length} клиентов. Нажмите, чтобы отменить.`,
+        });
+        const undo = async () => {
+          try {
+            await repoRestoreClients(supabase, ids, tenantId);
+            await reloadClients();
+          } catch {
+            toast.show({ variant: "error", message: "Не удалось отменить удаление" });
+          }
+        };
+        (window as unknown as { __babunLastUndo?: () => void }).__babunLastUndo = undo;
+      } catch {
+        toast.show({ variant: "error", message: "Не удалось удалить клиентов" });
+      }
+    },
+    [tenantId, reloadClients, toast],
+  );
 
   // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
   // Dima taps "Открыть карточку" in a chat and lands directly on the
@@ -689,7 +819,13 @@ export default function ClientsPage() {
                   type="button"
                   onClick={() => {
                     haptic("tap");
-                    exportClientsCsv(filtered.length > 0 ? filtered : clients);
+                    const set = filtered.length > 0 ? filtered : clients;
+                    track("clients.export_csv", { count: set.length });
+                    exportClientsCsv(set);
+                    toast.show({
+                      variant: "success",
+                      message: `CSV выгружен (${set.length})`,
+                    });
                   }}
                   aria-label="Экспорт CSV"
                   title="Экспорт CSV"
@@ -701,14 +837,29 @@ export default function ClientsPage() {
               <button
                 type="button"
                 data-tutorial="clients-add"
+                data-testid="add-client-btn"
                 onClick={() => {
                   haptic("tap");
+                  // clients-99 F1.1 — quota gate emits explicit feedback
+                  // (toast + analytics) instead of silently disabled
+                  // button. Operator must know *why* the click bounced.
+                  if (clientsAtCap) {
+                    track("clients.add_button_quota_block", {
+                      quota: quotaSnap?.quotas.clients ?? null,
+                    });
+                    toast.show({
+                      variant: "info",
+                      durationMs: 6000,
+                      message: clientsCapTooltip ?? "Лимит клиентов достигнут — перейдите на Pro в Настройках → Тариф",
+                    });
+                    return;
+                  }
+                  track("clients.add_button_click");
                   router.push("/dashboard/clients/new");
                 }}
-                disabled={clientsAtCap}
                 title={clientsCapTooltip}
                 aria-label="Добавить клиента"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
+                className={`w-9 h-9 flex items-center justify-center rounded-full transition ${clientsAtCap ? "text-[var(--label-tertiary)] bg-[var(--fill-tertiary)]" : "text-[var(--accent)] active:bg-[var(--accent-tint)]"}`}
               >
                 <Plus size={20} strokeWidth={2.2} />
               </button>
@@ -730,6 +881,33 @@ export default function ClientsPage() {
 
       {/* STORY-059 — CSV import hint, shown only when 1 ≤ N < 5. */}
       <CsvImportHint clientsCount={clients.length} />
+
+      {/* clients-99 F3.3 — reactivation reminder strip. Hidden when no
+          one is silent or when the user already filtered to silent. */}
+      {clients.length > 0 && segmentCounts.silent > 0 && segment !== "silent" && (
+        <div className="mx-3 mt-3 lg:mx-4">
+          <ReactivationWidget
+            count={segmentCounts.silent}
+            onFilter={() => {
+              haptic("tap");
+              track("clients.filter_segment", { segment: "silent", source: "reactivation_widget" });
+              setSegment("silent");
+            }}
+            onSmsBlast={() => {
+              haptic("tap");
+              setSegment("silent");
+              setIsSelecting(true);
+              setSelectedIds(new Set(
+                clients.filter((c) => {
+                  const s = statsMap.get(c.id);
+                  return s ? isLongSilence(s) : false;
+                }).map((c) => c.id),
+              ));
+              setSmsBlastOpen(true);
+            }}
+          />
+        </div>
+      )}
 
       {/* STORY-036 + STORY-082 polish — delayed-skeleton pattern.
           Empty tenants resolve in <300ms, so we never want to flash
@@ -809,28 +987,10 @@ export default function ClientsPage() {
               {segmentCounts.all}{" "}
               {countWordRu(segmentCounts.all, "клиент", "клиента", "клиентов")}
             </button>
-            {segmentCounts.newThisMonth > 0 && (
-              <>
-                <span className="text-[var(--label-quaternary)]">·</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic("tap");
-                    setSegment("new");
-                  }}
-                  className="active:opacity-60 truncate"
-                >
-                  {segmentCounts.newThisMonth}{" "}
-                  {countWordRu(
-                    segmentCounts.newThisMonth,
-                    "новый",
-                    "новых",
-                    "новых",
-                  )}{" "}
-                  в&nbsp;{currentMonthRu}
-                </button>
-              </>
-            )}
+            {/* clients-99 F2.9 — "новых в [месяце]" hero counter
+                removed: duplicated the «Новые» segment chip below with
+                a different window (calendar-month vs 30 days), which
+                read as a bug. */}
             {segmentCounts.birthdayThisWeek > 0 && (
               <>
                 <span className="text-[var(--label-quaternary)]">·</span>
