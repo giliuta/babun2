@@ -46,12 +46,17 @@ export default function DateWheelModal({
   const [year, setYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
+    // Sync three wheel positions from the `value` prop when the
+    // modal opens. Canonical form-reset pattern; React batches the
+    // three setters into one re-render.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (open) {
       const p = parseDate(value);
       setDay(p.day);
       setMonth(p.month);
       setYear(p.year);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, value]);
 
   const currentYear = new Date().getFullYear();
@@ -59,8 +64,11 @@ export default function DateWheelModal({
   const maxDay = daysInMonth(year, month);
   const dayValues = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  // Clamp day if month/year change makes it invalid
+  // Clamp day if month/year change makes it invalid. Guarded
+  // setter — fires at most once per maxDay shrink. React-Compiler
+  // false-positive for cascading render.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (day > maxDay) setDay(maxDay);
   }, [maxDay, day]);
 
