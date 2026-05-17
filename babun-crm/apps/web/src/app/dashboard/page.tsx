@@ -1540,7 +1540,7 @@ function DashboardPageInner() {
           <button
             type="button"
             onClick={() => setCombinedView((v) => !v)}
-            className={`inline-flex items-center gap-1.5 px-2.5 h-6 rounded-full font-semibold transition active:scale-[0.97] ${
+            className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
               combinedView
                 ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                 : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
@@ -1550,7 +1550,7 @@ function DashboardPageInner() {
           </button>
           {combinedView && (
             <span className="text-[var(--label-tertiary)]">
-              · контекст: {teamTabs.find((t) => t.id === activeTeamId)?.name ?? "—"}
+              · команда: {teamTabs.find((t) => t.id === activeTeamId)?.name ?? "—"}
             </span>
           )}
         </div>

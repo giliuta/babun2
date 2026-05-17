@@ -88,10 +88,11 @@ export function AskClientFirstDialog({
         className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-center text-[15px] text-[var(--label)] py-2 px-1 leading-snug">
-          Клиент для записи ещё не выбран.
-          <br />
-          Выбрать клиента сейчас?
+        <div className="text-center text-[17px] font-semibold text-[var(--label)] py-2 px-1 leading-snug">
+          Сначала выберите клиента
+        </div>
+        <div className="px-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
+          Услуги привяжутся к нужному клиенту.
         </div>
         <div className="pt-3 flex gap-2">
           <button
@@ -99,14 +100,14 @@ export function AskClientFirstDialog({
             onClick={onContinue}
             className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] active:bg-[var(--fill-secondary)]"
           >
-            Нет
+            Без клиента
           </button>
           <button
             type="button"
             onClick={onPickClient}
             className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
           >
-            Да
+            Выбрать клиента
           </button>
         </div>
       </div>
