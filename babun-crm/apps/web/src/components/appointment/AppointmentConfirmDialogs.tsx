@@ -114,3 +114,55 @@ export function AskClientFirstDialog({
     </div>
   );
 }
+
+// v628 §9 step 6 — segment-toggle dirty guard (extracted from
+// AppointmentSheet). Fires when the operator taps «Клиент» while
+// the event branch has a non-empty draft; «Не сохранять» drops
+// the draft and switches; «Назад» stays in event mode.
+interface SegmentSwitchConfirmDialogProps {
+  open: boolean;
+  onCancel: () => void;
+  onDiscard: () => void;
+}
+
+export function SegmentSwitchConfirmDialog({
+  open,
+  onCancel,
+  onDiscard,
+}: SegmentSwitchConfirmDialogProps) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
+          Сменить на «Клиент»?
+        </div>
+        <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
+          Введённые данные события не сохранятся.
+        </div>
+        <div className="pt-2 space-y-2">
+          <button
+            type="button"
+            onClick={onDiscard}
+            className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
+          >
+            Не сохранять
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] transition"
+          >
+            Назад
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
