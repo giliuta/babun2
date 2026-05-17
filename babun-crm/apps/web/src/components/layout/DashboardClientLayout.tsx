@@ -1201,12 +1201,25 @@ export default function DashboardClientLayout({
       const idx = prev.findIndex((m) => m.id === master.id);
       const next = idx >= 0 ? prev.map((m, i) => (i === idx ? master : m)) : [...prev, master];
       saveMasters(next);
+      logAudit({
+        entity: "master",
+        action: idx >= 0 ? "update" : "create",
+        summary: master.full_name,
+        entityId: master.id,
+      });
       return next;
     });
   }, []);
 
   const deleteMaster = useCallback((id: string) => {
     setMastersState((prev) => {
+      const target = prev.find((m) => m.id === id);
+      logAudit({
+        entity: "master",
+        action: "delete",
+        summary: target?.full_name || id,
+        entityId: id,
+      });
       const next = prev.filter((m) => m.id !== id);
       saveMasters(next);
       return next;
