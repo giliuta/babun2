@@ -115,6 +115,15 @@ export default function MasterInfoPage({ params }: RouteParams) {
   const [newIncidentOpen, setNewIncidentOpen] = useState(false);
 
   useEffect(() => {
+    // Reset every form field when `existing` flips (different master
+    // picked, or the live tenant-sync brings in a fresh copy of the
+    // record). React-Compiler flags each setter as a cascading
+    // render, but they batch into a single re-render — the cost is
+    // O(1) renders per existing-change, not O(N). The proper fix is
+    // a useReducer with an `existing → formState` derive, but that's
+    // a larger refactor; suppress here with the «why» so the next
+    // touch knows it's deliberate.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!isNew && existing) {
       setFullName(existing.full_name);
       setTitle(existing.title ?? "");
@@ -130,6 +139,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
       setTaxNumber(existing.tax_number ?? "");
       setLoginEmail(existing.login_email ?? existing.email ?? "");
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [existing, isNew]);
 
   if (!isNew && !existing) {
