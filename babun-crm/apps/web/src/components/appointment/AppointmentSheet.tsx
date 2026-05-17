@@ -46,6 +46,8 @@ import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
 import { pricePerUnit } from "@babun/shared/local/services";
+// Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
+import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
 import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
@@ -91,6 +93,11 @@ interface AppointmentSheetProps {
   recentClientIds: string[];
   teams: Team[];
   activeTeam: Team | null;
+  /** Beta #53 (CRM Core brief) — completed-visit count per client.
+   *  When provided, the sheet auto-applies the loyalty discount
+   *  matching `tierForVisits(visitsForClient(clientId), loyalty)`
+   *  on client selection. Optional so existing callers compile. */
+  visitsForClient?: (clientId: string) => number;
   /** Masters — used to derive brigade display name ("Юра + Даня · Пафос"). */
   masters?: Master[];
   /** Каталог услуг для выбора и сопоставления id → service. */
@@ -166,6 +173,13 @@ export default function AppointmentSheet({
   const [globalDiscount, setGlobalDiscount] = useState<Discount | null>(
     appointment.global_discount ?? null
   );
+  // Beta #53 — track whether the current globalDiscount came from
+  // the auto-apply path (so we can replace it on a client switch)
+  // vs a manual edit (which wins and stays put).
+  const [loyaltyApplied, setLoyaltyApplied] = useState<{
+    clientId: string;
+    percent: number;
+  } | null>(null);
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
@@ -242,6 +256,58 @@ export default function AppointmentSheet({
     () => (clientId ? clients.find((c) => c.id === clientId) ?? null : null),
     [clientId, clients]
   );
+
+  // Beta #53 (CRM Core brief) — auto-apply loyalty discount when
+  // the operator picks a client. Reads tier on every clientId
+  // change; replaces only auto-applied discounts so a manual edit
+  // («скидка постоянному = 8%, индивидуально») is preserved.
+  useEffect(() => {
+    if (!visitsForClient || !clientId) {
+      // Drop a stale auto-applied discount when the client is cleared.
+      if (loyaltyApplied !== null) {
+        setGlobalDiscount((current) =>
+          current?.type === "percent" && current.value === loyaltyApplied.percent
+            ? null
+            : current,
+        );
+        setLoyaltyApplied(null);
+      }
+      return;
+    }
+    const visits = visitsForClient(clientId);
+    const tier = tierForVisits(visits, loadLoyalty());
+    if (!tier) {
+      // Client doesn't qualify (or program is off) — drop the
+      // previously auto-applied tier if any.
+      if (loyaltyApplied !== null) {
+        setGlobalDiscount((current) =>
+          current?.type === "percent" && current.value === loyaltyApplied.percent
+            ? null
+            : current,
+        );
+        setLoyaltyApplied(null);
+      }
+      return;
+    }
+    // Apply the tier discount. Skip when the operator has already
+    // typed a non-loyalty discount we shouldn't overwrite.
+    setGlobalDiscount((current) => {
+      const wasAutoApplied =
+        loyaltyApplied?.clientId === clientId &&
+        current?.type === "percent" &&
+        current.value === loyaltyApplied.percent;
+      if (!current || wasAutoApplied) {
+        return {
+          type: "percent",
+          value: tier.percent,
+          reason: tier.label,
+        };
+      }
+      return current; // manual edit wins
+    });
+    setLoyaltyApplied({ clientId, percent: tier.percent });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, visitsForClient]);
 
   const clientLocations = useMemo<Location[]>(
     () => client?.locations ?? [],

@@ -46,6 +46,7 @@ import {
   findOverlap,
   describeOverlap,
 } from "@babun/shared/common/utils/appointment-overlap";
+import { expandRepeat } from "@babun/shared/common/utils/expand-repeat";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
 
@@ -628,7 +629,36 @@ function DashboardPageInner() {
   // appointment bound to that brigade, regardless of whether a
   // specific master inside the brigade is also assigned.
   const isPersonalTab = activeTeamId === PERSONAL_TAB_ID;
+  // STORY-091 (Brief 2 #18) — expand recurring personal events into
+  // their virtual occurrences inside the currently rendered window.
+  // The seed appointment lives in `appointments` (Supabase / localStorage);
+  // virtual occurrences are computed at render time and carry a
+  // `virtualParentId` so any tap routes back to the seed.
+  const expandedAppointments = useMemo(() => {
+    // Window: 30 days back ... 60 days forward from currentMonday so
+    // every view (day/week/3days/month/agenda) sees its slice. Tight
+    // enough to keep memory bounded; wider than any single view.
+    const winStart = new Date(currentMonday);
+    winStart.setDate(winStart.getDate() - 30);
+    const winEnd = new Date(currentMonday);
+    winEnd.setDate(winEnd.getDate() + 60);
+    const fromKey = `${winStart.getFullYear()}-${String(winStart.getMonth() + 1).padStart(2, "0")}-${String(winStart.getDate()).padStart(2, "0")}`;
+    const toKey = `${winEnd.getFullYear()}-${String(winEnd.getMonth() + 1).padStart(2, "0")}-${String(winEnd.getDate()).padStart(2, "0")}`;
+    const out: Appointment[] = [];
+    for (const a of appointments) {
+      const rule = a.event_repeat;
+      if (!rule || rule.kind === "none") {
+        out.push(a);
+        continue;
+      }
+      const expanded = expandRepeat(a, fromKey, toKey);
+      for (const occ of expanded) out.push(occ);
+    }
+    return out;
+  }, [appointments, currentMonday]);
+
   const visibleAppointments = useMemo(() => {
+    const source = expandedAppointments;
     if (isPersonalTab) {
       // v499 — ULTRA permissive personal-tab filter. Two prior fixes
       // (v462, v497) still left a tail of «invisible events» where
@@ -647,19 +677,10 @@ function DashboardPageInner() {
       //     the «mine, by exclusion» view.
       //   • An appointment with team_id set is brigade-bound and
       //     belongs on its brigade tab, not here.
-      return appointments.filter((a) => !a.team_id);
+      return source.filter((a) => !a.team_id);
     }
-    // P0 #7 (CRM Core brief) — dropped the trailing `&& !a.master_id`
-    // guard that was hiding every team appointment with a specific
-    // master assigned inside the brigade (user report: «назначена на
-    // Y&D — на чипе Y&D не появилась»). The whole point of the brigade
-    // chip is «show everything on this team's calendar»: an event
-    // assigned to «Y&D / Иван» still belongs to Y&D, just with an
-    // extra hint about who's leading it. The chip filter is now
-    // brigade-only; the master assignment is rendered inside the block
-    // via teamColorFor + the row's assignedTo label.
-    return appointments.filter((a) => a.team_id === activeTeamId);
-  }, [appointments, activeTeamId, isPersonalTab]);
+    return source.filter((a) => a.team_id === activeTeamId);
+  }, [expandedAppointments, activeTeamId, isPersonalTab]);
 
   // Build clientsById map. STORY-007: Draft clients removed —
   // layout.tsx keeps `clients` fresh via the babun:clients-changed
@@ -1700,6 +1721,13 @@ function DashboardPageInner() {
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
+          visitsForClient={(cid) =>
+            appointments.reduce(
+              (n, a) =>
+                a.client_id === cid && a.status === "completed" ? n + 1 : n,
+              0,
+            )
+          }
           onCancelAppointment={() => setBooking(null)}
           onSave={(apt) => {
             upsertAppointment(apt);
@@ -1904,6 +1932,13 @@ function DashboardPageInner() {
           catalog={services}
           categories={serviceCategories}
           cityForDate={cityForDate}
+          visitsForClient={(cid) =>
+            appointments.reduce(
+              (n, a) =>
+                a.client_id === cid && a.status === "completed" ? n + 1 : n,
+              0,
+            )
+          }
           onSave={(apt) => {
             upsertAppointment(apt);
             setInlineSheet(null);

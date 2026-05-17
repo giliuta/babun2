@@ -5,32 +5,29 @@
 // on the detail card. Replaces the LocationEditor full-screen sheet
 // for the common quick-add case (the sheet is still available from
 // blocks that need equipment editing).
+//
+// Audit fix (Sprint #3 CRM Core, P0 #6 regression) — earlier I had
+// a duplicate `PROPERTY_CHOICES` palette + auto-fill rule here.
+// This file now delegates the field stack to the shared
+// `<ObjectFormFields />` (the same one LocationEditor uses), keeping
+// the inline Cancel/Save chrome local. Single source of truth for
+// the type chips, label auto-fill, address + note inputs.
 
 import { Plus } from "@babun/shared/icons";
 import type { PropertyType } from "@babun/shared/local/clients";
 import { haptic } from "@/lib/haptics";
+import ObjectFormFields, {
+  PROPERTY_CHOICES,
+} from "@/components/clients/ObjectFormFields";
 
 export interface LocationDraft {
   label: string;
-  property_type: PropertyType;
+  // Optional to align with `ObjectFormDraft` — the shared form treats
+  // undefined as «type not picked yet» and renders no active chip.
+  property_type?: PropertyType;
   address: string;
   note: string;
 }
-
-interface PropertyChoice {
-  value: PropertyType;
-  label: string;
-  defaultLabel: string;
-}
-
-const PROPERTY_CHOICES: PropertyChoice[] = [
-  { value: "house", label: "Дом", defaultLabel: "Дом" },
-  { value: "apartment", label: "Квартира", defaultLabel: "Квартира" },
-  { value: "office", label: "Офис", defaultLabel: "Офис" },
-  { value: "shop", label: "Магазин", defaultLabel: "Магазин" },
-  { value: "restaurant", label: "Ресторан", defaultLabel: "Ресторан" },
-  { value: "other", label: "Другое", defaultLabel: "Объект" },
-];
 
 export function emptyLocationDraft(): LocationDraft {
   return {
@@ -40,9 +37,6 @@ export function emptyLocationDraft(): LocationDraft {
     note: "",
   };
 }
-
-const inputCls =
-  "w-full h-10 px-3 text-[15px] bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] focus:outline-none focus:border-[var(--accent)]";
 
 export function InlineLocationForm({
   draft,
@@ -60,65 +54,9 @@ export function InlineLocationForm({
   const canSave = draft.address.trim().length > 0;
   return (
     <div className="p-3 rounded-[12px] bg-[var(--fill-quaternary)] space-y-2.5">
-      {/* Type chips — six options in a wrap row. */}
-      <div className="flex flex-wrap gap-1.5">
-        {PROPERTY_CHOICES.map((p) => {
-          const active = draft.property_type === p.value;
-          return (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => {
-                haptic("tap");
-                onChange({
-                  ...draft,
-                  property_type: p.value,
-                  // Auto-fill the label when picking a type, but only
-                  // if the user hasn't typed a custom one already.
-                  label: PROPERTY_CHOICES.some(
-                    (c) => c.defaultLabel === draft.label,
-                  )
-                    ? p.defaultLabel
-                    : draft.label,
-                });
-              }}
-              className={`h-8 px-3 rounded-full text-[13px] font-medium transition ${
-                active
-                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-tertiary)]"
-              }`}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <FormField label="Адрес" required>
-        <input
-          type="text"
-          autoFocus
-          value={draft.address}
-          onChange={(e) => onChange({ ...draft, address: e.target.value })}
-          placeholder="ул. Архиепископу Макариу III, 12"
-          className={inputCls}
-          maxLength={200}
-        />
-      </FormField>
-
-      <FormField
-        label="Заметка для команды"
-        hint="код домофона, собака, особенности входа"
-      >
-        <input
-          type="text"
-          value={draft.note}
-          onChange={(e) => onChange({ ...draft, note: e.target.value })}
-          placeholder="зелёная дверь, домофон 25"
-          className={inputCls}
-          maxLength={140}
-        />
-      </FormField>
+      {/* Fields delegated to <ObjectFormFields /> — same palette + same
+          auto-fill rule LocationEditor uses. */}
+      <ObjectFormFields draft={draft} onChange={onChange} autoFocusAddress />
 
       <div className="flex gap-2 pt-1">
         <button
@@ -164,36 +102,5 @@ export function AddLocationButton({
       <Plus size={14} strokeWidth={2.5} />
       {hasExisting ? "Добавить ещё объект" : "Добавить объект"}
     </button>
-  );
-}
-
-function FormField({
-  label,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-[12px] font-medium text-[var(--label-secondary)] flex items-center gap-1 mb-1">
-        {label}
-        {required && (
-          <span className="text-[var(--system-red)]" aria-label="Обязательное поле">
-            *
-          </span>
-        )}
-        {hint && (
-          <span className="text-[var(--label-tertiary)] font-normal ml-auto">
-            {hint}
-          </span>
-        )}
-      </span>
-      {children}
-    </label>
   );
 }
