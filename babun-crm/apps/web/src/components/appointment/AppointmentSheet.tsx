@@ -255,6 +255,7 @@ export default function AppointmentSheet({
     }
     setEventLabel(appointment.comment || "");
     setEventColorOverride(appointment.color_override ?? null);
+    setDurationTouched(false);
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
     setGlobalDiscount(appointment.global_discount ?? null);
@@ -426,13 +427,21 @@ export default function AppointmentSheet({
 
   const isEditable = liveMode === "create" || liveMode === "edit";
 
+  // v616 P1 §14/§15 — `durationTouched` flag. When the operator picks
+  // a duration explicitly (chip row below), service-list changes stop
+  // auto-extending the end time. Reset implicitly when the sheet
+  // opens for a new appointment.
+  const [durationTouched, setDurationTouched] = useState(false);
+
   // Live end-time recalc: end ≥ start + Σ service durations. Grows only
   // — a manually-extended end is never shrunk back. Off in view/done
-  // (readonly) and for personal events (no service list). Clamps at
-  // 23:59 to avoid wrap-around; a visit that crosses midnight should be
+  // (readonly), for personal events, and once `durationTouched` is
+  // set (the operator chose a duration deliberately). Clamps at 23:59
+  // to avoid wrap-around; a visit that crosses midnight should be
   // booked as two records.
   useEffect(() => {
     if (!isEditable || kind === "event") return;
+    if (durationTouched) return;
     if (totalDur <= 0) return;
     const [sh, sm] = timeStart.split(":").map(Number);
     const [eh, em] = timeEnd.split(":").map(Number);
@@ -445,7 +454,26 @@ export default function AppointmentSheet({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeEnd(`${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`);
     }
-  }, [isEditable, kind, totalDur, timeStart, timeEnd]);
+  }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched]);
+
+  // Apply an explicit duration in minutes — sets end_time and locks
+  // out the live-recalc effect above. Clamps at 23:59.
+  const applyDuration = (mins: number) => {
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = Math.min(23 * 60 + 59, startMin + mins);
+    setTimeEnd(
+      `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+    );
+    setDurationTouched(true);
+  };
+
+  // Current live duration (minutes between start and end).
+  const liveDurationMins = (() => {
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const [eh, em] = timeEnd.split(":").map(Number);
+    return Math.max(0, eh * 60 + em - (sh * 60 + sm));
+  })();
   const readonly = !isEditable;
   const isEventMode = kind === "event";
   // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
@@ -844,6 +872,44 @@ export default function AppointmentSheet({
               catalog={catalog}
               clients={clients}
             />
+          )}
+
+          {/* v616 P1 §14/§15 — duration chip row. Operator picks 30 /
+              60 / 90 / 120 min and the end time recomputes. Picking
+              any of these sets `durationTouched`, which freezes the
+              service-list auto-extend effect so adding услуги doesn't
+              clobber the operator's pick. */}
+          {isEditable && !isEventMode && (
+            <div
+              className="px-4 pt-2 flex items-center gap-1.5 overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
+                Длит.
+              </span>
+              {[30, 60, 90, 120].map((m) => {
+                const active = liveDurationMins === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => applyDuration(m)}
+                    className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
+                      active
+                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                        : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                    }`}
+                  >
+                    {m}м
+                  </button>
+                );
+              })}
+              {durationTouched && ![30, 60, 90, 120].includes(liveDurationMins) && (
+                <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
+                  {liveDurationMins}м
+                </span>
+              )}
+            </div>
           )}
 
           {/* Event mode body */}
