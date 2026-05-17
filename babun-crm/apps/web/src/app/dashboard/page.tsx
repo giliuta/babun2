@@ -39,6 +39,7 @@ import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalend
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
 import CalendarLegend from "@/components/calendar/CalendarLegend";
+import AgendaView from "@/components/calendar/AgendaView";
 import UndoToast from "@/components/ui/UndoToast";
 import { BUILD_VERSION } from "@babun/shared/common/utils/version";
 import { haptic } from "@/lib/haptics";
@@ -138,6 +139,7 @@ const STEP_DAYS: Record<ViewMode, number> = {
   "3days": 3,
   week: 7,
   month: 0,
+  agenda: 0,
 };
 
 function toYmd(d: Date): string {
@@ -1480,7 +1482,18 @@ function DashboardPageInner() {
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
       <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
-        {viewMode === "month" ? (
+        {viewMode === "agenda" ? (
+          <AgendaView
+            currentDate={currentMonday}
+            appointments={visibleAppointments}
+            clientsById={Object.fromEntries(
+              clients.map((c) => [c.id, c]),
+            )}
+            services={services}
+            hideCancelled={effectiveHideCancelled}
+            onAppointmentClick={handleAppointmentClick}
+          />
+        ) : viewMode === "month" ? (
           <MonthView
             currentDate={currentMonday}
             appointments={visibleAppointments}
