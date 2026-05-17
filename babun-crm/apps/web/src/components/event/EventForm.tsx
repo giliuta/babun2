@@ -210,17 +210,29 @@ function ColorPaletteButton({ value, onChange }: { value: string; onChange: (nex
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    // v619 — lock body scroll while palette is open (P1 fix).
+    // `overflow: hidden` on `body` alone doesn't stop iOS Safari from
+    // panning the EventForm's inner overflow-y-auto container, but
+    // adding it to documentElement does. Restore on close.
+    const prevHtml = document.documentElement.style.overflow;
+    const prevBody = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.documentElement.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+    };
   }, [open]);
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} aria-label="Цвет события"
-        className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
+        className="w-11 h-11 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
         style={{ color: value }}>
-        <Palette size={16} strokeWidth={2} />
+        <Palette size={18} strokeWidth={2} />
       </button>
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={() => setOpen(false)}>
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[320px]" onClick={(e) => e.stopPropagation()}>
             <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-4">Цвет события</div>
             <div className="grid grid-cols-7 gap-2.5">
@@ -256,7 +268,7 @@ function NavigationPopup({ links, onClose }: { links: MapsLinks; onClose: () => 
   const open = (href: string) => { window.open(href, "_blank", "noopener,noreferrer"); onClose(); };
   if (links.isUrl) {
     return (
-      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={onClose}>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={onClose}>
         <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[300px]" onClick={(e) => e.stopPropagation()}>
           <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-3">Открыть ссылку</div>
           <div className="text-[12px] text-[var(--label-secondary)] text-center mb-4">Это ссылка из карт. Откроется в исходном приложении.</div>
@@ -267,7 +279,7 @@ function NavigationPopup({ links, onClose }: { links: MapsLinks; onClose: () => 
     );
   }
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={onClose}>
       <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[300px]" onClick={(e) => e.stopPropagation()}>
         <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-4">Где открыть?</div>
         <div className="space-y-2">
@@ -302,7 +314,7 @@ function CloseConfirmPopup({
     return () => document.removeEventListener("keydown", onKey);
   }, [onKeep]);
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={onKeep}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6" onClick={onKeep}>
       <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[300px]" onClick={(e) => e.stopPropagation()}>
         <div className="text-[15px] font-semibold text-[var(--label)] text-center">
           {mode === "edit" ? "Закрыть без сохранения?" : "Закрыть событие?"}
@@ -477,7 +489,7 @@ export default function EventForm({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
       onClick={handleCloseRequest}
     >
       <div
@@ -503,15 +515,15 @@ export default function EventForm({
           {mode === "edit" && onDelete && (
             <button type="button" onClick={() => onDelete(event)} aria-label="Удалить событие"
               data-testid="event-form-delete"
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[rgba(255,59,48,0.1)]">
-              <Trash2 size={16} strokeWidth={2} />
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-red)] active:bg-[rgba(255,59,48,0.1)]">
+              <Trash2 size={18} strokeWidth={2} />
             </button>
           )}
           {!readonly && <ColorPaletteButton value={color} onChange={setColor} />}
           <button type="button" onClick={handleCloseRequest} aria-label="Закрыть"
             data-testid="event-form-close"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]">
-            <XIcon size={16} strokeWidth={2.5} />
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]">
+            <XIcon size={18} strokeWidth={2.5} />
           </button>
         </div>
 

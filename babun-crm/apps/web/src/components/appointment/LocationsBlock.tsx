@@ -225,7 +225,7 @@ export default function LocationsBlock({
                 value={addressNote}
                 onChange={(e) => onAddressNoteChange(e.target.value)}
                 placeholder="Зелёная дверь, домофон 25, собака во дворе"
-                className="w-full h-7 text-[12px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
+                className="w-full h-10 text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
               />
             )}
           </div>
@@ -262,7 +262,7 @@ export default function LocationsBlock({
                   onClick={() => {
                     onSelectLocation(loc.id);
                   }}
-                  className={`flex-shrink-0 px-3 h-7 rounded-full text-[12px] font-semibold border ${
+                  className={`flex-shrink-0 px-4 h-10 rounded-full text-[13px] font-semibold border ${
                     active
                       ? "bg-[var(--accent-tint)] text-[var(--accent)] border-[var(--accent)]"
                       : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
@@ -277,7 +277,7 @@ export default function LocationsBlock({
                 type="button"
                 onClick={openNew}
                 aria-label="Добавить адрес"
-                className="flex-shrink-0 ml-auto w-7 h-7 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] text-[14px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)]"
+                className="flex-shrink-0 ml-auto w-11 h-11 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] text-[18px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)]"
               >
                 +
               </button>
@@ -452,7 +452,7 @@ export default function LocationsBlock({
               value={addressNote}
               onChange={(e) => onAddressNoteChange(e.target.value)}
               placeholder="Зелёная дверь, домофон 25, собака во дворе"
-              className="w-full h-7 text-[12px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
+              className="w-full h-10 text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
             />
           )}
         </div>
