@@ -192,6 +192,16 @@ export default function AppointmentSheet({
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
   const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
+  // v611 P1 §19 — remember the last source the operator picked so the
+  // chip appears first + outlined in the next create flow. Stored in
+  // localStorage (tenant-agnostic — a single-master UX choice).
+  const [lastUsedSource, setLastUsedSource] = useState<AppointmentSource | null>(
+    () => {
+      if (typeof window === "undefined") return null;
+      const raw = window.localStorage.getItem("babun.lastSource");
+      return raw && (raw as AppointmentSource) ? (raw as AppointmentSource) : null;
+    }
+  );
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -264,6 +274,22 @@ export default function AppointmentSheet({
     () => (clientId ? clients.find((c) => c.id === clientId) ?? null : null),
     [clientId, clients]
   );
+
+  // v611 P1 §13 — resolve the top-5 recent client ids into real
+  // records so ClientBlock can render the avatar chip strip without
+  // doing its own lookup. Filtered against the current `clients`
+  // list so a deleted-but-still-listed id doesn't render a "?" chip.
+  const recentClientsResolved = useMemo<Client[]>(() => {
+    const byId = new Map(clients.map((c) => [c.id, c]));
+    const out: Client[] = [];
+    for (const id of recentClientIds) {
+      const c = byId.get(id);
+      if (c) out.push(c);
+      if (out.length >= 5) break;
+    }
+    return out;
+  }, [clients, recentClientIds]);
+
 
   // Beta #53 (CRM Core brief) — auto-apply loyalty discount when
   // the operator picks a client. Reads tier on every clientId
@@ -361,6 +387,21 @@ export default function AppointmentSheet({
     if (!open) return;
     setOtherApts(loadAppointments().filter((a) => a.id !== appointment.id));
   }, [open, appointment.id]);
+
+  // v611 P0 §1.6 — top-3 most-used services across the tenant's
+  // appointment history. Lives here because it needs `otherApts`
+  // (loaded above for the double-booking check), so we reuse it.
+  const popularServices = useMemo<Service[]>(() => {
+    const freq = new Map<string, number>();
+    for (const a of otherApts) {
+      for (const id of a.service_ids) freq.set(id, (freq.get(id) ?? 0) + 1);
+    }
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => catalog.find((s) => s.id === id))
+      .filter((s): s is Service => Boolean(s))
+      .slice(0, 3);
+  }, [otherApts, catalog]);
 
   const overlapConflict = useMemo<Appointment | null>(() => {
     if (!activeTeam || kind === "event") return null;
@@ -721,6 +762,51 @@ export default function AppointmentSheet({
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
           </div>
 
+          {/* v611 P0 §1.2 — quick-fill chips. One tap loads today/now,
+              today/+1h, or tomorrow/09:00 into the time wheel. Visible
+              only in create-mode for work records (events have their
+              own pacing). Honours the active team's slot granularity
+              so taps land on a real slot boundary, not 14:23. */}
+          {liveMode === "create" && !isEventMode && (
+            <div className="px-4 pt-2 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {(() => {
+                const step = activeTeam?.default_slot_minutes ?? 30;
+                const dur = totalDur > 0 ? totalDur : step;
+                const fmtKey = (d: Date) =>
+                  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                const fmtTime = (mins: number) => {
+                  const clamped = Math.min(23 * 60 + 59, Math.max(0, mins));
+                  return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+                };
+                const apply = (d: Date, startMin: number) => {
+                  setDateKey(fmtKey(d));
+                  setTimeStart(fmtTime(startMin));
+                  setTimeEnd(fmtTime(startMin + dur));
+                };
+                const now = new Date();
+                const nowMins = now.getHours() * 60 + now.getMinutes();
+                const nextSlot = Math.ceil((nowMins + 1) / step) * step;
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const chips = [
+                  { label: "⚡ Сейчас", onClick: () => apply(now, nextSlot) },
+                  { label: "Через час", onClick: () => apply(now, nextSlot + 60) },
+                  { label: "Завтра", onClick: () => apply(tomorrow, 9 * 60) },
+                ];
+                return chips.map((c) => (
+                  <button
+                    key={c.label}
+                    type="button"
+                    onClick={c.onClick}
+                    className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
+                  >
+                    {c.label}
+                  </button>
+                ));
+              })()}
+            </div>
+          )}
+
           <TimeBlock
             date={dateKey}
             timeStart={timeStart}
@@ -859,6 +945,13 @@ export default function AppointmentSheet({
                 onPick={() => setClientSheet(true)}
                 onChange={() => setClientId(null)}
                 onMenu={client ? () => setClientMenuOpen(true) : undefined}
+                recentClients={recentClientsResolved}
+                onPickRecent={(c) => {
+                  setClientId(c.id);
+                  const locs = c.locations ?? [];
+                  const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
+                  setLocationId(primary?.id ?? null);
+                }}
               />
 
               {/* Brief 1 #23 — last 5 past visits inline so dispatcher
@@ -897,6 +990,7 @@ export default function AppointmentSheet({
                   }
                   setServicePickerOpen(true);
                 }}
+                popularServices={popularServices}
               />
 
               <IncomeBlock
@@ -925,7 +1019,14 @@ export default function AppointmentSheet({
                     <SourceBlock
                       value={source}
                       readonly={readonly}
-                      onChange={setSource}
+                      onChange={(next) => {
+                        setSource(next);
+                        if (next && typeof window !== "undefined") {
+                          window.localStorage.setItem("babun.lastSource", next);
+                          setLastUsedSource(next);
+                        }
+                      }}
+                      lastUsed={lastUsedSource}
                     />
 
                     {client && client.phone && (
