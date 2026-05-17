@@ -29,7 +29,7 @@ import {
   buildCompletedAppointment,
 } from "@/lib/appointment-builders";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
-import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
+import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
@@ -145,13 +145,6 @@ export default function AppointmentSheet({
   const [globalDiscount, setGlobalDiscount] = useState<Discount | null>(
     appointment.global_discount ?? null
   );
-  // Beta #53 — track whether the current globalDiscount came from
-  // the auto-apply path (so we can replace it on a client switch)
-  // vs a manual edit (which wins and stays put).
-  const [loyaltyApplied, setLoyaltyApplied] = useState<{
-    clientId: string;
-    percent: number;
-  } | null>(null);
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   // v607 P0 #5 — anonymous (no-client) address. Lives on apt.address.
@@ -304,57 +297,13 @@ export default function AppointmentSheet({
   }, [clients, recentClientIds]);
 
 
-  // Beta #53 (CRM Core brief) — auto-apply loyalty discount when
-  // the operator picks a client. Reads tier on every clientId
-  // change; replaces only auto-applied discounts so a manual edit
-  // («скидка постоянному = 8%, индивидуально») is preserved.
-  useEffect(() => {
-    if (!visitsForClient || !clientId) {
-      // Drop a stale auto-applied discount when the client is cleared.
-      if (loyaltyApplied !== null) {
-        setGlobalDiscount((current) =>
-          current?.type === "percent" && current.value === loyaltyApplied.percent
-            ? null
-            : current,
-        );
-        setLoyaltyApplied(null);
-      }
-      return;
-    }
-    const visits = visitsForClient(clientId);
-    const tier = tierForVisits(visits, loadLoyalty());
-    if (!tier) {
-      // Client doesn't qualify (or program is off) — drop the
-      // previously auto-applied tier if any.
-      if (loyaltyApplied !== null) {
-        setGlobalDiscount((current) =>
-          current?.type === "percent" && current.value === loyaltyApplied.percent
-            ? null
-            : current,
-        );
-        setLoyaltyApplied(null);
-      }
-      return;
-    }
-    // Apply the tier discount. Skip when the operator has already
-    // typed a non-loyalty discount we shouldn't overwrite.
-    setGlobalDiscount((current) => {
-      const wasAutoApplied =
-        loyaltyApplied?.clientId === clientId &&
-        current?.type === "percent" &&
-        current.value === loyaltyApplied.percent;
-      if (!current || wasAutoApplied) {
-        return {
-          type: "percent",
-          value: tier.percent,
-          reason: tier.label,
-        };
-      }
-      return current; // manual edit wins
-    });
-    setLoyaltyApplied({ clientId, percent: tier.percent });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, visitsForClient]);
+  // Beta #53 — auto-apply loyalty tier discount on client pick.
+  useLoyaltyAutoApply({
+    clientId,
+    visitsForClient,
+    globalDiscount,
+    setGlobalDiscount,
+  });
 
   const clientLocations = useMemo<Location[]>(
     () => client?.locations ?? [],
