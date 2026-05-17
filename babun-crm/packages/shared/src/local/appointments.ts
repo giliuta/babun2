@@ -57,12 +57,16 @@ export type AppointmentKind = "work" | "event" | "personal"; // event = встр
  *  indefinitely. v454 added "weekdays" (Mon–Fri) and "biweekly". */
 export type PersonalEventRepeat =
   | { kind: "none" }
-  | { kind: "daily"; until?: string }
-  | { kind: "weekdays"; until?: string }   // Mon–Fri
-  | { kind: "weekly"; until?: string }
-  | { kind: "biweekly"; until?: string }
-  | { kind: "monthly"; until?: string }
-  | { kind: "yearly"; until?: string };
+  | { kind: "daily"; until?: string; count?: number }
+  | { kind: "weekdays"; until?: string; count?: number }   // Mon–Fri
+  | { kind: "weekly"; until?: string; count?: number }
+  | { kind: "biweekly"; until?: string; count?: number }
+  | { kind: "monthly"; until?: string; count?: number }
+  | { kind: "yearly"; until?: string; count?: number }
+  /** Brief 2 #18 (STORY-091): custom weekday set, e.g. Mon+Wed+Fri.
+   *  `days` is an array of weekday numbers (0=Sun..6=Sat). When empty
+   *  the rule behaves like "none". */
+  | { kind: "custom_weekdays"; days: number[]; until?: string; count?: number };
 
 /** Откуда пришла заявка. Совмещена со списком клиента
  *  (AcquisitionSource в lib/clients), но отдельный тип потому что у
