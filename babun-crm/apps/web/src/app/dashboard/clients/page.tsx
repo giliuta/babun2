@@ -225,6 +225,13 @@ export default function ClientsPage() {
   const [resumeBannerOpen, setResumeBannerOpen] = useState(false);
   const [resumeFileName, setResumeFileName] = useState<string>("");
   useEffect(() => {
+    // Two distinct external-state-sync paths in one effect:
+    // 1. Caller-role fetched from Supabase tenant_members table.
+    // 2. CSV-import resume state hydrated from localStorage.
+    // React-Compiler flags the setters as cascading renders but both
+    // are canonical «sync to external store» — first is async, the
+    // localStorage call is bounded to one extra render.
+    /* eslint-disable react-hooks/set-state-in-effect */
     void (async () => {
       const supabase = getSupabaseBrowser();
       const {
@@ -244,6 +251,7 @@ export default function ClientsPage() {
       setResumeFileName(resume.fileName);
       setResumeBannerOpen(true);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [tenantId]);
   const canImport = callerRole === "owner" || callerRole === "dispatcher";
   // v314 — search hidden above the fold, reveals on pull-down
