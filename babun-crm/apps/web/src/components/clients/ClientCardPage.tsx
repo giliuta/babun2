@@ -39,6 +39,7 @@ import NotesBlock from "./blocks/NotesBlock";
 import ContactsBlock from "./blocks/ContactsBlock";
 import PersonalBlock from "./blocks/PersonalBlock";
 import MetaBlock from "./blocks/MetaBlock";
+import AttachmentsBlock from "./blocks/AttachmentsBlock";
 import { haptic } from "@/lib/haptics";
 
 interface ClientCardPageProps {
@@ -201,6 +202,8 @@ export default function ClientCardPage({
                       focusToken={noteFocusToken}
                     />
                   );
+                case "attachments":
+                  return <AttachmentsBlock key={cfg.kind} client={client} />;
                 case "contacts":
                   return (
                     <ContactsBlock

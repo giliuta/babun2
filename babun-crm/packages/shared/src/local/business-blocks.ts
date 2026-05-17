@@ -16,6 +16,7 @@ export type BlockKind =
   | "visits"
   | "finance"
   | "notes"
+  | "attachments"
   | "contacts"
   | "personal"
   | "meta";
@@ -44,6 +45,8 @@ export const DEFAULT_BLOCK_ORDER: ReadonlyArray<BlockConfig> = [
     hiddenForRoles: ["crew"],
   },
   { kind: "notes", title: "Заметки", defaultOpen: false },
+  // clients-99 F3.10 — attachments (photos before/after, scans, contracts).
+  { kind: "attachments", title: "Вложения", defaultOpen: false },
   { kind: "contacts", title: "Контакты", defaultOpen: false },
   { kind: "personal", title: "Личное", defaultOpen: false },
   {
