@@ -1046,11 +1046,16 @@ export default function AppointmentSheet({
         </div>
 
         {/* Sticky save: в create и в edit — single full-width button.
-            Cancel lives as the header ✕; backdrop/Esc also prompt. */}
+            Cancel lives as the header ✕; backdrop/Esc also prompt.
+            v615 P1 §16 — backdrop-blur so scrolled content shows
+            through softly instead of a hard cut. */}
         {isEditable && (
           <div
-            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
+            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] sticky bottom-0 z-10 backdrop-blur-[12px]"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
+              background: "color-mix(in srgb, var(--surface-card) 80%, transparent)",
+            }}
           >
             {bottomWarning && (
               <div className="mb-2 px-3 py-2 rounded-[10px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] font-semibold text-[var(--system-red)] text-center">

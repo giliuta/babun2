@@ -4,6 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { MessageSquare, X } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/Toast";
 import { Button, Input } from "@/components/ui";
 import { useSmsTemplates } from "@/components/layout/DashboardClientLayout";
 import {
@@ -86,6 +87,7 @@ export default function SmsTemplatesPage() {
   const { templates, setTemplates, upsertTemplate } = useSmsTemplates();
   const [editing, setEditing] = useState<SmsTemplate | null>(null);
   const confirm = useConfirm();
+  const toast = useToast();
 
   // P2 #39 (CRM Core brief) — «Удалить» belongs to edit mode only.
   // Drafts from createBlankTemplate() carry an id that's not yet in
@@ -491,7 +493,10 @@ function TemplateEditor({
                 }),
               });
               if (res.ok) {
-                window.alert("Тест отправлен. С баланса списан 1 SMS.");
+                toast.show({
+                  variant: "success",
+                  message: "Тест отправлен. С баланса списан 1 SMS.",
+                });
               } else {
                 let err = "";
                 try {
@@ -500,7 +505,10 @@ function TemplateEditor({
                 } catch {
                   err = String(res.status);
                 }
-                window.alert(`Ошибка: ${err || res.statusText}`);
+                toast.show({
+                  variant: "error",
+                  message: `Ошибка: ${err || res.statusText}`,
+                });
               }
             }}
             disabled={!draft.body.trim()}

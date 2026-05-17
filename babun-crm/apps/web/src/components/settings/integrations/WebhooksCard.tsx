@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, Webhook, Copy, Eye, EyeOff } from "@babun/shared/icons";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/Toast";
 import { haptic } from "@/lib/haptics";
 
 interface WebhookRow {
@@ -47,6 +48,7 @@ interface Props {
 
 export default function WebhooksCard({ tenantId }: Props) {
   const confirm = useConfirm();
+  const toast = useToast();
   const [rows, setRows] = useState<WebhookRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -88,7 +90,10 @@ export default function WebhooksCard({ tenantId }: Props) {
       return;
     }
     if (!/^https:\/\//i.test(draftUrl.trim())) {
-      window.alert("URL должен быть https://…");
+      toast.show({
+        variant: "error",
+        message: "URL должен быть https://…",
+      });
       return;
     }
     setSubmitting(true);
