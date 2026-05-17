@@ -242,6 +242,24 @@ export default function AppointmentSheet({
     };
   }, [open, onClose]);
 
+  // v619 — extra scroll lock + Esc handling for the TimePopup so the
+  // inner AppointmentSheet body doesn't pan behind it on iOS Safari.
+  // `body.style.overflow: hidden` only blocks window scroll; the inner
+  // overflow-y-auto container needs documentElement clamped too.
+  useEffect(() => {
+    if (!timePopupOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTimePopupOpen(false);
+    };
+    const prevHtml = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.documentElement.style.overflow = prevHtml;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [timePopupOpen]);
+
   // Resolve initial preset from appointment.total_amount (для view/done
   // показываем как преднастроенный пресет).
   useEffect(() => {
@@ -563,10 +581,54 @@ export default function AppointmentSheet({
   })();
 
   // Whether the user has entered anything worth protecting on close.
-  // Event mode uses eventLabel; work mode uses client + services + comment.
-  const isDirty = isEditable && (isEventMode
-    ? Boolean(eventLabel.trim())
-    : Boolean(clientId || appointmentServices.length > 0 || comment.trim()));
+  // v619 — data-loss audit P1: previously the check only caught
+  // {clientId, services, comment}. Operators routinely typed address,
+  // address notes, source, discount, cancel-reason then closed the
+  // sheet only to discover the data was gone. Now we check every
+  // field that handleCreate reads from state.
+  //
+  // For create-mode: any non-default value is "dirty".
+  // For edit-mode: dirty if any field differs from the loaded record.
+  const isCreate = liveMode === "create";
+  const eventDirty = isEventMode && (
+    isCreate
+      ? Boolean(eventLabel.trim()) || eventColorOverride !== null
+      : Boolean(
+          eventLabel.trim() !== (appointment.comment ?? "").trim() ||
+          eventColorOverride !== (appointment.color_override ?? null) ||
+          dateKey !== appointment.date ||
+          timeStart !== appointment.time_start ||
+          timeEnd !== appointment.time_end,
+        )
+  );
+  const workDirty = !isEventMode && (
+    isCreate
+      ? Boolean(
+          clientId ||
+          appointmentServices.length > 0 ||
+          comment.trim() ||
+          anonymousAddress.trim() ||
+          addressNote.trim() ||
+          source !== null ||
+          globalDiscount !== null,
+        )
+      : Boolean(
+          clientId !== appointment.client_id ||
+          comment.trim() !== (appointment.comment ?? "").trim() ||
+          addressNote.trim() !== (appointment.address_note ?? "").trim() ||
+          source !== (appointment.source ?? null) ||
+          cancelFlag !== (appointment.status === "cancelled") ||
+          cancelReason.trim() !== (appointment.cancel_reason ?? "").trim() ||
+          dateKey !== appointment.date ||
+          timeStart !== appointment.time_start ||
+          timeEnd !== appointment.time_end ||
+          // Service list / discount changes — a shallow id+qty signature.
+          JSON.stringify(appointmentServices.map((s) => [s.serviceId, s.quantity, s.pricePerUnit])) !==
+            JSON.stringify((appointment.services ?? []).map((s) => [s.serviceId, s.quantity, s.pricePerUnit])) ||
+          JSON.stringify(globalDiscount ?? null) !== JSON.stringify(appointment.global_discount ?? null),
+        )
+  );
+  const isDirty = isEditable && (eventDirty || workDirty);
 
   if (!open) return null;
 
@@ -729,9 +791,9 @@ export default function AppointmentSheet({
                   onClick={() => onCompleteQuick(appointment)}
                   aria-label="Отметить выполненной"
                   title="Выполнено"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
+                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
                 >
-                  <Check size={20} strokeWidth={2.5} />
+                  <Check size={22} strokeWidth={2.5} />
                 </button>
               )}
               <button
@@ -739,9 +801,9 @@ export default function AppointmentSheet({
                 onClick={scrollToPhotos}
                 aria-label="Перейти к фото"
                 title="Фото"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
+                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
               >
-                <Camera size={19} strokeWidth={2} />
+                <Camera size={20} strokeWidth={2} />
               </button>
               {onReschedule && (
                 <button
@@ -749,9 +811,9 @@ export default function AppointmentSheet({
                   onClick={() => onReschedule(appointment)}
                   aria-label="Перенести запись"
                   title="Перенести"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
+                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
                 >
-                  <CalendarClock size={19} strokeWidth={2} />
+                  <CalendarClock size={20} strokeWidth={2} />
                 </button>
               )}
             </div>
@@ -761,9 +823,9 @@ export default function AppointmentSheet({
             type="button"
             onClick={attemptClose}
             aria-label="Закрыть"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -790,14 +852,14 @@ export default function AppointmentSheet({
               type="button"
               onClick={() => setTimePopupOpen(true)}
               disabled={readonly}
-              className={`ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-7 rounded-full text-[12px] font-semibold tabular-nums transition active:scale-[0.97] ${
+              className={`ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-full text-[13px] font-semibold tabular-nums transition active:scale-[0.97] ${
                 readonly
                   ? "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] cursor-default"
                   : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
               }`}
               aria-label="Изменить время"
             >
-              <CalendarClock size={12} strokeWidth={2} />
+              <CalendarClock size={14} strokeWidth={2} />
               {formatShortDate(dateKey)} · {timeStart}
               {liveDurationMins > 0 && ` · ${liveDurationMins}м`}
             </button>
