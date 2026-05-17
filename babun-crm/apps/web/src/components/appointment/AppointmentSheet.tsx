@@ -194,6 +194,12 @@ export default function AppointmentSheet({
   // date+time+duration editors. The inline cluster is removed from
   // body so it stays focused on client / services.
   const [timePopupOpen, setTimePopupOpen] = useState(false);
+  // v617 P1 §20 — swipe-down dirty-guard. Track touch on the modal
+  // container; if the operator drags down past 90 px and the scroll
+  // body is at the top, treat it as a close-attempt (which routes
+  // through the dirty check just like the backdrop / Esc / ✕ paths).
+  const swipeStartY = useRef<number | null>(null);
+  const swipeDeltaY = useRef<number>(0);
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -694,9 +700,35 @@ export default function AppointmentSheet({
         // STORY-056 — desktop cap at 720 px so the modal reads as a
         // proper dialog instead of a fullscreen takeover on a 1080-px
         // monitor (92 vh = 994 px). Mobile keeps 92 vh.
+        // v617 P1 §20 — swipe-down dirty-guard: drag the sheet
+        // downward by ≥90 px while the body is scrolled to the top
+        // and we route through attemptClose (same as backdrop/Esc).
         className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => {
+          const target = e.target as HTMLElement;
+          const scroller = target.closest("[data-appt-scroll]") as HTMLElement | null;
+          // Only arm the gesture if the scrollable body is at the top
+          // — otherwise the user is mid-scroll and downward drags
+          // should pan the list, not close the sheet.
+          if (scroller && scroller.scrollTop > 0) {
+            swipeStartY.current = null;
+            return;
+          }
+          swipeStartY.current = e.touches[0]?.clientY ?? null;
+          swipeDeltaY.current = 0;
+        }}
+        onTouchMove={(e) => {
+          if (swipeStartY.current === null) return;
+          swipeDeltaY.current = (e.touches[0]?.clientY ?? swipeStartY.current) - swipeStartY.current;
+        }}
+        onTouchEnd={() => {
+          const delta = swipeDeltaY.current;
+          swipeStartY.current = null;
+          swipeDeltaY.current = 0;
+          if (delta >= 90) attemptClose();
+        }}
       >
 
         {/* Header */}
@@ -791,7 +823,7 @@ export default function AppointmentSheet({
         </div>
 
         {/* Scroll body */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4" data-appt-scroll>
           {/* City/team caption + v617 P1 §17 single time chip. Chip
               shows date · time · duration and opens the time popup on
               tap. City is still edited from the calendar day header. */}
