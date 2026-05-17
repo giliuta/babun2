@@ -124,6 +124,28 @@ const RescheduleSheet = dynamic(
   () => import("@/components/calendar/RescheduleSheet"),
   { ssr: false },
 );
+// STORY-060 — lazy-load the new calendar surfaces. None of them sit on
+// the initial paint path; they hydrate after the calendar grid is on
+// screen. Keeps the dashboard first-byte under 200 KB.
+const CalendarFab = dynamic(
+  () => import("@/components/calendar/CalendarFab"),
+  { ssr: false },
+);
+const CalendarOnboardingCard = dynamic(
+  () =>
+    import("@/components/empty-states/CalendarOnboardingCard").then((m) => ({
+      default: m.CalendarOnboardingCard,
+    })),
+  { ssr: false },
+);
+const SyncIndicator = dynamic(
+  () => import("@/components/calendar/SyncIndicator"),
+  { ssr: false },
+);
+const BugReportButton = dynamic(
+  () => import("@/components/system/BugReportButton"),
+  { ssr: false },
+);
 import { EXPENSE_CATEGORIES } from "@babun/shared/local/finance/expense-categories";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
@@ -151,6 +173,51 @@ const STEP_DAYS: Record<ViewMode, number> = {
 function toYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+// STORY-060 §F2.7 — DnD i18n. @dnd-kit/core ships English screen-reader
+// announcements; for a RU-only CRM that surfaces as "To pick up a
+// draggable item, press the space bar" mid-flow. We pass RU strings
+// via `accessibility` so VoiceOver / TalkBack read the right language.
+// Strings are deliberately short — the dispatcher hears them every
+// time they reschedule.
+const DND_A11Y_RU = {
+  announcements: {
+    onDragStart({ active }: { active: { id: string | number } }) {
+      return `Запись ${active.id} взята.`;
+    },
+    onDragOver({
+      active,
+      over,
+    }: {
+      active: { id: string | number };
+      over: { id: string | number } | null;
+    }) {
+      if (over) {
+        return `Запись ${active.id} над слотом ${over.id}.`;
+      }
+      return `Запись ${active.id} больше не над слотом.`;
+    },
+    onDragEnd({
+      active,
+      over,
+    }: {
+      active: { id: string | number };
+      over: { id: string | number } | null;
+    }) {
+      if (over) {
+        return `Запись ${active.id} перенесена в слот ${over.id}.`;
+      }
+      return `Запись ${active.id} осталась на месте.`;
+    },
+    onDragCancel({ active }: { active: { id: string | number } }) {
+      return `Перенос записи ${active.id} отменён.`;
+    },
+  },
+  screenReaderInstructions: {
+    draggable:
+      "Чтобы взять запись, нажмите пробел. Стрелками двигайте по сетке. Пробел — отпустить. Escape — отменить.",
+  },
+};
 
 // Next 16 requires `useSearchParams()` to live inside a Suspense
 // boundary — without it, prerender of `/dashboard` aborts with
@@ -306,8 +373,18 @@ function DashboardPageInner() {
   // links win over the localStorage default. The params are stripped
   // after consumption (same pattern as `?team=` above) so a refresh
   // doesn't keep snapping back to a stale date.
+  //
+  // STORY-060 §F1.4 — extended view-state persistence. We persist not
+  // only the view mode but also the date anchor and the active team
+  // chip, so a page reload lands the dispatcher exactly where they
+  // were. URL deep-links and the explicit `?team=` param still win.
+  // The scroll position is NOT persisted: it's derived from
+  // calendarSettings.scrollOpenHour, which the user controls in
+  // Settings → Calendar.
   const VIEW_MODE_KEY = "babun-view-mode";
+  const VIEW_STATE_KEY = "babun-calendar-view-state";
   const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const viewStateHydratedRef = useRef(false);
   useEffect(() => {
     if (typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
@@ -334,22 +411,90 @@ function DashboardPageInner() {
         url.searchParams.delete("view");
         url.searchParams.delete("date");
         window.history.replaceState({}, "", url.toString());
+        viewStateHydratedRef.current = true;
         return;
       }
     }
-    const saved = getStorage().getRaw(VIEW_MODE_KEY) as ViewMode | null;
-    if (saved && ["day", "3days", "week", "month"].includes(saved)) {
-      setViewMode(saved);
-      return;
+    // STORY-060 §F1.4 — restore the saved {mode, date, activeTeamId}
+    // blob. Falls back to the legacy single-key view-mode store so
+    // existing users don't lose their mode preference on upgrade.
+    let stateApplied = false;
+    try {
+      const blobRaw = getStorage().getRaw(VIEW_STATE_KEY);
+      if (blobRaw) {
+        const blob = JSON.parse(blobRaw) as {
+          mode?: ViewMode;
+          date?: string;
+          activeTeamId?: string;
+        };
+        if (
+          blob.mode &&
+          ["day", "3days", "week", "month"].includes(blob.mode)
+        ) {
+          setViewMode(blob.mode);
+          stateApplied = true;
+        }
+        if (blob.date && /^\d{4}-\d{2}-\d{2}$/.test(blob.date)) {
+          const [y, m, d] = blob.date.split("-").map(Number);
+          const parsed = new Date(y, m - 1, d);
+          if (!Number.isNaN(parsed.getTime())) {
+            const isDay = blob.mode === "day";
+            setCurrentMonday(isDay ? parsed : getMonday(parsed));
+            stateApplied = true;
+          }
+        }
+        if (blob.activeTeamId) {
+          // Funnel through pendingTeamParamRef so the teams-effect
+          // validates the id against the live teamTabs list (same
+          // path `?team=` uses).
+          pendingTeamParamRef.current = blob.activeTeamId;
+        }
+      }
+    } catch {
+      // Malformed JSON — wipe the key so we don't keep tripping.
+      try {
+        getStorage().setRaw(VIEW_STATE_KEY, "");
+      } catch {
+        // ignore
+      }
     }
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      setViewMode("day");
+    if (!stateApplied) {
+      const saved = getStorage().getRaw(VIEW_MODE_KEY) as ViewMode | null;
+      if (saved && ["day", "3days", "week", "month"].includes(saved)) {
+        setViewMode(saved);
+        viewStateHydratedRef.current = true;
+        return;
+      }
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setViewMode("day");
+      }
     }
+    viewStateHydratedRef.current = true;
   }, []);
-  // Persist whenever the user switches
+  // Persist legacy single-key view mode (rollback path).
   useEffect(() => {
     getStorage().setRaw(VIEW_MODE_KEY, viewMode);
   }, [viewMode]);
+  // STORY-060 §F1.4 — write the combined view-state blob whenever any
+  // of its pieces change. Gated on `viewStateHydratedRef` so the
+  // initial render (with the SSR-safe epoch Monday + default "" team)
+  // doesn't clobber the saved blob before the restore effect lands.
+  useEffect(() => {
+    if (!viewStateHydratedRef.current) return;
+    try {
+      const y = currentMonday.getFullYear();
+      const m = String(currentMonday.getMonth() + 1).padStart(2, "0");
+      const d = String(currentMonday.getDate()).padStart(2, "0");
+      const blob = JSON.stringify({
+        mode: viewMode,
+        date: `${y}-${m}-${d}`,
+        activeTeamId,
+      });
+      getStorage().setRaw(VIEW_STATE_KEY, blob);
+    } catch {
+      // Storage quota / private mode — non-fatal.
+    }
+  }, [viewMode, currentMonday, activeTeamId]);
   // hourHeight is not React state — it lives in a ref and is written as
   // a CSS variable on the outer scroller via writeHourHeight(). This keeps
   // pinch-zoom off the React render path entirely.
@@ -1133,10 +1278,15 @@ function DashboardPageInner() {
       if (isEditable(e.target)) return;
       switch (e.key) {
         case "ArrowLeft":
+        // STORY-060 §F3.7 — vim-style aliases: J = previous, K = next.
+        case "j":
+        case "J":
           e.preventDefault();
           handlePrevWeek();
           return;
         case "ArrowRight":
+        case "k":
+        case "K":
           e.preventDefault();
           handleNextWeek();
           return;
@@ -1146,6 +1296,11 @@ function DashboardPageInner() {
           handleToday();
           return;
         case "1":
+        // STORY-060 §F3.7 — letter aliases mirror Google Calendar +
+        // Linear: D/W/M (day / week / month). 3-day stays on "2" —
+        // no clean letter that names it.
+        case "d":
+        case "D":
           e.preventDefault();
           setViewMode("day");
           return;
@@ -1154,10 +1309,14 @@ function DashboardPageInner() {
           setViewMode("3days");
           return;
         case "3":
+        case "w":
+        case "W":
           e.preventDefault();
           setViewMode("week");
           return;
         case "4":
+        case "m":
+        case "M":
           e.preventDefault();
           setViewMode("month");
           return;
@@ -1585,7 +1744,11 @@ function DashboardPageInner() {
       )}
 
       {/* Single shared vertical scroller: TimeColumn (fixed left) + swipeable days */}
-      <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={dndSensors}
+        onDragEnd={handleDragEnd}
+        accessibility={DND_A11Y_RU}
+      >
         {viewMode === "agenda" ? (
           <AgendaView
             currentDate={currentMonday}
@@ -1659,6 +1822,20 @@ function DashboardPageInner() {
           </div>
         )}
       </DndContext>
+
+      {/* STORY-060 F1.1 — onboarding card for the truly fresh tenant.
+          Shows when there are 0 clients AND 0 services AND 0 appointments;
+          steps through "client → service → appointment". For tenants that
+          already have clients/services but no appointments yet, fall back
+          to the existing small CalendarEmptyState hint below. */}
+      {clients.length === 0 && services.length === 0 && appointments.length === 0 && (
+        <CalendarOnboardingCard
+          hasClients={clients.length > 0}
+          hasServices={services.length > 0}
+          hasAppointments={appointments.length > 0}
+          onCreateAppointment={() => openNewAppointmentInline(null, null, "work")}
+        />
+      )}
 
       {/* STORY-059 — first-run empty state. Floats over the empty grid
           when the tenant has no appointments. Tapping "Добавить первую
@@ -1908,8 +2085,18 @@ function DashboardPageInner() {
         onClose={() => setUndoToast(null)}
       />
 
-      {/* v322 — FAB removed per user request.  New appointments are
-          created via tap-on-grid or long-press on the calendar. */}
+      {/* STORY-060 F1.1 — FAB brought back for mobile/tablet. Hidden on
+          desktop (≥1024 px) where the user has the keyboard `N` shortcut
+          + tap-on-empty-slot. Hidden on agenda view (no slot grid to tap
+          back through) and when an inline sheet is open. Tap → popover
+          with two choices that funnel into the existing inline-sheet
+          handlers. v322 deliberately removed the FAB — re-added per
+          explicit user request in the Sprint 060 brief. */}
+      <CalendarFab
+        hidden={viewMode === "agenda" || booking !== null || inlineSheet !== null}
+        onCreateWork={() => openNewAppointmentInline(null, null, "work")}
+        onCreateEvent={() => openNewAppointmentInline(null, null, "event")}
+      />
 
       {/* Day finance modal */}
       {financeDateKey && (

@@ -8,6 +8,7 @@ import type { Service } from "@babun/shared/local/services";
 import type { Client } from "@babun/shared/local/clients";
 import type { City } from "@babun/shared/local/cities";
 import type { ViewMode } from "@/components/layout/Header";
+import { useCalendarSettings } from "@/components/layout/DashboardClientLayout";
 import DayColumn from "./DayColumn";
 
 interface WeekViewProps {
@@ -80,6 +81,9 @@ export default function WeekView({
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
   const [now, setNow] = useState(getCurrentCyprusTime());
+  // STORY-060 F2.5 — day-off weekday set comes from calendar settings.
+  const { calendarSettings } = useCalendarSettings();
+  const daysOff = calendarSettings.days_off;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -153,11 +157,16 @@ export default function WeekView({
           </div>
         </div>
       )}
-      {visibleDates.map((date) => {
+      {visibleDates.map((date, idx) => {
         // Local YYYY-MM-DD — единый формат с DayColumn/page.tsx.
         // toISOString() converts to UTC and ломает ключ для GMT+2/+3
         // Cyprus (особенно до 3am когда UTC-сутки ещё не сменились).
         const dateKey = formatDateKey(date);
+        const isDayOff = daysOff.includes(date.getDay());
+        // STORY-060 F3.1 — only the leftmost day shows the year next
+        // to the month. All other columns keep the compact "ВТ 12 май"
+        // form so the header strip doesn't read like a price tag.
+        const isFirstVisible = idx === 0;
         return (
           <DayColumn
             key={date.toISOString()}
@@ -187,6 +196,8 @@ export default function WeekView({
             hasLabels={hasLabels}
             hideCancelled={hideCancelled}
             bufferMinutes={bufferMinutes}
+            isDayOff={isDayOff}
+            isFirstVisible={isFirstVisible}
           />
         );
       })}
