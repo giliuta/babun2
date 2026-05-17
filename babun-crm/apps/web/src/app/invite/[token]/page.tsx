@@ -68,6 +68,9 @@ export default async function InviteAcceptPage({ params }: InvitePageProps) {
   if (invite.accepted_at) {
     return <InviteError title="Приглашение уже принято" body="Эта ссылка уже использовалась. Откройте панель — вы уже в команде." />;
   }
+  // Server component — renders once per request, no re-render
+  // unpredictability from Date.now() impurity.
+  // eslint-disable-next-line react-hooks/purity
   if (new Date(invite.expires_at).getTime() < Date.now()) {
     return <InviteError title="Срок ссылки истёк" body="Приглашения действуют 7 дней. Попросите Owner выпустить новое." />;
   }

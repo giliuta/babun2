@@ -53,6 +53,9 @@ export default async function FeedbackPage(props: PageProps) {
   const row = await loadToken(token);
   if (!row) notFound();
 
+  // Date.now() is impure but this is a server component — renders
+  // once per request, no re-render unpredictability concerns.
+  // eslint-disable-next-line react-hooks/purity
   const expired = new Date(row.expires_at).getTime() <= Date.now();
   const used = row.used_at !== null;
 
