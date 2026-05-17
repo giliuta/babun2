@@ -1,17 +1,27 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CheckCircle2, XCircle } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
 import {
   useAppointments,
   useClients,
 } from "@/components/layout/DashboardClientLayout";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
+
+// v593 — typical cancel reasons surfaced as chips on the sheet.
+// "Другое" lets the dispatcher type a free-text reason for the
+// rare case (returned for credit-card, courier broke item, etc).
+const CANCEL_REASON_PRESETS = [
+  "Клиент не пришёл",
+  "Клиент отменил",
+  "Перенесли на другой день",
+  "Не смогли дозвониться",
+  "Адрес недоступен",
+] as const;
 
 // §4.2 — Inbox of «не закрытых» visits. Filters appointments where
 // the date has passed but status is still «Запланирован» (kind="work"
@@ -56,9 +66,9 @@ function countWord(n: number, one: string, few: string, many: string): string {
 
 export default function UnclosedVisitsPage() {
   const router = useRouter();
-  const confirm = useConfirm();
   const { appointments, upsertAppointment } = useAppointments();
   const { clients } = useClients();
+  const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
 
   const clientNameOf = useMemo(() => {
     const map = new Map(clients.map((c) => [c.id, c.full_name]));
@@ -94,19 +104,13 @@ export default function UnclosedVisitsPage() {
     await upsertAppointment({ ...apt, status: "completed" });
   };
 
-  const handleCancel = async (apt: Appointment) => {
-    const ok = await confirm({
-      title: "Отменить визит?",
-      message: `Запись от ${formatDateRu(apt.date)} будет помечена как отменённая.`,
-      confirmLabel: "Отменить визит",
-      danger: true,
-    });
-    if (!ok) return;
+  const handleConfirmCancel = async (apt: Appointment, reason: string) => {
     await upsertAppointment({
       ...apt,
       status: "cancelled",
-      cancel_reason: apt.cancel_reason ?? "Клиент не пришёл",
+      cancel_reason: reason.trim() || "Не указана",
     });
+    setCancelTarget(null);
   };
 
   return (
@@ -140,7 +144,7 @@ export default function UnclosedVisitsPage() {
                 apt={apt}
                 clientName={clientNameOf(apt)}
                 onComplete={() => void handleComplete(apt)}
-                onCancel={() => void handleCancel(apt)}
+                onCancel={() => setCancelTarget(apt)}
                 onOpenClient={() => {
                   if (!apt.client_id) return;
                   router.push(`/dashboard/clients?id=${apt.client_id}`);
@@ -150,7 +154,128 @@ export default function UnclosedVisitsPage() {
           )}
         </div>
       </div>
+
+      {cancelTarget && (
+        <CancelReasonSheet
+          apt={cancelTarget}
+          clientName={clientNameOf(cancelTarget)}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={(reason) =>
+            void handleConfirmCancel(cancelTarget, reason)
+          }
+        />
+      )}
     </>
+  );
+}
+
+// v593 — centered sheet with chip picker + free-text fallback.
+// Replaces the v573 hard-coded «Клиент не пришёл» default so the
+// dispatcher records the real reason — useful both for the audit
+// trail and for the per-master cancellation stats screen later.
+function CancelReasonSheet({
+  apt,
+  clientName,
+  onClose,
+  onConfirm,
+}: {
+  apt: Appointment;
+  clientName: string;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const [customText, setCustomText] = useState("");
+  const isCustom = picked === "__custom__";
+  const reasonToSubmit = isCustom ? customText.trim() : picked ?? "";
+  const canSubmit = reasonToSubmit.length > 0;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[80] bg-black/30 flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 pt-5 pb-1">
+          <div className="text-[17px] font-semibold text-[var(--label)]">
+            Отменить визит
+          </div>
+          <div className="text-[13px] text-[var(--label-secondary)] mt-1">
+            {clientName} · {formatDateRu(apt.date)} · {apt.time_start}
+          </div>
+        </div>
+
+        <div className="px-5 py-4">
+          <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">
+            Причина
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CANCEL_REASON_PRESETS.map((r) => {
+              const active = picked === r;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setPicked(r)}
+                  className={`h-9 px-3.5 rounded-full text-[13px] font-medium transition ${
+                    active
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                      : "bg-[var(--fill-quaternary)] text-[var(--label)] active:bg-[var(--fill-tertiary)]"
+                  }`}
+                >
+                  {r}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setPicked("__custom__")}
+              className={`h-9 px-3.5 rounded-full text-[13px] font-medium transition ${
+                isCustom
+                  ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                  : "bg-[var(--fill-quaternary)] text-[var(--label)] active:bg-[var(--fill-tertiary)]"
+              }`}
+            >
+              Другое…
+            </button>
+          </div>
+          {isCustom && (
+            <input
+              type="text"
+              autoFocus
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              placeholder="Опишите причину"
+              className="mt-3 w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
+            />
+          )}
+        </div>
+
+        <div className="border-t border-[var(--separator)] flex">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-12 text-[15px] font-medium text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+          >
+            Назад
+          </button>
+          <div className="w-px bg-[var(--separator)]" />
+          <button
+            type="button"
+            onClick={() => onConfirm(reasonToSubmit)}
+            disabled={!canSubmit}
+            className="flex-1 h-12 text-[15px] font-semibold text-[var(--tile-red)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
+          >
+            Отменить визит
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

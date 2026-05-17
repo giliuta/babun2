@@ -19,17 +19,17 @@ the no-op for a Sentry-backed adapter at boot time.
 
 ## Hooking Sentry
 
+**Status as of v592: SDK installed, adapter wired, bootstrap mounted.**
+The only step left is dropping a DSN into the deployment env — see §2
+below. The rest of this section documents what the v592 commit did
+and where to extend it.
+
 ### 1. Install the SDK
 
-```bash
-cd babun-crm/apps/web
-npm install @sentry/nextjs
-```
-
-This adds Sentry's Next.js wrapper. It also wants a build-time CLI
-(`npx @sentry/wizard@latest -i nextjs`) but you can do the minimal
-manual setup below if you prefer to avoid the wizard touching
-`next.config.ts`.
+Already done in v592 — `@sentry/nextjs` is in `apps/web/package.json`.
+For reference: the install was a plain `npm i @sentry/nextjs` (no
+wizard, no `next.config.ts` rewrites — the wizard's macros aren't
+needed because we route everything through the façade).
 
 ### 2. Env vars
 
@@ -45,68 +45,33 @@ SENTRY_PROJECT=babun-web                             # optional
 `NEXT_PUBLIC_SENTRY_DSN` is the only required one. The others enable
 source-map upload + release tagging at build time.
 
-### 3. Install the adapter
+### 3. Adapter — already wired
 
-Create `apps/web/src/lib/observability/sentry-adapter.ts`:
+Lives at `apps/web/src/lib/observability/sentry-adapter.ts`. Shape:
 
-```ts
-import * as Sentry from "@sentry/nextjs";
-import type { TelemetryAdapter } from "./telemetry";
+- `buildSentryAdapter()` returns a `TelemetryAdapter` when
+  `NEXT_PUBLIC_SENTRY_DSN` is set; returns `null` otherwise.
+- On first call (with DSN), runs `Sentry.init({...})` with:
+  - `release = BUILD_VERSION` — issues group per commit slug
+  - `tracesSampleRate: 0.1`
+  - `sendDefaultPii: false`
+  - `replaysSessionSampleRate: 0` / `replaysOnErrorSampleRate: 0`
+  - `beforeSend` filter that drops «sync queue drained» noise
+- `setUser` deliberately omits email — opt-in PII channel is a
+  later commit.
 
-export function buildSentryAdapter(): TelemetryAdapter {
-  return {
-    captureException: (error, ctx) => {
-      Sentry.captureException(error, ctx ? { extra: ctx } : undefined);
-    },
-    captureMessage: (msg, level = "info", ctx) => {
-      Sentry.captureMessage(msg, { level, extra: ctx });
-    },
-    setUser: ({ tenantId, userId, userEmail }) => {
-      Sentry.setUser(
-        userId
-          ? {
-              id: userId,
-              ...(userEmail ? { email: userEmail } : {}),
-              ...(tenantId ? { tenant_id: tenantId } : {}),
-            }
-          : null,
-      );
-    },
-    setTag: (k, v) => Sentry.setTag(k, v),
-  };
-}
-```
+### 4. Bootstrap — already wired
 
-### 4. Initialise at boot
+`apps/web/src/components/system/TelemetryBootstrap.tsx` mounts
+once at the root layout (next to `AuthClearListener`). On mount it
+calls `installTelemetry(buildSentryAdapter())`. Logs a one-time
+`[telemetry] Sentry active · …` console line when the DSN is wired
+so the team notices when it's missing locally.
 
-In `apps/web/src/app/layout.tsx` (above the `RootProvider`):
-
-```tsx
-"use client";
-
-import { useEffect } from "react";
-import { installTelemetry } from "@/lib/observability/telemetry";
-import { BUILD_VERSION } from "@babun/shared/common/utils/version";
-import * as Sentry from "@sentry/nextjs";
-
-if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    release: BUILD_VERSION,
-    tracesSampleRate: 0.1,        // adjust later
-    replaysSessionSampleRate: 0,  // off by default; turn on after audit
-    replaysOnErrorSampleRate: 1,  // capture replay only on error
-  });
-
-  // Lazy import to keep main bundle clean for users without Sentry.
-  void import("@/lib/observability/sentry-adapter").then(({ buildSentryAdapter }) => {
-    installTelemetry(buildSentryAdapter());
-  });
-}
-```
-
-For server-side errors, create `apps/web/sentry.server.config.ts` and
-`apps/web/sentry.edge.config.ts` per the Sentry-Next.js docs.
+For server-side errors you can additionally drop
+`apps/web/sentry.server.config.ts` + `apps/web/sentry.edge.config.ts`
+per the Sentry-Next.js docs — the façade pattern doesn't preclude
+them, but isn't currently using them.
 
 ### 5. Source maps + release tagging
 
