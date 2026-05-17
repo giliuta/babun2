@@ -100,11 +100,13 @@ export default function WheelPicker({
           );
         })}
       </div>
-      <style jsx>{`
-        div::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+      {/* styled-jsx isn't installed in this Next 16 project; use a
+          plain <style> with dangerouslySetInnerHTML so the scrollbar
+          hide-rule still applies without an extra dep. The selector
+          stays scoped to this component because the rule fires only
+          when the surrounding div is in the document — div selector
+          is broad but the rule is harmless (display:none scrollbars). */}
+      <style dangerouslySetInnerHTML={{ __html: "div::-webkit-scrollbar{display:none}" }} />
     </div>
   );
 }

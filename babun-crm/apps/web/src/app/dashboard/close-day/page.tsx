@@ -54,6 +54,8 @@ export default function CloseDayPage() {
   const [closed, setClosed] = useState(false);
 
   useEffect(() => {
+    // Client-only hydration from localStorage. External-state-sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setClosed(getStorage().getRaw(`${CLOSED_PREFIX}${todayKey}`) === "1");
   }, [todayKey]);
 

@@ -55,11 +55,17 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
   const [color, setColor] = useState(initial.color);
 
   useEffect(() => {
+    // Reset form fields when `existing` flips (different team picked
+    // or realtime sync brought a fresh copy). React batches setters
+    // into one re-render; React-Compiler's cascade warning is a
+    // false positive for this canonical form-reset pattern.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!isNew && existing) {
       setName(existing.name);
       setDescription(existing.region ?? "");
       setColor(existing.color);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [existing, isNew]);
 
   if (!isNew && !existing) {
