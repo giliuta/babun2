@@ -1,23 +1,47 @@
 "use client";
 
-import { Smartphone } from "@babun/shared/icons";
+import { useMemo } from "react";
+import {
+  Smartphone,
+  Phone,
+  MessageCircle,
+  AtSign,
+  Globe,
+  Users,
+  RefreshCw,
+  Footprints,
+  HelpCircle,
+} from "@babun/shared/icons";
 import {
   APPOINTMENT_SOURCE_LABELS,
   type AppointmentSource,
 } from "@babun/shared/local/appointments";
 
+// v616 P2 — lucide line icons per source. Replaces flat text pills
+// with icon+label pairs that scan faster on a 375 px screen.
+const SOURCE_ICONS: Record<AppointmentSource, React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
+  phone: Phone,
+  whatsapp: MessageCircle,
+  instagram: AtSign,
+  online: Globe,
+  referral: Users,
+  repeat: RefreshCw,
+  walk_in: Footprints,
+  other: HelpCircle,
+};
+
 interface SourceBlockProps {
   value: AppointmentSource | null;
   readonly: boolean;
   onChange?: (next: AppointmentSource | null) => void;
-  /** v524 §3.9 — render the «Источник заявки» label with a red
-   *  asterisk + the «Выберите источник заявки» hint when the create
-   *  form is gating on this field. Edit mode passes `false` so a
-   *  legacy record without a source doesn't shame the user. */
-  required?: boolean;
+  /** v611 P1 §19 — most-recently-used source from localStorage.
+   *  When present, the matching pill is hoisted to the first
+   *  position and rendered with a coloured outline so the operator
+   *  doesn't have to find their usual source in the row. */
+  lastUsed?: AppointmentSource | null;
 }
 
-const ORDER: AppointmentSource[] = [
+const BASE_ORDER: AppointmentSource[] = [
   "phone",
   "whatsapp",
   "instagram",
@@ -28,7 +52,12 @@ const ORDER: AppointmentSource[] = [
   "other",
 ];
 
-export default function SourceBlock({ value, readonly, onChange, required = false }: SourceBlockProps) {
+export default function SourceBlock({ value, readonly, onChange, lastUsed }: SourceBlockProps) {
+  const order = useMemo<AppointmentSource[]>(() => {
+    if (!lastUsed) return BASE_ORDER;
+    return [lastUsed, ...BASE_ORDER.filter((s) => s !== lastUsed)];
+  }, [lastUsed]);
+
   if (readonly) {
     if (!value) return null;
     return (
@@ -44,41 +73,25 @@ export default function SourceBlock({ value, readonly, onChange, required = fals
     );
   }
 
-  const missing = required && !value;
-
   return (
     <div className="px-4 pt-2">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
           Источник заявки
         </span>
-        {required && (
-          <span
-            aria-hidden
-            className="text-[12px] font-bold text-[var(--system-red)]"
-            title="Обязательное поле"
-          >
-            *
-          </span>
-        )}
       </div>
-      {missing && (
-        <div className="mb-1.5 text-[11px] text-[var(--system-red)]">
-          Выберите источник заявки.
-        </div>
-      )}
-      {/* Brief 1 #14: «Источник заявки → radio (один из 8)». The pill
-          strip stays — it's the right thumb-zone layout on a 375 px
-          screen — but the semantics are now a real radio group:
-          `role=radio` + `aria-checked`, and clicking the active pill no
-          longer toggles it off (single-select, not chip-deselect). */}
+      {/* v607 P0 #3: source is optional, so the pill strip is a chip
+          group — tapping the active pill deselects it (back to null).
+          Aria still says `radiogroup` with allow-none semantics. */}
       <div
         role="radiogroup"
         aria-label="Источник заявки"
         className="flex flex-wrap gap-1.5"
       >
-        {ORDER.map((s) => {
+        {order.map((s) => {
           const active = value === s;
+          const isLastUsed = !active && lastUsed === s;
+          const Icon = SOURCE_ICONS[s];
           return (
             <button
               key={s}
@@ -86,15 +99,17 @@ export default function SourceBlock({ value, readonly, onChange, required = fals
               role="radio"
               aria-checked={active}
               onClick={() => {
-                if (active) return;
-                onChange?.(s);
+                onChange?.(active ? null : s);
               }}
-              className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
+              className={`inline-flex items-center gap-1.5 pl-2.5 pr-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
                 active
                   ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                  : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                  : isLastUsed
+                    ? "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--accent)]"
+                    : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
               }`}
             >
+              <Icon size={13} strokeWidth={2} />
               {APPOINTMENT_SOURCE_LABELS[s]}
             </button>
           );

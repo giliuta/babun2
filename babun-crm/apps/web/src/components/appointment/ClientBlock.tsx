@@ -11,6 +11,12 @@ interface ClientBlockProps {
   onEdit?: () => void;
   /** If provided, shows a small menu button (⋯) next to the phone icon. */
   onMenu?: () => void;
+  /** v611 P1 §13 — top-5 most-recently-used clients for the current
+   *  master. Rendered as a horizontal chip strip above the picker
+   *  button in the empty state; tap picks the client instantly and
+   *  bypasses the full picker sheet. Empty array hides the strip. */
+  recentClients?: Client[];
+  onPickRecent?: (client: Client) => void;
 }
 
 function initials(name: string): string {
@@ -32,11 +38,35 @@ export default function ClientBlock({
   onChange,
   onEdit,
   onMenu,
+  recentClients = [],
+  onPickRecent,
 }: ClientBlockProps) {
+  void onCreate;
+  void onEdit;
   if (!client) {
     if (readonly) return null;
     return (
-      <div className="px-4 pt-2">
+      <div className="px-4 pt-2 space-y-2">
+        {recentClients.length > 0 && (
+          <div
+            className="flex gap-1.5 overflow-x-auto"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {recentClients.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onPickRecent?.(c)}
+                className="flex-shrink-0 inline-flex items-center gap-1.5 pl-1 pr-3 h-8 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
+              >
+                <span className="w-6 h-6 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center text-[10px] font-bold">
+                  {initials(c.full_name)}
+                </span>
+                <span className="truncate max-w-[120px]">{c.full_name}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <button
           type="button"
           onClick={onPick}

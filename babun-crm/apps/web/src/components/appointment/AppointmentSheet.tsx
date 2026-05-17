@@ -2,28 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import {
-  Check,
-  Camera,
-  CalendarClock,
-  Coffee,
-  Briefcase,
-  Navigation as NavigationIcon,
-  Moon,
-  Plane,
-} from "@babun/shared/icons";
-import type { EventPreset } from "@babun/shared/common/utils/event-presets";
-
-// Lucide icon components keyed by the preset's `icon` string. Replaces
-// the inline emoji rendering (☕💼🧭🌙✈️) with system-style line icons
-// — cleaner on iOS and respects the user's "no emojis" directive.
-const EVENT_ICONS: Record<EventPreset["icon"], React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
-  coffee: Coffee,
-  briefcase: Briefcase,
-  navigation: NavigationIcon,
-  moon: Moon,
-  plane: Plane,
-};
+import { CalendarClock } from "@babun/shared/icons";
 import type {
   Appointment,
   AppointmentPayment,
@@ -45,21 +24,21 @@ import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
-import { pricePerUnit } from "@babun/shared/local/services";
+import {
+  buildSavedWorkAppointment,
+  buildCompletedAppointment,
+} from "@/lib/appointment-builders";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
-import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
-import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
+import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
   appointmentTotal,
   totalDuration as calcDuration,
 } from "@babun/shared/local/finance/appointment-calc";
-import ClientPickerSheet from "@/components/appointments/sheet/ClientPickerSheet";
-import ServicePickerSheet from "@/components/appointments/sheet/ServicePickerSheet";
 import { IOSSwitch } from "@/components/ui";
 
-import TimeBlock from "./TimeBlock";
 import ClientBlock from "./ClientBlock";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
@@ -67,16 +46,16 @@ import IncomeBlock from "./IncomeBlock";
 import CommentBlock from "./CommentBlock";
 import PhotoBlock from "./PhotoBlock";
 import SourceBlock from "./SourceBlock";
-import ClientActionMenu from "./ClientActionMenu";
-import SendMessagePopup from "./SendMessagePopup";
-import ClientProfileView from "@/components/clients/ClientProfileView";
-import { useRouter } from "next/navigation";
-import { loadChats } from "@babun/shared/local/chats";
+import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
+import OverlapWarning from "./OverlapWarning";
+import EventForm from "@/components/event/EventForm";
+import CancelToggleBlock from "./CancelToggleBlock";
+import AppointmentSubSheets from "./AppointmentSubSheets";
+import { SegmentSwitchConfirmDialog } from "./AppointmentConfirmDialogs";
+import TimePopup from "./TimePopup";
+import AppointmentHeader from "./AppointmentHeader";
 import PaymentBlock from "./PaymentBlock";
-import { buildShareUrl } from "@babun/shared/common/utils/share-link";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
-import RepeatReminderSheet from "./RepeatReminderSheet";
-import { loadCompany } from "@babun/shared/local/finance/company";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
 // demand when the dispatcher actually taps "Скачать счёт" instead of
 // shipping the module in the main dashboard bundle.
@@ -124,11 +103,6 @@ type Kind = "work" | "event";
 //  - create: segment [Клиент / Событие] + sticky footer «Создать»
 //  - view:   PaymentBlock + QuickActions + AdminActions
 //  - done:   зелёный бейдж статуса + QuickActions + AdminActions
-//
-// TODO(STORY-013): файл 730+ строк — больше golden-rule 400. На этап
-// декомпозиции планируется вынести: event-mode ветку (EVENT_PRESETS
-// grid + название), SMS-toggle-секцию, handleCreate в отдельный
-// builder, id↔AppointmentService helpers в @/lib/appointment-services.
 export default function AppointmentSheet({
   open,
   onClose,
@@ -148,7 +122,6 @@ export default function AppointmentSheet({
   onCompleteQuick,
   personalMode = false,
 }: AppointmentSheetProps) {
-  const router = useRouter();
   const toast = useToast();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
@@ -174,18 +147,43 @@ export default function AppointmentSheet({
   const [globalDiscount, setGlobalDiscount] = useState<Discount | null>(
     appointment.global_discount ?? null
   );
-  // Beta #53 — track whether the current globalDiscount came from
-  // the auto-apply path (so we can replace it on a client switch)
-  // vs a manual edit (which wins and stays put).
-  const [loyaltyApplied, setLoyaltyApplied] = useState<{
-    clientId: string;
-    percent: number;
-  } | null>(null);
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
+  // v607 P0 #5 — anonymous (no-client) address. Lives on apt.address.
+  // Seeded from the appointment record so re-opening a no-client draft
+  // keeps the address visible.
+  const [anonymousAddress, setAnonymousAddress] = useState(
+    appointment.client_id ? "" : appointment.address ?? ""
+  );
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
   const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
+  // v611 P1 §19 — remember the last source the operator picked so the
+  // chip appears first + outlined in the next create flow. Stored in
+  // localStorage (tenant-agnostic — a single-master UX choice).
+  const [lastUsedSource, setLastUsedSource] = useState<AppointmentSource | null>(
+    () => {
+      if (typeof window === "undefined") return null;
+      const raw = window.localStorage.getItem("babun.lastSource");
+      return raw && (raw as AppointmentSource) ? (raw as AppointmentSource) : null;
+    }
+  );
+  // v617 P1 §17 — single time chip in caption opens a popup with the
+  // date+time+duration editors. The inline cluster is removed from
+  // body so it stays focused on client / services.
+  const [timePopupOpen, setTimePopupOpen] = useState(false);
+  // v619 — data-loss guard: EventForm reports its dirty state up so
+  // the [Клиент/Событие] segment toggle can warn before dropping the
+  // draft. EventForm's internal close-confirm already protects
+  // backdrop/Esc; this protects the segment-toggle exit path.
+  const [eventFormDirty, setEventFormDirty] = useState(false);
+  const [segmentSwitchConfirm, setSegmentSwitchConfirm] = useState(false);
+  // v617 P1 §20 — swipe-down dirty-guard. Track touch on the modal
+  // container; if the operator drags down past 90 px and the scroll
+  // body is at the top, treat it as a close-attempt (which routes
+  // through the dirty check just like the backdrop / Esc / ✕ paths).
+  const swipeStartY = useRef<number | null>(null);
+  const swipeDeltaY = useRef<number>(0);
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -193,6 +191,12 @@ export default function AppointmentSheet({
   const tenantId = useTenantId();
   const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
+  // v616 P2 — operator-picked event accent override. null = derive from
+  // the preset name (legacy behaviour). When set, beats the preset's
+  // intrinsic colour on save.
+  const [eventColorOverride, setEventColorOverride] = useState<string | null>(
+    appointment.color_override ?? null,
+  );
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
@@ -203,20 +207,18 @@ export default function AppointmentSheet({
   const [clientProfileOpen, setClientProfileOpen] = useState(false);
   const [repeatSheetOpen, setRepeatSheetOpen] = useState(false);
 
-  // body scroll lock + ESC close
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") attemptClose();
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
+  // Body scroll lock + Esc close for the main sheet. v628 §9 step 7
+  // extracted into useBodyScrollLock hook. `attemptClose` is declared
+  // below; wrap in a getter so the temporal-dead-zone reference works.
+  useBodyScrollLock({ open, onEsc: () => attemptClose() });
+  // documentElement lock when TimePopup is open — `body.style.overflow:
+  // hidden` alone doesn't stop iOS Safari from panning the sheet's
+  // inner overflow-y-auto container.
+  useBodyScrollLock({
+    open: timePopupOpen,
+    onEsc: () => setTimePopupOpen(false),
+    target: "html",
+  });
 
   // Resolve initial preset from appointment.total_amount (для view/done
   // показываем как преднастроенный пресет).
@@ -229,6 +231,7 @@ export default function AppointmentSheet({
     setLocationId(appointment.location_id);
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
+    setAnonymousAddress(appointment.client_id ? "" : appointment.address ?? "");
     setCancelFlag(appointment.status === "cancelled");
     setCancelReason(appointment.cancel_reason ?? "");
     setSource(appointment.source ?? null);
@@ -243,6 +246,8 @@ export default function AppointmentSheet({
         });
     }
     setEventLabel(appointment.comment || "");
+    setEventColorOverride(appointment.color_override ?? null);
+    setDurationTouched(false);
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
     setGlobalDiscount(appointment.global_discount ?? null);
@@ -258,57 +263,29 @@ export default function AppointmentSheet({
     [clientId, clients]
   );
 
-  // Beta #53 (CRM Core brief) — auto-apply loyalty discount when
-  // the operator picks a client. Reads tier on every clientId
-  // change; replaces only auto-applied discounts so a manual edit
-  // («скидка постоянному = 8%, индивидуально») is preserved.
-  useEffect(() => {
-    if (!visitsForClient || !clientId) {
-      // Drop a stale auto-applied discount when the client is cleared.
-      if (loyaltyApplied !== null) {
-        setGlobalDiscount((current) =>
-          current?.type === "percent" && current.value === loyaltyApplied.percent
-            ? null
-            : current,
-        );
-        setLoyaltyApplied(null);
-      }
-      return;
+  // v611 P1 §13 — resolve the top-5 recent client ids into real
+  // records so ClientBlock can render the avatar chip strip without
+  // doing its own lookup. Filtered against the current `clients`
+  // list so a deleted-but-still-listed id doesn't render a "?" chip.
+  const recentClientsResolved = useMemo<Client[]>(() => {
+    const byId = new Map(clients.map((c) => [c.id, c]));
+    const out: Client[] = [];
+    for (const id of recentClientIds) {
+      const c = byId.get(id);
+      if (c) out.push(c);
+      if (out.length >= 5) break;
     }
-    const visits = visitsForClient(clientId);
-    const tier = tierForVisits(visits, loadLoyalty());
-    if (!tier) {
-      // Client doesn't qualify (or program is off) — drop the
-      // previously auto-applied tier if any.
-      if (loyaltyApplied !== null) {
-        setGlobalDiscount((current) =>
-          current?.type === "percent" && current.value === loyaltyApplied.percent
-            ? null
-            : current,
-        );
-        setLoyaltyApplied(null);
-      }
-      return;
-    }
-    // Apply the tier discount. Skip when the operator has already
-    // typed a non-loyalty discount we shouldn't overwrite.
-    setGlobalDiscount((current) => {
-      const wasAutoApplied =
-        loyaltyApplied?.clientId === clientId &&
-        current?.type === "percent" &&
-        current.value === loyaltyApplied.percent;
-      if (!current || wasAutoApplied) {
-        return {
-          type: "percent",
-          value: tier.percent,
-          reason: tier.label,
-        };
-      }
-      return current; // manual edit wins
-    });
-    setLoyaltyApplied({ clientId, percent: tier.percent });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, visitsForClient]);
+    return out;
+  }, [clients, recentClientIds]);
+
+
+  // Beta #53 — auto-apply loyalty tier discount on client pick.
+  useLoyaltyAutoApply({
+    clientId,
+    visitsForClient,
+    globalDiscount,
+    setGlobalDiscount,
+  });
 
   const clientLocations = useMemo<Location[]>(
     () => client?.locations ?? [],
@@ -322,10 +299,21 @@ export default function AppointmentSheet({
     return clientLocations.find((l) => l.isPrimary) ?? clientLocations[0];
   }, [clientLocations, locationId]);
 
-  const address = selectedLocation?.address ?? appointment.address ?? "";
+  // v607 P0 #5 — without a client, the address lives on the appointment
+  // row directly (anonymousAddress). With a client, the picked location
+  // wins as before.
+  const address = client
+    ? selectedLocation?.address ?? appointment.address ?? ""
+    : anonymousAddress.trim();
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
+  // v607 P0 #5 — placeholder hint follows the day's city-tag so an
+  // operator tapping a slot in a "ПТ = ЛИМ" column sees
+  // "Лимассол, ул. ..." instead of the generic prompt.
+  const addressPlaceholder = city
+    ? `${city}, ул. …`
+    : "Адрес или Google Maps ссылка";
 
   // Рассчитанный итог / длительность для sticky-кнопки + time end.
   const price = appointmentTotal(appointmentServices, globalDiscount);
@@ -343,6 +331,21 @@ export default function AppointmentSheet({
     if (!open) return;
     setOtherApts(loadAppointments().filter((a) => a.id !== appointment.id));
   }, [open, appointment.id]);
+
+  // v611 P0 §1.6 — top-3 most-used services across the tenant's
+  // appointment history. Lives here because it needs `otherApts`
+  // (loaded above for the double-booking check), so we reuse it.
+  const popularServices = useMemo<Service[]>(() => {
+    const freq = new Map<string, number>();
+    for (const a of otherApts) {
+      for (const id of a.service_ids) freq.set(id, (freq.get(id) ?? 0) + 1);
+    }
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => catalog.find((s) => s.id === id))
+      .filter((s): s is Service => Boolean(s))
+      .slice(0, 3);
+  }, [otherApts, catalog]);
 
   const overlapConflict = useMemo<Appointment | null>(() => {
     if (!activeTeam || kind === "event") return null;
@@ -372,13 +375,21 @@ export default function AppointmentSheet({
 
   const isEditable = liveMode === "create" || liveMode === "edit";
 
+  // v616 P1 §14/§15 — `durationTouched` flag. When the operator picks
+  // a duration explicitly (chip row below), service-list changes stop
+  // auto-extending the end time. Reset implicitly when the sheet
+  // opens for a new appointment.
+  const [durationTouched, setDurationTouched] = useState(false);
+
   // Live end-time recalc: end ≥ start + Σ service durations. Grows only
   // — a manually-extended end is never shrunk back. Off in view/done
-  // (readonly) and for personal events (no service list). Clamps at
-  // 23:59 to avoid wrap-around; a visit that crosses midnight should be
+  // (readonly), for personal events, and once `durationTouched` is
+  // set (the operator chose a duration deliberately). Clamps at 23:59
+  // to avoid wrap-around; a visit that crosses midnight should be
   // booked as two records.
   useEffect(() => {
     if (!isEditable || kind === "event") return;
+    if (durationTouched) return;
     if (totalDur <= 0) return;
     const [sh, sm] = timeStart.split(":").map(Number);
     const [eh, em] = timeEnd.split(":").map(Number);
@@ -391,9 +402,46 @@ export default function AppointmentSheet({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeEnd(`${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`);
     }
-  }, [isEditable, kind, totalDur, timeStart, timeEnd]);
+  }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched]);
+
+  // Apply an explicit duration in minutes — sets end_time and locks
+  // out the live-recalc effect above. Clamps at 23:59.
+  const applyDuration = (mins: number) => {
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = Math.min(23 * 60 + 59, startMin + mins);
+    setTimeEnd(
+      `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
+    );
+    setDurationTouched(true);
+  };
+
+  // Current live duration (minutes between start and end).
+  const liveDurationMins = (() => {
+    const [sh, sm] = timeStart.split(":").map(Number);
+    const [eh, em] = timeEnd.split(":").map(Number);
+    return Math.max(0, eh * 60 + em - (sh * 60 + sm));
+  })();
   const readonly = !isEditable;
   const isEventMode = kind === "event";
+
+  // Sprint #4 P0 §4 — seed appointment for EventForm when event-mode
+  // is active. Merges current AppointmentSheet time/date/label state
+  // onto the incoming appointment record so EventForm opens pre-filled.
+  // Memoised on the fields that EventForm reads; appointment.id as
+  // reset-key keeps it in sync when the sheet reopens for a new record.
+  const eventSeed = useMemo<Appointment>(() => ({
+    ...appointment,
+    date: dateKey,
+    time_start: timeStart,
+    time_end: timeEnd,
+    kind: "event",
+    comment: eventLabel,
+    color_override: eventColorOverride,
+    team_id: activeTeam?.id ?? null,
+    master_id: null,
+  }), [appointment.id, dateKey, timeStart, timeEnd, eventLabel, eventColorOverride]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // STORY-009: show "Юра + Даня · Пафос" instead of the cookie-name
   // "Y&D" when masters are available. Falls back to team.name otherwise.
   const teamLabel = activeTeam
@@ -416,26 +464,87 @@ export default function AppointmentSheet({
     photoScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // В create: обязателен preset + клиент. В edit: если услуга уже
-  // стоит (total_amount > 0 и status), сохранение разрешено и без
-  // нового preset-выбора — меняем только поля что отредактировали.
-  //
-  // v524 §3.9 — Источник заявки теперь обязателен в CREATE-flow для
-  // work-записей. Это закрывает аналитический gap (откуда пришла
-  // заявка). Edit mode остаётся прежним: историческая запись без
-  // source не должна стать unsave-able только потому, что мы
-  // добавили валидацию.
+  // v607 P0 #3 — Источник заявки больше не блокирует создание. KPI
+  // «20 секунд на мотороллере» важнее аналитического gap'а; источник
+  // переехал в свёрнутую секцию «Подробнее», по умолчанию null.
+  // Минимум для work-записи: клиент + хотя бы одна услуга.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : liveMode === "create"
-      ? Boolean(clientId && appointmentServices.length > 0 && source)
-      : Boolean(clientId && appointmentServices.length > 0);
+    : Boolean(clientId && appointmentServices.length > 0);
+
+  // v607 P0 #1.8 — live preview button text. Shows date · time ·
+  // duration · price when ready; lists what's missing otherwise so the
+  // operator doesn't have to scroll up to find the gap.
+  const missingParts: string[] = [];
+  if (!isEventMode) {
+    if (!clientId) missingParts.push("клиента");
+    if (appointmentServices.length === 0) missingParts.push("услугу");
+  } else if (!eventLabel.trim()) {
+    missingParts.push("название");
+  }
+  const savePreviewLabel = (() => {
+    if (!canSave) {
+      return missingParts.length > 0
+        ? `Заполните: ${missingParts.join(", ")} →`
+        : (liveMode === "edit" ? "Сохранить" : "Создать запись");
+    }
+    if (isEventMode) {
+      return liveMode === "edit" ? "Сохранить событие" : "Создать событие";
+    }
+    const shortDate = formatShortDate(dateKey);
+    const verb = liveMode === "edit" ? "Сохранить" : "Создать";
+    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}`;
+  })();
 
   // Whether the user has entered anything worth protecting on close.
-  // Event mode uses eventLabel; work mode uses client + services + comment.
-  const isDirty = isEditable && (isEventMode
-    ? Boolean(eventLabel.trim())
-    : Boolean(clientId || appointmentServices.length > 0 || comment.trim()));
+  // v619 — data-loss audit P1: previously the check only caught
+  // {clientId, services, comment}. Operators routinely typed address,
+  // address notes, source, discount, cancel-reason then closed the
+  // sheet only to discover the data was gone. Now we check every
+  // field that handleCreate reads from state.
+  //
+  // For create-mode: any non-default value is "dirty".
+  // For edit-mode: dirty if any field differs from the loaded record.
+  const isCreate = liveMode === "create";
+  const eventDirty = isEventMode && (
+    isCreate
+      ? Boolean(eventLabel.trim()) || eventColorOverride !== null
+      : Boolean(
+          eventLabel.trim() !== (appointment.comment ?? "").trim() ||
+          eventColorOverride !== (appointment.color_override ?? null) ||
+          dateKey !== appointment.date ||
+          timeStart !== appointment.time_start ||
+          timeEnd !== appointment.time_end,
+        )
+  );
+  const workDirty = !isEventMode && (
+    isCreate
+      ? Boolean(
+          clientId ||
+          appointmentServices.length > 0 ||
+          comment.trim() ||
+          anonymousAddress.trim() ||
+          addressNote.trim() ||
+          source !== null ||
+          globalDiscount !== null,
+        )
+      : Boolean(
+          clientId !== appointment.client_id ||
+          comment.trim() !== (appointment.comment ?? "").trim() ||
+          addressNote.trim() !== (appointment.address_note ?? "").trim() ||
+          source !== (appointment.source ?? null) ||
+          cancelFlag !== (appointment.status === "cancelled") ||
+          cancelReason.trim() !== (appointment.cancel_reason ?? "").trim() ||
+          dateKey !== appointment.date ||
+          timeStart !== appointment.time_start ||
+          timeEnd !== appointment.time_end ||
+          // Service list / discount changes — a shallow id+qty signature.
+          JSON.stringify(appointmentServices.map((s) => [s.serviceId, s.quantity, s.pricePerUnit])) !==
+            JSON.stringify((appointment.services ?? []).map((s) => [s.serviceId, s.quantity, s.pricePerUnit])) ||
+          JSON.stringify(globalDiscount ?? null) !== JSON.stringify(appointment.global_discount ?? null),
+        )
+  );
+  const isDirty = isEditable && (eventDirty || workDirty);
 
   if (!open) return null;
 
@@ -449,107 +558,35 @@ export default function AppointmentSheet({
     setCloseConfirm(true);
   };
 
+  // Event-mode branch is DEAD CODE since EventForm.onSave routes events
+  // directly — isEventMode is always false here (EventForm owns its own
+  // submit path). Work mode only.
   const handleCreate = () => {
-    if (isEventMode) {
-      const base: Appointment = {
-        ...appointment,
-        date: dateKey,
-        time_start: timeStart,
-        time_end: timeEnd,
-        kind: "event",
-        comment: eventLabel.trim(),
-        team_id: activeTeam?.id ?? null,
-        color_override:
-          EVENT_PRESETS.find((e) =>
-            eventLabel.toLowerCase().startsWith(e.label.toLowerCase())
-          )?.color ?? null,
-        total_amount: 0,
-        custom_total: true,
-        status: "scheduled",
-        updated_at: new Date().toISOString(),
-      };
-      onSave(base);
-      return;
-    }
     if (!client || appointmentServices.length === 0) return;
-    const total = appointmentTotal(appointmentServices, globalDiscount);
-    const duration = calcDuration(appointmentServices);
-    const serviceNames = appointmentServices
-      .map((l) => {
-        const svc = catalog.find((s) => s.id === l.serviceId);
-        return svc ? (l.quantity > 1 ? `x${l.quantity} ${svc.name}` : svc.name) : null;
-      })
-      .filter(Boolean)
-      .join(", ");
-    const finalComment = comment.trim()
-      ? `${serviceNames} — ${comment.trim()}`
-      : serviceNames;
-    const saved: Appointment = {
-      ...appointment,
-      date: dateKey,
-      time_start: timeStart,
-      // `timeEnd` is kept in sync by the live-recalc effect above:
-      // end ≥ start + Σ service durations, clamped at 23:59. Trust it.
-      time_end: timeEnd,
-      client_id: client.id,
-      location_id: locationId,
-      team_id: activeTeam?.id ?? null,
-      service_ids: appointmentServices.map((l) => l.serviceId),
-      services: appointmentServices,
-      global_discount: globalDiscount,
-      total_duration: duration,
-      total_amount: total,
-      custom_total: true,
-      comment: finalComment,
+    const saved = buildSavedWorkAppointment({
+      appointment,
+      client,
+      appointmentServices,
+      globalDiscount,
+      dateKey,
+      timeStart,
+      timeEnd,
+      locationId,
+      activeTeamId: activeTeam?.id ?? null,
+      comment,
       address,
-      address_note: addressNote.trim(),
-      // STORY-049 — photos no longer ride on the appointment row.
-      // The appointmentToInsert/Update adapters ignore this field.
-      photos: [],
+      addressNote,
       source,
-      cancel_reason: cancelFlag ? (cancelReason.trim() || null) : null,
-      reminder_enabled: smsEnabled && Boolean((client as Client).phone),
-      kind: "work",
-      // Cancel toggle wins over everything else. When the dispatcher
-      // unchecks cancel on an already-cancelled record, restore it to
-      // "scheduled" — otherwise the record stays cancelled silently and
-      // the toggle looks broken (Sprint 017 fix).
-      status: cancelFlag
-        ? "cancelled"
-        : liveMode === "edit"
-          ? appointment.status === "cancelled"
-            ? "scheduled"
-            : appointment.status
-          : "scheduled",
-      updated_at: new Date().toISOString(),
-    };
+      cancelFlag,
+      cancelReason,
+      smsEnabled,
+      liveMode,
+    });
     onSave(saved);
   };
 
   const handlePay = (payment: AppointmentPayment) => {
-    // P0 #13 + #14 (CRM Core brief) — mirror the legacy `payment`
-    // jsonb into the explicit columns the Supabase trigger keys off
-    // (20260517_001_payment_status_and_finance_sync.sql). Invoice
-    // mode = company will pay later, so the appointment is completed
-    // but not yet `paid` — operator gets to flip it manually when the
-    // invoice clears.
-    const isInvoice = payment.method === "invoice";
-    const methodMap: Record<typeof payment.method, "cash" | "card" | "other" | null> = {
-      cash: "cash",
-      card: "card",
-      split: "other",
-      invoice: null,
-    };
-    onSave({
-      ...appointment,
-      status: "completed",
-      payment,
-      payment_status: isInvoice ? "unpaid" : "paid",
-      payment_method: methodMap[payment.method] ?? undefined,
-      paid_amount: isInvoice ? 0 : appointment.total_amount,
-      total_amount: appointment.total_amount,
-      updated_at: new Date().toISOString(),
-    });
+    onSave(buildCompletedAppointment(appointment, payment));
     onClose();
   };
 
@@ -577,107 +614,59 @@ export default function AppointmentSheet({
         // STORY-056 — desktop cap at 720 px so the modal reads as a
         // proper dialog instead of a fullscreen takeover on a 1080-px
         // monitor (92 vh = 994 px). Mobile keeps 92 vh.
+        // v617 P1 §20 — swipe-down dirty-guard: drag the sheet
+        // downward by ≥90 px while the body is scrolled to the top
+        // and we route through attemptClose (same as backdrop/Esc).
         className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => {
+          const target = e.target as HTMLElement;
+          const scroller = target.closest("[data-appt-scroll]") as HTMLElement | null;
+          // Only arm the gesture if the scrollable body is at the top
+          // — otherwise the user is mid-scroll and downward drags
+          // should pan the list, not close the sheet.
+          if (scroller && scroller.scrollTop > 0) {
+            swipeStartY.current = null;
+            return;
+          }
+          swipeStartY.current = e.touches[0]?.clientY ?? null;
+          swipeDeltaY.current = 0;
+        }}
+        onTouchMove={(e) => {
+          if (swipeStartY.current === null) return;
+          swipeDeltaY.current = (e.touches[0]?.clientY ?? swipeStartY.current) - swipeStartY.current;
+        }}
+        onTouchEnd={() => {
+          const delta = swipeDeltaY.current;
+          swipeStartY.current = null;
+          swipeDeltaY.current = 0;
+          if (delta >= 90) attemptClose();
+        }}
       >
 
-        {/* Header */}
-        <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
-          {liveMode === "create" ? (
-            personalMode ? (
-              // Personal calendar — always event; no segment toggle.
-              <div className="inline-flex items-center h-8 px-3 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold">
-                Личное событие
-              </div>
-            ) : (
-              <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
-                {(["work", "event"] as Kind[]).map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setKind(k)}
-                    className={`px-4 py-1.5 rounded-[8px] transition ${
-                      kind === k
-                        ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-                        : "text-[var(--label-secondary)]"
-                    }`}
-                  >
-                    {k === "work" ? "Клиент" : "Событие"}
-                  </button>
-                ))}
-              </div>
-            )
-          ) : liveMode === "edit" ? (
-            <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
-              Редактирование
-            </div>
-          ) : liveMode === "done" ? (
-            <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
-              {doneBadge}
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* Sprint 025 STORY-005 — one-tap shortcuts on open visits:
-              ✓ complete, 📷 add photo, ↻ reschedule. They mirror the
-              three actions the dispatcher reaches for most; the slower
-              admin options still live in the ⋯ menu inside ClientBlock. */}
-          {showQuickActions && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {onCompleteQuick && (
-                <button
-                  type="button"
-                  onClick={() => onCompleteQuick(appointment)}
-                  aria-label="Отметить выполненной"
-                  title="Выполнено"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
-                >
-                  <Check size={20} strokeWidth={2.5} />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={scrollToPhotos}
-                aria-label="Перейти к фото"
-                title="Фото"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
-              >
-                <Camera size={19} strokeWidth={2} />
-              </button>
-              {onReschedule && (
-                <button
-                  type="button"
-                  onClick={() => onReschedule(appointment)}
-                  aria-label="Перенести запись"
-                  title="Перенести"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
-                >
-                  <CalendarClock size={19} strokeWidth={2} />
-                </button>
-              )}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={attemptClose}
-            aria-label="Закрыть"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        <AppointmentHeader
+          liveMode={liveMode}
+          personalMode={personalMode}
+          kind={kind}
+          eventFormDirty={eventFormDirty}
+          doneBadge={doneBadge}
+          showQuickActions={showQuickActions}
+          onCompleteQuick={onCompleteQuick}
+          onReschedule={onReschedule}
+          appointment={appointment}
+          scrollToPhotos={scrollToPhotos}
+          setKind={setKind}
+          setSegmentSwitchConfirm={setSegmentSwitchConfirm}
+          attemptClose={attemptClose}
+        />
 
         {/* Scroll body */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          {/* City/team caption — read-only info strip. No dropdown, no
-              click. City is edited from the calendar day header. */}
-          <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center gap-2 text-[13px]">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4" data-appt-scroll>
+          {/* City/team caption + v617 P1 §17 single time chip. Chip
+              shows date · time · duration and opens the time popup on
+              tap. City is still edited from the calendar day header. */}
+          <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center gap-2 text-[13px] flex-wrap">
             {city && (
               <span
                 className="font-semibold flex-shrink-0"
@@ -688,147 +677,84 @@ export default function AppointmentSheet({
             )}
             {city && <span className="text-[var(--label-tertiary)]">·</span>}
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
+            <button
+              type="button"
+              onClick={() => setTimePopupOpen(true)}
+              disabled={readonly}
+              className={`ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-full text-[13px] font-semibold tabular-nums transition active:scale-[0.97] ${
+                readonly
+                  ? "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] cursor-default"
+                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
+              }`}
+              aria-label="Изменить время"
+            >
+              <CalendarClock size={14} strokeWidth={2} />
+              {formatShortDate(dateKey)} · {timeStart}
+              {liveDurationMins > 0 && ` · ${liveDurationMins}м`}
+            </button>
           </div>
 
-          <TimeBlock
-            date={dateKey}
-            timeStart={timeStart}
-            timeEnd={timeEnd}
-            readOnly={readonly}
-            // Brief 1 #2: honour the active team's slot granularity
-            // (15/30/60). Personal events keep the default 5-min wheel.
-            stepMinutes={
-              !isEventMode ? activeTeam?.default_slot_minutes : undefined
-            }
-            onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-              setDateKey(d);
-              setTimeStart(s);
-              setTimeEnd(e);
-            }}
-          />
-
+          {/* v617 P1 §17 — quick chips + TimeBlock + duration row
+              moved into the time popup at the bottom of this file. */}
           {overlapConflict && overlapWarning && isEditable && !isEventMode && (
-            <div className="px-4 pt-2">
-              <details className="group rounded-[14px] bg-[rgba(255,149,0,0.08)] border border-[rgba(255,149,0,0.2)] text-[12px] text-[var(--label)]">
-                <summary className="flex items-start gap-2 px-3 py-2 cursor-pointer list-none">
-                  <span aria-hidden className="text-[var(--system-orange)]">⚠</span>
-                  <div className="flex-1">
-                    <div className="font-semibold">Пересечение с записью</div>
-                    <div className="text-[var(--label-secondary)]">{overlapWarning}</div>
-                  </div>
-                  <span className="text-[var(--system-orange)] text-[12px] group-open:rotate-180 transition">
-                    ▾
-                  </span>
-                </summary>
-                <div className="px-3 pb-2 pt-0.5 text-[var(--label)] border-t border-[rgba(255,149,0,0.2)] space-y-0.5">
-                  {(() => {
-                    const cc = overlapConflict;
-                    const serviceNames = cc.service_ids
-                      .map((sid) => catalog.find((s) => s.id === sid)?.name)
-                      .filter(Boolean)
-                      .join(", ");
-                    const phone = cc.client_id
-                      ? clients.find((c) => c.id === cc.client_id)?.phone ?? ""
-                      : "";
-                    const statusLabel =
-                      cc.status === "completed"
-                        ? "выполнена"
-                        : cc.status === "in_progress"
-                          ? "в работе"
-                          : "запланирована";
-                    return (
-                      <>
-                        {serviceNames && (
-                          <div className="truncate">Услуги: {serviceNames}</div>
-                        )}
-                        <div>Статус: {statusLabel}</div>
-                        {phone && (
-                          <a
-                            href={`tel:${phone.replace(/\D/g, "")}`}
-                            className="inline-flex items-center gap-1 font-semibold underline decoration-[var(--system-orange)] decoration-1 underline-offset-2 text-[var(--system-orange)]"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Позвонить {phone}
-                          </a>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </details>
-            </div>
+            <OverlapWarning
+              conflict={overlapConflict}
+              summary={overlapWarning}
+              catalog={catalog}
+              clients={clients}
+            />
           )}
 
-          {/* Event mode body */}
-          {isEventMode && isEditable ? (
-            <div className="px-4 pt-4 space-y-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Тип события
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {EVENT_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      setEventLabel(p.label);
-                      // Adjust end by duration; allDay = 8:00–20:00
-                      if (p.allDay) {
-                        setTimeStart("08:00");
-                        setTimeEnd("20:00");
-                      } else {
-                        const [h, m] = timeStart.split(":").map(Number);
-                        // Clamp at 23:59 rather than wrapping past midnight.
-                        const endMin = Math.min(23 * 60 + 59, h * 60 + m + p.duration);
-                        const eh = Math.floor(endMin / 60);
-                        const em = endMin % 60;
-                        setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
-                      }
-                    }}
-                    className="py-3 rounded-[14px] border border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1"
-                    style={eventLabel === p.label ? { borderColor: p.color, background: `${p.color}14` } : undefined}
-                  >
-                    {(() => {
-                      const Icon = EVENT_ICONS[p.icon];
-                      return (
-                        <Icon
-                          size={20}
-                          strokeWidth={2}
-                        />
-                      );
-                    })()}
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-                  Название
-                </div>
-                <input
-                  type="text"
-                  value={eventLabel}
-                  onChange={(e) => setEventLabel(e.target.value)}
-                  placeholder="Событие"
-                  className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-                />
-              </div>
-            </div>
-          ) : (
+          {/* Event mode body — Sprint #4 P0 §4: unified EventForm overlay.
+              Renders above the AppointmentSheet chrome when the operator
+              picks "Событие" in the segment toggle. EventForm takes the
+              event seed (time/date/label pre-filled), saves via the sheet's
+              onSave, and closes back to this sheet on discard (create mode
+              switches the segment back to "work"; edit mode closes the outer
+              sheet). */}
+          {isEventMode && isEditable && (
+            <EventForm
+              open
+              onClose={() => {
+                if (liveMode === "create") {
+                  // Switch back to work tab so AppointmentSheet stays open.
+                  setKind("work");
+                  setEventFormDirty(false);
+                } else {
+                  onClose();
+                }
+              }}
+              mode={liveMode === "edit" ? "edit" : "create"}
+              event={eventSeed}
+              context="team"
+              onSave={(evt) => {
+                onSave(evt);
+                onClose();
+              }}
+              onDirtyChange={setEventFormDirty}
+            />
+          )}
+          {!isEventMode && (
             <>
-              <SourceBlock
-                value={source}
-                readonly={readonly}
-                onChange={setSource}
-                required={liveMode === "create"}
-              />
-
+              {/* v607 P0 #1 — block order: critical inputs up top,
+                  details collapsed. Order: Client → History →
+                  Location → Services → Income → <details>. Source,
+                  comment, photos, SMS, brigade live inside the
+                  collapsible so an "20 sec on a scooter" booking
+                  only touches the top half of the sheet. */}
               <ClientBlock
                 client={client}
                 readonly={readonly}
                 onPick={() => setClientSheet(true)}
                 onChange={() => setClientId(null)}
                 onMenu={client ? () => setClientMenuOpen(true) : undefined}
+                recentClients={recentClientsResolved}
+                onPickRecent={(c) => {
+                  setClientId(c.id);
+                  const locs = c.locations ?? [];
+                  const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
+                  setLocationId(primary?.id ?? null);
+                }}
               />
 
               {/* Brief 1 #23 — last 5 past visits inline so dispatcher
@@ -849,6 +775,9 @@ export default function AppointmentSheet({
                 addressNote={addressNote}
                 onSelectLocation={setLocationId}
                 onAddressNoteChange={setAddressNote}
+                anonymousAddress={anonymousAddress}
+                onAnonymousAddressChange={setAnonymousAddress}
+                placeholder={addressPlaceholder}
               />
 
               <ServicesBlock
@@ -864,6 +793,7 @@ export default function AppointmentSheet({
                   }
                   setServicePickerOpen(true);
                 }}
+                popularServices={popularServices}
               />
 
               <IncomeBlock
@@ -875,22 +805,93 @@ export default function AppointmentSheet({
                 onGlobalDiscountChange={setGlobalDiscount}
               />
 
-              <CommentBlock
-                value={comment}
-                readonly={readonly}
-                onChange={setComment}
-              />
+              {/* v607 P0 #1 — «Подробнее» collapsible. Closed by
+                  default in create-mode to keep the form short.
+                  Opened by default in view/edit so existing data is
+                  visible without an extra tap. */}
+              {isEditable ? (
+                <details
+                  className="group px-4 pt-3"
+                  open={liveMode === "edit"}
+                >
+                  <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
+                    <span>Подробнее</span>
+                    <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
+                  </summary>
+                  <div className="pt-1 -mx-4">
+                    <SourceBlock
+                      value={source}
+                      readonly={readonly}
+                      onChange={(next) => {
+                        setSource(next);
+                        if (next && typeof window !== "undefined") {
+                          window.localStorage.setItem("babun.lastSource", next);
+                          setLastUsedSource(next);
+                        }
+                      }}
+                      lastUsed={lastUsedSource}
+                    />
 
-              <div ref={photoScrollRef}>
-                <PhotoBlock
-                  photos={photos}
-                  readonly={readonly}
-                  tenantId={tenantId}
-                  appointmentId={appointment.id}
-                  locationLabel={selectedLocation?.label}
-                  onChange={setPhotos}
-                />
-              </div>
+                    {client && client.phone && (
+                      <div className="px-4 pt-4 flex items-center justify-between">
+                        <div>
+                          <div className="text-[15px] font-semibold text-[var(--label)]">
+                            SMS-напоминание
+                          </div>
+                          <div className="text-[12px] text-[var(--label-secondary)]">
+                            за сутки и за час до визита
+                          </div>
+                        </div>
+                        <IOSSwitch
+                          checked={smsEnabled}
+                          onChange={setSmsEnabled}
+                          ariaLabel="SMS-напоминание"
+                        />
+                      </div>
+                    )}
+
+                    <CommentBlock
+                      value={comment}
+                      readonly={readonly}
+                      onChange={setComment}
+                    />
+
+                    <div ref={photoScrollRef}>
+                      <PhotoBlock
+                        photos={photos}
+                        readonly={readonly}
+                        tenantId={tenantId}
+                        appointmentId={appointment.id}
+                        locationLabel={selectedLocation?.label}
+                        onChange={setPhotos}
+                      />
+                    </div>
+                  </div>
+                </details>
+              ) : (
+                <>
+                  <SourceBlock
+                    value={source}
+                    readonly={readonly}
+                    onChange={setSource}
+                  />
+                  <CommentBlock
+                    value={comment}
+                    readonly={readonly}
+                    onChange={setComment}
+                  />
+                  <div ref={photoScrollRef}>
+                    <PhotoBlock
+                      photos={photos}
+                      readonly={readonly}
+                      tenantId={tenantId}
+                      appointmentId={appointment.id}
+                      locationLabel={selectedLocation?.label}
+                      onChange={setPhotos}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Readonly cancellation reason in view/done mode when
                   record is already cancelled. Reuses the same red tint
@@ -908,90 +909,19 @@ export default function AppointmentSheet({
                 </div>
               )}
 
-              {/* Cancel-appointment toggle — always visible when the
-                  appointment isn't already completed. Flipping on
-                  marks status as cancelled on save; flipping off in
-                  edit restores the previous status. */}
-              {appointment.status !== "completed" && isEditable && (
-                <>
-                  <div className="px-4 pt-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-[15px] font-semibold text-[var(--label)]">
-                        Запись отменена
-                      </div>
-                      <div className="text-[12px] text-[var(--label-secondary)]">
-                        Клиент отказался от услуги
-                      </div>
-                    </div>
-                    <IOSSwitch
-                      checked={cancelFlag}
-                      onChange={setCancelFlag}
-                      ariaLabel="Запись отменена"
-                    />
-                  </div>
-                  {cancelFlag && (
-                    <div className="px-4 pt-2">
-                      <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] mb-1.5">
-                        Причина отмены
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {[
-                          "Клиент перенёс",
-                          "Не дозвонились",
-                          "Погода",
-                          "Нет материала",
-                          "Клиент не на месте",
-                          "Другое",
-                        ].map((preset) => {
-                          const active = cancelReason === preset;
-                          return (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() =>
-                                setCancelReason(active ? "" : preset)
-                              }
-                              className={`px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
-                                active
-                                  ? "bg-[var(--system-red)] text-white"
-                                  : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-                              }`}
-                            >
-                              {preset}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <input
-                        type="text"
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        placeholder="Или своя причина…"
-                        className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-                      />
-                    </div>
-                  )}
-                </>
+              {/* Cancel-appointment toggle. v607 P0 #2 — only relevant
+                  for an existing record; in create mode we can't cancel
+                  something that doesn't exist yet. Visible in edit mode
+                  whenever the record isn't already completed. */}
+              {appointment.status !== "completed" && liveMode === "edit" && (
+                <CancelToggleBlock
+                  cancelFlag={cancelFlag}
+                  cancelReason={cancelReason}
+                  onFlagChange={setCancelFlag}
+                  onReasonChange={setCancelReason}
+                />
               )}
 
-              {/* SMS toggle только в create */}
-              {isEditable && client && client.phone && (
-                <div className="px-4 pt-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-[15px] font-semibold text-[var(--label)]">
-                      SMS-напоминание
-                    </div>
-                    <div className="text-[12px] text-[var(--label-secondary)]">
-                      за сутки и за час до визита
-                    </div>
-                  </div>
-                  <IOSSwitch
-                    checked={smsEnabled}
-                    onChange={setSmsEnabled}
-                    ariaLabel="SMS-напоминание"
-                  />
-                </div>
-              )}
             </>
           )}
 
@@ -1006,11 +936,18 @@ export default function AppointmentSheet({
         </div>
 
         {/* Sticky save: в create и в edit — single full-width button.
-            Cancel lives as the header ✕; backdrop/Esc also prompt. */}
-        {isEditable && (
+            Cancel lives as the header ✕; backdrop/Esc also prompt.
+            v615 P1 §16 — backdrop-blur so scrolled content shows
+            through softly instead of a hard cut.
+            Sprint #4 P0 §4: hidden in event mode — EventForm has its
+            own overlay and sticky footer. */}
+        {isEditable && !isEventMode && (
           <div
-            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
+            className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)] sticky bottom-0 z-10 backdrop-blur-[12px]"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
+              background: "color-mix(in srgb, var(--surface-card) 80%, transparent)",
+            }}
           >
             {bottomWarning && (
               <div className="mb-2 px-3 py-2 rounded-[10px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] font-semibold text-[var(--system-red)] text-center">
@@ -1034,484 +971,118 @@ export default function AppointmentSheet({
                   : "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
               }`}
             >
-              {(() => {
-                if (liveMode === "edit") {
-                  return canSave
-                    ? `Сохранить · ${formatEUR(price)}`
-                    : "Сохранить";
-                }
-                if (isEventMode) return "Создать событие";
-                return canSave
-                  ? `Создать запись · ${formatEUR(price)}`
-                  : "Создать запись";
-              })()}
+              {savePreviewLabel}
             </button>
           </div>
         )}
       </div>
 
-      {/* Sub-sheets */}
-      <ClientPickerSheet
-        open={clientSheet}
-        onClose={() => setClientSheet(false)}
-        onSelect={(c) => {
+      {/* v625 §9 step 2 — all portal-level pickers/dialogs/overlays
+          live in AppointmentSubSheets. State stays here; the wrapper
+          just renders + forwards callbacks. */}
+      <AppointmentSubSheets
+        clientSheet={clientSheet}
+        setClientSheet={setClientSheet}
+        clients={clients}
+        recentClientIds={recentClientIds}
+        onClientSelect={(c) => {
           setClientId(c.id);
           const locs = c.locations;
           const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
           setLocationId(primary?.id ?? null);
-          setClientSheet(false);
         }}
-        clients={clients}
-        recentClientIds={recentClientIds}
-      />
-
-      <ServicePickerSheet
-        open={servicePickerOpen}
-        onClose={() => setServicePickerOpen(false)}
-        services={catalog}
+        servicePickerOpen={servicePickerOpen}
+        setServicePickerOpen={setServicePickerOpen}
+        catalog={catalog}
         categories={categories}
-        brigadeId={activeTeam?.id ?? null}
-        initialSelectedIds={servicesToIds(appointmentServices)}
-        onConfirm={(ids) => {
-          setAppointmentServices(
-            idsToServices(ids, catalog, appointmentServices)
-          );
+        activeTeam={activeTeam}
+        appointmentServices={appointmentServices}
+        onServicesConfirm={setAppointmentServices}
+        client={client}
+        closeConfirm={closeConfirm}
+        setCloseConfirm={setCloseConfirm}
+        liveMode={liveMode}
+        canSave={canSave}
+        onClose={onClose}
+        onSaveAndClose={handleCreate}
+        askClientFirst={askClientFirst}
+        setAskClientFirst={setAskClientFirst}
+        clientMenuOpen={clientMenuOpen}
+        setClientMenuOpen={setClientMenuOpen}
+        setClientProfileOpen={setClientProfileOpen}
+        setSendMsgOpen={setSendMsgOpen}
+        setRepeatSheetOpen={setRepeatSheetOpen}
+        appointment={appointment}
+        isEventMode={isEventMode}
+        photos={photos}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        address={address}
+        price={price}
+        sendMsgOpen={sendMsgOpen}
+        repeatSheetOpen={repeatSheetOpen}
+        onRepeatConfirm={(months, note) => {
+          if (!client) return;
+          const serviceSummary = appointmentServices
+            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
+            .filter((n): n is string => Boolean(n))
+            .join(" · ");
+          const supabase = getSupabaseBrowser();
+          void createRecurringReminder(supabase, tenantId, {
+            client_id: client.id,
+            client_name: client.full_name,
+            phone: client.phone ?? "",
+            team_id: activeTeam?.id ?? null,
+            service_ids: appointmentServices.map((l) => l.serviceId),
+            service_summary: serviceSummary,
+            last_date: appointment.date,
+            interval_months: months,
+            note,
+          }).then(() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("babun:recurring-changed"));
+            }
+          }).catch((err) => {
+            console.warn("STORY-050: createRecurringReminder failed", err);
+          });
         }}
-        clientName={client?.full_name ?? null}
-        clientPhone={client?.phone ?? null}
+        clientProfileOpen={clientProfileOpen}
       />
 
-      {/* Close-confirmation modal — centered, minimalist, 2 buttons. */}
-      {closeConfirm && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setCloseConfirm(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-              {liveMode === "edit" ? "Закрыть без сохранения?" : "Закрыть запись?"}
-            </div>
-            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
-              {canSave
-                ? "Введённые данные не сохранятся."
-                : "Не хватает данных для сохранения — закрыть форму?"}
-            </div>
-            {/* v517 P0 #2.7 — destructive «Не сохранять» promoted to
-                primary (filled red): closing the sheet is the user's
-                intent. «Сохранить» drops to secondary outlined and is
-                only enabled when canSave. */}
-            <div className="pt-2 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCloseConfirm(false);
-                  onClose();
-                }}
-                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
-              >
-                Не сохранять
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!canSave) return;
-                  handleCreate();
-                  setCloseConfirm(false);
-                }}
-                disabled={!canSave}
-                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SegmentSwitchConfirmDialog
+        open={segmentSwitchConfirm}
+        onCancel={() => setSegmentSwitchConfirm(false)}
+        onDiscard={() => {
+          setSegmentSwitchConfirm(false);
+          setEventFormDirty(false);
+          setKind("work");
+        }}
+      />
 
-      {/* "Pick client first?" prompt — fires when the dispatcher taps
-          the service button before a client is set. Mirrors the common
-          two-step flow. "Да" opens ClientPicker; "Нет" goes straight
-          to the services. */}
-      {askClientFirst && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setAskClientFirst(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[15px] text-[var(--label)] py-2 px-1 leading-snug">
-              Клиент для записи ещё не выбран.
-              <br />
-              Выбрать клиента сейчас?
-            </div>
-            <div className="pt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAskClientFirst(false);
-                  setServicePickerOpen(true);
-                }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] active:bg-[var(--fill-secondary)]"
-              >
-                Нет
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAskClientFirst(false);
-                  setClientSheet(true);
-                }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-              >
-                Да
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TimePopup
+        open={timePopupOpen}
+        onClose={() => setTimePopupOpen(false)}
+        liveMode={liveMode}
+        isEventMode={isEventMode}
+        isEditable={isEditable}
+        readonly={readonly}
+        activeTeam={activeTeam}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        totalDur={totalDur}
+        durationTouched={durationTouched}
+        liveDurationMins={liveDurationMins}
+        setDateKey={setDateKey}
+        setTimeStart={setTimeStart}
+        setTimeEnd={setTimeEnd}
+        applyDuration={applyDuration}
+      />
 
-      {client && (
-        <ClientActionMenu
-          open={clientMenuOpen}
-          onClose={() => setClientMenuOpen(false)}
-          client={client}
-          onProfile={() => setClientProfileOpen(true)}
-          onSendMessage={() => setSendMsgOpen(true)}
-          onOpenChat={() => {
-            const existing = loadChats().find((ch) => ch.client_id === client.id);
-            if (existing) {
-              router.push(`/dashboard/chats?chat_id=${existing.id}`);
-            } else {
-              router.push(`/dashboard/chats?client_id=${client.id}`);
-            }
-          }}
-          onShare={async () => {
-            const parts = [client.full_name];
-            if (client.phone) parts.push(client.phone);
-            const text = parts.join(" · ");
-            if (typeof navigator !== "undefined" && navigator.share) {
-              try {
-                await navigator.share({ title: client.full_name, text });
-              } catch {
-                // user dismissed
-              }
-            } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-              try {
-                await navigator.clipboard.writeText(text);
-              } catch {
-                // ignore
-              }
-            }
-          }}
-          onScheduleRepeat={
-            appointment.status === "completed" && !isEventMode && client
-              ? () => setRepeatSheetOpen(true)
-              : undefined
-          }
-          onDownloadInvoice={
-            appointment.status === "completed" && !isEventMode && client
-              ? async () => {
-                  // Dynamic import keeps jspdf (+ renderer) out of the
-                  // initial bundle. First tap incurs a one-off chunk
-                  // load; subsequent taps are cached.
-                  const { generateInvoicePDF, downloadBlob } = await import(
-                    "@babun/shared/local/finance/invoice"
-                  );
-                  const { blob, filename } = generateInvoicePDF({
-                    appointment,
-                    client,
-                    services: catalog,
-                    team: activeTeam,
-                    company: loadCompany(),
-                    includePhotos: photos.length > 0,
-                  });
-                  downloadBlob(blob, filename);
-                }
-              : undefined
-          }
-          onShareAppointment={
-            liveMode === "create" || isEventMode
-              ? undefined
-              : async () => {
-                  const serviceNames = appointmentServices
-                    .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-                    .filter((n): n is string => Boolean(n));
-                  const origin =
-                    typeof window !== "undefined" ? window.location.origin : "";
-                  const url = buildShareUrl(origin, {
-                    d: dateKey,
-                    ts: timeStart,
-                    te: timeEnd,
-                    c: client.full_name,
-                    s: serviceNames,
-                    a: address || undefined,
-                    b: activeTeam?.name,
-                    t: Math.round(price),
-                    st: appointment.status,
-                  });
-                  const title = `Запись ${dateKey} · ${timeStart}`;
-                  if (typeof navigator !== "undefined" && navigator.share) {
-                    try {
-                      await navigator.share({ title, url });
-                      return;
-                    } catch {
-                      // user dismissed — fall through to clipboard.
-                    }
-                  }
-                  if (typeof navigator !== "undefined" && navigator.clipboard) {
-                    try {
-                      await navigator.clipboard.writeText(url);
-                      toast.show({
-                        variant: "success",
-                        message: "Ссылка скопирована — отправьте клиенту",
-                      });
-                    } catch {
-                      toast.show({
-                        variant: "error",
-                        message: "Не удалось скопировать. Скопируйте вручную в адресной строке.",
-                      });
-                    }
-                  } else {
-                    toast.show({
-                      variant: "error",
-                      message: "Копирование не поддерживается в этом браузере.",
-                    });
-                  }
-                }
-          }
-        />
-      )}
-
-      {client && (
-        <SendMessagePopup
-          open={sendMsgOpen}
-          onClose={() => setSendMsgOpen(false)}
-          phone={client.phone ?? null}
-          clientName={client.full_name}
-        />
-      )}
-
-      {client && (
-        <RepeatReminderSheet
-          open={repeatSheetOpen}
-          clientName={client.full_name}
-          serviceSummary={appointmentServices
-            .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-            .filter(Boolean)
-            .join(" · ")}
-          lastDate={appointment.date}
-          onClose={() => setRepeatSheetOpen(false)}
-          onConfirm={(months, note) => {
-            const serviceSummary = appointmentServices
-              .map((l) => catalog.find((s) => s.id === l.serviceId)?.name)
-              .filter((n): n is string => Boolean(n))
-              .join(" · ");
-            const supabase = getSupabaseBrowser();
-            void createRecurringReminder(supabase, tenantId, {
-              client_id: client.id,
-              client_name: client.full_name,
-              phone: client.phone ?? "",
-              team_id: activeTeam?.id ?? null,
-              service_ids: appointmentServices.map((l) => l.serviceId),
-              service_summary: serviceSummary,
-              last_date: appointment.date,
-              interval_months: months,
-              note,
-            }).then(() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new Event("babun:recurring-changed"));
-              }
-            }).catch((err) => {
-              console.warn("STORY-050: createRecurringReminder failed", err);
-            });
-          }}
-        />
-      )}
-
-      {/* Client profile overlay — rendered on top of the appointment
-          sheet so picking ⋯ → Профиль doesn't navigate away. Tapping
-          ← inside closes the overlay and leaves the draft intact. */}
-      {clientProfileOpen && client && (
-        <div
-          className="fixed inset-0 z-[95] bg-[var(--surface-overlay)] backdrop-blur-[2px] flex items-center justify-center p-2"
-          onClick={() => setClientProfileOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
-            style={{ height: "92vh" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ClientProfileView
-              clientId={client.id}
-              onBack={() => setClientProfileOpen(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Keep reference list silenced */}
       <div className="hidden">{CITY_LIST.length}</div>
     </div>
   );
-}
-
-// ─── id ↔ AppointmentService helpers ────────────────────────────────────
-// ServicePickerSheet оперирует `string[]` с дубликатами (quantity = кол-во
-// повторов id). AppointmentService[] нужен для корректного расчёта bulk
-// price и per-line пользовательских переопределений цены. Эти две
-// функции мостят два представления, сохраняя overrides из prev.
-
-function servicesToIds(list: AppointmentService[]): string[] {
-  const out: string[] = [];
-  for (const s of list) {
-    for (let i = 0; i < s.quantity; i++) out.push(s.serviceId);
-  }
-  return out;
-}
-
-function idsToServices(
-  ids: string[],
-  catalog: Service[],
-  prev: AppointmentService[]
-): AppointmentService[] {
-  const byId = new Map<string, Service>();
-  for (const svc of catalog) byId.set(svc.id, svc);
-  const prevById = new Map<string, AppointmentService>();
-  for (const line of prev) prevById.set(line.serviceId, line);
-
-  const qty = new Map<string, number>();
-  for (const id of ids) qty.set(id, (qty.get(id) ?? 0) + 1);
-
-  const out: AppointmentService[] = [];
-  // Сохраняем исходный порядок: сначала строки, которые уже были в prev
-  // (это сохраняет ручные перестановки в UI), потом новые.
-  const seen = new Set<string>();
-  for (const line of prev) {
-    const q = qty.get(line.serviceId);
-    if (!q) continue;
-    seen.add(line.serviceId);
-    const svc = byId.get(line.serviceId);
-    if (!svc) continue;
-    // Если команда не трогала цену (pricePerUnit === originalPrice),
-    // пересчитываем с учётом bulk. Если трогала — сохраняем override.
-    const userOverride = line.pricePerUnit !== line.originalPrice;
-    const ppu = userOverride ? line.pricePerUnit : pricePerUnit(svc, q);
-    out.push({
-      ...line,
-      quantity: q,
-      pricePerUnit: ppu,
-      originalPrice: svc.price,
-      totalPrice: q * ppu,
-      duration: q * svc.duration_minutes,
-    });
-  }
-  for (const [id, q] of qty) {
-    if (seen.has(id)) continue;
-    const svc = byId.get(id);
-    if (!svc) continue;
-    const ppu = pricePerUnit(svc, q);
-    out.push({
-      serviceId: id,
-      quantity: q,
-      pricePerUnit: ppu,
-      originalPrice: svc.price,
-      totalPrice: q * ppu,
-      duration: q * svc.duration_minutes,
-    });
-  }
-  return out;
-}
-
-// Brief 1 #23 — Client history strip. Last 5 past non-cancelled
-// visits for the picked client. Read-only inline; full history is at
-// /dashboard/clients/[id].
-function ClientHistoryStrip({
-  clientId,
-  excludeAppointmentId,
-  appointments,
-  catalog,
-}: {
-  clientId: string;
-  excludeAppointmentId: string;
-  appointments: Appointment[];
-  catalog: Service[];
-}) {
-  const HORIZON = 5;
-  const servicesById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const s of catalog) m.set(s.id, s.name);
-    return m;
-  }, [catalog]);
-
-  const history = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    return appointments
-      .filter(
-        (a) =>
-          a.client_id === clientId &&
-          a.id !== excludeAppointmentId &&
-          a.status !== "cancelled" &&
-          a.date <= todayKey,
-      )
-      .sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-        return b.time_start.localeCompare(a.time_start);
-      })
-      .slice(0, HORIZON);
-  }, [appointments, clientId, excludeAppointmentId]);
-
-  if (history.length === 0) return null;
-
-  return (
-    <div className="px-4 pt-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
-        Прошлые визиты ({history.length})
-      </div>
-      <div className="bg-[var(--surface-card)] rounded-[14px] border border-[var(--separator)] divide-y divide-[var(--separator)] overflow-hidden">
-        {history.map((apt) => {
-          const qty = new Map<string, number>();
-          for (const id of apt.service_ids)
-            qty.set(id, (qty.get(id) ?? 0) + 1);
-          const summary = Array.from(qty.entries())
-            .map(([id, q]) => {
-              const name = servicesById.get(id) ?? "Услуга";
-              return q > 1 ? `x${q} ${name}` : name;
-            })
-            .join(", ");
-          return (
-            <div
-              key={apt.id}
-              className="px-3 py-2 flex items-start gap-2 text-[12px]"
-            >
-              <span className="w-[68px] shrink-0 tabular-nums text-[var(--label-secondary)]">
-                {formatHistoryDate(apt.date)}
-              </span>
-              <span className="flex-1 min-w-0 text-[var(--label)] truncate">
-                {summary || "Без услуг"}
-              </span>
-              {apt.total_amount > 0 && (
-                <span className="shrink-0 tabular-nums font-semibold text-[var(--label)]">
-                  {formatEUR(apt.total_amount)}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function formatHistoryDate(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  return new Date(y, m - 1, d)
-    .toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
-    .replace(/\.$/, "");
 }

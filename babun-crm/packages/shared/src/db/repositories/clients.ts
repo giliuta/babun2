@@ -115,6 +115,11 @@ function rowToClient(r: ClientRow): Client {
     // Filled by parallel query against client_tag_assignments.
     tag_ids: [],
 
+    phone_e164: r.phone_e164 ?? null,
+    avatar_url: r.avatar_url ?? null,
+    deleted_at: r.deleted_at ?? null,
+    favorite_master_id: r.favorite_master_id ?? null,
+
     created_at: r.created_at,
   };
 }
@@ -154,6 +159,11 @@ function clientToInsert(c: Client, tenantId: string): ClientInsert {
     notes: (c.notes ?? []) as unknown as Json,
     equipment: (c.equipment ?? []) as unknown as Json,
 
+    phone_e164: c.phone_e164 ?? null,
+    avatar_url: c.avatar_url ?? null,
+    deleted_at: c.deleted_at ?? null,
+    favorite_master_id: c.favorite_master_id ?? null,
+
     // Preserve the moment the form was created. If empty (legacy or
     // hand-built objects) fall back to DB default `now()`.
     created_at: c.created_at || undefined,
@@ -188,6 +198,10 @@ function clientToUpdate(patch: Partial<Client>): ClientUpdate {
   if (patch.locations !== undefined) out.locations = patch.locations as unknown as Json;
   if (patch.notes !== undefined) out.notes = patch.notes as unknown as Json;
   if (patch.equipment !== undefined) out.equipment = patch.equipment as unknown as Json;
+  if (patch.phone_e164 !== undefined) out.phone_e164 = patch.phone_e164 ?? null;
+  if (patch.avatar_url !== undefined) out.avatar_url = patch.avatar_url ?? null;
+  if (patch.deleted_at !== undefined) out.deleted_at = patch.deleted_at ?? null;
+  if (patch.favorite_master_id !== undefined) out.favorite_master_id = patch.favorite_master_id ?? null;
   return out;
 }
 
@@ -196,11 +210,13 @@ function clientToUpdate(patch: Partial<Client>): ClientUpdate {
 export async function listClients(
   supabase: DbSupabase,
   tenantId: string,
+  options: { includeDeleted?: boolean } = {},
 ): Promise<Client[]> {
-  const { data: rows, error } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("tenant_id", tenantId);
+  let query = supabase.from("clients").select("*").eq("tenant_id", tenantId);
+  if (!options.includeDeleted) {
+    query = query.is("deleted_at", null);
+  }
+  const { data: rows, error } = await query;
   if (error) throw new Error(`listClients: ${error.message}`);
 
   const { data: assigns, error: assignErr } = await supabase
@@ -355,6 +371,82 @@ export async function deleteClient(
     .eq("tenant_id", tenantId);
   if (error) throw new Error(`deleteClient: ${error.message}`);
   // Junction rows cascade via FK.
+}
+
+// ─── Soft-delete + restore (clients-99 F3.2) ───────────────────
+
+export async function softDeleteClient(
+  supabase: DbSupabase,
+  id: string,
+  tenantId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  if (error) throw new Error(`softDeleteClient: ${error.message}`);
+}
+
+export async function softDeleteClients(
+  supabase: DbSupabase,
+  ids: string[],
+  tenantId: string,
+): Promise<void> {
+  if (!ids.length) return;
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: new Date().toISOString() })
+    .in("id", ids)
+    .eq("tenant_id", tenantId);
+  if (error) throw new Error(`softDeleteClients: ${error.message}`);
+}
+
+export async function restoreClient(
+  supabase: DbSupabase,
+  id: string,
+  tenantId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: null })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  if (error) throw new Error(`restoreClient: ${error.message}`);
+}
+
+export async function restoreClients(
+  supabase: DbSupabase,
+  ids: string[],
+  tenantId: string,
+): Promise<void> {
+  if (!ids.length) return;
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: null })
+    .in("id", ids)
+    .eq("tenant_id", tenantId);
+  if (error) throw new Error(`restoreClients: ${error.message}`);
+}
+
+// ─── Duplicate guard (clients-99 F1.5) ─────────────────────────
+
+export async function findClientByPhoneE164(
+  supabase: DbSupabase,
+  phoneE164: string,
+  tenantId: string,
+): Promise<Client | null> {
+  if (!phoneE164) return null;
+  const { data: row, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("phone_e164", phoneE164)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw new Error(`findClientByPhoneE164: ${error.message}`);
+  if (!row) return null;
+  return { ...rowToClient(row), tag_ids: [] };
 }
 
 // ─── Tag CRUD ──────────────────────────────────────────────────

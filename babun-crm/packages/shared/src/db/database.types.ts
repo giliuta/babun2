@@ -1,509 +1,1831 @@
-// Database types for STORY-036.
-//
-// Hand-validated to match the SQL in
-//   apps/web/supabase/migrations/20260427_001_init_clients.sql
-//
-// To regenerate from the live project (requires a Supabase Personal
-// Access Token at https://supabase.com/dashboard/account/tokens, set
-// as $SUPABASE_ACCESS_TOKEN), run from apps/web:
-//   npm run db:types
-//
-// Project ref: rdtokosbqvgemicqeqwz
-// URL: https://rdtokosbqvgemicqeqwz.supabase.co
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
   public: {
     Tables: {
-      tenants: {
+      app_settings: {
         Row: {
-          id: string;
-          name: string;
-          vertical: string | null;
-          // STORY-039 — owner_user_id column dropped. Ownership now
-          // lives in public.tenant_members(role='owner').
-          city: string | null;
-          onboarded_at: string | null;
-          created_at: string;
-        };
+          key: string
+          updated_at: string
+          value: string
+        }
         Insert: {
-          id?: string;
-          name: string;
-          vertical?: string | null;
-          city?: string | null;
-          onboarded_at?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;
-        Relationships: [];
-      };
-      // STORY-039 — N-to-N membership replacing tenants.owner_user_id.
-      // Three roles via CHECK: 'owner' | 'dispatcher' | 'master'.
-      tenant_members: {
-        Row: {
-          tenant_id: string;
-          user_id: string;
-          role: string;
-          invited_by_user_id: string | null;
-          joined_at: string;
-          metadata: Json;
-        };
-        Insert: {
-          tenant_id: string;
-          user_id: string;
-          role: string;
-          invited_by_user_id?: string | null;
-          joined_at?: string;
-          metadata?: Json;
-        };
-        Update: Partial<Database["public"]["Tables"]["tenant_members"]["Insert"]>;
-        Relationships: [];
-      };
-      // STORY-039 — email-based invitations with 7-day TTL,
-      // one-time-use semantics enforced by accept_invitation() RPC.
-      invitations: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          email: string;
-          role: string;
-          invited_by_user_id: string | null;
-          token: string;
-          expires_at: string;
-          accepted_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          email: string;
-          role: string;
-          invited_by_user_id?: string | null;
-          token: string;
-          expires_at?: string;
-          accepted_at?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["invitations"]["Insert"]>;
-        Relationships: [];
-      };
-      client_tags: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          name: string;
-          color: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          name: string;
-          color: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["client_tags"]["Insert"]>;
-        Relationships: [];
-      };
-      clients: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          full_name: string;
-          phone: string;
-          whatsapp_phone: string;
-          email: string;
-          sms_name: string;
-          telegram_username: string;
-          instagram_username: string;
-          balance: number;
-          discount: number;
-          comment: string;
-          acquisition_source: string;
-          referred_by_client_id: string | null;
-          first_contact_date: string | null;
-          address: string;
-          city: string;
-          property_type: string;
-          language: string | null;
-          birthday: string;
-          blacklisted: boolean;
-          pinned_at: string | null;
-          reminder_at: string | null;
-          phones: Json;
-          locations: Json;
-          notes: Json;
-          equipment: Json;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          full_name: string;
-          phone?: string;
-          whatsapp_phone?: string;
-          email?: string;
-          sms_name?: string;
-          telegram_username?: string;
-          instagram_username?: string;
-          balance?: number;
-          discount?: number;
-          comment?: string;
-          acquisition_source?: string;
-          referred_by_client_id?: string | null;
-          first_contact_date?: string | null;
-          address?: string;
-          city?: string;
-          property_type?: string;
-          language?: string | null;
-          birthday?: string;
-          blacklisted?: boolean;
-          pinned_at?: string | null;
-          reminder_at?: string | null;
-          phones?: Json;
-          locations?: Json;
-          notes?: Json;
-          equipment?: Json;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["clients"]["Insert"]>;
-        Relationships: [];
-      };
-      client_tag_assignments: {
-        Row: {
-          client_id: string;
-          tag_id: string;
-          tenant_id: string;
-        };
-        Insert: {
-          client_id: string;
-          tag_id: string;
-          tenant_id: string;
-        };
-        Update: Partial<
-          Database["public"]["Tables"]["client_tag_assignments"]["Insert"]
-        >;
-        Relationships: [];
-      };
-      // STORY-042 — appointments table; mirrors the local TS Appointment
-      // shape from @babun/shared/local/appointments. Nested arrays/objects
-      // are jsonb (decision A1). master_id / team_id stay as text until
-      // those tables migrate (decision A8).
-      appointments: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          client_id: string | null;
-          team_id: string | null;
-          master_id: string | null;
-          location_id: string | null;
-          date: string;
-          time_start: string;
-          time_end: string;
-          kind: string;
-          status: string;
-          total_amount: number;
-          custom_total: boolean;
-          discount_amount: number;
-          prepaid_amount: number;
-          comment: string;
-          address: string;
-          address_note: string;
-          address_lat: number | null;
-          address_lng: number | null;
-          cancel_reason: string | null;
-          source: string | null;
-          is_online_booking: boolean;
-          consent_given: boolean;
-          color_override: string | null;
-          reminder_enabled: boolean;
-          reminder_offsets: Json;
-          reminder_template: string;
-          service_ids: Json;
-          services: Json;
-          service_price_overrides: Json;
-          expenses: Json;
-          payments: Json;
-          payment: Json | null;
-          // STORY-049 — `photos` jsonb column dropped; photos now live
-          // in public.appointment_photos with blobs in Supabase Storage.
-          global_discount: Json | null;
-          total_duration: number;
-          // STORY-055 — author of the row, fk → auth.users(id). The
-          // BEFORE INSERT trigger fills it from auth.uid() so client
-          // code never needs to send it. Drives RLS for personal
-          // events (kind='event'/'personal').
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          client_id?: string | null;
-          team_id?: string | null;
-          master_id?: string | null;
-          location_id?: string | null;
-          date: string;
-          time_start: string;
-          time_end: string;
-          kind?: string;
-          status?: string;
-          total_amount?: number;
-          custom_total?: boolean;
-          discount_amount?: number;
-          prepaid_amount?: number;
-          comment?: string;
-          address?: string;
-          address_note?: string;
-          address_lat?: number | null;
-          address_lng?: number | null;
-          cancel_reason?: string | null;
-          source?: string | null;
-          is_online_booking?: boolean;
-          consent_given?: boolean;
-          color_override?: string | null;
-          reminder_enabled?: boolean;
-          reminder_offsets?: Json;
-          reminder_template?: string;
-          service_ids?: Json;
-          services?: Json;
-          service_price_overrides?: Json;
-          expenses?: Json;
-          payments?: Json;
-          payment?: Json | null;
-          global_discount?: Json | null;
-          total_duration?: number;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["appointments"]["Insert"]>;
-        Relationships: [];
-      };
-      // STORY-049 — separate table for appointment photos (blobs go to
-      // Supabase Storage; the table stores metadata + storage_path).
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       appointment_photos: {
         Row: {
-          id: string;
-          appointment_id: string;
-          tenant_id: string;
-          storage_path: string;
-          kind: string;
-          caption: string;
-          location_id: string | null;
-          taken_at: string | null;
-          sort_order: number;
-          created_at: string;
-          updated_at: string;
-        };
+          appointment_id: string
+          caption: string
+          created_at: string
+          id: string
+          kind: string
+          location_id: string | null
+          sort_order: number
+          storage_path: string
+          taken_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          appointment_id: string;
-          tenant_id: string;
-          storage_path: string;
-          kind?: string;
-          caption?: string;
-          location_id?: string | null;
-          taken_at?: string | null;
-          sort_order?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["appointment_photos"]["Insert"]>;
-        Relationships: [];
-      };
-      // STORY-044 — schedule + calendar settings + day-cities + day-extras.
-      // Closes the localStorage state that affects calendar rendering.
-      // team_schedules: jsonb-heavy, one row per (tenant, team).
-      team_schedules: {
+          appointment_id: string
+          caption?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          location_id?: string | null
+          sort_order?: number
+          storage_path: string
+          taken_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          caption?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          location_id?: string | null
+          sort_order?: number
+          storage_path?: string
+          taken_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_photos_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_photos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
         Row: {
-          id: string;
-          tenant_id: string;
-          team_id: string;
-          schedule: Json;
-          created_at: string;
-          updated_at: string;
-        };
+          address: string
+          address_lat: number | null
+          address_lng: number | null
+          address_note: string
+          cancel_reason: string | null
+          client_id: string | null
+          color_override: string | null
+          comment: string
+          consent_given: boolean
+          created_at: string
+          created_by: string | null
+          custom_total: boolean
+          date: string
+          discount_amount: number
+          expenses: Json
+          global_discount: Json | null
+          id: string
+          is_online_booking: boolean
+          kind: string
+          location_id: string | null
+          master_id: string | null
+          paid_amount: number
+          payment: Json | null
+          payment_method: string | null
+          payment_status: string
+          payments: Json
+          prepaid_amount: number
+          reminder_enabled: boolean
+          reminder_offsets: Json
+          reminder_template: string
+          service_ids: Json
+          service_price_overrides: Json
+          services: Json
+          source: string | null
+          status: string
+          team_id: string | null
+          tenant_id: string
+          time_end: string
+          time_start: string
+          total_amount: number
+          total_duration: number
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          tenant_id: string;
-          team_id: string;
-          schedule?: Json;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["team_schedules"]["Insert"]>;
-        Relationships: [];
-      };
-      // calendar_settings: singleton per tenant (PRIMARY KEY = tenant_id).
+          address?: string
+          address_lat?: number | null
+          address_lng?: number | null
+          address_note?: string
+          cancel_reason?: string | null
+          client_id?: string | null
+          color_override?: string | null
+          comment?: string
+          consent_given?: boolean
+          created_at?: string
+          created_by?: string | null
+          custom_total?: boolean
+          date: string
+          discount_amount?: number
+          expenses?: Json
+          global_discount?: Json | null
+          id?: string
+          is_online_booking?: boolean
+          kind?: string
+          location_id?: string | null
+          master_id?: string | null
+          paid_amount?: number
+          payment?: Json | null
+          payment_method?: string | null
+          payment_status?: string
+          payments?: Json
+          prepaid_amount?: number
+          reminder_enabled?: boolean
+          reminder_offsets?: Json
+          reminder_template?: string
+          service_ids?: Json
+          service_price_overrides?: Json
+          services?: Json
+          source?: string | null
+          status?: string
+          team_id?: string | null
+          tenant_id: string
+          time_end: string
+          time_start: string
+          total_amount?: number
+          total_duration?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          address_lat?: number | null
+          address_lng?: number | null
+          address_note?: string
+          cancel_reason?: string | null
+          client_id?: string | null
+          color_override?: string | null
+          comment?: string
+          consent_given?: boolean
+          created_at?: string
+          created_by?: string | null
+          custom_total?: boolean
+          date?: string
+          discount_amount?: number
+          expenses?: Json
+          global_discount?: Json | null
+          id?: string
+          is_online_booking?: boolean
+          kind?: string
+          location_id?: string | null
+          master_id?: string | null
+          paid_amount?: number
+          payment?: Json | null
+          payment_method?: string | null
+          payment_status?: string
+          payments?: Json
+          prepaid_amount?: number
+          reminder_enabled?: boolean
+          reminder_offsets?: Json
+          reminder_template?: string
+          service_ids?: Json
+          service_price_overrides?: Json
+          services?: Json
+          source?: string | null
+          status?: string
+          team_id?: string | null
+          tenant_id?: string
+          time_end?: string
+          time_start?: string
+          total_amount?: number
+          total_duration?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_events: {
+        Row: {
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string
+          stripe_event_id: string
+          tenant_id: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          payload: Json
+          processed_at?: string
+          stripe_event_id: string
+          tenant_id?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          stripe_event_id?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_settings: {
         Row: {
-          tenant_id: string;
-          start_hour: number;
-          end_hour: number;
-          grid_step: number;
-          week_start: string;
-          timezone: string;
-          buffer_minutes: number;
-          hide_cancelled: boolean;
-          allow_overtime: boolean;
-          // v449 — added by 20260507_001_calendar_settings_work_hours.
-          // Nullable in TS so older clients reading rows from a DB
-          // that has not run the migration still typecheck.
-          work_start_hour: number | null;
-          work_end_hour: number | null;
-          scroll_open_hour: number | null;
-          created_at: string;
-          updated_at: string;
-        };
+          allow_overtime: boolean
+          buffer_minutes: number
+          created_at: string
+          end_hour: number
+          grid_step: number
+          hide_cancelled: boolean
+          personal_default_label: string | null
+          personal_labels: Json | null
+          start_hour: number
+          tenant_id: string
+          timezone: string
+          updated_at: string
+          week_start: string
+        }
         Insert: {
-          tenant_id: string;
-          start_hour?: number;
-          end_hour?: number;
-          grid_step?: number;
-          week_start?: string;
-          timezone?: string;
-          buffer_minutes?: number;
-          hide_cancelled?: boolean;
-          allow_overtime?: boolean;
-          work_start_hour?: number | null;
-          work_end_hour?: number | null;
-          scroll_open_hour?: number | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["calendar_settings"]["Insert"]>;
-        Relationships: [];
-      };
-      // day_cities: PK = (tenant, team, date). Composite, no synthetic id.
+          allow_overtime?: boolean
+          buffer_minutes?: number
+          created_at?: string
+          end_hour?: number
+          grid_step?: number
+          hide_cancelled?: boolean
+          personal_default_label?: string | null
+          personal_labels?: Json | null
+          start_hour?: number
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Update: {
+          allow_overtime?: boolean
+          buffer_minutes?: number
+          created_at?: string
+          end_hour?: number
+          grid_step?: number
+          hide_cancelled?: boolean
+          personal_default_label?: string | null
+          personal_labels?: Json | null
+          start_hour?: number
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_tag_assignments: {
+        Row: {
+          client_id: string
+          tag_id: string
+          tenant_id: string
+        }
+        Insert: {
+          client_id: string
+          tag_id: string
+          tenant_id: string
+        }
+        Update: {
+          client_id?: string
+          tag_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tag_assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "client_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tag_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_tags: {
+        Row: {
+          color: string
+          id: string
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          color: string
+          id?: string
+          name: string
+          tenant_id: string
+        }
+        Update: {
+          color?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          acquisition_source: string
+          address: string
+          avatar_url: string | null
+          balance: number
+          birthday: string
+          blacklisted: boolean
+          city: string
+          comment: string
+          created_at: string
+          deleted_at: string | null
+          discount: number
+          email: string
+          equipment: Json
+          favorite_master_id: string | null
+          first_contact_date: string | null
+          full_name: string
+          id: string
+          instagram_username: string
+          language: string | null
+          locations: Json
+          notes: Json
+          phone: string
+          phone_e164: string | null
+          phones: Json
+          pinned_at: string | null
+          property_type: string
+          referred_by_client_id: string | null
+          reminder_at: string | null
+          sms_name: string
+          telegram_username: string
+          tenant_id: string
+          updated_at: string
+          whatsapp_phone: string
+        }
+        Insert: {
+          acquisition_source?: string
+          address?: string
+          avatar_url?: string | null
+          balance?: number
+          birthday?: string
+          blacklisted?: boolean
+          city?: string
+          comment?: string
+          created_at?: string
+          deleted_at?: string | null
+          discount?: number
+          email?: string
+          equipment?: Json
+          favorite_master_id?: string | null
+          first_contact_date?: string | null
+          full_name: string
+          id?: string
+          instagram_username?: string
+          language?: string | null
+          locations?: Json
+          notes?: Json
+          phone?: string
+          phone_e164?: string | null
+          phones?: Json
+          pinned_at?: string | null
+          property_type?: string
+          referred_by_client_id?: string | null
+          reminder_at?: string | null
+          sms_name?: string
+          telegram_username?: string
+          tenant_id: string
+          updated_at?: string
+          whatsapp_phone?: string
+        }
+        Update: {
+          acquisition_source?: string
+          address?: string
+          avatar_url?: string | null
+          balance?: number
+          birthday?: string
+          blacklisted?: boolean
+          city?: string
+          comment?: string
+          created_at?: string
+          deleted_at?: string | null
+          discount?: number
+          email?: string
+          equipment?: Json
+          favorite_master_id?: string | null
+          first_contact_date?: string | null
+          full_name?: string
+          id?: string
+          instagram_username?: string
+          language?: string | null
+          locations?: Json
+          notes?: Json
+          phone?: string
+          phone_e164?: string | null
+          phones?: Json
+          pinned_at?: string | null
+          property_type?: string
+          referred_by_client_id?: string | null
+          reminder_at?: string | null
+          sms_name?: string
+          telegram_username?: string
+          tenant_id?: string
+          updated_at?: string
+          whatsapp_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_referred_by_client_id_fkey"
+            columns: ["referred_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       day_cities: {
         Row: {
-          tenant_id: string;
-          team_id: string;
-          date: string;
-          city: string;
-          created_at: string;
-          updated_at: string;
-        };
+          city: string
+          created_at: string
+          date: string
+          team_id: string
+          tenant_id: string
+          updated_at: string
+        }
         Insert: {
-          tenant_id: string;
-          team_id: string;
-          date: string;
-          city: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["day_cities"]["Insert"]>;
-        Relationships: [];
-      };
-      // day_extras: one row per line item (id is its own PK).
+          city: string
+          created_at?: string
+          date: string
+          team_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          date?: string
+          team_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_cities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       day_extras: {
         Row: {
-          id: string;
-          tenant_id: string;
-          team_id: string;
-          date: string;
-          name: string;
-          amount: number;
-          kind: string;
-          category: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          amount: number
+          category: string | null
+          created_at: string
+          date: string
+          id: string
+          kind: string
+          name: string
+          team_id: string
+          tenant_id: string
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          tenant_id: string;
-          team_id: string;
-          date: string;
-          name: string;
-          amount: number;
-          kind: string;
-          category?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["day_extras"]["Insert"]>;
-        Relationships: [];
-      };
-      // STORY-050 — recurring HVAC follow-up reminders ("call back in
-      // 6 months for next seasonal cleaning"). Lift-and-shift of the
-      // localStorage RecurringReminder model; not an RRULE engine.
+          amount: number
+          category?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          kind: string
+          name: string
+          team_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          kind?: string
+          name?: string
+          team_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_extras_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_templates: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          duration_min: number
+          emoji: string | null
+          id: string
+          name: string
+          push_offset_min: number | null
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          created_by?: string | null
+          duration_min: number
+          emoji?: string | null
+          id?: string
+          name: string
+          push_offset_min?: number | null
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number
+          emoji?: string | null
+          id?: string
+          name?: string
+          push_offset_min?: number | null
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          tenant_id: string | null
+          type: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          tenant_id?: string | null
+          type: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          tenant_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transactions: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          category_id: string | null
+          client_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          master_id: string | null
+          notes: string | null
+          payment_method: string | null
+          team_id: string | null
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          appointment_id?: string | null
+          category_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          master_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          team_id?: string | null
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          category_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          master_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          team_id?: string | null
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_user_id: string | null
+          role: string
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by_user_id?: string | null
+          role: string
+          tenant_id: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_user_id?: string | null
+          role?: string
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_documents: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          issued_at: string | null
+          kind: string
+          label: string
+          master_id: string
+          mime_type: string | null
+          notes: string | null
+          size_bytes: number | null
+          storage_path: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string | null
+          kind: string
+          label: string
+          master_id: string
+          mime_type?: string | null
+          notes?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string | null
+          kind?: string
+          label?: string
+          master_id?: string
+          mime_type?: string | null
+          notes?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_rating_tokens: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          expires_at: string
+          master_id: string
+          tenant_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          expires_at?: string
+          master_id: string
+          tenant_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          expires_at?: string
+          master_id?: string
+          tenant_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_rating_tokens_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_rating_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_ratings: {
+        Row: {
+          appointment_id: string | null
+          client_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          master_id: string
+          stars: number
+          tenant_id: string
+          token: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          master_id: string
+          stars: number
+          tenant_id: string
+          token?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          master_id?: string
+          stars?: number
+          tenant_id?: string
+          token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_ratings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_ratings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_ratings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_ratings_token_fkey"
+            columns: ["token"]
+            isOneToOne: false
+            referencedRelation: "master_rating_tokens"
+            referencedColumns: ["token"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          created_at: string
+          device_label: string | null
+          endpoint: string
+          id: string
+          keys: Json
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_label?: string | null
+          endpoint: string
+          id?: string
+          keys: Json
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_label?: string | null
+          endpoint?: string
+          id?: string
+          keys?: Json
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_reminders: {
         Row: {
-          id: string;
-          tenant_id: string;
-          client_id: string | null;
-          client_name: string;
-          phone: string;
-          team_id: string | null;
-          service_ids: Json;
-          service_summary: string;
-          last_date: string;
-          next_due_date: string;
-          interval_months: number;
-          status: string;
-          note: string;
-          created_at: string;
-          updated_at: string;
-        };
+          client_id: string | null
+          client_name: string
+          created_at: string
+          id: string
+          interval_months: number
+          last_date: string
+          manual: boolean
+          next_due_date: string
+          note: string
+          notify_channel: string
+          phone: string
+          service_ids: Json
+          service_summary: string
+          status: string
+          team_id: string | null
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          tenant_id: string;
-          client_id?: string | null;
-          client_name: string;
-          phone?: string;
-          team_id?: string | null;
-          service_ids?: Json;
-          service_summary?: string;
-          last_date: string;
-          next_due_date: string;
-          interval_months: number;
-          status?: string;
-          note?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["recurring_reminders"]["Insert"]>;
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
-    // STORY-044 — public.import_schedule RPC. Atomic per-tenant import
-    // of all four schedule entities; SECURITY INVOKER + RLS-scoped.
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          id?: string
+          interval_months: number
+          last_date: string
+          manual?: boolean
+          next_due_date: string
+          note?: string
+          notify_channel?: string
+          phone?: string
+          service_ids?: Json
+          service_summary?: string
+          status?: string
+          team_id?: string | null
+          tenant_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          id?: string
+          interval_months?: number
+          last_date?: string
+          manual?: boolean
+          next_due_date?: string
+          note?: string
+          notify_channel?: string
+          phone?: string
+          service_ids?: Json
+          service_summary?: string
+          status?: string
+          team_id?: string | null
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_logs: {
+        Row: {
+          appointment_id: string | null
+          body: string
+          cost_cents: number
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          sender_name_used: string
+          tenant_id: string
+          to_phone: string
+          twilio_message_sid: string | null
+          twilio_status: string | null
+          was_free: boolean
+        }
+        Insert: {
+          appointment_id?: string | null
+          body: string
+          cost_cents?: number
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          sender_name_used: string
+          tenant_id: string
+          to_phone: string
+          twilio_message_sid?: string | null
+          twilio_status?: string | null
+          was_free?: boolean
+        }
+        Update: {
+          appointment_id?: string | null
+          body?: string
+          cost_cents?: number
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          sender_name_used?: string
+          tenant_id?: string
+          to_phone?: string
+          twilio_message_sid?: string | null
+          twilio_status?: string | null
+          was_free?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_messages: {
+        Row: {
+          appointment_id: string | null
+          client_id: string | null
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          message_body: string
+          mode: string
+          status: string
+          tenant_id: string
+          to_phone: string
+          trigger_type: string
+          twilio_sid: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          message_body: string
+          mode: string
+          status: string
+          tenant_id: string
+          to_phone: string
+          trigger_type: string
+          twilio_sid?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          message_body?: string
+          mode?: string
+          status?: string
+          tenant_id?: string
+          to_phone?: string
+          trigger_type?: string
+          twilio_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_messages_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_topups: {
+        Row: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          credits_added: number
+          id: string
+          pack_label: string
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_cents: number
+          completed_at?: string | null
+          created_at?: string
+          credits_added: number
+          id?: string
+          pack_label: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_cents?: number
+          completed_at?: string | null
+          created_at?: string
+          credits_added?: number
+          id?: string
+          pack_label?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_topups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_schedules: {
+        Row: {
+          created_at: string
+          id: string
+          schedule: Json
+          team_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          schedule?: Json
+          team_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          schedule?: Json
+          team_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_schedules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_members: {
+        Row: {
+          invited_by_user_id: string | null
+          joined_at: string
+          metadata: Json
+          role: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          invited_by_user_id?: string | null
+          joined_at?: string
+          metadata?: Json
+          role: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          invited_by_user_id?: string | null
+          joined_at?: string
+          metadata?: Json
+          role?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_sms_config: {
+        Row: {
+          balance_cents: number
+          created_at: string
+          enabled: boolean
+          free_quota_per_month: number | null
+          free_sms_remaining: number
+          mode: string
+          quota_period_start: string
+          remind_24h_before: boolean
+          remind_2h_before: boolean
+          sender_approved_at: string | null
+          sender_name: string | null
+          sender_rejection_reason: string | null
+          sender_requested_at: string | null
+          sender_status: string | null
+          sent_this_month: number
+          template_24h: string
+          template_2h: string
+          tenant_id: string
+          total_sent_count: number
+          twilio_account_sid: string | null
+          twilio_auth_token: string | null
+          twilio_phone_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance_cents?: number
+          created_at?: string
+          enabled?: boolean
+          free_quota_per_month?: number | null
+          free_sms_remaining?: number
+          mode?: string
+          quota_period_start?: string
+          remind_24h_before?: boolean
+          remind_2h_before?: boolean
+          sender_approved_at?: string | null
+          sender_name?: string | null
+          sender_rejection_reason?: string | null
+          sender_requested_at?: string | null
+          sender_status?: string | null
+          sent_this_month?: number
+          template_24h?: string
+          template_2h?: string
+          tenant_id: string
+          total_sent_count?: number
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_phone_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance_cents?: number
+          created_at?: string
+          enabled?: boolean
+          free_quota_per_month?: number | null
+          free_sms_remaining?: number
+          mode?: string
+          quota_period_start?: string
+          remind_24h_before?: boolean
+          remind_2h_before?: boolean
+          sender_approved_at?: string | null
+          sender_name?: string | null
+          sender_rejection_reason?: string | null
+          sender_requested_at?: string | null
+          sender_status?: string | null
+          sent_this_month?: number
+          template_24h?: string
+          template_2h?: string
+          tenant_id?: string
+          total_sent_count?: number
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          twilio_phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_sms_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_state: {
+        Row: {
+          prototype_state: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          prototype_state?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          prototype_state?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          booking_slug: string | null
+          business_address: string | null
+          city: string | null
+          contact_email: string | null
+          contact_instagram: string | null
+          contact_phone: string | null
+          contact_telegram: string | null
+          contact_whatsapp: string | null
+          country: string
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          onboarded_at: string | null
+          personal_calendar_enabled: boolean
+          plan: string
+          plan_override: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          trial_ends_at: string | null
+          vertical: string | null
+        }
+        Insert: {
+          booking_slug?: string | null
+          business_address?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_instagram?: string | null
+          contact_phone?: string | null
+          contact_telegram?: string | null
+          contact_whatsapp?: string | null
+          country?: string
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          onboarded_at?: string | null
+          personal_calendar_enabled?: boolean
+          plan?: string
+          plan_override?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          trial_ends_at?: string | null
+          vertical?: string | null
+        }
+        Update: {
+          booking_slug?: string | null
+          business_address?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_instagram?: string | null
+          contact_phone?: string | null
+          contact_telegram?: string | null
+          contact_whatsapp?: string | null
+          country?: string
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          onboarded_at?: string | null
+          personal_calendar_enabled?: boolean
+          plan?: string
+          plan_override?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          trial_ends_at?: string | null
+          vertical?: string | null
+        }
+        Relationships: []
+      }
+      webhooks: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          events: Json
+          failure_count: number
+          id: string
+          label: string
+          last_fired_at: string | null
+          last_status: number | null
+          secret: string
+          tenant_id: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          events?: Json
+          failure_count?: number
+          id?: string
+          label: string
+          last_fired_at?: string | null
+          last_status?: number | null
+          secret?: string
+          tenant_id: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          events?: Json
+          failure_count?: number
+          id?: string
+          label?: string
+          last_fired_at?: string | null
+          last_status?: number | null
+          secret?: string
+          tenant_id?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhooks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
+      _dispatch_push: {
+        Args: { p_data: Json; p_event_type: string; p_recipients: string[] }
+        Returns: undefined
+      }
+      accept_invitation: { Args: { p_token: string }; Returns: string }
+      add_platform_admin: { Args: { p_email: string }; Returns: undefined }
+      admin_billing_history: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      admin_dashboard_summary: { Args: never; Returns: Json }
+      admin_pending_senders: { Args: never; Returns: Json }
+      admin_resolve_tenant_owner_email: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
+      admin_stats_summary: { Args: { p_days?: number }; Returns: Json }
+      admin_tenant_detail: { Args: { p_tenant_id: string }; Returns: Json }
+      admin_tenants_list: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_plan_filter?: string
+          p_search?: string
+        }
+        Returns: Json
+      }
+      bump_sms_balance: {
+        Args: { p_amount_cents: number; p_tenant_id: string }
+        Returns: Json
+      }
+      current_tenant_id: { Args: never; Returns: string }
+      current_user_role: { Args: never; Returns: string }
       import_schedule: {
         Args: {
-          p_schedules?: Json;
-          p_calendar_settings?: Json | null;
-          p_day_cities?: Json;
-          p_day_extras?: Json;
-        };
-        Returns: void;
-      };
-      // STORY-039 — SECURITY DEFINER entry point for the
-      // /invite/[token] accept flow. Returns the tenant_id joined.
-      accept_invitation: {
-        Args: { p_token: string };
-        Returns: string;
-      };
-      current_tenant_id: {
-        Args: Record<string, never>;
-        Returns: string | null;
-      };
-      current_user_role: {
-        Args: Record<string, never>;
-        Returns: string | null;
-      };
-    };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
+          p_calendar_settings?: Json
+          p_day_cities?: Json
+          p_day_extras?: Json
+          p_schedules?: Json
+        }
+        Returns: undefined
+      }
+      is_platform_admin: { Args: never; Returns: boolean }
+      read_tenant_sms_config_safe: {
+        Args: never
+        Returns: {
+          created_at: string
+          enabled: boolean
+          free_quota_per_month: number
+          mode: string
+          quota_period_start: string
+          remind_24h_before: boolean
+          remind_2h_before: boolean
+          sent_this_month: number
+          template_24h: string
+          template_2h: string
+          tenant_id: string
+          twilio_account_sid: string
+          twilio_auth_token_configured: boolean
+          twilio_phone_number: string
+          updated_at: string
+        }[]
+      }
+      tenant_data_export: { Args: never; Returns: Json }
+      tenant_effective_plan: { Args: { t_id: string }; Returns: string }
+      tenant_quota_appointments_month: {
+        Args: { t_id: string }
+        Returns: number
+      }
+      tenant_quota_clients: { Args: { t_id: string }; Returns: number }
+      tenant_quota_sms_month: { Args: { t_id: string }; Returns: number }
+      tenant_quota_summary: { Args: { t_id: string }; Returns: Json }
+      tenant_quota_team_members: { Args: { t_id: string }; Returns: number }
+      tenant_sms_summary: { Args: never; Returns: Json }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

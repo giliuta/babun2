@@ -67,6 +67,14 @@ interface DayColumnProps {
   dragEnabled?: boolean;
   /** Resolver returning the team colour for a given appointment. */
   teamColorFor?: (apt: Appointment) => string | null;
+  /** STORY-060 F2.5 — this day is marked as a day-off in calendar
+   *  settings (`days_off` contains its weekday). Header weekday + day
+   *  number paint red and the column body gets a dimmed wash. */
+  isDayOff?: boolean;
+  /** True when this is the leftmost-visible column in the week strip.
+   *  WeekView passes it so we can render the hour-axis labels only
+   *  once per visible week, not seven times. */
+  isFirstVisible?: boolean;
 }
 
 // Expressions used for vertical positioning. They reference the live
@@ -168,6 +176,8 @@ function DayColumnInner({
   hasLabels = true,
   hideCancelled = false,
   bufferMinutes = 0,
+  isDayOff = false,
+  isFirstVisible = false,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
   const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
@@ -194,7 +204,13 @@ function DayColumnInner({
   const dayName = getDayNameShort(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
   const monthShort = getMonthNameShort(date.getMonth());
+  // STORY-060 F3.1 — month-short is now rendered on every column,
+  // not just the 1st-of-month edge case; this flag is kept for any
+  // future per-column emphasis. `void` silences the unused-warning
+  // without removing the computation in case downstream branches
+  // bring it back.
   const isFirstOfMonth = date.getDate() === 1;
+  void isFirstOfMonth;
   // Prefer user-extended City.color (custom tags like «Германия»,
   // «День ног»). Fall back to the legacy hardcoded CITIES dict for
   // the original 4 Cyprus presets. Finally null = neutral grey chip.
@@ -314,17 +330,28 @@ function DayColumnInner({
         className="relative sticky top-0 z-20 h-[64px] lg:h-[70px] bg-[var(--surface-card)] border-b border-[var(--separator)] overflow-hidden text-center cursor-pointer active:bg-[var(--fill-quaternary)] transition"
       >
         <div className="relative z-10 px-1 pt-1.5 flex flex-col items-center gap-[2px] leading-none">
-          {/* Weekday label. Red on weekends, muted otherwise. */}
+          {/* Weekday label. Red on weekends OR when this weekday is in
+              the user's calendar-settings `days_off` (STORY-060 F2.5),
+              muted otherwise.
+              STORY-060 F3.1 — always show the short month next to the
+              weekday (anchors which month a column belongs to). The
+              FIRST visible column in the current view additionally
+              shows the year, so the user has a 4-digit anchor without
+              having to look up at the picker header. The legacy
+              "show month only on the 1st of month" rule is dropped —
+              showing it on every column is cheap (3 chars) and removes
+              ambiguity in 3-day / week views. */}
           <span
             className={`text-[12px] font-semibold uppercase tracking-wider ${
-              isWeekend
+              isWeekend || isDayOff
                 ? "text-[var(--system-red)]/70"
                 : "text-[var(--label-secondary)]"
             }`}
           >
             {dayName}
-            {isFirstOfMonth && (
-              <span className="ml-1 opacity-80">{monthShort}</span>
+            <span className="ml-1 opacity-80">{monthShort}</span>
+            {isFirstVisible && (
+              <span className="ml-1 opacity-80">{date.getFullYear()}</span>
             )}
           </span>
 
@@ -335,7 +362,7 @@ function DayColumnInner({
               className={`text-[22px] font-semibold tabular-nums tracking-tight ${
                 isToday
                   ? "text-[var(--accent)]"
-                  : isWeekend
+                  : isWeekend || isDayOff
                     ? "text-[var(--system-red)]"
                     : "text-[var(--label)]"
               }`}
@@ -443,6 +470,19 @@ function DayColumnInner({
           contain: "layout paint",
         }}
       >
+        {/* STORY-060 F2.5 — day-off wash. Rendered FIRST so every
+            higher-priority overlay below (past-time tint, working-
+            hours wash, break bands, buffers, appointment cards) paints
+            on top. Neutral dim (--fill-quaternary) gives the column a
+            "this day is off" feel without competing with the red
+            header text. */}
+        {isDayOff && (
+          <div
+            className="absolute inset-0 bg-[var(--fill-quaternary)] pointer-events-none"
+            aria-hidden
+          />
+        )}
+
         {/* Phase I41 — past-time tint. Past days get the whole column
             slightly darker so the dispatcher scanning a week sees at
             a glance what's already behind. On today's column we tint

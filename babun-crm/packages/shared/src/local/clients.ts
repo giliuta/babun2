@@ -178,6 +178,19 @@ export interface Client {
    *  должно сработать push-уведомление; для launch-MVP просто
    *  отображается на карточке. */
   reminder_at?: string | null;
+  /** clients-99: canonical E.164 phone for dedup + indexing. NULL
+   *  until the row is touched by a libphonenumber-aware writer. */
+  phone_e164?: string | null;
+  /** clients-99: optional avatar image. Empty/null → fall back to
+   *  deterministic initials. */
+  avatar_url?: string | null;
+  /** clients-99: soft-delete marker. NULL = live. Set by the
+   *  trash/undo flow; rows are purged by a background job after 30
+   *  days. */
+  deleted_at?: string | null;
+  /** clients-99: tenant_state master id. No FK on DB because masters
+   *  live in tenant_state, not a physical table. */
+  favorite_master_id?: string | null;
   created_at: string;
 }
 
@@ -266,6 +279,10 @@ function mockToClient(m: MockClient): Client {
     notes: [],
     birthday: "",
     blacklisted: false,
+    phone_e164: null,
+    avatar_url: null,
+    deleted_at: null,
+    favorite_master_id: null,
     created_at: new Date().toISOString(),
   };
 }
@@ -345,6 +362,10 @@ export function loadClients(): Client[] {
         reminder_at: c.reminder_at ?? null,
         phones: c.phones ?? [],
         whatsapp_phone: c.whatsapp_phone ?? "",
+        phone_e164: c.phone_e164 ?? null,
+        avatar_url: c.avatar_url ?? null,
+        deleted_at: c.deleted_at ?? null,
+        favorite_master_id: c.favorite_master_id ?? null,
         locations: migratedLocations,
       };
     }) as Client[];
@@ -434,6 +455,10 @@ export function createBlankClient(overrides: Partial<Client> = {}): Client {
     blacklisted: false,
     pinned_at: null,
     reminder_at: null,
+    phone_e164: null,
+    avatar_url: null,
+    deleted_at: null,
+    favorite_master_id: null,
     created_at: new Date().toISOString(),
     ...overrides,
   };

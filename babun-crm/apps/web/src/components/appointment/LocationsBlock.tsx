@@ -16,6 +16,15 @@ interface LocationsBlockProps {
   addressNote: string;
   onSelectLocation: (id: string) => void;
   onAddressNoteChange: (note: string) => void;
+  /** v607 P0 #5 — anonymous-mode address. When no client is picked,
+   *  the operator can still type an address; it lives on the
+   *  appointment row (apt.address) instead of on a client.locations
+   *  entry. Empty string when client is set (real locations win). */
+  anonymousAddress?: string;
+  onAnonymousAddressChange?: (next: string) => void;
+  /** v607 P0 #5 — placeholder hint driven by the day's city-tag, e.g.
+   *  "Лимассол, ул. ..." or fallback "Адрес или Google Maps ссылка". */
+  placeholder?: string;
 }
 
 type Mode = "idle" | "form";
@@ -37,6 +46,9 @@ export default function LocationsBlock({
   addressNote,
   onSelectLocation,
   onAddressNoteChange,
+  anonymousAddress = "",
+  onAnonymousAddressChange,
+  placeholder,
 }: LocationsBlockProps) {
   const { locationLabels } = useLocationLabels();
   const [mode, setMode] = useState<Mode>("idle");
@@ -58,8 +70,13 @@ export default function LocationsBlock({
     null;
 
   const hasAddress = Boolean(selected);
-  const clientLocked = !client;
+  // v607 P0 #5 — anonymous mode replaces the legacy "client first"
+  // lock with a plain address input. Address is stored on the
+  // appointment row directly (apt.address) so the dispatcher can take
+  // a call and book a slot before naming the customer.
+  const anonymousMode = !client;
   const presets = locationLabels.map((l) => l.name);
+  const addrPlaceholder = placeholder ?? "Адрес или Google Maps ссылка";
 
   // Close form if the user picks a different location externally.
   useEffect(() => {
@@ -146,22 +163,96 @@ export default function LocationsBlock({
     cancelForm();
   };
 
-  const navInput = selected?.mapUrl || selected?.address || "";
+  const navInput = anonymousMode
+    ? anonymousAddress.trim()
+    : selected?.mapUrl || selected?.address || "";
+  const hasNavTarget = navInput.length > 0;
+
+  // v607 P0 #5 — anonymous (no-client) branch. A plain address input
+  // + optional note + Nav button when an address has been typed. No
+  // chip strip and no preset-label form (those need a client to live
+  // under). Keeps the same outer card shell for visual continuity.
+  if (anonymousMode) {
+    return (
+      <div className="px-4 pt-2">
+        <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden">
+          <div className="h-12 flex items-center gap-2 px-3">
+            <span className="flex-shrink-0 text-[var(--system-red)]">
+              <PinIcon />
+            </span>
+            {readOnly ? (
+              <span className="flex-1 min-w-0 text-[15px] text-[var(--label)] truncate">
+                {anonymousAddress.trim() || "—"}
+              </span>
+            ) : (
+              <input
+                type="text"
+                value={anonymousAddress}
+                onChange={(e) => onAnonymousAddressChange?.(e.target.value)}
+                placeholder={addrPlaceholder}
+                className="flex-1 h-9 bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
+              />
+            )}
+          </div>
+
+          {hasNavTarget && (
+            <>
+              <div className="h-px bg-[var(--separator)]" />
+              <div className="p-2">
+                <button
+                  type="button"
+                  onClick={() => setNavOpen(true)}
+                  className="w-full h-10 rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--accent-tint)]/70"
+                >
+                  <Navigation size={14} strokeWidth={2} />
+                  Навигация
+                </button>
+              </div>
+            </>
+          )}
+
+          <div className="h-px bg-[var(--separator)]" />
+
+          <div className="px-3 py-2">
+            {readOnly ? (
+              <div className="text-[12px] text-[var(--label-secondary)]">
+                <span className="text-[var(--label-tertiary)]">Примечание: </span>
+                {addressNote.trim() || <span className="text-[var(--label-quaternary)]">—</span>}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={addressNote}
+                onChange={(e) => onAddressNoteChange(e.target.value)}
+                placeholder="Зелёная дверь, домофон 25, собака во дворе"
+                className="w-full h-10 text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
+              />
+            )}
+          </div>
+        </div>
+
+        <MapNavPopup
+          open={navOpen}
+          onClose={() => setNavOpen(false)}
+          input={navInput}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 pt-2">
-      <div
-        className={`rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden ${
-          clientLocked ? "opacity-60" : ""
-        }`}
-      >
-        {/* Multi-address chip switcher + [+] at the right edge */}
-        {!clientLocked && realLocations.length >= 1 && mode !== "form" && (
+      <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden">
+        {/* v616 §6 — multi-address chip switcher + [+] at the right
+            edge. Chips themselves only render for 2+ locations; with
+            a single one the row collapses to just the [+] add button
+            so the operator can still add a sibling location. */}
+        {realLocations.length >= 1 && mode !== "form" && (
           <div
             className="px-2 pt-2 pb-1 flex items-center gap-1.5 overflow-x-auto"
             style={{ scrollbarWidth: "none" }}
           >
-            {realLocations.map((loc) => {
+            {realLocations.length >= 2 && realLocations.map((loc) => {
               const active = loc.id === selected?.id;
               return (
                 <button
@@ -171,7 +262,7 @@ export default function LocationsBlock({
                   onClick={() => {
                     onSelectLocation(loc.id);
                   }}
-                  className={`flex-shrink-0 px-3 h-7 rounded-full text-[12px] font-semibold border ${
+                  className={`flex-shrink-0 px-4 h-10 rounded-full text-[13px] font-semibold border ${
                     active
                       ? "bg-[var(--accent-tint)] text-[var(--accent)] border-[var(--accent)]"
                       : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
@@ -186,7 +277,7 @@ export default function LocationsBlock({
                 type="button"
                 onClick={openNew}
                 aria-label="Добавить адрес"
-                className="flex-shrink-0 ml-auto w-7 h-7 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] text-[14px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)]"
+                className="flex-shrink-0 ml-auto w-11 h-11 rounded-full border border-dashed border-[var(--accent)] text-[var(--accent)] text-[18px] font-bold flex items-center justify-center active:bg-[var(--accent-tint)]"
               >
                 +
               </button>
@@ -195,16 +286,7 @@ export default function LocationsBlock({
         )}
 
         {/* Row 1: address or empty CTA */}
-        {clientLocked ? (
-          <div className="h-12 flex items-center gap-2 px-3">
-            <span className="flex-shrink-0 text-[var(--label-tertiary)]">
-              <PinIcon />
-            </span>
-            <span className="flex-1 text-[13px] font-medium text-[var(--label-tertiary)] truncate">
-              Сначала выберите клиента
-            </span>
-          </div>
-        ) : hasAddress ? (
+        {hasAddress ? (
           <button
             type="button"
             disabled={readOnly}
@@ -250,7 +332,7 @@ export default function LocationsBlock({
         )}
 
         {/* Inline form (add or edit) */}
-        {mode === "form" && !readOnly && !clientLocked && (
+        {mode === "form" && !readOnly && (
           <>
             <div className="h-px bg-[var(--separator)]" />
             <div className="p-3 space-y-2">
@@ -311,7 +393,7 @@ export default function LocationsBlock({
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Адрес или Google Maps ссылка"
+                placeholder={addrPlaceholder}
                 autoFocus={!customMode}
                 className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
@@ -337,24 +419,23 @@ export default function LocationsBlock({
           </>
         )}
 
-        <div className="h-px bg-[var(--separator)]" />
-
-        {/* Row 2: Navigation (full width) */}
-        <div className="p-2">
-          <button
-            type="button"
-            disabled={!hasAddress}
-            onClick={() => setNavOpen(true)}
-            className={`w-full h-10 rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-1.5 ${
-              hasAddress
-                ? "bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--accent-tint)]/70"
-                : "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)]"
-            }`}
-          >
-            <Navigation size={14} strokeWidth={2} />
-            Навигация
-          </button>
-        </div>
+        {/* Row 2: Navigation — v607 P0 #5 hides instead of disabling
+            when there's no address yet (cleaner thumb-zone). */}
+        {hasAddress && (
+          <>
+            <div className="h-px bg-[var(--separator)]" />
+            <div className="p-2">
+              <button
+                type="button"
+                onClick={() => setNavOpen(true)}
+                className="w-full h-10 rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--accent-tint)]/70"
+              >
+                <Navigation size={14} strokeWidth={2} />
+                Навигация
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="h-px bg-[var(--separator)]" />
 
@@ -370,9 +451,8 @@ export default function LocationsBlock({
               type="text"
               value={addressNote}
               onChange={(e) => onAddressNoteChange(e.target.value)}
-              disabled={clientLocked}
-              placeholder="Примечание: дом, этаж, квартира…"
-              className="w-full h-7 text-[12px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none disabled:opacity-50"
+              placeholder="Зелёная дверь, домофон 25, собака во дворе"
+              className="w-full h-10 text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
             />
           )}
         </div>

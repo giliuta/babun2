@@ -6,6 +6,7 @@ import "./globals.css";
 import { AuthClearListener } from "@/components/system/AuthClearListener";
 import { TelemetryBootstrap } from "@/components/system/TelemetryBootstrap";
 import { ThemeBootstrap } from "@/components/system/ThemeBootstrap";
+import { I18nProvider } from "@/components/system/I18nProvider";
 
 // Narrow the Inter weights we actually use in styles (400 body,
 // 500 chip, 600 title, 700 big number, 900 day-header). Next's
@@ -91,7 +92,7 @@ export default function RootLayout({
         <AuthClearListener />
         <TelemetryBootstrap />
         <ThemeBootstrap />
-        {children}
+        <I18nProvider>{children}</I18nProvider>
         {/* STORY-061c — Vercel Analytics + Speed Insights. Both ship as
             tiny scripts loaded via next/script, only fire in production
             (no-op locally), and don't gather PII. Useful baseline for
