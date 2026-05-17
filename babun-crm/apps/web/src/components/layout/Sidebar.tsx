@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,15 +14,14 @@ import {
   LogOut,
   CircleAlert as AlertTriangleIcon,
   ClipboardList as ClipboardListIcon,
+  BarChart3 as BarChart3Icon,
 } from "@babun/shared/icons";
 import { dueReminders } from "@babun/shared/local/recurring";
 import { listRecurringReminders } from "@babun/shared/db/repositories/recurring-reminders";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import {
-  useAppointments,
-  useTenantId,
-} from "@/components/layout/DashboardClientLayout";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+import { useUnclosedCount } from "@/hooks/useUnclosedCount";
 import { loadChats, getTotalUnread } from "@babun/shared/local/chats";
 import { DISPLAY_VERSION } from "@babun/shared/common/utils/version";
 // STORY-064 — ICON_TONE_BG dropped in the visual modernization
@@ -40,6 +39,7 @@ export type DialogType =
   | "clients"
   | "chats"
   | "finances"
+  | "insights"
   | "recurring"
   | "unclosed"
   | "audit"
@@ -67,6 +67,7 @@ const ROUTE_MAP: Record<Exclude<DialogType, null>, string> = {
   clients: "/dashboard/clients",
   chats: "/dashboard/chats",
   finances: "/dashboard/finances",
+  insights: "/dashboard/insights",
   recurring: "/dashboard/recurring",
   unclosed: "/dashboard/unclosed",
   audit: "/dashboard/audit",
@@ -91,22 +92,10 @@ export default function Sidebar({
   const [recurringDue, setRecurringDue] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
 
-  // v576 — live count of past-dated `scheduled` work appointments.
-  // Derived from the same context that drives /dashboard/unclosed, so
-  // the badge and the inbox always agree without an extra fetch.
-  const { appointments } = useAppointments();
-  const unclosedCount = useMemo(() => {
-    const today = new Date();
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    let n = 0;
-    for (const a of appointments) {
-      if (a.kind && a.kind !== "work") continue;
-      if (a.status !== "scheduled") continue;
-      if (a.date >= todayKey) continue;
-      n += 1;
-    }
-    return n;
-  }, [appointments]);
+  // STORY-060 F3.6 — shared hook drives both Sidebar «Не закрыто» and
+  // BottomTabBar «Ещё» badges so they always agree. Counts past-due
+  // `scheduled` + any `in_progress` (matches /dashboard/unclosed).
+  const unclosedCount = useUnclosedCount();
 
   // STORY-085 — close the drawer when the user navigates to a new
   // route. Tapping a Next.js <Link> changes the pathname; this effect
@@ -282,6 +271,13 @@ export default function Sidebar({
               active={isActive("finances")}
             />
             <NavRow
+              icon={BarChart3Icon}
+              tone="indigo"
+              label="Сводка"
+              href={ROUTE_MAP.insights}
+              active={isActive("insights")}
+            />
+            <NavRow
               icon={RotateCcw}
               tone="red"
               label="Возвраты"
@@ -296,6 +292,11 @@ export default function Sidebar({
               href={ROUTE_MAP.unclosed}
               badge={unclosedCount > 0 ? unclosedCount : undefined}
               active={isActive("unclosed")}
+              ariaLabel={
+                unclosedCount > 0
+                  ? `Не закрыто. ${unclosedCount} незакрытых записей`
+                  : "Не закрыто"
+              }
             />
             <NavRow
               icon={ClipboardListIcon}
@@ -418,6 +419,7 @@ function NavRow({
   label,
   badge,
   active,
+  ariaLabel,
 }: {
   icon: React.ComponentType<{
     size?: number;
@@ -429,10 +431,14 @@ function NavRow({
   label: string;
   badge?: number;
   active?: boolean;
+  ariaLabel?: string;
 }) {
+  const badgeLabel =
+    badge !== undefined ? (badge > 99 ? "99+" : String(badge)) : undefined;
   return (
     <Link
       href={href}
+      aria-label={ariaLabel}
       data-testid={`sidebar-nav-${href.split("/").filter(Boolean).pop() ?? "root"}`}
       // STORY-085 — block iOS callout/selection menu on long-press +
       // kill 300ms double-tap-zoom delay so the row feels instant.
@@ -466,9 +472,9 @@ function NavRow({
       >
         {label}
       </span>
-      {badge !== undefined && (
+      {badgeLabel !== undefined && (
         <span className="min-w-[22px] h-[22px] px-1.5 bg-[var(--system-red)] rounded-full text-[12px] font-semibold text-[var(--label-on-accent)] flex items-center justify-center tabular-nums">
-          {badge}
+          {badgeLabel}
         </span>
       )}
     </Link>
