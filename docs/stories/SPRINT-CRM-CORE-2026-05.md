@@ -86,7 +86,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | # | Topic | Status |
 |---|-------|--------|
 | 46 | Таб «Покупки/Заказы» в карточке клиента | BLOCKED → after STORY-042 |
-| 47 | Таб «Финансы» в карточке клиента (LTV) | BLOCKED → after STORY-042 |
+| 47 | Таб «Финансы» в карточке клиента (LTV) | **DONE (v589)** | `FinanceBlock` now renders LTV + Средний чек + Последняя оплата + Последний визит + Долг + История транзакций (last 5 paid visits, with date + method + amount). Data sourced from appointments where `payment_status` is `paid` / `partial`, with legacy fallback. «Подробнее» still deep-links to `/finances?client_id=…`. |
 | 48 | Таб «История обслуживания» на объекте | BLOCKED → after STORY-042 |
 | 49 | Equipment service schedule + auto-reminders | BLOCKED → after STORY-050 |
 | 50 | Webhooks для разработчиков | BLOCKED → backend story (new) |

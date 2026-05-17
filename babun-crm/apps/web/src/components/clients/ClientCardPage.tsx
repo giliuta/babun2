@@ -184,6 +184,7 @@ export default function ClientCardPage({
                       key={cfg.kind}
                       clientId={client.id}
                       stats={stats}
+                      appointments={appointments}
                     />
                   );
                 case "notes":
