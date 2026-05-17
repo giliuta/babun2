@@ -403,6 +403,13 @@ export function EquipmentFormModal({
 
   useEffect(() => {
     if (!open) return;
+    // Reset all 6 form fields when the modal opens or the target
+    // item changes. React-Compiler flags each setter as a cascading
+    // render, but React batches them into one re-render per
+    // {open, mode, item, lockedTeamId} change — the cost is O(1).
+    // A proper useReducer with `item → formState` derive would be
+    // cleaner but isn't worth the dirty-state edge cases here.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (mode === "edit" && item) {
       setName(item.name);
       setCategory(item.category ?? "");
@@ -418,6 +425,7 @@ export function EquipmentFormModal({
       setColor("");
       setNotes("");
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
     const t = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
   }, [open, mode, item, lockedTeamId]);
