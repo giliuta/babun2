@@ -62,13 +62,19 @@ export async function POST(req: Request) {
     );
   }
 
-  // RLS surface — pull the tenant for the current user.
-  const { data: profile, error: profErr } = await supabase
+  // RLS surface — pull the tenant for the current user. Cast to
+  // `any` for the from(...) chain because the `profiles` table
+  // isn't in the generated Database type yet; same pattern other
+  // routes in this app use (see settings/account/personal/page.tsx).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile, error: profErr } = await (supabase as any)
     .from("profiles")
     .select("tenant_id")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (profErr || !profile?.tenant_id) {
+  const tenantId: string | null =
+    (profile as { tenant_id?: string } | null | undefined)?.tenant_id ?? null;
+  if (profErr || !tenantId) {
     return NextResponse.json(
       { error: "no_tenant_for_user", detail: profErr?.message },
       { status: 400 },
@@ -95,7 +101,7 @@ export async function POST(req: Request) {
     },
     body: JSON.stringify({
       mode: "test",
-      tenant_id: profile.tenant_id,
+      tenant_id: tenantId,
       to_phone: toPhone,
       body: messageBody,
     }),
