@@ -400,13 +400,6 @@ function makeOptimisticRow(
     // INSERT trigger; the optimistic cache row carries null and gets
     // rewritten on refetchAndCacheOne after the real insert.
     created_by: null,
-    // Sprint #3 migration — payment_status / payment_method /
-    // paid_amount columns. Optimistic row carries the defaults; the
-    // server-side trigger reconciles them from payments + total_amount
-    // after the real insert.
-    payment_status: "unpaid",
-    payment_method: null,
-    paid_amount: 0,
     created_at: input.created_at ?? nowIso,
     updated_at: nowIso,
   };
