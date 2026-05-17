@@ -54,6 +54,7 @@ import ClientHistoryStrip, { formatShortDate } from "./ClientHistoryStrip";
 import OverlapWarning from "./OverlapWarning";
 import EventModeBody from "./EventModeBody";
 import CancelToggleBlock from "./CancelToggleBlock";
+import { CloseConfirmDialog, AskClientFirstDialog } from "./AppointmentConfirmDialogs";
 import ClientActionMenu from "./ClientActionMenu";
 import SendMessagePopup from "./SendMessagePopup";
 import ClientProfileView from "@/components/clients/ClientProfileView";
@@ -1110,99 +1111,34 @@ export default function AppointmentSheet({
         clientPhone={client?.phone ?? null}
       />
 
-      {/* Close-confirmation modal — centered, minimalist, 2 buttons. */}
-      {closeConfirm && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setCloseConfirm(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-              {liveMode === "edit" ? "Закрыть без сохранения?" : "Закрыть запись?"}
-            </div>
-            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
-              {canSave
-                ? "Введённые данные не сохранятся."
-                : "Не хватает данных для сохранения — закрыть форму?"}
-            </div>
-            {/* v517 P0 #2.7 — destructive «Не сохранять» promoted to
-                primary (filled red): closing the sheet is the user's
-                intent. «Сохранить» drops to secondary outlined and is
-                only enabled when canSave. */}
-            <div className="pt-2 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCloseConfirm(false);
-                  onClose();
-                }}
-                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
-              >
-                Не сохранять
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!canSave) return;
-                  handleCreate();
-                  setCloseConfirm(false);
-                }}
-                disabled={!canSave}
-                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CloseConfirmDialog
+        open={closeConfirm}
+        mode={liveMode}
+        canSave={canSave}
+        onCancel={() => setCloseConfirm(false)}
+        onDiscard={() => {
+          setCloseConfirm(false);
+          onClose();
+        }}
+        onSave={() => {
+          if (!canSave) return;
+          handleCreate();
+          setCloseConfirm(false);
+        }}
+      />
 
-      {/* "Pick client first?" prompt — fires when the dispatcher taps
-          the service button before a client is set. Mirrors the common
-          two-step flow. "Да" opens ClientPicker; "Нет" goes straight
-          to the services. */}
-      {askClientFirst && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setAskClientFirst(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[15px] text-[var(--label)] py-2 px-1 leading-snug">
-              Клиент для записи ещё не выбран.
-              <br />
-              Выбрать клиента сейчас?
-            </div>
-            <div className="pt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAskClientFirst(false);
-                  setServicePickerOpen(true);
-                }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] active:bg-[var(--fill-secondary)]"
-              >
-                Нет
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAskClientFirst(false);
-                  setClientSheet(true);
-                }}
-                className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-              >
-                Да
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AskClientFirstDialog
+        open={askClientFirst}
+        onCancel={() => setAskClientFirst(false)}
+        onContinue={() => {
+          setAskClientFirst(false);
+          setServicePickerOpen(true);
+        }}
+        onPickClient={() => {
+          setAskClientFirst(false);
+          setClientSheet(true);
+        }}
+      />
 
       {client && (
         <ClientActionMenu
