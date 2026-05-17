@@ -13,6 +13,7 @@
 // Editable fields move into the per-block `ContactsBlock` /
 // `PersonalBlock` (Group 3) — header is read-only on purpose.
 
+import { useMemo } from "react";
 import {
   ChevronLeft,
   MoreHorizontal,
@@ -23,8 +24,10 @@ import {
 import { useRouter } from "next/navigation";
 import type { Client, Location } from "@babun/shared/local/clients";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
+import type { Appointment } from "@babun/shared/local/appointments";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
+import { computeClientLtv, formatGapDays } from "@/lib/clients/ltv";
 import ClientStatusBadges from "./ClientStatusBadges";
 import { haptic } from "@/lib/haptics";
 
@@ -36,6 +39,11 @@ interface ClientHeaderProps {
   onChangeLocation: (id: string) => void;
   onOpenMenu: () => void;
   onBack: () => void;
+  /**
+   * Full appointments list used to compute LTV/avg-check/frequency
+   * chips. Legacy callers omit it — chips are hidden in that case.
+   */
+  appointments?: Appointment[];
 }
 
 // Detects iOS so the «Открыть в Картах» button picks Apple Maps
@@ -58,9 +66,18 @@ export default function ClientHeader({
   onChangeLocation,
   onOpenMenu,
   onBack,
+  appointments,
 }: ClientHeaderProps) {
   const router = useRouter();
   const color = getAvatarColor(client.full_name);
+
+  // F3.7 — LTV / avg-check / frequency chips. Recomputed only when
+  // the client id or the appointments array reference changes so the
+  // sticky header doesn't churn on every parent render.
+  const ltvStats = useMemo(
+    () => computeClientLtv(client.id, appointments ?? []),
+    [client.id, appointments],
+  );
 
   const usableLocations = (client.locations ?? []).filter(
     (l) => l.address || l.mapUrl,
@@ -137,6 +154,28 @@ export default function ClientHeader({
           {client.phone && (
             <div className="text-[13px] text-[var(--label-secondary)] tabular-nums mt-0.5 truncate">
               {client.phone}
+            </div>
+          )}
+          {ltvStats.visits > 0 && (
+            <div
+              className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--label-secondary)]"
+              aria-label="Статистика клиента"
+            >
+              <span title="Полная сумма всех завершённых визитов">
+                €{ltvStats.ltv.toLocaleString("ru-RU")}
+              </span>
+              <span aria-hidden>·</span>
+              <span title="Средний чек">
+                ~€{ltvStats.avgCheck.toLocaleString("ru-RU")}
+              </span>
+              {ltvStats.avgGapDays !== null && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span title="Средний интервал между визитами">
+                    {formatGapDays(ltvStats.avgGapDays)}
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>

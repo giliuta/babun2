@@ -181,7 +181,7 @@ function VisitRow({
         className="flex-1 flex items-center gap-2 px-4 py-2.5 text-left min-w-0"
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] text-[var(--label)] truncate">
+          <div className="text-[14px] text-[var(--label)] truncate" title={summary}>
             {summary}
           </div>
           <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">

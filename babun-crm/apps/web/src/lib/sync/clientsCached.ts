@@ -147,6 +147,10 @@ function rowToClient(r: CachedClient): Client {
     notes: [],
     equipment: [],
     tag_ids: [],
+    phone_e164: r.phone_e164 ?? null,
+    avatar_url: r.avatar_url ?? null,
+    deleted_at: r.deleted_at ?? null,
+    favorite_master_id: r.favorite_master_id ?? null,
     created_at: r.created_at,
   };
 }
@@ -389,6 +393,10 @@ function makeOptimisticRow(
     locations: (input.locations ?? []) as unknown as CachedClient["locations"],
     notes: (input.notes ?? []) as unknown as CachedClient["notes"],
     equipment: (input.equipment ?? []) as unknown as CachedClient["equipment"],
+    phone_e164: input.phone_e164 ?? null,
+    avatar_url: input.avatar_url ?? null,
+    deleted_at: input.deleted_at ?? null,
+    favorite_master_id: input.favorite_master_id ?? null,
     created_at: input.created_at ?? nowIso,
     updated_at: nowIso,
   };
@@ -423,5 +431,9 @@ function patchToRow(patch: Partial<Client>): Partial<CachedClient> {
   if (patch.locations !== undefined) out.locations = patch.locations as unknown as CachedClient["locations"];
   if (patch.notes !== undefined) out.notes = patch.notes as unknown as CachedClient["notes"];
   if (patch.equipment !== undefined) out.equipment = patch.equipment as unknown as CachedClient["equipment"];
+  if (patch.phone_e164 !== undefined) out.phone_e164 = patch.phone_e164 ?? null;
+  if (patch.avatar_url !== undefined) out.avatar_url = patch.avatar_url ?? null;
+  if (patch.deleted_at !== undefined) out.deleted_at = patch.deleted_at ?? null;
+  if (patch.favorite_master_id !== undefined) out.favorite_master_id = patch.favorite_master_id ?? null;
   return out;
 }
