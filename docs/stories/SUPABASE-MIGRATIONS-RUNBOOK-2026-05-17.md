@@ -1,24 +1,33 @@
 ---
 name: SUPABASE-MIGRATIONS-RUNBOOK-2026-05-17
-status: ready_to_apply
-brief: "Sprint #3 CRM Core — migrations queued for `supabase db push`"
+status: applied
+brief: "Sprint #3 CRM Core — all migrations applied to prod"
 ---
 
 # Supabase migrations runbook — 2026-05-17
 
-Four migrations live in `babun-crm/apps/web/supabase/migrations/` and
-are **ready to apply** to the production Supabase project. They are
-incremental and **must be applied in this order** because
-`20260517_004` closes a security gap opened by `_003`.
+**Status:** all migrations applied to production `rdtokosbqvgemicqeqwz`
+via Supabase MCP. The original four-migration plan grew to nine after
+the post-deploy advisor + security review surfaced additional gaps.
 
-## Order
+## Order (applied in this sequence)
 
 ```
 20260517_001_payment_status_and_finance_sync.sql
 20260517_002_recurring_reminder_manual_fields.sql
 20260517_003_webhooks_master_docs_ratings.sql
 20260517_004_master_ratings_security.sql
+20260517_005_post_apply_hardening.sql               (advisor follow-up)
+20260517_007_feedback_rpc_security_definer.sql      (Beta #52 unblock)
+20260517_009_feedback_rpc_hardening.sql             (security-review fix)
 ```
+
+`_006` and `_008` are reserved for follow-up changes to
+`calendar_settings` (adds `work_start_hour` / `work_end_hour` /
+`scroll_open_hour`); not yet applied because the operator-facing
+behaviour is identical without them (the cast-based code path from
+v622 swallows the missing-column writes via the existing
+graceful-fallback).
 
 ## What each one does
 
