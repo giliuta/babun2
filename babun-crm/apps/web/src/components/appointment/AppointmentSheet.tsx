@@ -29,9 +29,12 @@ import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
 import { servicesToIds, idsToServices } from "@/lib/appointment-services";
+import {
+  buildSavedWorkAppointment,
+  buildCompletedAppointment,
+} from "@/lib/appointment-builders";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
 import { loadLoyalty, tierForVisits } from "@babun/shared/local/loyalty";
-import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
@@ -112,11 +115,6 @@ type Kind = "work" | "event";
 //  - create: segment [Клиент / Событие] + sticky footer «Создать»
 //  - view:   PaymentBlock + QuickActions + AdminActions
 //  - done:   зелёный бейдж статуса + QuickActions + AdminActions
-//
-// TODO(STORY-013): файл 730+ строк — больше golden-rule 400. На этап
-// декомпозиции планируется вынести: event-mode ветку (EVENT_PRESETS
-// grid + название), SMS-toggle-секцию, handleCreate в отдельный
-// builder, id↔AppointmentService helpers в @/lib/appointment-services.
 export default function AppointmentSheet({
   open,
   onClose,
@@ -576,121 +574,35 @@ export default function AppointmentSheet({
     setCloseConfirm(true);
   };
 
+  // Event-mode branch is DEAD CODE since EventForm.onSave routes events
+  // directly — isEventMode is always false here (EventForm owns its own
+  // submit path). Work mode only.
   const handleCreate = () => {
-    if (isEventMode) {
-      const base: Appointment = {
-        ...appointment,
-        date: dateKey,
-        time_start: timeStart,
-        time_end: timeEnd,
-        kind: "event",
-        comment: eventLabel.trim(),
-        team_id: activeTeam?.id ?? null,
-        // v616 P2 — manual color override wins; fall back to the preset's
-        // intrinsic colour when the operator hasn't picked one.
-        color_override:
-          eventColorOverride ??
-          EVENT_PRESETS.find((e) =>
-            eventLabel.toLowerCase().startsWith(e.label.toLowerCase())
-          )?.color ??
-          null,
-        total_amount: 0,
-        custom_total: true,
-        status: "scheduled",
-        updated_at: new Date().toISOString(),
-      };
-      onSave(base);
-      return;
-    }
     if (!client || appointmentServices.length === 0) return;
-    const total = appointmentTotal(appointmentServices, globalDiscount);
-    const duration = calcDuration(appointmentServices);
-    // v607 P0 #7 — comment stores ONLY the dispatcher's note. The view
-    // layer derives the service summary from `service_ids` / `services`
-    // when it needs one. Prepending service names here was the cause of
-    // the yellow-pill bug where the "comment" badge displayed the
-    // service name instead of the actual note.
-    const finalComment = comment.trim();
-    const saved: Appointment = {
-      ...appointment,
-      date: dateKey,
-      time_start: timeStart,
-      // `timeEnd` is kept in sync by the live-recalc effect above:
-      // end ≥ start + Σ service durations, clamped at 23:59. Trust it.
-      time_end: timeEnd,
-      client_id: client.id,
-      location_id: locationId,
-      team_id: activeTeam?.id ?? null,
-      service_ids: appointmentServices.map((l) => l.serviceId),
-      services: appointmentServices,
-      global_discount: globalDiscount,
-      total_duration: duration,
-      total_amount: total,
-      custom_total: true,
-      comment: finalComment,
+    const saved = buildSavedWorkAppointment({
+      appointment,
+      client,
+      appointmentServices,
+      globalDiscount,
+      dateKey,
+      timeStart,
+      timeEnd,
+      locationId,
+      activeTeamId: activeTeam?.id ?? null,
+      comment,
       address,
-      address_note: addressNote.trim(),
-      // STORY-049 — photos no longer ride on the appointment row.
-      // The appointmentToInsert/Update adapters ignore this field.
-      photos: [],
+      addressNote,
       source,
-      cancel_reason: cancelFlag ? (cancelReason.trim() || null) : null,
-      reminder_enabled: smsEnabled && Boolean((client as Client).phone),
-      kind: "work",
-      // Cancel toggle wins over everything else. When the dispatcher
-      // unchecks cancel on an already-cancelled record, restore it to
-      // "scheduled" — otherwise the record stays cancelled silently and
-      // the toggle looks broken (Sprint 017 fix).
-      status: cancelFlag
-        ? "cancelled"
-        : liveMode === "edit"
-          ? appointment.status === "cancelled"
-            ? "scheduled"
-            : appointment.status
-          : "scheduled",
-      updated_at: new Date().toISOString(),
-    };
+      cancelFlag,
+      cancelReason,
+      smsEnabled,
+      liveMode,
+    });
     onSave(saved);
   };
 
   const handlePay = (payment: AppointmentPayment) => {
-    // P0 #13 + #14 (CRM Core brief) — mirror the legacy `payment`
-    // jsonb into the explicit columns the Supabase trigger keys off
-    // (20260517_001_payment_status_and_finance_sync.sql). Invoice
-    // mode = company will pay later, so the appointment is completed
-    // but not yet `paid` — operator gets to flip it manually when the
-    // invoice clears.
-    const isInvoice = payment.method === "invoice";
-    // P0 #14 — partial payment support. PaymentBlock now emits a
-    // payment with cashAmount + cardAmount < total when the operator
-    // picks «Частично». We detect the shortfall here and write
-    // payment_status='partial'; trigger holds off booking income
-    // until the row flips to 'paid'.
-    const actualPaid = (payment.cashAmount ?? 0) + (payment.cardAmount ?? 0);
-    const fullyPaid = !isInvoice && actualPaid >= appointment.total_amount;
-    const isPartial = !isInvoice && !fullyPaid && actualPaid > 0;
-    const methodMap: Record<typeof payment.method, "cash" | "card" | "other" | null> = {
-      cash: "cash",
-      card: "card",
-      split: "other",
-      invoice: null,
-    };
-    onSave({
-      ...appointment,
-      status: "completed",
-      payment,
-      payment_status: isInvoice
-        ? "unpaid"
-        : fullyPaid
-          ? "paid"
-          : isPartial
-            ? "partial"
-            : "unpaid",
-      payment_method: methodMap[payment.method] ?? undefined,
-      paid_amount: isInvoice ? 0 : actualPaid,
-      total_amount: appointment.total_amount,
-      updated_at: new Date().toISOString(),
-    });
+    onSave(buildCompletedAppointment(appointment, payment));
     onClose();
   };
 
@@ -1516,5 +1428,3 @@ export default function AppointmentSheet({
     </div>
   );
 }
-
-
