@@ -32,12 +32,18 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   );
 
   useEffect(() => {
+    // Reset form when `team` flips (different team picked or realtime
+    // sync brought a fresh copy). React batches 4 setters into one
+    // re-render — React-Compiler's cascade warning is a false positive
+    // for this canonical form-reset pattern.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (team) {
       setWStart(team.calendar_window_start ?? "");
       setWEnd(team.calendar_window_end ?? "");
       setScroll(team.default_scroll_time ?? "");
       setSlotMin(team.default_slot_minutes ?? null);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [team]);
 
   if (!team) {

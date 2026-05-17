@@ -29,6 +29,10 @@ export default function LoyaltyPage() {
   const [settings, setSettings] = useState<LoyaltySettings>(DEFAULT_LOYALTY);
 
   useEffect(() => {
+    // Client-only hydration: loadLoyalty() reads localStorage which
+    // is undefined during SSR. External-state-sync — pattern flagged
+    // by React-Compiler is intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSettings(loadLoyalty());
   }, []);
 

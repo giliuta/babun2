@@ -94,6 +94,12 @@ export default function AuditLogPage() {
   }, []);
 
   useEffect(() => {
+    // Initial hydration from localStorage + cross-tab listeners.
+    // External-state-sync: the audit log lives in localStorage, not
+    // in React. React-Compiler flags the initial setState as a
+    // cascading render but this is the canonical «sync to external
+    // store» pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
     const onChange = () => refresh();
     window.addEventListener("babun:audit-log-changed", onChange);
