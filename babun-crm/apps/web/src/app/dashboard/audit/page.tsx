@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, Trash2, Search, X } from "@babun/shared/icons";
+import { ClipboardList, Trash2, Search, X, Download } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -11,6 +11,7 @@ import {
   type AuditEntry,
   type AuditEntityKind,
 } from "@/lib/audit/audit-log";
+import { buildCsv, downloadCsv, type CsvColumn } from "@/lib/finance/csv-export";
 
 // v598 §4.4 — Local activity log inbox.
 //
@@ -54,6 +55,15 @@ const ACTION_LABEL = {
   import: "Импорт",
   export: "Экспорт",
 } as const;
+
+// v620 §4.4 — Four-column preset for the audit CSV export.
+// Raw ISO timestamp so the user can sort/filter precisely in Excel.
+const AUDIT_CSV_COLUMNS: CsvColumn<AuditEntry>[] = [
+  { header: "Время", accessor: (e) => e.ts },
+  { header: "Раздел", accessor: (e) => ENTITY_LABEL[e.entity] },
+  { header: "Действие", accessor: (e) => ACTION_LABEL[e.action] },
+  { header: "Описание", accessor: (e) => e.summary },
+];
 
 function formatTs(iso: string): string {
   const dt = new Date(iso);
@@ -121,22 +131,42 @@ export default function AuditLogPage() {
     clearAuditLog();
   };
 
+  const handleExportCsv = () => {
+    const csv = buildCsv(AUDIT_CSV_COLUMNS, entries);
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(csv, `babun-audit-${dateStamp}`);
+  };
+
   return (
     <>
       <PageHeader
         title={`Журнал${entries.length > 0 ? ` (${entries.length})` : ""}`}
         rightContent={
-          entries.length > 0 ? (
+          <div className="flex items-center gap-1">
+            {/* v620 §4.4 — CSV export. UTF-8 BOM + `;` separator + CRLF
+                so Russian-locale Excel opens it cleanly. Disabled when
+                the log is empty. */}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={entries.length === 0}
+              aria-label="Экспортировать журнал в CSV"
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--accent)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
+            >
+              <Download size={14} strokeWidth={2} />
+              CSV
+            </button>
             <button
               type="button"
               onClick={() => void handleClear()}
-              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--tile-red)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg"
+              disabled={entries.length === 0}
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 lg:px-3 text-[13px] font-medium text-[var(--tile-red)] active:opacity-70 hover:bg-[var(--fill-tertiary)] rounded-lg disabled:opacity-0 disabled:pointer-events-none"
               aria-label="Очистить журнал"
             >
               <Trash2 size={14} strokeWidth={2} />
               Очистить
             </button>
-          ) : undefined
+          </div>
         }
       />
 

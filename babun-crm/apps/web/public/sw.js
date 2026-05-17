@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v618";
+const CACHE_VERSION = "babun-v620";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -15,6 +15,7 @@ const PRECACHE_URLS = [
   "/dashboard/clients",
   "/dashboard/chats",
   "/dashboard/finances",
+  "/dashboard/insights",
   "/dashboard/services",
   "/dashboard/sms-templates",
   "/dashboard/teams",
