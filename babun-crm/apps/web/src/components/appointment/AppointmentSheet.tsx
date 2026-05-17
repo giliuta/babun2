@@ -30,6 +30,7 @@ import {
 } from "@/lib/appointment-builders";
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
 import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
@@ -50,6 +51,7 @@ import OverlapWarning from "./OverlapWarning";
 import EventForm from "@/components/event/EventForm";
 import CancelToggleBlock from "./CancelToggleBlock";
 import AppointmentSubSheets from "./AppointmentSubSheets";
+import { SegmentSwitchConfirmDialog } from "./AppointmentConfirmDialogs";
 import TimePopup from "./TimePopup";
 import AppointmentHeader from "./AppointmentHeader";
 import PaymentBlock from "./PaymentBlock";
@@ -205,38 +207,18 @@ export default function AppointmentSheet({
   const [clientProfileOpen, setClientProfileOpen] = useState(false);
   const [repeatSheetOpen, setRepeatSheetOpen] = useState(false);
 
-  // body scroll lock + ESC close
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") attemptClose();
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
-
-  // v619 — extra scroll lock + Esc handling for the TimePopup so the
-  // inner AppointmentSheet body doesn't pan behind it on iOS Safari.
-  // `body.style.overflow: hidden` only blocks window scroll; the inner
-  // overflow-y-auto container needs documentElement clamped too.
-  useEffect(() => {
-    if (!timePopupOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setTimePopupOpen(false);
-    };
-    const prevHtml = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.documentElement.style.overflow = prevHtml;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [timePopupOpen]);
+  // Body scroll lock + Esc close for the main sheet. v628 §9 step 7
+  // extracted into useBodyScrollLock hook. `attemptClose` is declared
+  // below; wrap in a getter so the temporal-dead-zone reference works.
+  useBodyScrollLock({ open, onEsc: () => attemptClose() });
+  // documentElement lock when TimePopup is open — `body.style.overflow:
+  // hidden` alone doesn't stop iOS Safari from panning the sheet's
+  // inner overflow-y-auto container.
+  useBodyScrollLock({
+    open: timePopupOpen,
+    onEsc: () => setTimePopupOpen(false),
+    target: "html",
+  });
 
   // Resolve initial preset from appointment.total_amount (для view/done
   // показываем как преднастроенный пресет).
@@ -1068,48 +1050,15 @@ export default function AppointmentSheet({
         clientProfileOpen={clientProfileOpen}
       />
 
-      {/* v619 — segment-toggle dirty-guard. Fires when user taps
-          «Клиент» while in event mode with a non-empty EventForm draft.
-          «Не сохранять» drops the event draft and switches; «Назад»
-          stays in event mode. */}
-      {segmentSwitchConfirm && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setSegmentSwitchConfirm(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-              Сменить на «Клиент»?
-            </div>
-            <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
-              Введённые данные события не сохранятся.
-            </div>
-            <div className="pt-2 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSegmentSwitchConfirm(false);
-                  setEventFormDirty(false);
-                  setKind("work");
-                }}
-                className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
-              >
-                Не сохранять
-              </button>
-              <button
-                type="button"
-                onClick={() => setSegmentSwitchConfirm(false)}
-                className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] transition"
-              >
-                Назад
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SegmentSwitchConfirmDialog
+        open={segmentSwitchConfirm}
+        onCancel={() => setSegmentSwitchConfirm(false)}
+        onDiscard={() => {
+          setSegmentSwitchConfirm(false);
+          setEventFormDirty(false);
+          setKind("work");
+        }}
+      />
 
       <TimePopup
         open={timePopupOpen}
