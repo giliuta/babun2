@@ -11,6 +11,7 @@ import {
 } from "@/components/layout/DashboardClientLayout";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
+import { logAudit } from "@/lib/audit/audit-log";
 
 // v593 — typical cancel reasons surfaced as chips on the sheet.
 // "Другое" lets the dispatcher type a free-text reason for the
@@ -102,13 +103,26 @@ export default function UnclosedVisitsPage() {
 
   const handleComplete = async (apt: Appointment) => {
     await upsertAppointment({ ...apt, status: "completed" });
+    logAudit({
+      entity: "appointment",
+      action: "status_change",
+      summary: `${clientNameOf(apt)} · ${formatDateRu(apt.date)} — закрыто как «Выполнено»`,
+      entityId: apt.id,
+    });
   };
 
   const handleConfirmCancel = async (apt: Appointment, reason: string) => {
+    const final = reason.trim() || "Не указана";
     await upsertAppointment({
       ...apt,
       status: "cancelled",
-      cancel_reason: reason.trim() || "Не указана",
+      cancel_reason: final,
+    });
+    logAudit({
+      entity: "appointment",
+      action: "status_change",
+      summary: `${clientNameOf(apt)} · ${formatDateRu(apt.date)} — отменено (${final})`,
+      entityId: apt.id,
     });
     setCancelTarget(null);
   };
