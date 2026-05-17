@@ -2,19 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, X, RotateCw, StickyNote } from "@babun/shared/icons";
+import { Phone, Plus, X, RotateCw, StickyNote } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { dueReminders, type RecurringReminder } from "@babun/shared/local/recurring";
 import {
   listRecurringReminders,
+  createRecurringReminder,
   updateReminderStatus,
   deleteRecurringReminder,
 } from "@babun/shared/db/repositories/recurring-reminders";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import {
+  useClients,
+  useTenantId,
+} from "@/components/layout/DashboardClientLayout";
 import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
+// P0 #19 (CRM Core brief) — manual-reminder bottom-sheet for the FAB.
+import NewReminderSheet from "@/components/recurring/NewReminderSheet";
+import { haptic } from "@/lib/haptics";
 
 // Due-reminder inbox. Lists every recurring follow-up whose next_due_date
 // is within 14 days or already past. Tapping an item lets the dispatcher
@@ -26,8 +33,11 @@ export default function RecurringPage() {
   const router = useRouter();
   const confirm = useConfirm();
   const tenantId = useTenantId();
+  const { clients } = useClients();
   const [items, setItems] = useState<RecurringReminder[]>([]);
   const [showAll, setShowAll] = useState(false);
+  // P0 #19 — FAB open state for the manual-reminder sheet.
+  const [newSheetOpen, setNewSheetOpen] = useState(false);
 
   // STORY-050 — lift-and-shift to Supabase. The list lives on the
   // current tenant; mutations write through and dispatch the same
@@ -80,6 +90,20 @@ export default function RecurringPage() {
     <>
       <PageHeader
         title={`Возвраты${due.length > 0 ? ` (${due.length})` : ""}`}
+        rightContent={
+          <button
+            type="button"
+            onClick={() => {
+              haptic("tap");
+              setNewSheetOpen(true);
+            }}
+            aria-label="Новое напоминание"
+            title="Новое напоминание"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+          >
+            <Plus size={20} strokeWidth={2.2} />
+          </button>
+        }
       />
 
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
@@ -155,6 +179,21 @@ export default function RecurringPage() {
           )}
         </div>
       </div>
+
+      {/* P0 #19 — manual-reminder create sheet. Hits the same
+          createRecurringReminder repository the auto-seed path uses;
+          the `manual: true` flag distinguishes the row in the inbox. */}
+      <NewReminderSheet
+        open={newSheetOpen}
+        onClose={() => setNewSheetOpen(false)}
+        clients={clients}
+        onSubmit={async (input) => {
+          const supabase = getSupabaseBrowser();
+          const created = await createRecurringReminder(supabase, tenantId, input);
+          setItems((prev) => [created, ...prev]);
+          window.dispatchEvent(new Event("babun:recurring-changed"));
+        }}
+      />
     </>
   );
 }

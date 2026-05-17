@@ -43,7 +43,7 @@ or rescope). Goal of this doc: never re-discuss an item — point at this map.
 | 16 | Категории доходов (2nd tab) | **DONE (working tree)** | `FinanceTabs.tsx` + `income-categories.ts` in working tree. |
 | 17 | «Подключить канал» на `/chats` | BLOCKED → STORY-047 (WA), STORY-048 (Realtime) | Integration page already a stub (commit `e7579ec`). |
 | 18 | Привязка чатов к клиентам по phone/handle | BLOCKED → STORY-047 | Backend feature. |
-| 19 | Manual reminder `+` button + create form | **DONE-schema (v579)** | Migration `20260517_002_recurring_reminder_manual_fields.sql` adds `type` (call/visit/sms/service/custom), `manual` (boolean), `notify_channel` (push/sms/email) to `recurring_reminders`. Local `RecurringReminder` type mirrors with optional fields. Inbox FAB + create sheet is its own UI commit (next iteration). |
+| 19 | Manual reminder `+` button + create form | **DONE (v582)** | `+` in `/recurring` header opens `<NewReminderSheet />`: type chips (Звонок/Визит/SMS/Сервисный/Другое), client picker with phone+name search, date, note, notification channel (push/sms/email). Saves through `createRecurringReminder` with `manual: true` so the inbox can render a distinct pill later. Schema work in v579 + repo round-trip in v581. |
 | 20 | Master role = position-in-team (1 поле, не 2) | **DONE (v555)** | `/masters` MasterRow now displays the brigade-membership role (`brigade.roles → name` via `brigade.members[i].role_id`) when present, falling back to the system role only when no brigade attaches a custom role. Same name surfaces in both `/masters` and `/teams/[id]`. The system role (`MasterRole` enum) stays as the internal permissions field — it's a different concept and intentionally kept. |
 
 ## 🟡 P1 — 15 items

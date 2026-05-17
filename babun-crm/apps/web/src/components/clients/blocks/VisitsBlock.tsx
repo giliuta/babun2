@@ -117,6 +117,33 @@ function VisitRow({
     return apt.comment || "—";
   })();
 
+  // P0 #14 (CRM Core brief) — payment badge derived from the
+  // explicit columns when present, falling back to the legacy
+  // (status === 'completed' AND payment !== null) heuristic for rows
+  // older than the v577 wiring. Hidden on non-completed rows where
+  // the status pill already conveys what the operator needs.
+  const paymentBadge = (() => {
+    if (apt.status !== "completed") return null;
+    const ps = apt.payment_status;
+    if (ps === "paid") {
+      return { label: "Оплачено", cls: "bg-[rgba(52,199,89,0.16)] text-[var(--system-green)]" };
+    }
+    if (ps === "partial") {
+      return { label: "Частично", cls: "bg-[rgba(255,149,0,0.14)] text-[var(--system-orange)]" };
+    }
+    if (ps === "refunded") {
+      return { label: "Возврат", cls: "bg-[rgba(255,59,48,0.12)] text-[var(--system-red)]" };
+    }
+    if (ps === "unpaid") {
+      return { label: "К оплате", cls: "bg-[rgba(255,149,0,0.18)] text-[var(--system-orange)]" };
+    }
+    // Legacy fallback — older records don't have payment_status.
+    if (apt.payment) {
+      return { label: "Оплачено", cls: "bg-[rgba(52,199,89,0.16)] text-[var(--system-green)]" };
+    }
+    return null;
+  })();
+
   return (
     <button
       type="button"
@@ -131,11 +158,20 @@ function VisitRow({
           {formatVisitDate(apt.date)} · {apt.time_start}
         </div>
       </div>
-      <span
-        className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${status.cls}`}
-      >
-        {status.label}
-      </span>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span
+          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${status.cls}`}
+        >
+          {status.label}
+        </span>
+        {paymentBadge && (
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${paymentBadge.cls}`}
+          >
+            {paymentBadge.label}
+          </span>
+        )}
+      </div>
       <span className="shrink-0 w-14 text-right text-[13px] font-bold text-[var(--system-green)] tabular-nums">
         {formatEUR(apt.total_amount)}
       </span>
