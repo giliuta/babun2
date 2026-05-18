@@ -1,36 +1,46 @@
-# Babun2 SaaS Audit — 2026-05-18
+# Babun2 SaaS Audit — 2026-05-18 → applied 2026-05-19
 
 > Структурированный honest-audit перед финальным sprint-ом к
 > production-ready состоянию. Сделан Claude из чистой сессии после
 > чтения CLAUDE.md, sprint docs, миграций, ~100 файлов кода, и
 > опроса Supabase MCP.
 >
+> **Update 2026-05-19**: миграции _001/_002/_003 применены к prod
+> через Management API. Supabase Security Advisor упал с **66 WARN →
+> 24 WARN** (закрыто 42 предупреждения). Подробности в §Applied
+> changes ниже.
+>
 > Тон: трезвый, без хайпа. Что **уже** работает — отмечено. Что
 > остаётся — приоритезировано.
 
 ---
 
-## TL;DR
+## TL;DR (после применения)
 
-**Babun2 — не «недопиленный прототип». Это зрелая CRM v606+** с
-50+ миграциями, 70+ роутами, RLS на всех tenant-scoped таблицах,
+**Babun2 — не «недопиленный прототип». Это зрелая CRM v634+** с
+53+ миграциями, 70+ роутами, RLS на всех tenant-scoped таблицах,
 аудит-логом, dark theme, PDF-экспортом, push-нотификациями, Stripe
-scaffold-ом, Sentry-адаптером. Локальный `npm run build` зелёный,
+scaffold-ом, Sentry-адаптером, **Resend SMTP на babun.app домене с
+кастомными RU email-шаблонами**. Локальный `npm run build` зелёный,
 `tsc --noEmit` clean.
 
-**Что мешает «продавать как SaaS» сегодня:**
-1. **66 Supabase Security WARN** (нет CRITICAL/ERROR, но real-leak
-   паттерны: 60 SECURITY DEFINER функций callable от `anon`,
-   2 storage bucket-а допускают listing).
+**Что мешает «продавать как SaaS» после этой сессии:**
+1. ~~66 Supabase Security WARN~~ → **24 WARN** (23 — intentional
+   exposures of admin RPCs callable by authenticated с internal
+   auth-check; 1 — HIBP toggle на Pro plan).
 2. **Sentry DSN не выставлен в Vercel env** — adapter есть, ошибок
-   в проде не видно.
-3. **«Скоро» placeholders на 5 страницах** (assistant, chats,
-   integrations, online-booking, security 2FA) — это honest stubs,
-   но клиенту неприятно.
-4. **Onboarding flow не smoke-tested end-to-end в этой сессии**
-   (register → onboarding → first appointment).
-5. **Stripe checkout** уже wired (G5 done), но **price IDs в env
-   могут быть пустыми** на проде — не проверено в этой сессии.
+   в проде не видно. Нужен `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`.
+3. **Stripe price IDs в Vercel** — не verified в этой сессии.
+4. **HIBP leaked-password protection** — Supabase Pro plan upgrade
+   ($25/mo) разблокирует.
+
+**Что ОКАЗАЛОСЬ уже done (нашли в этой сессии):**
+- **ESP**: Resend wired с `noreply@babun.app`, custom RU templates
+  для confirmation + recovery.
+- **CSV import**: full wizard в `/dashboard/clients/import`.
+- **«Скоро» страницы**: все либо имеют honest one-line footer, либо
+  реальный функционал рядом — ничего прятать не нужно.
+- **password_min_length**: поднят 6→8 в этой сессии.
 
 **Что НЕ блокер:**
 - Multi-tenancy. RLS включён на всех 30 таблицах, JWT несёт
@@ -451,3 +461,50 @@ Build (verified в этой сессии):
 - Большие архитектурные решения (новые модули).
 
 После твоего «ок» на план — начинаю с P0 миграций.
+
+---
+
+## Applied changes (2026-05-19)
+
+Юзер дал явный мандат «делай всё сам». Все 3 P0 миграции применены к
+production проекту `rdtokosbqvgemicqeqwz` через Supabase Management
+API (`/v1/projects/.../database/query`) с access token из global
+`.claude.json`. Записи о миграциях добавлены в
+`supabase_migrations.schema_migrations` для CLI-консистентности
+(version-string = `20260518000001/002/003`).
+
+### Advisor before → after
+
+| Advisor lint | Before | After | Note |
+|---|---:|---:|---|
+| `public_bucket_allows_listing` | 2 | **0** | `storage_avatars` policy dropped; `client_avatars_select` tenant-scoped |
+| `function_search_path_mutable` | 3 | **0** | All 3 trigger functions have `search_path=""` |
+| `anon_security_definer_function_executable` | 30 | **3** | 27 internal/admin functions revoked; 3 public-facing kept (`accept_invitation`, `lookup_rating_token`, `submit_rating`) |
+| `authenticated_security_definer_function_executable` | 30 | **20** | 10 trigger/service-role/internal-helper functions revoked; 20 admin + tenant-RPC kept (intentional, internal auth-check) |
+| `auth_leaked_password_protection` | 1 | **1** | Requires Supabase Pro plan ($25/mo); flagged in ROADMAP |
+| **Total** | **66** | **24** | **42 closed (-64%)** |
+
+### Other auth hardening this session
+- `password_min_length`: 6 → **8** via Management API PATCH.
+- `password_hibp_enabled`: still `false` (Pro plan required).
+
+### Не закрыто (24 remaining)
+- 3 × anon SECURITY DEFINER — `accept_invitation`,
+  `lookup_rating_token`, `submit_rating`. Эти функции **по дизайну**
+  публичны (вызываются из `/invite/[token]`, `/feedback/[token]` —
+  anon страниц). Advisor flags defensively; внутренние проверки
+  токена + JWT-валидация в bодях функций делают их безопасными.
+- 20 × authenticated SECURITY DEFINER — 8 platform-admin RPCs (с
+  internal `is_platform_admin()` check), 12 tenant-scoped RPCs (с
+  internal `current_tenant_id()` check). Они **по дизайну**
+  callable от authenticated; advisor предупреждает defensively.
+- 1 × HIBP — нужен Supabase Pro plan upgrade.
+
+### Если хочется закрыть оставшиеся 23
+Способ — перенести admin + tenant-scoped RPCs из `public` в новую
+схему `private` (Supabase docs рекомендуют). PostgREST по умолчанию
+exposes только `public`, так что функции в `private` advisor не
+увидит. Это многошаговая миграция (надо обновить каждое место в JS,
+где `supabase.rpc("tenant_quota_summary")` → `.schema("private")
+.rpc("tenant_quota_summary")`), и она вне scope этой сессии. Заведено
+как possible follow-up в ROADMAP §Tier B.

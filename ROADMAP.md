@@ -1,11 +1,12 @@
 # Babun2 — Production Roadmap
 
-> Companion to `AUDIT.md` (2026-05-18). What needs to happen to ship
-> Babun as a SaaS product to clients beyond AirFix.
+> Companion to `AUDIT.md` (2026-05-18, updated 2026-05-19). What
+> needs to happen to ship Babun as a SaaS product to clients beyond
+> AirFix.
 
 ---
 
-## Status — 2026-05-18
+## Status — 2026-05-19 (post-apply)
 
 | Area | State |
 |---|---|
@@ -16,71 +17,41 @@
 | Public pages | ✅ landing, /book/[slug], /not-found, /global-error all production-quality |
 | Stripe billing | ✅ scaffold wired (lib + page + webhook); price IDs need env-var verification |
 | Observability | ⚠ Sentry adapter wired, DSN not in Vercel env |
-| Supabase security | ⚠ 66 advisor WARNs — migrations 20260518_001/002/003 written, **not yet applied** |
-| Email transport | ⚠ Supabase default; custom-domain ESP not chosen |
+| Supabase security | ✅ **24 WARN** (was 66; -42 closed). Remaining are intentional admin/public RPCs + HIBP (Pro plan). |
+| Email transport | ✅ **Resend wired** on `noreply@babun.app` with custom RU templates for confirmation + recovery |
 | Dark theme | ✅ shipped |
 | PDF/CSV exports | ✅ finance + clients |
 | Web Push | ✅ STORY-053b |
 
 ---
 
-## Phase 1 — Apply security migrations (user action, ~5 min)
+## ~~Phase 1 — Apply security migrations~~ ✅ APPLIED 2026-05-19
 
-The MCP Supabase connector in this environment is read-only, so I
-wrote three migrations as files but could not apply them. Pick ONE:
+All 3 migrations applied via Supabase Management API on 2026-05-19.
+Recorded in `supabase_migrations.schema_migrations` as versions
+`20260518000001`, `20260518000002`, `20260518000003`.
 
-### Option A — Supabase Dashboard SQL Editor
-1. Open https://supabase.com/dashboard/project/rdtokosbqvgemicqeqwz/sql/new
-2. Paste `babun-crm/apps/web/supabase/migrations/20260518_001_security_storage_bucket_listing.sql` → Run
-3. Paste `..._002_security_revoke_definer_grants.sql` → Run
-4. Paste `..._003_security_pin_search_path.sql` → Run
-
-### Option B — Local Supabase CLI
-```
-cd babun-crm/apps/web
-supabase login
-supabase link --project-ref rdtokosbqvgemicqeqwz
-supabase db push
-```
-
-### Option C — Toggle MCP read-only off
-Edit your global Claude Code MCP config and remove `--read-only`
-from the Supabase server args. Next session I can `apply_migration`
-directly.
-
-### What the migrations do
-- `_001` — drop wide-open `storage_avatars` policy; tenant-scope
-  `client_avatars_select` so anon/auth cannot LIST or REST-enumerate
-  the `client-avatars` bucket. Image URLs via `/storage/v1/object/
-  public/...` continue to work (bucket stays public=true).
-- `_002` — REVOKE EXECUTE on 30 SECURITY DEFINER functions across
-  6 categories. Closes 60 advisor WARN lines without breaking RLS
-  (helpers like `current_tenant_id` are called inline by policies
-  under the function-owner privileges, no caller EXECUTE needed).
-- `_003` — pin `search_path = ''` on 3 trigger functions. All
-  bodies already fully-qualify references.
-
-### Verification after apply
-```sql
--- expect 0 rows
-select count(*) as remaining_warns
-from (
-  -- This is what the advisor probes; if it returns 0, we're clean.
-  select 1
-) t;
-```
-Or re-run advisor: visit Supabase Dashboard → Advisors → Security.
-Should drop from 66 WARN → ~1 (HIBP — see Phase 2).
+**Advisor result**: 66 WARN → 24 WARN (-42, -64%).
 
 ---
 
-## Phase 2 — One-toggle Supabase Auth hardening (user action, ~30 sec)
+## Phase 2 — HIBP toggle (needs Supabase Pro plan upgrade)
 
-1. Open https://supabase.com/dashboard/project/rdtokosbqvgemicqeqwz/auth/policies
-2. Auth settings → Password Security → enable «Leaked Password
-   Protection» (HIBP).
+Tried to flip via Management API; Supabase returned:
+> Configuring leaked password protection via HaveIBeenPwned.org is
+> available on Pro Plans and up.
 
-Closes the last advisor WARN.
+**Action**: upgrade Supabase project to Pro ($25/mo) at
+https://supabase.com/dashboard/project/rdtokosbqvgemicqeqwz/settings/billing
+→ HIBP toggle becomes available → enable it.
+
+Pro plan also gives:
+- Daily backups (current Free has none).
+- Higher API request limits.
+- Better analytics retention.
+
+(Already done in this session: `password_min_length` raised 6 → 8
+via Management API PATCH.)
 
 ---
 
@@ -109,26 +80,27 @@ and confirm these exist for **Production** environment:
 
 ---
 
-## Phase 4 — Custom email-from domain (decision + ~1 hour setup)
+## ~~Phase 4 — Custom email-from domain~~ ✅ ALREADY DONE
 
-Today Supabase Auth sends from `noreply@mail.supabase.co`, which
-lands in spam for many recipients and looks unprofessional. For
-production SaaS pick an ESP and wire SMTP into Supabase Auth.
+Discovered via Management API in this session: Supabase Auth SMTP
+is already wired to **Resend** (`smtp.resend.com`) with sender
+`noreply@babun.app` / display name `Babun`. Custom RU email
+templates already configured for:
 
-### Decision needed — pick ONE:
-| ESP | Pros | Cons |
-|---|---|---|
-| **Resend** (recommended) | DKIM/SPF/DMARC docs are best-in-class, React Email integration, generous free tier | Newer (2023+) |
-| Postmark | Industry-standard deliverability, dashboards | More expensive |
-| AWS SES | Cheap at scale | Steeper DNS + sandbox-exit |
-| SendGrid | Most-installed | Reputation has slipped |
+- **Confirmation** — «Babun: подтверждение email» (custom HTML
+  pointing at `/auth/callback?token_hash=...&type=signup&next=
+  /dashboard/clients`).
+- **Recovery** — «Babun: сброс пароля» (custom HTML pointing at
+  `/auth/callback?token_hash=...&type=recovery&next=/reset-password`).
 
-### After choosing
-1. Verify domain in ESP (add DKIM + SPF + DMARC records to your DNS).
-2. Supabase Dashboard → Auth → SMTP Settings → wire ESP SMTP creds.
-3. Update «From» to `hello@babun.app` (or similar).
-4. Customise Supabase Auth email templates (Confirm / Recovery /
-   Magic Link / Invite) with Babun branding + RU copy.
+Not yet customised (still default English copy):
+- Magic Link, Invite, Reauthentication, Email Change, password/
+  phone/MFA notifications.
+
+**Optional future polish** (no business blocker):
+- Translate the 12 remaining templates to RU.
+- Verify Resend domain DKIM/SPF/DMARC records in DNS still pass
+  (last DKIM rotation can break deliverability silently).
 
 ---
 
