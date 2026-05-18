@@ -28,6 +28,7 @@ import {
   Info,
   MapPin,
   Package,
+  Tag,
   Trash2,
   Users as UsersIcon,
   Wrench,
@@ -45,6 +46,7 @@ import {
   useEquipment,
   useSchedules,
 } from "@/components/layout/DashboardClientLayout";
+import { useTeamEventTypes } from "@/hooks/useTeamEventTypes";
 import {
   getTeamLeadIds,
   type Master,
@@ -83,6 +85,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   // page renders nothing (team is undefined, all previews are "").
   const team = teams.find((t) => t.id === id);
   const schedule = schedules[id] ?? DEFAULT_SCHEDULE;
+  const { types: eventTypes } = useTeamEventTypes(team?.id ?? null);
 
   // ── Compose preview strings for each row ────────────────────────────
   const infoPreview = useMemo(() => {
@@ -181,6 +184,13 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
         : "";
     return `${hours}${breakBit}${offBit}`;
   }, [schedule]);
+
+  const eventTypesPreview = useMemo(() => {
+    if (eventTypes.length === 0) return "нет шаблонов";
+    const names = eventTypes.slice(0, 3).map((t) => t.label).join(", ");
+    if (eventTypes.length <= 3) return names;
+    return `${names} и ещё ${eventTypes.length - 3}`;
+  }, [eventTypes]);
 
   const appointmentBlocksPreview = useMemo(() => {
     if (!team) return "";
@@ -331,6 +341,15 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               title="Календарь"
               value={calendarPreview}
               onClick={() => router.push(`/dashboard/teams/${team.id}/calendar`)}
+            />
+            <NavRow
+              icon={<Tag size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-pink)]"
+              title="Шаблоны событий"
+              value={eventTypesPreview}
+              onClick={() =>
+                router.push(`/dashboard/teams/${team.id}/event-types`)
+              }
             />
             <NavRow
               icon={<Clock size={18} strokeWidth={2} />}

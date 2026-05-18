@@ -4,15 +4,17 @@
 // event flow (AppointmentSheet event-mode, context="team") AND the
 // personal-calendar (PersonalEventSheet, context="personal").
 //
-// Sprint #4 P0 §4 — replaces the two diverged "Новое событие" surfaces
-// with one component. All features are present regardless of context;
-// the `context` prop only drives:
-//   • team:     preset tiles from EVENT_PRESETS (fixed 5)
-//               + saves with team_id, master_id=null
-//   • personal: preset chips from EventPresetChips (user-customizable)
-//               + saves with master_id=current, team_id=null
+// One "Новое событие" surface for both calendars. UI is identical;
+// the `context` prop only picks which chip list backs the preset
+// row above the title:
+//   • personal → usePersonalEventTypes (one list per master, edited
+//                at /dashboard/settings/calendar/event-types)
+//   • team     → useTeamEventTypes(teamId) (one list per brigade,
+//                edited at /dashboard/teams/[id]/event-types)
+// The save target (team_id vs master_id) is handled outside this
+// component by the caller (AppointmentSheet / PersonalEventSheet).
 //
-// Fields: TimeBlock + all-day toggle, preset tiles/chips, title, place,
+// Fields: TimeBlock + all-day toggle, preset chips, title, place,
 // URL (video-conf badge auto-detected), push notification + extra offsets,
 // repeat, color picker, notes textarea, close-confirm dirty guard.
 
@@ -26,17 +28,12 @@ import {
   Video,
   Trash2,
   X as XIcon,
-  Coffee,
-  Briefcase,
-  Moon,
-  Plane,
 } from "@babun/shared/icons";
 import { pushRecentPlace } from "@babun/shared/local/event-recent-places";
 import type {
   Appointment,
   PersonalEventRepeat,
 } from "@babun/shared/local/appointments";
-import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 import TimeBlock from "@/components/appointment/TimeBlock";
 import {
@@ -47,6 +44,8 @@ import {
 } from "@/components/calendar/PersonalEventBlocks";
 import EventPresetChips from "@/components/calendar/EventPresetChips";
 import type { PersonalEventType } from "@babun/shared/local/personal-event-types";
+import { usePersonalEventTypes } from "@/hooks/usePersonalEventTypes";
+import { useTeamEventTypes } from "@/hooks/useTeamEventTypes";
 import { useCalendarSettings } from "@/components/layout/DashboardClientLayout";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -58,8 +57,15 @@ export interface EventFormProps {
   mode: "create" | "view" | "edit";
   /** Appointment with kind="event". */
   event: Appointment;
-  /** team = brigade calendar; personal = master's private calendar. */
+  /** team = brigade calendar; personal = master's private calendar.
+   *  Only drives which preset chip list is shown (per-brigade vs personal)
+   *  and which save fields the caller fills in (team_id vs master_id —
+   *  handled outside this component). */
   context: "team" | "personal";
+  /** Required when context="team" — selects which brigade's chip list
+   *  to read. Null is tolerated (e.g. when no active brigade); the
+   *  chip row simply doesn't render. */
+  teamId?: string | null;
   onSave: (event: Appointment) => void;
   onDelete?: (event: Appointment) => void;
   /** v619 — emit dirty state changes so the parent can guard external
@@ -72,29 +78,6 @@ export interface EventFormProps {
 
 const DEFAULT_COLOR = "#007AFF";
 const NO_REPEAT: PersonalEventRepeat = { kind: "none" };
-
-const TEAM_PRESET_ICONS: Record<
-  string,
-  React.ComponentType<{ size?: number; strokeWidth?: number }>
-> = {
-  coffee: Coffee,
-  briefcase: Briefcase,
-  navigation: NavigationIcon,
-  moon: Moon,
-  plane: Plane,
-};
-
-// 8 named palette colors for the team-context colour row.
-const EVENT_COLOR_PRESETS = [
-  { id: "slate",  hex: "#64748B", label: "Slate"  },
-  { id: "red",    hex: "#EF4444", label: "Red"    },
-  { id: "orange", hex: "#F97316", label: "Orange" },
-  { id: "amber",  hex: "#F59E0B", label: "Amber"  },
-  { id: "green",  hex: "#10B981", label: "Green"  },
-  { id: "cyan",   hex: "#06B6D4", label: "Cyan"   },
-  { id: "blue",   hex: "#3B82F6", label: "Blue"   },
-  { id: "violet", hex: "#8B5CF6", label: "Violet" },
-] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -353,13 +336,20 @@ function ToggleSlim({ checked, onChange, ariaLabel }: { checked: boolean; onChan
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function EventForm({
-  open, onClose, mode, event, context, onSave, onDelete, onDirtyChange,
+  open, onClose, mode, event, context, teamId, onSave, onDelete, onDirtyChange,
 }: EventFormProps) {
   const { calendarSettings } = useCalendarSettings();
   const workStartHr = calendarSettings.workStartHour ?? calendarSettings.startHour ?? 8;
   const workEndHr   = calendarSettings.workEndHour   ?? calendarSettings.endHour   ?? 22;
   const allDayStart = hourToTime(workStartHr);
   const allDayEnd   = hourToTime(workEndHr);
+
+  // Pick the right preset chip list. Both contexts use the same chip
+  // UI; the only difference is the underlying storage namespace —
+  // personal is per-master, team is per-brigade.
+  const personalTypes = usePersonalEventTypes();
+  const teamTypes     = useTeamEventTypes(context === "team" ? teamId ?? null : null);
+  const presetTypes   = context === "team" ? teamTypes.types : personalTypes.types;
 
   // Form state
   const [dateKey,       setDateKey]       = useState(event.date);
@@ -579,11 +569,14 @@ export default function EventForm({
             )}
           </div>
 
-          {/* Preset row:
-              personal context → user-customizable chips (EventPresetChips)
-              team context     → fixed 5-tile grid from EVENT_PRESETS */}
-          {!readonly && context === "personal" && (
+          {/* Preset chip row — same UI in both contexts. List source:
+              personal → per-master localStorage (one list per device).
+              team     → per-brigade localStorage (one list per team_id).
+              Managed at /dashboard/settings/calendar/event-types
+              (personal) or /dashboard/teams/[id]/event-types (team). */}
+          {!readonly && (
             <EventPresetChips
+              types={presetTypes}
               onPick={(preset: PersonalEventType) => {
                 setTitle(preset.label);
                 setColor(preset.color);
@@ -601,36 +594,6 @@ export default function EventForm({
                 }
               }}
             />
-          )}
-          {!readonly && context === "team" && (
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 pt-4 pb-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">Тип события</div>
-              <div className="grid grid-cols-3 gap-2">
-                {EVENT_PRESETS.map((p) => {
-                  const Icon = TEAM_PRESET_ICONS[p.icon] ?? Coffee;
-                  return (
-                    <button key={p.id} type="button"
-                      onClick={() => {
-                        setTitle(p.label);
-                        if (p.allDay) {
-                          setAllDay(true); setTimeStart("08:00"); setTimeEnd("20:00");
-                        } else {
-                          const [h, m] = timeStart.split(":").map(Number);
-                          const endMin = Math.min(23 * 60 + 59, (h ?? 0) * 60 + (m ?? 0) + p.duration);
-                          const eh = Math.floor(endMin / 60);
-                          const em = endMin % 60;
-                          setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
-                        }
-                      }}
-                      className="py-3 rounded-[14px] border border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1"
-                      style={title === p.label ? { borderColor: p.color, background: `${p.color}14` } : undefined}>
-                      <Icon size={20} strokeWidth={2} />
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           )}
 
           {/* Card 2 — Hero title + notes */}
@@ -659,25 +622,6 @@ export default function EventForm({
               />
             </div>
           </div>
-
-          {/* Card 3 — team-context 8-colour palette (replaces full palette in header for team) */}
-          {context === "team" && !readonly && (
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 pt-3 pb-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">Цвет</div>
-              <div className="flex flex-wrap gap-2">
-                {EVENT_COLOR_PRESETS.map((c) => {
-                  const active = color === c.hex;
-                  return (
-                    <button key={c.id} type="button"
-                      onClick={() => setColor(active ? DEFAULT_COLOR : c.hex)}
-                      aria-label={c.label}
-                      className="w-8 h-8 rounded-full active:scale-[0.95] transition border-2"
-                      style={{ background: c.hex, borderColor: active ? "var(--label)" : "transparent" }} />
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Card 4 — Place + URL */}
           <div

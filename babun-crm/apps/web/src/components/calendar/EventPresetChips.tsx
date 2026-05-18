@@ -1,14 +1,13 @@
 "use client";
 
-// STORY-058 Sprint A — quick-apply chips for PersonalEventSheet.
+// STORY-058 Sprint A — quick-apply chips for the «Новое событие» form.
 //
 // Renders a horizontal-scroll row of user-customisable shortcuts above
 // the title block. Tapping a chip fills the form with the preset's
-// label + color + duration + all-day. Reuses the existing
-// `personal-event-types` schema (CRUD lives at
-// /dashboard/settings/calendar/event-types) — these are visually
-// presented as «быстрое применение» chips, not the v447 tile grid
-// that was dropped in v456.
+// label + color + duration + all-day. Source-agnostic: the parent
+// passes the `types` array, so the same chip row backs both the
+// personal calendar (usePersonalEventTypes) and the team calendar
+// (useTeamEventTypes — list per brigade).
 
 import {
   Coffee,
@@ -37,7 +36,6 @@ import type {
   PersonalEventType,
   PersonalEventTypeIcon,
 } from "@babun/shared/local/personal-event-types";
-import { usePersonalEventTypes } from "@/hooks/usePersonalEventTypes";
 
 // Same registry as event-types/page.tsx. Kept in sync manually; both
 // files import from a shared union (PersonalEventTypeIcon) so adding
@@ -82,12 +80,11 @@ function tintBg(hex: string): string {
 }
 
 interface EventPresetChipsProps {
+  types: PersonalEventType[];
   onPick: (preset: PersonalEventType) => void;
 }
 
-export default function EventPresetChips({ onPick }: EventPresetChipsProps) {
-  const { types } = usePersonalEventTypes();
-
+export default function EventPresetChips({ types, onPick }: EventPresetChipsProps) {
   if (types.length === 0) return null;
 
   return (

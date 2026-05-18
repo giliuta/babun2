@@ -725,6 +725,7 @@ export default function AppointmentSheet({
               mode={liveMode === "edit" ? "edit" : "create"}
               event={eventSeed}
               context="team"
+              teamId={activeTeam?.id ?? null}
               onSave={(evt) => {
                 onSave(evt);
                 onClose();
