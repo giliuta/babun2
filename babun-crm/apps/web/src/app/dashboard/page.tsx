@@ -284,6 +284,11 @@ function DashboardPageInner() {
   // the user staring at an empty calendar with no way to create
   // personal events — a critical first-run regression. Name falls
   // back to «Мой календарь» when no master display name is known.
+  // Personal-calendar chip visibility mirrors tenants.personal_calendar_enabled.
+  // While the flag is loading we keep the chip on so an already-on tenant
+  // doesn't flash an empty strip; once loaded === false, the chip is
+  // dropped per the STORY-066 toggle promise («раздел исчезнет из навигации»).
+  const personalTabVisible = !personalCal.loaded || personalCal.enabled;
   const teamTabs = useMemo(() => {
     // v511 — sort by sort_order so chip strip respects the user's
     // drag-reorder. Falls back to created_at for legacy records that
@@ -302,6 +307,7 @@ function DashboardPageInner() {
         name: getTeamDisplayName(t, masters),
         color: t.color,
       }));
+    if (!personalTabVisible) return brigadeTabs;
     const personalName =
       currentMaster?.personal_calendar_name?.trim() || "Мой календарь";
     return [
@@ -312,7 +318,7 @@ function DashboardPageInner() {
       },
       ...brigadeTabs,
     ];
-  }, [teams, masters, currentMaster]);
+  }, [teams, masters, currentMaster, personalTabVisible]);
   // SSR-safe: start on a deterministic epoch Monday, then move to today
   // in useEffect after mount. Previous `getMonday(new Date())` in the
   // initializer caused a hydration mismatch (Vercel's build clock vs
@@ -1689,7 +1695,7 @@ function DashboardPageInner() {
         currentDate={currentMonday}
         activeTeamId={activeTeamId}
         teams={teamTabs}
-        pinnedTeamId={PERSONAL_TAB_ID}
+        pinnedTeamId={personalTabVisible ? PERSONAL_TAB_ID : undefined}
         viewMode={viewMode}
         allAppointments={appointments}
         onPrevWeek={handlePrevWeek}
