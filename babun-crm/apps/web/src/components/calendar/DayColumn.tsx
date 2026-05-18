@@ -59,6 +59,8 @@ interface DayColumnProps {
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
+  /** STORY-092 — drag-resize bottom edge. Forwarded to AppointmentBlock. */
+  onAppointmentResize?: (appointment: Appointment, newEndHHMM: string) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   onFooterTap?: (dateKey: string) => void;
   onDayHeaderTap?: (dateKey: string) => void;
@@ -162,6 +164,7 @@ function DayColumnInner({
   onCityTap,
   onAppointmentClick,
   onAppointmentLongPress,
+  onAppointmentResize,
   onEmptySlotClick,
   onFooterTap,
   onDayHeaderTap,
@@ -652,6 +655,7 @@ function DayColumnInner({
                 draggable={dragEnabled}
                 dimmed={isPast}
                 overlapStyle={override}
+                onResize={onAppointmentResize}
               />
             );
           };

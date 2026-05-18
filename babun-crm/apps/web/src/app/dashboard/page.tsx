@@ -1241,6 +1241,45 @@ function DashboardPageInner() {
     setLongPressApt(apt);
   }, []);
 
+  // STORY-092 — drag-resize bottom edge. AppointmentBlock has already
+  // snapped + clamped the new HH:MM; we just compute the conflict warning
+  // (don't block — same rule as drag-drop) and upsert. Optimistic write
+  // through the existing repo so the audit-log entry fires too.
+  const handleAppointmentResize = useCallback(
+    (apt: Appointment, newEndHHMM: string) => {
+      if (newEndHHMM === apt.time_end) return;
+      haptic("tap");
+
+      const overlap = findOverlap(
+        {
+          id: apt.id,
+          date: apt.date,
+          time_start: apt.time_start,
+          time_end: newEndHHMM,
+          team_id: apt.team_id,
+          kind: apt.kind,
+        },
+        appointments,
+      );
+      if (overlap) {
+        const detail = describeOverlap(overlap, (cid: string | null | undefined) =>
+          cid ? clients.find((c) => c.id === cid)?.full_name ?? null : null,
+        );
+        toast.show({
+          variant: "info",
+          message: `Пересечение: ${detail}`,
+        });
+      }
+
+      upsertAppointment({
+        ...apt,
+        time_end: newEndHHMM,
+        updated_at: new Date().toISOString(),
+      });
+    },
+    [appointments, clients, toast, upsertAppointment],
+  );
+
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     // Brief 2 #3 («Мой календарь»): when the user switches from
     // week/3days into day view, land on TODAY if today is inside the
@@ -1534,6 +1573,7 @@ function DashboardPageInner() {
           onCityTap={handleCityTap}
           onAppointmentClick={handleAppointmentClick}
           onAppointmentLongPress={handleAppointmentLongPress}
+          onAppointmentResize={handleAppointmentResize}
           onEmptySlotClick={handleEmptySlotClick}
           onFooterTap={handleFooterTap}
           onDayHeaderTap={handleDayHeaderTap}
@@ -1569,6 +1609,7 @@ function DashboardPageInner() {
       handleCityTap,
       handleAppointmentClick,
       handleAppointmentLongPress,
+      handleAppointmentResize,
       handleEmptySlotClick,
       handleFooterTap,
       handleDayHeaderTap,
