@@ -517,23 +517,60 @@ export function buildMapsLinks(address: string): MapsLinks | null {
 import type { PersonalEventRepeat } from "@babun/shared/local/appointments";
 
 const REPEAT_OPTIONS: { value: PersonalEventRepeat["kind"]; label: string }[] = [
-  { value: "none",     label: "Не повторять" },
-  { value: "daily",    label: "Ежедневно" },
-  { value: "weekdays", label: "По будням (Пн–Пт)" },
-  { value: "weekly",   label: "Каждую неделю" },
-  { value: "biweekly", label: "Каждые 2 недели" },
-  { value: "monthly",  label: "Каждый месяц" },
-  { value: "yearly",   label: "Каждый год" },
+  { value: "none",            label: "Не повторять" },
+  { value: "daily",           label: "Ежедневно" },
+  { value: "weekdays",        label: "По будням (Пн–Пт)" },
+  { value: "weekly",          label: "Каждую неделю" },
+  { value: "biweekly",        label: "Каждые 2 недели" },
+  { value: "monthly",         label: "Каждый месяц" },
+  { value: "yearly",          label: "Каждый год" },
+  // STORY-091 — custom weekday set (e.g. Mon+Wed+Fri). Surfaces a
+  // 7-checkbox row below the chips when active.
+  { value: "custom_weekdays", label: "Дни недели" },
+];
+
+// Mon-first weekday labels for custom-weekdays picker. Map index → day
+// number that matches JS Date.getDay() (0=Sun..6=Sat) so the rule's
+// `days` array stays in the same coordinate system as the engine.
+const WEEKDAY_PICKER: { day: number; short: string }[] = [
+  { day: 1, short: "Пн" },
+  { day: 2, short: "Вт" },
+  { day: 3, short: "Ср" },
+  { day: 4, short: "Чт" },
+  { day: 5, short: "Пт" },
+  { day: 6, short: "Сб" },
+  { day: 0, short: "Вс" },
 ];
 
 function repeatSummary(v: PersonalEventRepeat): string {
   const opt = REPEAT_OPTIONS.find((o) => o.value === v.kind);
   const base = opt?.label ?? "Не повторять";
-  if (v.kind === "none" || !("until" in v) || !v.until) return base;
-  const d = new Date(v.until);
-  if (isNaN(d.getTime())) return base;
-  const dateStr = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-  return `${base} · до ${dateStr}`;
+  if (v.kind === "none") return base;
+
+  // For custom_weekdays, append picked-days short labels so the
+  // collapsed summary shows «Дни недели · Пн, Ср, Пт».
+  let label = base;
+  if (v.kind === "custom_weekdays") {
+    const picks = WEEKDAY_PICKER.filter((w) => v.days.includes(w.day)).map(
+      (w) => w.short,
+    );
+    if (picks.length > 0) label = `${base} · ${picks.join(", ")}`;
+  }
+
+  // Termination cue: either "до DD month" (until) or "× N" (count).
+  if ("count" in v && v.count && v.count > 0) {
+    label = `${label} · ${v.count} раз`;
+  } else if ("until" in v && v.until) {
+    const d = new Date(v.until);
+    if (!isNaN(d.getTime())) {
+      const dateStr = d.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+      });
+      label = `${label} · до ${dateStr}`;
+    }
+  }
+  return label;
 }
 
 export function RepeatPickerRow({
@@ -563,14 +600,65 @@ export function RepeatPickerRow({
       onChange({ kind: "none" });
       return;
     }
+    // Carry forward until + count across kind switches so the user
+    // doesn't lose their termination preference when retrying chips.
     const until =
       "until" in value && value.until ? value.until : undefined;
-    onChange({ kind: k, until } as PersonalEventRepeat);
+    const count =
+      "count" in value && value.count && value.count > 0
+        ? value.count
+        : undefined;
+    if (k === "custom_weekdays") {
+      // STORY-091 — custom_weekdays requires a `days` array. Preserve
+      // existing selection if user is toggling back from another kind,
+      // otherwise start with the seed weekday as a friendly default
+      // (one matching day is more useful than zero).
+      const days =
+        value.kind === "custom_weekdays" && value.days.length > 0
+          ? value.days
+          : [];
+      onChange({ kind: "custom_weekdays", days, until, count });
+      return;
+    }
+    onChange({ kind: k, until, count } as PersonalEventRepeat);
   };
 
   const setUntil = (next: string | undefined) => {
     if (value.kind === "none") return;
-    onChange({ kind: value.kind, until: next } as PersonalEventRepeat);
+    if (value.kind === "custom_weekdays") {
+      onChange({ ...value, until: next });
+      return;
+    }
+    onChange({
+      kind: value.kind,
+      until: next,
+      count: value.count,
+    } as PersonalEventRepeat);
+  };
+
+  // STORY-091 — termination via «N раз» count. Setting count clears
+  // until and vice versa (the two are exclusive in the picker UX even
+  // though the engine respects whichever fires first).
+  const setCount = (next: number | undefined) => {
+    if (value.kind === "none") return;
+    if (value.kind === "custom_weekdays") {
+      onChange({ ...value, count: next, until: undefined });
+      return;
+    }
+    onChange({
+      kind: value.kind,
+      count: next,
+      until: undefined,
+    } as PersonalEventRepeat);
+  };
+
+  // STORY-091 — toggle a single weekday on/off for the custom rule.
+  const toggleWeekday = (day: number) => {
+    if (value.kind !== "custom_weekdays") return;
+    const next = value.days.includes(day)
+      ? value.days.filter((d) => d !== day)
+      : [...value.days, day].sort();
+    onChange({ ...value, days: next });
   };
 
   return (
@@ -611,6 +699,41 @@ export function RepeatPickerRow({
             ))}
           </div>
 
+          {/* STORY-091 — custom-weekdays checkbox row. Shows only when
+              that kind is active. Compact 7-pill row, Mon-first per
+              Russian convention. Toggling a pill flips it in the rule
+              `days` array (engine reads JS getDay() coordinates). */}
+          {value.kind === "custom_weekdays" && (
+            <div
+              className="mt-2.5"
+              style={{ WebkitUserSelect: "none" } as React.CSSProperties}
+            >
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] mb-1.5">
+                Дни недели
+              </div>
+              <div className="flex gap-1">
+                {WEEKDAY_PICKER.map((w) => {
+                  const active = value.days.includes(w.day);
+                  return (
+                    <button
+                      key={w.day}
+                      type="button"
+                      onClick={() => toggleWeekday(w.day)}
+                      aria-pressed={active}
+                      className={`flex-1 h-9 rounded-[8px] text-[12px] font-semibold transition ${
+                        active
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                          : "bg-[var(--fill-tertiary)] text-[var(--label)] active:bg-[var(--fill-secondary)]"
+                      }`}
+                    >
+                      {w.short}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {value.kind !== "none" && (
             <div
               className="mt-2.5 flex items-center gap-2"
@@ -629,6 +752,50 @@ export function RepeatPickerRow({
                 <button
                   type="button"
                   onClick={() => setUntil(undefined)}
+                  className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
+                >
+                  Снять
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* STORY-091 — alternative termination: «N раз». Setting it
+              clears the date and vice versa (mutually exclusive UX). */}
+          {value.kind !== "none" && (
+            <div
+              className="mt-2 flex items-center gap-2"
+              style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+            >
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[60px] shrink-0">
+                Или N раз
+              </div>
+              <input
+                type="number"
+                min={1}
+                max={365}
+                inputMode="numeric"
+                placeholder="—"
+                value={
+                  "count" in value && value.count && value.count > 0
+                    ? String(value.count)
+                    : ""
+                }
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (!raw) {
+                    setCount(undefined);
+                    return;
+                  }
+                  const n = parseInt(raw, 10);
+                  if (Number.isFinite(n) && n > 0) setCount(Math.min(365, n));
+                }}
+                className="flex-1 h-8 px-2.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[8px] text-[13px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+              {"count" in value && value.count && value.count > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCount(undefined)}
                   className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1 active:opacity-60"
                 >
                   Снять
