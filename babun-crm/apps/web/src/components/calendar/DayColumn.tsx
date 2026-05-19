@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   getDayNameShort,
@@ -203,6 +203,19 @@ function DayColumnInner({
   });
   const dayName = getDayNameShort(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+  // STORY audit (user bug «18 сначала красное потом обычное»):
+  // weekend/day-off colouring должно применяться ТОЛЬКО после
+  // hydration. До mount React renders с SSR_SAFE_MONDAY (5 Jan 2026)
+  // + default days_off=[0], и dates показываются с одним set цветов;
+  // после hydration currentMonday → реальная неделя + per-team
+  // schedule loaded → коlors пересчитываются. Это приводит к
+  // мигающему «красное → обычное» на каждом дне.
+  // Решение: до mount показывать ВСЕ дни как обычные (нейтральные),
+  // и красить только после hydration. Один плавный transition вместо
+  // двух прыжков.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const showAsOff = hydrated && (isWeekend || isDayOff);
   const monthShort = getMonthNameShort(date.getMonth());
   // STORY-060 F3.1 — month-short is now rendered on every column,
   // not just the 1st-of-month edge case; this flag is kept for any
@@ -343,7 +356,7 @@ function DayColumnInner({
               ambiguity in 3-day / week views. */}
           <span
             className={`text-[12px] font-semibold uppercase tracking-wider ${
-              isWeekend || isDayOff
+              showAsOff
                 ? "text-[var(--system-red)]/70"
                 : "text-[var(--label-secondary)]"
             }`}
@@ -362,7 +375,7 @@ function DayColumnInner({
               className={`text-[22px] font-semibold tabular-nums tracking-tight ${
                 isToday
                   ? "text-[var(--accent)]"
-                  : isWeekend || isDayOff
+                  : showAsOff
                     ? "text-[var(--system-red)]"
                     : "text-[var(--label)]"
               }`}

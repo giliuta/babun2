@@ -839,7 +839,8 @@ export default function ClientsPage() {
                   }}
                   aria-label="Экспорт CSV"
                   title="Экспорт CSV"
-                  className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+                  // STORY audit: 36 → 44 — iOS tap target floor.
+                  className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
                 >
                   <Download size={20} strokeWidth={2.2} />
                 </button>
@@ -869,7 +870,9 @@ export default function ClientsPage() {
                 }}
                 title={clientsCapTooltip}
                 aria-label="Добавить клиента"
-                className={`w-9 h-9 flex items-center justify-center rounded-full transition ${clientsAtCap ? "text-[var(--label-tertiary)] bg-[var(--fill-tertiary)]" : "text-[var(--accent)] active:bg-[var(--accent-tint)]"}`}
+                // STORY audit: 36 → 44 — primary add-action на самом
+                // частом списке; не должна быть меньше iOS floor.
+                className={`w-11 h-11 flex items-center justify-center rounded-full transition ${clientsAtCap ? "text-[var(--label-tertiary)] bg-[var(--fill-tertiary)]" : "text-[var(--accent)] active:bg-[var(--accent-tint)]"}`}
               >
                 <Plus size={20} strokeWidth={2.2} />
               </button>
