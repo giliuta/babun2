@@ -213,6 +213,10 @@ export default function AppointmentSheet({
   // through the dirty check just like the backdrop / Esc / ✕ paths).
   const swipeStartY = useRef<number | null>(null);
   const swipeDeltaY = useRef<number>(0);
+  // STORY audit (user bug «листаю туда-обратно и закрывается»):
+  // remember which scroller we armed against so onTouchMove can
+  // disarm the gesture the moment it moves off scrollTop=0.
+  const armedScroller = useRef<HTMLElement | null>(null);
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -741,15 +745,31 @@ export default function AppointmentSheet({
           }
           swipeStartY.current = e.touches[0]?.clientY ?? null;
           swipeDeltaY.current = 0;
+          // STORY audit (user report «листаю туда-обратно и закрывается»):
+          // remember WHICH scroller we armed on so onTouchMove can
+          // disarm the gesture the moment that scroller moves off
+          // scrollTop=0. Otherwise a fast «scroll down, bounce back
+          // up past start, release» sequence accumulates a downward
+          // delta even though the user was scrolling, not closing.
+          armedScroller.current = scroller;
         }}
         onTouchMove={(e) => {
           if (swipeStartY.current === null) return;
+          // Disarm if the scrollable body is no longer at the top —
+          // this means the user is panning the list, not the sheet.
+          if (armedScroller.current && armedScroller.current.scrollTop > 0) {
+            swipeStartY.current = null;
+            swipeDeltaY.current = 0;
+            armedScroller.current = null;
+            return;
+          }
           swipeDeltaY.current = (e.touches[0]?.clientY ?? swipeStartY.current) - swipeStartY.current;
         }}
         onTouchEnd={() => {
           const delta = swipeDeltaY.current;
           swipeStartY.current = null;
           swipeDeltaY.current = 0;
+          armedScroller.current = null;
           if (delta >= 90) attemptClose();
         }}
       >
