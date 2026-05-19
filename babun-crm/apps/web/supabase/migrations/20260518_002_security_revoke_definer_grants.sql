@@ -15,10 +15,14 @@
 --     running as service_role. Revoke EXECUTE from public roles.
 --
 --   • Internal RLS helpers (3 funcs) — current_tenant_id(),
---     current_user_role(), is_platform_admin(). Executed inline by
---     RLS policies under the function-owner privileges, so revoking
---     EXECUTE from caller roles does NOT break RLS. Revoke from anon,
---     authenticated, public.
+--     current_user_role(), is_platform_admin(). Revoke from anon
+--     (anon never goes through tenant-scoped RLS); KEEP authenticated
+--     because Postgres evaluates RLS predicates with the caller's
+--     EXECUTE-permission check, so authenticated needs EXECUTE on the
+--     functions called inline by tenant-table policies. SECURITY
+--     DEFINER swaps the run-as role AFTER the EXECUTE check, not
+--     before. (Original revoke regression discovered in prod and
+--     fixed by 20260518_004 — see that file for the lesson.)
 --
 --   • Tenant-quota + tenant_data_export (7 funcs) — called from
 --     server pages with an authenticated JWT. Revoke from anon, keep
@@ -58,11 +62,15 @@ revoke execute on function public.set_event_template_created_by() from anon, aut
 revoke execute on function public.bump_sms_balance(uuid, integer) from anon, authenticated, public;
 
 -- =====================================================================
--- C. Internal RLS helpers (called inline by policies, not via RPC)
+-- C. Internal RLS helpers — revoke from anon only; KEEP authenticated
+--    (called inline by tenant-table RLS policies; EXECUTE check runs
+--    against the caller role even though the function is SECURITY
+--    DEFINER). See 20260518_004 lessons-learned for the regression
+--    story.
 -- =====================================================================
-revoke execute on function public.current_tenant_id() from anon, authenticated, public;
-revoke execute on function public.current_user_role() from anon, authenticated, public;
-revoke execute on function public.is_platform_admin() from anon, authenticated, public;
+revoke execute on function public.current_tenant_id() from anon, public;
+revoke execute on function public.current_user_role() from anon, public;
+revoke execute on function public.is_platform_admin() from anon, public;
 
 -- =====================================================================
 -- D. Tenant-scoped RPCs — keep authenticated, revoke anon

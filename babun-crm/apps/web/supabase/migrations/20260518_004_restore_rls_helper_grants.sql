@@ -1,0 +1,43 @@
+-- 20260518_004 — Restore EXECUTE on RLS-helper functions to authenticated
+--                 (P0 incident fix: login regression from _002)
+--
+-- WHY THIS MIGRATION EXISTS
+-- ========================
+-- Migration _002 revoked EXECUTE on `current_tenant_id()`,
+-- `current_user_role()`, and `is_platform_admin()` from `authenticated`
+-- on the theory that these are "internal helpers called only by RLS
+-- policies, so the caller doesn't need EXECUTE".
+--
+-- That theory was WRONG. When a RLS policy expression contains
+-- `tenant_id = current_tenant_id()`, Postgres evaluates the function
+-- call under the CALLER's role context. SECURITY DEFINER changes what
+-- role the function body RUNS AS once execution starts; it does NOT
+-- waive the EXECUTE permission check that happens first.
+--
+-- Effect after _002: every authenticated SELECT on any tenant-scoped
+-- table failed with `permission denied for function current_tenant_id`
+-- before any rows were returned. The dashboard's getTenantContext()
+-- helper got `null` back from `supabase.from("tenants").select(...)`
+-- and bounced the user to `/login?error=tenant_missing`. Symptom:
+-- "Аккаунт настроен неправильно" banner for every logged-in user.
+--
+-- Discovered: 2026-05-19 via prod screenshot reported by user.
+-- Fix applied via Management API immediately (GRANT EXECUTE…).
+-- This file records the fix in version control + schema_migrations.
+--
+-- The other 7 functions revoked from authenticated by _002 (handle_new_user,
+-- _dispatch_push, _tg_notify_*, bump_sms_balance, set_appointment_created_by,
+-- set_event_template_created_by) are NOT referenced by RLS policies (verified
+-- via pg_get_expr scan), so they stay revoked.
+--
+-- LESSON
+-- ======
+-- Any function called inline by an RLS policy MUST stay grantable to
+-- the calling role. Even SECURITY DEFINER. If you want to lock down a
+-- helper, the safer pattern is to move it to a `private` schema not
+-- exposed via PostgREST — Postgres still resolves it for RLS but
+-- PostgREST won't expose it as a `/rest/v1/rpc/...` endpoint.
+
+grant execute on function public.current_tenant_id() to authenticated;
+grant execute on function public.current_user_role() to authenticated;
+grant execute on function public.is_platform_admin() to authenticated;
