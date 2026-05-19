@@ -909,6 +909,26 @@ function DashboardPageInner() {
     setCurrentMonday(getMonday(new Date()));
   }, []);
 
+  // STORY audit: после save новой записи диспетчер часто оставался на
+  // экране, где запись только что сохранил, не понимая что она в
+  // календаре. Решение: переключаем view на неделю записи (или прямо
+  // день в day-mode), чтобы свежая запись всегда была в visible зоне.
+  // Безопасно вызывать на already-current week — setCurrentMonday
+  // компонент дедуплицирует через ref check inside SwipeableCalendar.
+  const navigateToAppointmentDate = useCallback(
+    (dateKey: string) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+      const d = new Date(`${dateKey}T00:00:00`);
+      if (Number.isNaN(d.getTime())) return;
+      if (viewMode === "day") {
+        setCurrentMonday(d);
+      } else {
+        setCurrentMonday(getMonday(d));
+      }
+    },
+    [viewMode],
+  );
+
   const handleTeamChange = useCallback((teamId: string) => {
     setActiveTeamId(teamId);
   }, []);
@@ -1796,6 +1816,7 @@ function DashboardPageInner() {
             services={services}
             hideCancelled={effectiveHideCancelled}
             onAppointmentClick={handleAppointmentClick}
+            onCreateNew={() => openNewAppointmentInline(null, null, "work")}
           />
         ) : viewMode === "month" ? (
           <MonthView
@@ -1947,6 +1968,9 @@ function DashboardPageInner() {
           onSave={(apt) => {
             upsertAppointment(apt);
             setBooking(null);
+            // STORY audit: jump the calendar to the new appointment's
+            // week so the dispatcher sees it land.
+            navigateToAppointmentDate(apt.date);
           }}
         />
       )}
@@ -2217,6 +2241,9 @@ function DashboardPageInner() {
           onSave={(apt) => {
             upsertAppointment(apt);
             setInlineSheet(null);
+            // STORY audit: jump calendar to the saved appointment's
+            // week so новые/перенесённые записи всегда видны диспетчеру.
+            navigateToAppointmentDate(apt.date);
           }}
           onCancelAppointment={(apt) => {
             upsertAppointment({

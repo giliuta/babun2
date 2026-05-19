@@ -259,6 +259,7 @@ function CategoriesEditor({
   categories: ServiceCategory[];
   onChange: (next: ServiceCategory[]) => void;
 }) {
+  const confirm = useConfirm();
   const [name, setName] = useState("");
 
   const handleAdd = () => {
@@ -268,6 +269,21 @@ function CategoriesEditor({
       { id: generateId("cat"), name: name.trim(), color: PALETTE[categories.length % PALETTE.length] },
     ]);
     setName("");
+  };
+
+  const handleRemove = async (cat: ServiceCategory) => {
+    // STORY audit: было удаление одним тапом через крестик 32px без
+    // подтверждения. Категория связывает группу услуг — стирать одним
+    // движением рискованно. Добавляем confirm + поднимаем tap target.
+    const ok = await confirm({
+      title: `Удалить категорию «${cat.name}»?`,
+      message:
+        "Услуги, которые были в этой категории, не удалятся — они станут «без категории». Это нельзя отменить.",
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    onChange(categories.filter((x) => x.id !== cat.id));
   };
 
   return (
@@ -296,8 +312,9 @@ function CategoriesEditor({
           />
           <button
             type="button"
-            onClick={() => onChange(categories.filter((x) => x.id !== c.id))}
-            className="w-8 h-8 text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.08)] rounded"
+            onClick={() => handleRemove(c)}
+            aria-label={`Удалить категорию ${c.name}`}
+            className="w-11 h-11 flex items-center justify-center text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.08)] rounded text-[20px]"
           >
             ×
           </button>

@@ -31,6 +31,11 @@ interface AgendaViewProps {
   services: Service[];
   hideCancelled?: boolean;
   onAppointmentClick: (appointment: Appointment) => void;
+  // STORY audit: на agenda FAB скрыт (см. CalendarFab `hidden`-flag),
+  // поэтому из empty-state создать запись было невозможно без смены
+  // вида. Передаём callback, который parent (page.tsx) пробросит на
+  // openNewAppointmentInline.
+  onCreateNew?: () => void;
 }
 
 export default function AgendaView({
@@ -40,6 +45,7 @@ export default function AgendaView({
   services,
   hideCancelled = false,
   onAppointmentClick,
+  onCreateNew,
 }: AgendaViewProps) {
   const servicesById = useMemo(() => {
     const m = new Map<string, string>();
@@ -83,9 +89,20 @@ export default function AgendaView({
           Записей не запланировано
         </div>
         <div className="text-[12px] text-[var(--label-tertiary)] max-w-xs leading-snug">
-          Ближайшие {HORIZON_DAYS} дней пусты. Создайте запись из календаря
-          или вернитесь к виду «Неделя».
+          Ближайшие {HORIZON_DAYS} дней пусты.
         </div>
+        {/* STORY audit: inline CTA для empty-state — FAB на agenda
+            скрыт, и без этой кнопки диспетчер уходил из вида чтобы
+            создать запись. Теперь шаг прямо здесь. */}
+        {onCreateNew && (
+          <button
+            type="button"
+            onClick={onCreateNew}
+            className="mt-5 h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:scale-[0.97] shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+          >
+            + Создать запись
+          </button>
+        )}
       </div>
     );
   }

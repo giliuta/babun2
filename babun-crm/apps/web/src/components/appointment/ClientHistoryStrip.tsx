@@ -16,6 +16,13 @@ interface ClientHistoryStripProps {
   excludeAppointmentId: string;
   appointments: Appointment[];
   catalog: Service[];
+  // STORY audit: до этого строки истории были read-only, и диспетчер
+  // не мог открыть прошлую запись чтобы посмотреть детали (часто
+  // нужно — «сколько брали в прошлый раз?», «какая была причина
+  // отмены?»). Optional callback — если parent передаёт, строки
+  // становятся кликабельными button-ами и открывают AppointmentSheet
+  // на этой записи.
+  onOpenAppointment?: (appointment: Appointment) => void;
 }
 
 const HORIZON = 5;
@@ -25,6 +32,7 @@ export default function ClientHistoryStrip({
   excludeAppointmentId,
   appointments,
   catalog,
+  onOpenAppointment,
 }: ClientHistoryStripProps) {
   const servicesById = useMemo(() => {
     const m = new Map<string, string>();
@@ -69,11 +77,8 @@ export default function ClientHistoryStrip({
               return q > 1 ? `x${q} ${name}` : name;
             })
             .join(", ");
-          return (
-            <div
-              key={apt.id}
-              className="px-3 py-2 flex items-start gap-2 text-[12px]"
-            >
+          const inner = (
+            <>
               <span className="w-[68px] shrink-0 tabular-nums text-[var(--label-secondary)]">
                 {formatShortDate(apt.date)}
               </span>
@@ -85,6 +90,26 @@ export default function ClientHistoryStrip({
                   {formatEUR(apt.total_amount)}
                 </span>
               )}
+            </>
+          );
+          if (onOpenAppointment) {
+            return (
+              <button
+                key={apt.id}
+                type="button"
+                onClick={() => onOpenAppointment(apt)}
+                className="w-full px-3 min-h-[44px] py-2 flex items-center gap-2 text-[12px] text-left active:bg-[var(--fill-quaternary)] transition"
+              >
+                {inner}
+              </button>
+            );
+          }
+          return (
+            <div
+              key={apt.id}
+              className="px-3 py-2 flex items-start gap-2 text-[12px]"
+            >
+              {inner}
             </div>
           );
         })}

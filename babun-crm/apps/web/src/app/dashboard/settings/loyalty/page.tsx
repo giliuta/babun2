@@ -14,6 +14,8 @@
 import { useEffect, useState } from "react";
 import { Plus, Star, Trash2 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
+import IOSSwitch from "@/components/ui/IOSSwitch";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { haptic } from "@/lib/haptics";
 import {
   DEFAULT_LOYALTY,
@@ -26,6 +28,7 @@ import {
 } from "@babun/shared/local/loyalty";
 
 export default function LoyaltyPage() {
+  const confirm = useConfirm();
   const [settings, setSettings] = useState<LoyaltySettings>(DEFAULT_LOYALTY);
 
   useEffect(() => {
@@ -60,7 +63,19 @@ export default function LoyaltyPage() {
     });
   };
 
-  const removeTier = (id: string) => {
+  const removeTier = async (id: string) => {
+    // STORY audit: уровень лояльности один тап стирал без confirm —
+    // диспетчер мог потерять «после 5 визитов — 10%» одним промахом.
+    const tier = settings.tiers.find((t) => t.id === id);
+    const ok = await confirm({
+      title: tier
+        ? `Удалить уровень «${tier.label || `${tier.threshold} визитов · ${tier.percent}%`}»?`
+        : "Удалить уровень?",
+      message: "Клиенты, у которых были скидки по этому уровню, сохранят прежние записи — но новые скидки этого уровня применяться не будут.",
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
     haptic("warning");
     persist({
       ...settings,
@@ -92,9 +107,12 @@ export default function LoyaltyPage() {
       <PageHeader title="Программа лояльности" backHref="/dashboard/settings" />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-          {/* Master switch */}
+          {/* Master switch — STORY audit: было <input type=checkbox>,
+              что на iOS выглядело инородно и не давало haptic. Заменил
+              на тот же IOSSwitch, что используется в остальных
+              настройках (calendar / sms / online-booking). */}
           <section className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4">
-            <label className="flex items-center gap-3 min-h-[44px]">
+            <div className="flex items-center gap-3 min-h-[44px]">
               <Star
                 size={18}
                 strokeWidth={2}
@@ -113,13 +131,12 @@ export default function LoyaltyPage() {
                   предложит автоматическую скидку соответствующего уровня.
                 </div>
               </div>
-              <input
-                type="checkbox"
+              <IOSSwitch
                 checked={settings.enabled}
-                onChange={toggle}
-                className="w-5 h-5 accent-[var(--accent)]"
+                onChange={() => toggle()}
+                ariaLabel="Программа лояльности"
               />
-            </label>
+            </div>
           </section>
 
           {settings.tiers.length === 0 && (

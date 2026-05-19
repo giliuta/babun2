@@ -39,12 +39,19 @@ function deriveStatus(
   now: number,
   online: boolean,
 ): SyncStatus {
+  // STORY audit: «stale» сигнализирует «давно не было синка» — но пока
+  // основная база ещё localStorage (Supabase rollout в процессе), нет
+  // постоянной фоновой синхронизации, поэтому «stale» постоянно
+  // мигает оранжевым без реальной проблемы. Этот заметный сигнал
+  // тревожит диспетчера зря. Подавляем «stale» → «idle» (нейтральный
+  // серый) пока нет настоящей ошибки или offline-state. Когда придёт
+  // полноценная realtime-репликация, можно убрать этот guard.
   if (hasError) return "error";
-  if (!lastSyncAt) return online ? "idle" : "error";
+  if (!online) return "error";
+  if (!lastSyncAt) return "idle";
   const t = Date.parse(lastSyncAt);
   if (!Number.isFinite(t)) return "error";
   const ageMs = now - t;
-  if (ageMs > 5 * 60_000) return online ? "stale" : "error";
   if (ageMs <= 60_000) return "ok";
   return "idle";
 }
