@@ -251,12 +251,27 @@ export default function AppointmentSheet({
   // Resolve initial preset from appointment.total_amount (для view/done
   // показываем как преднастроенный пресет).
   //
-  // Form-reset block — 18 setters batch into one re-render per
-  // {open, appointment} change. Canonical pattern; React-Compiler's
-  // cascade flag is a false positive here.
+  // STORY audit (tester 1.4): раньше form-reset эффект зависел от
+  // [open, appointment] — любая смена `appointment` prop reference
+  // (включая realtime UPDATE от Supabase того же id) триггерила reset
+  // и WIPE всех несохранённых полей. Сейчас reset происходит только
+  // когда меняется appointment.id (другая запись выбрана) или open
+  // переключается с false на true. Realtime обновление того же id
+  // больше НЕ затирает unsaved draft. Если коллеге надо merge
+  // удалённых изменений, мы покажем banner-mismatch позднее (next-
+  // step), но silent wipe лучше чем silent wipe.
+  const lastAppointmentIdRef = useRef<string | null>(null);
+  // Form-reset block — 18 setters batch into one re-render.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      lastAppointmentIdRef.current = null;
+      return;
+    }
+    // Skip reset if we're already mounted on the same appointment.id —
+    // this is a realtime echo, not a different record.
+    if (lastAppointmentIdRef.current === appointment.id) return;
+    lastAppointmentIdRef.current = appointment.id;
     setTimeStart(appointment.time_start);
     setTimeEnd(appointment.time_end);
     setDateKey(appointment.date);

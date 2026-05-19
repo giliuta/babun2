@@ -302,6 +302,15 @@ function DashboardPageInner() {
         name: getTeamDisplayName(t, masters),
         color: t.color,
       }));
+    // STORY audit (tester 4.2): personal tab всегда prepend'ился вне
+    // зависимости от personalCal.enabled — toggle в Settings/Account/
+    // PersonalCalendar после onboarding эффективно ничего не делал.
+    // Теперь skip personal tab если operator явно его выключил
+    // (enabled=false). На стадии загрузки (loaded=false) ОСТАВЛЯЕМ —
+    // это значит «не успели ещё прочитать настройку», лучше не
+    // мигать.
+    const personalEnabled = !personalCal.loaded || personalCal.enabled;
+    if (!personalEnabled) return brigadeTabs;
     const personalName =
       currentMaster?.personal_calendar_name?.trim() || "Мой календарь";
     return [
@@ -312,7 +321,7 @@ function DashboardPageInner() {
       },
       ...brigadeTabs,
     ];
-  }, [teams, masters, currentMaster]);
+  }, [teams, masters, currentMaster, personalCal.enabled, personalCal.loaded]);
   // SSR-safe: start on a deterministic epoch Monday, then move to today
   // in useEffect after mount. Previous `getMonday(new Date())` in the
   // initializer caused a hydration mismatch (Vercel's build clock vs
