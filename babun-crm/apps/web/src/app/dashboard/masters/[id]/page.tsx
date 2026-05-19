@@ -160,7 +160,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
       <div className="flex-1 flex items-center justify-center p-6 text-center bg-[var(--surface-grouped)]">
         <div>
           <div className="text-[17px] font-semibold text-[var(--label)] mb-2">
-            Сотрудник не найден
+            Мастер не найден
           </div>
           <button
             type="button"
@@ -276,7 +276,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
               getInitials(master.full_name)
             )}
           </span>
-          <span className="truncate">{master.full_name || "Сотрудник"}</span>
+          <span className="truncate">{master.full_name || "Мастер"}</span>
         </h1>
         {/* P2 #44 (CRM Core brief) — kebab in the header is the new
             home for archive + destructive actions. Replaces the
@@ -323,7 +323,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
               )}
             </button>
             <div className="text-[17px] font-semibold text-[var(--label)] text-center tracking-tight leading-tight">
-              {master.full_name || "Сотрудник"}
+              {master.full_name || "Мастер"}
             </div>
             {master.title && (
               <div className="text-[13px] text-[var(--label-secondary)] text-center -mt-1.5">
@@ -434,7 +434,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
             <div className="flex items-center gap-3 px-4 min-h-[56px]">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] text-[var(--label)]">
-                  Сотрудник активен
+                  Мастер активен
                 </div>
                 <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
                   {master.is_active
@@ -505,7 +505,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
         open={!!menuAnchor}
         onClose={() => setMenuAnchor(null)}
         anchor={menuAnchor}
-        title={master.full_name || "Сотрудник"}
+        title={master.full_name || "Мастер"}
         options={menuOptions}
       />
 

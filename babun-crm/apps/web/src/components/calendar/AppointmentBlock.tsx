@@ -180,9 +180,12 @@ function AppointmentBlockInner({
       }}
     >
       <div className="px-1.5 py-1 h-full overflow-hidden relative flex flex-col gap-[1px]">
-        {/* Line 1: time range — compact, always shown */}
+        {/* Line 1: time range — compact, always shown.
+            STORY audit (design-keeper): bumped 10→11 (mobile) / 11→12
+            (lg) to clear the typography floor. tabular-nums keeps the
+            digit grid tight. */}
         <div
-          className={`text-[10px] lg:text-[11px] font-semibold opacity-85 leading-tight tabular-nums shrink-0 ${
+          className={`text-[11px] lg:text-[12px] font-semibold opacity-85 leading-tight tabular-nums shrink-0 ${
             isCancelled ? "line-through" : ""
           }`}
         >
@@ -237,7 +240,10 @@ function AppointmentBlockInner({
           if (fragments.length === 0) return null;
           return (
             <div
-              className="text-[10px] lg:text-[11px] opacity-90 leading-snug break-words whitespace-pre-wrap min-w-0 flex-1 overflow-hidden"
+              // STORY audit (design-keeper): block body text 10→11 (phone)
+              // / 11→12 (lg) — typography floor. Multi-line address/notes
+              // were unreadable on a 40-px-wide slot.
+              className="text-[11px] lg:text-[12px] opacity-90 leading-snug break-words whitespace-pre-wrap min-w-0 flex-1 overflow-hidden"
             >
               {fragments.join("\n")}
             </div>

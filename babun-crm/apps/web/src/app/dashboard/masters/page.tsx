@@ -217,7 +217,7 @@ export default function MastersPage() {
   return (
     <>
       <PageHeader
-        title="Сотрудники"
+        title="Мастера"
         rightContent={
           masters.length > 0 ? (
             <button

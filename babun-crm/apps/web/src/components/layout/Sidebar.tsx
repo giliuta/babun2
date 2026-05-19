@@ -341,7 +341,7 @@ export default function Sidebar({
             <NavRow
               icon={UserCircle2}
               tone="indigo"
-              label="Сотрудники"
+              label="Мастера"
               href={ROUTE_MAP.masters}
               active={isActive("masters")}
             />

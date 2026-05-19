@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 
@@ -26,6 +26,13 @@ export default function PaymentSheet({
   onPay,
   onCancel,
 }: PaymentSheetProps) {
+  // STORY audit (tester 1.1): double-tap «Наличкой» создавал две
+  // completion-записи. Лочим кнопки на время родительского перерендера.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Reset когда sheet закрывается (например после успешного onPay).
+  useEffect(() => {
+    if (!open) setIsSubmitting(false);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -73,25 +80,35 @@ export default function PaymentSheet({
         <div className="px-4 space-y-2">
           <button
             type="button"
-            onClick={() => onPay("cash")}
-            className="w-full h-12 rounded-[10px] bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-90 transition"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (isSubmitting) return;
+              setIsSubmitting(true);
+              onPay("cash");
+            }}
+            className="w-full h-12 rounded-[10px] bg-[var(--system-green)] text-[var(--label-on-accent)] flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-90 disabled:opacity-50 transition"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="20" height="12" rx="2" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            Оплачено наличкой
+            {isSubmitting ? "Сохраняем…" : "Оплачено наличкой"}
           </button>
           <button
             type="button"
-            onClick={() => onPay("card")}
-            className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center gap-2 text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (isSubmitting) return;
+              setIsSubmitting(true);
+              onPay("card");
+            }}
+            className="w-full h-12 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] flex items-center justify-center gap-2 text-[15px] font-semibold active:bg-[var(--accent-pressed)] disabled:opacity-50 transition"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="5" width="20" height="14" rx="2" />
               <line x1="2" y1="10" x2="22" y2="10" />
             </svg>
-            Оплачено картой
+            {isSubmitting ? "Сохраняем…" : "Оплачено картой"}
           </button>
         </div>
 

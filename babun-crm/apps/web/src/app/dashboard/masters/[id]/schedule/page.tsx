@@ -142,7 +142,7 @@ export default function MasterSchedulePage({ params }: RouteParams) {
     return (
       <MasterSectionShell masterId={id} title="Визиты" hideSave>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
-          Сотрудник не найден.
+          Мастер не найден.
         </div>
       </MasterSectionShell>
     );

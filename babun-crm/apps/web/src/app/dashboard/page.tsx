@@ -1177,6 +1177,13 @@ function DashboardPageInner() {
         if (firstBrigade) {
           teamIdForRecord = firstBrigade.id;
           handleTeamChange(firstBrigade.id);
+          // STORY audit (reviewer fix): был silent switch — диспетчер
+          // видел что таб поменялся и не понимал почему. Toast делает
+          // переход explicit.
+          toast.show({
+            variant: "info",
+            message: `Переключились на бригаду «${firstBrigade.name}» — клиентов записываем сюда`,
+          });
         }
       }
       const blank = createBlankAppointment({
@@ -1196,7 +1203,7 @@ function DashboardPageInner() {
       });
       setInlineSheet({ mode: "new", initial: blank });
     },
-    [activeTeamId, teams, handleTeamChange]
+    [activeTeamId, teams, handleTeamChange, toast]
   );
 
   // Tap on empty slot → BookingSheet (STORY-002). Компонент сам
@@ -2240,10 +2247,14 @@ function DashboardPageInner() {
           }
           onSave={(apt) => {
             upsertAppointment(apt);
+            // STORY audit (reviewer fix): jump calendar только если дата
+            // записи реально сменилась. Раньше любой edit (например цена)
+            // тоже триггерил navigate → re-center календарь и сбивал то,
+            // что оператор только что читал. Сейчас сравниваем с
+            // оригинальной датой inlineSheet.initial.
+            const dateChanged = inlineSheet.initial.date !== apt.date;
             setInlineSheet(null);
-            // STORY audit: jump calendar to the saved appointment's
-            // week so новые/перенесённые записи всегда видны диспетчеру.
-            navigateToAppointmentDate(apt.date);
+            if (dateChanged) navigateToAppointmentDate(apt.date);
           }}
           onCancelAppointment={(apt) => {
             upsertAppointment({

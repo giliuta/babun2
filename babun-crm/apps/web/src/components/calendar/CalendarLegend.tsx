@@ -101,7 +101,12 @@ export default function CalendarLegend() {
             role="dialog"
             aria-modal="true"
             aria-label="Цветовая легенда календаря"
-            className="fixed bottom-16 right-4 z-50 w-72 bg-[var(--surface-card)] border border-[var(--separator)] rounded-2xl shadow-xl p-3"
+            // STORY audit (reviewer fix): popover sat at bottom-16 (64 px)
+            // and reached ~352 px upward — that's ABOVE the FAB at ~166 px
+            // from bottom, so на mobile popover буквально закрывал FAB.
+            // Поднимаем popover чуть выше кнопки ⓘ на phone (bottom-[226px]),
+            // на desktop остаётся bottom-16 как раньше.
+            className="fixed bottom-[226px] right-4 lg:bottom-16 z-50 w-72 max-w-[calc(100vw-32px)] bg-[var(--surface-card)] border border-[var(--separator)] rounded-2xl shadow-xl p-3"
           >
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">

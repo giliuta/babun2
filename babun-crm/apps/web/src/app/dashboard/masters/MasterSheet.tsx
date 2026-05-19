@@ -306,7 +306,7 @@ export default function MasterSheet({
   };
 
   const titleForHeader = isEditing
-    ? fullName.trim() || "Сотрудник"
+    ? fullName.trim() || "Мастер"
     : "Новый сотрудник";
 
   return (
