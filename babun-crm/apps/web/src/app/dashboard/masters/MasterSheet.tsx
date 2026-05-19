@@ -222,7 +222,7 @@ export default function MasterSheet({
 
   const handleSubmit = () => {
     if (!fullName.trim()) {
-      toast.show({ variant: "error", message: "Введите ФИО сотрудника" });
+      toast.show({ variant: "error", message: "Введите ФИО мастера" });
       return;
     }
     // Normalise brigade visibility into permissions before save.
@@ -307,7 +307,7 @@ export default function MasterSheet({
 
   const titleForHeader = isEditing
     ? fullName.trim() || "Мастер"
-    : "Новый сотрудник";
+    : "Новый мастер";
 
   return (
     <div
@@ -359,7 +359,7 @@ export default function MasterSheet({
               hint={
                 isEditing
                   ? "Задайте только если нужно сбросить. Старый пароль будет заменён."
-                  : "Покажется один раз после сохранения — передайте сотруднику."
+                  : "Покажется один раз после сохранения — передайте мастеру."
               }
             >
               <div className="flex items-center gap-2">
@@ -959,7 +959,7 @@ function PasswordShowOnce({
             Пароль создан
           </div>
           <div className="text-[13px] text-[var(--label-secondary)] leading-snug mt-1">
-            Это единственный раз, когда пароль показан. Скопируйте и передайте сотруднику.
+            Это единственный раз, когда пароль показан. Скопируйте и передайте мастеру.
           </div>
         </div>
         {email && (

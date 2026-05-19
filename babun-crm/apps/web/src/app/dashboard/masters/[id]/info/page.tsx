@@ -341,7 +341,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
   return (
     <MasterSectionShell
       masterId={id}
-      title={isNew ? "Новый сотрудник" : "Информация"}
+      title={isNew ? "Новый мастер" : "Информация"}
       {...sharedShellProps}
     >
       {/* Avatar — tap to open picker (14 presets + upload + remove).
@@ -383,7 +383,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
           footer={
             existing?.credentials_set
               ? "Доступ выдан. Сбросьте пароль — старый перестанет работать."
-              : "Выдайте сотруднику логин и пароль. Пароль показывается один раз — продиктуйте его по телефону или перешлите в Telegram."
+              : "Выдайте мастеру логин и пароль. Пароль показывается один раз — продиктуйте его по телефону или перешлите в Telegram."
           }
         >
           <TextRow
@@ -538,7 +538,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
       </Section>
 
       {/* ── КОНТАКТЫ ──────────────────────────────────────────────── */}
-      <Section title="Контакты" footer="Как с сотрудником связаться вне Babun">
+      <Section title="Контакты" footer="Как с мастером связаться вне Babun">
         <TextRow
           label="Телефон"
           value={phone}
@@ -589,7 +589,7 @@ export default function MasterInfoPage({ params }: RouteParams) {
       {!isNew && existing && (
         <Section
           title="Банк и реквизиты"
-          footer="Хранятся на сотруднике. «Резидент Кипра» влияет на VAT 19% при расчёте ЗП."
+          footer="Хранятся на мастере. «Резидент Кипра» влияет на VAT 19% при расчёте ЗП."
         >
           <TextRow
             label="IBAN"

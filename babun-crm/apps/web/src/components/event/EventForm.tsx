@@ -361,6 +361,28 @@ export default function EventForm({
   const allDayStart = hourToTime(workStartHr);
   const allDayEnd   = hourToTime(workEndHr);
 
+  // STORY audit (reviewer 5): EventForm had no visualViewport guard and
+  // no role="dialog" / aria-modal / aria-label. iOS keyboard occluded
+  // the save button (same problem the AppointmentSheet fix solved in
+  // batch 1). Clone the same approach: sheet height tracks
+  // window.visualViewport.height with a 92 % multiplier so the sticky
+  // bottom commit bar stays in the visible band when keyboard opens.
+  const [sheetHeight, setSheetHeight] = useState<string>("92vh");
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      setSheetHeight(`${Math.max(320, Math.floor(vv.height * 0.92))}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   // Form state
   const [dateKey,       setDateKey]       = useState(event.date);
   const [timeStart,     setTimeStart]     = useState(event.time_start);
@@ -506,9 +528,16 @@ export default function EventForm({
     >
       <div
         data-testid="event-form-sheet"
+        // STORY audit: добавили role/aria-modal/aria-label — раньше
+        // VoiceOver/TalkBack видели generic group вместо модалки.
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === "create" ? "Новое событие" : mode === "edit" ? "Редактирование события" : "Событие"}
         className="w-full max-w-lg bg-[var(--surface-grouped)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px] overflow-hidden border-2"
         style={{
-          height: "92vh",
+          // STORY audit: height теперь reacts на visualViewport, чтобы
+          // iOS keyboard не перекрывала save-bar.
+          height: sheetHeight,
           borderColor: frameBorder(color),
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",

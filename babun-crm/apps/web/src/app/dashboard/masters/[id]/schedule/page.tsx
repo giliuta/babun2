@@ -169,7 +169,7 @@ export default function MasterSchedulePage({ params }: RouteParams) {
             Визитов пока нет
           </div>
           <div className="text-[12px] text-[var(--label-tertiary)]">
-            Сюда попадают только записи, назначенные лично на этого сотрудника.
+            Сюда попадают только записи, назначенные лично на этого мастера.
           </div>
         </div>
       )}

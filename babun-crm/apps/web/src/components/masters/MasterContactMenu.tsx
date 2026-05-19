@@ -129,7 +129,7 @@ export default function MasterContactMenu({
             icon={<MessageCircle size={18} strokeWidth={2} />}
             tone="text-[var(--accent)]"
             label="Чат в Babun"
-            subtitle="внутренний канал с сотрудником"
+            subtitle="внутренний канал с мастером"
             onClick={openChat}
           />
         </div>

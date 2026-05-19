@@ -223,7 +223,7 @@ export default function MasterAccessPage({ params }: RouteParams) {
       {/* ── Видимость команд ────────────────────────────────────── */}
       <Section
         title="Видимость команд"
-        footer="Что сотрудник увидит в календаре, когда войдёт в Babun."
+        footer="Что мастер увидит в календаре, когда войдёт в Babun."
       >
         {(
           [

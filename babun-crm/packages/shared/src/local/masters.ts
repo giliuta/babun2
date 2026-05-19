@@ -597,6 +597,18 @@ export interface BrigadeMember {
 export const LEGACY_LEAD_ROLE_ID = "role-lead";
 export const LEGACY_HELPER_ROLE_ID = "role-helper";
 
+// STORY audit: до этой константы три разных места жёстко проверяли
+// `role.name.trim().toLowerCase() === "бригадир"`. Это хрупкая логика
+// — если диспетчер создал роль с именем «Старший» или «Руководитель»,
+// она не считалась лидерской. Сейчас сводим в одну точку, чтобы
+// позже можно было заменить на явный `is_lead: boolean` флаг на
+// уровне BrigadeRole без правок call-sites.
+export const LEAD_ROLE_NAME = "бригадир";
+
+export function isLeadRole(role: { name: string }): boolean {
+  return role.name.trim().toLowerCase() === LEAD_ROLE_NAME;
+}
+
 // ─── Brigade appointment-sheet visibility (Sprint 033 Phase I42) ─
 
 /** Optional blocks the dispatcher can toggle per brigade. Mandatory

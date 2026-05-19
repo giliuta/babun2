@@ -55,7 +55,7 @@ export default function StepDone({
       {/* v544 §3.2 (b) — «Что сделать дальше» checklist. Sets the
           first-week-of-use expectation: which sections to visit and
           in what order. Renders different items for personal vs
-          team mode so a solo owner doesn't see «Добавить сотрудника»
+          team mode so a solo owner doesn't see «Добавить мастера»
           first when they explicitly opted into the personal calendar. */}
       <ChecklistSection personalCalendar={personalCalendar} />
 
@@ -142,7 +142,7 @@ const TEAM_CHECKLIST: ChecklistItem[] = [
   {
     emoji: "👥",
     title: "Соберите команду",
-    body: "Сотрудники → «Новый сотрудник». Свяжите их с командами на странице «Команды».",
+    body: "Сотрудники → «Новый мастер». Свяжите их с командами на странице «Команды».",
   },
   {
     emoji: "🧰",
@@ -180,7 +180,7 @@ const PERSONAL_CHECKLIST: ChecklistItem[] = [
   {
     emoji: "👥",
     title: "Пригласите команду позже",
-    body: "Когда появятся сотрудники — Сотрудники → «Новый сотрудник». Личный календарь остаётся вашим.",
+    body: "Когда появятся сотрудники — Сотрудники → «Новый мастер». Личный календарь остаётся вашим.",
   },
 ];
 

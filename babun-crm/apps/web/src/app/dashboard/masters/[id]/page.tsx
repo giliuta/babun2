@@ -64,7 +64,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
 
   const [contactOpen, setContactOpen] = useState(false);
   // P2 #44 (CRM Core brief) — header kebab replaces the bottom
-  // «Удалить сотрудника» button. Tap anchors a Telegram-style
+  // «Удалить мастера» button. Tap anchors a Telegram-style
   // context menu with Архивировать / Удалить (red).
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
@@ -167,7 +167,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
             onClick={() => router.push("/dashboard/masters")}
             className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
           >
-            К списку сотрудников
+            К списку мастеров
           </button>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
       ? `Связан с: ${depParts}. Отменить нельзя.`
       : "Будет удалён. Отменить нельзя.";
     const ok = await confirm({
-      title: `Удалить сотрудника «${master.full_name}»?`,
+      title: `Удалить мастера «${master.full_name}»?`,
       message,
       confirmLabel: "Удалить",
     });
@@ -280,7 +280,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
         </h1>
         {/* P2 #44 (CRM Core brief) — kebab in the header is the new
             home for archive + destructive actions. Replaces the
-            bottom «Удалить сотрудника» button (a primary surface for
+            bottom «Удалить мастера» button (a primary surface for
             a rare, destructive action). */}
         <button
           type="button"
@@ -497,7 +497,7 @@ export default function MasterDetailPage({ params }: RouteParams) {
             </button>
           )}
 
-          {/* P2 #44 — bottom «Удалить сотрудника» moved to header kebab. */}
+          {/* P2 #44 — bottom «Удалить мастера» moved to header kebab. */}
         </div>
       </div>
 

@@ -71,7 +71,7 @@ export default function AvatarPickerSheet({
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
           <div className="text-[17px] font-semibold tracking-tight text-[var(--label)]">
-            Фото сотрудника
+            Фото мастера
           </div>
           <button
             type="button"

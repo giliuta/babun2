@@ -32,6 +32,7 @@ import { useMasters, useTeams } from "@/components/layout/DashboardClientLayout"
 import {
   generateId,
   getInitials,
+  isLeadRole,
   type BrigadeMember,
   type BrigadeRole,
   type Master,
@@ -116,7 +117,7 @@ export default function BrigadeMemberAccessPage({ params }: RouteParams) {
     // Legacy sync.
     const leadRoleIds = new Set(
       (team.roles ?? [])
-        .filter((r) => r.name.trim().toLowerCase() === "бригадир")
+        .filter((r) => isLeadRole(r))
         .map((r) => r.id),
     );
     const leadIds: string[] = [];
@@ -184,7 +185,7 @@ export default function BrigadeMemberAccessPage({ params }: RouteParams) {
     // Legacy sync — recompute lead/helper arrays without this master.
     const leadRoleIds = new Set(
       (team.roles ?? [])
-        .filter((r) => r.name.trim().toLowerCase() === "бригадир")
+        .filter((r) => isLeadRole(r))
         .map((r) => r.id),
     );
     const leadIds: string[] = [];

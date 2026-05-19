@@ -2,7 +2,7 @@
 
 // Sprint 033 Phase I31 — /dashboard/masters list page.
 //  · I30 introduced the iOS Settings redesign of the list itself.
-//  · I31 rewires tap and "Редактировать" / "Новый сотрудник" to push
+//  · I31 rewires tap and "Редактировать" / "Новый мастер" to push
 //    the new /dashboard/masters/[id] detail hub, so the legacy
 //    7-section MasterSheet stops being the primary editor. The sheet
 //    is retained only for the ?edit=<id> deep-link (used by older
@@ -124,7 +124,7 @@ export default function MastersPage() {
 
   const handleDelete = async (master: Master) => {
     const ok = await confirm({
-      title: `Удалить сотрудника «${master.full_name}»?`,
+      title: `Удалить мастера «${master.full_name}»?`,
       message: "Будет удалён из всех команд где состоял. Отменить нельзя.",
       confirmLabel: "Удалить",
     });
@@ -239,7 +239,7 @@ export default function MastersPage() {
             <EmptyState
               variant="prominent"
               icon={<UserCircle2 size={28} strokeWidth={2} />}
-              title="Пока нет сотрудников"
+              title="Пока нет мастеров"
               description="Добавьте первого — потом сможете закрепить его за командой и настроить доступы."
               action={
                 <button
@@ -247,7 +247,7 @@ export default function MastersPage() {
                   onClick={openNew}
                   className="h-11 px-5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold press-scale"
                 >
-                  Новый сотрудник
+                  Новый мастер
                 </button>
               }
             />
@@ -327,7 +327,7 @@ export default function MastersPage() {
                       <Plus size={18} strokeWidth={2.5} />
                     </span>
                     <span className="flex-1 text-[15px] font-medium text-[var(--accent)]">
-                      Новый сотрудник
+                      Новый мастер
                     </span>
                   </button>
                 </div>

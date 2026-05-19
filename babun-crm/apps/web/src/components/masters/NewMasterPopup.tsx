@@ -144,7 +144,7 @@ export default function NewMasterPopup({
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
             <div className="text-[17px] font-semibold tracking-tight text-[var(--label)]">
-              Новый сотрудник
+              Новый мастер
             </div>
             <button
               type="button"
@@ -292,7 +292,7 @@ export default function NewMasterPopup({
               </div>
               <div className="px-1 pt-1.5 text-[12px] text-[var(--label-tertiary)] leading-snug">
                 Без логина и пароля учётка не создастся. Пароль виден один
-                раз — скопируйте и передайте сотруднику.
+                раз — скопируйте и передайте мастеру.
               </div>
             </div>
           </div>

@@ -40,6 +40,7 @@ import {
   LEGACY_LEAD_ROLE_ID,
   generateId,
   getInitials,
+  isLeadRole,
   type BrigadeMember,
   type BrigadeRole,
   type Master,
@@ -165,7 +166,7 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
   const toLegacy = (rolesNow: BrigadeRole[], membersNow: BrigadeMember[]) => {
     const leadRoleIds = new Set(
       rolesNow
-        .filter((r) => r.name.trim().toLowerCase() === "бригадир")
+        .filter((r) => isLeadRole(r))
         .map((r) => r.id),
     );
     const leadIds: string[] = [];
