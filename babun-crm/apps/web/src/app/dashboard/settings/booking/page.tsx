@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Check, X, Pencil, Trash2 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useLocationLabels } from "@/components/layout/DashboardClientLayout";
 import {
   generateLocationLabelId,
@@ -20,6 +21,7 @@ function LabelRow({
   onUpdate: (updated: LocationLabel) => void;
   onDelete: () => void;
 }) {
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(label.name);
 
@@ -75,21 +77,30 @@ function LabelRow({
           {label.name}
         </div>
       </div>
+      {/* STORY audit: tap target 32→44; delete теперь через confirm. */}
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-8 h-8 flex items-center justify-center text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)] rounded-[8px]"
+        className="w-11 h-11 flex items-center justify-center text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)] rounded-[10px]"
         aria-label="Редактировать"
       >
-        <Pencil size={14} strokeWidth={2} />
+        <Pencil size={18} strokeWidth={2} />
       </button>
       <button
         type="button"
-        onClick={onDelete}
-        className="w-8 h-8 flex items-center justify-center text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)] rounded-[8px]"
-        aria-label="Удалить"
+        onClick={async () => {
+          const ok = await confirm({
+            title: `Удалить метку «${label.name}»?`,
+            message: "Метку нельзя восстановить. В существующих записях ссылка останется, но в новых формах больше не появится.",
+            confirmLabel: "Удалить",
+            danger: true,
+          });
+          if (ok) onDelete();
+        }}
+        className="w-11 h-11 flex items-center justify-center text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)] rounded-[10px]"
+        aria-label="Удалить метку"
       >
-        <Trash2 size={14} strokeWidth={2} />
+        <Trash2 size={18} strokeWidth={2} />
       </button>
     </div>
   );

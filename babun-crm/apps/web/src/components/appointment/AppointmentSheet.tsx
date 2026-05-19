@@ -122,6 +122,33 @@ export default function AppointmentSheet({
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setLiveMode(mode), [mode, appointment.id]);
 
+  // STORY audit: iOS Safari клавиатура перекрывает sticky footer
+  // (AppointmentSaveButton). Использую visualViewport API — на open
+  // keyboard `visualViewport.height` уменьшается, и мы передаём это
+  // как inline height на sheet-container. Footer остаётся в видимой
+  // зоне, scroll внутри sheet работает как раньше. Резерв 16px чтобы
+  // sheet не прилипал к самому верху клавиатуры. На десктопе и
+  // Android Chrome visualViewport совпадает с innerHeight — стандартный
+  // 92vh.
+  const [sheetHeight, setSheetHeight] = useState<string>("92vh");
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      // Когда клавиатура закрыта vv.height ≈ window.innerHeight → 92vh
+      // выглядит обычно. Когда открыта — берём 92% vv.height.
+      const usable = vv.height;
+      setSheetHeight(`${Math.max(320, Math.floor(usable * 0.92))}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   const [kind, setKind] = useState<Kind>(
     personalMode ||
       appointment.kind === "event" ||
@@ -465,17 +492,25 @@ export default function AppointmentSheet({
   // v607 P0 #3 — Источник заявки больше не блокирует создание. KPI
   // «20 секунд на мотороллере» важнее аналитического gap'а; источник
   // переехал в свёрнутую секцию «Подробнее», по умолчанию null.
-  // Минимум для work-записи: клиент + хотя бы одна услуга.
+  //
+  // STORY audit: до этого аудита для work-записи требовался И клиент,
+  // И услуга. Из-за этого AskClientFirstDialog с кнопкой «Без клиента»
+  // приводил в тупик — диспетчер выбирает услугу без клиента, кнопка
+  // «Создать» grey'ит навсегда, и непонятно почему. Теперь клиент
+  // опционален для черновика: запись с услугой и временем валидна,
+  // клиента можно прикрепить позже (типичный сценарий — звонок при
+  // ремонтe «приду чуть позже, тогда скажу кто»). savePreviewLabel
+  // всё равно подсказывает «без клиента — добавьте позже» когда
+  // клиент не выбран.
   const canSave = isEventMode
     ? Boolean(eventLabel.trim())
-    : Boolean(clientId && appointmentServices.length > 0);
+    : appointmentServices.length > 0;
 
   // v607 P0 #1.8 — live preview button text. Shows date · time ·
   // duration · price when ready; lists what's missing otherwise so the
   // operator doesn't have to scroll up to find the gap.
   const missingParts: string[] = [];
   if (!isEventMode) {
-    if (!clientId) missingParts.push("клиента");
     if (appointmentServices.length === 0) missingParts.push("услугу");
   } else if (!eventLabel.trim()) {
     missingParts.push("название");
@@ -491,7 +526,13 @@ export default function AppointmentSheet({
     }
     const shortDate = formatShortDate(dateKey);
     const verb = liveMode === "edit" ? "Сохранить" : "Создать";
-    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}`;
+    // STORY audit: signal when a record is being saved without a client
+    // attached so the dispatcher knows they'll need to attach one later.
+    // Common workflow on AirFix: customer calls, agrees on time, hangs
+    // up before giving full name — operator saves draft, fills client
+    // when the next call comes in.
+    const noClient = !clientId ? " · без клиента" : "";
+    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}${noClient}`;
   })();
 
   // Whether the user has entered anything worth protecting on close.
@@ -638,7 +679,10 @@ export default function AppointmentSheet({
         aria-modal="true"
         aria-label={dialogLabel}
         className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
-        style={{ height: "92vh" }}
+        // STORY audit: height теперь следует за visualViewport (iOS
+        // keyboard fix). Раньше было фиксированное 92vh — sticky
+        // footer уезжал за клавиатуру при фокусе в textarea / поиск.
+        style={{ height: sheetHeight }}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => {
           const target = e.target as HTMLElement;

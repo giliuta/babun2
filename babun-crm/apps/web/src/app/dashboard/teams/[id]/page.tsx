@@ -301,7 +301,10 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
             <NavRow
               icon={<UsersIcon size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
-              title="Команда"
+              // STORY audit: было «Команда», заголовок целевой страницы
+              // — «Сотрудники», а в иерархии sidebar — «Мастера». Три
+              // термина → путаница. Унифицируем как «Мастера».
+              title="Мастера"
               value={mastersPreview.text}
               warning={mastersPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/masters`)}

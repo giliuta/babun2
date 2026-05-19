@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Check, X, Pencil, Trash2 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button, IOSSwitch } from "@/components/ui";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useCities } from "@/components/layout/DashboardClientLayout";
 import { generateCityId, type City } from "@babun/shared/local/cities";
 
@@ -17,6 +18,7 @@ function CityRow({
   onUpdate: (updated: City) => void;
   onDelete: () => void;
 }) {
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(city.name);
   const [country, setCountry] = useState(city.country);
@@ -83,21 +85,31 @@ function CityRow({
         onChange={(next) => onUpdate({ ...city, isActive: next })}
         ariaLabel="Активен"
       />
+      {/* STORY audit: tap targets 32→44, и delete теперь через confirm —
+          раньше один тап удалял город без подтверждения. */}
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-8 h-8 flex items-center justify-center text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)] rounded-[8px]"
+        className="w-11 h-11 flex items-center justify-center text-[var(--label-secondary)] hover:bg-[var(--fill-tertiary)] rounded-[10px]"
         aria-label="Редактировать"
       >
-        <Pencil size={14} strokeWidth={2} />
+        <Pencil size={18} strokeWidth={2} />
       </button>
       <button
         type="button"
-        onClick={onDelete}
-        className="w-8 h-8 flex items-center justify-center text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)] rounded-[8px]"
-        aria-label="Удалить"
+        onClick={async () => {
+          const ok = await confirm({
+            title: `Удалить город «${city.name}»?`,
+            message: "Города нельзя восстановить. Записи и метки, привязанные к этому городу, сохранят ссылку — но в новых формах он больше не появится.",
+            confirmLabel: "Удалить",
+            danger: true,
+          });
+          if (ok) onDelete();
+        }}
+        className="w-11 h-11 flex items-center justify-center text-[var(--system-red)] hover:bg-[rgba(255,59,48,0.1)] rounded-[10px]"
+        aria-label="Удалить город"
       >
-        <Trash2 size={14} strokeWidth={2} />
+        <Trash2 size={18} strokeWidth={2} />
       </button>
     </div>
   );

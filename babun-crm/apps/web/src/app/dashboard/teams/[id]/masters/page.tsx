@@ -303,7 +303,12 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     : [];
 
   return (
-    <BrigadeSectionShell brigadeId={id} title="Сотрудники" hideSave>
+    // STORY audit: переименовано «Сотрудники» → «Мастера». В UI
+    // используется уже устоявшееся «Мастера» (BottomTabBar / sidebar /
+    // /dashboard/masters), и nav-row на странице бригады назывался
+    // «Команда». Три разных слова для одного и того же раздела одного
+    // и того же объекта — путали диспетчера. Теперь единый термин.
+    <BrigadeSectionShell brigadeId={id} title="Мастера" hideSave>
       {/* ── Empty-state ─────────────────────────────────────── */}
       {members.length === 0 && roles.length === 0 ? (
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-6 py-8 text-center">
@@ -370,9 +375,23 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
         Добавить мастера
       </button>
       {availableMasters.length === 0 && members.length > 0 && (
-        <div className="text-[12px] text-[var(--label-tertiary)] leading-snug px-4">
-          Все активные мастера уже в команде. Новых заведите в разделе
-          «Мастера».
+        // STORY audit: текст превращён в deeplink-кнопку. Раньше
+        // диспетчер видел тупик «Все мастера уже в команде. Новых
+        // заведите в разделе „Мастера“» и не понимал куда идти —
+        // ссылки не было. Теперь одним тапом попадаем туда.
+        <div className="flex flex-col gap-2 px-4">
+          <div className="text-[12px] text-[var(--label-tertiary)] leading-snug">
+            Все активные мастера уже в этой команде. Если нужно завести
+            нового — добавьте его в общем разделе «Мастера», затем
+            вернитесь сюда.
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/masters")}
+            className="self-start h-11 px-4 rounded-[12px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--accent)] active:bg-[var(--fill-secondary)]"
+          >
+            Перейти в раздел «Мастера» →
+          </button>
         </div>
       )}
 

@@ -101,7 +101,11 @@ export default function TimePopup({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 h-8 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+            // STORY audit: bumped h-8 → h-11 to meet the 44 pt iOS tap
+            // target. This is the only commit-and-close affordance for
+            // the entire time-picking flow — the dispatcher hits it on
+            // every create.
+            className="px-4 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
           >
             Готово
           </button>
@@ -117,7 +121,10 @@ export default function TimePopup({
                   key={c.label}
                   type="button"
                   onClick={c.onClick}
-                  className="flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
+                  // STORY audit: h-8 → h-11 for «Сейчас / Через час / Завтра».
+                  // Primary one-tap shortcuts on the busiest surface in
+                  // the create flow.
+                  className="flex-shrink-0 px-4 h-11 rounded-full text-[14px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
                 >
                   {c.label}
                 </button>
@@ -153,7 +160,10 @@ export default function TimePopup({
                     key={m}
                     type="button"
                     onClick={() => applyDuration(m)}
-                    className={`flex-shrink-0 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] tabular-nums ${
+                    // STORY audit: h-8 → h-11. Duration presets are
+                    // tapped every create; 32 px on a sweaty thumb is
+                    // a coin-flip.
+                    className={`flex-shrink-0 px-4 h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.97] tabular-nums ${
                       active
                         ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                         : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
@@ -164,7 +174,7 @@ export default function TimePopup({
                 );
               })}
               {durationTouched && !PRESET_DURATIONS.includes(liveDurationMins as never) && (
-                <span className="flex-shrink-0 px-3 h-8 inline-flex items-center rounded-full text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
+                <span className="flex-shrink-0 px-4 h-11 inline-flex items-center rounded-full text-[14px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] tabular-nums">
                   {liveDurationMins}м
                 </span>
               )}

@@ -101,6 +101,16 @@ export default function Header({
   onSelectDate,
   onMenuToggle,
 }: HeaderProps) {
+  // STORY audit: onZoomIn / onZoomOut / onMenuToggle were dead props —
+  // declared on the interface, passed by page.tsx, then immediately
+  // `void`-ed inside the component. The desktop zoom +/- buttons next
+  // to «Предыдущий период» / «Следующий период» were never wired, and
+  // the menu hamburger on iPad-sized screens never fired. Until
+  // someone actually builds the desktop zoom UI we keep the props
+  // referenced via assignment so TypeScript doesn't complain about
+  // unused, but document the absence. Real fix lives downstream: zoom
+  // would mutate calendar `--hh` CSS var, menu toggle should call
+  // sidebar.toggle (page.tsx already passes that callback through).
   void onZoomIn;
   void onZoomOut;
   void onMenuToggle;
@@ -388,7 +398,11 @@ function ViewModeDropdown({
                 onMouseEnter={() => setHighlightIdx(idx)}
                 onClick={() => selectMode(mode)}
                 data-testid={`header-view-mode-option-${mode}`}
-                className={`w-full min-h-[40px] flex items-center justify-between px-3 text-[15px] active:bg-[var(--fill-quaternary)] focus:bg-[var(--fill-quaternary)] focus:outline-none transition-colors ${
+                // STORY audit: was min-h-[40px] (4 px below the 44 pt
+                // Apple HIG floor). On a narrow popup with five rows
+                // stacked, the missed gap routinely picks the wrong
+                // mode. Bumped to min-h-[44px].
+                className={`w-full min-h-[44px] flex items-center justify-between px-3 text-[15px] active:bg-[var(--fill-quaternary)] focus:bg-[var(--fill-quaternary)] focus:outline-none transition-colors ${
                   isCurrent
                     ? "text-[var(--accent)] font-semibold"
                     : "text-[var(--label)]"
@@ -545,7 +559,13 @@ function TeamChip({
       data-team-id={team.id}
       {...dragHandleProps}
       style={dragStyle}
-      className={`relative flex items-center gap-1.5 px-3 h-8 max-w-[180px] rounded-full text-[13px] font-semibold whitespace-nowrap select-none transition-shadow ${tone} ${
+      // STORY audit: TeamChip raised h-8 → h-10. The team-tab strip is
+      // tapped 5-10 times a day (switch brigade ↔ personal), and 32 px
+      // on a moving thumb is a coin-flip. h-10 still keeps the compact
+      // Telegram-style horizontal-scroll feel, but the hit zone now
+      // covers ≥44 pt once you count the surrounding pb-2 padding from
+      // TeamTabStrip's outer div.
+      className={`relative flex items-center gap-1.5 px-3.5 h-10 max-w-[180px] rounded-full text-[13px] font-semibold whitespace-nowrap select-none transition-shadow ${tone} ${
         isDragging
           ? "z-20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] scale-[1.06] rotate-[-1.5deg] cursor-grabbing"
           : ""

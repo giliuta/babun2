@@ -48,6 +48,7 @@ import { haptic } from "@/lib/haptics";
 import { useTeams } from "@/components/layout/DashboardClientLayout";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import {
   type BrigadeAppointmentBlocks,
 } from "@babun/shared/local/masters";
@@ -145,6 +146,7 @@ const OPTIONAL_BLOCKS: BlockMeta[] = [
 export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
   const { id } = use(params);
   const { teams, upsertTeam } = useTeams();
+  const confirm = useConfirm();
   const team = teams.find((t) => t.id === id);
 
   // BUGFIX (bug-hunt sweep) — useMemo/useSensors/useSensor were
@@ -198,7 +200,19 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
     });
   };
 
-  const resetToDefaults = () => {
+  const resetToDefaults = async () => {
+    // STORY audit: «Сбросить к стандартным» одним тапом стирает все
+    // пользовательские флаги блоков и порядок (минут работы по
+    // настройке формы — на ветер). Спрашиваем подтверждение, чтобы
+    // случайный тап не уничтожил настройку.
+    const ok = await confirm({
+      title: "Сбросить настройки записи?",
+      message:
+        "Все включённые блоки и их порядок вернутся к стандартным. Это не отменить.",
+      confirmLabel: "Сбросить",
+      danger: true,
+    });
+    if (!ok) return;
     haptic("warning");
     upsertTeam({
       ...team,

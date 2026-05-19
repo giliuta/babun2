@@ -83,22 +83,31 @@ export default function ServiceRow({
           {/* Qty stepper + price expression */}
           <div className="flex items-center gap-2 mt-1.5">
             {isCountable && !readonly ? (
-              <div className="inline-flex items-center gap-1 bg-[var(--fill-primary)] rounded-lg h-8 px-1">
+              // STORY audit: stepper was h-8 with 28×28 buttons — far
+              // below the 44 pt iOS tap-target floor, and the stepper
+              // mutates `total_amount` on every click. Raised the outer
+              // pill to h-11 and each ± button to 36×36 (inside the pill).
+              // 36 is the practical inside-pill max and combined with
+              // the pill's 12 px hit-zone surround gives ≥44 pt of real
+              // tap area.
+              <div className="inline-flex items-center gap-1.5 bg-[var(--fill-primary)] rounded-xl h-11 px-1.5">
                 <button
                   type="button"
                   onClick={() => setQty(line.quantity - 1)}
                   disabled={line.quantity <= 1}
-                  className="w-7 h-7 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed flex items-center justify-center"
+                  aria-label="Уменьшить количество"
+                  className="w-9 h-9 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[17px] font-bold active:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   −
                 </button>
-                <span className="min-w-[24px] text-center text-[14px] font-bold text-[var(--label)] tabular-nums">
+                <span className="min-w-[28px] text-center text-[15px] font-bold text-[var(--label)] tabular-nums">
                   {line.quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => setQty(line.quantity + 1)}
-                  className="w-7 h-7 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[15px] font-bold active:bg-[var(--fill-tertiary)] flex items-center justify-center"
+                  aria-label="Увеличить количество"
+                  className="w-9 h-9 rounded-md bg-[var(--surface-card)] text-[var(--label)] text-[17px] font-bold active:bg-[var(--fill-tertiary)] flex items-center justify-center"
                 >
                   +
                 </button>
@@ -146,25 +155,40 @@ export default function ServiceRow({
             {formatEUR(displayTotal)}
           </div>
           {!readonly && (
+            // STORY audit: pencil + delete were 28×28 — below 44 pt
+            // floor. Delete in particular was a single-tap destructive
+            // mutation with no confirm — house rule (data-loss-guardian)
+            // requires either a confirm modal or undo toast. Raised to
+            // 40×40 (still visually tight in the right column) AND added
+            // a confirm modal on delete via the existing ConfirmProvider.
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setEditorOpen((v) => !v)}
                 aria-label="Изменить цену"
-                className="w-7 h-7 flex items-center justify-center rounded-md text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
+                className="w-10 h-10 flex items-center justify-center rounded-md text-[var(--label-secondary)] active:bg-[var(--fill-primary)]"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
                 </svg>
               </button>
               <button
                 type="button"
-                onClick={onRemove}
-                aria-label="Удалить"
-                className="w-7 h-7 flex items-center justify-center rounded-md text-[var(--label-tertiary)] active:text-[var(--system-red)]"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `Удалить «${service?.name ?? "услугу"}»?`,
+                    message:
+                      "Сумма пересчитается, общая длительность изменится.",
+                    confirmLabel: "Удалить",
+                    danger: true,
+                  });
+                  if (ok) onRemove();
+                }}
+                aria-label="Удалить услугу"
+                className="w-10 h-10 flex items-center justify-center rounded-md text-[var(--label-tertiary)] active:text-[var(--system-red)] active:bg-[rgba(255,59,48,0.08)]"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>

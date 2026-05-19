@@ -32,6 +32,7 @@ import {
 } from "@babun/shared/local/schedule";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -41,6 +42,7 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   const { id } = use(params);
   const { teams } = useTeams();
   const { schedules, setSchedules } = useSchedules();
+  const confirm = useConfirm();
   const team = teams.find((t) => t.id === id);
 
   const schedule: TeamSchedule = schedules[id] ?? DEFAULT_SCHEDULE;
@@ -155,7 +157,27 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   // overrides map with explicit off-day flags for the off days. Any
   // existing per-day custom hours are wiped (the user just declared
   // «I want this pattern»).
-  const applyTemplate = (preset: "weekdays-9-18" | "daily-8-22" | "six-one") => {
+  const applyTemplate = async (
+    preset: "weekdays-9-18" | "daily-8-22" | "six-one"
+  ) => {
+    // STORY audit: применение шаблона ПЕРЕЗАПИСЫВАЕТ все per-day
+    // overrides (тонкие настройки «среда — короткий день», «пятница с
+    // перерывом» теряются). Если у команды уже есть кастомные дни —
+    // спрашиваем подтверждение, чтобы один тап не уничтожил работу.
+    const hasCustomDays = WEEKDAY_KEYS.some((k) => {
+      const ov = schedule.overrides?.[k];
+      return ov != null;
+    });
+    if (hasCustomDays) {
+      const ok = await confirm({
+        title: "Заменить расписание?",
+        message:
+          "В расписании есть свои настройки по дням (выходные, индивидуальное время, перерывы). Применение шаблона их перезапишет.",
+        confirmLabel: "Применить",
+        danger: true,
+      });
+      if (!ok) return;
+    }
     haptic("tap");
     const offFlag: DaySchedule = {
       is_working: false,
