@@ -88,20 +88,28 @@ export default function ServicesBlock({
 
   return (
     <div className="px-4 pt-2 space-y-2">
-      {services.length === 0 && !readonly && popularServices.length > 0 && (
+      {/* STORY audit: ДВА фикса в одном.
+          1) Раньше popular chips показывались ТОЛЬКО когда
+             services.length === 0. Диспетчер добавил первую услугу
+             («Сплит-система»), второй услугой обычно идёт «Монтаж» из
+             популярных — а chips уже скрылись. Теперь показываются
+             всегда, пока !readonly.
+          2) chips h-8 → h-10. Это primary one-tap shortcut, должен
+             быть 44 pt-class tap target. */}
+      {!readonly && popularServices.length > 0 && (
         <div
-          className="flex gap-1.5 overflow-x-auto"
+          className="flex gap-2 overflow-x-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          {popularServices.slice(0, 3).map((svc) => (
+          {popularServices.slice(0, 5).map((svc) => (
             <button
               key={svc.id}
               type="button"
               onClick={() => addService(svc)}
-              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] border border-[var(--accent)]/30 text-[13px] font-semibold active:scale-[0.97]"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 h-10 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] border border-[var(--accent)]/30 text-[13px] font-semibold active:scale-[0.97]"
             >
-              <span className="text-[14px] leading-none">+</span>
-              <span className="truncate max-w-[140px]">{svc.name}</span>
+              <span className="text-[15px] leading-none">+</span>
+              <span className="truncate max-w-[160px]">{svc.name}</span>
             </button>
           ))}
         </div>

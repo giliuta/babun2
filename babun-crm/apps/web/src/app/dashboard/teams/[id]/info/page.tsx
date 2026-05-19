@@ -53,6 +53,13 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.region ?? "");
   const [color, setColor] = useState(initial.color);
+  // STORY audit: payout_percentage жил только в типе Team, в UI его не
+  // было — финансы использовали hardcode 30 % через fallback. Добавляю
+  // ввод (5 быстрых пресетов 20/25/30/35/40 + кастомное поле). Сохранение
+  // идёт сразу через commitPayout (instant commit как color/description).
+  const [payoutPct, setPayoutPct] = useState<number>(
+    initial.payout_percentage ?? 30,
+  );
 
   useEffect(() => {
     // Reset form fields when `existing` flips (different team picked
@@ -64,6 +71,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
       setName(existing.name);
       setDescription(existing.region ?? "");
       setColor(existing.color);
+      setPayoutPct(existing.payout_percentage ?? 30);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [existing, isNew]);
@@ -97,6 +105,13 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     haptic("tap");
     upsertTeam({ ...existing, color: next });
   };
+  const commitPayout = (next: number) => {
+    if (!existing) return;
+    const clamped = Math.max(0, Math.min(100, Math.round(next)));
+    if (clamped === (existing.payout_percentage ?? 30)) return;
+    haptic("tap");
+    upsertTeam({ ...existing, payout_percentage: clamped });
+  };
 
   // ── new-brigade create flow ──────────────────────────────────────
   const handleCreate = (): boolean => {
@@ -110,6 +125,7 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
       name: name.trim(),
       region: description.trim(),
       color,
+      payout_percentage: Math.max(0, Math.min(100, Math.round(payoutPct))),
     });
     return true;
   };
@@ -202,6 +218,60 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
           </div>
           <div className="mt-3 text-[12px] text-[var(--label-tertiary)] leading-snug">
             Этот цвет показывает записи команды в календаре и метит её аватарку в списке.
+          </div>
+        </div>
+      </div>
+
+      {/* ── Payout percentage ───────────────────────────────────── */}
+      <div>
+        <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
+          Процент команды
+        </div>
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-4">
+          <div className="flex gap-2 flex-wrap">
+            {[20, 25, 30, 35, 40].map((p) => {
+              const active = payoutPct === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => {
+                    setPayoutPct(p);
+                    commitPayout(p);
+                  }}
+                  className={`h-11 px-4 rounded-full text-[14px] font-semibold tabular-nums transition active:scale-[0.97] ${
+                    active
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                      : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
+                  }`}
+                >
+                  {p}%
+                </button>
+              );
+            })}
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-[12px] text-[var(--label-secondary)]">
+                Своё
+              </span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={100}
+                value={payoutPct}
+                onChange={(e) => setPayoutPct(Number(e.target.value) || 0)}
+                onBlur={(e) => {
+                  if (!isNew) commitPayout(Number(e.target.value) || 0);
+                }}
+                className="w-16 h-11 bg-[var(--fill-tertiary)] border border-[var(--separator)] rounded-[10px] px-2 text-[14px] font-semibold text-[var(--label)] tabular-nums text-center focus:outline-none focus:border-[var(--accent)]"
+              />
+              <span className="text-[14px] text-[var(--label-secondary)]">
+                %
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 text-[12px] text-[var(--label-tertiary)] leading-snug">
+            Сколько от выручки команды идёт на зарплату мастерам. Применяется к каждой выполненной записи при расчёте «К выплате» в разделе Финансы.
           </div>
         </div>
       </div>

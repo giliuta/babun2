@@ -21,7 +21,14 @@ const SWIPE_MIN_PX = 30;
 // Direction lock thresholds (px) — decide horizontal vs vertical scroll.
 // 8 px was too twitchy on iPhone 390 (false horizontal triggers during
 // fast vertical grid scrolls). 12 gives room for an unambiguous gesture.
-const DIRECTION_LOCK_PX = 12;
+// STORY audit: было 12 — диагональные движения большим пальцем
+// (часто на быстром скролле вверх-вниз с лёгким наклоном) залезали в
+// horizontal-ветку и переключали на следующую неделю вместо обычного
+// scroll. Подняли до 20, а сам lock с гистерезисом 2.5:1 (horizontal
+// засчитывается только если |dx| значительно больше |dy|), чтобы
+// chyбое движение оставалось вертикальным скроллом.
+const DIRECTION_LOCK_PX = 20;
+const DIRECTION_LOCK_RATIO = 2.5;
 
 type Direction = "none" | "horizontal" | "vertical";
 
@@ -136,7 +143,13 @@ export default function SwipeableCalendar({
 
     if (directionRef.current === "none") {
       if (Math.abs(dx) > DIRECTION_LOCK_PX || Math.abs(dy) > DIRECTION_LOCK_PX) {
-        directionRef.current = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+        // Гистерезис: horizontal засчитывается только если |dx|
+        // значительно больше |dy| (по умолчанию в 2.5 раза). Иначе
+        // даже диагональный жест остаётся вертикальным скроллом,
+        // куда диспетчер и целился.
+        const horizontalEnough =
+          Math.abs(dx) > Math.abs(dy) * DIRECTION_LOCK_RATIO;
+        directionRef.current = horizontalEnough ? "horizontal" : "vertical";
       } else {
         return;
       }

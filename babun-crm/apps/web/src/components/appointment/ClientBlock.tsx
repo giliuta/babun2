@@ -57,12 +57,17 @@ export default function ClientBlock({
                 key={c.id}
                 type="button"
                 onClick={() => onPickRecent?.(c)}
-                className="flex-shrink-0 inline-flex items-center gap-1.5 pl-1 pr-3 h-8 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
+                // STORY audit: recent-client chips raised h-8 → h-10
+                // (32 → 40 px). With the parent scroll row's pad this
+                // gives ≥44 pt of real tap zone. These chips are the
+                // single-tap shortcut for repeat customers — the most
+                // common case in HVAC service.
+                className="flex-shrink-0 inline-flex items-center gap-1.5 pl-1.5 pr-3.5 h-10 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
               >
-                <span className="w-6 h-6 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center text-[10px] font-bold">
+                <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center text-[11px] font-bold">
                   {initials(c.full_name)}
                 </span>
-                <span className="truncate max-w-[120px]">{c.full_name}</span>
+                <span className="truncate max-w-[140px]">{c.full_name}</span>
               </button>
             ))}
           </div>

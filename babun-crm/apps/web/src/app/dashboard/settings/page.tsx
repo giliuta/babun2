@@ -7,7 +7,6 @@ import {
   Globe,
   Users as UsersIcon,
   MessageSquare,
-  Building2,
   ChevronRight,
   LogOut,
   IdCard,
@@ -15,6 +14,9 @@ import {
   Shield,
   CreditCard,
   Star,
+  MapPin,
+  Tag,
+  Plug,
 } from "@babun/shared/icons";
 import PageHeader from "@/components/layout/PageHeader";
 import {
@@ -97,11 +99,18 @@ const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
-  // v431 — "Команда" (Команды, Мастера) and "Каталог" (Города,
-  // Оборудование) groups dropped from settings per user request.
-  // Команды/Мастера live in the sidebar (Ещё → Команды/Мастера) and
-  // Города/Оборудование are configured inside the brigade/master
-  // detail pages, not as standalone catalog screens.
+  // STORY audit: до этой правки группы «Каталог» (Города, Метки,
+  // Оборудование) были полностью удалены из настроек со ссылкой «они
+  // настраиваются в бригадах». Но `/settings/cities`, `/settings/booking`
+  // и `/settings/integrations` РЕАЛЬНО существуют и работают как
+  // tenant-уровневые справочники — попасть в них можно было только
+  // через прямой URL или ссылку из пустого состояния чатов. Возвращаю
+  // группу «Справочники» с правильными ссылками. Также:
+  //   • Из группы «Компания» убран дубль «Реквизиты и VAT» — он
+  //     указывал на ту же страницу /settings/company что и «Счёт
+  //     компании» сверху.
+  //   • Добавлен пункт «Интеграции» (Telegram, Webhooks, WhatsApp,
+  //     Instagram), который раньше был доступен только из чатов.
   {
     title: "Записи",
     items: [
@@ -144,9 +153,25 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // "Личная информация" + "Тариф и оплата" used to live here and
-    // duplicated the "Личный кабинет" group above. Trimmed to just
-    // the multi-user / corporate-config rows.
+    title: "Справочники",
+    items: [
+      {
+        href: "/dashboard/settings/cities",
+        icon: MapPin,
+        tone: "bg-[var(--tile-cyan)]",
+        title: "Города",
+        desc: "Лимассол, Пафос, Никосия — список и активность",
+      },
+      {
+        href: "/dashboard/settings/booking",
+        icon: Tag,
+        tone: "bg-[var(--tile-purple)]",
+        title: "Типы объектов",
+        desc: "Метки адресов: офис, дом, склад, кафе",
+      },
+    ],
+  },
+  {
     title: "Компания",
     items: [
       {
@@ -157,11 +182,11 @@ const NAV_GROUPS: NavGroup[] = [
         desc: "Участники, роли, приглашения",
       },
       {
-        href: "/dashboard/settings/company",
-        icon: Building2,
-        tone: "bg-[var(--tile-purple)]",
-        title: "Реквизиты и VAT",
-        desc: "Название, VAT-номер, ставка 19%",
+        href: "/dashboard/settings/integrations",
+        icon: Plug,
+        tone: "bg-[var(--tile-indigo)]",
+        title: "Интеграции",
+        desc: "Telegram, WhatsApp, Webhooks",
       },
     ],
   },

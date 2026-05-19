@@ -469,10 +469,14 @@ function WeekArrow({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      // STORY audit: was 30×30 — under the 44 pt iOS tap-target floor
+      // (and the only way to change weeks). Now 44×44 with a slightly
+      // larger chevron for readability. Visually still a compact pill
+      // bookend to the wheel.
       className="flex-shrink-0 flex items-center justify-center transition active:scale-[0.92] disabled:opacity-30"
       style={{
-        width: 30,
-        height: 30,
+        width: 44,
+        height: 44,
         borderRadius: 999,
         background: "var(--surface-card)",
         border: "1px solid var(--separator)",
@@ -481,7 +485,7 @@ function WeekArrow({
       }}
       aria-label={direction === "prev" ? "Предыдущая неделя" : "Следующая неделя"}
     >
-      {direction === "prev" ? <ChevronLeftIcon size={14} /> : <ChevronRightIcon size={14} />}
+      {direction === "prev" ? <ChevronLeftIcon size={18} /> : <ChevronRightIcon size={18} />}
     </button>
   );
 }
