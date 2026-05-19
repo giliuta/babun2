@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount } from "@babun/shared/local/appointments";
 
@@ -29,6 +29,13 @@ function MonthViewInner({
 
   const today = useMemo(() => new Date(), []);
   const todayKey = formatDateKey(today);
+  // STORY audit (hydration flicker fix — same as DayColumn): на SSR
+  // нужно показывать все дни нейтрально, weekend-red применять только
+  // после hydration. Иначе SSR вы рендерит «фейковую» неделю с red
+  // субботами/воскресеньями, после hydration даты сдвигаются → red
+  // переезжает на другие колонки → flicker.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   // Build a 6-row × 7-col grid starting from the Monday of the week
   // that contains the 1st of the month.
@@ -80,7 +87,8 @@ function MonthViewInner({
           const data = byDate[key];
           const inCurrentMonth = date.getMonth() === month;
           const isToday = key === todayKey;
-          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+          // Hydration-gated: показываем red только после mount.
+          const isWeekend = hydrated && (date.getDay() === 0 || date.getDay() === 6);
           return (
             <button
               key={i}
