@@ -200,6 +200,16 @@ export default function AppointmentWorkBody({
         onGlobalDiscountChange={setGlobalDiscount}
       />
 
+      {/* STORY audit: Комментарий — это первое что диспетчер слышит
+          от клиента по телефону («домофон 25, второй этаж, синяя
+          дверь»). Раньше CommentBlock жил внутри Details accordion и
+          был закрыт по умолчанию в create-mode — приходилось тапать
+          «Подробнее», чтобы записать важную инфо. Теперь Comment
+          выведен НАД accordion в editable-mode тоже, оставаясь дублёром
+          внутри (для совместимости с старой видимостью). */}
+      {isEditable && (
+        <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
+      )}
       {isEditable ? (
         <details className="group px-4 pt-3" open={liveMode === "edit"}>
           <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
@@ -238,7 +248,8 @@ export default function AppointmentWorkBody({
               </div>
             )}
 
-            <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
+            {/* CommentBlock уже отрендерен выше accordion (см. STORY
+                audit) — дубль внутри details снят. */}
 
             <div ref={photoScrollRef}>
               <PhotoBlock

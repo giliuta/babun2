@@ -404,7 +404,12 @@ export default function MasterDetailPage({ params }: RouteParams) {
             <NavRow
               icon={<CalendarDays size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
-              title="Расписание"
+              // STORY audit: было «Расписание» — но страница показывает
+              // СПИСОК визитов мастера, а не weekly grid. «Расписание»
+              // как термин уже занят на /teams/[id]/schedule (грид
+              // рабочих часов бригады), и совпадение слов путало. Новое
+              // имя «Визиты» совпадает с содержимым.
+              title="Визиты"
               value={
                 performance.total > 0
                   ? `${performance.total} ${pluralVisits(performance.total)} в этом месяце`
