@@ -603,6 +603,21 @@ export default function AppointmentSheet({
     return `✅ Выполнено · 📄 счёт компании · ${formatEUR(appointment.total_amount)}`;
   })();
 
+  // STORY audit: dialog label depends on liveMode so screen readers
+  // announce the sheet's purpose (create draft vs viewing existing
+  // record) the moment focus lands.
+  const dialogLabel = isEventMode
+    ? liveMode === "create"
+      ? "Новое событие"
+      : "Событие"
+    : liveMode === "create"
+      ? "Новая запись"
+      : liveMode === "done"
+        ? "Завершённая запись"
+        : liveMode === "edit"
+          ? "Редактирование записи"
+          : "Запись клиента";
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
@@ -615,6 +630,13 @@ export default function AppointmentSheet({
         // v617 P1 §20 — swipe-down dirty-guard: drag the sheet
         // downward by ≥90 px while the body is scrolled to the top
         // and we route through attemptClose (same as backdrop/Esc).
+        // STORY audit: role="dialog" + aria-modal so assistive tech
+        // recognises this as a modal surface (previous version was a
+        // bare div with no a11y semantics — VoiceOver/TalkBack just saw
+        // a generic group).
+        role="dialog"
+        aria-modal="true"
+        aria-label={dialogLabel}
         className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
         style={{ height: "92vh" }}
         onClick={(e) => e.stopPropagation()}

@@ -1144,6 +1144,21 @@ function DashboardPageInner() {
   const openNewAppointmentInline = useCallback(
     (date: string | null, time: string | null, kind: "work" | "event") => {
       const today = new Date();
+      // STORY audit: «Запись клиента» on the personal tab silently
+      // no-op'd — the AppointmentSheet render guard (~L2167) skips when
+      // activeTeam is null, so FAB → onCreateWork on the personal calendar
+      // set inlineSheet without ever showing it. Auto-switch to the first
+      // available brigade for kind="work" so the FAB always produces a
+      // visible result. Events remain personal — they belong on the
+      // personal calendar by design (kind="event").
+      let teamIdForRecord = activeTeamId;
+      if (kind === "work" && activeTeamId === PERSONAL_TAB_ID) {
+        const firstBrigade = teams[0];
+        if (firstBrigade) {
+          teamIdForRecord = firstBrigade.id;
+          handleTeamChange(firstBrigade.id);
+        }
+      }
       const blank = createBlankAppointment({
         date: date || today.toISOString().slice(0, 10),
         time_start: time || "10:00",
@@ -1156,12 +1171,12 @@ function DashboardPageInner() {
               return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
             })()
           : "11:00",
-        team_id: activeTeamId || null,
+        team_id: teamIdForRecord || null,
         kind,
       });
       setInlineSheet({ mode: "new", initial: blank });
     },
-    [activeTeamId]
+    [activeTeamId, teams, handleTeamChange]
   );
 
   // Tap on empty slot → BookingSheet (STORY-002). Компонент сам
@@ -1710,13 +1725,18 @@ function DashboardPageInner() {
 
       {/* v616 §8 — combined-view toggle. Slot lives right under the
           header chip strip so the operator sees both "Все" and the
-          individual team chips on the same line. */}
+          individual team chips on the same line.
+          STORY audit: chip raised h-8 → h-10 to reach the 44 px-class
+          tap target (40 px with the surrounding pad still gives a
+          generous hit area). Vertical padding around the strip is
+          tightened so the strip costs 8 px less of valuable above-
+          the-fold space on a 375 px iPhone. */}
       {teamTabs.length > 1 && (
-        <div className="px-3 pt-1 pb-1 flex items-center gap-1.5 text-[12px] bg-[var(--surface-grouped)] border-b border-[var(--separator)]">
+        <div className="px-3 py-1.5 flex items-center gap-2 text-[12px] bg-[var(--surface-grouped)] border-b border-[var(--separator)]">
           <button
             type="button"
             onClick={() => setCombinedView((v) => !v)}
-            className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
+            className={`inline-flex items-center gap-1.5 px-3 h-10 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
               combinedView
                 ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
                 : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
@@ -1725,7 +1745,7 @@ function DashboardPageInner() {
             {combinedView ? "✓ Все команды" : "Показать все"}
           </button>
           {combinedView && (
-            <span className="text-[var(--label-tertiary)]">
+            <span className="text-[var(--label-tertiary)] truncate">
               · команда: {teamTabs.find((t) => t.id === activeTeamId)?.name ?? "—"}
             </span>
           )}
@@ -2163,7 +2183,20 @@ function DashboardPageInner() {
         <AppointmentSheet
           open
           onClose={() => setInlineSheet(null)}
-          mode={inlineSheet.initial.status === "completed" ? "done" : "view"}
+          // STORY audit: was always "view"/"done" regardless of inlineSheet.mode.
+          // FAB → openNewAppointmentInline pushes mode="new", so the sheet
+          // opened as view of an empty record — including ✓/📷/📅 quick
+          // actions that have no meaning on a blank draft (no client, no
+          // services, nothing to mark complete or photograph). For "new",
+          // open in "create" mode (segment toggle, primary "Создать" CTA);
+          // for existing records keep the original "done"/"view" split.
+          mode={
+            inlineSheet.mode === "new"
+              ? "create"
+              : inlineSheet.initial.status === "completed"
+                ? "done"
+                : "view"
+          }
           appointment={inlineSheet.initial}
           clients={clients}
           recentClientIds={recentInChats}

@@ -147,7 +147,11 @@ export default function Header({
           <button
             type="button"
             onClick={() => setShowMiniCalendar(!showMiniCalendar)}
-            className="flex items-center gap-1 active:bg-[var(--fill-quaternary)] rounded-full px-2.5 py-1.5 transition max-w-full"
+            // STORY audit: h-11 to match the 44 px iOS tap target and line
+            // up vertically with the «Сегодня» icon and view-mode pill on
+            // the same row. The previous py-1.5 produced 38 px which
+            // looked short next to the 44 px neighbours.
+            className="flex items-center gap-1 active:bg-[var(--fill-quaternary)] rounded-full px-2.5 h-11 transition max-w-full"
           >
             <h2 className="text-[17px] font-semibold text-[var(--label)] capitalize whitespace-nowrap truncate tracking-tight">
               {monthName} {year}
