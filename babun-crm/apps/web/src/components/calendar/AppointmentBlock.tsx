@@ -29,6 +29,10 @@ interface AppointmentBlockProps {
   /** Sprint 033 Phase I35 — past appointments render at 50% opacity
    *  so the dispatcher visually separates history from upcoming. */
   dimmed?: boolean;
+  /** STORY-092 — invoked when the user drags the bottom edge handle
+   *  to change the appointment duration. `newEndHHMM` is "HH:MM" snapped
+   *  to 15 min, clamped so the appointment is at least 15 min long. */
+  onResize?: (appointment: Appointment, newEndHHMM: string) => void;
 }
 
 function AppointmentBlockInner({
@@ -43,12 +47,25 @@ function AppointmentBlockInner({
   onLongPress,
   draggable = false,
   dimmed = false,
+  onResize,
 }: AppointmentBlockProps) {
   // Long-press detection — 550 ms hold without moving fires onLongPress and
   // suppresses the subsequent click. TouchSensor in dnd-kit uses a longer
   // delay so the two mechanisms no longer conflict.
   const longPressTimer = useRef<number | null>(null);
   const longPressFired = useRef(false);
+  // STORY-092 — bottom-edge resize state. Tracked via refs so pointer-
+  // move can rewrite the CSS height variable without going through React
+  // (would lag noticeably on every frame). `resizingRef` doubles as a
+  // guard for the click handler so finishing a resize doesn't open the
+  // appointment sheet.
+  const blockRef = useRef<HTMLDivElement | null>(null);
+  const resizingRef = useRef(false);
+  const resizeStartYRef = useRef(0);
+  const resizeStartEndMinRef = useRef(0);
+  const resizeStartMinRef = useRef(0);
+  const resizeHourHeightRef = useRef(0);
+  const resizeLastEndMinRef = useRef(0);
 
   const startLongPress = () => {
     longPressFired.current = false;
@@ -67,6 +84,84 @@ function AppointmentBlockInner({
       longPressTimer.current = null;
     }
   };
+
+  // STORY-092 — resize handlers. Read `--hh` from the live calendar
+  // scroller via getComputedStyle so we always see the current zoom
+  // level (pinch-zoom rewrites the variable continuously).
+  const onResizeHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!onResize) return;
+    // Block dnd-kit's draggable from picking up the same pointer.
+    e.stopPropagation();
+    e.preventDefault();
+    cancelLongPress();
+
+    const el = blockRef.current;
+    if (!el) return;
+    // Read live hour-height (px per 60 min). CSS variable is inherited
+    // from the scroller; parseFloat tolerates "60px" → 60.
+    const hh = parseFloat(
+      getComputedStyle(el).getPropertyValue("--hh") || "60",
+    );
+    resizeHourHeightRef.current = hh > 0 ? hh : 60;
+
+    resizingRef.current = true;
+    resizeStartYRef.current = e.clientY;
+    resizeStartEndMinRef.current = endMinutes;
+    resizeStartMinRef.current = startMinutes;
+    resizeLastEndMinRef.current = endMinutes;
+
+    // Pin height to the explicit pixel value at gesture start; pointer-
+    // move will rewrite this directly so React never participates.
+    el.style.height = `${(endMinutes - startMinutes) * (hh / 60)}px`;
+
+    // Capture the pointer to the handle so we keep receiving moves even
+    // if the user slides outside the 6 px strip.
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onResizeHandlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!resizingRef.current) return;
+    const el = blockRef.current;
+    if (!el) return;
+    const hh = resizeHourHeightRef.current;
+    const deltaPx = e.clientY - resizeStartYRef.current;
+    const deltaMin = Math.round((deltaPx / hh) * 60);
+    // Snap to 15-min grid + clamp ≥ 15 min duration.
+    const startMin = resizeStartMinRef.current;
+    let newEnd = resizeStartEndMinRef.current + deltaMin;
+    newEnd = Math.round(newEnd / 15) * 15;
+    if (newEnd < startMin + 15) newEnd = startMin + 15;
+    if (newEnd > 24 * 60) newEnd = 24 * 60;
+    resizeLastEndMinRef.current = newEnd;
+    el.style.height = `${(newEnd - startMin) * (hh / 60)}px`;
+  };
+
+  const onResizeHandlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!resizingRef.current) return;
+    e.stopPropagation();
+    resizingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* releasePointerCapture throws if the pointer was already
+         released by the browser (e.g. on pointer cancel during a touch
+         tear-off); safe to swallow. */
+    }
+
+    // Reset inline height so the next render uses the React-managed
+    // CSS expression. The parent will upsert and we'll re-render with
+    // the new time_end.
+    const el = blockRef.current;
+    if (el) el.style.height = "";
+
+    const finalEnd = resizeLastEndMinRef.current;
+    if (finalEnd === resizeStartEndMinRef.current) return;
+    const hh = Math.floor(finalEnd / 60);
+    const mm = finalEnd % 60;
+    const hhmm = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    onResize?.(appointment, hhmm);
+  };
+
   const colors = COLOR_KIND_TAILWIND[colorKind];
 
   const [startH, startM] = appointment.time_start.split(":").map(Number);
@@ -129,12 +224,18 @@ function AppointmentBlockInner({
 
   return (
     <button
-      ref={setNodeRef}
+      ref={(node) => {
+        // Combine dnd-kit's draggable ref with our own block ref so the
+        // resize gesture can read --hh and rewrite height directly.
+        setNodeRef(node);
+        blockRef.current = node;
+      }}
       data-appointment-id={appointment.id}
       data-testid={`appointment-block-${appointment.id}`}
       onClick={(e) => {
         e.stopPropagation();
         if (isDragging) return;
+        if (resizingRef.current) return;
         if (longPressFired.current) {
           longPressFired.current = false;
           return;
@@ -255,6 +356,37 @@ function AppointmentBlockInner({
 
         <StatusBadge appointment={appointment} />
       </div>
+
+      {/* STORY-092 — bottom-edge resize handle. Rendered only when an
+          onResize callback is wired (we don't want a phantom handle on
+          read-only contexts). 6 px tall + 12 px hit-area via padding so
+          touch users have a forgiving target. `touch-none` + the
+          dedicated stopPropagation in handlers keeps dnd-kit out of the
+          gesture; the parent `<button>` already has touch-none which we
+          inherit. */}
+      {onResize && (
+        <div
+          aria-hidden
+          onPointerDown={onResizeHandlePointerDown}
+          onPointerMove={onResizeHandlePointerMove}
+          onPointerUp={onResizeHandlePointerUp}
+          onPointerCancel={onResizeHandlePointerUp}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 6,
+            cursor: "row-resize",
+            touchAction: "none",
+            // Invisible by default; subtle hairline on hover so a
+            // mouse user discovers the handle. Touch users learn by
+            // trying — same mental model as iOS Mail draft handles.
+            background: "transparent",
+          }}
+          className="hover:bg-[rgba(0,0,0,0.10)]"
+        />
+      )}
     </button>
   );
 }

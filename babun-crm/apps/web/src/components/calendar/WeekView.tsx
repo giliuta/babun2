@@ -23,6 +23,8 @@ interface WeekViewProps {
   onCityTap?: (dateKey: string) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentLongPress?: (appointment: Appointment) => void;
+  /** STORY-092 — drag-resize bottom edge. Forwarded to DayColumn. */
+  onAppointmentResize?: (appointment: Appointment, newEndHHMM: string) => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   onFooterTap?: (dateKey: string) => void;
   onDayHeaderTap?: (dateKey: string) => void;
@@ -63,6 +65,7 @@ export default function WeekView({
   onCityTap,
   onAppointmentClick,
   onAppointmentLongPress,
+  onAppointmentResize,
   onEmptySlotClick,
   onFooterTap,
   onDayHeaderTap,
@@ -182,6 +185,7 @@ export default function WeekView({
             onCityTap={onCityTap}
             onAppointmentClick={onAppointmentClick}
             onAppointmentLongPress={onAppointmentLongPress}
+            onAppointmentResize={onAppointmentResize}
             onEmptySlotClick={onEmptySlotClick}
             onFooterTap={onFooterTap}
             onDayHeaderTap={onDayHeaderTap}
