@@ -329,11 +329,13 @@ function DashboardPageInner() {
   const SSR_SAFE_MONDAY = useMemo(() => new Date(2026, 0, 5), []); // fixed seed
   const [currentMonday, setCurrentMonday] = useState<Date>(SSR_SAFE_MONDAY);
   const [activeTeamId, setActiveTeamId] = useState<string>("");
-  // v616 §8 — combined view. When true, the calendar shows
-  // appointments from EVERY team plus the personal tab regardless
-  // of which chip is "active". Working hours / slot step still come
-  // from `activeTeamId` so the visible grid stays coherent.
-  const [combinedView, setCombinedView] = useState<boolean>(false);
+  // STORY audit: убрал combinedView («Показать все»). Дублировал
+  // функцию таб-стрипа без реальной пользы для диспетчера: chip strip
+  // уже даёт переключение между командами и личным, а отдельная
+  // полоса под шапкой ела ~40 px вертикали на phone. Удалил state,
+  // фильтр, UI-полосу и onTeamChange-reset. Если когда-нибудь
+  // понадобится «обзор всех команд сразу» — это будет отдельный
+  // view-mode рядом с День/Неделя/Месяц, не toggle поверх chip strip.
   useEffect(() => {
     // Client-only Monday seed — Date() differs between SSR / CSR so
     // we sync on mount. External-state-sync; React-Compiler's
@@ -835,11 +837,6 @@ function DashboardPageInner() {
 
   const visibleAppointments = useMemo(() => {
     const source = expandedAppointments;
-    // v616 §8 — combined view shows EVERY tenant appointment (personal
-    // + every team) so the operator sees the full day at once. The
-    // chip strip still highlights `activeTeamId` for working-hours /
-    // schedule context, but the filter is permissive.
-    if (combinedView) return source;
     if (isPersonalTab) {
       // v499 — ULTRA permissive personal-tab filter. Two prior fixes
       // (v462, v497) still left a tail of «invisible events» where
@@ -861,7 +858,7 @@ function DashboardPageInner() {
       return source.filter((a) => !a.team_id);
     }
     return source.filter((a) => a.team_id === activeTeamId);
-  }, [expandedAppointments, activeTeamId, isPersonalTab, combinedView]);
+  }, [expandedAppointments, activeTeamId, isPersonalTab]);
 
   // Build clientsById map. STORY-007: Draft clients removed —
   // layout.tsx keeps `clients` fresh via the babun:clients-changed
@@ -1746,11 +1743,7 @@ function DashboardPageInner() {
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
         onToday={handleToday}
-        onTeamChange={(id) => {
-          // v616 §8 — picking a single team turns off combined view.
-          if (combinedView) setCombinedView(false);
-          handleTeamChange(id);
-        }}
+        onTeamChange={handleTeamChange}
         onTeamsReorder={handleTeamsReorder}
         onViewModeChange={handleViewModeChange}
         onZoomIn={handleZoomIn}
@@ -1758,35 +1751,6 @@ function DashboardPageInner() {
         onSelectDate={handleSelectDate}
         onMenuToggle={sidebar.toggle}
       />
-
-      {/* v616 §8 — combined-view toggle. Slot lives right under the
-          header chip strip so the operator sees both "Все" and the
-          individual team chips on the same line.
-          STORY audit: chip raised h-8 → h-10 to reach the 44 px-class
-          tap target (40 px with the surrounding pad still gives a
-          generous hit area). Vertical padding around the strip is
-          tightened so the strip costs 8 px less of valuable above-
-          the-fold space on a 375 px iPhone. */}
-      {teamTabs.length > 1 && (
-        <div className="px-3 py-1.5 flex items-center gap-2 text-[12px] bg-[var(--surface-grouped)] border-b border-[var(--separator)]">
-          <button
-            type="button"
-            onClick={() => setCombinedView((v) => !v)}
-            className={`inline-flex items-center gap-1.5 px-3 h-10 rounded-full text-[13px] font-semibold transition active:scale-[0.97] ${
-              combinedView
-                ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-            }`}
-          >
-            {combinedView ? "✓ Все команды" : "Показать все"}
-          </button>
-          {combinedView && (
-            <span className="text-[var(--label-tertiary)] truncate">
-              · команда: {teamTabs.find((t) => t.id === activeTeamId)?.name ?? "—"}
-            </span>
-          )}
-        </div>
-      )}
 
       {quotaSnap && (
         <QuotaBanner
