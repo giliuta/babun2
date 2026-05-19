@@ -53,23 +53,29 @@ export default function AppointmentHeader({
   return (
     <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
       {liveMode === "create" ? (
-        personalMode ? (
-          <div className="inline-flex items-center h-8 px-3 rounded-[10px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-semibold">
-            Личное событие
-          </div>
-        ) : (
-          <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
-            {(["work", "event"] as Kind[]).map((k) => (
+        // STORY audit (design-keeper #4): раньше personal-mode имел
+        // статическую pill «Личное событие», а team-mode — segment
+        // toggle Клиент/Событие. Два разных visual language. Теперь
+        // unified: всегда segment, но в personal-mode «Клиент»
+        // disabled с tooltip-объяснением. Один компонент, одна сетка.
+        <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
+          {(["work", "event"] as Kind[]).map((k) => {
+            const disabled = personalMode && k === "work";
+            const active = kind === k;
+            return (
               <button
                 key={k}
                 type="button"
+                disabled={disabled}
+                title={
+                  disabled
+                    ? "Клиентов записывайте на бригаду — на личном календаре только события"
+                    : undefined
+                }
                 onClick={() => {
+                  if (disabled) return;
                   if (k === kind) return;
-                  // v619 — guard the kind swap. If we're leaving an
-                  // event draft with content, confirm first; the
-                  // EventForm child unmounts on kind change and its
-                  // internal state (notes / url / push / repeat /
-                  // place) would be silently dropped.
+                  // v619 — guard the kind swap.
                   if (kind === "event" && eventFormDirty) {
                     setSegmentSwitchConfirm(true);
                     return;
@@ -77,16 +83,18 @@ export default function AppointmentHeader({
                   setKind(k);
                 }}
                 className={`px-4 py-1.5 rounded-[8px] transition ${
-                  kind === k
+                  active
                     ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-                    : "text-[var(--label-secondary)]"
+                    : disabled
+                      ? "text-[var(--label-tertiary)] cursor-not-allowed"
+                      : "text-[var(--label-secondary)]"
                 }`}
               >
                 {k === "work" ? "Клиент" : "Событие"}
               </button>
-            ))}
-          </div>
-        )
+            );
+          })}
+        </div>
       ) : liveMode === "edit" ? (
         <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
           Редактирование

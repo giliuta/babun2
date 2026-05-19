@@ -178,6 +178,73 @@ function AgendaRow({
   clientsById: Record<string, Client>;
   onClick: () => void;
 }) {
+  // STORY audit (design-keeper #6): личные события показывались как
+  // «Без клиента» в Запланированы/Не указана услуга/€0 — выглядело
+  // как «битая запись». Теперь у события свой шаблон: title из
+  // event_label/comment, color stripe слева, event_notes preview,
+  // address (если есть) — то же что в AppointmentBlock.
+  const isEvent = apt.kind === "event" || apt.kind === "personal";
+
+  const total = apt.total_amount;
+  const paid = getPaidAmount(apt);
+  const debt = Math.max(0, total - paid);
+
+  const statusTone =
+    apt.status === "completed"
+      ? "text-[var(--system-green)]"
+      : apt.status === "cancelled"
+      ? "text-[var(--label-tertiary)] line-through"
+      : apt.status === "in_progress"
+      ? "text-[var(--accent)]"
+      : "text-[var(--label-secondary)]";
+
+  if (isEvent) {
+    // Personal-event «title» lives in apt.comment by convention.
+    const title = apt.comment?.trim() || "Событие";
+    const stripe = apt.color_override || "var(--system-orange)";
+    const notesPreview = apt.event_notes?.trim();
+    const address = apt.address?.trim();
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        data-testid={`agenda-row-${apt.id}`}
+        className="w-full flex items-stretch gap-3 px-4 py-3 min-h-[64px] active:bg-[var(--fill-quaternary)] transition text-left relative"
+      >
+        <span
+          aria-hidden
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full"
+          style={{ backgroundColor: stripe }}
+        />
+        <div className="w-16 shrink-0 text-[14px] font-semibold text-[var(--label)] tabular-nums pl-2">
+          {apt.time_start}
+          <div className="text-[11px] font-normal text-[var(--label-tertiary)] mt-0.5">
+            {apt.time_end}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold text-[var(--label)] truncate">
+            {title}
+          </div>
+          {address && (
+            <div className="text-[12px] text-[var(--label-secondary)] truncate mt-0.5">
+              {address}
+            </div>
+          )}
+          {notesPreview && (
+            <div className="text-[12px] text-[var(--label-secondary)] truncate mt-0.5">
+              {notesPreview}
+            </div>
+          )}
+          <div className={`text-[11px] mt-0.5 ${statusTone}`}>
+            Личное событие
+          </div>
+        </div>
+      </button>
+    );
+  }
+
+  // Work appointment — existing template.
   const clientName =
     (apt.client_id && clientsById[apt.client_id]?.full_name) ||
     apt.comment ||
@@ -193,19 +260,6 @@ function AgendaRow({
       return qty > 1 ? `x${qty} ${name}` : name;
     })
     .join(", ");
-
-  const total = apt.total_amount;
-  const paid = getPaidAmount(apt);
-  const debt = Math.max(0, total - paid);
-
-  const statusTone =
-    apt.status === "completed"
-      ? "text-[var(--system-green)]"
-      : apt.status === "cancelled"
-      ? "text-[var(--label-tertiary)] line-through"
-      : apt.status === "in_progress"
-      ? "text-[var(--accent)]"
-      : "text-[var(--label-secondary)]";
 
   return (
     <button
