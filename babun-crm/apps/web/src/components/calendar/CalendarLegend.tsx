@@ -69,16 +69,25 @@ export default function CalendarLegend() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // STORY audit: ранее CalendarLegend жил только на десктопе
+  // (hidden md:block). На phone цвета записей оставались "тайными"
+  // для нового диспетчера. Теперь компонент рендерится на всех
+  // размерах — на мобиле кнопка-подсказка просто прячется под FAB
+  // и BottomTabBar (z-30 vs FAB z-40, поэтому FAB перекрывает её,
+  // но при открытой легенде ⓘ → popover видны). На широком экране
+  // legend стоит в углу как раньше.
   return (
-    <div className="hidden md:block">
+    <div>
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Цветовая легенда"
         title="Цветовая легенда"
-        className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] shadow-md text-[var(--label-secondary)] active:scale-[0.95] flex items-center justify-center transition"
+        // На phone стоит чуть левее FAB чтобы не накладываться.
+        // lg:right-4 — на десктопе bottom-right как раньше.
+        className="fixed bottom-[176px] right-4 lg:bottom-4 z-30 w-11 h-11 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] shadow-md text-[var(--label-secondary)] active:scale-[0.95] flex items-center justify-center transition"
       >
-        <Info size={16} strokeWidth={2.2} />
+        <Info size={18} strokeWidth={2.2} />
       </button>
 
       {open && (

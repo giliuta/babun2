@@ -287,7 +287,12 @@ export default function MiniCalendar({
   return (
     <div
       ref={ref}
-      className="absolute top-full left-0 mt-2 bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-sheet)] border border-[var(--separator)] p-3 z-50 w-[288px]"
+      // STORY audit: до этого left-0 без viewport clamp иногда уносил
+      // календарь за правый край экрана (особенно когда родитель —
+      // pill-кнопка ближе к правому краю шапки). max-w-[calc(100vw-16px)]
+      // удерживает пикер в viewport. На широких экранах ширина та же
+      // 288 px, на узких уменьшается до edge-respecting.
+      className="absolute top-full left-0 mt-2 bg-[var(--surface-card)] rounded-[14px] shadow-[var(--shadow-sheet)] border border-[var(--separator)] p-3 z-50 w-[288px] max-w-[calc(100vw-16px)]"
     >
       <div className="flex items-center justify-between mb-2">
         <button
