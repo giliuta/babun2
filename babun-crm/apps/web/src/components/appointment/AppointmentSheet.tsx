@@ -86,6 +86,14 @@ interface AppointmentSheetProps {
    *  hides the Клиент/Событие segment toggle, and tells inner blocks
    *  this is a private note (client/services sections are irrelevant). */
   personalMode?: boolean;
+  /** STORY audit (design-keeper unification): PersonalEventSheet supplied
+   *  this so the operator could delete a personal event from inside the
+   *  edit-sheet. AppointmentSheet hadn't needed it (work records use
+   *  onCancelAppointment to flip status to cancelled, not hard-delete),
+   *  so we now pipe through optional onDelete used only by the
+   *  EventForm branch. Parent uses deleteAppointment for personal
+   *  events and upsertAppointment(...status="cancelled") for work. */
+  onDelete?: (apt: Appointment) => void;
 }
 
 type Kind = "work" | "event";
@@ -112,6 +120,7 @@ export default function AppointmentSheet({
   onCancelAppointment,
   onReschedule,
   onCompleteQuick,
+  onDelete,
   personalMode = false,
 }: AppointmentSheetProps) {
   const toast = useToast();
@@ -811,11 +820,19 @@ export default function AppointmentSheet({
               }}
               mode={liveMode === "edit" ? "edit" : "create"}
               event={eventSeed}
-              context="team"
+              // STORY audit (design-keeper #2): EventForm context flips
+              // by personalMode prop. Раньше personal-tab события
+              // открывались через отдельный PersonalEventSheet который
+              // жестко передавал context="personal", а AppointmentSheet
+              // event-mode жестко context="team". Теперь один путь —
+              // AppointmentSheet знает personalMode и пробрасывает.
+              // Это позволит дальше унифицировать dispatch в page.tsx.
+              context={personalMode ? "personal" : "team"}
               onSave={(evt) => {
                 onSave(evt);
                 onClose();
               }}
+              onDelete={onDelete}
               onDirtyChange={setEventFormDirty}
             />
           )}

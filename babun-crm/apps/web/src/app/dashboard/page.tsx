@@ -1963,33 +1963,16 @@ function DashboardPageInner() {
         onReset={handleCityReset}
       />
 
-      {/* Personal calendar create — dedicated PersonalEventSheet (no
-          Клиент/Событие segment, iOS-Reminders style). Brigade flow
-          keeps the unified AppointmentSheet below. */}
-      {booking && bookingAppointment && isPersonalTab && (
-        <PersonalEventSheet
-          open
-          onClose={() => setBooking(null)}
-          mode="create"
-          appointment={bookingAppointment}
-          onSave={(apt) => {
-            upsertAppointment(apt);
-            setBooking(null);
-            // STORY audit: jump the calendar to the new appointment's
-            // week so the dispatcher sees it land.
-            navigateToAppointmentDate(apt.date);
-          }}
-        />
-      )}
-
-      {/* STORY-002-FINAL: единый AppointmentSheet для create-режима
-          (тап по пустому слоту). Внутри sheet — segment Клиент/Событие.
-          Brigade-only after the personal-tab fork above.
-          v460: dropped `activeTeam` guard — sheet must still open when
-          the active brigade was deleted/inactive (race or ghost id),
-          otherwise the empty-slot tap silently no-ops. AppointmentSheet
-          is null-safe (Team | null prop). */}
-      {booking && bookingAppointment && !isPersonalTab && (
+      {/* STORY audit (design-keeper unification): объединили два create-
+          dispatch (PersonalEventSheet + AppointmentSheet) в один.
+          AppointmentSheet знает personalMode и в этом режиме:
+            · сегмент-toggle блокирует «Клиент» (см. AppointmentHeader fix)
+            · context EventForm → "personal" (свои preset-chips)
+            · client/services блоки игнорируются
+          PersonalEventSheet остаётся как deprecated wrapper для
+          обратной совместимости imports, но dispatch на нём больше
+          не висит. */}
+      {booking && bookingAppointment && (
         <AppointmentSheet
           open={booking !== null}
           onClose={() => setBooking(null)}
@@ -1999,7 +1982,7 @@ function DashboardPageInner() {
           recentClientIds={recentInChats}
           teams={teams}
           activeTeam={activeTeam ?? null}
-          personalMode={false}
+          personalMode={isPersonalTab}
           masters={masters}
           catalog={services}
           categories={serviceCategories}
@@ -2186,31 +2169,14 @@ function DashboardPageInner() {
 
       {/* Inline new/edit sheet — renders on top of the calendar, no route
           change. Keeps the calendar fully mounted so opening an
-          appointment is instant. */}
-      {/* Personal event edit — dedicated sheet. Master_id-tagged events
-          live on the personal tab and use PersonalEventSheet for edit
-          and delete. */}
-      {inlineSheet && inlineSheet.initial.master_id && inlineSheet.initial.kind === "event" && (
-        <PersonalEventSheet
-          open
-          onClose={() => setInlineSheet(null)}
-          mode="edit"
-          appointment={inlineSheet.initial}
-          onSave={(apt) => {
-            upsertAppointment(apt);
-            setInlineSheet(null);
-          }}
-          onDelete={(apt) => {
-            deleteAppointment(apt.id);
-            setInlineSheet(null);
-          }}
-        />
-      )}
-
-      {/* STORY-002-FINAL: view/done режимы единого sheet открываются
-          по тапу на существующую запись (handleAppointmentClick).
-          Brigade flow only — personal fork handled above. */}
-      {inlineSheet && activeTeam && !(inlineSheet.initial.master_id && inlineSheet.initial.kind === "event") && (
+          appointment is instant.
+          STORY audit (design-keeper unification): объединили personal-
+          event edit и brigade-record edit в один AppointmentSheet с
+          personalMode. PersonalEventSheet больше не маршрутизируется
+          здесь — он остался как deprecated wrapper. activeTeam-guard
+          снят: personalMode-sheet вообще не использует activeTeam,
+          для brigade-sheet null-safe AppointmentSheet тоже работает. */}
+      {inlineSheet && (
         <AppointmentSheet
           open
           onClose={() => setInlineSheet(null)}
@@ -2273,6 +2239,14 @@ function DashboardPageInner() {
           onCompleteQuick={(apt) => {
             setInlineSheet(null);
             setPaymentApt(apt);
+          }}
+          // STORY audit (unification): personal events нужен hard-delete
+          // (раньше через PersonalEventSheet onDelete). Work-записи
+          // используют cancelled-status, не deleteAppointment. Прокидываем
+          // обе функции — EventForm сам решит когда показать «Удалить».
+          onDelete={(apt) => {
+            deleteAppointment(apt.id);
+            setInlineSheet(null);
           }}
         />
       )}
