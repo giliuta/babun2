@@ -412,6 +412,10 @@ export default function AppointmentSheet({
   // set (the operator chose a duration deliberately). Clamps at 23:59
   // to avoid wrap-around; a visit that crosses midnight should be
   // booked as two records.
+  // STORY audit (tester 3.1): добавлен toast-warning когда clamp
+  // реально произошёл — раньше total_duration (например 90 мин)
+  // расходился с визуальной длиной блока (29 мин), и оператор не
+  // видел этого.
   useEffect(() => {
     if (!isEditable || kind === "event") return;
     if (durationTouched) return;
@@ -420,25 +424,42 @@ export default function AppointmentSheet({
     const [eh, em] = timeEnd.split(":").map(Number);
     const startMin = sh * 60 + sm;
     const endMin = eh * 60 + em;
-    const requiredEnd = Math.min(23 * 60 + 59, startMin + totalDur);
+    const wanted = startMin + totalDur;
+    const requiredEnd = Math.min(23 * 60 + 59, wanted);
     if (requiredEnd > endMin) {
       const nh = Math.floor(requiredEnd / 60);
       const nm = requiredEnd % 60;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeEnd(`${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`);
+      if (wanted > requiredEnd) {
+        toast.show({
+          variant: "info",
+          message:
+            "Запись выходит за полночь — обрезана до 23:59. Создайте вторую запись на следующий день для остатка.",
+          durationMs: 5000,
+        });
+      }
     }
-  }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched]);
+  }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched, toast]);
 
   // Apply an explicit duration in minutes — sets end_time and locks
   // out the live-recalc effect above. Clamps at 23:59.
   const applyDuration = (mins: number) => {
     const [sh, sm] = timeStart.split(":").map(Number);
     const startMin = sh * 60 + sm;
-    const endMin = Math.min(23 * 60 + 59, startMin + mins);
+    const wanted = startMin + mins;
+    const endMin = Math.min(23 * 60 + 59, wanted);
     setTimeEnd(
       `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
     );
     setDurationTouched(true);
+    if (wanted > endMin) {
+      toast.show({
+        variant: "info",
+        message: `${mins} мин не влезают в день — обрезали до 23:59.`,
+        durationMs: 4000,
+      });
+    }
   };
 
   // Current live duration (minutes between start and end).
