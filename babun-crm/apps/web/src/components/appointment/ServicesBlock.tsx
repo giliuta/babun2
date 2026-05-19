@@ -149,7 +149,7 @@ export default function ServicesBlock({
                     onOpenPicker();
                   }
                 }}
-                aria-label={readonly ? undefined : "Изменить услугу"}
+                aria-label={readonly ? undefined : `Заменить услугу «${svc?.name ?? "Услуга"}» — откроется список услуг`}
                 className={rowBase}
                 style={{ borderLeft: `4px solid ${stripe}` }}
               >

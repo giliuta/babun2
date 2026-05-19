@@ -34,6 +34,7 @@ import type { AppointmentSheetMode } from "./AppointmentSheet";
 import { buildShareUrl } from "@babun/shared/common/utils/share-link";
 import { loadCompany } from "@babun/shared/local/finance/company";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { loadChats } from "@babun/shared/local/chats";
 
@@ -133,6 +134,7 @@ export default function AppointmentSubSheets({
 }: AppointmentSubSheetsProps) {
   const toast = useToast();
   const router = useRouter();
+  const confirm = useConfirm();
 
   return (
     <>
@@ -197,7 +199,23 @@ export default function AppointmentSubSheets({
           client={client}
           onProfile={() => setClientProfileOpen(true)}
           onSendMessage={() => setSendMsgOpen(true)}
-          onOpenChat={() => {
+          onOpenChat={async () => {
+            // STORY audit: до этой правки router.push сразу уносил
+            // диспетчера со страницы записи в /chats — текущий черновик
+            // (введённое имя, услуга, адрес) терялся без предупреждения.
+            // Теперь сначала просим подтверждения, чтобы случайный тап
+            // на «Перейти в чат» не уничтожил работу. Полное решение —
+            // открыть чат как overlay поверх sheet — отдельная история
+            // (требует overlay-mode у ChatsView).
+            const ok = await confirm({
+              title: "Перейти в чаты?",
+              message:
+                "Запись закроется. Если в ней есть несохранённые изменения, они потеряются.",
+              confirmLabel: "Перейти",
+              cancelLabel: "Остаться",
+              danger: false,
+            });
+            if (!ok) return;
             const existing = loadChats().find((ch) => ch.client_id === client.id);
             if (existing) {
               router.push(`/dashboard/chats?chat_id=${existing.id}`);

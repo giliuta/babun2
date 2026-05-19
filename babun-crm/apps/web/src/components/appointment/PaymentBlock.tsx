@@ -160,6 +160,18 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
           >
             Подтвердить
           </button>
+          {/* STORY audit: до этого кнопка была disabled без какого-либо
+              сигнала — оператор вводил сумму, видел грей-кнопку, тапал —
+              ничего. Теперь чёткая подсказка ПОЧЕМУ. */}
+          {!splitValid && (
+            <div className="text-center text-[12px] text-[var(--label-tertiary)] leading-snug">
+              {cashVal <= 0
+                ? "Введите сумму наличными"
+                : cashVal >= total
+                  ? "Нал должен быть меньше общей суммы — иначе используйте «Нал»"
+                  : "Картой получится €0 — проверьте сумму нала"}
+            </div>
+          )}
         </div>
       )}
 
