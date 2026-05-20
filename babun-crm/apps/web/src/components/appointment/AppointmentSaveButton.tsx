@@ -38,7 +38,17 @@ export default function AppointmentSaveButton({
     return () => window.clearTimeout(t);
   }, [bottomWarning]);
 
-  const disabled = !canSave || isSubmitting;
+  // v660 — was: disabled-grey when !canSave. Mobile/design audit
+  // flagged it as "punishment, not guidance" — operator sees a dead
+  // button and has to scroll back up to find what's missing.
+  //
+  // Now: the button visually stays accent-coloured (soft-accent when
+  // !canSave) and remains tappable. Tap on incomplete state nudges
+  // with a transient warning AND focuses the scroll body so the
+  // missing-parts label is on screen. Submit lock still blocks
+  // double-fires.
+  const submitLocked = isSubmitting;
+  const incomplete = !canSave;
 
   return (
     <div
@@ -56,23 +66,26 @@ export default function AppointmentSaveButton({
       <button
         type="button"
         onClick={() => {
-          if (isSubmitting) return;
-          if (!canSave) {
+          if (submitLocked) return;
+          if (incomplete) {
             setBottomWarning("Заполните сначала данные");
             return;
           }
           setIsSubmitting(true);
           onSave();
         }}
-        disabled={isSubmitting}
+        disabled={submitLocked}
         data-testid="appointment-sheet-save"
         className={`w-full h-11 rounded-[10px] text-[15px] font-semibold transition ${
-          disabled
+          submitLocked
             ? "bg-[var(--fill-primary)] text-[var(--label-tertiary)]"
-            : "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
+            : incomplete
+              // Soft-accent state: looks tappable, still nudges on tap.
+              ? "bg-[var(--accent-tint)] text-[var(--accent)] active:scale-[0.99]"
+              : "bg-[var(--accent)] text-[var(--label-on-accent)] active:bg-[var(--accent-pressed)] active:scale-[0.99]"
         }`}
       >
-        {isSubmitting ? "Сохраняем…" : label}
+        {submitLocked ? "Сохраняем…" : label}
       </button>
     </div>
   );

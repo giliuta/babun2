@@ -28,12 +28,12 @@ export default function CommentBlock({ value, readonly, onChange }: CommentBlock
   return (
     <div className="px-4 pt-2">
       <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
-        Комментарий
+        Заметка для бригады
       </div>
       <textarea
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        placeholder="Код домофона, особенности…"
+        placeholder="Зелёная дверь, домофон 25, собака во дворе, код подъезда…"
         rows={2}
         className="w-full px-3.5 py-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
       />

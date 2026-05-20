@@ -15,7 +15,10 @@ interface LocationsBlockProps {
   readOnly?: boolean;
   addressNote: string;
   onSelectLocation: (id: string) => void;
-  onAddressNoteChange: (note: string) => void;
+  /** v660 — kept on the prop type so existing callers still typecheck.
+   *  The inline note input was removed; CommentBlock handles brigade
+   *  notes now. View-mode still renders historic address_note text. */
+  onAddressNoteChange?: (note: string) => void;
   /** v607 P0 #5 — anonymous-mode address. When no client is picked,
    *  the operator can still type an address; it lives on the
    *  appointment row (apt.address) instead of on a client.locations
@@ -45,7 +48,6 @@ export default function LocationsBlock({
   readOnly,
   addressNote,
   onSelectLocation,
-  onAddressNoteChange,
   anonymousAddress = "",
   onAnonymousAddressChange,
   placeholder,
@@ -211,24 +213,20 @@ export default function LocationsBlock({
             </>
           )}
 
-          <div className="h-px bg-[var(--separator)]" />
-
-          <div className="px-3 py-2">
-            {readOnly ? (
-              <div className="text-[12px] text-[var(--label-secondary)]">
+          {/* v660 — address-note inline row HIDDEN in edit/create mode.
+              Brigade notes (intercom code, etc.) now live in the single
+              «Заметка для бригады» field below. View mode still shows
+              the old address_note string when present so historic
+              records remain readable. */}
+          {readOnly && addressNote.trim() && (
+            <>
+              <div className="h-px bg-[var(--separator)]" />
+              <div className="px-3 py-2 text-[12px] text-[var(--label-secondary)]">
                 <span className="text-[var(--label-tertiary)]">Примечание: </span>
-                {addressNote.trim() || <span className="text-[var(--label-quaternary)]">—</span>}
+                {addressNote}
               </div>
-            ) : (
-              <input
-                type="text"
-                value={addressNote}
-                onChange={(e) => onAddressNoteChange(e.target.value)}
-                placeholder="Зелёная дверь, домофон 25, собака во дворе"
-                className="w-full h-10 text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
-              />
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         <MapNavPopup
@@ -437,25 +435,18 @@ export default function LocationsBlock({
           </>
         )}
 
-        <div className="h-px bg-[var(--separator)]" />
-
-        {/* Row 3: inline small note */}
-        <div className="px-3 py-2">
-          {readOnly ? (
-            <div className="text-[12px] text-[var(--label-secondary)]">
+        {/* v660 — Row 3 address-note removed in edit/create mode (now
+            lives in the unified «Заметка для бригады» field).
+            View-mode still surfaces historic notes. */}
+        {readOnly && addressNote.trim() && (
+          <>
+            <div className="h-px bg-[var(--separator)]" />
+            <div className="px-3 py-2 text-[12px] text-[var(--label-secondary)]">
               <span className="text-[var(--label-tertiary)]">Примечание: </span>
-              {addressNote.trim() || <span className="text-[var(--label-quaternary)]">—</span>}
+              {addressNote}
             </div>
-          ) : (
-            <input
-              type="text"
-              value={addressNote}
-              onChange={(e) => onAddressNoteChange(e.target.value)}
-              placeholder="Зелёная дверь, домофон 25, собака во дворе"
-              className="w-full h-10 text-[13px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent border-0 focus:outline-none"
-            />
-          )}
-        </div>
+          </>
+        )}
 
       </div>
 

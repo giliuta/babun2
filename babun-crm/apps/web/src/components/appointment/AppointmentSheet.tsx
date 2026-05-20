@@ -31,6 +31,7 @@ import {
 // Beta #53 (CRM Core brief) — loyalty tier auto-apply on client pick.
 import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useScrollFocusIntoView } from "@/hooks/useScrollFocusIntoView";
 import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
@@ -224,6 +225,10 @@ export default function AppointmentSheet({
   // remember which scroller we armed against so onTouchMove can
   // disarm the gesture the moment it moves off scrollTop=0.
   const armedScroller = useRef<HTMLElement | null>(null);
+  // v660 — keyboard occlusion fix: scroll focused inputs into view
+  // when iOS keyboard rises. See useScrollFocusIntoView for rationale.
+  const scrollBodyRef = useRef<HTMLDivElement | null>(null);
+  useScrollFocusIntoView(scrollBodyRef);
   // STORY-049 — photos hydrate from Supabase Storage via the
   // appointment-photos repo (effect below). Initial render shows
   // an empty list; thumbnails fade in once the fetch resolves.
@@ -806,7 +811,7 @@ export default function AppointmentSheet({
         />
 
         {/* Scroll body */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4" data-appt-scroll>
+        <div ref={scrollBodyRef} className="flex-1 min-h-0 overflow-y-auto pb-4" data-appt-scroll>
           {/* City/team caption + v617 P1 §17 single time chip. Chip
               shows date · time · duration and opens the time popup on
               tap. City is still edited from the calendar day header. */}
