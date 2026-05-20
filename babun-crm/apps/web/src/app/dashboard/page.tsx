@@ -2165,7 +2165,14 @@ function DashboardPageInner() {
               ? "create"
               : inlineSheet.initial.status === "completed"
                 ? "done"
-                : "view"
+                : // v658 — events have no "view" mode (no quick-actions
+                  // make sense on a lunch-break or meeting), so tap-to-open
+                  // jumps straight to edit. Work records keep view→edit
+                  // transition via AdminActions inside the work body.
+                  (inlineSheet.initial.kind === "event" ||
+                    inlineSheet.initial.kind === "personal")
+                  ? "edit"
+                  : "view"
           }
           appointment={inlineSheet.initial}
           clients={clients}

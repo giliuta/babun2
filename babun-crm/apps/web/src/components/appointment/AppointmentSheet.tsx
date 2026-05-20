@@ -855,8 +855,10 @@ export default function AppointmentSheet({
               Событие), its date/city/time chip, and provides the
               single save button at the bottom. Switching the segment
               back to «Клиент» swaps the inline body without unmounting
-              the sheet, so the user never sees a "вылетает" flash. */}
-          {isEventMode && isEditable && (
+              the sheet, so the user never sees a "вылетает" flash.
+              v658 — also render in view mode (readonly) so tapping an
+              existing event opens a populated body, not a blank sheet. */}
+          {isEventMode && (
             <EventForm
               open
               bodyOnly
@@ -871,7 +873,7 @@ export default function AppointmentSheet({
                   onClose();
                 }
               }}
-              mode={liveMode === "edit" ? "edit" : "create"}
+              mode={liveMode === "edit" ? "edit" : liveMode === "view" ? "view" : "create"}
               event={eventSeed}
               // STORY audit (design-keeper #2): EventForm context flips
               // by personalMode prop. Раньше personal-tab события
