@@ -207,6 +207,13 @@ export default function AppointmentSheet({
   // backdrop/Esc; this protects the segment-toggle exit path.
   const [eventFormDirty, setEventFormDirty] = useState(false);
   const [segmentSwitchConfirm, setSegmentSwitchConfirm] = useState(false);
+  // v657 — EventForm now renders inline (bodyOnly), so AppointmentSheet's
+  // own save button drives both work AND event modes. We need a way to
+  // (a) trigger EventForm.handleSave from outside, and (b) know whether
+  // the event form has enough data to save. eventSubmitRef + eventCanSave
+  // give us both, via the new EventForm props.
+  const eventSubmitRef = useRef<(() => void) | null>(null);
+  const [eventCanSave, setEventCanSave] = useState(false);
   // v617 P1 §20 — swipe-down dirty-guard. Track touch on the modal
   // container; if the operator drags down past 90 px and the scroll
   // body is at the top, treat it as a close-attempt (which routes
@@ -551,17 +558,24 @@ export default function AppointmentSheet({
   // ремонтe «приду чуть позже, тогда скажу кто»). savePreviewLabel
   // всё равно подсказывает «без клиента — добавьте позже» когда
   // клиент не выбран.
+  // v657 — in event mode, canSave is driven by EventForm via the
+  // onCanSaveChange callback (EventForm owns the event title state).
+  // In work mode, the AppointmentSheet's own services list drives it.
   const canSave = isEventMode
-    ? Boolean(eventLabel.trim())
+    ? eventCanSave
     : appointmentServices.length > 0;
 
   // v607 P0 #1.8 — live preview button text. Shows date · time ·
   // duration · price when ready; lists what's missing otherwise so the
   // operator doesn't have to scroll up to find the gap.
+  //
+  // v657 — event mode now polls EventForm via eventCanSave (since
+  // EventForm owns the title state when rendered bodyOnly). When
+  // eventCanSave is false → "название" missing.
   const missingParts: string[] = [];
   if (!isEventMode) {
     if (appointmentServices.length === 0) missingParts.push("услугу");
-  } else if (!eventLabel.trim()) {
+  } else if (!eventCanSave) {
     missingParts.push("название");
   }
   const savePreviewLabel = (() => {
@@ -594,17 +608,11 @@ export default function AppointmentSheet({
   // For create-mode: any non-default value is "dirty".
   // For edit-mode: dirty if any field differs from the loaded record.
   const isCreate = liveMode === "create";
-  const eventDirty = isEventMode && (
-    isCreate
-      ? Boolean(eventLabel.trim()) || eventColorOverride !== null
-      : Boolean(
-          eventLabel.trim() !== (appointment.comment ?? "").trim() ||
-          eventColorOverride !== (appointment.color_override ?? null) ||
-          dateKey !== appointment.date ||
-          timeStart !== appointment.time_start ||
-          timeEnd !== appointment.time_end,
-        )
-  );
+  // v657 — EventForm now owns the title/notes/url/place/push/repeat
+  // state when rendered bodyOnly. Reuse its own dirty signal instead
+  // of re-deriving from AppointmentSheet's now-stale eventLabel /
+  // eventColorOverride mirrors.
+  const eventDirty = isEventMode && eventFormDirty;
   const workDirty = !isEventMode && (
     isCreate
       ? Boolean(
@@ -841,16 +849,19 @@ export default function AppointmentSheet({
             />
           )}
 
-          {/* Event mode body — Sprint #4 P0 §4: unified EventForm overlay.
-              Renders above the AppointmentSheet chrome when the operator
-              picks "Событие" in the segment toggle. EventForm takes the
-              event seed (time/date/label pre-filled), saves via the sheet's
-              onSave, and closes back to this sheet on discard (create mode
-              switches the segment back to "work"; edit mode closes the outer
-              sheet). */}
+          {/* v657 — Event mode body. EventForm renders INLINE (bodyOnly)
+              inside this scroll body — no second modal overlay. The
+              outer AppointmentSheet keeps its segment toggle (Клиент /
+              Событие), its date/city/time chip, and provides the
+              single save button at the bottom. Switching the segment
+              back to «Клиент» swaps the inline body without unmounting
+              the sheet, so the user never sees a "вылетает" flash. */}
           {isEventMode && isEditable && (
             <EventForm
               open
+              bodyOnly
+              submitRef={eventSubmitRef}
+              onCanSaveChange={setEventCanSave}
               onClose={() => {
                 if (liveMode === "create") {
                   // Switch back to work tab so AppointmentSheet stays open.
@@ -932,11 +943,16 @@ export default function AppointmentSheet({
           )}
         </div>
 
-        {isEditable && !isEventMode && (
+        {/* v657 — single save button drives BOTH modes. In event mode it
+            routes through eventSubmitRef (EventForm's internal handleSave);
+            in work mode it calls handleCreate as before. This is what kills
+            the "вылетает" perception — there is no separate EventForm save
+            bar layered on top of the sheet anymore. */}
+        {isEditable && (
           <AppointmentSaveButton
             canSave={canSave}
             label={savePreviewLabel}
-            onSave={handleCreate}
+            onSave={isEventMode ? () => eventSubmitRef.current?.() : handleCreate}
           />
         )}
       </div>

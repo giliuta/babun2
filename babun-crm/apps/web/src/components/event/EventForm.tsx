@@ -7,14 +7,19 @@
 // Sprint #4 P0 §4 — replaces the two diverged "Новое событие" surfaces
 // with one component. All features are present regardless of context;
 // the `context` prop only drives:
-//   • team:     preset tiles from EVENT_PRESETS (fixed 5)
-//               + saves with team_id, master_id=null
-//   • personal: preset chips from EventPresetChips (user-customizable)
-//               + saves with master_id=current, team_id=null
+//   • team:     saves with team_id, master_id=null
+//   • personal: saves with master_id=current, team_id=null
 //
-// Fields: TimeBlock + all-day toggle, preset tiles/chips, title, place,
-// URL (video-conf badge auto-detected), push notification + extra offsets,
-// repeat, color picker, notes textarea, close-confirm dirty guard.
+// v657 — two render modes:
+//   • Standalone (PersonalEventSheet path): full modal chrome with
+//     overlay, header strip, sticky save bar, close-confirm popup.
+//   • bodyOnly (AppointmentSheet event-mode path): just the cards.
+//     The parent owns the overlay + header + save button. Save is
+//     triggered via submitRef; canSave reported via onCanSaveChange.
+//
+// Fields: TimeBlock + all-day toggle, preset chips (EventPresetChips),
+// title, place, URL (video-conf badge auto-detected), push notification
+// + extra offsets, repeat, color picker, notes textarea.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -26,17 +31,14 @@ import {
   Video,
   Trash2,
   X as XIcon,
-  Coffee,
-  Briefcase,
-  Moon,
-  Plane,
 } from "@babun/shared/icons";
 import { pushRecentPlace } from "@babun/shared/local/event-recent-places";
 import type {
   Appointment,
   PersonalEventRepeat,
 } from "@babun/shared/local/appointments";
-import { EVENT_PRESETS } from "@babun/shared/common/utils/event-presets";
+// v657 — EVENT_PRESETS removed: both contexts now use EventPresetChips
+// (user-customizable from /settings/calendar/event-types).
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 import TimeBlock from "@/components/appointment/TimeBlock";
 import {
@@ -66,6 +68,21 @@ export interface EventFormProps {
    *  unmount paths (e.g. AppointmentSheet's segment toggle). Optional;
    *  PersonalEventSheet doesn't need it. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** v657 — when true, render ONLY the cards (no overlay, no sheet
+   *  container, no header, no sticky save footer). Used by
+   *  AppointmentSheet to embed the event editor inline inside the
+   *  scroll body, instead of stacking a second modal on top.
+   *  Parent supplies its own save button and routes save via
+   *  `submitRef` + `onCanSaveChange`. */
+  bodyOnly?: boolean;
+  /** v657 — parent grabs this ref so its own save button can trigger
+   *  EventForm's internal `handleSave`. Only meaningful when
+   *  `bodyOnly` is true. */
+  submitRef?: React.MutableRefObject<(() => void) | null>;
+  /** v657 — fires when canSave flips so the parent's save button
+   *  can switch between enabled / disabled states. Only meaningful
+   *  when `bodyOnly` is true. */
+  onCanSaveChange?: (canSave: boolean) => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -73,16 +90,8 @@ export interface EventFormProps {
 const DEFAULT_COLOR = "#007AFF";
 const NO_REPEAT: PersonalEventRepeat = { kind: "none" };
 
-const TEAM_PRESET_ICONS: Record<
-  string,
-  React.ComponentType<{ size?: number; strokeWidth?: number }>
-> = {
-  coffee: Coffee,
-  briefcase: Briefcase,
-  navigation: NavigationIcon,
-  moon: Moon,
-  plane: Plane,
-};
+// v657 — TEAM_PRESET_ICONS removed (was only used by the old 5-tile
+// team grid). EventPresetChips owns its own icon rendering now.
 
 // 8 named palette colors for the team-context colour row.
 const EVENT_COLOR_PRESETS = [
@@ -354,6 +363,7 @@ function ToggleSlim({ checked, onChange, ariaLabel }: { checked: boolean; onChan
 
 export default function EventForm({
   open, onClose, mode, event, context, onSave, onDelete, onDirtyChange,
+  bodyOnly = false, submitRef, onCanSaveChange,
 }: EventFormProps) {
   const { calendarSettings } = useCalendarSettings();
   const workStartHr = calendarSettings.workStartHour ?? calendarSettings.startHour ?? 8;
@@ -487,27 +497,46 @@ export default function EventForm({
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const buildPayload = (): Appointment => ({
-    ...event,
-    date: dateKey,
-    time_start: allDay ? allDayStart : timeStart,
-    time_end:   allDay ? allDayEnd   : timeEnd,
-    comment: title.trim(),
-    event_notes: notes.trim(),
-    color_override: color,
-    address: address.trim(),
-    event_url: url.trim(),
-    event_all_day: allDay,
-    event_push_enabled: pushEnabled,
-    event_push_offsets:
-      pushEnabled && !pushAt
-        ? Array.from(new Set([...(pushOffset !== null ? [pushOffset] : []), ...extraOffsets])).sort((a, b) => a - b)
-        : [],
-    event_push_at: pushEnabled && pushAt ? pushAt : null,
-    event_repeat: repeat,
-    kind: "event",
-    updated_at: new Date().toISOString(),
-  });
+  // v657 — when embedded in bodyOnly mode the parent owns the save
+  // button. Mirror canSave to the parent so it can switch its
+  // CTA enabled/disabled appropriately.
+  useEffect(() => {
+    onCanSaveChange?.(canSave);
+  }, [canSave, onCanSaveChange]);
+
+  // v657 — in bodyOnly mode, the parent (AppointmentSheet) owns the
+  // time chip in its caption strip; use the event prop for the
+  // authoritative date/time and ignore our internal mirror, to avoid
+  // a stale-state drift where the chip says 13:00 but the saved
+  // event is at 14:00 because the user edited inside EventForm
+  // after the chip. The all-day toggle still uses internal state
+  // because there's no parent control surface for it.
+  const buildPayload = (): Appointment => {
+    const effectiveDate      = bodyOnly ? event.date       : dateKey;
+    const effectiveTimeStart = bodyOnly ? event.time_start : timeStart;
+    const effectiveTimeEnd   = bodyOnly ? event.time_end   : timeEnd;
+    return {
+      ...event,
+      date: effectiveDate,
+      time_start: allDay ? allDayStart : effectiveTimeStart,
+      time_end:   allDay ? allDayEnd   : effectiveTimeEnd,
+      comment: title.trim(),
+      event_notes: notes.trim(),
+      color_override: color,
+      address: address.trim(),
+      event_url: url.trim(),
+      event_all_day: allDay,
+      event_push_enabled: pushEnabled,
+      event_push_offsets:
+        pushEnabled && !pushAt
+          ? Array.from(new Set([...(pushOffset !== null ? [pushOffset] : []), ...extraOffsets])).sort((a, b) => a - b)
+          : [],
+      event_push_at: pushEnabled && pushAt ? pushAt : null,
+      event_repeat: repeat,
+      kind: "event",
+      updated_at: new Date().toISOString(),
+    };
+  };
 
   const handleSave = () => {
     if (!canSave) return;
@@ -516,11 +545,267 @@ export default function EventForm({
     onSave(payload);
   };
 
+  // v657 — keep submitRef pointing at the latest handleSave so the
+  // parent's CTA can call into it without restaling closures.
+  // handleSave is recreated every render (closes over local state),
+  // so we keep an internal ref-of-ref to avoid useEffect churn.
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    if (!submitRef) return;
+    submitRef.current = () => handleSaveRef.current();
+    return () => {
+      if (submitRef) submitRef.current = null;
+    };
+  }, [submitRef]);
+
   if (!open) return null;
 
   const mapsLinks = buildMapsLinks(address);
   const readonly = mode === "view";
 
+  // v657 — body cards are rendered identically in both standalone
+  // (PersonalEventSheet wraps EventForm) and embedded (AppointmentSheet
+  // event-mode) modes. The bodyContent fragment is the SAME in both
+  // paths; only the surrounding chrome differs.
+  const bodyContent = (
+    <>
+      {/* v657 — when embedded inline, the parent's header has no
+          color-picker, so we surface the 8-swatch row at the very top
+          of the body. */}
+      {bodyOnly && !readonly && (
+        <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-3.5 py-2.5">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] mb-2">Цвет</div>
+          <div className="grid grid-cols-8 gap-2">
+            {EVENT_COLOR_PRESETS.map((c) => {
+              const active = color.toLowerCase() === c.hex.toLowerCase();
+              return (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setColor(c.hex)}
+                  aria-label={c.label}
+                  className={`w-full aspect-square rounded-full border-2 transition active:scale-[0.92] ${active ? "border-[var(--label)] ring-2 ring-offset-1 ring-[var(--label)]/20" : "border-transparent"}`}
+                  style={{ background: c.hex }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Card 1 — Time + all-day toggle.
+          v657 — in bodyOnly mode the parent (AppointmentSheet) renders
+          its own date+time chip in the caption strip above the body,
+          so we only show a slim all-day toggle row here instead of the
+          full TimeBlock. Standalone mode keeps the full TimeBlock. */}
+      {bodyOnly ? (
+        !readonly && (
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden flex items-center gap-2 px-4 py-2.5 text-[13px]">
+            <span className="text-[var(--label-tertiary)]">⏰</span>
+            <span className="font-semibold text-[var(--label)]">
+              {allDay ? "Весь день" : `${event.time_start} – ${event.time_end}`}
+            </span>
+            <span className="ml-auto flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
+              <ToggleSlim
+                checked={allDay}
+                onChange={(v) => {
+                  setAllDay(v);
+                  if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
+                }}
+                ariaLabel="Весь день"
+              />
+            </span>
+          </div>
+        )
+      ) : (
+        <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+          {!allDay ? (
+            <TimeBlock
+              date={dateKey}
+              timeStart={timeStart}
+              timeEnd={timeEnd}
+              onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+                setDateKey(d); setTimeStart(s); setTimeEnd(e);
+              }}
+              rightSlot={
+                !readonly ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
+                    <ToggleSlim checked={allDay} onChange={(v) => {
+                      setAllDay(v);
+                      if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
+                    }} ariaLabel="Весь день" />
+                  </div>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2.5 text-[13px]">
+              <span className="text-[var(--label-tertiary)]">⏰</span>
+              <span className="font-semibold text-[var(--label)]">{formatDateRu(dateKey)}</span>
+              <span className="text-[var(--label-secondary)]">· весь день</span>
+              {!readonly && (
+                <span className="ml-auto flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
+                  <ToggleSlim checked={allDay} onChange={(v) => setAllDay(v)} ariaLabel="Весь день" />
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preset chips — same component for both contexts */}
+      {!readonly && (
+        <EventPresetChips
+          onPick={(preset: PersonalEventType) => {
+            setTitle(preset.label);
+            setColor(preset.color);
+            if (preset.allDay) {
+              setAllDay(true); setTimeStart(allDayStart); setTimeEnd(allDayEnd);
+            } else {
+              setAllDay(false);
+              const baseStart = allDay || timeStart === "00:00" || timeStart === allDayStart ? "10:00" : timeStart;
+              setTimeStart(baseStart);
+              const [h, m] = baseStart.split(":").map(Number);
+              const totalMin = (h ?? 0) * 60 + (m ?? 0) + preset.defaultDuration;
+              const eh = Math.floor(totalMin / 60) % 24;
+              const em = totalMin % 60;
+              setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
+            }
+          }}
+        />
+      )}
+
+      {/* Card 2 — Hero title + notes */}
+      <div
+        className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative"
+        style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+      >
+        <div className="px-4 pt-3 pb-3">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Название"
+            readOnly={readonly}
+            className="w-full text-[22px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight leading-tight bg-transparent border-0 focus:outline-none"
+          />
+          <div aria-hidden className="mt-2 mb-2 h-px w-full" style={{ background: dividerLine(color) }} />
+          <textarea
+            ref={notesRef}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Заметка"
+            rows={1}
+            readOnly={readonly}
+            className="block w-full text-[13px] text-[var(--label-secondary)] placeholder:text-[var(--label-tertiary)] leading-snug bg-transparent border-0 focus:outline-none resize-none overflow-hidden"
+          />
+        </div>
+      </div>
+
+      {/* Card 4 — Place + URL */}
+      <div
+        className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
+        style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+      >
+        <div className="px-3.5 py-2.5 flex items-start gap-2">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0 pt-1.5">Место</div>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Адрес или ссылка на карту"
+            rows={1}
+            readOnly={readonly}
+            className="flex-1 min-h-8 max-h-20 px-2.5 py-1.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] resize-none leading-snug focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+          />
+          {mapsLinks && (
+            <button type="button" onClick={() => setNavOpen(true)} aria-label="Открыть в картах"
+              className="w-11 h-11 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0">
+              <NavigationIcon size={16} strokeWidth={2} />
+            </button>
+          )}
+        </div>
+        <div className="border-t border-[var(--separator)]" />
+        <div className="px-3.5 py-2.5 flex items-center gap-2">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0">Ссылка</div>
+          <input
+            type="url" inputMode="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://"
+            readOnly={readonly}
+            className="flex-1 h-11 px-2.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+          />
+          {url.trim() && /^https?:\/\//i.test(url.trim()) && (() => {
+            const trimmed = url.trim();
+            const video = detectVideoConference(trimmed);
+            return (
+              <a href={trimmed} target="_blank" rel="noopener noreferrer"
+                aria-label={video ? `Открыть ${video.label}` : "Открыть ссылку"}
+                title={video ? video.label : "Ссылка"}
+                className={video
+                  ? "h-11 px-2.5 inline-flex items-center gap-1 rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0 text-[12px] font-semibold"
+                  : "w-11 h-11 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"}>
+                {video ? (<><Video size={14} strokeWidth={2} /><span>{video.label}</span></>) : <LinkIcon size={16} strokeWidth={2} />}
+              </a>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Card 5 — Push notification */}
+      {!readonly && (
+        <PushOffsetPicker
+          value={{ enabled: pushEnabled, offsetMin: pushOffset, at: pushAt }}
+          onChange={(next) => { setPushEnabled(next.enabled); setPushOffset(next.offsetMin); setPushAt(next.at); }}
+          eventStartIso={eventStartIso}
+        />
+      )}
+
+      {/* Extra reminders — only when push on + relative mode */}
+      {!readonly && pushEnabled && !pushAt && (
+        <ExtraOffsetsBlock primary={pushOffset} extras={extraOffsets} onChange={setExtraOffsets} />
+      )}
+
+      {/* Card 6 — Repeat */}
+      {!readonly && <RepeatPickerRow value={repeat} onChange={setRepeat} />}
+
+      {/* v657 — inline delete row (only when embedded + edit + has delete handler).
+          Standalone EventForm shows the trash icon in its header instead. */}
+      {bodyOnly && mode === "edit" && onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(event)}
+          data-testid="event-form-delete-inline"
+          className="w-full h-12 flex items-center justify-center gap-2 rounded-2xl bg-[var(--surface-card)] shadow-[var(--shadow-card)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[rgba(255,59,48,0.06)] transition"
+        >
+          <Trash2 size={16} strokeWidth={2} />
+          Удалить событие
+        </button>
+      )}
+    </>
+  );
+
+  // ── bodyOnly: render cards inline (no overlay, no header, no save bar) ────
+  if (bodyOnly) {
+    return (
+      <div
+        data-testid="event-form-inline"
+        className="px-3.5 pt-3 pb-3 space-y-3"
+        style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
+      >
+        {bodyContent}
+        {navOpen && mapsLinks && (
+          <NavigationPopup links={mapsLinks} onClose={() => setNavOpen(false)} />
+        )}
+      </div>
+    );
+  }
+
+  // ── Standalone: full modal chrome for PersonalEventSheet ─────────────────
   return (
     <div
       // STORY audit (user critical): backdrop tap больше не закрывает
@@ -572,194 +857,7 @@ export default function EventForm({
 
         {/* Scroll body */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-3 px-3.5 pt-3 space-y-3">
-
-          {/* Card 1 — Time + all-day toggle */}
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-            {!allDay ? (
-              <TimeBlock
-                date={dateKey}
-                timeStart={timeStart}
-                timeEnd={timeEnd}
-                onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                  setDateKey(d); setTimeStart(s); setTimeEnd(e);
-                }}
-                rightSlot={
-                  !readonly ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-                      <ToggleSlim checked={allDay} onChange={(v) => {
-                        setAllDay(v);
-                        if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
-                      }} ariaLabel="Весь день" />
-                    </div>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <div className="flex items-center gap-2 px-4 py-2.5 text-[13px]">
-                <span className="text-[var(--label-tertiary)]">⏰</span>
-                <span className="font-semibold text-[var(--label)]">{formatDateRu(dateKey)}</span>
-                <span className="text-[var(--label-secondary)]">· весь день</span>
-                {!readonly && (
-                  <span className="ml-auto flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-                    <ToggleSlim checked={allDay} onChange={(v) => setAllDay(v)} ariaLabel="Весь день" />
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Preset row:
-              personal context → user-customizable chips (EventPresetChips)
-              team context     → fixed 5-tile grid from EVENT_PRESETS */}
-          {!readonly && context === "personal" && (
-            <EventPresetChips
-              onPick={(preset: PersonalEventType) => {
-                setTitle(preset.label);
-                setColor(preset.color);
-                if (preset.allDay) {
-                  setAllDay(true); setTimeStart(allDayStart); setTimeEnd(allDayEnd);
-                } else {
-                  setAllDay(false);
-                  const baseStart = allDay || timeStart === "00:00" || timeStart === allDayStart ? "10:00" : timeStart;
-                  setTimeStart(baseStart);
-                  const [h, m] = baseStart.split(":").map(Number);
-                  const totalMin = (h ?? 0) * 60 + (m ?? 0) + preset.defaultDuration;
-                  const eh = Math.floor(totalMin / 60) % 24;
-                  const em = totalMin % 60;
-                  setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
-                }
-              }}
-            />
-          )}
-          {/* STORY audit (user request): «событие в команде должно быть
-              как в личном». Раньше team context рендерил жёсткий 5-tile
-              grid из EVENT_PRESETS, а personal — user-customizable
-              EventPresetChips. Теперь оба контекста используют ОДНИ И
-              ТЕ ЖЕ chips из настройки /settings/calendar/event-types.
-              Per-team event-types пока не разделены — один общий
-              список на тенант. Можно вернуть team-scoped types
-              позже отдельной задачей. */}
-          {!readonly && context === "team" && (
-            <EventPresetChips
-              onPick={(preset: PersonalEventType) => {
-                setTitle(preset.label);
-                setColor(preset.color);
-                if (preset.allDay) {
-                  setAllDay(true); setTimeStart(allDayStart); setTimeEnd(allDayEnd);
-                } else {
-                  setAllDay(false);
-                  const baseStart = allDay || timeStart === "00:00" || timeStart === allDayStart ? "10:00" : timeStart;
-                  setTimeStart(baseStart);
-                  const [h, m] = baseStart.split(":").map(Number);
-                  const totalMin = (h ?? 0) * 60 + (m ?? 0) + preset.defaultDuration;
-                  const eh = Math.floor(totalMin / 60) % 24;
-                  const em = totalMin % 60;
-                  setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
-                }
-              }}
-            />
-          )}
-
-          {/* Card 2 — Hero title + notes */}
-          <div
-            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden relative"
-            style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
-          >
-            <div className="px-4 pt-3 pb-3">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Название"
-                readOnly={readonly}
-                className="w-full text-[22px] font-bold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-semibold tracking-tight leading-tight bg-transparent border-0 focus:outline-none"
-              />
-              <div aria-hidden className="mt-2 mb-2 h-px w-full" style={{ background: dividerLine(color) }} />
-              <textarea
-                ref={notesRef}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Заметка"
-                rows={1}
-                readOnly={readonly}
-                className="block w-full text-[13px] text-[var(--label-secondary)] placeholder:text-[var(--label-tertiary)] leading-snug bg-transparent border-0 focus:outline-none resize-none overflow-hidden"
-              />
-            </div>
-          </div>
-
-          {/* STORY audit: убрали Card 3 (8-colour palette только для
-              team). Header ColorPaletteButton одинаков для обоих
-              контекстов — этого достаточно. Дублировать palette inline
-              + в header — лишняя сложность. */}
-
-          {/* Card 4 — Place + URL */}
-          <div
-            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden"
-            style={{ WebkitUserSelect: "text", userSelect: "text" } as React.CSSProperties}
-          >
-            <div className="px-3.5 py-2.5 flex items-start gap-2">
-              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0 pt-1.5">Место</div>
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Адрес или ссылка на карту"
-                rows={1}
-                readOnly={readonly}
-                className="flex-1 min-h-8 max-h-20 px-2.5 py-1.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] resize-none leading-snug focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-              />
-              {mapsLinks && (
-                <button type="button" onClick={() => setNavOpen(true)} aria-label="Открыть в картах"
-                  className="w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0">
-                  <NavigationIcon size={14} strokeWidth={2} />
-                </button>
-              )}
-            </div>
-            <div className="border-t border-[var(--separator)]" />
-            <div className="px-3.5 py-2.5 flex items-center gap-2">
-              <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] w-[52px] shrink-0">Ссылка</div>
-              <input
-                type="url" inputMode="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://"
-                readOnly={readonly}
-                className="flex-1 h-8 px-2.5 rounded-[8px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-              />
-              {url.trim() && /^https?:\/\//i.test(url.trim()) && (() => {
-                const trimmed = url.trim();
-                const video = detectVideoConference(trimmed);
-                return (
-                  <a href={trimmed} target="_blank" rel="noopener noreferrer"
-                    aria-label={video ? `Открыть ${video.label}` : "Открыть ссылку"}
-                    title={video ? video.label : "Ссылка"}
-                    className={video
-                      ? "h-8 px-2 inline-flex items-center gap-1 rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0 text-[12px] font-semibold"
-                      : "w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--accent)] bg-[var(--accent-tint)] active:scale-[0.95] shrink-0"}>
-                    {video ? (<><Video size={14} strokeWidth={2} /><span>{video.label}</span></>) : <LinkIcon size={14} strokeWidth={2} />}
-                  </a>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Card 5 — Push notification */}
-          {!readonly && (
-            <PushOffsetPicker
-              value={{ enabled: pushEnabled, offsetMin: pushOffset, at: pushAt }}
-              onChange={(next) => { setPushEnabled(next.enabled); setPushOffset(next.offsetMin); setPushAt(next.at); }}
-              eventStartIso={eventStartIso}
-            />
-          )}
-
-          {/* Extra reminders — only when push on + relative mode */}
-          {!readonly && pushEnabled && !pushAt && (
-            <ExtraOffsetsBlock primary={pushOffset} extras={extraOffsets} onChange={setExtraOffsets} />
-          )}
-
-          {/* Card 6 — Repeat */}
-          {!readonly && <RepeatPickerRow value={repeat} onChange={setRepeat} />}
+          {bodyContent}
         </div>
 
         {/* Sticky footer — save button (hidden in view mode) */}
