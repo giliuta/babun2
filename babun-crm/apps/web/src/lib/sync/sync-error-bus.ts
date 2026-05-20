@@ -35,10 +35,49 @@ function emit(): void {
   for (const fn of subscribers) fn();
 }
 
+// v665 — banner UX policy.
+//
+// Old behaviour: single failure → instant red pill, persistent until
+// a successful save lands. On Cyprus 5G one transient blip painted
+// the red pill for the rest of the session, even after retries
+// succeeded — the user perceived it as "constant sync failure" when
+// 99 % of writes actually went through.
+//
+// New policy:
+//   • One isolated failure: silent. Counter goes 0 → 1, no pill.
+//   • Two-or-more failures within a 30 s window: surface the pill.
+//   • Any successful save: counter back to 0, pill cleared.
+//   • No new errors for 30 s after the last one: counter back to 0,
+//     pill auto-clears (we treat the lull as a successful idle).
+//
+// This gives the user signal when something is actually wrong
+// (≥2 fails close together, "I should look at this") without
+// turning every flaky-LTE moment into a red flag.
+const SURFACE_THRESHOLD = 2;
+const AUTO_CLEAR_MS = 30_000;
+let recentFailureCount = 0;
+let autoClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleAutoClear(): void {
+  if (autoClearTimer) clearTimeout(autoClearTimer);
+  autoClearTimer = setTimeout(() => {
+    autoClearTimer = null;
+    recentFailureCount = 0;
+    if (state.lastError !== null) {
+      state = { lastError: null };
+      emit();
+    }
+  }, AUTO_CLEAR_MS);
+}
+
 export function reportSyncError(err: unknown): void {
   const message = err instanceof Error ? err.message : String(err);
-  state = { lastError: { message, at: Date.now() } };
-  emit();
+  recentFailureCount += 1;
+  if (recentFailureCount >= SURFACE_THRESHOLD) {
+    state = { lastError: { message, at: Date.now() } };
+    emit();
+  }
+  scheduleAutoClear();
   // v541 §5.1 — fan out to telemetry. No-op without Sentry adapter;
   // with Sentry installed, the error lands in the dashboard tagged
   // `subsystem=sync` so the user-pill UX and the error inbox stay
@@ -47,6 +86,13 @@ export function reportSyncError(err: unknown): void {
 }
 
 export function clearSyncError(): void {
+  // A successful save resets BOTH the visible state and the
+  // back-off counter — next single failure goes back to silent.
+  recentFailureCount = 0;
+  if (autoClearTimer) {
+    clearTimeout(autoClearTimer);
+    autoClearTimer = null;
+  }
   if (state.lastError !== null) {
     state = { lastError: null };
     emit();
