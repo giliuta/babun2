@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v662-no-settings-wipe-on-empty-fetch";
+const CACHE_VERSION = "babun-v663-days-off-persist-and-backup-gate";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 

@@ -29,9 +29,12 @@ export function loadIncomeCategories(): IncomeCategory[] {
   if (typeof window === "undefined") return DEFAULT_INCOME_CATEGORIES;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_INCOME_CATEGORIES;
+    // v662 — DATA-LOSS GUARD: same pattern as expense-categories.
+    // Only seed defaults when there is no key at all; respect an
+    // explicit empty array as the user's choice.
+    if (raw === null) return DEFAULT_INCOME_CATEGORIES;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_INCOME_CATEGORIES;
+    return Array.isArray(parsed) ? parsed : DEFAULT_INCOME_CATEGORIES;
   } catch {
     return DEFAULT_INCOME_CATEGORIES;
   }

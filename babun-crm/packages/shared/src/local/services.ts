@@ -164,9 +164,13 @@ export function loadServices(): Service[] {
   if (typeof window === "undefined") return DEFAULT_SERVICES;
   try {
     const raw = window.localStorage.getItem(SERVICES_KEY);
-    if (!raw) return DEFAULT_SERVICES;
+    // v662 — DATA-LOSS GUARD: respect explicit `[]`. The user might
+    // have intentionally deleted every service (mid-onboarding, or
+    // wiping the seed catalog). Don't silently revive defaults.
+    if (raw === null) return DEFAULT_SERVICES;
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_SERVICES;
+    if (!Array.isArray(parsed)) return DEFAULT_SERVICES;
+    if (parsed.length === 0) return [];
     // MEGA-UPDATE migration: fill in new fields on legacy records.
     // Phase I20: also migrate the legacy single-step bulk pricing
     // (bulk_threshold + bulk_price) to the new price_tiers ladder
@@ -212,9 +216,11 @@ export function loadCategories(): ServiceCategory[] {
   if (typeof window === "undefined") return DEFAULT_CATEGORIES;
   try {
     const raw = window.localStorage.getItem(CATEGORIES_KEY);
-    if (!raw) return DEFAULT_CATEGORIES;
+    // v662 — DATA-LOSS GUARD: same as loadServices — explicit `[]`
+    // is respected as the user's choice.
+    if (raw === null) return DEFAULT_CATEGORIES;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CATEGORIES;
+    return Array.isArray(parsed) ? parsed : DEFAULT_CATEGORIES;
   } catch {
     return DEFAULT_CATEGORIES;
   }

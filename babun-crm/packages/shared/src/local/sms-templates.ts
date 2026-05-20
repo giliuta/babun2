@@ -84,9 +84,12 @@ export function loadTemplates(): SmsTemplate[] {
   if (typeof window === "undefined") return DEFAULT_TEMPLATES;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_TEMPLATES;
+    // v662 — DATA-LOSS GUARD: respect explicit `[]`. The user might
+    // have intentionally deleted every template; don't silently
+    // revive defaults.
+    if (raw === null) return DEFAULT_TEMPLATES;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TEMPLATES;
+    return Array.isArray(parsed) ? parsed : DEFAULT_TEMPLATES;
   } catch {
     return DEFAULT_TEMPLATES;
   }

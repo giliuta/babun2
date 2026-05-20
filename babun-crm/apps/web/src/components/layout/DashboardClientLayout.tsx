@@ -794,6 +794,13 @@ export default function DashboardClientLayout({
     require_address: false,
     require_comment: false,
   });
+  // v662 — gate the tenant_state backup-save effect until the
+  // hydration pass has run. Without this gate, the save fires on
+  // first render with whatever is in localStorage (possibly empty if
+  // iOS Safari evicted) and clobbers the server-side backup blob —
+  // destroying the only safety net for fresh-device / evicted-cache
+  // recovery scenarios.
+  const [backupHydrated, setBackupHydrated] = useState(false);
 
   // Seed currentMasterId once masters are loaded. Defaults to first
   // admin, then first dispatcher, then any active master — whichever
@@ -824,6 +831,14 @@ export default function DashboardClientLayout({
       const persisted = loadMasters();
       if (persisted.length > 0) return;
     }
+    // v662 — ALSO wait until the v505 tenant_state blob restore has
+    // a chance to fire. Otherwise: fresh device, localStorage empty,
+    // blob restore async in flight, bootstrap effect sees nothing
+    // and creates a single default-admin master → that one master
+    // now lives in localStorage → restoreEmptyStoresFromBlob skips
+    // the masters branch (length 1 ≠ 0) → user loses the real 5
+    // masters they had on the other device.
+    if (!backupHydrated) return;
     if (masters.length === 0 && userEmail) {
       const localPart = userEmail.split("@")[0] || "Я";
       const displayName = localPart
@@ -858,7 +873,7 @@ export default function DashboardClientLayout({
       getStorage().setRaw(CURRENT_MASTER_KEY, pick.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [masters, userEmail]);
+  }, [masters, userEmail, backupHydrated]);
 
   const setCurrentMasterId = useCallback((id: string | null) => {
     setCurrentMasterIdState(id);
@@ -906,8 +921,35 @@ export default function DashboardClientLayout({
         listClients(supabase, tenantId),
         listClientTags(supabase, tenantId),
       ]);
-      setClientsState(list);
-      setClientTagsState(tagList);
+      // v662 — defensive merge against transient empty server reads.
+      // Without this, a momentary RLS / auth-refresh / network flicker
+      // that returns `[]` from listClients silently nuked the entire
+      // client roster in React state. Pattern matches reloadAppointments
+      // (v499) and reloadSchedule (v662).
+      setClientsState((prev) => {
+        if (list.length === 0 && prev.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[reloadClients] empty server response — keeping",
+            prev.length,
+            "local rows (auth/RLS/network flicker)",
+          );
+          return prev;
+        }
+        return list;
+      });
+      setClientTagsState((prev) => {
+        if (tagList.length === 0 && prev.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[reloadClients] empty client_tags — keeping",
+            prev.length,
+            "local rows",
+          );
+          return prev;
+        }
+        return tagList;
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Не удалось загрузить клиентов";
       setClientsError(msg);
@@ -1150,6 +1192,16 @@ export default function DashboardClientLayout({
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn("[tenant-state] hydration failed", err);
+      } finally {
+        // v662 — flip the gate so the debounced backup-save below can
+        // start writing. Before this gate the save effect would fire
+        // on first render with empty localStorage (iOS Safari
+        // eviction) and immediately clobber the server backup with
+        // a `{ masters:[], teams:[], … }` blob — destroying the only
+        // recovery path. Now: no backup writes until either the
+        // tenant_state blob was restored OR we've confirmed there
+        // was nothing to restore.
+        if (!cancelled) setBackupHydrated(true);
       }
     })();
     return () => {
@@ -1161,8 +1213,14 @@ export default function DashboardClientLayout({
   // them changes. Collapses bursts of writes (e.g. brigade editor
   // tweaking multiple fields) into a single network round-trip.
   useEffect(() => {
+    // v662 — never write a backup before the hydration pass has
+    // finished. Otherwise the first render with empty localStorage
+    // (post-eviction / fresh device pre-restore) immediately
+    // clobbers the server blob with empties.
+    if (!backupHydrated) return;
     scheduleTenantStateSave(getSupabaseBrowser(), tenantId);
   }, [
+    backupHydrated,
     tenantId,
     masters,
     teams,

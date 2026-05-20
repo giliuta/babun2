@@ -24,9 +24,17 @@ export function loadExpenseCategories(): ExpenseCategory[] {
   if (typeof window === "undefined") return DEFAULT_EXPENSE_CATEGORIES;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_EXPENSE_CATEGORIES;
+    // v662 — DATA-LOSS GUARD: if the user explicitly deleted all
+    // categories the saved value is `[]`. The old behaviour
+    // ("length > 0 ? parsed : DEFAULTS") rehydrated the six seeded
+    // defaults — silently reviving categories the user had wiped,
+    // and on the next save they'd be persisted again. Treat the
+    // presence of any persisted key (even if it parses to []) as
+    // "the user has interacted with this list, respect their choice."
+    // Only seed defaults when there is no key at all.
+    if (raw === null) return DEFAULT_EXPENSE_CATEGORIES;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_EXPENSE_CATEGORIES;
+    return Array.isArray(parsed) ? parsed : DEFAULT_EXPENSE_CATEGORIES;
   } catch {
     return DEFAULT_EXPENSE_CATEGORIES;
   }

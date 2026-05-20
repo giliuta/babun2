@@ -135,6 +135,18 @@ export async function updateCalendarSettings(
         ? patch.personalDefaultLabel
         : null;
   }
+  // v662 — STORY-060 F2.5 days_off was READ from the row (line 67) but
+  // NEVER WRITTEN. Every save to calendar_settings dropped the field;
+  // the DB column kept its default [0] (Sunday only). On any device
+  // that didn't have the localStorage cache (fresh device, post-iOS
+  // eviction, post-PWA reinstall), reloadSchedule pulled days_off:[0]
+  // back into React state — silently wiping a custom "Сб+Вс" selection.
+  // Same graceful-fallback pattern as work_*_hour: cast through any
+  // and strip from the retry payload if the column is missing.
+  if (patch.days_off !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (insert as any).days_off = patch.days_off;
+  }
 
   const { data, error } = await supabase
     .from("calendar_settings")
@@ -154,7 +166,7 @@ export async function updateCalendarSettings(
     const isMissingCol =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (error as any).code === "42703" ||
-      /work_start_hour|work_end_hour|scroll_open_hour|personal_labels|personal_default_label/i.test(
+      /work_start_hour|work_end_hour|scroll_open_hour|personal_labels|personal_default_label|days_off/i.test(
         error.message,
       );
     if (isMissingCol) {
@@ -168,6 +180,8 @@ export async function updateCalendarSettings(
       delete (insert as any).personal_labels;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (insert as any).personal_default_label;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (insert as any).days_off;
       const retry = await supabase
         .from("calendar_settings")
         .upsert(insert, { onConflict: "tenant_id" })
