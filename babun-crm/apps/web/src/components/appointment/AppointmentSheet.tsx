@@ -710,8 +710,15 @@ export default function AppointmentSheet({
 
   return (
     <div
+      // STORY audit (user critical): backdrop tap closed the sheet
+      // even with attemptClose's dirty-guard — confirm dialogs sometimes
+      // got missed под другими z-стеками, sheet просто закрывался и
+      // оператор терял ввод. Пользователь явно сказал «не должно
+      // закрываться при тапе мимо». Backdrop close убран. Закрытие
+      // только через явную кнопку ✕ или swipe-down (тоже идёт через
+      // attemptClose). Esc на keyboard через useBodyScrollLock тоже
+      // работает.
       className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
-      onClick={attemptClose}
     >
       <div
         // STORY-056 — desktop cap at 720 px so the modal reads as a

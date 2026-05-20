@@ -523,8 +523,10 @@ export default function EventForm({
 
   return (
     <div
+      // STORY audit (user critical): backdrop tap больше не закрывает
+      // EventForm. Закрытие только через ✕ кнопку в шапке или явный
+      // Сохранить/Удалить.
       className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
-      onClick={handleCloseRequest}
     >
       <div
         data-testid="event-form-sheet"
