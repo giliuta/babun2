@@ -77,8 +77,12 @@ export interface EventFormProps {
   bodyOnly?: boolean;
   /** v657 — parent grabs this ref so its own save button can trigger
    *  EventForm's internal `handleSave`. Only meaningful when
-   *  `bodyOnly` is true. */
-  submitRef?: React.MutableRefObject<(() => void) | null>;
+   *  `bodyOnly` is true.
+   *  v669 — now returns boolean. `false` means save was rejected
+   *  (e.g. canSave was false at fire time); parent releases its
+   *  submit lock. `true` means save was committed and parent will
+   *  unmount the sheet. */
+  submitRef?: React.MutableRefObject<(() => boolean) | null>;
   /** v657 — fires when canSave flips so the parent's save button
    *  can switch between enabled / disabled states. Only meaningful
    *  when `bodyOnly` is true. */
@@ -561,17 +565,24 @@ export default function EventForm({
     };
   };
 
-  const handleSave = () => {
-    if (!canSave) return;
+  // v669 — returns boolean. Parent's AppointmentSaveButton uses the
+  // return value to release the «Сохраняем…» lock when canSave was
+  // already false at fire time (i.e. user typed title, then deleted
+  // it, then tapped the still-blue button on the same render).
+  // Previously: silent early-return → permanent lock.
+  const handleSave = (): boolean => {
+    if (!canSave) return false;
     const payload = buildPayload();
     if (payload.address) pushRecentPlace(payload.address);
     onSave(payload);
+    return true;
   };
 
   // v657 — keep submitRef pointing at the latest handleSave so the
   // parent's CTA can call into it without restaling closures.
   // handleSave is recreated every render (closes over local state),
   // so we keep an internal ref-of-ref to avoid useEffect churn.
+  // v669 — ref-of-ref now returns boolean too.
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
   useEffect(() => {

@@ -213,7 +213,10 @@ export default function AppointmentSheet({
   // (a) trigger EventForm.handleSave from outside, and (b) know whether
   // the event form has enough data to save. eventSubmitRef + eventCanSave
   // give us both, via the new EventForm props.
-  const eventSubmitRef = useRef<(() => void) | null>(null);
+  // v669 — submit ref now returns boolean so AppointmentSaveButton
+  // can release its «Сохраняем…» lock when EventForm.handleSave
+  // refuses to save (canSave=false at fire time).
+  const eventSubmitRef = useRef<(() => boolean) | null>(null);
   const [eventCanSave, setEventCanSave] = useState(false);
   // v667 — event colour lifted up so the palette icon lives in the
   // sheet header (top-right next to ✕) and tints the header band.
@@ -675,8 +678,13 @@ export default function AppointmentSheet({
   // Event-mode branch is DEAD CODE since EventForm.onSave routes events
   // directly — isEventMode is always false here (EventForm owns its own
   // submit path). Work mode only.
-  const handleCreate = () => {
-    if (!client || appointmentServices.length === 0) return;
+  // v669 — returns boolean so AppointmentSaveButton can release the
+  // submit lock when the save is rejected. `appointmentServices.length`
+  // check stays (canSave already enforces it; this is belt-and-braces).
+  // The `!client` early-return is GONE — anonymous drafts now save
+  // properly (see buildSavedWorkAppointment v669 comment).
+  const handleCreate = (): boolean => {
+    if (appointmentServices.length === 0) return false;
     const saved = buildSavedWorkAppointment({
       appointment,
       client,
@@ -697,6 +705,7 @@ export default function AppointmentSheet({
       liveMode,
     });
     onSave(saved);
+    return true;
   };
 
   const handlePay = (payment: AppointmentPayment) => {
@@ -943,12 +952,19 @@ export default function AppointmentSheet({
             routes through eventSubmitRef (EventForm's internal handleSave);
             in work mode it calls handleCreate as before. This is what kills
             the "вылетает" perception — there is no separate EventForm save
-            bar layered on top of the sheet anymore. */}
+            bar layered on top of the sheet anymore.
+            v669 — both branches now return boolean so AppointmentSaveButton
+            can release the lock if save is refused (silent early-return
+            no longer causes the «Сохраняем…» deadlock). */}
         {isEditable && (
           <AppointmentSaveButton
             canSave={canSave}
             label={savePreviewLabel}
-            onSave={isEventMode ? () => eventSubmitRef.current?.() : handleCreate}
+            onSave={
+              isEventMode
+                ? () => eventSubmitRef.current?.() ?? false
+                : handleCreate
+            }
           />
         )}
       </div>
@@ -985,9 +1001,11 @@ export default function AppointmentSheet({
           // right save path depending on segment mode. Without this,
           // saving an event from the close-confirm popup silently
           // failed (handleCreate is work-only).
+          // v669 — return type now boolean to match save button.
+          // Caller (AppointmentSubSheets) just ignores the value.
           isEventMode
-            ? () => eventSubmitRef.current?.()
-            : handleCreate
+            ? () => { eventSubmitRef.current?.(); }
+            : () => { handleCreate(); }
         }
         askClientFirst={askClientFirst}
         setAskClientFirst={setAskClientFirst}

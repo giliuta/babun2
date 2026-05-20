@@ -18,7 +18,13 @@ import type { AppointmentSheetMode } from "@/components/appointment/AppointmentS
 export interface BuildWorkAppointmentInput {
   /** Base record to spread (carries id, team_id, etc.). */
   appointment: Appointment;
-  client: Client;
+  /** v669 — nullable. Anonymous appointments (звонок без полного имени,
+   *  «приду чуть позже, тогда скажу кто») are explicitly supported per
+   *  v607 design intent — the save preview already says «без клиента».
+   *  Previously the builder required Client and the calling handleCreate
+   *  early-returned silently, creating a permanent isSubmitting deadlock
+   *  on the save button. */
+  client: Client | null;
   appointmentServices: AppointmentService[];
   globalDiscount: Discount | null;
   dateKey: string;
@@ -83,7 +89,10 @@ export function buildSavedWorkAppointment(
     // `timeEnd` is kept in sync by the live-recalc effect in AppointmentSheet:
     // end ≥ start + Σ service durations, clamped at 23:59. Trust it.
     time_end: timeEnd,
-    client_id: client.id,
+    // v669 — null client_id allowed for anonymous drafts. The yellow
+    // colour-kind in DayColumn already covers the «без клиента» visual
+    // affordance so dispatcher sees missing-client at a glance.
+    client_id: client?.id ?? null,
     location_id: locationId,
     team_id: activeTeamId,
     service_ids: appointmentServices.map((l) => l.serviceId),
@@ -100,7 +109,10 @@ export function buildSavedWorkAppointment(
     photos: [],
     source,
     cancel_reason: cancelFlag ? (cancelReason.trim() || null) : null,
-    reminder_enabled: smsEnabled && Boolean(client.phone),
+    // v669 — guard against null client (anonymous draft). SMS reminder
+    // can only fire when we have a phone number; without a client the
+    // flag is forced off.
+    reminder_enabled: smsEnabled && Boolean(client?.phone),
     kind: "work",
     // Cancel toggle wins over everything else. When the dispatcher
     // unchecks cancel on an already-cancelled record, restore it to

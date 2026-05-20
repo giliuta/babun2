@@ -16,7 +16,17 @@ import { useEffect, useState } from "react";
 interface AppointmentSaveButtonProps {
   canSave: boolean;
   label: string;
-  onSave: () => void;
+  /** v669 — return value semantics:
+   *    • `true` (or undefined): save succeeded / is in flight → button
+   *      stays locked at «Сохраняем…» until parent unmounts the sheet.
+   *    • `false`: save was rejected (precondition failed, e.g. invalid
+   *      state caught synchronously) → unlock immediately so the user
+   *      can retry without closing the form. This is what closes the
+   *      «isSubmitting forever» deadlock when handleCreate / EventForm
+   *      .handleSave early-return on `!client` / `!canSave`.
+   *    • `Promise<boolean>`: same rules, awaited.
+   *    • thrown error: treated as `false`, lock released. */
+  onSave: () => boolean | void | Promise<boolean | void>;
 }
 
 export default function AppointmentSaveButton({
@@ -72,7 +82,30 @@ export default function AppointmentSaveButton({
             return;
           }
           setIsSubmitting(true);
-          onSave();
+          // v669 — interpret return value to release the lock when the
+          // save handler refuses to proceed (e.g. invalid state).
+          // Previously the lock was permanent on any early-return,
+          // leaving the button stuck at «Сохраняем…» forever.
+          let result: boolean | void | Promise<boolean | void>;
+          try {
+            result = onSave();
+          } catch {
+            setIsSubmitting(false);
+            return;
+          }
+          if (result === false) {
+            setIsSubmitting(false);
+            return;
+          }
+          if (result instanceof Promise) {
+            result
+              .then((settled) => {
+                if (settled === false) setIsSubmitting(false);
+              })
+              .catch(() => setIsSubmitting(false));
+          }
+          // Otherwise: synchronous void / true → keep lock until the
+          // parent unmounts the sheet on success.
         }}
         disabled={submitLocked}
         data-testid="appointment-sheet-save"
