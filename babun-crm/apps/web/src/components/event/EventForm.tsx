@@ -633,35 +633,33 @@ export default function EventForm({
               }}
             />
           )}
+          {/* STORY audit (user request): «событие в команде должно быть
+              как в личном». Раньше team context рендерил жёсткий 5-tile
+              grid из EVENT_PRESETS, а personal — user-customizable
+              EventPresetChips. Теперь оба контекста используют ОДНИ И
+              ТЕ ЖЕ chips из настройки /settings/calendar/event-types.
+              Per-team event-types пока не разделены — один общий
+              список на тенант. Можно вернуть team-scoped types
+              позже отдельной задачей. */}
           {!readonly && context === "team" && (
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 pt-4 pb-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-2">Тип события</div>
-              <div className="grid grid-cols-3 gap-2">
-                {EVENT_PRESETS.map((p) => {
-                  const Icon = TEAM_PRESET_ICONS[p.icon] ?? Coffee;
-                  return (
-                    <button key={p.id} type="button"
-                      onClick={() => {
-                        setTitle(p.label);
-                        if (p.allDay) {
-                          setAllDay(true); setTimeStart("08:00"); setTimeEnd("20:00");
-                        } else {
-                          const [h, m] = timeStart.split(":").map(Number);
-                          const endMin = Math.min(23 * 60 + 59, (h ?? 0) * 60 + (m ?? 0) + p.duration);
-                          const eh = Math.floor(endMin / 60);
-                          const em = endMin % 60;
-                          setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
-                        }
-                      }}
-                      className="py-3 rounded-[14px] border border-[var(--separator)] bg-[var(--surface-card)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.98] flex flex-col items-center gap-1"
-                      style={title === p.label ? { borderColor: p.color, background: `${p.color}14` } : undefined}>
-                      <Icon size={20} strokeWidth={2} />
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <EventPresetChips
+              onPick={(preset: PersonalEventType) => {
+                setTitle(preset.label);
+                setColor(preset.color);
+                if (preset.allDay) {
+                  setAllDay(true); setTimeStart(allDayStart); setTimeEnd(allDayEnd);
+                } else {
+                  setAllDay(false);
+                  const baseStart = allDay || timeStart === "00:00" || timeStart === allDayStart ? "10:00" : timeStart;
+                  setTimeStart(baseStart);
+                  const [h, m] = baseStart.split(":").map(Number);
+                  const totalMin = (h ?? 0) * 60 + (m ?? 0) + preset.defaultDuration;
+                  const eh = Math.floor(totalMin / 60) % 24;
+                  const em = totalMin % 60;
+                  setTimeEnd(`${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`);
+                }
+              }}
+            />
           )}
 
           {/* Card 2 — Hero title + notes */}
@@ -691,24 +689,10 @@ export default function EventForm({
             </div>
           </div>
 
-          {/* Card 3 — team-context 8-colour palette (replaces full palette in header for team) */}
-          {context === "team" && !readonly && (
-            <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 pt-3 pb-3">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">Цвет</div>
-              <div className="flex flex-wrap gap-2">
-                {EVENT_COLOR_PRESETS.map((c) => {
-                  const active = color === c.hex;
-                  return (
-                    <button key={c.id} type="button"
-                      onClick={() => setColor(active ? DEFAULT_COLOR : c.hex)}
-                      aria-label={c.label}
-                      className="w-8 h-8 rounded-full active:scale-[0.95] transition border-2"
-                      style={{ background: c.hex, borderColor: active ? "var(--label)" : "transparent" }} />
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* STORY audit: убрали Card 3 (8-colour palette только для
+              team). Header ColorPaletteButton одинаков для обоих
+              контекстов — этого достаточно. Дублировать palette inline
+              + в header — лишняя сложность. */}
 
           {/* Card 4 — Place + URL */}
           <div
