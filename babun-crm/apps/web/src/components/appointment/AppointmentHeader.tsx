@@ -13,9 +13,11 @@
  * Extracted from AppointmentSheet (Sprint #4 §9 step 4, v626).
  */
 
-import { Check, Camera, CalendarClock } from "@babun/shared/icons";
+import { useEffect, useState } from "react";
+import { Check, Camera, CalendarClock, Palette } from "@babun/shared/icons";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { AppointmentSheetMode } from "./AppointmentSheet";
+import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 
 type Kind = "work" | "event";
 
@@ -38,6 +40,13 @@ interface AppointmentHeaderProps {
   setKind: (k: Kind) => void;
   setSegmentSwitchConfirm: (v: boolean) => void;
   attemptClose: () => void;
+  /** v667 — event mode shows a small palette icon top-right (between
+   *  quick-actions and ✕). Tap opens a centered swatch popup; pick
+   *  tints the sheet header band. Standalone work mode hides the
+   *  button entirely. */
+  isEventMode?: boolean;
+  eventColor?: string;
+  onEventColorChange?: (next: string) => void;
 }
 
 export default function AppointmentHeader({
@@ -55,9 +64,32 @@ export default function AppointmentHeader({
   setKind,
   setSegmentSwitchConfirm,
   attemptClose,
+  isEventMode,
+  eventColor,
+  onEventColorChange,
 }: AppointmentHeaderProps) {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPaletteOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [paletteOpen]);
   return (
-    <div className="flex-shrink-0 px-4 pb-2 flex items-center justify-between gap-2">
+    <div
+      className="flex-shrink-0 px-4 pb-2 pt-2 flex items-center justify-between gap-2 transition-colors"
+      // v667 — header band tints with the event colour when in event
+      // mode, matching the «mini icon palette → paint the top» request.
+      // Uses a 14 %-alpha tint (hex + '24') so the colour reads as a
+      // soft accent, not solid fill — keeps text legible.
+      style={
+        isEventMode && eventColor && /^#[0-9a-fA-F]{6}$/.test(eventColor)
+          ? { background: `${eventColor}24` }
+          : undefined
+      }
+    >
       {liveMode === "create" ? (
         // STORY audit (design-keeper #4): раньше personal-mode имел
         // статическую pill «Личное событие», а team-mode — segment
@@ -157,6 +189,23 @@ export default function AppointmentHeader({
         </div>
       )}
 
+      {/* v667 — palette icon top-right (just before ✕) when in event
+          mode. User explicit ask: «Цвет сделай справа верху мини
+          иконка палитры и вылазит поп ап, окрашивает верхушку самой
+          заявки». Tap opens centered swatch grid; pick paints this
+          header band via the inline style on the wrapper div above. */}
+      {isEventMode && eventColor && onEventColorChange && (
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Цвет события"
+          className="w-11 h-11 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
+          style={{ color: eventColor }}
+        >
+          <Palette size={18} strokeWidth={2} />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={attemptClose}
@@ -168,6 +217,52 @@ export default function AppointmentHeader({
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
       </button>
+
+      {/* Centered palette popup (feedback_center_modals.md style). */}
+      {paletteOpen && eventColor && onEventColorChange && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6"
+          onClick={() => setPaletteOpen(false)}
+        >
+          <div
+            className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] p-5 w-full max-w-[320px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-4">
+              Цвет события
+            </div>
+            <div className="grid grid-cols-7 gap-2.5">
+              {PRESET_COLORS.map((c) => {
+                const active = eventColor.toLowerCase() === c.value.toLowerCase();
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => {
+                      onEventColorChange(c.value);
+                      setPaletteOpen(false);
+                    }}
+                    aria-label={c.name}
+                    className={`w-9 h-9 rounded-full border-2 transition active:scale-[0.92] ${
+                      active
+                        ? "border-[var(--label)] ring-2 ring-offset-2 ring-[var(--label)]/20"
+                        : "border-transparent"
+                    }`}
+                    style={{ background: c.value }}
+                  />
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(false)}
+              className="w-full mt-5 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -83,6 +83,12 @@ export interface EventFormProps {
    *  can switch between enabled / disabled states. Only meaningful
    *  when `bodyOnly` is true. */
   onCanSaveChange?: (canSave: boolean) => void;
+  /** v667 — controlled color. When set, EventForm reads color from
+   *  the parent and forwards every change via onChange. Used by
+   *  AppointmentSheet to host the palette button in its own header
+   *  while still letting EventPresetChips inside the body change
+   *  the colour. Only meaningful when `bodyOnly` is true. */
+  controlledColor?: { value: string; onChange: (next: string) => void };
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -363,7 +369,7 @@ function ToggleSlim({ checked, onChange, ariaLabel }: { checked: boolean; onChan
 
 export default function EventForm({
   open, onClose, mode, event, context, onSave, onDelete, onDirtyChange,
-  bodyOnly = false, submitRef, onCanSaveChange,
+  bodyOnly = false, submitRef, onCanSaveChange, controlledColor,
 }: EventFormProps) {
   const { calendarSettings } = useCalendarSettings();
   const workStartHr = calendarSettings.workStartHour ?? calendarSettings.startHour ?? 8;
@@ -400,7 +406,19 @@ export default function EventForm({
   const [allDay,        setAllDay]        = useState(event.event_all_day ?? false);
   const [title,         setTitle]         = useState(event.comment ?? "");
   const [notes,         setNotes]         = useState(event.event_notes ?? "");
-  const [color,         setColor]         = useState<string>(event.color_override ?? DEFAULT_COLOR);
+  // v667 — when controlledColor is set, the parent owns the colour
+  // state (palette button lives in AppointmentSheet's header).
+  // Internal useState keeps local edits flowing in the standalone
+  // path. Reading: controlledColor.value when present, else internal.
+  // Writing: forward to controlledColor.onChange when present, AND
+  // mirror locally so derived UI (border colour, hero divider tint,
+  // CSS vars) updates instantly without waiting for parent rerender.
+  const [internalColor, setInternalColor] = useState<string>(event.color_override ?? DEFAULT_COLOR);
+  const color = controlledColor?.value ?? internalColor;
+  const setColor = (next: string) => {
+    setInternalColor(next);
+    controlledColor?.onChange(next);
+  };
   const [address,       setAddress]       = useState(event.address ?? "");
   const [url,           setUrl]           = useState(event.event_url ?? "");
   const [pushEnabled,   setPushEnabled]   = useState(event.event_push_enabled ?? false);
@@ -433,7 +451,12 @@ export default function EventForm({
     setAllDay(event.event_all_day ?? false);
     setTitle(event.comment ?? "");
     setNotes(event.event_notes ?? "");
-    setColor(event.color_override ?? DEFAULT_COLOR);
+    // v667 — reset to event prop, but only the internal mirror.
+    // controlledColor (when present) is the parent's state and gets
+    // reset there independently. Don't push the reset onto the
+    // parent — that would clobber a freshly-set colour during the
+    // user's edit session.
+    setInternalColor(event.color_override ?? DEFAULT_COLOR);
     setAddress(event.address ?? "");
     setUrl(event.event_url ?? "");
     setPushEnabled(event.event_push_enabled ?? false);
@@ -570,92 +593,46 @@ export default function EventForm({
   // paths; only the surrounding chrome differs.
   const bodyContent = (
     <>
-      {/* v657 — when embedded inline, the parent's header has no
-          color-picker, so we surface the 8-swatch row at the very top
-          of the body. */}
-      {bodyOnly && !readonly && (
-        <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-3.5 py-2.5">
-          <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--label-secondary)] mb-2">Цвет</div>
-          <div className="grid grid-cols-8 gap-2">
-            {EVENT_COLOR_PRESETS.map((c) => {
-              const active = color.toLowerCase() === c.hex.toLowerCase();
-              return (
-                <button
-                  key={c.hex}
-                  type="button"
-                  onClick={() => setColor(c.hex)}
-                  aria-label={c.label}
-                  className={`w-full aspect-square rounded-full border-2 transition active:scale-[0.92] ${active ? "border-[var(--label)] ring-2 ring-offset-1 ring-[var(--label)]/20" : "border-transparent"}`}
-                  style={{ background: c.hex }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Card 1 — Time + all-day toggle.
-          v657 — in bodyOnly mode the parent (AppointmentSheet) renders
-          its own date+time chip in the caption strip above the body,
-          so we only show a slim all-day toggle row here instead of the
-          full TimeBlock. Standalone mode keeps the full TimeBlock. */}
-      {bodyOnly ? (
-        !readonly && (
-          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden flex items-center gap-2 px-4 py-2.5 text-[13px]">
-            <span className="text-[var(--label-tertiary)]">⏰</span>
-            <span className="font-semibold text-[var(--label)]">
-              {allDay ? "Весь день" : `${event.time_start} – ${event.time_end}`}
-            </span>
-            <span className="ml-auto flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-              <ToggleSlim
-                checked={allDay}
-                onChange={(v) => {
-                  setAllDay(v);
-                  if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
-                }}
-                ariaLabel="Весь день"
-              />
-            </span>
-          </div>
-        )
-      ) : (
-        <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-          {!allDay ? (
-            <TimeBlock
-              date={dateKey}
-              timeStart={timeStart}
-              timeEnd={timeEnd}
-              onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-                setDateKey(d); setTimeStart(s); setTimeEnd(e);
-              }}
-              rightSlot={
-                !readonly ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-                    <ToggleSlim checked={allDay} onChange={(v) => {
-                      setAllDay(v);
-                      if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
-                    }} ariaLabel="Весь день" />
-                  </div>
-                ) : undefined
-              }
-            />
-          ) : (
-            <div className="flex items-center gap-2 px-4 py-2.5 text-[13px]">
-              <span className="text-[var(--label-tertiary)]">⏰</span>
-              <span className="font-semibold text-[var(--label)]">{formatDateRu(dateKey)}</span>
-              <span className="text-[var(--label-secondary)]">· весь день</span>
-              {!readonly && (
-                <span className="ml-auto flex items-center gap-2">
+      {/* v667 — Card 1 = full TimeBlock, always.
+          Reverted from v657 split (slim row in bodyOnly vs full block
+          in standalone). User said the time block must be the first
+          big block — period. Same component shape in both contexts.
+          The all-day flat row replaces TimeBlock when allDay=true. */}
+      <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+        {!allDay ? (
+          <TimeBlock
+            date={dateKey}
+            timeStart={timeStart}
+            timeEnd={timeEnd}
+            onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+              setDateKey(d); setTimeStart(s); setTimeEnd(e);
+            }}
+            rightSlot={
+              !readonly ? (
+                <div className="flex items-center gap-2">
                   <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-                  <ToggleSlim checked={allDay} onChange={(v) => setAllDay(v)} ariaLabel="Весь день" />
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+                  <ToggleSlim checked={allDay} onChange={(v) => {
+                    setAllDay(v);
+                    if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
+                  }} ariaLabel="Весь день" />
+                </div>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="flex items-center gap-2 px-4 py-2.5 text-[13px]">
+            <span className="text-[var(--label-tertiary)]">⏰</span>
+            <span className="font-semibold text-[var(--label)]">{formatDateRu(dateKey)}</span>
+            <span className="text-[var(--label-secondary)]">· весь день</span>
+            {!readonly && (
+              <span className="ml-auto flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
+                <ToggleSlim checked={allDay} onChange={(v) => setAllDay(v)} ariaLabel="Весь день" />
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Preset chips — same component for both contexts */}
       {!readonly && (
@@ -773,9 +750,10 @@ export default function EventForm({
       {/* Card 6 — Repeat */}
       {!readonly && <RepeatPickerRow value={repeat} onChange={setRepeat} />}
 
-      {/* v657 — inline delete row (only when embedded + edit + has delete handler).
-          Standalone EventForm shows the trash icon in its header instead. */}
-      {bodyOnly && mode === "edit" && onDelete && (
+      {/* v667 — inline delete row stays in body for both modes. User
+          wants delete reachable without scrolling through quick-actions.
+          Sized to match other cards. */}
+      {mode === "edit" && onDelete && bodyOnly && (
         <button
           type="button"
           onClick={() => onDelete(event)}

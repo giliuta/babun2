@@ -215,16 +215,23 @@ export default function AppointmentSheet({
   // give us both, via the new EventForm props.
   const eventSubmitRef = useRef<(() => void) | null>(null);
   const [eventCanSave, setEventCanSave] = useState(false);
-  // v617 P1 §20 — swipe-down dirty-guard. Track touch on the modal
-  // container; if the operator drags down past 90 px and the scroll
-  // body is at the top, treat it as a close-attempt (which routes
-  // through the dirty check just like the backdrop / Esc / ✕ paths).
-  const swipeStartY = useRef<number | null>(null);
-  const swipeDeltaY = useRef<number>(0);
-  // STORY audit (user bug «листаю туда-обратно и закрывается»):
-  // remember which scroller we armed against so onTouchMove can
-  // disarm the gesture the moment it moves off scrollTop=0.
-  const armedScroller = useRef<HTMLElement | null>(null);
+  // v667 — event colour lifted up so the palette icon lives in the
+  // sheet header (top-right next to ✕) and tints the header band.
+  // EventForm receives controlledColor and writes through it; preset
+  // chips inside the body update it too via the same callback.
+  const [eventColor, setEventColor] = useState<string>(
+    appointment.color_override ?? "#007AFF",
+  );
+  // Reset when a different record is loaded into the sheet.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setEventColor(appointment.color_override ?? "#007AFF");
+  }, [appointment.id, appointment.color_override]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  // v667 — swipe-down close removed; refs no longer needed. The only
+  // close paths are now: ✕ in header (→ attemptClose → always-confirm
+  // popup) and Esc key (→ useBodyScrollLock hook). Eliminates the
+  // gesture conflict that the user reported as «вылетает при листании».
   // v660 — keyboard occlusion fix: scroll focused inputs into view
   // when iOS keyboard rises. See useScrollFocusIntoView for rationale.
   const scrollBodyRef = useRef<HTMLDivElement | null>(null);
@@ -651,11 +658,17 @@ export default function AppointmentSheet({
 
   // ─── Handlers ─────────────────────────────────────────────────────
 
+  // v667 — user explicit rule: «Заявку закрыть нельзя, если нажать
+  // крестик вылазит всегда поп ап сохранить не сохранять и отмена».
+  // The dirty-guard fast-path is removed. Every tap on ✕ opens the
+  // CloseConfirmDialog with three branches:
+  //   • Сохранить — call save if canSave; else show warning chip
+  //   • Не сохранять — close without persisting
+  //   • Отмена — dismiss popup, stay on sheet
+  // Prevents the «accidentally closed and lost it» class of bug
+  // entirely. The cost is one extra tap on a no-edit close, which
+  // the user explicitly accepted.
   const attemptClose = () => {
-    if (!isDirty) {
-      onClose();
-      return;
-    }
     setCloseConfirm(true);
   };
 
@@ -753,45 +766,16 @@ export default function AppointmentSheet({
         // footer уезжал за клавиатуру при фокусе в textarea / поиск.
         style={{ height: sheetHeight }}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => {
-          const target = e.target as HTMLElement;
-          const scroller = target.closest("[data-appt-scroll]") as HTMLElement | null;
-          // Only arm the gesture if the scrollable body is at the top
-          // — otherwise the user is mid-scroll and downward drags
-          // should pan the list, not close the sheet.
-          if (scroller && scroller.scrollTop > 0) {
-            swipeStartY.current = null;
-            return;
-          }
-          swipeStartY.current = e.touches[0]?.clientY ?? null;
-          swipeDeltaY.current = 0;
-          // STORY audit (user report «листаю туда-обратно и закрывается»):
-          // remember WHICH scroller we armed on so onTouchMove can
-          // disarm the gesture the moment that scroller moves off
-          // scrollTop=0. Otherwise a fast «scroll down, bounce back
-          // up past start, release» sequence accumulates a downward
-          // delta even though the user was scrolling, not closing.
-          armedScroller.current = scroller;
-        }}
-        onTouchMove={(e) => {
-          if (swipeStartY.current === null) return;
-          // Disarm if the scrollable body is no longer at the top —
-          // this means the user is panning the list, not the sheet.
-          if (armedScroller.current && armedScroller.current.scrollTop > 0) {
-            swipeStartY.current = null;
-            swipeDeltaY.current = 0;
-            armedScroller.current = null;
-            return;
-          }
-          swipeDeltaY.current = (e.touches[0]?.clientY ?? swipeStartY.current) - swipeStartY.current;
-        }}
-        onTouchEnd={() => {
-          const delta = swipeDeltaY.current;
-          swipeStartY.current = null;
-          swipeDeltaY.current = 0;
-          armedScroller.current = null;
-          if (delta >= 90) attemptClose();
-        }}
+        // v667 — swipe-down-close gesture REMOVED. User reported:
+        // «когда листаю оформление заявки вниз и вверх оно вылетает».
+        // Root cause: when scrollTop reaches 0 from a scrolled-down
+        // position and the user continues the upward finger gesture,
+        // the swipe-down close accumulates downward delta and fires
+        // close at 90 px. The armedScroller disarm logic was a partial
+        // mitigation but didn't catch the «at-top-and-keep-pulling»
+        // case. Close is now ONLY via the explicit ✕ button (which
+        // always shows the Save/Don't save/Cancel confirm). One fewer
+        // gesture, one less data-loss path.
       >
 
         <AppointmentHeader
@@ -809,6 +793,9 @@ export default function AppointmentSheet({
           setKind={setKind}
           setSegmentSwitchConfirm={setSegmentSwitchConfirm}
           attemptClose={attemptClose}
+          isEventMode={isEventMode}
+          eventColor={isEventMode ? eventColor : undefined}
+          onEventColorChange={isEventMode ? setEventColor : undefined}
         />
 
         {/* Scroll body */}
@@ -870,6 +857,7 @@ export default function AppointmentSheet({
               bodyOnly
               submitRef={eventSubmitRef}
               onCanSaveChange={setEventCanSave}
+              controlledColor={{ value: eventColor, onChange: setEventColor }}
               onClose={() => {
                 if (liveMode === "create") {
                   // Switch back to work tab so AppointmentSheet stays open.
@@ -992,7 +980,15 @@ export default function AppointmentSheet({
         liveMode={liveMode}
         canSave={canSave}
         onClose={onClose}
-        onSaveAndClose={handleCreate}
+        onSaveAndClose={
+          // v667 — confirm-popup «Сохранить» branch routes through the
+          // right save path depending on segment mode. Without this,
+          // saving an event from the close-confirm popup silently
+          // failed (handleCreate is work-only).
+          isEventMode
+            ? () => eventSubmitRef.current?.()
+            : handleCreate
+        }
         askClientFirst={askClientFirst}
         setAskClientFirst={setAskClientFirst}
         clientMenuOpen={clientMenuOpen}

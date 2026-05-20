@@ -26,38 +26,57 @@ export function CloseConfirmDialog({
   onSave,
 }: CloseConfirmDialogProps) {
   if (!open) return null;
+  // v667 — three-button popup per user explicit ask: «вылазит всегда
+  // поп ап сохранить не сохранять и отмена». Primary action ordering
+  // follows Apple HIG / iOS conventions: the highlighted accent
+  // button (Save) is on top because it's the «default» action;
+  // destructive (Не сохранять) sits in red below; «Отмена» is the
+  // bottom escape hatch with no styling weight.
+  //
+  // Backdrop tap → Отмена (stay on sheet). Same intent as the explicit
+  // Cancel button so accidental backdrop tap NEVER loses data.
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
+        className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center text-[17px] font-semibold tracking-tight text-[var(--label)] py-2">
-          {mode === "edit" ? "Закрыть без сохранения?" : "Закрыть запись?"}
+          {mode === "edit" ? "Закрыть запись?" : "Сохранить запись?"}
         </div>
         <div className="px-1 pt-1 pb-2 text-center text-[12px] text-[var(--label-secondary)]">
           {canSave
-            ? "Введённые данные не сохранятся."
-            : "Не хватает данных для сохранения — закрыть форму?"}
+            ? "Можно сохранить или закрыть без сохранения."
+            : "Не хватает данных, чтобы сохранить. Закрыть без сохранения?"}
         </div>
         <div className="pt-2 space-y-2">
           <button
             type="button"
+            onClick={onSave}
+            disabled={!canSave}
+            data-testid="close-confirm-save"
+            className="w-full h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
+          >
+            Сохранить
+          </button>
+          <button
+            type="button"
             onClick={onDiscard}
+            data-testid="close-confirm-discard"
             className="w-full h-11 rounded-[10px] bg-[var(--system-red)] text-white text-[15px] font-semibold active:scale-[0.99] transition"
           >
             Не сохранять
           </button>
           <button
             type="button"
-            onClick={onSave}
-            disabled={!canSave}
-            className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--accent)] active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
+            onClick={onCancel}
+            data-testid="close-confirm-cancel"
+            className="w-full h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
           >
-            Сохранить
+            Отмена
           </button>
         </div>
       </div>
