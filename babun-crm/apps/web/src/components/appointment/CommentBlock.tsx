@@ -35,6 +35,12 @@ export default function CommentBlock({ value, readonly, onChange }: CommentBlock
         onChange={(e) => onChange?.(e.target.value)}
         placeholder="Зелёная дверь, домофон 25, собака во дворе, код подъезда…"
         rows={2}
+        // v671 — 500 char cap. Calendar block + appointment list both
+        // truncate to ~120 chars in display; a 50-char floor under
+        // dispatcher's habits stays comfortable. Beyond 500 there's
+        // no display path that would show it anyway and the JSON
+        // payload starts bloating realtime echoes.
+        maxLength={500}
         className="w-full px-3.5 py-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
       />
     </div>

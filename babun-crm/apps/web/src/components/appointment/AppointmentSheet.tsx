@@ -713,19 +713,25 @@ export default function AppointmentSheet({
     onClose();
   };
 
+  // v671 — emoji removed per CLAUDE.md "no emojis" rule. AppointmentHeader
+  // already renders the badge in `text-[var(--system-green)]` so the
+  // «успешно завершено» visual cue is preserved by colour alone.
+  // (Replacing emoji with @babun/shared/icons components would require
+  // changing the AppointmentHeader prop shape from string to ReactNode;
+  // simpler to drop the decoration since text + colour suffices.)
   const doneBadge = (() => {
     if (mode !== "done" || !appointment.payment) return null;
     const p = appointment.payment;
     if (p.method === "cash") {
-      return `✅ Выполнено · нал · ${formatEUR(p.cashAmount)}`;
+      return `Выполнено · нал · ${formatEUR(p.cashAmount)}`;
     }
     if (p.method === "card") {
-      return `✅ Выполнено · карта · ${formatEUR(p.cardAmount)}`;
+      return `Выполнено · карта · ${formatEUR(p.cardAmount)}`;
     }
     if (p.method === "split") {
-      return `✅ Выполнено · 💵 ${formatEUR(p.cashAmount)} + 💳 ${formatEUR(p.cardAmount)}`;
+      return `Выполнено · нал ${formatEUR(p.cashAmount)} + карта ${formatEUR(p.cardAmount)}`;
     }
-    return `✅ Выполнено · 📄 счёт компании · ${formatEUR(appointment.total_amount)}`;
+    return `Выполнено · счёт компании · ${formatEUR(appointment.total_amount)}`;
   })();
 
   // STORY audit: dialog label depends on liveMode so screen readers

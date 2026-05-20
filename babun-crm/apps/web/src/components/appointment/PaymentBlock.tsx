@@ -76,25 +76,44 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
     });
   };
 
+  // v671 — guard against marking a €0 record as completed. Trigger:
+  // dispatcher opens a draft saved without services (somehow, e.g.
+  // legacy import or an earlier no-services save before v669), sees
+  // PaymentBlock, taps «Нал» — handlePay fires with cashAmount=0 and
+  // the record persists as payment_status=paid + status=completed
+  // with €0. Finances reports a phantom €0 income entry; the operator
+  // has no UI affordance to undo the «complete» status afterwards.
+  // Now: when total === 0, the four payment buttons are disabled
+  // with an inline hint pointing the operator to add a service first.
+  const hasTotal = total > 0;
+
   return (
     <div className="px-4 pt-3 space-y-2">
       <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
         Оплата · {formatEUR(total)}
       </div>
 
+      {!hasTotal && (
+        <div className="px-3 py-2 rounded-[10px] bg-[var(--fill-tertiary)] text-[12px] text-[var(--label-secondary)] text-center">
+          Нет суммы для оплаты — добавьте услугу.
+        </div>
+      )}
+
       {/* Compact payment buttons row */}
       <div className="grid grid-cols-2 gap-1.5">
         <button
           type="button"
           onClick={() => payAll("cash")}
-          className="h-11 rounded-[10px] bg-[var(--system-green)] text-[var(--label-on-accent)] text-[13px] font-semibold active:opacity-90 flex items-center justify-center gap-1.5"
+          disabled={!hasTotal}
+          className="h-11 rounded-[10px] bg-[var(--system-green)] text-[var(--label-on-accent)] text-[13px] font-semibold active:opacity-90 flex items-center justify-center gap-1.5 disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed disabled:active:opacity-100"
         >
           <Banknote size={16} strokeWidth={2} /> Нал
         </button>
         <button
           type="button"
           onClick={() => payAll("card")}
-          className="h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] flex items-center justify-center gap-1.5"
+          disabled={!hasTotal}
+          className="h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold active:bg-[var(--accent-pressed)] flex items-center justify-center gap-1.5 disabled:bg-[var(--fill-primary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
         >
           <CreditCard size={16} strokeWidth={2} /> Карта
         </button>
@@ -104,7 +123,8 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
             setSplitOpen((v) => !v);
             if (!splitOpen) setPartialOpen(false);
           }}
-          className="h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5"
+          disabled={!hasTotal}
+          className="h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5 disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
         >
           <ArrowLeftRight size={16} strokeWidth={2} /> Раздельно
         </button>
@@ -114,7 +134,8 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
             setPartialOpen((v) => !v);
             if (!partialOpen) setSplitOpen(false);
           }}
-          className="h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--system-orange)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5"
+          disabled={!hasTotal}
+          className="h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--system-orange)] active:bg-[var(--fill-secondary)] flex items-center justify-center gap-1.5 disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
         >
           <Clock size={16} strokeWidth={2} /> Частично
         </button>
@@ -236,11 +257,13 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
         </div>
       )}
 
-      {/* Invoice link — quiet */}
+      {/* Invoice link — quiet. v671 — also gated by hasTotal so a €0
+          draft can't be invoiced into a phantom completed record. */}
       <button
         type="button"
         onClick={payInvoice}
-        className="w-full text-[13px] text-[var(--accent)] active:opacity-70 py-2 inline-flex items-center justify-center gap-1.5"
+        disabled={!hasTotal}
+        className="w-full text-[13px] text-[var(--accent)] active:opacity-70 py-2 inline-flex items-center justify-center gap-1.5 disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
       >
         <FileText size={14} strokeWidth={2} /> Выставить счёт компании →
       </button>
