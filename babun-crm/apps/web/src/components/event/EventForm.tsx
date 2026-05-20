@@ -531,22 +531,21 @@ export default function EventForm({
     onCanSaveChange?.(canSave);
   }, [canSave, onCanSaveChange]);
 
-  // v657 — in bodyOnly mode, the parent (AppointmentSheet) owns the
-  // time chip in its caption strip; use the event prop for the
-  // authoritative date/time and ignore our internal mirror, to avoid
-  // a stale-state drift where the chip says 13:00 but the saved
-  // event is at 14:00 because the user edited inside EventForm
-  // after the chip. The all-day toggle still uses internal state
-  // because there's no parent control surface for it.
+  // v669 — REVERTED v657's bodyOnly-reads-from-prop hack. With v667
+  // the full TimeBlock is back as Card 1 in both standalone and
+  // bodyOnly modes; the parent chip is no longer authoritative. The
+  // prop-reading branch silently discarded the user's TimeBlock edits
+  // in bodyOnly mode — they'd change the time, tap Save, watch the
+  // record save at the original time. Now: ALWAYS use internal state
+  // for date/time. Internal state is seeded from event.* on reset
+  // effect, so initial save is correct, and any in-form edits flow
+  // through.
   const buildPayload = (): Appointment => {
-    const effectiveDate      = bodyOnly ? event.date       : dateKey;
-    const effectiveTimeStart = bodyOnly ? event.time_start : timeStart;
-    const effectiveTimeEnd   = bodyOnly ? event.time_end   : timeEnd;
     return {
       ...event,
-      date: effectiveDate,
-      time_start: allDay ? allDayStart : effectiveTimeStart,
-      time_end:   allDay ? allDayEnd   : effectiveTimeEnd,
+      date: dateKey,
+      time_start: allDay ? allDayStart : timeStart,
+      time_end:   allDay ? allDayEnd   : timeEnd,
       comment: title.trim(),
       event_notes: notes.trim(),
       color_override: color,
