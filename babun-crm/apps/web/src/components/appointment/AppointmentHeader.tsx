@@ -24,6 +24,11 @@ interface AppointmentHeaderProps {
   personalMode: boolean;
   kind: Kind;
   eventFormDirty: boolean;
+  /** v660 — dirty signal for the WORK side so the segment-toggle
+   *  guard fires in BOTH directions. Previously only event→work was
+   *  protected; tapping «Событие» after typing into the work form
+   *  silently nuked all work fields. */
+  workDirty: boolean;
   doneBadge: string | null;
   showQuickActions: boolean;
   onCompleteQuick?: (appointment: Appointment) => void;
@@ -40,6 +45,7 @@ export default function AppointmentHeader({
   personalMode,
   kind,
   eventFormDirty,
+  workDirty,
   doneBadge,
   showQuickActions,
   onCompleteQuick,
@@ -75,8 +81,16 @@ export default function AppointmentHeader({
                 onClick={() => {
                   if (disabled) return;
                   if (k === kind) return;
-                  // v619 — guard the kind swap.
+                  // v619 / v660 — guard the kind swap in BOTH directions.
+                  //   • event → work : protect if EventForm is dirty
+                  //   • work  → event: protect if Work fields are dirty
+                  // Otherwise an accidental segment tap nukes whatever
+                  // the dispatcher was filling in on the other side.
                   if (kind === "event" && eventFormDirty) {
+                    setSegmentSwitchConfirm(true);
+                    return;
+                  }
+                  if (kind === "work" && workDirty) {
                     setSegmentSwitchConfirm(true);
                     return;
                   }

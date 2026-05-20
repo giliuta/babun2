@@ -799,6 +799,7 @@ export default function AppointmentSheet({
           personalMode={personalMode}
           kind={kind}
           eventFormDirty={eventFormDirty}
+          workDirty={workDirty}
           doneBadge={doneBadge}
           showQuickActions={showQuickActions}
           onCompleteQuick={onCompleteQuick}
@@ -1042,8 +1043,29 @@ export default function AppointmentSheet({
         onCancel={() => setSegmentSwitchConfirm(false)}
         onDiscard={() => {
           setSegmentSwitchConfirm(false);
+          // v660 — flip to the OPPOSITE side of whatever is currently
+          // active. If we were on Событие with dirty event-data, the
+          // user confirmed they want to discard and go to «Клиент»;
+          // if we were on Клиент with dirty work-data, go to «Событие».
+          // Reset BOTH dirty flags + clear the work form so it doesn't
+          // carry stale services into a fresh draft.
           setEventFormDirty(false);
-          setKind("work");
+          if (kind === "event") {
+            setKind("work");
+          } else {
+            // Wipe work-form state so the dispatcher starts fresh on
+            // the event side. The next "Клиент" tap re-creates a
+            // clean draft (state.appointment is restored by the
+            // reset effect on next sheet open).
+            setClientId(null);
+            setAppointmentServices([]);
+            setComment("");
+            setAddressNote("");
+            setAnonymousAddress("");
+            setSource(null);
+            setGlobalDiscount(null);
+            setKind("event");
+          }
         }}
       />
 
