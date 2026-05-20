@@ -130,10 +130,12 @@ const RescheduleSheet = dynamic(
 // STORY-060 — lazy-load the new calendar surfaces. None of them sit on
 // the initial paint path; they hydrate after the calendar grid is on
 // screen. Keeps the dashboard first-byte under 200 KB.
-const CalendarFab = dynamic(
-  () => import("@/components/calendar/CalendarFab"),
-  { ssr: false },
-);
+// CalendarFab убран из рендера. Импорт закомментирован как маркер
+// «компонент есть, временно не маршрутизируется».
+// const CalendarFab = dynamic(
+//   () => import("@/components/calendar/CalendarFab"),
+//   { ssr: false },
+// );
 const CalendarOnboardingCard = dynamic(
   () =>
     import("@/components/empty-states/CalendarOnboardingCard").then((m) => ({
@@ -2114,18 +2116,11 @@ function DashboardPageInner() {
         onClose={() => setUndoToast(null)}
       />
 
-      {/* STORY-060 F1.1 — FAB brought back for mobile/tablet. Hidden on
-          desktop (≥1024 px) where the user has the keyboard `N` shortcut
-          + tap-on-empty-slot. Hidden on agenda view (no slot grid to tap
-          back through) and when an inline sheet is open. Tap → popover
-          with two choices that funnel into the existing inline-sheet
-          handlers. v322 deliberately removed the FAB — re-added per
-          explicit user request in the Sprint 060 brief. */}
-      <CalendarFab
-        hidden={viewMode === "agenda" || booking !== null || inlineSheet !== null}
-        onCreateWork={() => openNewAppointmentInline(null, null, "work")}
-        onCreateEvent={() => openNewAppointmentInline(null, null, "event")}
-      />
+      {/* STORY audit: FAB убран по запросу пользователя. Создание
+          записи — только через тап по пустому слоту в календаре.
+          Компонент CalendarFab.tsx сохранён в репо как dead-code
+          marker — если понадобится вернуть, достаточно одного блока
+          <CalendarFab .../>. */}
 
       {/* Day finance modal */}
       {financeDateKey && (
