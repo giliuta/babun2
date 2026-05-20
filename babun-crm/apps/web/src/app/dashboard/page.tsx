@@ -38,7 +38,10 @@ import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalendarChoice";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
-import CalendarLegend from "@/components/calendar/CalendarLegend";
+// CalendarLegend убран из рендера (см. место использования ниже).
+// Импорт сохранён закомментированным как маркер «это компонент есть,
+// просто не маршрутизируется в текущем UI».
+// import CalendarLegend from "@/components/calendar/CalendarLegend";
 import AgendaView from "@/components/calendar/AgendaView";
 import UndoToast from "@/components/ui/UndoToast";
 import { useToast } from "@/components/ui/Toast";
@@ -1918,10 +1921,12 @@ function DashboardPageInner() {
         </div>
       )}
 
-      {/* Brief 1 #10 — Floating color legend (desktop only). Tiny
-          info button bottom-right; opens a centred popover with the
-          6 most-meaningful kinds and one-line hints. */}
-      <CalendarLegend />
+      {/* STORY audit: CalendarLegend ⓘ-кнопка убрана по запросу
+          пользователя — на мобильном экране была лишним шумом рядом
+          с FAB. Цвета записей операторы и так осваивают за пару дней,
+          а тенант с десятком клиентов не нуждается в постоянном
+          ключе на экране. Файл CalendarLegend.tsx сохранён — если
+          понадобится вернуть, достаточно одного <CalendarLegend />. */}
 
       {/* City picker bottom sheet */}
       <CityPickerModal
