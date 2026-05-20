@@ -53,12 +53,19 @@ export default function IncomeBlock({
   const [open, setOpen] = useState(false);
   const canEdit = !readonly;
 
+  // v657 — when no services are added the big "Доход €0" headline was
+  // the largest number on screen in create mode. Mobile UX auditor:
+  // "€0 figure when no services exist is noise, not signal." Hide the
+  // entire block until at least one service exists. ServicesBlock CTA
+  // already signals "add a service" — we don't need to also shout €0.
+  if (services.length === 0) return null;
+
   return (
     <div className="px-4 pt-2">
       <button
         type="button"
-        onClick={() => canEdit && services.length > 0 && setOpen(true)}
-        disabled={!canEdit || services.length === 0}
+        onClick={() => canEdit && setOpen(true)}
+        disabled={!canEdit}
         className="w-full rounded-[14px] bg-[var(--fill-tertiary)] border border-[var(--separator)] p-3 text-left active:bg-[var(--fill-secondary)] disabled:active:bg-[var(--fill-tertiary)] transition"
       >
         {discount > 0 && (
@@ -211,9 +218,9 @@ function IncomePopup({
             type="button"
             onClick={attemptClose}
             aria-label="Закрыть"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
           >
-            <X size={16} strokeWidth={2.5} />
+            <X size={18} strokeWidth={2.5} />
           </button>
         </div>
 
