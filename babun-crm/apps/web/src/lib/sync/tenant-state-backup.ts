@@ -60,6 +60,17 @@ import {
   saveLocationLabels,
   type LocationLabel,
 } from "@babun/shared/local/location-labels";
+import {
+  loadCalendarSettings,
+  saveCalendarSettings,
+  DEFAULT_CALENDAR_SETTINGS,
+  type CalendarSettings,
+} from "@babun/shared/local/calendar-settings";
+import {
+  loadDayCities,
+  saveDayCities,
+  type DayCityMap,
+} from "@babun/shared/local/day-cities";
 
 export interface PrototypeState {
   masters?: Master[];
@@ -71,6 +82,13 @@ export interface PrototypeState {
   equipment?: Equipment[];
   cities?: City[];
   locationLabels?: LocationLabel[];
+  /** v662 — extra backup for settings that have their own Supabase
+   *  tables but historically have wiped on transient empty fetches.
+   *  Included as belt-and-braces: if the per-table fetch returns
+   *  empty AND localStorage is also empty, we can still restore from
+   *  this snapshot. */
+  calendarSettings?: CalendarSettings;
+  dayCities?: DayCityMap;
 }
 
 export function collectLocalState(): PrototypeState {
@@ -84,6 +102,8 @@ export function collectLocalState(): PrototypeState {
     equipment: loadEquipment(),
     cities: loadCities(),
     locationLabels: loadLocationLabels(),
+    calendarSettings: loadCalendarSettings(),
+    dayCities: loadDayCities(),
   };
 }
 
@@ -172,6 +192,26 @@ export function restoreEmptyStoresFromBlob(blob: PrototypeState): boolean {
   if (loadLocationLabels().length === 0 && blob.locationLabels?.length) {
     saveLocationLabels(blob.locationLabels);
     restored = true;
+  }
+  // v662 — restore calendar settings + day-cities from the blob when
+  // the per-table fetches haven't filled them. The check for "empty"
+  // here is "matches DEFAULT" — that's the only state we'd want to
+  // clobber, since real user-edited settings differ from defaults.
+  if (blob.calendarSettings) {
+    const current = loadCalendarSettings();
+    const looksDefault =
+      JSON.stringify(current) === JSON.stringify(DEFAULT_CALENDAR_SETTINGS);
+    if (looksDefault) {
+      saveCalendarSettings(blob.calendarSettings);
+      restored = true;
+    }
+  }
+  if (blob.dayCities && Object.keys(blob.dayCities).length > 0) {
+    const current = loadDayCities();
+    if (Object.keys(current).length === 0) {
+      saveDayCities(blob.dayCities);
+      restored = true;
+    }
   }
   return restored;
 }

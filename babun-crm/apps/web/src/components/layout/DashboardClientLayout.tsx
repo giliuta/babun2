@@ -992,7 +992,36 @@ export default function DashboardClientLayout({
           listDayCitiesRepo(supabase, tenantId),
           listDayExtrasRepo(supabase, tenantId),
         ]);
-      setSchedulesState(scheduleMap);
+      // v662 — DEFENSIVE merge against transient-empty server reads.
+      //
+      // Same shape as `reloadAppointments` (v499): a Supabase fetch
+      // that returns an empty object is treated as "no info, keep
+      // local" rather than "ground truth, wipe local". Reasons we
+      // see this:
+      //   • Auth refresh in flight — RLS briefly sees no rows.
+      //   • Network blip on flaky 5G/wifi during the round-trip.
+      //   • A wrong tenantId in flight while the user switches tenants.
+      //   • Server-side RLS misconfig on a single table.
+      //
+      // None of these mean "the user deleted everything". Treat empty
+      // as a no-op; keep `prev`. localStorage continues to back the
+      // explicit write-through path so a refresh restores the user's
+      // last edits even if the snapshot returned by the server is
+      // wrong.
+      setSchedulesState((prev) => {
+        const incomingCount = Object.keys(scheduleMap).length;
+        const prevCount = Object.keys(prev).length;
+        if (incomingCount === 0 && prevCount > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[reloadSchedule] empty schedules from server — keeping",
+            prevCount,
+            "local entries (auth/RLS/network flicker)",
+          );
+          return prev;
+        }
+        return scheduleMap;
+      });
       // v449 — hydration must NOT clobber local work/open hours when
       // the DB row has them as undefined (older deploy where the
       // 20260507_001 migration hasn't applied yet). Merge: if the
@@ -1001,24 +1030,64 @@ export default function DashboardClientLayout({
       // through `setCalendarSettings → saveCalendarSettings` so a
       // refresh restores the user's last edits even if Supabase
       // forgets them.
-      setCalendarSettingsState((prev) => ({
-        ...calSettings,
-        workStartHour: calSettings.workStartHour ?? prev.workStartHour,
-        workEndHour: calSettings.workEndHour ?? prev.workEndHour,
-        scrollOpenHour: calSettings.scrollOpenHour ?? prev.scrollOpenHour,
-        // v493 — same defensive merge for personalLabels /
-        // personalDefaultLabel. Without this, the realtime
-        // calendar_settings subscription fired right after a save
-        // hydrated from a Supabase row that lacked these columns
-        // (pre-migration deploys), wiping the label the user had
-        // just created. localStorage already has the full save.
-        personalLabels:
-          calSettings.personalLabels ?? prev.personalLabels,
-        personalDefaultLabel:
-          calSettings.personalDefaultLabel ?? prev.personalDefaultLabel,
-      }));
-      setDayCitiesState(cityMap);
-      setDayExtrasState(extrasMap);
+      // v662 — extended the defensive merge to EVERY field: if the
+      // server-returned value is null/undefined, keep what we have.
+      // Previously only workStartHour, workEndHour, scrollOpenHour,
+      // personalLabels, personalDefaultLabel were guarded. Other
+      // fields like days_off / hideCancelled / allowOvertime /
+      // weekStart could still be wiped by a stale server payload.
+      setCalendarSettingsState((prev) => {
+        const merged: CalendarSettings = { ...prev };
+        for (const key of Object.keys(calSettings) as (keyof CalendarSettings)[]) {
+          const v = calSettings[key];
+          if (v !== undefined && v !== null) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (merged as any)[key] = v;
+          }
+        }
+        return merged;
+      });
+      // v662 — same defensive merge for day-cities + day-extras.
+      // Empty map from server is treated as "no info" and ignored
+      // unless we genuinely had nothing locally either.
+      setDayCitiesState((prev) => {
+        const incomingCount = Object.keys(cityMap).length;
+        const prevCount = Object.keys(prev).length;
+        if (incomingCount === 0 && prevCount > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[reloadSchedule] empty day_cities from server — keeping",
+            prevCount,
+            "local entries (auth/RLS/network flicker)",
+          );
+          return prev;
+        }
+        // Persist to localStorage so a refresh sees the merged state.
+        // (No-op when incoming === prev; we always re-write to keep
+        // the on-disk copy in sync with the freshest server reply.)
+        if (typeof window !== "undefined") {
+          try {
+            saveDayCities(cityMap);
+          } catch {
+            // ignore — quota / private-mode failures are non-fatal.
+          }
+        }
+        return cityMap;
+      });
+      setDayExtrasState((prev) => {
+        const incomingCount = Object.keys(extrasMap).length;
+        const prevCount = Object.keys(prev).length;
+        if (incomingCount === 0 && prevCount > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[reloadSchedule] empty day_extras from server — keeping",
+            prevCount,
+            "local entries (auth/RLS/network flicker)",
+          );
+          return prev;
+        }
+        return extrasMap;
+      });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("STORY-044: schedule hydration failed", err);
@@ -1061,6 +1130,23 @@ export default function DashboardClientLayout({
         if (blob.cities?.length) setCitiesState(blob.cities);
         if (blob.locationLabels?.length)
           setLocationLabelsState(blob.locationLabels);
+        // v662 — also push restored calendarSettings + dayCities into
+        // React state so the calendar paints the recovered values
+        // without a page reload.
+        if (blob.calendarSettings) {
+          setCalendarSettingsState((prev) => ({
+            ...prev,
+            ...blob.calendarSettings,
+          }));
+        }
+        if (blob.dayCities && Object.keys(blob.dayCities).length > 0) {
+          setDayCitiesState((prev) => {
+            // Only fill if local state currently empty — never
+            // clobber freshly-loaded server data with a stale backup.
+            if (Object.keys(prev).length > 0) return prev;
+            return blob.dayCities!;
+          });
+        }
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn("[tenant-state] hydration failed", err);
@@ -1087,6 +1173,11 @@ export default function DashboardClientLayout({
     equipment,
     cities,
     locationLabels,
+    // v662 — calendarSettings + dayCities now also flow into the
+    // tenant_state backup blob. Their per-table tables remain the
+    // primary store; this is the secondary safety net.
+    calendarSettings,
+    dayCities,
   ]);
 
   // STORY-048 — Supabase Realtime subscriptions for the seven
