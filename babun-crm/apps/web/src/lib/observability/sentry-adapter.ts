@@ -51,12 +51,54 @@ function ensureInit(): boolean {
       typeof process !== "undefined" && process.env.NODE_ENV
         ? process.env.NODE_ENV
         : "production",
-    // Discard the Babun-only «sync error bus drained» noise — these
-    // are recoverable, already retried, and would otherwise dominate
-    // the issue feed without telling us anything new.
+    // v663 — filter Sentry noise that doesn't represent real bugs.
+    // Each suppression below is something we've already triaged and
+    // confirmed harmless / unactionable. Real errors still flow.
     beforeSend(event) {
       const msg = event.message?.toLowerCase() ?? "";
+      const exc = event.exception?.values?.[0];
+      const excType = (exc?.type ?? "").toLowerCase();
+      const excValue = (exc?.value ?? "").toLowerCase();
+
+      // 1) Sync queue drains its own noise.
       if (msg.includes("sync queue drained")) return null;
+
+      // 2) AbortError — fires when a fetch is cancelled because the
+      //    user navigated away, the component unmounted, or React
+      //    routed mid-flight. Always harmless; Supabase wraps fetch
+      //    so abort propagates as an unhandled DOMException.
+      if (excType === "aborterror" || excValue.includes("aborterror")) {
+        return null;
+      }
+
+      // 3) Transient Supabase "Load failed" / "TypeError: Failed to
+      //    fetch" — typical Cyprus 5G blip. The reload merges
+      //    (v499 / v662 / v663) treat these as no-ops, so the
+      //    user already sees zero impact. Logging them produced
+      //    noise that masked real issues.
+      if (
+        (excType === "typeerror" || msg.includes("typeerror")) &&
+        (excValue.includes("load failed") ||
+          excValue.includes("failed to fetch") ||
+          excValue.includes("networkerror"))
+      ) {
+        return null;
+      }
+
+      // 4) Supabase wraps native fetch failures as objects keyed
+      //    {code, details, hint, message}. Sentry's auto-instrumentation
+      //    captures these as "Object captured as exception" — visible
+      //    only because of the sync subsystem retry path. The retry
+      //    itself succeeds; no user-visible failure.
+      if (msg.includes("object captured as exception")) {
+        const extra = event.extra ?? {};
+        const ser = (extra as Record<string, unknown>).__serialized__;
+        if (ser && typeof ser === "object") {
+          const sm = (ser as { message?: string }).message ?? "";
+          if (sm.toLowerCase().includes("load failed")) return null;
+        }
+      }
+
       return event;
     },
   });
