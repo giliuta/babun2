@@ -46,18 +46,16 @@ export default function StepDone({
           label="Тип"
           value={vertical ? VERTICAL_LABELS[vertical] : "—"}
         />
-        <SummaryRow
-          label="Календарь"
-          value={personalCalendar ? "Личный" : "Для команды"}
-        />
+        {/* STORY audit: убрали строку «Календарь: Личный / Для команды»
+            из summary — первый запуск идёт только под команды,
+            личный календарь стал опциональной фичей через Настройки. */}
       </div>
 
-      {/* v544 §3.2 (b) — «Что сделать дальше» checklist. Sets the
-          first-week-of-use expectation: which sections to visit and
-          in what order. Renders different items for personal vs
-          team mode so a solo owner doesn't see «Добавить мастера»
-          first when they explicitly opted into the personal calendar. */}
-      <ChecklistSection personalCalendar={personalCalendar} />
+      {/* STORY audit: первый запуск всегда показывает team-checklist.
+          Personal-checklist уже не маршрутизируется (StepPersonalCalendar
+          удалён из wizard), но компонент-данные оставлены для возможной
+          переинтеграции если позже понадобится. */}
+      <ChecklistSection personalCalendar={false} />
 
       {error && (
         <div className="text-[13px] text-[var(--system-red)] text-center px-2 leading-snug">
@@ -66,24 +64,25 @@ export default function StepDone({
       )}
 
       <div className="space-y-2">
+        {/* STORY audit: первый CTA теперь «Создать команду» (primary).
+            «Открыть календарь» — вторичный вариант для тех кто хочет
+            сразу пощупать UI. */}
+        <button
+          type="button"
+          onClick={() => onCommit("team")}
+          disabled={saving}
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
+        >
+          {saving ? "Сохраняем…" : "Создать команду"}
+        </button>
         <button
           type="button"
           onClick={() => onCommit("calendar")}
           disabled={saving}
-          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[17px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.98] disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] transition"
+          className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--accent)] text-[17px] font-semibold active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
         >
-          {saving ? "Сохраняем…" : "Открыть календарь"}
+          Сначала посмотреть календарь
         </button>
-        {!personalCalendar && (
-          <button
-            type="button"
-            onClick={() => onCommit("team")}
-            disabled={saving}
-            className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--accent)] text-[17px] font-semibold active:bg-[var(--fill-quaternary)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed transition"
-          >
-            Настроить команду
-          </button>
-        )}
       </div>
 
       <button
