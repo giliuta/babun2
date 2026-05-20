@@ -311,10 +311,19 @@ function DashboardPageInner() {
     // зависимости от personalCal.enabled — toggle в Settings/Account/
     // PersonalCalendar после onboarding эффективно ничего не делал.
     // Теперь skip personal tab если operator явно его выключил
-    // (enabled=false). На стадии загрузки (loaded=false) ОСТАВЛЯЕМ —
-    // это значит «не успели ещё прочитать настройку», лучше не
-    // мигать.
-    const personalEnabled = !personalCal.loaded || personalCal.enabled;
+    // (enabled=false).
+    //
+    // v668 — was «!personalCal.loaded || personalCal.enabled», which
+    // showed «Мой календарь» chip during the async hook load. For
+    // tenants who disabled personal calendar (the common case), the
+    // chip flashed in for ~200–500 ms on every mount → user reported
+    // «опять появился мой календарь». The cached lazy initializer in
+    // usePersonalCalendarEnabled now returns the LAST KNOWN value
+    // instantly, so we can drop the «keep showing during loading»
+    // optimistic branch — the cache is the source of truth on first
+    // paint, the DB refresh corrects it on the next render if it
+    // diverged.
+    const personalEnabled = personalCal.enabled;
     if (!personalEnabled) return brigadeTabs;
     const personalName =
       currentMaster?.personal_calendar_name?.trim() || "Мой календарь";
