@@ -73,16 +73,35 @@ export default function TimePopup({
     setTimeEnd(formatTime(startMin + dur));
   };
 
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  const nextSlot = Math.ceil((nowMins + 1) / step) * step;
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
+  // v671 — compute "now" inside each callback, not at popup-mount
+  // time. Previously: dispatcher opened TimePopup, waited 10 min,
+  // tapped «Сейчас» → got a slot from 10 minutes ago. Now: every tap
+  // reads `new Date()` afresh.
   const quickChips = [
-    { label: "⚡ Сейчас", onClick: () => applyQuickFill(now, nextSlot) },
-    { label: "Через час", onClick: () => applyQuickFill(now, nextSlot + 60) },
-    { label: "Завтра", onClick: () => applyQuickFill(tomorrow, 9 * 60) },
+    {
+      label: "Сейчас",
+      onClick: () => {
+        const n = new Date();
+        const m = n.getHours() * 60 + n.getMinutes();
+        applyQuickFill(n, Math.ceil((m + 1) / step) * step);
+      },
+    },
+    {
+      label: "Через час",
+      onClick: () => {
+        const n = new Date();
+        const m = n.getHours() * 60 + n.getMinutes();
+        applyQuickFill(n, Math.ceil((m + 1) / step) * step + 60);
+      },
+    },
+    {
+      label: "Завтра",
+      onClick: () => {
+        const t = new Date();
+        t.setDate(t.getDate() + 1);
+        applyQuickFill(t, 9 * 60);
+      },
+    },
   ];
 
   return (

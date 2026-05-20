@@ -259,6 +259,7 @@ export default function AppointmentWorkBody({
                 appointmentId={appointment.id}
                 locationLabel={selectedLocation?.label}
                 onChange={setPhotos}
+                canUpload={liveMode !== "create"}
               />
             </div>
           </div>

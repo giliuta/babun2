@@ -32,7 +32,7 @@ import {
 import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useScrollFocusIntoView } from "@/hooks/useScrollFocusIntoView";
-import { getCityColor, CITY_LIST } from "@babun/shared/local/day-cities";
+import { getCityColor } from "@babun/shared/local/day-cities";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
   appointmentTotal,
@@ -1110,8 +1110,6 @@ export default function AppointmentSheet({
       />
 
 
-      {/* Keep reference list silenced */}
-      <div className="hidden">{CITY_LIST.length}</div>
     </div>
   );
 }

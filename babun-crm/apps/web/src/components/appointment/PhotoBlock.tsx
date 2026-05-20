@@ -23,6 +23,15 @@ interface PhotoBlockProps {
   /** Used to auto-fill caption ('До · 14:35 · Спальня'). */
   locationLabel?: string;
   onChange: (next: AppointmentPhotoRecord[]) => void;
+  /** v671 — when false, the upload button is disabled with an inline
+   *  hint asking the user to save the appointment first. This is the
+   *  fix for the photo-orphan bug: in create mode `appointmentId` is
+   *  a fresh client-side UUID with no matching `appointments` row;
+   *  uploading a photo writes to Storage + appointment_photos table
+   *  immediately, but if the user closes via «Не сохранять» the
+   *  appointment row never lands → photo references a phantom id
+   *  forever. Defaults to true for backward compat. */
+  canUpload?: boolean;
 }
 
 const MAX_PHOTOS = 5;
@@ -38,6 +47,7 @@ export default function PhotoBlock({
   appointmentId,
   locationLabel,
   onChange,
+  canUpload = true,
 }: PhotoBlockProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -50,6 +60,12 @@ export default function PhotoBlock({
   };
 
   const addPhoto = async (kind: PhotoKind, file: File) => {
+    if (!canUpload) {
+      // v671 — see canUpload prop comment. Defensive belt-and-braces;
+      // the UI already disables PhotoPicker when canUpload=false.
+      flashToast("Сохраните запись перед добавлением фото");
+      return;
+    }
     if (photos.length >= MAX_PHOTOS) {
       flashToast(`Максимум ${MAX_PHOTOS} фото на запись`);
       return;
@@ -145,10 +161,18 @@ export default function PhotoBlock({
 
   return (
     <div className="px-4 pt-2">
+      {/* v671 — hint when upload is gated by «save first». Only shown
+          on the empty state; once there are photos this row is hidden
+          because canUpload=false also implies an existing record. */}
+      {!readonly && !canUpload && photos.length === 0 && (
+        <div className="mb-2 px-3 py-2 rounded-[10px] bg-[var(--fill-tertiary)] text-[12px] text-[var(--label-secondary)] text-center">
+          Сохраните запись перед добавлением фото.
+        </div>
+      )}
       {photos.length === 0 ? (
         <button
           type="button"
-          disabled={readonly || busy}
+          disabled={readonly || busy || !canUpload}
           onClick={() => setPickerOpen(true)}
           className="w-full h-11 rounded-xl border-[1.5px] border-dashed border-[var(--accent)]/40 text-[13px] font-semibold text-[var(--accent)] active:bg-[var(--accent-tint)] flex items-center justify-center gap-2 disabled:text-[var(--label-tertiary)] disabled:border-[var(--separator)] disabled:cursor-not-allowed"
         >
@@ -168,7 +192,7 @@ export default function PhotoBlock({
               disabled={busy}
             />
           ))}
-          {!readonly && photos.length < MAX_PHOTOS && (
+          {!readonly && canUpload && photos.length < MAX_PHOTOS && (
             <button
               type="button"
               disabled={busy}
