@@ -738,7 +738,19 @@ export default function DashboardClientLayout({
   // renders the live tenant identity instead of a hardcoded string.
   const [smsTemplates, setSmsTemplatesState] = useState<SmsTemplate[]>([]);
   const [expenseCategories, setExpenseCategoriesState] = useState<ExpenseCategory[]>([]);
-  const [dayCities, setDayCitiesState] = useState<DayCityMap>({});
+  // STORY audit (user bug «метка пролагивает при заходе»): раньше
+  // dayCities стартовал с {} и заполнялся в useEffect после Supabase
+  // round-trip. На первый paint labels резолвили в `teamDefault`
+  // (ПАФ для всех дней), потом fill приходил — менялись на правильные
+  // (НИК на ЧТ, ЛИМ на ПТ). Видно как flicker. Lazy initializer
+  // подгружает map из localStorage синхронно — на первый paint уже
+  // правильные labels. Supabase round-trip потом перезаписывает с
+  // freshest server data, но видимого скачка не будет если localStorage
+  // совпадает с базой (обычный случай).
+  const [dayCities, setDayCitiesState] = useState<DayCityMap>(() => {
+    if (typeof window === "undefined") return {};
+    return loadDayCities();
+  });
   const [dayExtras, setDayExtrasState] = useState<DayExtrasMap>({});
   const [calendarSettings, setCalendarSettingsState] = useState<CalendarSettings>(() => {
     if (typeof window === "undefined") {
