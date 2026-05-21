@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { addMonthsYYYYMMDD } from "@babun/shared/local/recurring";
+import { formatDateLongRu, formatDateShortRu } from "@babun/shared/common/utils/date-utils";
 
 interface RepeatReminderSheetProps {
   open: boolean;
@@ -82,8 +83,10 @@ export default function RepeatReminderSheet({
                 </div>
                 <div className="text-[12px] text-[var(--label-secondary)]">{p.hint}</div>
               </div>
-              <div className="text-[12px] font-medium text-[var(--label-tertiary)] tabular-nums">
-                {addMonthsYYYYMMDD(lastDate, p.months).slice(5)}
+              <div className="text-[12px] font-medium text-[var(--label-tertiary)]">
+                {/* v687 P1-47 — was raw «08-19» (MM-DD ISO slice).
+                    Now «19 авг» via formatDateShortRu. */}
+                {formatDateShortRu(addMonthsYYYYMMDD(lastDate, p.months))}
               </div>
             </button>
           ))}
@@ -103,7 +106,9 @@ export default function RepeatReminderSheet({
         </div>
 
         <div className="px-4 pt-1 pb-2 text-[13px] text-[var(--label-secondary)] text-center">
-          Напомним <span className="font-semibold text-[var(--label)] tabular-nums">{nextDate}</span>
+          {/* v687 / Audit-2026-05-21 P1-47 — was the raw ISO «2026-11-19».
+              Now «19 ноября 2026 г.» via existing date-utils helper. */}
+          Напомним <span className="font-semibold text-[var(--label)]">{formatDateLongRu(nextDate)}</span>
         </div>
 
         <div className="px-4 pb-4 flex gap-2">

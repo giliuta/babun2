@@ -52,6 +52,16 @@ export function formatDateLongRu(dateKey: string): string {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г.`;
 }
 
+// v687 / Audit-2026-05-21 P1-47 — short RU date for small chips:
+// "2026-08-19" → "19 авг". No year because the badge is always
+// implied to be relative to the current year ± 12 months. Bigger
+// surfaces use formatDateLongRu (which includes the year).
+export function formatDateShortRu(dateKey: string): string {
+  const d = new Date(dateKey + "T00:00:00");
+  if (isNaN(d.getTime())) return dateKey;
+  return `${d.getDate()} ${MONTH_NAMES_SHORT[d.getMonth()]}`;
+}
+
 export function getMonday(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();
