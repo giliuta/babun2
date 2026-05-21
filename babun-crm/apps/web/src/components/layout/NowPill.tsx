@@ -29,17 +29,23 @@ export default function NowPill({
   onOpen,
   hidden,
 }: NowPillProps) {
-  const [now, setNow] = useState(() => new Date());
+  // v682 / Audit-2026-05-21 P0-20 — was useState(() => new Date()).
+  // SSR/CSR snapshot mismatch → React hydration error #418. Null on
+  // first paint; useEffect upgrades to the real clock client-side.
+  // The conditional `if (!target) return null` below already handles
+  // the «no current appointment» case, so a null `now` simply hides
+  // the pill for ~30 ms after mount — invisible to users.
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, []);
 
-  const target = useMemo(() => findRelevantAppointment(appointments, teamId, now), [
-    appointments,
-    teamId,
-    now,
-  ]);
+  const target = useMemo(
+    () => (now ? findRelevantAppointment(appointments, teamId, now) : null),
+    [appointments, teamId, now],
+  );
 
   if (hidden || !target) return null;
 

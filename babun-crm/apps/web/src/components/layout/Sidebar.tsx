@@ -372,9 +372,16 @@ export default function Sidebar({
           </button>
           {/* STORY-060 §F3.4 — sync health badge replaces the bare time
               label. Currently uses now() as `lastSyncAt` (placeholder
-              until the sync layer reports a real timestamp). */}
+              until the sync layer reports a real timestamp).
+              v682 / Audit-2026-05-21 P0-20 — was `new Date().toISOString()`
+              inline. That re-ran on every render, including hydration,
+              and produced two different strings server-vs-client → React
+              error #418. Now null on first paint; SyncIndicator itself
+              handles the empty case with «Не было», and the real
+              timestamp will come from the sync layer once it reports
+              (placeholder note above still applies). */}
           <div className="mt-3">
-            <SyncIndicator lastSyncAt={new Date().toISOString()} />
+            <SyncIndicator lastSyncAt={null} />
           </div>
           <div className="text-[12px] text-[var(--label-tertiary)] mt-1 font-mono tracking-wide">
             {DISPLAY_VERSION}

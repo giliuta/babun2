@@ -883,8 +883,12 @@ function WaitingBadge({ chat }: { chat: Chat }) {
   // clock state lives in `now` and refreshes once a minute via an
   // interval. Hooks must run unconditionally, so the early return
   // for closed/archived chats moved below the hooks.
-  const [now, setNow] = useState<number>(() => Date.now());
+  // v682 / Audit-2026-05-21 P0-20 — was useState<number>(() => Date.now()).
+  // SSR/CSR drift fires React error #418. Start at 0; useEffect upgrades
+  // on mount. The `mins < 30` early-return below covers the 0-state cleanly.
+  const [now, setNow] = useState<number>(0);
   useEffect(() => {
+    setNow(Date.now());
     const t = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(t);
   }, []);

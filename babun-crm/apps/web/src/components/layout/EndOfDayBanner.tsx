@@ -23,15 +23,20 @@ export default function EndOfDayBanner({
   teamId,
   onOpenUnpaid,
 }: EndOfDayBannerProps) {
-  const [now, setNow] = useState(() => new Date());
+  // v682 / Audit-2026-05-21 P0-20 — was useState(() => new Date()).
+  // SSR/CSR drift → React error #418. Null on first paint; the early
+  // return below (no current dateKey → 0 unpaid) hides the banner for
+  // the ~30 ms before useEffect fires.
+  const [now, setNow] = useState<Date | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(t);
   }, []);
 
-  const dateKey = toDateKey(now);
+  const dateKey = now ? toDateKey(now) : "";
 
   useEffect(() => {
     const key = `${DISMISS_PREFIX}${dateKey}`;
@@ -49,6 +54,9 @@ export default function EndOfDayBanner({
     return n;
   }, [appointments, dateKey, teamId]);
 
+  // null on first paint → skip; on next mount cycle (useEffect) the
+  // banner re-evaluates with the real clock.
+  if (!now) return null;
   const hour = now.getHours();
   if (hour < 18) return null;
   if (dismissed) return null;

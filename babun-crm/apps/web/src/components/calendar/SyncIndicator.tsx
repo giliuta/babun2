@@ -108,12 +108,21 @@ export default function SyncIndicator({
   hasError = false,
   errorMessage,
 }: SyncIndicatorProps) {
-  const [now, setNow] = useState(() => Date.now());
+  // v682 / Audit-2026-05-21 P0-20 — was useState(() => Date.now()).
+  // SSR and CSR compute Date.now() at slightly different wall-clock
+  // ticks, so the rendered relative-time string («2 мин назад») diverges
+  // and React fires hydration error #418 on every dashboard mount.
+  // Start at 0; the useEffect below upgrades to real Date.now() on the
+  // client only. The visible string flicks from «недавно» (the 0
+  // branch in formatRelative) to the correct value within ~30 ms —
+  // unnoticeable, no longer crashing.
+  const [now, setNow] = useState<number>(0);
   const [online, setOnline] = useState(true);
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setNow(Date.now());
     setOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
     const id = window.setInterval(() => setNow(Date.now()), 30_000);
     const onOnline = () => {
