@@ -6,6 +6,14 @@
 // the account until forgot-password runs. Min length matches Supabase
 // default (8).
 //
+// v678 / Audit-2026-05-21 P0-9 — current password challenge before
+// changing. Supabase's auth.updateUser({password}) does NOT require
+// the current password (it trusts the live session), which means
+// anyone who reaches an unlocked session can silently lock the owner
+// out. We now re-verify with signInWithPassword({email, currentPwd})
+// before issuing the update. This is the same pattern OAuth Cookie
+// session re-auth uses for sensitive flows.
+//
 // 2FA block: TOTP via Supabase MFA (works out of the box with
 // Authenticator apps). Email + SMS rendered as "Скоро" cards because
 // they need additional plumbing (custom email-OTP table for email,
@@ -33,6 +41,7 @@ export default function SecuritySection() {
 // ─── Password ──────────────────────────────────────────────────
 
 function PasswordBlock() {
+  const [currentPwd, setCurrentPwd] = useState("");
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const save = useSaveStatus();
@@ -42,15 +51,44 @@ function PasswordBlock() {
 
   const tooShort = pwd.length > 0 && pwd.length < 8;
   const mismatch = confirm.length > 0 && pwd !== confirm;
-  const canSubmit = pwd.length >= 8 && confirm === pwd && !saving;
+  const samePwd = pwd.length > 0 && pwd === currentPwd;
+  // v678 P0-9 — require non-empty current password too. Anything
+  // else still validates the same way.
+  const canSubmit =
+    currentPwd.length > 0 &&
+    pwd.length >= 8 &&
+    confirm === pwd &&
+    !samePwd &&
+    !saving;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     await save.run(async () => {
       const supabase = getSupabaseBrowser();
+      // v678 P0-9 — re-auth with the current password to prove the
+      // session owner knows it. Supabase's updateUser doesn't enforce
+      // this; without the challenge a hijacked session can lock the
+      // real owner out. signInWithPassword refreshes the session on
+      // success, no logout side-effect.
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user?.email) {
+        throw new Error("Не удалось определить email аккаунта. Войдите заново.");
+      }
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email: userData.user.email,
+        password: currentPwd,
+      });
+      if (reauthErr) {
+        // Map the most common Supabase auth error to friendlier text.
+        const msg = /invalid|credentials/i.test(reauthErr.message)
+          ? "Текущий пароль введён неверно."
+          : reauthErr.message;
+        throw new Error(msg);
+      }
       const { error: err } = await supabase.auth.updateUser({ password: pwd });
       if (err) throw new Error(err.message);
+      setCurrentPwd("");
       setPwd("");
       setConfirm("");
     });
@@ -63,6 +101,17 @@ function PasswordBlock() {
         <span>Безопасность</span>
       </div>
       <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">
+        <Field label="Текущий пароль">
+          <input
+            type="password"
+            value={currentPwd}
+            onChange={(e) => setCurrentPwd(e.target.value)}
+            placeholder="Введите текущий пароль"
+            autoComplete="current-password"
+            className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
+          />
+        </Field>
+
         <Field label="Новый пароль">
           <input
             type="password"
@@ -78,14 +127,19 @@ function PasswordBlock() {
               Минимум 8 символов
             </div>
           )}
+          {samePwd && (
+            <div className="text-[12px] text-[var(--system-red)] mt-1">
+              Новый пароль должен отличаться от текущего
+            </div>
+          )}
         </Field>
 
-        <Field label="Подтвердите">
+        <Field label="Подтвердите новый пароль">
           <input
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Повтори новый пароль"
+            placeholder="Повторите новый пароль"
             autoComplete="new-password"
             className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)] transition"
           />
