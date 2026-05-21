@@ -359,17 +359,7 @@ export default function Sidebar({
         </nav>
 
         <div className="flex-shrink-0 px-4 py-4 border-t border-[var(--separator)] bg-[var(--surface-card)]">
-          <button
-            onClick={onLogout}
-            data-testid="sidebar-logout"
-            // STORY-058 — 44px tap target. Negative left padding pulls
-            // the icon back to the column edge so the visible label
-            // stays aligned with the build-version row below it.
-            className="flex items-center gap-2 min-h-[44px] -ml-1 px-1 text-[14px] text-[var(--system-red)] active:opacity-70 transition"
-          >
-            <LogOut size={16} strokeWidth={2} />
-            Выход
-          </button>
+          <LogoutButton onLogout={onLogout} />
           {/* STORY-060 §F3.4 — sync health badge replaces the bare time
               label. Currently uses now() as `lastSyncAt` (placeholder
               until the sync layer reports a real timestamp).
@@ -408,6 +398,49 @@ export default function Sidebar({
 // just a vertical stack with breathing room between sections.
 function Group({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col">{children}</div>;
+}
+
+// v688 / Audit-2026-05-21 P1 (was P0-19 downgrade) — logout used to
+// fire async signOut + router.push synchronously without any visible
+// feedback. The whole flow takes 2-3 seconds on slow networks, during
+// which the user saw nothing change — they assumed the button was
+// broken and either tapped it again (triggering a double-signOut race)
+// or gave up. The button now shows a spinner + «Выходим…» label and
+// disables itself for the duration. Same 44px tap target as before.
+function LogoutButton({ onLogout }: { onLogout: () => void }) {
+  const [pending, setPending] = useState(false);
+  const handleClick = () => {
+    if (pending) return;
+    setPending(true);
+    // Fire the parent's async signOut. We don't await it here: the
+    // parent handles routing on resolve, and if anything throws we
+    // want the spinner to fall through (router.push will move us off
+    // this component anyway).
+    onLogout();
+  };
+  return (
+    <button
+      onClick={handleClick}
+      disabled={pending}
+      data-testid="sidebar-logout"
+      // STORY-058 — 44px tap target. Negative left padding pulls
+      // the icon back to the column edge so the visible label
+      // stays aligned with the build-version row below it.
+      className="flex items-center gap-2 min-h-[44px] -ml-1 px-1 text-[14px] text-[var(--system-red)] active:opacity-70 transition disabled:opacity-60 disabled:cursor-wait"
+    >
+      {pending ? (
+        // Inline spinner — Tailwind animate-spin on a 14×14 ring.
+        // No icon import needed because we reuse the LogOut size.
+        <span
+          aria-hidden
+          className="inline-block w-3.5 h-3.5 rounded-full border-2 border-[var(--system-red)] border-t-transparent animate-spin"
+        />
+      ) : (
+        <LogOut size={16} strokeWidth={2} />
+      )}
+      {pending ? "Выходим…" : "Выход"}
+    </button>
+  );
 }
 
 // STORY-064 — NavRow visual modernization. Was a 7×7 colored tile

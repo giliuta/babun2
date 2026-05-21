@@ -14,7 +14,7 @@
 //                    patch = 513 % 100). This is what the user sees
 //                    in the sidebar footer and settings page footer.
 
-export const BUILD_VERSION = "v687-repeat-reminder-ru-dates";
+export const BUILD_VERSION = "v688-logout-loading-spinner";
 
 function deriveDisplayVersion(slug: string): string {
   const match = slug.match(/^v(\d+)/);
