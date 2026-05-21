@@ -137,12 +137,18 @@ export default function BookingSettingsPage() {
       <PageHeader
         title="Типы объектов"
         leftContent={
+          // v676 / Audit-2026-05-21 P0-13 — back link used to point at
+          // /settings/calendar, which left the user on the wrong sub-screen
+          // after a back-tap. The «Типы объектов» card lives under
+          // СПРАВОЧНИКИ on the settings hub, so the back target is the
+          // hub itself (same as /settings/cities — see that file's
+          // PageHeader for the canonical pattern).
           <Link
-            href="/dashboard/settings/calendar"
+            href="/dashboard/settings"
             className="inline-flex items-center gap-1 text-[var(--accent)] text-[13px] font-medium px-2 py-2 active:opacity-70"
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
-            Календарь
+            Настройки
           </Link>
         }
         rightContent={
