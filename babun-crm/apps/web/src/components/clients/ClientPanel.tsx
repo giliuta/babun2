@@ -891,6 +891,22 @@ function RecordCard({
   });
   const serviceSummary = servicePieces.join(", ");
 
+  // v680 / Audit-2026-05-21 P0-4 — some legacy / seed appointments
+  // carry the service name in apt.comment as well as in apt.services.
+  // The card then rendered the same string twice on consecutive lines
+  // («Сплит-система 7-9 BTU / Сплит-система 7-9 BTU»). Suppress the
+  // comment row when its trimmed value matches any rendered service
+  // name — the service line above already conveys it. Real comments
+  // («домофон 25, синяя дверь, собака») still show fine because they
+  // won't match a catalog name.
+  const renderedNames = new Set(
+    Array.from(quantities.keys()).map((id) => servicesById.get(id) ?? "Услуга"),
+  );
+  const commentTrimmed = (apt.comment ?? "").trim();
+  const commentRedundant =
+    commentTrimmed.length > 0 && renderedNames.has(commentTrimmed);
+  const visibleComment = commentRedundant ? "" : commentTrimmed;
+
   const bg =
     apt.status === "completed"
       ? "bg-[rgba(52,199,89,0.08)]"
@@ -922,11 +938,11 @@ function RecordCard({
           Команда: {team.name}
         </div>
       )}
-      {(serviceSummary || apt.comment) && (
+      {(serviceSummary || visibleComment) && (
         <div className="text-[13px] text-[var(--label)] mt-1 whitespace-pre-wrap break-words">
           {serviceSummary}
-          {serviceSummary && apt.comment ? "\n" : ""}
-          {apt.comment}
+          {serviceSummary && visibleComment ? "\n" : ""}
+          {visibleComment}
         </div>
       )}
       {/* Payment row — P0 #12 (CRM Core brief). Bare colored dots with
