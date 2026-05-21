@@ -1850,6 +1850,12 @@ export default function DashboardClientLayout({
   const handleGetCityFor = useCallback(
     (teamId: string | null, dateKey: string, teamDefault: string): string => {
       const assigned = getDayCity(dayCities, teamId, dateKey);
+      // v693 — `__NONE__` is the sentinel written by re-tapping the
+      // active label in CityPickerModal. It means «explicitly cleared,
+      // do NOT fall back to the team default» — without it, tapping
+      // a brigade's default city to remove the day's label silently
+      // re-applied the same default on the next render.
+      if (assigned === "__NONE__") return "";
       return assigned || teamDefault;
     },
     [dayCities]

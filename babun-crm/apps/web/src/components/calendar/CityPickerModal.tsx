@@ -97,11 +97,6 @@ export default function CityPickerModal({
     onClose();
   };
 
-  const handleReset = () => {
-    if (onReset) onReset();
-    onClose();
-  };
-
   const dateLabel = dateKey
     ? (() => {
         const [y, m, d] = dateKey.split("-").map(Number);
@@ -169,18 +164,10 @@ export default function CityPickerModal({
             })}
           </div>
 
-          {/* v501 — explicit «Снять метку» row when a label is active
-              for this day. Doubles up with the tap-active-to-toggle
-              gesture above so the action is discoverable as well. */}
-          {current && onReset && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="w-full mt-2 h-11 rounded-[12px] bg-[var(--surface-card)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] transition"
-            >
-              Снять метку
-            </button>
-          )}
+          {/* v693 — explicit «Снять метку» row removed. The active
+              row already toggles itself off via `handlePick` above,
+              so the button was a visual duplicate that also pushed
+              the picker taller than necessary. */}
         </div>
       </div>
     </div>

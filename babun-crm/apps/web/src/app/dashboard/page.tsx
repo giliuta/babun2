@@ -1573,7 +1573,10 @@ function DashboardPageInner() {
 
   const handleCityReset = useCallback(() => {
     if (!activeTeamId || !cityPickerDateKey) return;
-    setCityFor(activeTeamId, cityPickerDateKey, "");
+    // v693 — sentinel `__NONE__` tells getCityFor «explicitly cleared,
+    // skip the brigade default». A bare "" would delete the override
+    // entirely, letting the default city repaint on the next render.
+    setCityFor(activeTeamId, cityPickerDateKey, "__NONE__");
   }, [activeTeamId, cityPickerDateKey, setCityFor]);
 
   // Render a calendar page (without TimeGrid — that lives in the shared TimeColumn).
