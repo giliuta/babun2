@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v672-photo-orphan-guard-and-time-now-fix";
+const CACHE_VERSION = "babun-v673-precache-cleanup";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -8,6 +8,14 @@ const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 // install paint instantly from cache (stale-while-revalidate). When a
 // new section is added under /dashboard, list it here so users don't
 // pay the network cold-start on first navigation.
+//
+// v673 — removed two legacy-redirect routes from precache:
+//   /dashboard/analytics → redirects to /dashboard/clients
+//   /dashboard/income    → redirects to /dashboard/finances
+// Caching the redirect-only HTML shell wasted space and made the
+// audit punch-list flag them as "broken precache entries." The real
+// destinations (clients + finances) are already in the list, so the
+// stale-while-revalidate pattern still works for the actual pages.
 const PRECACHE_URLS = [
   "/",
   "/login",
@@ -22,8 +30,6 @@ const PRECACHE_URLS = [
   "/dashboard/masters",
   "/dashboard/inventory",
   "/dashboard/recurring",
-  "/dashboard/analytics",
-  "/dashboard/income",
   "/dashboard/close-day",
   "/dashboard/settings",
   "/manifest.webmanifest",
