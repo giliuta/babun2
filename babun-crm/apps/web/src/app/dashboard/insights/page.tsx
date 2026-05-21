@@ -15,6 +15,7 @@ import {
 } from "@/components/layout/DashboardClientLayout";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
+import { formatCountRu, FORMS_RAZ } from "@babun/shared/common/utils/plural-ru";
 
 // ─── Period helpers ──────────────────────────────────────────────────────────
 
@@ -361,7 +362,9 @@ export default function InsightsPage() {
         id,
         name: serviceNameMap.get(id) ?? id,
         value: count,
-        valueLabel: `${count} раз`,
+        // v689 / Audit-2026-05-21 — was «${count} раз» for all counts,
+        // which is wrong for 2-4: «2 раз» → «2 раза».
+        valueLabel: formatCountRu(count, FORMS_RAZ),
       }));
   }, [currentApts, serviceNameMap]);
 
