@@ -43,10 +43,6 @@ export interface CalendarSettings {
    *  that has no per-date override. Empty / undefined → grey «+ метка»
    *  chip on every untagged day. */
   personalDefaultLabel?: string;
-  /** STORY-060 F2.5 — weekday numbers (0=Sun..6=Sat) that should be
-   *  rendered as a day-off: red header + dimmed grid background.
-   *  Default [0] (Sunday). Empty array = no days off. */
-  days_off: number[];
 }
 
 const STORAGE_KEY = "babun2:settings:calendar";
@@ -67,7 +63,6 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   bufferMinutes: 0,
   hideCancelled: false,
   allowOvertime: false,
-  days_off: [0],
 };
 
 export const TIMEZONE_OPTIONS: string[] = [
@@ -93,8 +88,6 @@ export function loadCalendarSettings(): CalendarSettings {
     const merged: CalendarSettings = {
       ...DEFAULT_CALENDAR_SETTINGS,
       ...parsed,
-      // STORY-060 F2.5 — legacy localStorage rows predate `days_off`.
-      days_off: parsed.days_off ?? [0],
     };
     return sanitizeCalendarSettings(merged);
   } catch {
@@ -139,17 +132,6 @@ function sanitizeCalendarSettings(s: CalendarSettings): CalendarSettings {
     next.startHour,
     Math.min(open, next.endHour),
   );
-
-  // STORY-060 F2.5 — clean 0..6 set, defensive against junk values.
-  const rawDays = Array.isArray(next.days_off) ? next.days_off : [0];
-  const cleaned: number[] = [];
-  for (const d of rawDays) {
-    if (typeof d !== "number" || !Number.isFinite(d)) continue;
-    const v = Math.trunc(d);
-    if (v < 0 || v > 6) continue;
-    if (!cleaned.includes(v)) cleaned.push(v);
-  }
-  next.days_off = cleaned.sort((a, b) => a - b);
 
   return next;
 }

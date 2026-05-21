@@ -200,14 +200,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
     persist({ ...schedule, start, end, overrides });
   };
 
-  // Read-only summary of off days for the general header
-  const offDaysList = WEEKDAY_KEYS.filter((k) => {
-    const ov = dayOverride(k);
-    return !!ov && !ov.is_working;
-  })
-    .map((k) => WEEKDAY_NAMES[k])
-    .join(", ");
-
   return (
     <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
       {/* ── Working hours (general) ─────────────────────── */}
@@ -257,20 +249,6 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
                 onChange={(v) => updateBase("end", v)}
               />
             </div>
-          </div>
-          <div className="border-t border-[var(--separator)] px-4 py-2.5 flex items-center gap-2">
-            <span className="text-[13px] text-[var(--label-secondary)]">
-              Выходные:
-            </span>
-            <span
-              className={`text-[13px] ${
-                offDaysList
-                  ? "text-[var(--label)] font-medium"
-                  : "text-[var(--label-tertiary)]"
-              }`}
-            >
-              {offDaysList || "нет"}
-            </span>
           </div>
         </div>
       </Group>

@@ -764,7 +764,6 @@ export default function DashboardClientLayout({
         bufferMinutes: 0,
         hideCancelled: false,
         allowOvertime: false,
-        days_off: [0],
       };
     }
     return loadCalendarSettings();
@@ -1076,8 +1075,8 @@ export default function DashboardClientLayout({
       // server-returned value is null/undefined, keep what we have.
       // Previously only workStartHour, workEndHour, scrollOpenHour,
       // personalLabels, personalDefaultLabel were guarded. Other
-      // fields like days_off / hideCancelled / allowOvertime /
-      // weekStart could still be wiped by a stale server payload.
+      // fields like hideCancelled / allowOvertime / weekStart could
+      // still be wiped by a stale server payload.
       setCalendarSettingsState((prev) => {
         const merged: CalendarSettings = { ...prev };
         for (const key of Object.keys(calSettings) as (keyof CalendarSettings)[]) {

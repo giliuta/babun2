@@ -67,10 +67,6 @@ interface DayColumnProps {
   dragEnabled?: boolean;
   /** Resolver returning the team colour for a given appointment. */
   teamColorFor?: (apt: Appointment) => string | null;
-  /** STORY-060 F2.5 — this day is marked as a day-off in calendar
-   *  settings (`days_off` contains its weekday). Header weekday + day
-   *  number paint red and the column body gets a dimmed wash. */
-  isDayOff?: boolean;
   /** True when this is the leftmost-visible column in the week strip.
    *  WeekView passes it so we can render the hour-axis labels only
    *  once per visible week, not seven times. */
@@ -176,7 +172,6 @@ function DayColumnInner({
   hasLabels = true,
   hideCancelled = false,
   bufferMinutes = 0,
-  isDayOff = false,
   isFirstVisible = false,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
@@ -202,20 +197,14 @@ function DayColumnInner({
     return true;
   });
   const dayName = getDayNameShort(date);
+  // v676 — only Sat/Sun mark the weekday header red. Pre-hydration
+  // guard kept from the legacy bug fix: until React mounts, the SSR
+  // pass still uses SSR_SAFE_MONDAY which can shift the weekday by a
+  // day, so we wait one tick before applying the red tint.
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-  // STORY audit (user bug «18 сначала красное потом обычное»):
-  // weekend/day-off colouring должно применяться ТОЛЬКО после
-  // hydration. До mount React renders с SSR_SAFE_MONDAY (5 Jan 2026)
-  // + default days_off=[0], и dates показываются с одним set цветов;
-  // после hydration currentMonday → реальная неделя + per-team
-  // schedule loaded → коlors пересчитываются. Это приводит к
-  // мигающему «красное → обычное» на каждом дне.
-  // Решение: до mount показывать ВСЕ дни как обычные (нейтральные),
-  // и красить только после hydration. Один плавный transition вместо
-  // двух прыжков.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
-  const showAsOff = hydrated && (isWeekend || isDayOff);
+  const showAsOff = hydrated && isWeekend;
   const monthShort = getMonthNameShort(date.getMonth());
   // STORY-060 F3.1 — month-short is now rendered on every column,
   // not just the 1st-of-month edge case; this flag is kept for any
@@ -343,9 +332,9 @@ function DayColumnInner({
         className="relative sticky top-0 z-20 h-[64px] lg:h-[70px] bg-[var(--surface-card)] border-b border-[var(--separator)] overflow-hidden text-center cursor-pointer active:bg-[var(--fill-quaternary)] transition"
       >
         <div className="relative z-10 px-1 pt-1.5 flex flex-col items-center gap-[2px] leading-none">
-          {/* Weekday label. Red on weekends OR when this weekday is in
-              the user's calendar-settings `days_off` (STORY-060 F2.5),
-              muted otherwise.
+          {/* Weekday label. Red on Sat/Sun, muted otherwise. v676
+              dropped the `days_off` picker — only the calendar
+              weekday drives the red tint now.
               STORY-060 F3.1 — always show the short month next to the
               weekday (anchors which month a column belongs to). The
               FIRST visible column in the current view additionally
@@ -483,18 +472,11 @@ function DayColumnInner({
           contain: "layout paint",
         }}
       >
-        {/* STORY-060 F2.5 — day-off wash. Rendered FIRST so every
-            higher-priority overlay below (past-time tint, working-
-            hours wash, break bands, buffers, appointment cards) paints
-            on top. Neutral dim (--fill-quaternary) gives the column a
-            "this day is off" feel without competing with the red
-            header text. */}
-        {isDayOff && (
-          <div
-            className="absolute inset-0 bg-[var(--fill-quaternary)] pointer-events-none"
-            aria-hidden
-          />
-        )}
+        {/* v676 — day-off body wash and the entire `days_off` picker
+            were removed. The "is this a day off" signal now lives
+            only in the header (red weekday + day number on Sat/Sun
+            via `showAsOff`); the body stays plain white, matching
+            the rest of the week. */}
 
         {/* Phase I41 — past-time tint. Past days get the whole column
             slightly darker so the dispatcher scanning a week sees at
