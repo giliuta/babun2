@@ -20,8 +20,10 @@ interface PageProps {
   params: Promise<{ token: string }>;
 }
 
+// v691 / Audit-2026-05-21 P3-15 — was producing «Оцените визит · Babun · Babun»
+// via the root layout's «%s · Babun» template. Use `absolute` to suppress.
 export const metadata = {
-  title: "Оцените визит · Babun",
+  title: { absolute: "Оцените визит · Babun" },
 };
 
 interface TokenLookup {

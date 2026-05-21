@@ -7,8 +7,15 @@ import Link from "next/link";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
+// v691 / Audit-2026-05-21 P1-43 — root layout uses
+//   title: { template: "%s · Babun" }
+// which turned «Babun · Admin» into «Babun · Admin · Babun». Use
+// the `absolute` form to skip the template and render just one
+// «· Babun» suffix.
 export const metadata = {
-  title: "Babun · Admin",
+  title: {
+    absolute: "Admin · Babun",
+  },
 };
 
 export default async function AdminLayout({

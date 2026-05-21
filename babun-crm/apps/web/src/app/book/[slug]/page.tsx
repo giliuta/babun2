@@ -23,8 +23,10 @@ import {
   instagramUrl,
 } from "@babun/shared/common/utils/messenger-links";
 
+// v691 / Audit-2026-05-21 P3-15 — was producing «Онлайн запись · Babun · Babun»
+// via the root layout's «%s · Babun» template. Use `absolute` to suppress.
 export const metadata = {
-  title: "Онлайн запись · Babun",
+  title: { absolute: "Онлайн запись · Babun" },
 };
 
 // v681 / Audit-2026-05-21 P0-1 — was querying `brand_name`, but the
