@@ -16,6 +16,11 @@ import {
   type Weekday,
 } from "@babun/shared/local/services";
 import { generateId } from "@babun/shared/local/masters";
+import {
+  formatCountRu,
+  FORMS_USLUGA,
+  FORMS_KATEGORIYA,
+} from "@babun/shared/common/utils/plural-ru";
 
 const PALETTE = [
   "#3b82f6",
@@ -72,7 +77,11 @@ export default function ServicesPage() {
     <>
       <PageHeader
         title="Услуги"
-        subtitle={`${services.length} услуг в ${categories.length} категориях`}
+        // v686 / Audit-2026-05-21 P1-6 — was «1 услуг в 1 категориях».
+        // Use plural-ru helper so the morphology is correct for any
+        // count: «1 услуга в 1 категории», «3 услуги в 2 категориях»,
+        // «5 услуг в 6 категориях».
+        subtitle={`${formatCountRu(services.length, FORMS_USLUGA)} в ${formatCountRu(categories.length, FORMS_KATEGORIYA)}`}
         rightContent={
           <button
             type="button"

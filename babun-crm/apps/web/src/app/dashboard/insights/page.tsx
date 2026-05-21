@@ -387,9 +387,14 @@ export default function InsightsPage() {
   }, [completedApts, clientNameMap]);
 
   // ── Delta display helpers ─────────────────────────────────────────────────
+  // v686 / Audit-2026-05-21 P1-2 — was returning 999 when the previous
+  // period had 0 (raw is +∞). The «↗ 999%» chip was a confusing user
+  // experience: it looked like a literal value, not a sentinel for
+  // «cannot compute». Now we return null, which the KpiTile renders
+  // as no delta chip at all. KpiTile already handles null gracefully.
   function toDeltaPct(raw: number | null): number | null {
     if (raw === null) return null;
-    if (!Number.isFinite(raw)) return raw > 0 ? 999 : null;
+    if (!Number.isFinite(raw)) return null;
     return raw;
   }
 

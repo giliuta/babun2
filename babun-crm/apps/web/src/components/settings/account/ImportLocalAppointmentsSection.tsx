@@ -10,6 +10,7 @@ import {
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { createAppointment as createAppointmentRepo } from "@babun/shared/db/repositories/appointments";
 import { useAppointments } from "@/components/layout/DashboardClientLayout";
+import { formatCountRu, FORMS_ZAPIS } from "@babun/shared/common/utils/plural-ru";
 
 // STORY-042 G6 — one-shot import of localStorage appointments into
 // Supabase, with a 30-day local backup so the user can verify cloud
@@ -237,7 +238,9 @@ export default function ImportLocalAppointmentsSection() {
           </div>
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">
             <p className="text-[13px] text-[var(--label-secondary)] leading-snug">
-              {liveCount} записей в этом устройстве пока не загружены в облако.
+              {/* v686 / Audit-2026-05-21 P1-6+P1-21 — was «4 записей»,
+                  morphologically wrong for 2-4 («запись» / «записи»). */}
+              {formatCountRu(liveCount, FORMS_ZAPIS)} в этом устройстве пока не загружены в облако.
               {oldestDate && newestDate && (
                 <>
                   <br />
@@ -269,7 +272,7 @@ export default function ImportLocalAppointmentsSection() {
               ) : busy && progress ? (
                 `Импортируем: ${progress.done} / ${progress.total}`
               ) : (
-                `Импортировать ${liveCount} записей в облако`
+                `Импортировать ${formatCountRu(liveCount, FORMS_ZAPIS)} в облако`
               )}
             </button>
           </div>
