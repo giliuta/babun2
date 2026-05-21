@@ -11,7 +11,9 @@ export default async function ForgotPasswordPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/dashboard/clients");
+  // v677 / Audit-2026-05-21 P0-12 — match /login and /register: go to
+  // /dashboard, not /clients.
+  if (user) redirect("/dashboard");
   const { error } = await searchParams;
   return <ForgotPasswordForm errorCode={error ?? null} />;
 }

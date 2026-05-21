@@ -7,6 +7,9 @@ export default async function RegisterPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/dashboard/clients");
+  // v677 / Audit-2026-05-21 P0-12 — authed users should land on the
+  // calendar (matches /login redirect target), not /clients. Previous
+  // target was a copy-paste from page.tsx and felt arbitrary.
+  if (user) redirect("/dashboard");
   return <RegisterForm />;
 }

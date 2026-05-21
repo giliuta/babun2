@@ -1,9 +1,12 @@
 // STORY-045 — public landing page on root.
 //
 // Auth-aware: a logged-in visitor never sees the marketing page; we
-// short-circuit to /dashboard/clients via a server-side redirect so
-// there's no flash of landing UI mid-hydration. Anon visitors get the
-// full page (Hero + Features + HowItWorks + Pricing + FAQ + Footer).
+// short-circuit to /dashboard via a server-side redirect so there's no
+// flash of landing UI mid-hydration. (v677 changed the target from
+// /dashboard/clients → /dashboard so all four auth entry points —
+// /, /login, /register, /forgot-password — land on the calendar.)
+// Anon visitors get the full page (Hero + Features + HowItWorks +
+// Pricing + FAQ + Footer).
 
 import type { Viewport } from "next";
 import { redirect } from "next/navigation";
@@ -73,7 +76,11 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    redirect("/dashboard/clients");
+    // v677 / Audit-2026-05-21 P0-17 — was /dashboard/clients. The
+    // calendar is the dispatcher's home screen; /clients is a tab they
+    // navigate to deliberately. Aligns with the /login + /register +
+    // /forgot-password redirects after Sprint 1 batch 2.
+    redirect("/dashboard");
   }
 
   return (
