@@ -18,6 +18,7 @@
  * conditionally and forwards callbacks.
  */
 
+import { useEffect } from "react";
 import type { Appointment, AppointmentService } from "@babun/shared/local/appointments";
 import type { Client } from "@babun/shared/local/clients";
 import type { Service, ServiceCategory } from "@babun/shared/local/services";
@@ -135,6 +136,23 @@ export default function AppointmentSubSheets({
   const toast = useToast();
   const router = useRouter();
   const confirm = useConfirm();
+
+  // v674 / Audit-2026-05-21 P0-6 — Escape closes the ClientProfileView
+  // overlay. Backdrop tap already closes it; this adds keyboard parity
+  // for desktop reviewers and accessibility. Only registers the listener
+  // while the overlay is mounted to avoid eating Escape from sibling
+  // modals (RepeatReminderSheet etc).
+  useEffect(() => {
+    if (!clientProfileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setClientProfileOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [clientProfileOpen, setClientProfileOpen]);
 
   return (
     <>
