@@ -58,7 +58,13 @@ const REST_COLOR = "#8E8E93"; // system grey for «Прочее»
 export default function FinancePieChart({
   entries,
   topN = 5,
-  size = 140,
+  // v685 / Audit-2026-05-21 P1-3 — pie chart was 140px which left
+  // only ~30px for legend names on a half-width parent, clamping
+  // them to «Спл…», «Анна…». Shrink the pie to 96px, freeing
+  // ~44px for names — enough to fit 12 chars («Сплит-систем»)
+  // before the truncate kicks in. Slice colors / arithmetic
+  // unchanged; only the rendered size shrinks.
+  size = 96,
   title,
   subtitle,
   formatEur,
