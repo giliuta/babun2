@@ -27,8 +27,15 @@ export const metadata = {
   title: "Онлайн запись · Babun",
 };
 
+// v681 / Audit-2026-05-21 P0-1 — was querying `brand_name`, but the
+// schema column is `name`. Supabase returned error 42703 (column not
+// exists), the `if (error || !data) notFound()` branch fired, and
+// every /book/{slug} hit rendered a generic 404. Confirmed via
+// information_schema.columns and a direct lookup of slug babun-test:
+// the row exists in the tenants table — only the column name was
+// wrong. No migration needed; the schema is authoritative.
 interface TenantBrand {
-  brand_name: string | null;
+  name: string | null;
   logo_url: string | null;
   business_address: string | null;
   contact_phone: string | null;
@@ -52,7 +59,7 @@ export default async function BookPage(props: PageProps) {
   const { data, error } = await (sb as any)
     .from("tenants")
     .select(
-      "brand_name, logo_url, business_address, contact_phone, contact_email, contact_whatsapp, contact_telegram, contact_instagram",
+      "name, logo_url, business_address, contact_phone, contact_email, contact_whatsapp, contact_telegram, contact_instagram",
     )
     .eq("booking_slug", normalized)
     .maybeSingle();
@@ -60,7 +67,7 @@ export default async function BookPage(props: PageProps) {
   if (error || !data) notFound();
   const tenant = data as TenantBrand;
 
-  const displayName = tenant.brand_name?.trim() || "Сервис";
+  const displayName = tenant.name?.trim() || "Сервис";
   const initials = displayName
     .split(/\s+/)
     .map((w) => w.charAt(0).toUpperCase())
