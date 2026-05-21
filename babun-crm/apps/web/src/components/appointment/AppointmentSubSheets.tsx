@@ -270,18 +270,52 @@ export default function AppointmentSubSheets({
                   // Dynamic import keeps jspdf (+ renderer) out of the
                   // initial bundle. First tap incurs a one-off chunk
                   // load; subsequent taps are cached.
-                  const { generateInvoicePDF, downloadBlob } = await import(
-                    "@babun/shared/local/finance/invoice"
-                  );
-                  const { blob, filename } = generateInvoicePDF({
-                    appointment,
-                    client,
-                    services: catalog,
-                    team: activeTeam,
-                    company: loadCompany(),
-                    includePhotos: photos.length > 0,
+                  //
+                  // v679 / Audit-2026-05-21 P0-21 — wrap the whole flow
+                  // in try/catch + toasts. The previous version threw
+                  // any jsPDF / chunk-load / company-load error into
+                  // the void, which made the «Скачать счёт (PDF)» menu
+                  // entry look like a silent no-op. Now the user sees:
+                  //   - toast «Готовим счёт…» (long renders, jspdf
+                  //     chunk first-load on slow phones can take 1-2s)
+                  //   - toast «Счёт {filename} скачан» on success
+                  //   - toast «Не удалось создать счёт: {message}»
+                  //     on failure (mostly missing company name or
+                  //     OOM on giant photo blobs).
+                  toast.show({
+                    variant: "info",
+                    message: "Готовим счёт PDF…",
+                    durationMs: 1500,
                   });
-                  downloadBlob(blob, filename);
+                  try {
+                    const { generateInvoicePDF, downloadBlob } = await import(
+                      "@babun/shared/local/finance/invoice"
+                    );
+                    const { blob, filename } = generateInvoicePDF({
+                      appointment,
+                      client,
+                      services: catalog,
+                      team: activeTeam,
+                      company: loadCompany(),
+                      includePhotos: photos.length > 0,
+                    });
+                    downloadBlob(blob, filename);
+                    toast.show({
+                      variant: "success",
+                      message: `Счёт скачан · ${filename}`,
+                      durationMs: 2500,
+                    });
+                  } catch (err) {
+                    toast.show({
+                      variant: "error",
+                      message: `Не удалось создать счёт: ${
+                        err instanceof Error
+                          ? err.message
+                          : "попробуйте ещё раз через минуту."
+                      }`,
+                      durationMs: 3500,
+                    });
+                  }
                 }
               : undefined
           }
