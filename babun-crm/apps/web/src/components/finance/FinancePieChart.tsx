@@ -180,7 +180,11 @@ export default function FinancePieChart({
             return (
               <li
                 key={slice.id}
-                className="flex items-center gap-2 text-[12px] tabular-nums"
+                // v683 / Audit-2026-05-21 P1-3 — was missing min-w-0;
+                // without it the flex-1 name span inside collapsed
+                // to ~3 chars («Спл…», «Анна…»). The parent ul does
+                // have min-w-0 but li is a separate flex container.
+                className="flex items-center gap-2 text-[12px] tabular-nums min-w-0"
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"

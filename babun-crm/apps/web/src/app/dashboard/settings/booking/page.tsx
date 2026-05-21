@@ -209,7 +209,7 @@ export default function BookingSettingsPage() {
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)]">
             {locationLabels.length === 0 ? (
               <div className="px-4 py-8 text-center text-[14px] text-[var(--label-tertiary)]">
-                Нет типов. Нажми «+ Добавить».
+                Нет типов. Нажмите «+ Добавить».
               </div>
             ) : (
               <div className="p-2 space-y-1">

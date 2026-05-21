@@ -181,7 +181,7 @@ export default function CalendarSettingsPage() {
                   Личный календарь
                 </div>
                 <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-                  Свои встречи и заметки. Видны только тебе, не команде.
+                  Свои встречи и заметки. Видны только вам, не команде.
                 </div>
               </div>
               <IOSSwitch

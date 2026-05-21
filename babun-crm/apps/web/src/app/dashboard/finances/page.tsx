@@ -724,10 +724,23 @@ function CombinedSummary({
         <Row
           label="Прибыль"
           value={formatEURSigned(profit)}
-          color={profit >= 0 ? "indigo" : "rose"}
+          // v683 / Audit-2026-05-21 P1-17 — was indigo (var(--accent)).
+          // System-wide convention is green for revenue / profit. Hero
+          // green card already does this; the table row was the lone
+          // outlier and read as «something to click» instead of «good
+          // outcome».
+          color={profit >= 0 ? "emerald" : "rose"}
           bold
         />
-        <Row label="Маржа" value={`${margin}%`} color="gray" />
+        <Row
+          label="Маржа"
+          // v683 / Audit-2026-05-21 P1-19 — 100% margin is technically
+          // correct when totalExpense === 0 but misleads as «we kept
+          // everything». Show «—» so the dispatcher reads «not
+          // applicable, no expenses to compare against».
+          value={totalExpense === 0 && totalIncome > 0 ? "—" : `${margin}%`}
+          color="gray"
+        />
       </div>
 
       <div className="px-4 py-3 border-b border-[var(--separator)] bg-[var(--surface-grouped)]">

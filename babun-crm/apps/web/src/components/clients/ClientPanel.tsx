@@ -1716,7 +1716,7 @@ function ProfileChips({ client }: { client: Client }) {
   if (chips.length === 0) {
     return (
       <div className="text-[12px] text-[var(--label-tertiary)] truncate mt-0.5">
-        Заполни профиль ниже
+        Заполните профиль ниже
       </div>
     );
   }

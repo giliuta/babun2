@@ -127,6 +127,25 @@ export default function FinanceSparkline({
         >
           Нет данных за выбранный период
         </div>
+      ) : data.length === 1 ? (
+        // v683 / Audit-2026-05-21 P1-4 — single datapoint used to
+        // render the SVG with the same X-axis label twice, looking
+        // like a broken chart. Fall back to a plain stat line so
+        // the user sees the value clearly without the visual
+        // confusion of a chart with 1 bar and 2 axis ticks.
+        <div
+          className="flex items-center justify-center text-[13px] text-[var(--label-secondary)]"
+          style={{ height: HEIGHT }}
+        >
+          1 запись · <span className="text-[var(--system-green)] font-semibold mx-1">+{formatEur(data[0].income)}</span>
+          {data[0].expense > 0 ? (
+            <>
+              {" / "}
+              <span className="text-[var(--system-red)] font-semibold mx-1">−{formatEur(data[0].expense)}</span>
+            </>
+          ) : null}
+          {" "}за {data[0].date}
+        </div>
       ) : (
         <svg
           role="img"

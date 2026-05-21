@@ -107,12 +107,12 @@ function StatusCard({ config }: { config: ManagedSmsConfig }) {
       </div>
       {onTrial && (
         <p className="mt-3 text-[13px] text-[var(--label-secondary)] leading-snug">
-          Babun даёт {DEFAULT_FREE_SMS} SMS бесплатно для теста — отправляются от имени «{PLATFORM_DEFAULT_SENDER}». Чтобы отправлять под своим брендом, оформи имя отправителя ниже и пополни баланс.
+          Babun даёт {DEFAULT_FREE_SMS} SMS бесплатно для теста — отправляются от имени «{PLATFORM_DEFAULT_SENDER}». Чтобы отправлять под своим брендом, оформите имя отправителя ниже и пополните баланс.
         </p>
       )}
       {!onTrial && config.balance_cents < PER_SMS_COST_CENTS && (
         <p className="mt-3 text-[13px] text-[var(--system-orange)] leading-snug font-medium">
-          Баланс закончился. Пополни, чтобы продолжить отправку.
+          Баланс закончился. Пополните, чтобы продолжить отправку.
         </p>
       )}
       {config.total_sent_count > 0 && (
@@ -283,7 +283,7 @@ function TopupCard({ config }: { config: ManagedSmsConfig }) {
         Пополнить баланс
       </div>
       <p className="text-[12px] text-[var(--label-tertiary)] mb-3 leading-snug">
-        Выбери пакет — оплата через Stripe. SMS сразу зачисляются на баланс.
+        Выберите пакет — оплата через Stripe. SMS сразу зачисляются на баланс.
       </p>
       <div className="grid grid-cols-3 gap-2">
         {TOPUP_PACKS.map((p) => {
