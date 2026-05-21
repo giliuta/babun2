@@ -9,6 +9,7 @@ import { useRealtimeTenantSync } from "@/hooks/useRealtimeTenantSync";
 import { useTenantQuota } from "@/lib/quota/useTenantQuota";
 import { isUnlimited } from "@/components/settings/billing/types";
 import QuotaBanner from "@/components/quota/QuotaBanner";
+import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 
 type Role = "owner" | "dispatcher" | "master";
 const ROLE_LABEL: Record<Role, string> = {
@@ -226,7 +227,10 @@ export default function TeamSettingsClient({
                   {m.user_id === callerUserId ? "Это вы" : m.user_id.slice(0, 8) + "…"}
                 </div>
                 <div className="text-[12px] text-[var(--label-tertiary)]">
-                  {ROLE_LABEL[m.role]} · с {m.joined_at.slice(0, 10)}
+                  {/* v690 / Audit-2026-05-21 P1-44 — was «с 2026-05-16»
+                      (raw ISO). Now «с 16 мая 2026 г.» via existing
+                      formatDateLongRu helper. */}
+                  {ROLE_LABEL[m.role]} · с {formatDateLongRu(m.joined_at.slice(0, 10))}
                 </div>
               </div>
               {isOwner && m.user_id !== callerUserId && (
