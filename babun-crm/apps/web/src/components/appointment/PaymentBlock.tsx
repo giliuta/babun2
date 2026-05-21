@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Banknote, CreditCard, ArrowLeftRight, FileText, Clock } from "@babun/shared/icons";
 import type { AppointmentPayment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface PaymentBlockProps {
   total: number;
@@ -25,6 +26,7 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
   const [cashStr, setCashStr] = useState("");
   const [partialAmountStr, setPartialAmountStr] = useState("");
   const [partialMethod, setPartialMethod] = useState<"cash" | "card">("cash");
+  const confirm = useConfirm();
   const now = () => new Date().toISOString();
 
   const payAll = (method: "cash" | "card") => {
@@ -40,7 +42,22 @@ export default function PaymentBlock({ total, onPay }: PaymentBlockProps) {
   const cardVal = Math.max(0, total - cashVal);
   const splitValid = cashVal > 0 && cashVal < total;
 
-  const payInvoice = () => {
+  // v675 / Audit-2026-05-21 P0-15 — confirm before marking the record
+  // «Выполнено · счёт компании». A single tap on the quiet invoice link
+  // used to commit the payment immediately, which silently locked the
+  // appointment as completed + invoice-paid without any opt-out. That
+  // is a destructive financial action: it changes /finances totals,
+  // /unclosed widget, and prevents normal edit flow. Now we ask first.
+  const payInvoice = async () => {
+    const ok = await confirm({
+      title: `Выставить счёт компании на ${formatEUR(total)}?`,
+      message:
+        "Запись будет помечена «Выполнено · счёт компании». Деньги от клиента не списываются — это запись долга для последующей оплаты счёта компанией.",
+      confirmLabel: "Выставить счёт",
+      cancelLabel: "Отмена",
+      danger: false,
+    });
+    if (!ok) return;
     onPay({
       method: "invoice",
       cashAmount: 0,
