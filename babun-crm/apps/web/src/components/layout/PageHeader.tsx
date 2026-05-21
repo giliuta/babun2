@@ -42,27 +42,33 @@ export default function PageHeader({
   const router = useRouter();
   const sidebar = useSidebar();
 
-  // v493 — natural iOS back. v430 had the arrow do `router.push(backHref)`
-  // which (a) "пролакивает" / blinks because it adds a forward
-  // history entry instead of walking back, and (b) pollutes history:
-  // user goes A → B → tap back arrow → push A → history is [A, B, A],
-  // and subsequent browser-back loops them between B and A forever.
+  // v694 — backHref-first navigation. The v493 history-first flow
+  // looked iOS-correct on paper, but in standalone-PWA mode
+  // `window.history.length` consistently reports > 1 even on cold
+  // launches, so the `router.back()` branch was taken and silently
+  // no-op'd — the arrow looked dead. Falling back to `backHref` only
+  // when history was empty meant we never reached it.
   //
-  // New flow: walk history first (iOS bfcache + zero pollution), and
-  // only push `backHref` as a fallback when there's no history (cold
-  // deep-link entry / PWA reopened on this URL). Use router.replace
-  // for that fallback so we don't seed a duplicate entry there either.
+  // The fix flips the priority: when a parent route is declared via
+  // `backHref`, always navigate to it via `router.replace` (replace
+  // keeps the history flat — no A → B → A loop). The arrow becomes a
+  // predictable "go up one level" affordance, matching the iOS
+  // UINavigationBar mental model rather than the browser history
+  // stack.
+  //
+  // Pages without a declared parent (`backHref` omitted) keep the
+  // old natural-back behaviour as a sensible default.
   const goBack = () => {
     haptic("light");
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-      return;
-    }
     if (backHref) {
       router.replace(backHref);
       return;
     }
-    router.back();
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.replace("/dashboard");
   };
 
   return (

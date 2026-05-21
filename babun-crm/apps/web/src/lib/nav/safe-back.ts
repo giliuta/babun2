@@ -24,9 +24,9 @@ export function safeBack(
   router: AppRouterInstance,
   fallback: string,
 ): void {
-  if (typeof window !== "undefined" && window.history.length > 1) {
-    router.back();
-    return;
-  }
-  router.push(fallback);
+  // v694 — fallback-first to match PageHeader.goBack. PWA standalone
+  // mode lies about window.history.length so the old history-first
+  // branch silently no-op'd. `router.replace` keeps the stack flat
+  // and avoids the A → B → A → B loop the v493 comment warned about.
+  router.replace(fallback);
 }

@@ -50,15 +50,12 @@ export default function BrigadeSectionShell({
     router.push(backHref);
   };
 
-  // v493 — back-arrow parity with PageHeader: walk history first
-  // (snappy, doesn't pollute), fall back to backHref via replace().
-  // Pre-v493 always-push left the user looping between the brigade
-  // page and the section they just left because of duplicate entries.
+  // v694 — backHref-first to match PageHeader. PWA standalone mode
+  // reports window.history.length > 1 even on cold launches, so the
+  // history-first branch silently no-op'd ("кнопка назад не
+  // работает"). Always replace into the declared parent so the arrow
+  // becomes a predictable "go up one level" affordance.
   const goBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-      return;
-    }
     router.replace(backHref);
   };
 

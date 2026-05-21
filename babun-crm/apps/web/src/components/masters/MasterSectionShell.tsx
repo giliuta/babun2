@@ -43,13 +43,9 @@ export default function MasterSectionShell({
     router.push(backHref);
   };
 
-  // v493 — back-arrow parity with PageHeader / BrigadeSectionShell:
-  // walk history first, fall back to backHref via replace().
+  // v694 — backHref-first; PWA standalone reports history.length > 1
+  // even on cold launches, which made router.back() silently no-op.
   const goBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-      return;
-    }
     router.replace(backHref);
   };
 
