@@ -80,7 +80,13 @@ export default function IncomeBlock({
                 {globalDiscount?.type === "percent"
                   ? `−${globalDiscount.value}%`
                   : `Скидка`}
-                {globalDiscount?.reason && ` ${globalDiscount.reason}`}
+                {/* v704 — proper « · reason » separator instead of a
+                    bare space, so «−10% · Лояльность» reads as one
+                    labeled item, not «−10% Лояльность» mushed
+                    together. The reason is already saved by
+                    useLoyaltyAutoApply; this just surfaces it
+                    legibly. */}
+                {globalDiscount?.reason && ` · ${globalDiscount.reason}`}
               </span>
               <span className="tabular-nums">−{formatEUR(discount)}</span>
             </div>
