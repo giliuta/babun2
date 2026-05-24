@@ -865,12 +865,24 @@ export default function AppointmentSheet({
               type="button"
               onClick={() => setTimePopupOpen(true)}
               disabled={readonly}
+              // v705 — when an overlap conflict exists (and we're in
+              // a work-mode booking), paint the pill orange. The
+              // OverlapWarning banner below already explains who/when,
+              // but the pill is the eye-magnet — making it orange
+              // doubles the signal at the place the user will tap
+              // first to fix it.
               className={`ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-full text-[13px] font-semibold tabular-nums transition active:scale-[0.97] ${
                 readonly
                   ? "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] cursor-default"
-                  : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
+                  : overlapConflict && !isEventMode
+                    ? "bg-[var(--surface-card)] text-[var(--system-orange)] border border-[var(--system-orange)] active:bg-[var(--fill-quaternary)]"
+                    : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
               }`}
-              aria-label="Изменить время"
+              aria-label={
+                overlapConflict && !isEventMode
+                  ? `Изменить время — есть пересечение`
+                  : `Изменить время`
+              }
             >
               <CalendarClock size={14} strokeWidth={2} />
               {formatShortDate(dateKey)} · {timeStart}
