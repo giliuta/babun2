@@ -149,6 +149,20 @@ export default function ClientBlock({
                 />
               )}
               <span className="truncate">{client.full_name}</span>
+              {client.discount > 0 && (
+                // v703 — personal client.discount pill. The same %
+                // already drives auto-apply through useLoyaltyAutoApply
+                // on the appointment, but until now the dispatcher
+                // couldn't see WHY the loyalty discount appeared on
+                // some clients and not others. Pill makes the source
+                // explicit.
+                <span
+                  className="flex-shrink-0 inline-flex items-center h-5 px-1.5 rounded-[6px] bg-[var(--fill-tertiary)] text-[var(--label-secondary)] text-[11px] font-semibold tabular-nums"
+                  aria-label={`Персональная скидка ${client.discount} процентов`}
+                >
+                  −{client.discount}%
+                </span>
+              )}
             </div>
             {phone && (
               <div className="text-[13px] text-[var(--label-secondary)] tabular-nums truncate">
