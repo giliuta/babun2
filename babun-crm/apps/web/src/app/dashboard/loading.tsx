@@ -1,32 +1,39 @@
-// Skeleton shown while a /dashboard segment compiles + the server
-// component awaits its Supabase queries (auth.getUser → tenants).
-// Without this file Next.js shows the previous route frozen until the
-// new one is fully ready, which on flaky LTE looks like "the page
-// didn't open." With it, the user sees instant visual feedback the
-// moment they tap a nav item.
-import Skeleton, { SkeletonRow } from "@/components/ui/Skeleton";
+// Suspense fallback for the /dashboard segment — fires while the
+// async server layout awaits getTenantContext() (cold launch, login
+// → dashboard transition, route nav between sub-pages).
+//
+// v702 — previous version rendered a fake 8-row list skeleton. That
+// worked on /clients or /chats where the destination IS a list, but
+// on the main calendar entry point it read as «8 missing list
+// items», not as a loading screen at all. On a flaky LTE cold PWA
+// launch this looked like «приложение зависло» — the exact «при
+// заходе нет загрузочного окна» the dispatcher reported.
+//
+// Replaced with a centered Babun mark + spinner. Same visual budget,
+// reads unambiguously as «грузится» on every dashboard surface
+// regardless of which sub-route the user navigated to.
+
+import { BabunMark } from "@/components/ui/BabunMark";
 
 export default function DashboardLoading() {
   return (
-    <div className="flex flex-col h-full bg-[var(--surface-grouped)]">
-      {/* Header bar — match the live one's height so the layout doesn't
-          jump when the real page mounts. */}
-      <div className="flex-shrink-0 h-12 px-4 flex items-center gap-3 bg-[var(--surface-card)] border-b border-[var(--separator)]">
-        <Skeleton className="h-5 w-28" />
-        <div className="ml-auto flex gap-2">
-          <Skeleton className="h-8 w-8" rounded="full" />
-        </div>
-      </div>
-
-      {/* Content placeholder — generic list shape works for clients,
-          chats, masters, services, finances. */}
-      <div className="flex-1 overflow-hidden">
-        <div className="bg-[var(--surface-card)] mx-3 mt-3 rounded-2xl divide-y divide-[var(--separator)]">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <SkeletonRow key={i} />
-          ))}
-        </div>
-      </div>
+    <div
+      className="flex-1 flex flex-col items-center justify-center gap-5 bg-[var(--surface-grouped)]"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
+      <BabunMark
+        size={72}
+        radius={18}
+        style={{ boxShadow: "0 12px 28px -8px rgba(62,136,247,0.30)" }}
+      />
+      <div
+        className="w-6 h-6 rounded-full border-[2.5px] border-[var(--separator)] border-t-[var(--accent)] animate-spin"
+        aria-hidden="true"
+      />
+      <span className="sr-only">Загружаем…</span>
     </div>
   );
 }
