@@ -5,8 +5,14 @@
 // Flips the boolean. RLS already gates this update to the owner via
 // tenants_update_own; we still resolve the user server-side as a
 // belt-and-suspenders.
+//
+// No revalidatePath: every page that depends on this flag reads it
+// through the client `usePersonalCalendarEnabled` hook, which already
+// caches in localStorage (v668) and refreshes on mount. A
+// revalidatePath here would trigger router.refresh() on the dashboard
+// layout for every toggle tap and added 200–500 ms of perceptible
+// lag for nothing.
 
-import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -31,8 +37,5 @@ export async function setPersonalCalendarEnabled(
     .eq("id", tenantId);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/settings/account/personal");
   return { ok: true };
 }

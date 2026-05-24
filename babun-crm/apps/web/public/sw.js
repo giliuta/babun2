@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v694-back-button-reliable";
+const CACHE_VERSION = "babun-v695-personal-cal-toggle-no-revalidate";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
