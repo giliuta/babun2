@@ -156,6 +156,15 @@ export default function AppointmentWorkBody({
           const locs = c.locations ?? [];
           const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
           setLocationId(primary?.id ?? null);
+          // v701 — mirror the v696 prefill in the recent-chip path.
+          // The original v696 only patched the full ClientSheet
+          // callback; picking a recent client (the one-tap shortcut)
+          // skipped door-code prefill. Guard is the same: only fire
+          // when the comment is currently empty.
+          const locationNote = primary?.note?.trim();
+          if (locationNote && !comment.trim()) {
+            setComment(locationNote);
+          }
         }}
       />
 
