@@ -860,6 +860,18 @@ export default function AppointmentSheet({
               </span>
             )}
             {city && <span className="text-[var(--label-tertiary)]">·</span>}
+            {/* v706 — small dot in the team's brand colour right before
+                the team name. The dispatcher manages 2+ brigades and
+                already learns each one's colour from the calendar
+                stripes; surfacing it in the sheet caption confirms
+                «yes, you're booking this one», not the other one. */}
+            {activeTeam?.color && (
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: activeTeam.color }}
+                aria-hidden="true"
+              />
+            )}
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
             <button
               type="button"
