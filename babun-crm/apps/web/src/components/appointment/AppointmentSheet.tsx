@@ -988,6 +988,16 @@ export default function AppointmentSheet({
           const locs = c.locations;
           const primary = locs.find((l) => l.isPrimary) ?? locs[0] ?? null;
           setLocationId(primary?.id ?? null);
+          // v696 — auto-prefill brigade note from the primary location's
+          // door-code note ("зелёная дверь, домофон 25"). Only when the
+          // current comment is empty so we never overwrite something the
+          // dispatcher typed. Edit-mode already has a non-empty comment
+          // from the saved appointment, so the guard naturally skips
+          // there too.
+          const locationNote = primary?.note?.trim();
+          if (locationNote && !comment.trim()) {
+            setComment(locationNote);
+          }
         }}
         servicePickerOpen={servicePickerOpen}
         setServicePickerOpen={setServicePickerOpen}
