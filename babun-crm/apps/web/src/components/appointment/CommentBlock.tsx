@@ -8,6 +8,26 @@ interface CommentBlockProps {
   onChange?: (next: string) => void;
 }
 
+// v707 — Common HVAC-dispatcher additions to the brigade note.
+// Ordered by frequency of use; if the data shows a clear winner this
+// can sharpen down to 3. Tapping a chip appends «, <chip>: » so the
+// crew sees a structured note rather than four glued words.
+const QUICK_CHIPS = [
+  { label: "Домофон", insert: "домофон" },
+  { label: "Этаж", insert: "этаж" },
+  { label: "Собака", insert: "собака" },
+  { label: "Звонок", insert: "звонок не работает" },
+] as const;
+
+function appendChip(current: string, snippet: string): string {
+  const trimmed = current.trimEnd();
+  if (!trimmed) return snippet + ": ";
+  // Already ends with comma → just append the snippet without doubling
+  // the punctuation. Otherwise comma-separate.
+  const sep = /,\s*$/.test(current) ? " " : ", ";
+  return trimmed + sep + snippet + ": ";
+}
+
 // Read-only: tinted chip if there's text, otherwise hidden.
 // Edit: textarea always visible so the dispatcher can type without a tap.
 export default function CommentBlock({ value, readonly, onChange }: CommentBlockProps) {
@@ -25,11 +45,38 @@ export default function CommentBlock({ value, readonly, onChange }: CommentBlock
     );
   }
 
+  const handleChip = (snippet: string) => {
+    if (!onChange) return;
+    onChange(appendChip(value, snippet));
+  };
+
+  // Hide quick-chips once we're inside the last 50 chars — appending
+  // would risk hitting the cap mid-snippet.
+  const showChips = value.length < 450;
+
   return (
     <div className="px-4 pt-2">
       <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1">
         Заметка для бригады
       </div>
+      {showChips && (
+        <div
+          className="flex gap-1.5 overflow-x-auto mb-1.5"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {QUICK_CHIPS.map((c) => (
+            <button
+              key={c.insert}
+              type="button"
+              onClick={() => handleChip(c.insert)}
+              className="flex-shrink-0 inline-flex items-center h-8 px-3 rounded-full bg-[var(--fill-tertiary)] border border-[var(--separator)] text-[12px] font-semibold text-[var(--label)] active:scale-[0.97]"
+              aria-label={`Вставить «${c.insert}»`}
+            >
+              + {c.label}
+            </button>
+          ))}
+        </div>
+      )}
       <textarea
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
