@@ -1,6 +1,7 @@
 "use client";
 
 import type { Client } from "@babun/shared/local/clients";
+import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface ClientBlockProps {
   client: Client | null;
@@ -115,6 +116,24 @@ export default function ClientBlock({
             {client.comment && client.comment.trim() && (
               <div className="text-[12px] text-[var(--label-tertiary)] truncate mt-0.5">
                 {client.comment.trim()}
+              </div>
+            )}
+            {/* v697 — Balance row. Positive = prepayment we hold, green;
+                negative = debt the client owes, red. Hidden at zero to
+                stay quiet on the 90% of clients who carry no balance.
+                Data was already on Client.balance; previously the
+                dispatcher had to open the client profile to see it. */}
+            {client.balance !== 0 && (
+              <div
+                className={`text-[12px] tabular-nums truncate mt-0.5 ${
+                  client.balance > 0
+                    ? "text-[var(--system-green)]"
+                    : "text-[var(--system-red)]"
+                }`}
+              >
+                {client.balance > 0
+                  ? `+${formatEUR(client.balance)} предоплата`
+                  : `${formatEUR(client.balance)} долг`}
               </div>
             )}
           </div>
