@@ -64,6 +64,7 @@ interface AppointmentWorkBodyProps {
   appointmentServices: AppointmentService[];
   globalDiscount: Discount | null;
   popularServices: Service[];
+  clientHistoryServices: Service[];
   setAppointmentServices: (next: AppointmentService[]) => void;
   setGlobalDiscount: React.Dispatch<React.SetStateAction<Discount | null>>;
   setAskClientFirst: (open: boolean) => void;
@@ -113,6 +114,7 @@ export default function AppointmentWorkBody({
   appointmentServices,
   globalDiscount,
   popularServices,
+  clientHistoryServices,
   setAppointmentServices,
   setGlobalDiscount,
   setAskClientFirst,
@@ -189,6 +191,7 @@ export default function AppointmentWorkBody({
           setServicePickerOpen(true);
         }}
         popularServices={popularServices}
+        clientHistoryServices={clientHistoryServices}
       />
 
       <IncomeBlock

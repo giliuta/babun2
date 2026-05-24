@@ -422,6 +422,31 @@ export default function AppointmentSheet({
       .slice(0, 3);
   }, [otherApts, catalog]);
 
+  // v698 — top-2 services this specific client has historically ordered.
+  // Rendered as ↻ chips above the popular row so the dispatcher can
+  // add "the usual" with one tap. Empty when no client is picked or
+  // the client has no history. Cancelled appointments still count —
+  // the question is "what does this client ask for", not "what was
+  // delivered". Already-added services are hidden so we never offer
+  // a duplicate.
+  const clientHistoryServices = useMemo<Service[]>(() => {
+    if (!clientId) return [];
+    const alreadyAdded = new Set(appointmentServices.map((s) => s.serviceId));
+    const freq = new Map<string, number>();
+    for (const a of otherApts) {
+      if (a.client_id !== clientId) continue;
+      for (const id of a.service_ids) {
+        if (alreadyAdded.has(id)) continue;
+        freq.set(id, (freq.get(id) ?? 0) + 1);
+      }
+    }
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => catalog.find((s) => s.id === id))
+      .filter((s): s is Service => Boolean(s))
+      .slice(0, 2);
+  }, [clientId, otherApts, catalog, appointmentServices]);
+
   const overlapConflict = useMemo<Appointment | null>(() => {
     if (!activeTeam || kind === "event") return null;
     if (!timeStart || !timeEnd || timeStart >= timeEnd) return null;
@@ -924,6 +949,7 @@ export default function AppointmentSheet({
               appointmentServices={appointmentServices}
               globalDiscount={globalDiscount}
               popularServices={popularServices}
+              clientHistoryServices={clientHistoryServices}
               setAppointmentServices={setAppointmentServices}
               setGlobalDiscount={setGlobalDiscount}
               setAskClientFirst={setAskClientFirst}
