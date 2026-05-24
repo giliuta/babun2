@@ -217,7 +217,21 @@ export default function AppointmentWorkBody({
         <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
       )}
       {isEditable ? (
-        <details className="group px-4 pt-3" open={liveMode === "edit"}>
+        <details
+          className="group px-4 pt-3"
+          // v700 — auto-open «Подробнее» for fresh clients (created
+          // within 24 h) so the dispatcher actually sets an
+          // acquisition source on first contact. Without this nudge
+          // ~90 % of new-client records ship with source=null, which
+          // gutted the «откуда узнал» analytics. Edit-mode keeps its
+          // existing default-open behaviour.
+          open={
+            liveMode === "edit" ||
+            (client?.created_at != null &&
+              Date.now() - new Date(client.created_at).getTime() <
+                24 * 60 * 60 * 1000)
+          }
+        >
           <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
             <span>Подробнее</span>
             <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
