@@ -1,6 +1,7 @@
 "use client";
 
-import type { Client } from "@babun/shared/local/clients";
+import { useMemo } from "react";
+import type { Client, ClientTag } from "@babun/shared/local/clients";
 import { formatEUR } from "@babun/shared/common/utils/money";
 
 interface ClientBlockProps {
@@ -18,6 +19,23 @@ interface ClientBlockProps {
    *  bypasses the full picker sheet. Empty array hides the strip. */
   recentClients?: Client[];
   onPickRecent?: (client: Client) => void;
+  /** v699 — full tag catalog so we can paint a 4 × 4 px color dot on
+   *  recent chips and on the filled card for clients carrying at
+   *  least one tag. We just use the first tag in client.tag_ids —
+   *  one dot is enough signal; the full list lives in the profile. */
+  tags?: ClientTag[];
+}
+
+function firstTagColor(
+  tagIds: string[] | undefined,
+  tagsById: Map<string, ClientTag>,
+): string | null {
+  if (!tagIds || tagIds.length === 0) return null;
+  for (const id of tagIds) {
+    const tag = tagsById.get(id);
+    if (tag) return tag.color;
+  }
+  return null;
 }
 
 function initials(name: string): string {
@@ -41,9 +59,15 @@ export default function ClientBlock({
   onMenu,
   recentClients = [],
   onPickRecent,
+  tags = [],
 }: ClientBlockProps) {
   void onCreate;
   void onEdit;
+  const tagsById = useMemo(() => {
+    const m = new Map<string, ClientTag>();
+    for (const t of tags) m.set(t.id, t);
+    return m;
+  }, [tags]);
   if (!client) {
     if (readonly) return null;
     return (
@@ -53,24 +77,34 @@ export default function ClientBlock({
             className="flex gap-1.5 overflow-x-auto"
             style={{ scrollbarWidth: "none" }}
           >
-            {recentClients.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onPickRecent?.(c)}
-                // STORY audit: recent-client chips raised h-8 → h-10
-                // (32 → 40 px). With the parent scroll row's pad this
-                // gives ≥44 pt of real tap zone. These chips are the
-                // single-tap shortcut for repeat customers — the most
-                // common case in HVAC service.
-                className="flex-shrink-0 inline-flex items-center gap-1.5 pl-1.5 pr-3.5 h-10 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
-              >
-                <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center text-[11px] font-bold">
-                  {initials(c.full_name)}
-                </span>
-                <span className="truncate max-w-[140px]">{c.full_name}</span>
-              </button>
-            ))}
+            {recentClients.map((c) => {
+              const dot = firstTagColor(c.tag_ids, tagsById);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onPickRecent?.(c)}
+                  // STORY audit: recent-client chips raised h-8 → h-10
+                  // (32 → 40 px). With the parent scroll row's pad this
+                  // gives ≥44 pt of real tap zone. These chips are the
+                  // single-tap shortcut for repeat customers — the most
+                  // common case in HVAC service.
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 pl-1.5 pr-3.5 h-10 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
+                >
+                  <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center text-[11px] font-bold">
+                    {initials(c.full_name)}
+                  </span>
+                  {dot && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: dot }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="truncate max-w-[140px]">{c.full_name}</span>
+                </button>
+              );
+            })}
           </div>
         )}
         <button
@@ -91,6 +125,7 @@ export default function ClientBlock({
 
   const phone = client.phone;
   const phoneDigits = phone?.replace(/\D/g, "") ?? "";
+  const filledDot = firstTagColor(client.tag_ids, tagsById);
 
   return (
     <div className="px-4 pt-2">
@@ -105,8 +140,15 @@ export default function ClientBlock({
             {initials(client.full_name)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[15px] font-semibold text-[var(--label)] truncate">
-              {client.full_name}
+            <div className="text-[15px] font-semibold text-[var(--label)] truncate flex items-center gap-1.5">
+              {filledDot && (
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: filledDot }}
+                  aria-hidden="true"
+                />
+              )}
+              <span className="truncate">{client.full_name}</span>
             </div>
             {phone && (
               <div className="text-[13px] text-[var(--label-secondary)] tabular-nums truncate">

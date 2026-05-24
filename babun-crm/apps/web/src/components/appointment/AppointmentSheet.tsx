@@ -19,7 +19,10 @@ import {
   type AppointmentPhotoRecord,
 } from "@babun/shared/db/repositories/appointment-photos";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import {
+  useClients,
+  useTenantId,
+} from "@/components/layout/DashboardClientLayout";
 import type { Client, Location } from "@babun/shared/local/clients";
 import type { Master, Team } from "@babun/shared/local/masters";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
@@ -125,6 +128,10 @@ export default function AppointmentSheet({
   personalMode = false,
 }: AppointmentSheetProps) {
   const toast = useToast();
+  // v699 — tag list lives in DashboardClientLayout context; ClientBlock
+  // uses it to color the dot on recent-client chips and on the filled
+  // card. Cheap context read, no fetch.
+  const { tags: clientTags } = useClients();
   // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
   // при тапе на «Редактировать» в AdminActions без перекомпоновки
   // sheet родителем.
@@ -932,6 +939,7 @@ export default function AppointmentSheet({
               readonly={readonly}
               client={client}
               recentClientsResolved={recentClientsResolved}
+              clientTags={clientTags}
               setClientId={setClientId}
               setLocationId={setLocationId}
               setClientSheet={setClientSheet}

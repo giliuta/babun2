@@ -22,7 +22,7 @@ import type {
   Discount,
 } from "@babun/shared/local/appointments";
 import type { AppointmentPhotoRecord } from "@babun/shared/db/repositories/appointment-photos";
-import type { Client, Location } from "@babun/shared/local/clients";
+import type { Client, ClientTag, Location } from "@babun/shared/local/clients";
 import type { Service } from "@babun/shared/local/services";
 import { IOSSwitch } from "@/components/ui";
 
@@ -44,6 +44,7 @@ interface AppointmentWorkBodyProps {
 
   client: Client | null;
   recentClientsResolved: Client[];
+  clientTags: ClientTag[];
   setClientId: (id: string | null) => void;
   setLocationId: (id: string | null) => void;
   setClientSheet: (open: boolean) => void;
@@ -98,6 +99,7 @@ export default function AppointmentWorkBody({
   readonly,
   client,
   recentClientsResolved,
+  clientTags,
   setClientId,
   setLocationId,
   setClientSheet,
@@ -148,6 +150,7 @@ export default function AppointmentWorkBody({
         onChange={() => setClientId(null)}
         onMenu={client ? () => setClientMenuOpen(true) : undefined}
         recentClients={recentClientsResolved}
+        tags={clientTags}
         onPickRecent={(c) => {
           setClientId(c.id);
           const locs = c.locations ?? [];
