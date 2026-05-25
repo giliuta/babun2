@@ -92,6 +92,9 @@ export default function UnifiedTimePopup({
   const [pageIndex, setPageIndex] = useState(WEEKS_BACK);
   const [dragDx, setDragDx] = useState(0);
   const [dragging, setDragging] = useState(false);
+  // Measured viewport width — drives fixed cell width (vw/7) so every
+  // day square is identical including across week seams (uniform gap).
+  const [vw, setVw] = useState(0);
   const dragStartXRef = useRef<number | null>(null);
   const movedRef = useRef(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -135,6 +138,22 @@ export default function UnifiedTimePopup({
     });
   }, [anchorKey]);
 
+  const flatDays = useMemo(() => pages.flatMap((p) => p.days), [pages]);
+
+  // Measure the viewport width (and keep it fresh on resize) so cells
+  // get a fixed px width = vw/7.
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => setVw(viewportRef.current?.clientWidth ?? 0);
+    measure();
+    const id = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", measure);
+    };
+  }, [open]);
+
   const onPagerTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
     dragStartXRef.current = e.touches[0].clientX;
@@ -148,13 +167,13 @@ export default function UnifiedTimePopup({
     setDragDx(dx);
   };
   const onPagerTouchEnd = () => {
-    const w = viewportRef.current?.clientWidth ?? 1;
+    const w = vw || viewportRef.current?.clientWidth || 1;
     const dx = dragDx;
     dragStartXRef.current = null;
     setDragging(false);
     setDragDx(0);
-    // Snap: a drag past ~22% of the width (or a firm flick) advances
-    // one week; otherwise spring back to the current page.
+    // Snap: a drag past ~22% of the width advances one week; otherwise
+    // spring back to the current page.
     if (Math.abs(dx) > w * 0.22) {
       setPageIndex((p) =>
         Math.max(0, Math.min(pages.length - 1, p + (dx < 0 ? 1 : -1))),
@@ -240,33 +259,32 @@ export default function UnifiedTimePopup({
               onTouchMove={onPagerTouchMove}
               onTouchEnd={onPagerTouchEnd}
             >
+              {/* One continuous strip of day cells, each a fixed vw/7
+                  wide with equal side padding → uniform gap everywhere,
+                  including across week seams. Translate by whole weeks
+                  (pageIndex * vw px). */}
               <div
                 className="flex"
                 style={{
-                  transform: `translateX(calc(${-pageIndex * 100}% + ${dragDx}px))`,
+                  transform: `translateX(${-pageIndex * vw + dragDx}px)`,
                   transition: dragging ? "none" : "transform 280ms cubic-bezier(0.22,0.61,0.36,1)",
                 }}
               >
-                {pages.map((page, i) => (
-                  <div
-                    key={i}
-                    className="flex items-stretch gap-1.5"
-                    style={{ flex: "0 0 100%" }}
-                  >
-                    {page.days.map((d) => {
-                      const active = d.key === draft.date;
-                      return (
-                        <button
-                          key={d.key}
-                          type="button"
-                          onClick={() => {
-                            if (movedRef.current) return;
-                            setDraft((s) => ({ ...s, date: d.key }));
-                          }}
-                          className="flex flex-col items-center justify-center transition active:scale-[0.96]"
+                {flatDays.map((d) => {
+                  const active = d.key === draft.date;
+                  return (
+                    <div
+                      key={d.key}
+                      style={{ width: vw / 7, flexShrink: 0, padding: "0 3px" }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (movedRef.current) return;
+                          setDraft((s) => ({ ...s, date: d.key }));
+                        }}
+                        className="w-full flex flex-col items-center justify-center transition active:scale-[0.96]"
                         style={{
-                          flex: "1 1 0",
-                          minWidth: 0,
                           height: 58,
                           borderRadius: 14,
                           gap: 2,
@@ -302,10 +320,9 @@ export default function UnifiedTimePopup({
                           {d.day}
                         </span>
                       </button>
-                    );
-                  })}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)] mt-2">
