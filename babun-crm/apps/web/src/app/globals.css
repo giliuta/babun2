@@ -302,6 +302,28 @@ body {
   font-feature-settings: "tnum";
   /* iOS HIG: subtle tracking on headings, neutral on body. */
   letter-spacing: 0;
+  /* v720 — native-app feel on iOS standalone PWA. Without these a tap
+     or long-press on the chrome (calendar grid, headers, buttons)
+     starts a text selection (the stray blue bar) and pops the
+     copy/lookup callout, which the user read as «плохо открывается и
+     копируется». Disable selection + callout + the grey tap flash on
+     the UI; selection is re-enabled on real text inputs below. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable text selection where it's genuinely useful: form fields
+   and anything explicitly opted in via .selectable (e.g. a phone /
+   address the dispatcher may want to copy). */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 h1, h2, h3,
