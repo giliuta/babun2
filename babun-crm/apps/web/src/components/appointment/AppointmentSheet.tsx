@@ -524,17 +524,21 @@ export default function AppointmentSheet({
     }
   }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched, toast]);
 
-  // Block-2 — «весь день»: flip the flag and snap the time to a full
-  // day so calendar blocks still position. Turning it off restores a
-  // sensible default working slot.
+  // Block-2 — «весь день»: snap to a full day so calendar blocks still
+  // position. Remember the time set before turning it on, and restore
+  // exactly that when turning it off (instead of a default slot).
+  const preAllDayTimeRef = useRef<{ start: string; end: string } | null>(null);
   const handleAllDayChange = (next: boolean) => {
-    setAllDay(next);
     if (next) {
+      if (!allDay) preAllDayTimeRef.current = { start: timeStart, end: timeEnd };
+      setAllDay(true);
       setTimeStart(ALL_DAY_START);
       setTimeEnd(ALL_DAY_END);
     } else {
-      setTimeStart("10:00");
-      setTimeEnd("11:00");
+      setAllDay(false);
+      const prev = preAllDayTimeRef.current;
+      setTimeStart(prev?.start ?? "10:00");
+      setTimeEnd(prev?.end ?? "11:00");
     }
   };
 

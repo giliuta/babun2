@@ -424,6 +424,22 @@ export default function EventForm({
 
   // Auto-grow notes textarea
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  // Block-2 — remember the time before «весь день» so toggling it off
+  // restores it instead of a default slot.
+  const preAllDayRef = useRef<{ start: string; end: string } | null>(null);
+  const handleAllDay = (v: boolean) => {
+    if (v) {
+      if (!allDay) preAllDayRef.current = { start: timeStart, end: timeEnd };
+      setAllDay(true);
+      setTimeStart(allDayStart);
+      setTimeEnd(allDayEnd);
+    } else {
+      setAllDay(false);
+      const prev = preAllDayRef.current;
+      setTimeStart(prev?.start ?? "10:00");
+      setTimeEnd(prev?.end ?? "11:00");
+    }
+  };
   useEffect(() => {
     const el = notesRef.current;
     if (!el) return;
@@ -604,11 +620,7 @@ export default function EventForm({
         showAllDay={!readonly}
         readonly={readonly}
         onOpen={() => setTimePopupOpen(true)}
-        onAllDayChange={(v) => {
-          setAllDay(v);
-          if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
-          else { setTimeStart("10:00"); setTimeEnd("11:00"); }
-        }}
+        onAllDayChange={handleAllDay}
       />
       <UnifiedTimePopup
         open={timePopupOpen}

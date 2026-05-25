@@ -98,6 +98,8 @@ export default function UnifiedTimePopup({
   const dragStartXRef = useRef<number | null>(null);
   const movedRef = useRef(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  // Time set before «весь день» was switched on — restored on toggle off.
+  const preAllDayRef = useRef<{ start: string; end: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -109,6 +111,10 @@ export default function UnifiedTimePopup({
     setPageIndex(WEEKS_BACK);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDragDx(0);
+    // Seed the pre-all-day memory: if opening already in all-day we
+    // have no earlier time, so toggling off falls back to a default;
+    // otherwise remember the incoming time.
+    preAllDayRef.current = allDay ? null : { start: timeStart, end: timeEnd };
   }, [open, dateKey, timeStart, timeEnd, allDay]);
 
   const MIN_STEP = resolveStep(stepMinutes);
@@ -209,11 +215,19 @@ export default function UnifiedTimePopup({
   };
 
   const setAllDay = (v: boolean) => {
-    setDraft((d) =>
-      v
-        ? { ...d, allDay: true, timeStart: allDayRange.start, timeEnd: allDayRange.end }
-        : { ...d, allDay: false, timeStart: "10:00", timeEnd: "11:00" },
-    );
+    setDraft((d) => {
+      if (v) {
+        if (!d.allDay) preAllDayRef.current = { start: d.timeStart, end: d.timeEnd };
+        return { ...d, allDay: true, timeStart: allDayRange.start, timeEnd: allDayRange.end };
+      }
+      const prev = preAllDayRef.current;
+      return {
+        ...d,
+        allDay: false,
+        timeStart: prev?.start ?? "10:00",
+        timeEnd: prev?.end ?? "11:00",
+      };
+    });
   };
 
   const rangeLabel = formatWeekRange(
