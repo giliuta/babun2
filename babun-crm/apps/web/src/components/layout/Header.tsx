@@ -7,7 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarClock,
+  Settings,
 } from "@babun/shared/icons";
+import { useRouter } from "next/navigation";
 import { getMonthName } from "@babun/shared/common/utils/date-utils";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 import {
@@ -115,6 +117,17 @@ export default function Header({
   void onZoomOut;
   void onMenuToggle;
 
+  const router = useRouter();
+  // Gear → settings of the team whose calendar is open. The pinned
+  // personal tab isn't a team, so it routes to «Мой календарь»; empty
+  // (no teams yet) falls back to the teams list.
+  const isPersonal = Boolean(pinnedTeamId) && activeTeamId === pinnedTeamId;
+  const settingsHref = isPersonal
+    ? "/dashboard/settings/calendar"
+    : activeTeamId
+      ? `/dashboard/teams/${activeTeamId}`
+      : "/dashboard/teams";
+
   const monthName = getMonthName(currentDate.getMonth());
   const year = currentDate.getFullYear();
   const [todayNumber, setTodayNumber] = useState<number>(1);
@@ -134,6 +147,15 @@ export default function Header({
   return (
     <header className="flex-shrink-0 bg-[var(--surface-card)] border-b border-[var(--separator)] flex flex-col z-30">
       <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => router.push(settingsHref)}
+          aria-label="Настройки команды"
+          data-testid="header-team-settings"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] hover:bg-[var(--fill-quaternary)] transition shrink-0"
+        >
+          <Settings size={20} strokeWidth={2} />
+        </button>
         <button
           type="button"
           onClick={onPrevWeek}
