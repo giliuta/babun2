@@ -613,20 +613,14 @@ export default function EventForm({
       <UnifiedTimePopup
         open={timePopupOpen}
         onClose={() => setTimePopupOpen(false)}
-        context="event"
         readonly={readonly}
         dateKey={dateKey}
         timeStart={timeStart}
         timeEnd={timeEnd}
         allDay={allDay}
-        showAllDay={!readonly}
-        onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-          setDateKey(d); setTimeStart(s); setTimeEnd(e);
-        }}
-        onAllDayChange={(v) => {
-          setAllDay(v);
-          if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
-          else { setTimeStart("10:00"); setTimeEnd("11:00"); }
+        allDayRange={{ start: allDayStart, end: allDayEnd }}
+        onCommit={({ date: d, timeStart: s, timeEnd: e, allDay: ad }) => {
+          setDateKey(d); setTimeStart(s); setTimeEnd(e); setAllDay(ad);
         }}
       />
 

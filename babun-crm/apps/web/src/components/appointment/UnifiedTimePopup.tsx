@@ -2,16 +2,15 @@
 
 /**
  * UnifiedTimePopup — one centred modal for picking date + start/end
- * time, shared by «Клиент» (work) and «Событие». Unlike the legacy
- * TimeBlock (which toggled date OR time), everything is visible at
- * once: week-day squares on top, then «Начало» / «Конец» wheel
- * columns side by side, plus an «весь день» toggle. Work context also
- * gets quick-fill chips and duration presets.
- *
- * Block-2 redesign — see docs/stories plan. Replaces TimePopup.
+ * time, shared by «Клиент» (work) and «Событие». Buffered: edits live
+ * in a local draft and only land on the parent when «Готово» is
+ * tapped; «Отмена» discards. Layout: header shows the live summary +
+ * a small «весь день» switch; below, a swipeable week strip (bigger
+ * squares, no arrows) and two large separated «Начало» / «Конец»
+ * wheel columns — the core of the control.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import WheelColumn from "./WheelColumn";
 import { IOSSwitch } from "@/components/ui";
 import {
@@ -23,7 +22,6 @@ import {
   mondayOf,
   sameYMD,
   formatDateRu,
-  formatWeekRange,
   resolveStep,
   WEEKDAYS,
 } from "@/lib/time-block-utils";
@@ -31,56 +29,71 @@ import {
 interface UnifiedTimePopupProps {
   open: boolean;
   onClose: () => void;
-  /** work context unlocks quick-fill chips + duration presets. */
-  context: "work" | "event";
   readonly: boolean;
   dateKey: string;
   timeStart: string;
   timeEnd: string;
   allDay: boolean;
-  showAllDay: boolean;
+  /** Time range to apply when «весь день» is switched on — work uses
+   *  00:00–23:59, events use the team's working hours. */
+  allDayRange: { start: string; end: string };
   /** Wheel granularity (team default_slot_minutes for work, 5 for event). */
   stepMinutes?: number;
-  onChange: (next: { date: string; timeStart: string; timeEnd: string }) => void;
-  onAllDayChange: (next: boolean) => void;
+  /** Commit the draft to the parent (called on «Готово»). */
+  onCommit: (next: {
+    date: string;
+    timeStart: string;
+    timeEnd: string;
+    allDay: boolean;
+  }) => void;
 }
 
-const ITEM_HEIGHT = 30;
+const ITEM_HEIGHT = 36;
 const VISIBLE_ROWS = 3;
-const COLUMN_WIDTH = 44;
+const COLUMN_WIDTH = 52;
 const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS;
 const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;
 const WEEK_OFFSET_MIN = -24;
 const WEEK_OFFSET_MAX = 24;
-const PRESET_DURATIONS = [30, 60, 90, 120] as const;
+const SWIPE_THRESHOLD = 40;
 
-function formatDateKey(d: Date): string {
-  return dateToKey(d);
-}
-function formatTimeMin(mins: number): string {
-  return minutesToHHMM(mins);
+interface Draft {
+  date: string;
+  timeStart: string;
+  timeEnd: string;
+  allDay: boolean;
 }
 
 export default function UnifiedTimePopup({
   open,
   onClose,
-  context,
   readonly,
   dateKey,
   timeStart,
   timeEnd,
   allDay,
-  showAllDay,
+  allDayRange,
   stepMinutes,
-  onChange,
-  onAllDayChange,
+  onCommit,
 }: UnifiedTimePopupProps) {
+  const [draft, setDraft] = useState<Draft>({
+    date: dateKey,
+    timeStart,
+    timeEnd,
+    allDay,
+  });
   const [weekOffset, setWeekOffset] = useState(0);
+  const swipeStartXRef = useRef<number | null>(null);
+
+  // Reset the draft + week view to the parent's values each time the
+  // popup opens. Editing never touches the parent until «Готово».
   useEffect(() => {
-    // Resync the viewed week to the appointment's date on open / date change.
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft({ date: dateKey, timeStart, timeEnd, allDay });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWeekOffset(0);
-  }, [dateKey, open]);
+  }, [open, dateKey, timeStart, timeEnd, allDay]);
 
   const MIN_STEP = resolveStep(stepMinutes);
   const MINUTES = useMemo(
@@ -89,10 +102,10 @@ export default function UnifiedTimePopup({
   );
 
   const viewMonday = useMemo(() => {
-    const base = mondayOf(dateKey);
+    const base = mondayOf(draft.date);
     base.setDate(base.getDate() + weekOffset * 7);
     return base;
-  }, [dateKey, weekOffset]);
+  }, [draft.date, weekOffset]);
 
   const week = useMemo(() => {
     const today = new Date();
@@ -109,81 +122,62 @@ export default function UnifiedTimePopup({
     });
   }, [viewMonday]);
 
-  const weekRangeLabel = useMemo(() => formatWeekRange(viewMonday), [viewMonday]);
-
   if (!open) return null;
 
-  const [sh, sm] = parseTime(timeStart);
-  const [eh, em] = parseTime(timeEnd);
-  const startMinRounded = Math.floor(sm / MIN_STEP) * MIN_STEP;
-  const endMinRounded = Math.floor(em / MIN_STEP) * MIN_STEP;
+  const [sh, sm] = parseTime(draft.timeStart);
+  const [eh, em] = parseTime(draft.timeEnd);
   const startHourIdx = Math.max(0, Math.min(23, sh));
-  const startMinIdx = startMinRounded / MIN_STEP;
+  const startMinIdx = (Math.floor(sm / MIN_STEP) * MIN_STEP) / MIN_STEP;
   const endHourIdx = Math.max(0, Math.min(23, eh));
-  const endMinIdx = endMinRounded / MIN_STEP;
+  const endMinIdx = (Math.floor(em / MIN_STEP) * MIN_STEP) / MIN_STEP;
   const startTotal = sh * 60 + sm;
-  const endTotal = eh * 60 + em;
-  const duration = Math.max(0, endTotal - startTotal);
-
-  const step = MIN_STEP;
 
   const commitStart = (hour: number, min: number) => {
-    const nextStart = `${pad2(hour)}:${pad2(min)}`;
     const nextStartTotal = hour * 60 + min;
-    let nextEnd = timeEnd;
-    if (endTotal <= nextStartTotal) {
-      nextEnd = minutesToHHMM(nextStartTotal + 60);
-    }
-    onChange({ date: dateKey, timeStart: nextStart, timeEnd: nextEnd });
+    setDraft((d) => {
+      const [deh, dem] = parseTime(d.timeEnd);
+      const endTotal = deh * 60 + dem;
+      const nextStart = `${pad2(hour)}:${pad2(min)}`;
+      const nextEnd =
+        endTotal <= nextStartTotal ? minutesToHHMM(nextStartTotal + 60) : d.timeEnd;
+      return { ...d, timeStart: nextStart, timeEnd: nextEnd };
+    });
   };
   const commitEnd = (hour: number, min: number) => {
     const nextEndTotal = hour * 60 + min;
     if (nextEndTotal <= startTotal) return;
-    onChange({ date: dateKey, timeStart, timeEnd: `${pad2(hour)}:${pad2(min)}` });
+    setDraft((d) => ({ ...d, timeEnd: `${pad2(hour)}:${pad2(min)}` }));
   };
 
-  const applyQuickFill = (d: Date, startMin: number) => {
-    const dur = duration > 0 ? duration : step;
-    onChange({
-      date: formatDateKey(d),
-      timeStart: formatTimeMin(startMin),
-      timeEnd: formatTimeMin(startMin + dur),
-    });
-  };
-  const quickChips = [
-    {
-      label: "Сейчас",
-      onClick: () => {
-        const n = new Date();
-        const m = n.getHours() * 60 + n.getMinutes();
-        applyQuickFill(n, Math.ceil((m + 1) / step) * step);
-      },
-    },
-    {
-      label: "Через час",
-      onClick: () => {
-        const n = new Date();
-        const m = n.getHours() * 60 + n.getMinutes();
-        applyQuickFill(n, Math.ceil((m + 1) / step) * step + 60);
-      },
-    },
-    {
-      label: "Завтра",
-      onClick: () => {
-        const t = new Date();
-        t.setDate(t.getDate() + 1);
-        applyQuickFill(t, 9 * 60);
-      },
-    },
-  ];
-
-  const applyDuration = (mins: number) => {
-    const nextEndTotal = startTotal + mins;
-    onChange({ date: dateKey, timeStart, timeEnd: minutesToHHMM(nextEndTotal) });
+  const setAllDay = (v: boolean) => {
+    setDraft((d) =>
+      v
+        ? { ...d, allDay: true, timeStart: allDayRange.start, timeEnd: allDayRange.end }
+        : { ...d, allDay: false, timeStart: "10:00", timeEnd: "11:00" },
+    );
   };
 
-  const canPrev = weekOffset > WEEK_OFFSET_MIN;
-  const canNext = weekOffset < WEEK_OFFSET_MAX;
+  const changeWeek = (dir: -1 | 1) =>
+    setWeekOffset((o) =>
+      Math.max(WEEK_OFFSET_MIN, Math.min(WEEK_OFFSET_MAX, o + dir)),
+    );
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    swipeStartXRef.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const startX = swipeStartXRef.current;
+    swipeStartXRef.current = null;
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+    changeWeek(dx < 0 ? 1 : -1); // swipe left → next week
+  };
+
+  const summary = `${formatDateRu(draft.date)}, ${
+    draft.allDay ? "весь день" : `с ${draft.timeStart} до ${draft.timeEnd}`
+  }`;
 
   return (
     <div
@@ -194,133 +188,95 @@ export default function UnifiedTimePopup({
         className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between border-b border-[var(--separator)]">
-          <span className="text-[13px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-            Время записи
+        {/* Header: live summary + small «весь день» switch */}
+        <div className="flex-shrink-0 px-4 py-3 flex items-center gap-3 border-b border-[var(--separator)]">
+          <span className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--label)] tabular-nums truncate">
+            {summary}
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99]"
-          >
-            Готово
-          </button>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
-          {/* «Весь день» toggle */}
-          {showAllDay && !readonly && (
-            <div className="flex items-center justify-between px-3 h-11 rounded-[12px] bg-[var(--fill-tertiary)]">
-              <span className="text-[14px] font-semibold text-[var(--label)]">
+          {!readonly && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
                 Весь день
               </span>
-              <IOSSwitch
-                checked={allDay}
-                onChange={(v) => onAllDayChange(v)}
-                ariaLabel="Весь день"
-              />
+              <IOSSwitch checked={draft.allDay} onChange={setAllDay} ariaLabel="Весь день" />
             </div>
           )}
+        </div>
 
-          {/* Quick-fill chips — work create only */}
-          {context === "work" && !readonly && (
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+          {/* Swipeable week strip — no arrows; faded edge chevrons hint
+              the left/right swipe. Bigger squares. */}
+          <div>
             <div
-              className="flex gap-1.5 overflow-x-auto"
-              style={{ scrollbarWidth: "none" }}
+              className="relative"
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
             >
-              {quickChips.map((c) => (
-                <button
-                  key={c.label}
-                  type="button"
-                  onClick={c.onClick}
-                  className="flex-shrink-0 px-4 h-11 rounded-full text-[14px] font-semibold bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)] active:scale-[0.97]"
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Week-day squares — always visible */}
-          <div className="flex items-center gap-2">
-            <WeekArrow
-              direction="prev"
-              disabled={!canPrev}
-              onClick={() => setWeekOffset((o) => Math.max(WEEK_OFFSET_MIN, o - 1))}
-            />
-            <div className="flex-1 flex items-stretch gap-1 min-w-0">
-              {week.map((d) => {
-                const active = d.key === dateKey;
-                return (
-                  <button
-                    key={d.key}
-                    type="button"
-                    onClick={() => onChange({ date: d.key, timeStart, timeEnd })}
-                    className="flex flex-col items-center justify-center transition active:scale-[0.97]"
-                    style={{
-                      flex: "1 1 0",
-                      minWidth: 0,
-                      height: 48,
-                      borderRadius: 10,
-                      gap: 1,
-                      background: active ? "var(--accent)" : "var(--surface-card)",
-                      border: active
-                        ? "1px solid transparent"
-                        : d.isToday
-                          ? "1px solid var(--accent)"
-                          : "1px solid var(--separator)",
-                      color: active
-                        ? "white"
-                        : d.isToday
-                          ? "var(--accent)"
-                          : "var(--label)",
-                      boxShadow: active
-                        ? "0 3px 10px rgba(124, 58, 237, 0.28)"
-                        : "0 1px 2px rgba(15, 23, 42, 0.04)",
-                    }}
-                  >
-                    <span
+              <div className="flex items-stretch gap-1.5">
+                {week.map((d) => {
+                  const active = d.key === draft.date;
+                  return (
+                    <button
+                      key={d.key}
+                      type="button"
+                      onClick={() => setDraft((s) => ({ ...s, date: d.key }))}
+                      className="flex flex-col items-center justify-center transition active:scale-[0.96]"
                       style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        letterSpacing: "0.04em",
-                        color: active
-                          ? "rgba(255,255,255,0.82)"
+                        flex: "1 1 0",
+                        minWidth: 0,
+                        height: 58,
+                        borderRadius: 14,
+                        gap: 2,
+                        background: active ? "var(--accent)" : "var(--fill-tertiary)",
+                        border: active
+                          ? "1px solid transparent"
                           : d.isToday
-                            ? "var(--accent)"
-                            : "var(--label-secondary)",
-                        lineHeight: 1,
+                            ? "1px solid var(--accent)"
+                            : "1px solid transparent",
+                        color: active ? "white" : d.isToday ? "var(--accent)" : "var(--label)",
+                        boxShadow: active ? "0 4px 12px rgba(62,136,247,0.30)" : undefined,
                       }}
                     >
-                      {d.weekday}
-                    </span>
-                    <span
-                      className="tabular-nums"
-                      style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}
-                    >
-                      {d.day}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                          color: active
+                            ? "rgba(255,255,255,0.82)"
+                            : d.isToday
+                              ? "var(--accent)"
+                              : "var(--label-secondary)",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {d.weekday}
+                      </span>
+                      <span
+                        className="tabular-nums"
+                        style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}
+                      >
+                        {d.day}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Edge swipe affordance — non-interactive chevrons. */}
+              <span className="pointer-events-none absolute -left-1 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] opacity-40">
+                <ChevronGlyph dir="left" />
+              </span>
+              <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] opacity-40">
+                <ChevronGlyph dir="right" />
+              </span>
             </div>
-            <WeekArrow
-              direction="next"
-              disabled={!canNext}
-              onClick={() => setWeekOffset((o) => Math.min(WEEK_OFFSET_MAX, o + 1))}
-            />
-          </div>
-          <div className="text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">
-            {weekRangeLabel}
           </div>
 
-          {/* Start / End wheel columns — both visible at once. Hidden
-              when all-day (the day squares above are the whole input). */}
-          {!allDay && (
-            <div className="flex items-start justify-center gap-3 pt-1">
+          {/* Core — two big separated wheel columns. Hidden when all-day. */}
+          {!draft.allDay && (
+            <div className="flex items-start justify-center gap-7 pt-1">
               <WheelSide
                 label="Начало"
-                dateLabel={formatDateRu(dateKey)}
                 minutes={MINUTES}
                 hourIdx={startHourIdx}
                 minIdx={startMinIdx}
@@ -329,7 +285,6 @@ export default function UnifiedTimePopup({
               />
               <WheelSide
                 label="Конец"
-                dateLabel={formatDateRu(dateKey)}
                 minutes={MINUTES}
                 hourIdx={endHourIdx}
                 minIdx={endMinIdx}
@@ -338,35 +293,27 @@ export default function UnifiedTimePopup({
               />
             </div>
           )}
+        </div>
 
-          {/* Duration presets — work editable only, hidden when all-day */}
-          {context === "work" && !readonly && !allDay && (
-            <div
-              className="flex items-center gap-1.5 overflow-x-auto"
-              style={{ scrollbarWidth: "none" }}
-            >
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] flex-shrink-0 mr-1">
-                Длит.
-              </span>
-              {PRESET_DURATIONS.map((m) => {
-                const active = duration === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => applyDuration(m)}
-                    className={`flex-shrink-0 px-4 h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.97] tabular-nums ${
-                      active
-                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                        : "bg-[var(--fill-tertiary)] text-[var(--label)] border border-[var(--separator)]"
-                    }`}
-                  >
-                    {m}м
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        {/* Footer — Отмена / Готово */}
+        <div className="flex-shrink-0 flex gap-2 px-4 py-3 border-t border-[var(--separator)]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-11 rounded-[12px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onCommit(draft);
+              onClose();
+            }}
+            className="flex-1 h-11 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] transition"
+          >
+            Готово
+          </button>
         </div>
         <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
       </div>
@@ -376,7 +323,6 @@ export default function UnifiedTimePopup({
 
 function WheelSide({
   label,
-  dateLabel,
   minutes,
   hourIdx,
   minIdx,
@@ -384,7 +330,6 @@ function WheelSide({
   onMin,
 }: {
   label: string;
-  dateLabel: string;
   minutes: string[];
   hourIdx: number;
   minIdx: number;
@@ -392,12 +337,9 @@ function WheelSide({
   onMin: (idx: number) => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1.5">
       <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
         {label}
-      </span>
-      <span className="text-[12px] text-[var(--label-tertiary)] tabular-nums">
-        {dateLabel}
       </span>
       <div className="flex items-center">
         <WheelWithLines>
@@ -414,7 +356,7 @@ function WheelSide({
         <span
           className="select-none"
           style={{
-            fontSize: 18,
+            fontSize: 22,
             fontWeight: 300,
             color: "var(--label-tertiary)",
             padding: "0 2px",
@@ -445,49 +387,20 @@ function WheelWithLines({ children }: { children: React.ReactNode }) {
       {children}
       <div
         className="pointer-events-none absolute z-10"
-        style={{ left: 3, right: 3, top: PAD, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
+        style={{ left: 2, right: 2, top: PAD, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
       />
       <div
         className="pointer-events-none absolute z-10"
-        style={{ left: 3, right: 3, top: PAD + ITEM_HEIGHT - 1, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
+        style={{ left: 2, right: 2, top: PAD + ITEM_HEIGHT - 1, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
       />
     </div>
   );
 }
 
-function WeekArrow({
-  direction,
-  disabled,
-  onClick,
-}: {
-  direction: "prev" | "next";
-  disabled: boolean;
-  onClick: () => void;
-}) {
+function ChevronGlyph({ dir }: { dir: "left" | "right" }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex-shrink-0 flex items-center justify-center transition active:scale-[0.92] disabled:opacity-30"
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: 999,
-        background: "var(--surface-card)",
-        border: "1px solid var(--separator)",
-        color: "var(--label-secondary)",
-        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-      }}
-      aria-label={direction === "prev" ? "Предыдущая неделя" : "Следующая неделя"}
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        {direction === "prev" ? (
-          <polyline points="15 18 9 12 15 6" />
-        ) : (
-          <polyline points="9 18 15 12 9 6" />
-        )}
-      </svg>
-    </button>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      {dir === "left" ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
+    </svg>
   );
 }

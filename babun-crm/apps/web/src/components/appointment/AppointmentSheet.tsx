@@ -1156,21 +1156,20 @@ export default function AppointmentSheet({
       <UnifiedTimePopup
         open={timePopupOpen}
         onClose={() => setTimePopupOpen(false)}
-        context={isEventMode ? "event" : "work"}
         readonly={readonly}
         dateKey={dateKey}
         timeStart={timeStart}
         timeEnd={timeEnd}
         allDay={allDay}
-        showAllDay={isEditable}
+        allDayRange={{ start: ALL_DAY_START, end: ALL_DAY_END }}
         stepMinutes={!isEventMode ? activeTeam?.default_slot_minutes : undefined}
-        onChange={({ date, timeStart: s, timeEnd: e }) => {
+        onCommit={({ date, timeStart: s, timeEnd: e, allDay: ad }) => {
           setDateKey(date);
           setTimeStart(s);
           setTimeEnd(e);
+          setAllDay(ad);
           setDurationTouched(true);
         }}
-        onAllDayChange={handleAllDayChange}
       />
 
 
