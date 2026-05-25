@@ -335,6 +335,13 @@ h1, h2, h3,
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* v723 — full-screen appointment sheet slides up from the bottom on
+   open, giving the "pushed page" feel instead of a popup fade. */
+@keyframes babun-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
