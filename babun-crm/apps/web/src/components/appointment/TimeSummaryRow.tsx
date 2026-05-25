@@ -21,6 +21,9 @@ interface TimeSummaryRowProps {
   readonly: boolean;
   onOpen: () => void;
   onAllDayChange: (next: boolean) => void;
+  /** Drop the px-4/pt-2 wrapper when the parent already pads (EventForm
+   *  body). Default false — AppointmentSheet self-pads like ClientBlock. */
+  noPadding?: boolean;
 }
 
 export default function TimeSummaryRow({
@@ -32,9 +35,10 @@ export default function TimeSummaryRow({
   readonly,
   onOpen,
   onAllDayChange,
+  noPadding = false,
 }: TimeSummaryRowProps) {
   return (
-    <div className="px-4 pt-2">
+    <div className={noPadding ? "" : "px-4 pt-2"}>
       <div className="flex items-center gap-2 px-3 h-12 rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)]">
         <button
           type="button"

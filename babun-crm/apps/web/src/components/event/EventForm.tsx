@@ -40,7 +40,8 @@ import type {
 // v657 — EVENT_PRESETS removed: both contexts now use EventPresetChips
 // (user-customizable from /settings/calendar/event-types).
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
-import TimeBlock from "@/components/appointment/TimeBlock";
+import TimeSummaryRow from "@/components/appointment/TimeSummaryRow";
+import UnifiedTimePopup from "@/components/appointment/UnifiedTimePopup";
 import {
   PushOffsetPicker,
   RepeatPickerRow,
@@ -155,14 +156,6 @@ function detectVideoConference(url: string): { label: string } | null {
     if (host === "meet.jit.si") return { label: "Jitsi" };
     return null;
   } catch { return null; }
-}
-
-function formatDateRu(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  if (!y || !m || !d) return dateKey;
-  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
-    day: "numeric", month: "long", weekday: "long",
-  });
 }
 
 // ─── Extra-offsets sub-block ──────────────────────────────────────────────────
@@ -357,17 +350,6 @@ function CloseConfirmPopup({
   );
 }
 
-// ─── Toggle (slim iOS style) ──────────────────────────────────────────────────
-
-function ToggleSlim({ checked, onChange, ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; ariaLabel?: string }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={ariaLabel}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex w-[51px] h-[31px] rounded-full transition shrink-0 ${checked ? "bg-[var(--system-green)]" : "bg-[var(--fill-tertiary)]"}`}>
-      <span className={`absolute top-0.5 left-0.5 w-[27px] h-[27px] rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[20px]" : "translate-x-0"}`} />
-    </button>
-  );
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -408,6 +390,9 @@ export default function EventForm({
   const [timeStart,     setTimeStart]     = useState(event.time_start);
   const [timeEnd,       setTimeEnd]       = useState(event.time_end);
   const [allDay,        setAllDay]        = useState(event.event_all_day ?? false);
+  // Block-2 — shared time popup open-state (same UnifiedTimePopup as
+  // work mode, opened from the TimeSummaryRow below).
+  const [timePopupOpen, setTimePopupOpen] = useState(false);
   const [title,         setTitle]         = useState(event.comment ?? "");
   const [notes,         setNotes]         = useState(event.event_notes ?? "");
   // v667 — when controlledColor is set, the parent owns the colour
@@ -608,41 +593,42 @@ export default function EventForm({
           in standalone). User said the time block must be the first
           big block — period. Same component shape in both contexts.
           The all-day flat row replaces TimeBlock when allDay=true. */}
-      <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-        {!allDay ? (
-          <TimeBlock
-            date={dateKey}
-            timeStart={timeStart}
-            timeEnd={timeEnd}
-            onChange={({ date: d, timeStart: s, timeEnd: e }) => {
-              setDateKey(d); setTimeStart(s); setTimeEnd(e);
-            }}
-            rightSlot={
-              !readonly ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-                  <ToggleSlim checked={allDay} onChange={(v) => {
-                    setAllDay(v);
-                    if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
-                  }} ariaLabel="Весь день" />
-                </div>
-              ) : undefined
-            }
-          />
-        ) : (
-          <div className="flex items-center gap-2 px-4 py-2.5 text-[13px]">
-            <span className="text-[var(--label-tertiary)]">⏰</span>
-            <span className="font-semibold text-[var(--label)]">{formatDateRu(dateKey)}</span>
-            <span className="text-[var(--label-secondary)]">· весь день</span>
-            {!readonly && (
-              <span className="ml-auto flex items-center gap-2">
-                <span className="text-[11px] font-semibold text-[var(--label-secondary)] uppercase tracking-wider">Весь день</span>
-                <ToggleSlim checked={allDay} onChange={(v) => setAllDay(v)} ariaLabel="Весь день" />
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Block-2 — same TimeSummaryRow + UnifiedTimePopup as «Клиент»
+          mode, so the time control is identical across the form. */}
+      <TimeSummaryRow
+        noPadding
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        allDay={allDay}
+        showAllDay={!readonly}
+        readonly={readonly}
+        onOpen={() => setTimePopupOpen(true)}
+        onAllDayChange={(v) => {
+          setAllDay(v);
+          if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
+          else { setTimeStart("10:00"); setTimeEnd("11:00"); }
+        }}
+      />
+      <UnifiedTimePopup
+        open={timePopupOpen}
+        onClose={() => setTimePopupOpen(false)}
+        context="event"
+        readonly={readonly}
+        dateKey={dateKey}
+        timeStart={timeStart}
+        timeEnd={timeEnd}
+        allDay={allDay}
+        showAllDay={!readonly}
+        onChange={({ date: d, timeStart: s, timeEnd: e }) => {
+          setDateKey(d); setTimeStart(s); setTimeEnd(e);
+        }}
+        onAllDayChange={(v) => {
+          setAllDay(v);
+          if (v) { setTimeStart(allDayStart); setTimeEnd(allDayEnd); }
+          else { setTimeStart("10:00"); setTimeEnd("11:00"); }
+        }}
+      />
 
       {/* Preset chips — same component for both contexts */}
       {!readonly && (
