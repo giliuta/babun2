@@ -5,9 +5,8 @@
  * time, shared by «Клиент» (work) and «Событие». Buffered: edits live
  * in a local draft and only land on the parent when «Готово» is
  * tapped; «Отмена» discards. Layout: header shows the live summary +
- * a small «весь день» switch; below, a swipeable week strip (bigger
- * squares, no arrows) and two large separated «Начало» / «Конец»
- * wheel columns — the core of the control.
+ * a small «весь день» switch; below, a smooth week carousel (snaps
+ * per week) and two large separated «Начало» / «Конец» wheel columns.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +21,7 @@ import {
   mondayOf,
   sameYMD,
   formatDateRu,
+  formatWeekRange,
   resolveStep,
   WEEKDAYS,
 } from "@/lib/time-block-utils";
@@ -53,9 +53,10 @@ const VISIBLE_ROWS = 3;
 const COLUMN_WIDTH = 52;
 const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS;
 const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;
-const WEEK_OFFSET_MIN = -24;
-const WEEK_OFFSET_MAX = 24;
-const SWIPE_THRESHOLD = 40;
+// Carousel window — how many weeks before / after the anchor week we
+// render as snap pages. 26 each way ≈ a year of scroll either side.
+const WEEKS_BACK = 26;
+const WEEKS_FWD = 26;
 
 interface Draft {
   date: string;
@@ -82,17 +83,20 @@ export default function UnifiedTimePopup({
     timeEnd,
     allDay,
   });
-  const [weekOffset, setWeekOffset] = useState(0);
-  const swipeStartXRef = useRef<number | null>(null);
+  // Anchor monday — fixed while the popup is open so selecting a day
+  // in another week never reflows the carousel. Reset on each open.
+  const [anchorKey, setAnchorKey] = useState(dateKey);
+  const [visiblePage, setVisiblePage] = useState(WEEKS_BACK);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset the draft + week view to the parent's values each time the
-  // popup opens. Editing never touches the parent until «Готово».
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft({ date: dateKey, timeStart, timeEnd, allDay });
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWeekOffset(0);
+    setAnchorKey(dateKey);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisiblePage(WEEKS_BACK);
   }, [open, dateKey, timeStart, timeEnd, allDay]);
 
   const MIN_STEP = resolveStep(stepMinutes);
@@ -101,26 +105,45 @@ export default function UnifiedTimePopup({
     [MIN_STEP],
   );
 
-  const viewMonday = useMemo(() => {
-    const base = mondayOf(draft.date);
-    base.setDate(base.getDate() + weekOffset * 7);
-    return base;
-  }, [draft.date, weekOffset]);
-
-  const week = useMemo(() => {
+  const pages = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(viewMonday);
-      d.setDate(viewMonday.getDate() + i);
-      return {
-        key: dateToKey(d),
-        weekday: WEEKDAYS[i],
-        day: d.getDate(),
-        isToday: sameYMD(d, today),
-      };
+    const anchorMonday = mondayOf(anchorKey);
+    return Array.from({ length: WEEKS_BACK + WEEKS_FWD + 1 }, (_, i) => {
+      const monday = new Date(anchorMonday);
+      monday.setDate(anchorMonday.getDate() + (i - WEEKS_BACK) * 7);
+      const days = Array.from({ length: 7 }, (_, j) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + j);
+        return {
+          key: dateToKey(d),
+          weekday: WEEKDAYS[j],
+          day: d.getDate(),
+          isToday: sameYMD(d, today),
+        };
+      });
+      return { monday, days };
     });
-  }, [viewMonday]);
+  }, [anchorKey]);
+
+  // Land the scroll on the anchor week when the popup opens. rAF so
+  // the container has its width before we set scrollLeft.
+  useEffect(() => {
+    if (!open) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const id = requestAnimationFrame(() => {
+      el.scrollLeft = WEEKS_BACK * el.clientWidth;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open, anchorKey]);
+
+  const onCarouselScroll = () => {
+    const el = scrollRef.current;
+    if (!el || el.clientWidth === 0) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (idx !== visiblePage) setVisiblePage(idx);
+  };
 
   if (!open) return null;
 
@@ -157,23 +180,9 @@ export default function UnifiedTimePopup({
     );
   };
 
-  const changeWeek = (dir: -1 | 1) =>
-    setWeekOffset((o) =>
-      Math.max(WEEK_OFFSET_MIN, Math.min(WEEK_OFFSET_MAX, o + dir)),
-    );
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    swipeStartXRef.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const startX = swipeStartXRef.current;
-    swipeStartXRef.current = null;
-    if (startX === null) return;
-    const dx = e.changedTouches[0].clientX - startX;
-    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-    changeWeek(dx < 0 ? 1 : -1); // swipe left → next week
-  };
+  const rangeLabel = formatWeekRange(
+    pages[Math.max(0, Math.min(pages.length - 1, visiblePage))].monday,
+  );
 
   const summary = `${formatDateRu(draft.date)}, ${
     draft.allDay ? "весь день" : `с ${draft.timeStart} до ${draft.timeEnd}`
@@ -204,71 +213,77 @@ export default function UnifiedTimePopup({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-          {/* Swipeable week strip — no arrows; faded edge chevrons hint
-              the left/right swipe. Bigger squares. */}
+          {/* Week carousel — smooth momentum scroll, snaps per week. */}
           <div>
             <div
-              className="relative"
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
+              ref={scrollRef}
+              onScroll={onCarouselScroll}
+              className="flex overflow-x-auto"
+              style={{
+                scrollSnapType: "x mandatory",
+                scrollbarWidth: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
             >
-              <div className="flex items-stretch gap-1.5">
-                {week.map((d) => {
-                  const active = d.key === draft.date;
-                  return (
-                    <button
-                      key={d.key}
-                      type="button"
-                      onClick={() => setDraft((s) => ({ ...s, date: d.key }))}
-                      className="flex flex-col items-center justify-center transition active:scale-[0.96]"
-                      style={{
-                        flex: "1 1 0",
-                        minWidth: 0,
-                        height: 58,
-                        borderRadius: 14,
-                        gap: 2,
-                        background: active ? "var(--accent)" : "var(--fill-tertiary)",
-                        border: active
-                          ? "1px solid transparent"
-                          : d.isToday
-                            ? "1px solid var(--accent)"
-                            : "1px solid transparent",
-                        color: active ? "white" : d.isToday ? "var(--accent)" : "var(--label)",
-                        boxShadow: active ? "0 4px 12px rgba(62,136,247,0.30)" : undefined,
-                      }}
-                    >
-                      <span
+              {pages.map((page, i) => (
+                <div
+                  key={i}
+                  className="flex items-stretch gap-1.5"
+                  style={{ flex: "0 0 100%", scrollSnapAlign: "start" }}
+                >
+                  {page.days.map((d) => {
+                    const active = d.key === draft.date;
+                    return (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => setDraft((s) => ({ ...s, date: d.key }))}
+                        className="flex flex-col items-center justify-center transition active:scale-[0.96]"
                         style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: "0.04em",
-                          color: active
-                            ? "rgba(255,255,255,0.82)"
+                          flex: "1 1 0",
+                          minWidth: 0,
+                          height: 58,
+                          borderRadius: 14,
+                          gap: 2,
+                          background: active ? "var(--accent)" : "var(--fill-tertiary)",
+                          border: active
+                            ? "1px solid transparent"
                             : d.isToday
-                              ? "var(--accent)"
-                              : "var(--label-secondary)",
-                          lineHeight: 1,
+                              ? "1px solid var(--accent)"
+                              : "1px solid transparent",
+                          color: active ? "white" : d.isToday ? "var(--accent)" : "var(--label)",
+                          boxShadow: active ? "0 4px 12px rgba(62,136,247,0.30)" : undefined,
                         }}
                       >
-                        {d.weekday}
-                      </span>
-                      <span
-                        className="tabular-nums"
-                        style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}
-                      >
-                        {d.day}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Edge swipe affordance — non-interactive chevrons. */}
-              <span className="pointer-events-none absolute -left-1 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] opacity-40">
-                <ChevronGlyph dir="left" />
-              </span>
-              <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-[var(--label-tertiary)] opacity-40">
-                <ChevronGlyph dir="right" />
-              </span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: "0.04em",
+                            color: active
+                              ? "rgba(255,255,255,0.82)"
+                              : d.isToday
+                                ? "var(--accent)"
+                                : "var(--label-secondary)",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {d.weekday}
+                        </span>
+                        <span
+                          className="tabular-nums"
+                          style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}
+                        >
+                          {d.day}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)] mt-2">
+              {rangeLabel}
             </div>
           </div>
 
@@ -394,13 +409,5 @@ function WheelWithLines({ children }: { children: React.ReactNode }) {
         style={{ left: 2, right: 2, top: PAD + ITEM_HEIGHT - 1, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
       />
     </div>
-  );
-}
-
-function ChevronGlyph({ dir }: { dir: "left" | "right" }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      {dir === "left" ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
-    </svg>
   );
 }
