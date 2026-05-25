@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { X } from "@babun/shared/icons";
+import { X, ChevronLeft } from "@babun/shared/icons";
 
 interface DialogModalProps {
   open: boolean;
@@ -9,6 +9,10 @@ interface DialogModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** When set, the header's left button becomes a back arrow calling
+   *  onBack (return from a sub-step to the list) instead of the ✕ that
+   *  closes the whole dialog. */
+  onBack?: () => void;
 }
 
 // Centered popup dialog with a dark backdrop. The background form is still
@@ -20,6 +24,7 @@ export default function DialogModal({
   title,
   children,
   footer,
+  onBack,
 }: DialogModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -50,11 +55,11 @@ export default function DialogModal({
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--separator)] flex-shrink-0">
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
+            onClick={onBack ?? onClose}
+            aria-label={onBack ? "Назад" : "Закрыть"}
             className="w-9 h-9 flex items-center justify-center text-[var(--label-secondary)] active:scale-95 active:bg-[var(--fill-quaternary)] rounded-lg"
           >
-            <X size={20} strokeWidth={2.5} />
+            {onBack ? <ChevronLeft size={22} strokeWidth={2.5} /> : <X size={20} strokeWidth={2.5} />}
           </button>
           <h2 className="text-[17px] font-semibold tracking-tight text-[var(--label)]">{title}</h2>
         </div>

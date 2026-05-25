@@ -71,6 +71,8 @@ export default function ClientPickerSheet({
   const [newName, setNewName] = useState("");
   const [newPhones, setNewPhones] = useState<string[]>([""]);
   const [newComment, setNewComment] = useState("");
+  // v725 — comment is opt-in via «+ Заметка» chip (fewer fields up front).
+  const [showComment, setShowComment] = useState(false);
   const [newTelegram, setNewTelegram] = useState<string | null>(null);
   const [newInstagram, setNewInstagram] = useState<string | null>(null);
   const [clipboardHint, setClipboardHint] = useState<string | null>(null);
@@ -190,6 +192,7 @@ export default function ClientPickerSheet({
     setNewName("");
     setNewPhones([""]);
     setNewComment("");
+    setShowComment(false);
     setNewTelegram(null);
     setNewInstagram(null);
   };
@@ -222,19 +225,33 @@ export default function ClientPickerSheet({
       .slice(0, 5);
   }, [clients, recentClientIds, query]);
 
+  // Back from the «new client» step to the list (header arrow + «Отмена»).
+  const backToList = () => {
+    setShowNewForm(false);
+    setCreateError(null);
+    resetForm();
+  };
+
   return (
-    <DialogModal open={open} onClose={resetAndClose} title="Выбрать клиента">
+    <DialogModal
+      open={open}
+      onClose={resetAndClose}
+      title={showNewForm ? "Новый клиент" : "Выбрать клиента"}
+      onBack={showNewForm ? backToList : undefined}
+    >
       <div className="p-3 space-y-2">
-        {/* Search */}
-        <div className="relative">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по имени или телефону"
-            className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
-          />
-        </div>
+        {/* Search — hidden while creating a client (clean focused step) */}
+        {!showNewForm && (
+          <div className="relative">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по имени или телефону"
+              className="w-full h-11 px-3.5 bg-[var(--fill-tertiary)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+            />
+          </div>
+        )}
 
         {recentChipClients.length > 0 && !showNewForm && (
           <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
@@ -274,7 +291,7 @@ export default function ClientPickerSheet({
             <span>Новый клиент{query.trim() ? ` «${query.trim()}»` : ""}</span>
           </button>
         ) : (
-          <div className="space-y-2 bg-[var(--accent-tint)] rounded-[14px] p-3">
+          <div className="space-y-2.5">
             {clipboardHint && newPhones[0] !== clipboardHint && (
               <button
                 type="button"
@@ -299,7 +316,7 @@ export default function ClientPickerSheet({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Имя клиента *"
-              className="w-full h-11 px-3.5 bg-[var(--surface-card)] border border-transparent rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full h-11 px-3.5 bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:border-[var(--accent)]"
             />
 
             {duplicates.length > 0 && (
@@ -329,7 +346,7 @@ export default function ClientPickerSheet({
             )}
 
             {/* First phone — always visible, no remove. */}
-            <div className="flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 h-11">
+            <div className="flex items-center gap-2 bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] px-3 h-11">
               <span className="text-[var(--system-green)] flex-shrink-0" aria-hidden>
                 <PhoneIcon />
               </span>
@@ -347,19 +364,23 @@ export default function ClientPickerSheet({
               </div>
             )}
 
-            {/* Comment — always visible per STORY-011, no ✕. */}
-            <div className="flex items-start gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 py-2">
-              <span className="text-[var(--label-tertiary)] flex-shrink-0 mt-2" aria-hidden>
-                <CommentIcon />
-              </span>
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Заметки (язык, особенности, аллергии)"
-                rows={2}
-                className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none resize-none leading-[1.35]"
-              />
-            </div>
+            {/* v725 — comment moved behind a «+ Заметка» chip to keep the
+                create step to just Name + Phone by default. */}
+            {showComment && (
+              <div className="flex items-start gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 py-2 border border-[var(--separator)]">
+                <span className="text-[var(--label-tertiary)] flex-shrink-0 mt-2" aria-hidden>
+                  <CommentIcon />
+                </span>
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Заметки (язык, особенности, аллергии)"
+                  rows={2}
+                  autoFocus
+                  className="flex-1 text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] bg-transparent focus:outline-none resize-none leading-[1.35]"
+                />
+              </div>
+            )}
 
             {/* Extra phones — with ✕ to remove. */}
             {newPhones.slice(1).map((phone, sliceIdx) => {
@@ -367,7 +388,7 @@ export default function ClientPickerSheet({
               return (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 h-11"
+                  className="flex items-center gap-2 bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] px-3 h-11"
                 >
                   <span className="text-[var(--system-green)] flex-shrink-0" aria-hidden>
                     <PhoneIcon />
@@ -410,12 +431,16 @@ export default function ClientPickerSheet({
               />
             )}
 
-            {/* Add-chips — Comment chip is gone since comment is now always visible. */}
+            {/* Add-chips — keep the create step to Name + Phone; comment
+                and socials are opt-in. */}
             <div className="pt-1">
               <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] mb-1.5">
                 Добавить (необязательно)
               </div>
               <div className="flex flex-wrap gap-1.5">
+                {!showComment && (
+                  <AddChip label="+ Заметка" onClick={() => setShowComment(true)} />
+                )}
                 <AddChip
                   label="+ Ещё номер"
                   onClick={() => setNewPhones((prev) => [...prev, ""])}
@@ -470,7 +495,8 @@ export default function ClientPickerSheet({
           </div>
         )}
 
-        {/* Client list */}
+        {/* Client list — hidden during the «new client» step. */}
+        {!showNewForm && (
         <div>
           {sorted.length === 0 ? (
             <div className="py-8 text-center text-[13px] text-[var(--label-tertiary)]">
@@ -509,6 +535,7 @@ export default function ClientPickerSheet({
             </div>
           )}
         </div>
+        )}
       </div>
     </DialogModal>
   );
@@ -540,7 +567,7 @@ function FieldRow({
   placeholder: string;
 }) {
   return (
-    <div className="flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] px-3 h-11">
+    <div className="flex items-center gap-2 bg-[var(--surface-card)] border border-[var(--separator)] rounded-[10px] px-3 h-11">
       <span className="flex-shrink-0" aria-hidden>
         {icon}
       </span>
