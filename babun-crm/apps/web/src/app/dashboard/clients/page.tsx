@@ -7,9 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { VirtualList, VIRTUAL_THRESHOLD } from "@/components/clients/VirtualList";
 import { track } from "@/lib/analytics/track";
 import { useToast } from "@/components/ui/Toast";
-import { Highlight } from "@/components/ui/Highlight";
 import { ReactivationWidget } from "@/components/clients/ReactivationWidget";
-import { downloadGdprExport } from "@/lib/clients/gdprExport";
 import {
   softDeleteClient as repoSoftDeleteClient,
   softDeleteClients as repoSoftDeleteClients,
@@ -23,7 +21,6 @@ import {
   CalendarPlus,
   MessageCircle,
   Search,
-  ArrowUpDown,
   Cake,
   Check,
   Users,
@@ -44,7 +41,6 @@ import {
   Star,
   CloudUpload,
   Download,
-  Pencil,
 } from "@babun/shared/icons";
 import { exportClientsCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
@@ -60,7 +56,7 @@ import QuotaBanner from "@/components/quota/QuotaBanner";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
 import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
-import { type Client, type ClientTag, createBlankClient } from "@babun/shared/local/clients";
+import { type Client, type ClientTag } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
 import { getMonthNamePrepositional } from "@babun/shared/common/utils/date-utils";

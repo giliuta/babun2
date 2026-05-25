@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/core";
 import { getMonday, addWeeks, addDays, formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 import type { Client } from "@babun/shared/local/clients";
-import { getTeamSchedule, timeToMinutes, type TeamSchedule } from "@babun/shared/local/schedule";
+import { getTeamSchedule, type TeamSchedule } from "@babun/shared/local/schedule";
 import {
   type Appointment,
   validateAppointment,
@@ -81,10 +81,6 @@ const AppointmentSheet = dynamic(
   () => import("@/components/appointment/AppointmentSheet"),
   { ssr: false },
 );
-const PersonalEventSheet = dynamic(
-  () => import("@/components/calendar/PersonalEventSheet"),
-  { ssr: false },
-);
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -143,15 +139,6 @@ const CalendarOnboardingCard = dynamic(
     })),
   { ssr: false },
 );
-const SyncIndicator = dynamic(
-  () => import("@/components/calendar/SyncIndicator"),
-  { ssr: false },
-);
-const BugReportButton = dynamic(
-  () => import("@/components/system/BugReportButton"),
-  { ssr: false },
-);
-import { EXPENSE_CATEGORIES } from "@babun/shared/local/finance/expense-categories";
 import DaySummaryStrip from "@/components/layout/DaySummaryStrip";
 import EndOfDayBanner from "@/components/layout/EndOfDayBanner";
 import MorningBriefing from "@/components/layout/MorningBriefing";
@@ -159,9 +146,7 @@ import MorningBriefing from "@/components/layout/MorningBriefing";
 
 import {
   useCalendarGestures,
-  clampHourHeight,
   HOUR_HEIGHT_DEFAULT,
-  HOUR_HEIGHT_STEP,
 } from "@/hooks/useCalendarGestures";
 import { getStorage } from "@babun/shared/storage";
 
@@ -803,7 +788,7 @@ function DashboardPageInner() {
     calendarSettings.workEndHour,
   ]);
 
-  const { zoomBy, handleZoomIn, handleZoomOut } = useCalendarGestures({
+  const { handleZoomIn, handleZoomOut } = useCalendarGestures({
     outerScrollerRef,
     hourHeightRef,
     writeHourHeight,

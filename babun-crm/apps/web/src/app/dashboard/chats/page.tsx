@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
-import { createBlankClient, type Client } from "@babun/shared/local/clients";
+import { type Client } from "@babun/shared/local/clients";
 // STORY-065 — replaced legacy ClientPanel (2167 LOC, tabs UI) with the
 // canonical ClientCardPage so the side-panel and bottom-sheet match the
 // /dashboard/clients/[id] standalone view exactly. One source of truth

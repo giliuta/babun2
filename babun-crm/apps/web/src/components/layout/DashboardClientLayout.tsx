@@ -46,8 +46,6 @@ import { ToastProvider, useToast } from "@/components/ui/Toast";
 import { useOfflineToast } from "@/hooks/useOfflineToast";
 import { installConsoleErrorBuffer } from "@/lib/observability/consoleErrorBuffer";
 import {
-  loadSchedules,
-  saveSchedules,
   type ScheduleMap,
 } from "@babun/shared/local/schedule";
 import {
@@ -141,8 +139,6 @@ import {
   type DayCityMap,
 } from "@babun/shared/local/day-cities";
 import {
-  loadDayExtras,
-  saveDayExtras,
   setDayExtrasFor,
   getDayExtras,
   type DayExtrasMap,
