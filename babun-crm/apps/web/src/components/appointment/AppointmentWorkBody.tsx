@@ -48,6 +48,7 @@ interface AppointmentWorkBodyProps {
   setClientId: (id: string | null) => void;
   setLocationId: (id: string | null) => void;
   setClientSheet: (open: boolean) => void;
+  setClientSheetCreate: (open: boolean) => void;
   setClientMenuOpen: (open: boolean) => void;
 
   appointment: Appointment;
@@ -103,6 +104,7 @@ export default function AppointmentWorkBody({
   setClientId,
   setLocationId,
   setClientSheet,
+  setClientSheetCreate,
   setClientMenuOpen,
   appointment,
   otherApts,
@@ -146,7 +148,14 @@ export default function AppointmentWorkBody({
       <ClientBlock
         client={client}
         readonly={readonly}
-        onPick={() => setClientSheet(true)}
+        onPick={() => {
+          setClientSheetCreate(false);
+          setClientSheet(true);
+        }}
+        onCreate={() => {
+          setClientSheetCreate(true);
+          setClientSheet(true);
+        }}
         onChange={() => setClientId(null)}
         onMenu={client ? () => setClientMenuOpen(true) : undefined}
         recentClients={recentClientsResolved}

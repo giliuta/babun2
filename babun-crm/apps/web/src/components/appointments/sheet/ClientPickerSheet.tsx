@@ -22,6 +22,9 @@ interface ClientPickerSheetProps {
   clients: Client[];
   // Used to sort: id of clients that appear in recent appointments
   recentClientIds?: string[];
+  /** v722 — open straight into the «new client» form (quick «+ Новый»
+   *  on the form, bypassing search). */
+  startInCreate?: boolean;
 }
 
 function initials(name: string): string {
@@ -38,10 +41,23 @@ export default function ClientPickerSheet({
   onSelect,
   clients,
   recentClientIds = [],
+  startInCreate = false,
 }: ClientPickerSheetProps) {
   const { upsertClient } = useClients();
   const [query, setQuery] = useState("");
   const [showNewForm, setShowNewForm] = useState(false);
+  // v722 — when opened via the form's quick «+ Новый», jump straight
+  // into the create form. Reset both on close so the next open of the
+  // plain «Выбрать клиента» path lands on search.
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowNewForm(startInCreate);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowNewForm(false);
+    }
+  }, [open, startInCreate]);
   // v514 P0 #2.2 — surface the in-flight Supabase write and any
   // failure inline. Without this the dispatcher tapped «Добавить»,
   // the form vanished, and (when the server rejected) the new
@@ -232,7 +248,7 @@ export default function ClientPickerSheet({
                 <span className="w-7 h-7 rounded-full bg-[var(--surface-card)] text-[var(--accent)] flex items-center justify-center text-[12px] font-semibold shrink-0">
                   {initials(c.full_name)}
                 </span>
-                <span className="text-[12px] font-medium text-[var(--accent)] truncate max-w-[120px]">
+                <span className="text-[12px] font-semibold text-[var(--accent)] truncate max-w-[120px]">
                   {c.full_name}
                 </span>
               </button>
@@ -475,7 +491,7 @@ export default function ClientPickerSheet({
                       {initials(c.full_name)}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-[15px] font-medium text-[var(--label)] truncate">
+                      <div className="text-[15px] font-semibold text-[var(--label)] truncate">
                         {c.full_name}
                       </div>
                       {c.phone && (

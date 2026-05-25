@@ -61,7 +61,6 @@ export default function ClientBlock({
   onPickRecent,
   tags = [],
 }: ClientBlockProps) {
-  void onCreate;
   void onEdit;
   const tagsById = useMemo(() => {
     const m = new Map<string, ClientTag>();
@@ -107,18 +106,33 @@ export default function ClientBlock({
             })}
           </div>
         )}
-        <button
-          type="button"
-          onClick={onPick}
-          className="w-full h-14 flex items-center gap-3 px-3 rounded-[14px] bg-[var(--surface-card)] border border-dashed border-[var(--separator)] active:scale-[0.99]"
-        >
-          <div className="w-9 h-9 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] flex items-center justify-center flex-shrink-0 text-[16px] font-bold">
-            +
-          </div>
-          <span className="text-[15px] font-medium text-[var(--label-secondary)]">
-            Выбрать клиента
-          </span>
-        </button>
+        {/* v722 — two entry points: pick an existing client (search /
+            recent) or jump straight into creating a new one. */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onPick}
+            className="flex-1 h-14 flex items-center gap-3 px-3 rounded-[14px] bg-[var(--surface-card)] border border-dashed border-[var(--separator)] active:scale-[0.99]"
+          >
+            <div className="w-9 h-9 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] flex items-center justify-center flex-shrink-0 text-[16px] font-bold">
+              +
+            </div>
+            <span className="text-[15px] font-semibold text-[var(--label-secondary)]">
+              Выбрать клиента
+            </span>
+          </button>
+          {onCreate && (
+            <button
+              type="button"
+              onClick={onCreate}
+              aria-label="Новый клиент"
+              className="flex-shrink-0 h-14 px-4 flex items-center gap-1.5 rounded-[14px] bg-[var(--accent-tint)] text-[var(--accent)] text-[15px] font-semibold active:scale-[0.97]"
+            >
+              <span className="text-[18px] leading-none">+</span>
+              Новый
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -140,7 +154,7 @@ export default function ClientBlock({
             {initials(client.full_name)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[15px] font-semibold text-[var(--label)] truncate flex items-center gap-1.5">
+            <div className="text-[16px] font-bold text-[var(--label)] truncate flex items-center gap-1.5">
               {filledDot && (
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
@@ -165,7 +179,7 @@ export default function ClientBlock({
               )}
             </div>
             {phone && (
-              <div className="text-[13px] text-[var(--label-secondary)] tabular-nums truncate">
+              <div className="text-[13px] font-medium text-[var(--label-secondary)] tabular-nums truncate">
                 {phone}
               </div>
             )}

@@ -259,6 +259,9 @@ export default function AppointmentSheet({
     appointment.event_all_day ?? false,
   );
   const [clientSheet, setClientSheet] = useState(false);
+  // v722 — when true, the client picker opens straight into the «new
+  // client» form (quick «+ Новый» on the form).
+  const [clientSheetCreate, setClientSheetCreate] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
   const [askClientFirst, setAskClientFirst] = useState(false);
@@ -967,6 +970,7 @@ export default function AppointmentSheet({
               setClientId={setClientId}
               setLocationId={setLocationId}
               setClientSheet={setClientSheet}
+              setClientSheetCreate={setClientSheetCreate}
               setClientMenuOpen={setClientMenuOpen}
               appointment={appointment}
               otherApts={otherApts}
@@ -1039,6 +1043,7 @@ export default function AppointmentSheet({
       <AppointmentSubSheets
         clientSheet={clientSheet}
         setClientSheet={setClientSheet}
+        clientSheetCreate={clientSheetCreate}
         clients={clients}
         recentClientIds={recentClientIds}
         onClientSelect={(c) => {

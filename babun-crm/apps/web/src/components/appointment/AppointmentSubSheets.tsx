@@ -43,6 +43,8 @@ export interface AppointmentSubSheetsProps {
   // ── Client picker ─────────────────────────────────────────────────
   clientSheet: boolean;
   setClientSheet: (v: boolean) => void;
+  /** v722 — open the picker straight into the «new client» form. */
+  clientSheetCreate?: boolean;
   clients: Client[];
   recentClientIds: string[];
   onClientSelect: (c: Client) => void;
@@ -96,6 +98,7 @@ export interface AppointmentSubSheetsProps {
 export default function AppointmentSubSheets({
   clientSheet,
   setClientSheet,
+  clientSheetCreate = false,
   clients,
   recentClientIds,
   onClientSelect,
@@ -165,6 +168,7 @@ export default function AppointmentSubSheets({
         }}
         clients={clients}
         recentClientIds={recentClientIds}
+        startInCreate={clientSheetCreate}
       />
 
       <ServicePickerSheet
