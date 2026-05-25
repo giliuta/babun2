@@ -156,7 +156,7 @@ export default function AppointmentSheet({
       // Когда клавиатура закрыта vv.height ≈ window.innerHeight → 92vh
       // выглядит обычно. Когда открыта — берём 92% vv.height.
       const usable = vv.height;
-      setSheetHeight(`${Math.max(320, Math.floor(usable))}px`);
+      setSheetHeight(`${Math.max(320, Math.floor(usable * 0.92))}px`);
     };
     update();
     vv.addEventListener("resize", update);
@@ -788,11 +788,7 @@ export default function AppointmentSheet({
       // только через явную кнопку ✕ или swipe-down (тоже идёт через
       // attemptClose). Esc на keyboard через useBodyScrollLock тоже
       // работает.
-      // v723 — full-screen page on mobile (no backdrop, no peek of the
-      // calendar). Desktop keeps the centred dialog (backdrop + p-2 +
-      // centering) via lg: prefixes — a fullscreen takeover reads worse
-      // on a wide monitor.
-      className="fixed inset-0 z-[70] lg:flex lg:items-center lg:justify-center lg:bg-[var(--surface-overlay)] lg:backdrop-blur-[2px] lg:p-2"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
     >
       <div
         // STORY-056 — desktop cap at 720 px so the modal reads as a
@@ -808,7 +804,7 @@ export default function AppointmentSheet({
         role="dialog"
         aria-modal="true"
         aria-label={dialogLabel}
-        className="w-full h-full bg-[var(--surface-card)] flex flex-col animate-[babun-sheet-in_.28s_cubic-bezier(0.22,0.61,0.36,1)] lg:w-full lg:max-w-lg lg:h-auto lg:rounded-[20px] lg:shadow-[var(--shadow-sheet)] lg:max-h-[720px] lg:animate-none"
+        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
         // STORY audit: height теперь следует за visualViewport (iOS
         // keyboard fix). Раньше было фиксированное 92vh — sticky
         // footer уезжал за клавиатуру при фокусе в textarea / поиск.
@@ -819,9 +815,6 @@ export default function AppointmentSheet({
         // no inline background → falls back to the className white.
         style={{
           height: sheetHeight,
-          // v723 — clear the status-bar / notch now that the sheet
-          // covers the whole screen on mobile. 0 on desktop (no inset).
-          paddingTop: "env(safe-area-inset-top)",
           background:
             eventColorOverride && /^#[0-9a-fA-F]{6}$/.test(eventColorOverride)
               ? `linear-gradient(0deg, ${eventColorOverride}14, ${eventColorOverride}14), var(--surface-card)`
