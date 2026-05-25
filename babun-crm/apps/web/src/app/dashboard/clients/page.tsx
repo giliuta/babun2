@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 // clients-99 F2.11 — virtualization when filtered list > VIRTUAL_THRESHOLD.
@@ -8,12 +8,6 @@ import { VirtualList, VIRTUAL_THRESHOLD } from "@/components/clients/VirtualList
 import { track } from "@/lib/analytics/track";
 import { useToast } from "@/components/ui/Toast";
 import { ReactivationWidget } from "@/components/clients/ReactivationWidget";
-import {
-  softDeleteClient as repoSoftDeleteClient,
-  softDeleteClients as repoSoftDeleteClients,
-  restoreClient as repoRestoreClient,
-  restoreClients as repoRestoreClients,
-} from "@babun/shared/db/repositories/clients";
 import {
   Trash2,
   Phone as PhoneIcon,
@@ -59,7 +53,6 @@ import { useClients, useAppointments } from "@/components/layout/DashboardClient
 import { type Client, type ClientTag } from "@babun/shared/local/clients";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
-import { getMonthNamePrepositional } from "@babun/shared/common/utils/date-utils";
 // ClientPanel is the full client profile view (~1500 lines). Mobile
 // renders it as a slide-up sheet on row tap; desktop renders it as a
 // right-side panel only when a client is selected. Either way it's
@@ -123,15 +116,6 @@ type Segment =
   | "new"
   | "loyal";
 
-const SEGMENT_LABELS: Record<Segment, string> = {
-  all: "Все",
-  debt: "Должники",
-  birthday: "ДР",
-  blacklist: "ЧС",
-  silent: "Давно не были",
-  new: "Новые",
-  loyal: "Постоянные",
-};
 
 // v329 — daysUntilBirthday moved into lib/client-stats.ts as part
 // of the unified ClientStats roll-up (read via statsMap.get(id)
@@ -148,7 +132,7 @@ export default function ClientsPage() {
     deleteClient,
     tags,
   } = useClients();
-  const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
+  const { appointments, upsertAppointment } = useAppointments();
   // STORY-052 G6 — quota state for the "Добавить клиента" gating.
   const { snapshot: quotaSnap } = useTenantQuota();
   const clientsAtCap =
@@ -304,62 +288,7 @@ export default function ClientsPage() {
   }, [search]);
 
   // clients-99 F3.2 — soft-delete with 10s undo.
-  const softDelete = useCallback(
-    async (client: Client) => {
-      const supabase = getSupabaseBrowser();
-      try {
-        await repoSoftDeleteClient(supabase, client.id, tenantId);
-        await reloadClients();
-        track("clients.client_deleted", { id: client.id });
-        toast.show({
-          variant: "info",
-          durationMs: 10_000,
-          message: `Удалён клиент: ${client.full_name || "—"}. Нажмите, чтобы отменить.`,
-        });
-        const undo = async () => {
-          try {
-            await repoRestoreClient(supabase, client.id, tenantId);
-            await reloadClients();
-            track("clients.client_restored", { id: client.id });
-          } catch {
-            toast.show({ variant: "error", message: "Не удалось отменить удаление" });
-          }
-        };
-        (window as unknown as { __babunLastUndo?: () => void }).__babunLastUndo = undo;
-      } catch {
-        toast.show({ variant: "error", message: "Не удалось удалить клиента" });
-      }
-    },
-    [tenantId, reloadClients, toast],
-  );
 
-  const softDeleteMany = useCallback(
-    async (ids: string[]) => {
-      const supabase = getSupabaseBrowser();
-      try {
-        await repoSoftDeleteClients(supabase, ids, tenantId);
-        await reloadClients();
-        track("clients.bulk_delete", { count: ids.length });
-        toast.show({
-          variant: "info",
-          durationMs: 10_000,
-          message: `Удалено: ${ids.length} клиентов. Нажмите, чтобы отменить.`,
-        });
-        const undo = async () => {
-          try {
-            await repoRestoreClients(supabase, ids, tenantId);
-            await reloadClients();
-          } catch {
-            toast.show({ variant: "error", message: "Не удалось отменить удаление" });
-          }
-        };
-        (window as unknown as { __babunLastUndo?: () => void }).__babunLastUndo = undo;
-      } catch {
-        toast.show({ variant: "error", message: "Не удалось удалить клиентов" });
-      }
-    },
-    [tenantId, reloadClients, toast],
-  );
 
   // Deep link from chat: /dashboard/clients?id=<id> auto-opens a card.
   // Dima taps "Открыть карточку" in a chat and lands directly on the
@@ -438,10 +367,6 @@ export default function ClientsPage() {
 
   // P2 #37 (CRM Core brief) — Intl returns nominative ("май") so
   // «1 новый в май» read wrong. Use the dedicated prepositional table.
-  const currentMonthRu = useMemo(
-    () => getMonthNamePrepositional(new Date().getMonth()),
-    [],
-  );
 
   // Equipment count is now per-location. Aggregate across locations
   // so sort by «A/C» still works.

@@ -95,7 +95,6 @@ export default function VisitsBlock({
 
 function VisitRow({
   apt,
-  clientId,
   servicesById,
   onOpen,
   onRepeat,

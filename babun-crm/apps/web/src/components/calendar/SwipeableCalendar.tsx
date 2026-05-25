@@ -81,9 +81,6 @@ export default function SwipeableCalendar({
     }
   };
 
-  const recenter = () => {
-    setTrackOffset(-width, false);
-  };
 
   // Measure width on mount and on resize
   useLayoutEffect(() => {

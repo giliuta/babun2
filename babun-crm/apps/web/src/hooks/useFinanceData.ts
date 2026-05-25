@@ -10,7 +10,6 @@ import type { ExpenseCategory } from "@babun/shared/local/expense-categories";
 import {
   computeFinancials,
   type FinanceLine,
-  type FinanceRange,
 } from "@babun/shared/local/finance/compute";
 import { loadPayments, type FinancePayment } from "@babun/shared/local/payments";
 import { loadExpenses, type Expense } from "@babun/shared/local/expenses";
@@ -173,19 +172,6 @@ function computePreviousRange(period: PeriodKey, current: DateRange): DateRange 
   return { rangeStart: toDateKey(start), rangeEnd: toDateKey(end) };
 }
 
-function datesInRange(rangeStart: string | null, rangeEnd: string): string[] {
-  if (!rangeStart) return [];
-  const out: string[] = [];
-  const [sy, sm, sd] = rangeStart.split("-").map(Number);
-  const [ey, em, ed] = rangeEnd.split("-").map(Number);
-  const cur = new Date(sy, sm - 1, sd);
-  const stop = new Date(ey, em - 1, ed);
-  while (cur <= stop) {
-    out.push(toDateKey(cur));
-    cur.setDate(cur.getDate() + 1);
-  }
-  return out;
-}
 
 function toIncomeLine(line: FinanceLine, appointments: Appointment[]): IncomeLine {
   const isAppointmentLike =
@@ -339,10 +325,6 @@ export function useFinanceData({
     };
   }, []);
 
-  const toFinanceRange = (r: { rangeStart: string | null; rangeEnd: string }): FinanceRange => ({
-    from: r.rangeStart,
-    to: r.rangeEnd,
-  });
 
   // Build income/expense lines via the unified compute function and map
   // back to the legacy IncomeLine/ExpenseLine shape that FinanceTabs

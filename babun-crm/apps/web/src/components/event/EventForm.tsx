@@ -105,16 +105,6 @@ const NO_REPEAT: PersonalEventRepeat = { kind: "none" };
 // team grid). EventPresetChips owns its own icon rendering now.
 
 // 8 named palette colors for the team-context colour row.
-const EVENT_COLOR_PRESETS = [
-  { id: "slate",  hex: "#64748B", label: "Slate"  },
-  { id: "red",    hex: "#EF4444", label: "Red"    },
-  { id: "orange", hex: "#F97316", label: "Orange" },
-  { id: "amber",  hex: "#F59E0B", label: "Amber"  },
-  { id: "green",  hex: "#10B981", label: "Green"  },
-  { id: "cyan",   hex: "#06B6D4", label: "Cyan"   },
-  { id: "blue",   hex: "#3B82F6", label: "Blue"   },
-  { id: "violet", hex: "#8B5CF6", label: "Violet" },
-] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -354,7 +344,7 @@ function CloseConfirmPopup({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function EventForm({
-  open, onClose, mode, event, context, onSave, onDelete, onDirtyChange,
+  open, onClose, mode, event, onSave, onDelete, onDirtyChange,
   bodyOnly = false, submitRef, onCanSaveChange, controlledColor,
 }: EventFormProps) {
   const { calendarSettings } = useCalendarSettings();

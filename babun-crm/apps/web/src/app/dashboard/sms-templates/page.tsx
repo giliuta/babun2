@@ -87,7 +87,6 @@ export default function SmsTemplatesPage() {
   const { templates, setTemplates, upsertTemplate } = useSmsTemplates();
   const [editing, setEditing] = useState<SmsTemplate | null>(null);
   const confirm = useConfirm();
-  const toast = useToast();
 
   // P2 #39 (CRM Core brief) — «Удалить» belongs to edit mode only.
   // Drafts from createBlankTemplate() carry an id that's not yet in

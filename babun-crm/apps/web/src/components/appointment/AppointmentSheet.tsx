@@ -122,7 +122,6 @@ export default function AppointmentSheet({
   categories,
   cityForDate,
   onSave,
-  onCancelAppointment,
   onReschedule,
   onCompleteQuick,
   onDelete,
@@ -654,7 +653,6 @@ export default function AppointmentSheet({
   // state when rendered bodyOnly. Reuse its own dirty signal instead
   // of re-deriving from AppointmentSheet's now-stale eventLabel /
   // eventColorOverride mirrors.
-  const eventDirty = isEventMode && eventFormDirty;
   const workDirty = !isEventMode && (
     isCreate
       ? Boolean(
@@ -682,7 +680,6 @@ export default function AppointmentSheet({
           JSON.stringify(globalDiscount ?? null) !== JSON.stringify(appointment.global_discount ?? null),
         )
   );
-  const isDirty = isEditable && (eventDirty || workDirty);
 
   if (!open) return null;
 

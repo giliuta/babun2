@@ -110,13 +110,6 @@ export default function BrigadeInfoPage({ params }: RouteParams) {
     haptic("tap");
     upsertTeam({ ...existing, color: next });
   };
-  const commitPayout = (next: number) => {
-    if (!existing) return;
-    const clamped = Math.max(0, Math.min(100, Math.round(next)));
-    if (clamped === (existing.payout_percentage ?? 30)) return;
-    haptic("tap");
-    upsertTeam({ ...existing, payout_percentage: clamped });
-  };
 
   // ── new-brigade create flow ──────────────────────────────────────
   const handleCreate = (): boolean => {

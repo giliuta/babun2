@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
+import { useClients } from "@/components/layout/DashboardClientLayout";
 import { type Client } from "@babun/shared/local/clients";
 // STORY-065 — replaced legacy ClientPanel (2167 LOC, tabs UI) with the
 // canonical ClientCardPage so the side-panel and bottom-sheet match the
@@ -33,7 +33,6 @@ type FilterChannel = ChatChannel | "all" | "unanswered";
 
 export default function ChatsPage() {
   const { clients, upsertClient } = useClients();
-  const { appointments } = useAppointments();
   const [showClientPanel, setShowClientPanel] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalTab, setCreateModalTab] = useState<"new" | "existing">("new");

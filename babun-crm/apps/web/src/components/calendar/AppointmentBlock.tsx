@@ -5,7 +5,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { AlertTriangle, Camera, Check, Clock } from "@babun/shared/icons";
 import type { Appointment, AppointmentColorKind } from "@babun/shared/local/appointments";
-import { COLOR_KIND_TAILWIND, getDebtAmount } from "@babun/shared/local/appointments";
+import { COLOR_KIND_TAILWIND } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
 import type { Client } from "@babun/shared/local/clients";
 
@@ -118,8 +118,6 @@ function AppointmentBlockInner({
   const accent =
     appointment.color_override ?? teamColor ?? aptServices[0]?.color ?? null;
 
-  const debt = getDebtAmount(appointment);
-  const hasDebt = debt > 0 && appointment.status !== "scheduled";
   const isCancelled = colorKind === "cancelled";
   // STORY-049 — photos no longer ride on the appointment row; the
   // calendar grid doesn't fetch them per-block. The hasPhotos

@@ -52,9 +52,6 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/ё/g, "е");
-}
 
 export default function BrigadeMastersPage({ params }: RouteParams) {
   const { id } = use(params);
@@ -215,21 +212,6 @@ export default function BrigadeMastersPage({ params }: RouteParams) {
     setEditingMember(null);
   };
 
-  const removeMember = async (masterId: string) => {
-    const master = masters.find((m) => m.id === masterId);
-    const ok = await confirm({
-      title: `Убрать ${master?.full_name ?? "мастера"} из команды?`,
-      message:
-        "Мастер останется в разделе Мастера, но больше не будет в этой команде.",
-      confirmLabel: "Убрать",
-    });
-    if (!ok) return;
-    haptic("warning");
-    persist(
-      roles,
-      members.filter((m) => m.master_id !== masterId),
-    );
-  };
 
   // ── Role actions ────────────────────────────────────────────
   const createRole = (name: string, color: string): BrigadeRole => {

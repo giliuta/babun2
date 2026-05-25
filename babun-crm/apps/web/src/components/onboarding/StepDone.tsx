@@ -23,7 +23,6 @@ const VERTICAL_LABELS: Record<Vertical, string> = {
 export default function StepDone({
   name,
   vertical,
-  personalCalendar,
   onBack,
   onCommit,
   saving,

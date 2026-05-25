@@ -33,7 +33,6 @@ import {
   generateId,
   getInitials,
   isLeadRole,
-  type BrigadeMember,
   type BrigadeRole,
   type Master,
   type Team,

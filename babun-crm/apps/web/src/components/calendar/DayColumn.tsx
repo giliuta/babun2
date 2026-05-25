@@ -19,7 +19,7 @@ import { getAppointmentColorKind, getPaidAmount } from "@babun/shared/local/appo
 import type { Service } from "@babun/shared/local/services";
 import { getServiceMaterialCost } from "@babun/shared/local/services";
 import type { Client } from "@babun/shared/local/clients";
-import { getCityConfig, getCityBg, cityConfigFromColor, type CityConfig } from "@babun/shared/local/day-cities";
+import { getCityConfig, cityConfigFromColor, type CityConfig } from "@babun/shared/local/day-cities";
 import type { City } from "@babun/shared/local/cities";
 import { MapPin } from "@babun/shared/icons";
 import AppointmentBlock from "./AppointmentBlock";
@@ -222,7 +222,6 @@ function DayColumnInner({
     if (custom?.color) return cityConfigFromColor(custom.name, custom.color);
     return getCityConfig(cityLabel);
   })();
-  const cityBg = cityCfg ? (isToday ? cityCfg.bgToday : cityCfg.bg) : (cityLabel ? getCityBg(cityLabel, isToday) : null);
   const cityHex = cityCfg?.color ?? null;
   // Narrow week-view columns (≈56-64 px on iPhone 14) can't fit even
   // a 5-char uppercase Cyrillic label — "ЛАРНА." / "ЛИМАС." got clipped
