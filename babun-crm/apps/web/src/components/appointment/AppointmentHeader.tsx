@@ -40,13 +40,13 @@ interface AppointmentHeaderProps {
   setKind: (k: Kind) => void;
   setSegmentSwitchConfirm: (v: boolean) => void;
   attemptClose: () => void;
-  /** v667 — event mode shows a small palette icon top-right (between
-   *  quick-actions and ✕). Tap opens a centered swatch popup; pick
-   *  tints the sheet header band. Standalone work mode hides the
-   *  button entirely. */
-  isEventMode?: boolean;
-  eventColor?: string;
-  onEventColorChange?: (next: string) => void;
+  /** v708 — accent colour for the WHOLE record, both work and event.
+   *  Palette icon sits top-right next to ✕ in create/edit. Picking a
+   *  swatch washes the whole sheet (handled in AppointmentSheet root);
+   *  «Без цвета» resets to null. Shown whenever onColorChange is
+   *  provided (i.e. the sheet is editable). null = no colour picked. */
+  colorValue?: string | null;
+  onColorChange?: (next: string | null) => void;
 }
 
 export default function AppointmentHeader({
@@ -64,9 +64,8 @@ export default function AppointmentHeader({
   setKind,
   setSegmentSwitchConfirm,
   attemptClose,
-  isEventMode,
-  eventColor,
-  onEventColorChange,
+  colorValue,
+  onColorChange,
 }: AppointmentHeaderProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
@@ -80,15 +79,9 @@ export default function AppointmentHeader({
   return (
     <div
       className="flex-shrink-0 px-4 pb-2 pt-2 flex items-center justify-between gap-2 transition-colors"
-      // v667 — header band tints with the event colour when in event
-      // mode, matching the «mini icon palette → paint the top» request.
-      // Uses a 14 %-alpha tint (hex + '24') so the colour reads as a
-      // soft accent, not solid fill — keeps text legible.
-      style={
-        isEventMode && eventColor && /^#[0-9a-fA-F]{6}$/.test(eventColor)
-          ? { background: `${eventColor}24` }
-          : undefined
-      }
+      // v708 — the colour wash now lives on the whole sheet (handled by
+      // AppointmentSheet root), so the header no longer paints its own
+      // band — it just sits transparently on top of the tinted sheet.
     >
       {liveMode === "create" ? (
         // STORY audit (design-keeper #4): раньше personal-mode имел
@@ -189,18 +182,18 @@ export default function AppointmentHeader({
         </div>
       )}
 
-      {/* v667 — palette icon top-right (just before ✕) when in event
-          mode. User explicit ask: «Цвет сделай справа верху мини
-          иконка палитры и вылазит поп ап, окрашивает верхушку самой
-          заявки». Tap opens centered swatch grid; pick paints this
-          header band via the inline style on the wrapper div above. */}
-      {isEventMode && eventColor && onEventColorChange && (
+      {/* v708 — palette icon top-right (just before ✕), shown whenever
+          the sheet is editable — both «Клиент» and «Событие». Tap opens
+          the centered swatch grid; pick washes the WHOLE sheet (root
+          handles it). Icon tints to the picked colour, neutral when
+          nothing's chosen. */}
+      {onColorChange && (
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          aria-label="Цвет события"
+          aria-label="Цвет записи"
           className="w-11 h-11 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
-          style={{ color: eventColor }}
+          style={colorValue ? { color: colorValue } : undefined}
         >
           <Palette size={18} strokeWidth={2} />
         </button>
@@ -219,7 +212,7 @@ export default function AppointmentHeader({
       </button>
 
       {/* Centered palette popup (feedback_center_modals.md style). */}
-      {paletteOpen && eventColor && onEventColorChange && (
+      {paletteOpen && onColorChange && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[3px] p-6"
           onClick={() => setPaletteOpen(false)}
@@ -229,17 +222,18 @@ export default function AppointmentHeader({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-[15px] font-semibold text-[var(--label)] text-center mb-4">
-              Цвет события
+              Цвет записи
             </div>
             <div className="grid grid-cols-7 gap-2.5">
               {PRESET_COLORS.map((c) => {
-                const active = eventColor.toLowerCase() === c.value.toLowerCase();
+                const active =
+                  (colorValue ?? "").toLowerCase() === c.value.toLowerCase();
                 return (
                   <button
                     key={c.value}
                     type="button"
                     onClick={() => {
-                      onEventColorChange(c.value);
+                      onColorChange(c.value);
                       setPaletteOpen(false);
                     }}
                     aria-label={c.name}
@@ -253,10 +247,23 @@ export default function AppointmentHeader({
                 );
               })}
             </div>
+            {/* v708 — «Без цвета» resets the override to null so the
+                record falls back to its team / service colour and the
+                form wash turns off. */}
+            <button
+              type="button"
+              onClick={() => {
+                onColorChange(null);
+                setPaletteOpen(false);
+              }}
+              className="w-full mt-4 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              Без цвета
+            </button>
             <button
               type="button"
               onClick={() => setPaletteOpen(false)}
-              className="w-full mt-5 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+              className="w-full mt-2 h-10 rounded-[10px] text-[14px] font-medium text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
             >
               Закрыть
             </button>

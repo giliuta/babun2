@@ -225,19 +225,12 @@ export default function AppointmentSheet({
   // refuses to save (canSave=false at fire time).
   const eventSubmitRef = useRef<(() => boolean) | null>(null);
   const [eventCanSave, setEventCanSave] = useState(false);
-  // v667 — event colour lifted up so the palette icon lives in the
-  // sheet header (top-right next to ✕) and tints the header band.
-  // EventForm receives controlledColor and writes through it; preset
-  // chips inside the body update it too via the same callback.
-  const [eventColor, setEventColor] = useState<string>(
-    appointment.color_override ?? "#007AFF",
-  );
-  // Reset when a different record is loaded into the sheet.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    setEventColor(appointment.color_override ?? "#007AFF");
-  }, [appointment.id, appointment.color_override]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  // v708 — single colour source for the whole sheet. `eventColorOverride`
+  // (declared below) is now the one nullable accent state, shared by the
+  // header palette (both modes), the EventForm body, and the work-record
+  // save path. The previous always-non-null `eventColor` mirror was
+  // dropped — null now cleanly means «no colour picked» so the whole-form
+  // tint stays off until the operator chooses one.
   // v667 — swipe-down close removed; refs no longer needed. The only
   // close paths are now: ✕ in header (→ attemptClose → always-confirm
   // popup) and Esc key (→ useBodyScrollLock hook). Eliminates the
@@ -735,6 +728,7 @@ export default function AppointmentSheet({
       cancelReason,
       smsEnabled,
       liveMode,
+      colorOverride: eventColorOverride,
     });
     onSave(saved);
     return true;
@@ -811,7 +805,18 @@ export default function AppointmentSheet({
         // STORY audit: height теперь следует за visualViewport (iOS
         // keyboard fix). Раньше было фиксированное 92vh — sticky
         // footer уезжал за клавиатуру при фокусе в textarea / поиск.
-        style={{ height: sheetHeight }}
+        // v708 — when the operator picks an accent colour, wash the whole
+        // sheet in a faint (8 %) tint of it. Layered over the solid
+        // surface-card so the base stays opaque (no dark backdrop bleed)
+        // and inner white cards float on the coloured «paper». null →
+        // no inline background → falls back to the className white.
+        style={{
+          height: sheetHeight,
+          background:
+            eventColorOverride && /^#[0-9a-fA-F]{6}$/.test(eventColorOverride)
+              ? `linear-gradient(0deg, ${eventColorOverride}14, ${eventColorOverride}14), var(--surface-card)`
+              : undefined,
+        }}
         onClick={(e) => e.stopPropagation()}
         // v667 — swipe-down-close gesture REMOVED. User reported:
         // «когда листаю оформление заявки вниз и вверх оно вылетает».
@@ -840,9 +845,8 @@ export default function AppointmentSheet({
           setKind={setKind}
           setSegmentSwitchConfirm={setSegmentSwitchConfirm}
           attemptClose={attemptClose}
-          isEventMode={isEventMode}
-          eventColor={isEventMode ? eventColor : undefined}
-          onEventColorChange={isEventMode ? setEventColor : undefined}
+          colorValue={eventColorOverride}
+          onColorChange={isEditable ? setEventColorOverride : undefined}
         />
 
         {/* Scroll body */}
@@ -850,7 +854,11 @@ export default function AppointmentSheet({
           {/* City/team caption + v617 P1 §17 single time chip. Chip
               shows date · time · duration and opens the time popup on
               tap. City is still edited from the calendar day header. */}
-          <div className="px-4 py-2 bg-[var(--surface-grouped)] border-b border-[var(--separator)] flex items-center gap-2 text-[13px] flex-wrap">
+          <div
+            className={`px-4 py-2 border-b border-[var(--separator)] flex items-center gap-2 text-[13px] flex-wrap ${
+              eventColorOverride ? "" : "bg-[var(--surface-grouped)]"
+            }`}
+          >
             {city && (
               <span
                 className="font-semibold flex-shrink-0"
@@ -928,7 +936,10 @@ export default function AppointmentSheet({
               bodyOnly
               submitRef={eventSubmitRef}
               onCanSaveChange={setEventCanSave}
-              controlledColor={{ value: eventColor, onChange: setEventColor }}
+              controlledColor={{
+                value: eventColorOverride ?? "#007AFF",
+                onChange: setEventColorOverride,
+              }}
               onClose={() => {
                 if (liveMode === "create") {
                   // Switch back to work tab so AppointmentSheet stays open.

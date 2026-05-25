@@ -42,6 +42,10 @@ export interface BuildWorkAppointmentInput {
   cancelReason: string;
   smsEnabled: boolean;
   liveMode: AppointmentSheetMode;
+  /** v708 — operator-picked accent for the whole record. null = no
+   *  override (calendar derives colour from team / service). Applies
+   *  to work records now too, not just events. */
+  colorOverride: string | null;
 }
 
 /**
@@ -70,6 +74,7 @@ export function buildSavedWorkAppointment(
     cancelReason,
     smsEnabled,
     liveMode,
+    colorOverride,
   } = input;
 
   const total = appointmentTotal(appointmentServices, globalDiscount);
@@ -104,6 +109,8 @@ export function buildSavedWorkAppointment(
     comment: finalComment,
     address,
     address_note: addressNote.trim(),
+    // v708 — persist the operator-picked accent for work records too.
+    color_override: colorOverride,
     // STORY-049 — photos no longer ride on the appointment row.
     // The appointmentToInsert/Update adapters ignore this field.
     photos: [],
