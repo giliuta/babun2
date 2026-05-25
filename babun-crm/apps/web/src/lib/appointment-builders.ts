@@ -46,6 +46,9 @@ export interface BuildWorkAppointmentInput {
    *  override (calendar derives colour from team / service). Applies
    *  to work records now too, not just events. */
   colorOverride: string | null;
+  /** Block-2 — «весь день». When true the time range is forced to the
+   *  full day so the calendar still positions the block. */
+  allDay: boolean;
 }
 
 /**
@@ -75,6 +78,7 @@ export function buildSavedWorkAppointment(
     smsEnabled,
     liveMode,
     colorOverride,
+    allDay,
   } = input;
 
   const total = appointmentTotal(appointmentServices, globalDiscount);
@@ -90,10 +94,13 @@ export function buildSavedWorkAppointment(
   return {
     ...appointment,
     date: dateKey,
-    time_start: timeStart,
+    // Block-2 — «весь день» forces a full-day range so the calendar
+    // block still positions; otherwise trust the live-recalc'd times.
+    time_start: allDay ? "00:00" : timeStart,
     // `timeEnd` is kept in sync by the live-recalc effect in AppointmentSheet:
     // end ≥ start + Σ service durations, clamped at 23:59. Trust it.
-    time_end: timeEnd,
+    time_end: allDay ? "23:59" : timeEnd,
+    event_all_day: allDay,
     // v669 — null client_id allowed for anonymous drafts. The yellow
     // colour-kind in DayColumn already covers the «без клиента» visual
     // affordance so dispatcher sees missing-client at a glance.

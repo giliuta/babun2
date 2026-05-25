@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { CalendarClock } from "@babun/shared/icons";
 import type {
   Appointment,
   AppointmentPayment,
@@ -36,6 +35,7 @@ import { useLoyaltyAutoApply } from "@/hooks/useLoyaltyAutoApply";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useScrollFocusIntoView } from "@/hooks/useScrollFocusIntoView";
 import { getCityColor } from "@babun/shared/local/day-cities";
+import { ALL_DAY_START, ALL_DAY_END } from "@/lib/time-block-utils";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import {
   appointmentTotal,
@@ -47,7 +47,8 @@ import EventForm from "@/components/event/EventForm";
 import AppointmentWorkBody from "./AppointmentWorkBody";
 import AppointmentSubSheets from "./AppointmentSubSheets";
 import { SegmentSwitchConfirmDialog } from "./AppointmentConfirmDialogs";
-import TimePopup from "./TimePopup";
+import UnifiedTimePopup from "./UnifiedTimePopup";
+import TimeSummaryRow from "./TimeSummaryRow";
 import AppointmentHeader from "./AppointmentHeader";
 import AppointmentSaveButton from "./AppointmentSaveButton";
 import PaymentBlock from "./PaymentBlock";
@@ -252,6 +253,11 @@ export default function AppointmentSheet({
   const [eventColorOverride, setEventColorOverride] = useState<string | null>(
     appointment.color_override ?? null,
   );
+  // Block-2 — «весь день» flag shared by the time row + popup. Init
+  // from the saved record; reset alongside the other fields below.
+  const [allDay, setAllDay] = useState<boolean>(
+    appointment.event_all_day ?? false,
+  );
   const [clientSheet, setClientSheet] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
@@ -321,6 +327,7 @@ export default function AppointmentSheet({
     }
     setEventLabel(appointment.comment || "");
     setEventColorOverride(appointment.color_override ?? null);
+    setAllDay(appointment.event_all_day ?? false);
     setDurationTouched(false);
     setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
@@ -517,32 +524,20 @@ export default function AppointmentSheet({
     }
   }, [isEditable, kind, totalDur, timeStart, timeEnd, durationTouched, toast]);
 
-  // Apply an explicit duration in minutes — sets end_time and locks
-  // out the live-recalc effect above. Clamps at 23:59.
-  const applyDuration = (mins: number) => {
-    const [sh, sm] = timeStart.split(":").map(Number);
-    const startMin = sh * 60 + sm;
-    const wanted = startMin + mins;
-    const endMin = Math.min(23 * 60 + 59, wanted);
-    setTimeEnd(
-      `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`,
-    );
-    setDurationTouched(true);
-    if (wanted > endMin) {
-      toast.show({
-        variant: "info",
-        message: `${mins} мин не влезают в день — обрезали до 23:59.`,
-        durationMs: 4000,
-      });
+  // Block-2 — «весь день»: flip the flag and snap the time to a full
+  // day so calendar blocks still position. Turning it off restores a
+  // sensible default working slot.
+  const handleAllDayChange = (next: boolean) => {
+    setAllDay(next);
+    if (next) {
+      setTimeStart(ALL_DAY_START);
+      setTimeEnd(ALL_DAY_END);
+    } else {
+      setTimeStart("10:00");
+      setTimeEnd("11:00");
     }
   };
 
-  // Current live duration (minutes between start and end).
-  const liveDurationMins = (() => {
-    const [sh, sm] = timeStart.split(":").map(Number);
-    const [eh, em] = timeEnd.split(":").map(Number);
-    return Math.max(0, eh * 60 + em - (sh * 60 + sm));
-  })();
   const readonly = !isEditable;
   const isEventMode = kind === "event";
 
@@ -729,6 +724,7 @@ export default function AppointmentSheet({
       smsEnabled,
       liveMode,
       colorOverride: eventColorOverride,
+      allDay,
     });
     onSave(saved);
     return true;
@@ -881,34 +877,23 @@ export default function AppointmentSheet({
               />
             )}
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
-            <button
-              type="button"
-              onClick={() => setTimePopupOpen(true)}
-              disabled={readonly}
-              // v705 — when an overlap conflict exists (and we're in
-              // a work-mode booking), paint the pill orange. The
-              // OverlapWarning banner below already explains who/when,
-              // but the pill is the eye-magnet — making it orange
-              // doubles the signal at the place the user will tap
-              // first to fix it.
-              className={`ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-full text-[13px] font-semibold tabular-nums transition active:scale-[0.97] ${
-                readonly
-                  ? "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] cursor-default"
-                  : overlapConflict && !isEventMode
-                    ? "bg-[var(--surface-card)] text-[var(--system-orange)] border border-[var(--system-orange)] active:bg-[var(--fill-quaternary)]"
-                    : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
-              }`}
-              aria-label={
-                overlapConflict && !isEventMode
-                  ? `Изменить время — есть пересечение`
-                  : `Изменить время`
-              }
-            >
-              <CalendarClock size={14} strokeWidth={2} />
-              {formatShortDate(dateKey)} · {timeStart}
-              {liveDurationMins > 0 && ` · ${liveDurationMins}м`}
-            </button>
           </div>
+
+          {/* Block 2 — shared date/time row. Tap opens UnifiedTimePopup;
+              «весь день» toggle on the right. Event-mode renders its own
+              copy inside EventForm (commit 3). */}
+          {!isEventMode && (
+            <TimeSummaryRow
+              dateKey={dateKey}
+              timeStart={timeStart}
+              timeEnd={timeEnd}
+              allDay={allDay}
+              showAllDay={isEditable}
+              readonly={readonly}
+              onOpen={() => setTimePopupOpen(true)}
+              onAllDayChange={handleAllDayChange}
+            />
+          )}
 
           {/* v617 P1 §17 — quick chips + TimeBlock + duration row
               moved into the time popup at the bottom of this file. */}
@@ -1168,24 +1153,24 @@ export default function AppointmentSheet({
         }}
       />
 
-      <TimePopup
+      <UnifiedTimePopup
         open={timePopupOpen}
         onClose={() => setTimePopupOpen(false)}
-        liveMode={liveMode}
-        isEventMode={isEventMode}
-        isEditable={isEditable}
+        context={isEventMode ? "event" : "work"}
         readonly={readonly}
-        activeTeam={activeTeam}
         dateKey={dateKey}
         timeStart={timeStart}
         timeEnd={timeEnd}
-        totalDur={totalDur}
-        durationTouched={durationTouched}
-        liveDurationMins={liveDurationMins}
-        setDateKey={setDateKey}
-        setTimeStart={setTimeStart}
-        setTimeEnd={setTimeEnd}
-        applyDuration={applyDuration}
+        allDay={allDay}
+        showAllDay={isEditable}
+        stepMinutes={!isEventMode ? activeTeam?.default_slot_minutes : undefined}
+        onChange={({ date, timeStart: s, timeEnd: e }) => {
+          setDateKey(date);
+          setTimeStart(s);
+          setTimeEnd(e);
+          setDurationTouched(true);
+        }}
+        onAllDayChange={handleAllDayChange}
       />
 
 
