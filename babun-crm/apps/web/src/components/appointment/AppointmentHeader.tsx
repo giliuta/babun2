@@ -78,15 +78,61 @@ export default function AppointmentHeader({
   }, [paletteOpen]);
   return (
     <div
-      className="flex-shrink-0 px-4 pb-2 pt-2 flex flex-col gap-2 transition-colors"
+      className="flex-shrink-0 px-4 pb-2 pt-2 transition-colors"
       // v708 — colour wash lives on the whole sheet (AppointmentSheet
-      // root). v709 — header is now two rows: a top bar (heading/badge
-      // + quick-actions + palette + ✕) and, in create-mode, a
-      // full-width «Клиент / Событие» segment below it.
+      // root). v710 — single top row: compact «Клиент / Событие»
+      // button-pair on the left, quick-actions + palette + ✕ on the
+      // right.
     >
       {/* Top bar */}
       <div className="flex items-center justify-between gap-2">
-        {liveMode === "edit" ? (
+        {liveMode === "create" ? (
+          // v710 — compact «Клиент / Событие» as two distinct buttons,
+          // top-left. Separate pills (gap, each with its own fill) read
+          // as buttons rather than a unified segmented control; active
+          // one is accent-filled. personal-mode keeps «Клиент» disabled;
+          // v660 dirty-guard still fires in both switch directions.
+          <div className="flex items-center gap-1.5">
+            {(["work", "event"] as Kind[]).map((k) => {
+              const disabled = personalMode && k === "work";
+              const active = kind === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  disabled={disabled}
+                  title={
+                    disabled
+                      ? "Клиентов записывайте на бригаду — на личном календаре только события"
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (disabled) return;
+                    if (k === kind) return;
+                    if (kind === "event" && eventFormDirty) {
+                      setSegmentSwitchConfirm(true);
+                      return;
+                    }
+                    if (kind === "work" && workDirty) {
+                      setSegmentSwitchConfirm(true);
+                      return;
+                    }
+                    setKind(k);
+                  }}
+                  className={`h-8 px-3.5 rounded-[9px] text-[13px] font-semibold transition active:scale-[0.97] ${
+                    active
+                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                      : disabled
+                        ? "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] cursor-not-allowed"
+                        : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                  }`}
+                >
+                  {k === "work" ? "Клиент" : "Событие"}
+                </button>
+              );
+            })}
+          </div>
+        ) : liveMode === "edit" ? (
           <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
             Редактирование
           </div>
@@ -97,6 +143,10 @@ export default function AppointmentHeader({
         ) : (
           <div className="flex-1" />
         )}
+
+        {/* Spacer pushes the right cluster to the edge when the left
+            slot is the compact toggle (which isn't flex-1). */}
+        {liveMode === "create" && <div className="flex-1" />}
 
         <div className="flex items-center gap-1 flex-shrink-0">
           {showQuickActions && (
@@ -164,53 +214,6 @@ export default function AppointmentHeader({
           </button>
         </div>
       </div>
-
-      {/* v709 — full-width «Клиент / Событие» segment on its own row in
-          create-mode. Two equal halves (flex-1) with ≥44pt tap height.
-          personal-mode keeps «Клиент» disabled with the explanatory
-          tooltip; the v660 dirty-guard still fires in both directions. */}
-      {liveMode === "create" && (
-        <div className="flex rounded-[12px] bg-[var(--fill-tertiary)] p-1 text-[14px] font-semibold">
-          {(["work", "event"] as Kind[]).map((k) => {
-            const disabled = personalMode && k === "work";
-            const active = kind === k;
-            return (
-              <button
-                key={k}
-                type="button"
-                disabled={disabled}
-                title={
-                  disabled
-                    ? "Клиентов записывайте на бригаду — на личном календаре только события"
-                    : undefined
-                }
-                onClick={() => {
-                  if (disabled) return;
-                  if (k === kind) return;
-                  if (kind === "event" && eventFormDirty) {
-                    setSegmentSwitchConfirm(true);
-                    return;
-                  }
-                  if (kind === "work" && workDirty) {
-                    setSegmentSwitchConfirm(true);
-                    return;
-                  }
-                  setKind(k);
-                }}
-                className={`flex-1 h-10 rounded-[9px] transition ${
-                  active
-                    ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
-                    : disabled
-                      ? "text-[var(--label-tertiary)] cursor-not-allowed"
-                      : "text-[var(--label-secondary)]"
-                }`}
-              >
-                {k === "work" ? "Клиент" : "Событие"}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* Centered palette popup (feedback_center_modals.md style). */}
       {paletteOpen && onColorChange && (
