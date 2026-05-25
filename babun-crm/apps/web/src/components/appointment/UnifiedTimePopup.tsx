@@ -86,8 +86,15 @@ export default function UnifiedTimePopup({
   // Anchor monday — fixed while the popup is open so selecting a day
   // in another week never reflows the carousel. Reset on each open.
   const [anchorKey, setAnchorKey] = useState(dateKey);
-  const [visiblePage, setVisiblePage] = useState(WEEKS_BACK);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Controlled week pager — pageIndex selects the week, dragDx is the
+  // live finger offset (px) while swiping. Deterministic snap on
+  // release; no reliance on flaky native scroll-snap.
+  const [pageIndex, setPageIndex] = useState(WEEKS_BACK);
+  const [dragDx, setDragDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragStartXRef = useRef<number | null>(null);
+  const movedRef = useRef(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -96,7 +103,9 @@ export default function UnifiedTimePopup({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnchorKey(dateKey);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisiblePage(WEEKS_BACK);
+    setPageIndex(WEEKS_BACK);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDragDx(0);
   }, [open, dateKey, timeStart, timeEnd, allDay]);
 
   const MIN_STEP = resolveStep(stepMinutes);
@@ -126,23 +135,31 @@ export default function UnifiedTimePopup({
     });
   }, [anchorKey]);
 
-  // Land the scroll on the anchor week when the popup opens. rAF so
-  // the container has its width before we set scrollLeft.
-  useEffect(() => {
-    if (!open) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    const id = requestAnimationFrame(() => {
-      el.scrollLeft = WEEKS_BACK * el.clientWidth;
-    });
-    return () => cancelAnimationFrame(id);
-  }, [open, anchorKey]);
-
-  const onCarouselScroll = () => {
-    const el = scrollRef.current;
-    if (!el || el.clientWidth === 0) return;
-    const idx = Math.round(el.scrollLeft / el.clientWidth);
-    if (idx !== visiblePage) setVisiblePage(idx);
+  const onPagerTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    dragStartXRef.current = e.touches[0].clientX;
+    movedRef.current = false;
+    setDragging(true);
+  };
+  const onPagerTouchMove = (e: React.TouchEvent) => {
+    if (dragStartXRef.current === null) return;
+    const dx = e.touches[0].clientX - dragStartXRef.current;
+    if (Math.abs(dx) > 8) movedRef.current = true;
+    setDragDx(dx);
+  };
+  const onPagerTouchEnd = () => {
+    const w = viewportRef.current?.clientWidth ?? 1;
+    const dx = dragDx;
+    dragStartXRef.current = null;
+    setDragging(false);
+    setDragDx(0);
+    // Snap: a drag past ~22% of the width (or a firm flick) advances
+    // one week; otherwise spring back to the current page.
+    if (Math.abs(dx) > w * 0.22) {
+      setPageIndex((p) =>
+        Math.max(0, Math.min(pages.length - 1, p + (dx < 0 ? 1 : -1))),
+      );
+    }
   };
 
   if (!open) return null;
@@ -181,7 +198,7 @@ export default function UnifiedTimePopup({
   };
 
   const rangeLabel = formatWeekRange(
-    pages[Math.max(0, Math.min(pages.length - 1, visiblePage))].monday,
+    pages[Math.max(0, Math.min(pages.length - 1, pageIndex))].monday,
   );
 
   const summary = `${formatDateRu(draft.date)}, ${
@@ -213,32 +230,40 @@ export default function UnifiedTimePopup({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-          {/* Week carousel — smooth momentum scroll, snaps per week. */}
+          {/* Week pager — controlled transform; drag to swipe, snaps
+              cleanly to one week on release. */}
           <div>
             <div
-              ref={scrollRef}
-              onScroll={onCarouselScroll}
-              className="flex overflow-x-auto"
-              style={{
-                scrollSnapType: "x mandatory",
-                scrollbarWidth: "none",
-                WebkitOverflowScrolling: "touch",
-              }}
+              ref={viewportRef}
+              className="overflow-hidden"
+              onTouchStart={onPagerTouchStart}
+              onTouchMove={onPagerTouchMove}
+              onTouchEnd={onPagerTouchEnd}
             >
-              {pages.map((page, i) => (
-                <div
-                  key={i}
-                  className="flex items-stretch gap-1.5"
-                  style={{ flex: "0 0 100%", scrollSnapAlign: "start" }}
-                >
-                  {page.days.map((d) => {
-                    const active = d.key === draft.date;
-                    return (
-                      <button
-                        key={d.key}
-                        type="button"
-                        onClick={() => setDraft((s) => ({ ...s, date: d.key }))}
-                        className="flex flex-col items-center justify-center transition active:scale-[0.96]"
+              <div
+                className="flex"
+                style={{
+                  transform: `translateX(calc(${-pageIndex * 100}% + ${dragDx}px))`,
+                  transition: dragging ? "none" : "transform 280ms cubic-bezier(0.22,0.61,0.36,1)",
+                }}
+              >
+                {pages.map((page, i) => (
+                  <div
+                    key={i}
+                    className="flex items-stretch gap-1.5"
+                    style={{ flex: "0 0 100%" }}
+                  >
+                    {page.days.map((d) => {
+                      const active = d.key === draft.date;
+                      return (
+                        <button
+                          key={d.key}
+                          type="button"
+                          onClick={() => {
+                            if (movedRef.current) return;
+                            setDraft((s) => ({ ...s, date: d.key }));
+                          }}
+                          className="flex flex-col items-center justify-center transition active:scale-[0.96]"
                         style={{
                           flex: "1 1 0",
                           minWidth: 0,
@@ -279,8 +304,9 @@ export default function UnifiedTimePopup({
                       </button>
                     );
                   })}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)] mt-2">
               {rangeLabel}
