@@ -87,12 +87,12 @@ export default function AppointmentHeader({
       {/* Top bar */}
       <div className="flex items-center justify-between gap-2">
         {liveMode === "create" ? (
-          // v711 — back to the segmented-control look the user liked
-          // (grey track + white active pill with shadow), top-left, but
-          // with longer buttons (min-width) so they read as proper-sized
-          // pills, not a cramped toggle. personal-mode keeps «Клиент»
-          // disabled; v660 dirty-guard still fires in both directions.
-          <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
+          // v712 — segmented-control look the user liked (grey track +
+          // white active pill with shadow), stretched with flex-1 to
+          // fill the top row up to the palette/✕ cluster; buttons split
+          // it 50/50. personal-mode keeps «Клиент» disabled; v660
+          // dirty-guard still fires in both directions.
+          <div className="flex flex-1 rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
             {(["work", "event"] as Kind[]).map((k) => {
               const disabled = personalMode && k === "work";
               const active = kind === k;
@@ -119,7 +119,7 @@ export default function AppointmentHeader({
                     }
                     setKind(k);
                   }}
-                  className={`min-w-[92px] text-center px-5 py-2 rounded-[8px] transition ${
+                  className={`flex-1 text-center px-3 py-2 rounded-[8px] transition ${
                     active
                       ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
                       : disabled
@@ -144,9 +144,6 @@ export default function AppointmentHeader({
           <div className="flex-1" />
         )}
 
-        {/* Spacer pushes the right cluster to the edge when the left
-            slot is the compact toggle (which isn't flex-1). */}
-        {liveMode === "create" && <div className="flex-1" />}
 
         <div className="flex items-center gap-1 flex-shrink-0">
           {showQuickActions && (
