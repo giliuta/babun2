@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DialogModal from "@/components/appointments/sheet/DialogModal";
+import DialogModal from "@/components/appointment/DialogModal";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";

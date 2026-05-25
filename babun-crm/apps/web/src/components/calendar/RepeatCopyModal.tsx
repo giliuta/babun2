@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import DialogModal from "@/components/appointments/sheet/DialogModal";
+import DialogModal from "@/components/appointment/DialogModal";
 import { duplicateAppointment, type Appointment } from "@babun/shared/local/appointments";
 import { formatDateLongRu } from "@babun/shared/common/utils/date-utils";
 
