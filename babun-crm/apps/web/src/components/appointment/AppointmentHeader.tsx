@@ -87,12 +87,12 @@ export default function AppointmentHeader({
       {/* Top bar */}
       <div className="flex items-center justify-between gap-2">
         {liveMode === "create" ? (
-          // v710 — compact «Клиент / Событие» as two distinct buttons,
-          // top-left. Separate pills (gap, each with its own fill) read
-          // as buttons rather than a unified segmented control; active
-          // one is accent-filled. personal-mode keeps «Клиент» disabled;
-          // v660 dirty-guard still fires in both switch directions.
-          <div className="flex items-center gap-1.5">
+          // v711 — back to the segmented-control look the user liked
+          // (grey track + white active pill with shadow), top-left, but
+          // with longer buttons (min-width) so they read as proper-sized
+          // pills, not a cramped toggle. personal-mode keeps «Клиент»
+          // disabled; v660 dirty-guard still fires in both directions.
+          <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
             {(["work", "event"] as Kind[]).map((k) => {
               const disabled = personalMode && k === "work";
               const active = kind === k;
@@ -119,12 +119,12 @@ export default function AppointmentHeader({
                     }
                     setKind(k);
                   }}
-                  className={`h-8 px-3.5 rounded-[9px] text-[13px] font-semibold transition active:scale-[0.97] ${
+                  className={`min-w-[92px] text-center px-5 py-2 rounded-[8px] transition ${
                     active
-                      ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
                       : disabled
-                        ? "bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] cursor-not-allowed"
-                        : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                        ? "text-[var(--label-tertiary)] cursor-not-allowed"
+                        : "text-[var(--label-secondary)]"
                   }`}
                 >
                   {k === "work" ? "Клиент" : "Событие"}
