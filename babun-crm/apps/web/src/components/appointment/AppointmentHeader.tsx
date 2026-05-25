@@ -78,18 +78,99 @@ export default function AppointmentHeader({
   }, [paletteOpen]);
   return (
     <div
-      className="flex-shrink-0 px-4 pb-2 pt-2 flex items-center justify-between gap-2 transition-colors"
-      // v708 — the colour wash now lives on the whole sheet (handled by
-      // AppointmentSheet root), so the header no longer paints its own
-      // band — it just sits transparently on top of the tinted sheet.
+      className="flex-shrink-0 px-4 pb-2 pt-2 flex flex-col gap-2 transition-colors"
+      // v708 — colour wash lives on the whole sheet (AppointmentSheet
+      // root). v709 — header is now two rows: a top bar (heading/badge
+      // + quick-actions + palette + ✕) and, in create-mode, a
+      // full-width «Клиент / Событие» segment below it.
     >
-      {liveMode === "create" ? (
-        // STORY audit (design-keeper #4): раньше personal-mode имел
-        // статическую pill «Личное событие», а team-mode — segment
-        // toggle Клиент/Событие. Два разных visual language. Теперь
-        // unified: всегда segment, но в personal-mode «Клиент»
-        // disabled с tooltip-объяснением. Один компонент, одна сетка.
-        <div className="inline-flex rounded-[10px] bg-[var(--fill-tertiary)] p-1 text-[13px] font-semibold">
+      {/* Top bar */}
+      <div className="flex items-center justify-between gap-2">
+        {liveMode === "edit" ? (
+          <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
+            Редактирование
+          </div>
+        ) : liveMode === "done" ? (
+          <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
+            {doneBadge}
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {showQuickActions && (
+            <>
+              {onCompleteQuick && (
+                <button
+                  type="button"
+                  onClick={() => onCompleteQuick(appointment)}
+                  aria-label="Отметить выполненной"
+                  title="Выполнено"
+                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
+                >
+                  <Check size={22} strokeWidth={2.5} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={scrollToPhotos}
+                aria-label="Перейти к фото"
+                title="Фото"
+                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
+              >
+                <Camera size={20} strokeWidth={2} />
+              </button>
+              {onReschedule && (
+                <button
+                  type="button"
+                  onClick={() => onReschedule(appointment)}
+                  aria-label="Перенести запись"
+                  title="Перенести"
+                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
+                >
+                  <CalendarClock size={20} strokeWidth={2} />
+                </button>
+              )}
+            </>
+          )}
+
+          {/* v708 — palette icon next to ✕, shown whenever the sheet is
+              editable — both «Клиент» and «Событие». Tap opens the swatch
+              grid; pick washes the whole sheet. Icon tints to the picked
+              colour, neutral when nothing's chosen. */}
+          {onColorChange && (
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Цвет записи"
+              className="w-11 h-11 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
+              style={colorValue ? { color: colorValue } : undefined}
+            >
+              <Palette size={18} strokeWidth={2} />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={attemptClose}
+            aria-label="Закрыть"
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* v709 — full-width «Клиент / Событие» segment on its own row in
+          create-mode. Two equal halves (flex-1) with ≥44pt tap height.
+          personal-mode keeps «Клиент» disabled with the explanatory
+          tooltip; the v660 dirty-guard still fires in both directions. */}
+      {liveMode === "create" && (
+        <div className="flex rounded-[12px] bg-[var(--fill-tertiary)] p-1 text-[14px] font-semibold">
           {(["work", "event"] as Kind[]).map((k) => {
             const disabled = personalMode && k === "work";
             const active = kind === k;
@@ -106,11 +187,6 @@ export default function AppointmentHeader({
                 onClick={() => {
                   if (disabled) return;
                   if (k === kind) return;
-                  // v619 / v660 — guard the kind swap in BOTH directions.
-                  //   • event → work : protect if EventForm is dirty
-                  //   • work  → event: protect if Work fields are dirty
-                  // Otherwise an accidental segment tap nukes whatever
-                  // the dispatcher was filling in on the other side.
                   if (kind === "event" && eventFormDirty) {
                     setSegmentSwitchConfirm(true);
                     return;
@@ -121,7 +197,7 @@ export default function AppointmentHeader({
                   }
                   setKind(k);
                 }}
-                className={`px-4 py-1.5 rounded-[8px] transition ${
+                className={`flex-1 h-10 rounded-[9px] transition ${
                   active
                     ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[var(--shadow-card)]"
                     : disabled
@@ -134,82 +210,7 @@ export default function AppointmentHeader({
             );
           })}
         </div>
-      ) : liveMode === "edit" ? (
-        <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
-          Редактирование
-        </div>
-      ) : liveMode === "done" ? (
-        <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
-          {doneBadge}
-        </div>
-      ) : (
-        <div className="flex-1" />
       )}
-
-      {showQuickActions && (
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {onCompleteQuick && (
-            <button
-              type="button"
-              onClick={() => onCompleteQuick(appointment)}
-              aria-label="Отметить выполненной"
-              title="Выполнено"
-              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
-            >
-              <Check size={22} strokeWidth={2.5} />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={scrollToPhotos}
-            aria-label="Перейти к фото"
-            title="Фото"
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
-          >
-            <Camera size={20} strokeWidth={2} />
-          </button>
-          {onReschedule && (
-            <button
-              type="button"
-              onClick={() => onReschedule(appointment)}
-              aria-label="Перенести запись"
-              title="Перенести"
-              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
-            >
-              <CalendarClock size={20} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* v708 — palette icon top-right (just before ✕), shown whenever
-          the sheet is editable — both «Клиент» and «Событие». Tap opens
-          the centered swatch grid; pick washes the WHOLE sheet (root
-          handles it). Icon tints to the picked colour, neutral when
-          nothing's chosen. */}
-      {onColorChange && (
-        <button
-          type="button"
-          onClick={() => setPaletteOpen(true)}
-          aria-label="Цвет записи"
-          className="w-11 h-11 flex items-center justify-center rounded-lg active:bg-[var(--fill-quaternary)] transition"
-          style={colorValue ? { color: colorValue } : undefined}
-        >
-          <Palette size={18} strokeWidth={2} />
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={attemptClose}
-        aria-label="Закрыть"
-        className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
 
       {/* Centered palette popup (feedback_center_modals.md style). */}
       {paletteOpen && onColorChange && (
