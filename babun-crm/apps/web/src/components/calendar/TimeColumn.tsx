@@ -20,17 +20,26 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
   const to = Math.max(from + 1, Math.min(24, Math.ceil(endHour)));
   const visibleHours = HOURS.slice(from, to);
   return (
-    // Sprint 033 Phase I19 — vertical separator is a self-contained
-    // absolutely-positioned 1-px line INSIDE TimeColumn (relative
-    // parent). Previous attempts:
-    //  · Absolute line OUTSIDE TimeColumn — drifted at sub-pixel zoom.
-    //  · border-right on TimeColumn — showed tiny gaps at every hour
-    //    row boundary because the per-row border-b anti-aliased
-    //    against the column's border-r corner.
-    // By putting the line as a child of TimeColumn, pointer-events-
-    // none, painted ON TOP of the hour rows, it's a single solid
-    // stroke that can't be interrupted by child borders.
-    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)] relative">
+    // The time/grid divider is a plain `border-right` on the column
+    // itself — NOT an absolutely-positioned overlay. Earlier attempts:
+    //  · Absolute line OUTSIDE the column → drifted at sub-pixel zoom.
+    //  · Absolute line INSIDE the column (top-0 right-0 bottom-0) →
+    //    still jittered: its `bottom-0` height recomputed every pinch
+    //    frame while applyZoom wrote scrollTop synchronously, so the
+    //    line visibly shifted while zooming/scrolling.
+    //  · border-right + per-hour border-b → tiny gaps at every hour
+    //    boundary where the row border-b anti-aliased against the
+    //    border-r corner.
+    // Fix: keep the divider as a static border-right and DROP the
+    // per-hour border-b (the day grid already paints the hour lines,
+    // so the time column doesn't need its own). The border is part of
+    // the element at a fixed x, full height — it can't drift on zoom
+    // or scroll. Width 1.5px ≈ 3 device px on retina; ~26 % alpha lands
+    // clearly above the inter-day hairlines without looking heavy.
+    <div
+      className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)]"
+      style={{ borderRight: "1.5px solid rgba(60, 60, 67, 0.26)" }}
+    >
       {/* Header spacer must match DayColumn header exactly, else hour
           labels drift vs the grid rows under pinch-zoom. */}
       <div className="sticky top-0 z-30 h-[64px] lg:h-[70px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
@@ -38,7 +47,7 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
       {visibleHours.map((hour, idx) => (
         <div
           key={hour}
-          className="border-b border-[var(--separator)] flex items-start justify-end pr-1.5 lg:pr-2"
+          className="flex items-start justify-end pr-1.5 lg:pr-2"
           style={{ height: "var(--hh)", boxSizing: "border-box" }}
         >
           {/* v451 — первая метка не уходит в отрицательный margin,
@@ -52,23 +61,6 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
           </span>
         </div>
       ))}
-
-      {/* The separator — structurally more important than the inter-
-          day borders (which are rgba ~0.10) and the hour hairlines
-          (rgba ~0.12). Time/grid boundary is a SEMANTIC axis divide,
-          not just another grid rule, so it must dominate visually.
-          Width 1.5 px (≈3 device pixels on retina) + ~26 % alpha
-          lands at ~2.6× the weight of the inter-day lines — clearly
-          visible without looking heavy. Sits on z-10 above child
-          borders so hour-row border-b can't chop it. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-0 right-0 bottom-0 z-10"
-        style={{
-          width: "1.5px",
-          backgroundColor: "rgba(60, 60, 67, 0.26)",
-        }}
-      />
     </div>
   );
 }
