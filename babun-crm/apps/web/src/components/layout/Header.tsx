@@ -128,6 +128,14 @@ export default function Header({
       ? `/dashboard/teams/${activeTeamId}`
       : "/dashboard/teams";
 
+  // Warm the gear's destination so the tap navigates instantly instead of
+  // triggering a cold RSC roundtrip + chunk load (the "пролагивает"
+  // complaint). Mirrors BottomTabBar's STORY-064 prefetch. Re-runs when the
+  // active tab changes the target route.
+  useEffect(() => {
+    router.prefetch(settingsHref);
+  }, [router, settingsHref]);
+
   const monthName = getMonthName(currentDate.getMonth());
   const year = currentDate.getFullYear();
   const [todayNumber, setTodayNumber] = useState<number>(1);
@@ -149,10 +157,13 @@ export default function Header({
       <div className="px-2 lg:px-4 min-h-[44px] py-1.5 flex items-center gap-1">
         <button
           type="button"
-          onClick={() => router.push(settingsHref)}
+          onClick={() => {
+            haptic("tap");
+            router.push(settingsHref);
+          }}
           aria-label="Настройки команды"
           data-testid="header-team-settings"
-          className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] hover:bg-[var(--fill-quaternary)] transition shrink-0"
+          className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] hover:bg-[var(--fill-quaternary)] press-scale transition shrink-0"
         >
           <Settings size={20} strokeWidth={2} />
         </button>
