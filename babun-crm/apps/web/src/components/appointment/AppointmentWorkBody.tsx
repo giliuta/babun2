@@ -58,15 +58,11 @@ interface AppointmentWorkBodyProps {
   locationId: string | null;
   addressNote: string;
   setAddressNote: (next: string) => void;
-  anonymousAddress: string;
-  setAnonymousAddress: (next: string) => void;
   addressPlaceholder: string;
   selectedLocation: Location | null;
 
   appointmentServices: AppointmentService[];
   globalDiscount: Discount | null;
-  popularServices: Service[];
-  clientHistoryServices: Service[];
   setAppointmentServices: (next: AppointmentService[]) => void;
   setGlobalDiscount: React.Dispatch<React.SetStateAction<Discount | null>>;
   setAskClientFirst: (open: boolean) => void;
@@ -112,13 +108,9 @@ export default function AppointmentWorkBody({
   locationId,
   addressNote,
   setAddressNote,
-  anonymousAddress,
-  setAnonymousAddress,
   addressPlaceholder,
   appointmentServices,
   globalDiscount,
-  popularServices,
-  clientHistoryServices,
   setAppointmentServices,
   setGlobalDiscount,
   setAskClientFirst,
@@ -186,17 +178,17 @@ export default function AppointmentWorkBody({
         />
       )}
 
-      <LocationsBlock
-        client={client}
-        selectedLocationId={locationId}
-        readOnly={readonly}
-        addressNote={addressNote}
-        onSelectLocation={setLocationId}
-        onAddressNoteChange={setAddressNote}
-        anonymousAddress={anonymousAddress}
-        onAnonymousAddressChange={setAnonymousAddress}
-        placeholder={addressPlaceholder}
-      />
+      {client && (
+        <LocationsBlock
+          client={client}
+          selectedLocationId={locationId}
+          readOnly={readonly}
+          addressNote={addressNote}
+          onSelectLocation={setLocationId}
+          onAddressNoteChange={setAddressNote}
+          placeholder={addressPlaceholder}
+        />
+      )}
 
       <ServicesBlock
         services={appointmentServices}
@@ -211,8 +203,6 @@ export default function AppointmentWorkBody({
           }
           setServicePickerOpen(true);
         }}
-        popularServices={popularServices}
-        clientHistoryServices={clientHistoryServices}
       />
 
       <IncomeBlock
