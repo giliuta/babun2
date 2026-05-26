@@ -373,7 +373,7 @@ function DayColumnInner({
           {hasLabels &&
             (cityShort ? (
               <span
-                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
                 title={cityLabel}
                 style={{
                   background: cityCfg?.color ?? "var(--fill-primary)",
@@ -385,7 +385,7 @@ function DayColumnInner({
               </span>
             ) : (
               <span
-                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 text-[11px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[11px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap"
                 title="Добавить метку дня"
               >
                 <MapPin size={9} strokeWidth={2.5} aria-hidden />

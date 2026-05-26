@@ -580,9 +580,23 @@ function TeamChip({
   // The dragged chip lifts above its peers (scale + shadow + rotate)
   // for the iOS "picked up" feel. Other chips stay flat; SortableContext
   // animates their translation as the dragged chip moves through them.
-  const tone = active
-    ? "bg-[var(--accent-tint)] text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]"
-    : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]";
+  //
+  // Colour fill: the selected brigade chip fills solid with its own
+  // colour (white label). Unselected brigade chips stay white but carry
+  // the colour on their text + border, so every brigade's colour is
+  // still visible at a glance. Brigades without a colour (and the
+  // personal calendar tab) fall back to the indigo accent.
+  const fillColor = team.color ?? "var(--accent)";
+  const toneStyle: React.CSSProperties = active
+    ? { backgroundColor: fillColor, color: "var(--label-on-accent)" }
+    : team.color
+      ? { color: team.color, borderColor: team.color }
+      : {};
+  const toneClass = active
+    ? ""
+    : team.color
+      ? "bg-[var(--surface-card)] border active:opacity-70"
+      : "bg-[var(--surface-card)] text-[var(--label)] border border-[var(--separator)] active:bg-[var(--fill-quaternary)]";
   return (
     <button
       ref={dragSetNodeRef}
@@ -591,26 +605,19 @@ function TeamChip({
       data-testid={`header-team-tab-${team.id}`}
       data-team-id={team.id}
       {...dragHandleProps}
-      style={dragStyle}
+      style={{ ...dragStyle, ...toneStyle }}
       // STORY audit: TeamChip raised h-8 → h-10. The team-tab strip is
       // tapped 5-10 times a day (switch brigade ↔ personal), and 32 px
       // on a moving thumb is a coin-flip. h-10 still keeps the compact
       // Telegram-style horizontal-scroll feel, but the hit zone now
       // covers ≥44 pt once you count the surrounding pb-2 padding from
       // TeamTabStrip's outer div.
-      className={`relative flex items-center gap-1.5 px-3.5 h-10 max-w-[180px] text-[14px] font-semibold whitespace-nowrap select-none transition-shadow ${tone} ${
+      className={`relative flex items-center px-3.5 h-10 max-w-[180px] rounded-full text-[13px] font-semibold whitespace-nowrap select-none transition-shadow ${toneClass} ${
         isDragging
           ? "z-20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] scale-[1.06] rotate-[-1.5deg] cursor-grabbing"
           : ""
       }`}
     >
-      {team.color && (
-        <span
-          aria-hidden
-          className="w-2.5 h-2.5 shrink-0"
-          style={{ backgroundColor: team.color }}
-        />
-      )}
       <span className="truncate">{team.name}</span>
     </button>
   );
