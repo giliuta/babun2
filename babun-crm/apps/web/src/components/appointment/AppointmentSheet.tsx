@@ -9,7 +9,6 @@ import type {
   // hydrates `AppointmentPhotoRecord[]` from the appointment-photos
   // repo on open.
   AppointmentService,
-  AppointmentSource,
   Discount,
 } from "@babun/shared/local/appointments";
 import { loadAppointments } from "@babun/shared/local/appointments";
@@ -52,6 +51,7 @@ import TimeSummaryRow from "./TimeSummaryRow";
 import AppointmentHeader from "./AppointmentHeader";
 import AppointmentSaveButton from "./AppointmentSaveButton";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
+import { computeClientLtv } from "@/lib/clients/ltv";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
 // demand when the dispatcher actually taps "Скачать счёт" instead of
 // shipping the module in the main dashboard bundle.
@@ -193,17 +193,6 @@ export default function AppointmentSheet({
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
-  const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
-  // v611 P1 §19 — remember the last source the operator picked so the
-  // chip appears first + outlined in the next create flow. Stored in
-  // localStorage (tenant-agnostic — a single-master UX choice).
-  const [lastUsedSource, setLastUsedSource] = useState<AppointmentSource | null>(
-    () => {
-      if (typeof window === "undefined") return null;
-      const raw = window.localStorage.getItem("babun.lastSource");
-      return raw && (raw as AppointmentSource) ? (raw as AppointmentSource) : null;
-    }
-  );
   // v617 P1 §17 — single time chip in caption opens a popup with the
   // date+time+duration editors. The inline cluster is removed from
   // body so it stays focused on client / services.
@@ -243,7 +232,6 @@ export default function AppointmentSheet({
   // an empty list; thumbnails fade in once the fetch resolves.
   const [photos, setPhotos] = useState<AppointmentPhotoRecord[]>([]);
   const tenantId = useTenantId();
-  const [smsEnabled, setSmsEnabled] = useState(appointment.reminder_enabled);
   const [eventLabel, setEventLabel] = useState(appointment.comment || "");
   // v616 P2 — operator-picked event accent override. null = derive from
   // the preset name (legacy behaviour). When set, beats the preset's
@@ -314,7 +302,6 @@ export default function AppointmentSheet({
     setAddressNote(appointment.address_note ?? "");
     setCancelFlag(appointment.status === "cancelled");
     setCancelReason(appointment.cancel_reason ?? "");
-    setSource(appointment.source ?? null);
     // STORY-049 — refresh photo list when the appointment id changes.
     setPhotos([]);
     if (appointment.id) {
@@ -329,7 +316,6 @@ export default function AppointmentSheet({
     setEventColorOverride(appointment.color_override ?? null);
     setAllDay(appointment.event_all_day ?? false);
     setDurationTouched(false);
-    setSmsEnabled(appointment.reminder_enabled);
     setAppointmentServices(appointment.services ?? []);
     setGlobalDiscount(appointment.global_discount ?? null);
     setKind(
@@ -531,10 +517,25 @@ export default function AppointmentSheet({
   // keyboard opens / on focus.
   const photoScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // v607 P0 #3 — Источник заявки больше не блокирует создание. KPI
-  // «20 секунд на мотороллере» важнее аналитического gap'а; источник
-  // переехал в свёрнутую секцию «Подробнее», по умолчанию null.
-  //
+  // Client stats for the filled-card stats row in ClientBlock.
+  // Computed once when client or appointment list changes. Uses all
+  // appointments (otherApts + current) so the count is accurate even
+  // for the appointment being viewed right now.
+  const clientStats = useMemo(() => {
+    if (!clientId) return undefined;
+    const allApts = [
+      ...otherApts,
+      // Include the current appointment if it is completed so LTV is current.
+      ...(appointment.status === "completed" ? [appointment] : []),
+    ];
+    const raw = computeClientLtv(clientId, allApts);
+    return {
+      visits: raw.visits,
+      earned: raw.ltv,
+      lastVisitDate: raw.lastVisitDate,
+    };
+  }, [clientId, otherApts, appointment]);
+
   // STORY audit: до этого аудита для work-записи требовался И клиент,
   // И услуга. Из-за этого AskClientFirstDialog с кнопкой «Без клиента»
   // приводил в тупик — диспетчер выбирает услугу без клиента, кнопка
@@ -600,14 +601,12 @@ export default function AppointmentSheet({
           appointmentServices.length > 0 ||
           comment.trim() ||
           addressNote.trim() ||
-          source !== null ||
           globalDiscount !== null,
         )
       : Boolean(
           clientId !== appointment.client_id ||
           comment.trim() !== (appointment.comment ?? "").trim() ||
           addressNote.trim() !== (appointment.address_note ?? "").trim() ||
-          source !== (appointment.source ?? null) ||
           cancelFlag !== (appointment.status === "cancelled") ||
           cancelReason.trim() !== (appointment.cancel_reason ?? "").trim() ||
           dateKey !== appointment.date ||
@@ -661,10 +660,10 @@ export default function AppointmentSheet({
       comment,
       address,
       addressNote,
-      source,
+      source: appointment.source ?? null,
       cancelFlag,
       cancelReason,
-      smsEnabled,
+      smsEnabled: appointment.reminder_enabled,
       liveMode,
       colorOverride: eventColorOverride,
       allDay,
@@ -813,27 +812,15 @@ export default function AppointmentSheet({
               eventColorOverride ? "" : "bg-[var(--surface-grouped)]"
             }`}
           >
-            {city && (
-              <span
-                className="font-semibold flex-shrink-0"
-                style={{ color: cityColor }}
-              >
-                {city}
-              </span>
-            )}
-            {city && <span className="text-[var(--label-tertiary)]">·</span>}
-            {/* v706 — small dot in the team's brand colour right before
-                the team name. The dispatcher manages 2+ brigades and
-                already learns each one's colour from the calendar
-                stripes; surfacing it in the sheet caption confirms
-                «yes, you're booking this one», not the other one. */}
-            {activeTeam?.color && (
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: activeTeam.color }}
-                aria-hidden="true"
-              />
-            )}
+            {/* Caption shows the team colour dot + team name only.
+                City word removed per design-cleanup task. The dot
+                still uses cityColor as fallback when the team has no
+                brand colour (single-brigade setups). */}
+            <span
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ background: activeTeam?.color ?? cityColor }}
+              aria-hidden="true"
+            />
             <span className="text-[var(--label)] flex-shrink-0">{teamLabel}</span>
           </div>
 
@@ -923,7 +910,6 @@ export default function AppointmentSheet({
               setClientSheetCreate={setClientSheetCreate}
               setClientMenuOpen={setClientMenuOpen}
               appointment={appointment}
-              otherApts={otherApts}
               catalog={catalog}
               locationId={locationId}
               addressNote={addressNote}
@@ -937,12 +923,7 @@ export default function AppointmentSheet({
               setAskClientFirst={setAskClientFirst}
               setServicePickerOpen={setServicePickerOpen}
               clientId={clientId}
-              source={source}
-              setSource={setSource}
-              lastUsedSource={lastUsedSource}
-              setLastUsedSource={setLastUsedSource}
-              smsEnabled={smsEnabled}
-              setSmsEnabled={setSmsEnabled}
+              clientStats={clientStats}
               comment={comment}
               setComment={setComment}
               photos={photos}
@@ -1099,7 +1080,6 @@ export default function AppointmentSheet({
             setAppointmentServices([]);
             setComment("");
             setAddressNote("");
-            setSource(null);
             setGlobalDiscount(null);
             setKind("event");
           }
