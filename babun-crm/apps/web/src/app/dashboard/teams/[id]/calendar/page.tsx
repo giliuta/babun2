@@ -24,6 +24,7 @@ import { TIMEZONE_OPTIONS } from "@babun/shared/local/calendar-settings";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
+import TimeWheelSheet from "@/components/teams/TimeWheelSheet";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -58,9 +59,9 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   const [wStart, setWStart] = useState(team?.calendar_window_start ?? "");
   const [wEnd, setWEnd] = useState(team?.calendar_window_end ?? "");
   const [scroll, setScroll] = useState(team?.default_scroll_time ?? "");
-  const [slotMin, setSlotMin] = useState<number | null>(
-    team?.default_slot_minutes ?? null,
-  );
+  const [openField, setOpenField] = useState<
+    null | "visible" | "work" | "scroll"
+  >(null);
 
   useEffect(() => {
     // Reset form when `team` flips (different team picked or realtime
@@ -72,7 +73,6 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       setWStart(team.calendar_window_start ?? "");
       setWEnd(team.calendar_window_end ?? "");
       setScroll(team.default_scroll_time ?? "");
-      setSlotMin(team.default_slot_minutes ?? null);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [team]);
@@ -103,12 +103,6 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       default_scroll_time: v.trim() || undefined,
     });
   };
-  const commitSlot = (v: number | null) => {
-    upsertTeam({
-      ...team,
-      default_slot_minutes: v && v > 0 ? v : undefined,
-    });
-  };
   // Working hours live on the brigade TeamSchedule (start/end). The
   // calendar grid greys out everything outside this band, so editing it
   // here is what the old Расписание page used to do.
@@ -136,14 +130,9 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       allow_overtime: next || undefined,
     });
   };
-  const commitWeekStart = (v: "monday" | "sunday") => {
-    upsertTeam({ ...team, week_start: v });
-  };
   const commitTimezone = (v: string) => {
     upsertTeam({ ...team, timezone: v || undefined });
   };
-
-  const SLOT_PRESETS = [15, 30, 60];
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Календарь" hideSave>
@@ -176,109 +165,60 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
           <HoursRow label="Видимое время">
-            <TimeInput
-              value={wStart}
-              onChange={(v) => {
-                setWStart(v);
-                commitWindow(v, wEnd);
-              }}
-            />
-            <span className="text-[var(--label-tertiary)]">—</span>
-            <TimeInput
-              value={wEnd}
-              onChange={(v) => {
-                setWEnd(v);
-                commitWindow(wStart, v);
-              }}
-            />
+            <ValueChip onClick={() => setOpenField("visible")}>
+              {wStart || "00:00"} — {wEnd || "24:00"}
+            </ValueChip>
           </HoursRow>
 
           <HoursRow label="Рабочее время" border>
-            <TimeInput
-              value={schedule.start}
-              onChange={(v) => commitWorkHours(v, schedule.end)}
-            />
-            <span className="text-[var(--label-tertiary)]">—</span>
-            <TimeInput
-              value={schedule.end}
-              onChange={(v) => commitWorkHours(schedule.start, v)}
-            />
+            <ValueChip onClick={() => setOpenField("work")}>
+              {schedule.start} — {schedule.end}
+            </ValueChip>
           </HoursRow>
 
           <HoursRow label="Открывается время" border>
-            <TimeInput
-              value={scroll}
-              onChange={(v) => {
-                setScroll(v);
-                commitScroll(v);
-              }}
-            />
+            <ValueChip onClick={() => setOpenField("scroll")}>
+              {scroll || "—"}
+            </ValueChip>
           </HoursRow>
         </div>
       </Group>
 
-      <Group
-        title="Шаг при тапе на календарь"
-        footer={
-          "Тап по пустой клетке создаёт запись, округлённую до выбранного шага. " +
-          "15 мин — время ляжет на 11:00 / 11:15 / 11:30 / 11:45. " +
-          "30 мин — только на 11:00 / 11:30 / 12:00. " +
-          "60 мин — ровно 11:00 / 12:00 / 13:00. " +
-          "Длительность новой записи равна этому же шагу; дальше пересчитывается по выбранным услугам."
-        }
-      >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-2 grid grid-cols-3 gap-2">
-          {SLOT_PRESETS.map((m) => {
-            // Если слот ни разу не выставлен — подсвечиваем 30 как
-            // дефолт, чтобы пилюли всегда показывали активное состояние.
-            const picked = (slotMin ?? 30) === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setSlotMin(m);
-                  commitSlot(m);
-                }}
-                className={`h-10 rounded-[10px] text-[14px] font-medium press-scale transition-colors tabular-nums ${
-                  picked
-                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                    : "bg-[var(--fill-tertiary)] text-[var(--label)]"
-                }`}
-              >
-                {m} мин
-              </button>
-            );
-          })}
-        </div>
-      </Group>
+      <TimeWheelSheet
+        open={openField === "visible"}
+        title="Видимое время"
+        mode="range"
+        start={wStart || "00:00"}
+        end={wEnd || "24:00"}
+        onClose={() => setOpenField(null)}
+        onChange={(s, e) => {
+          setWStart(s);
+          setWEnd(e);
+          commitWindow(s, e);
+        }}
+      />
+      <TimeWheelSheet
+        open={openField === "work"}
+        title="Рабочее время"
+        mode="range"
+        start={schedule.start}
+        end={schedule.end}
+        onClose={() => setOpenField(null)}
+        onChange={(s, e) => commitWorkHours(s, e)}
+      />
+      <TimeWheelSheet
+        open={openField === "scroll"}
+        title="Открывается время"
+        mode="single"
+        start={scroll || "09:00"}
+        onClose={() => setOpenField(null)}
+        onChange={(s) => {
+          setScroll(s);
+          commitScroll(s);
+        }}
+      />
 
-      <Group title="Начало недели">
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-2">
-          <div className="inline-flex w-full p-0.5 rounded-[10px] bg-[var(--fill-tertiary)]">
-            {(["monday", "sunday"] as const).map((day) => {
-              const active = (team.week_start ?? "monday") === day;
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => commitWeekStart(day)}
-                  className={`flex-1 h-9 rounded-[8px] text-[14px] font-medium press-scale transition-colors ${
-                    active
-                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
-                      : "text-[var(--label-secondary)]"
-                  }`}
-                >
-                  {day === "monday" ? "Понедельник" : "Воскресенье"}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </Group>
-
-      {/* Behaviour knobs for this brigade. Overrides the global «Мой
-          календарь» values when this brigade is active. */}
+      {/* Behaviour knobs for this brigade. */}
       <Group
         title="Поведение календаря"
         footer="Действует только для этой команды. Если пусто / выкл — подтягивается глобальный вариант из «Мой календарь»."
@@ -417,20 +357,22 @@ function HoursRow({
   );
 }
 
-function TimeInput({
-  value,
-  onChange,
+// Tappable value chip — opens the wheel sheet. Mirrors the time chips in
+// the appointment sheet (tap → drum picker) rather than a native input.
+function ValueChip({
+  onClick,
+  children,
 }: {
-  value: string;
-  onChange: (v: string) => void;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <input
-      type="time"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      step={1800}
-      className="h-9 px-2 rounded-[8px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-    />
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-9 px-3 rounded-[8px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] tabular-nums press-scale active:bg-[var(--fill-secondary)]"
+    >
+      {children}
+    </button>
   );
 }

@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getWeekDates, getCurrentCyprusTime, formatDateKey } from "@babun/shared/common/utils/date-utils";
+import { useCallback, useEffect, useState } from "react";
+import {
+  getWeekDates,
+  getCurrentCyprusTime,
+  getCurrentTimeInZone,
+  formatDateKey,
+} from "@babun/shared/common/utils/date-utils";
 import { type TeamSchedule, DEFAULT_SCHEDULE } from "@babun/shared/local/schedule";
 import type { Appointment, ValidationResult } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
@@ -48,6 +53,10 @@ interface WeekViewProps {
   /** Phase I39 — effective «behaviour» resolved by the parent. */
   hideCancelled?: boolean;
   bufferMinutes?: number;
+  /** IANA timezone of the active brigade calendar. When set, the "now"
+   *  line is placed by this zone's wall clock instead of Cyprus time.
+   *  Undefined (personal / no override) = Cyprus. */
+  timeZone?: string;
 }
 
 export default function WeekView({
@@ -77,16 +86,22 @@ export default function WeekView({
   hasLabels,
   hideCancelled,
   bufferMinutes,
+  timeZone,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
-  const [now, setNow] = useState(getCurrentCyprusTime());
+  const readNow = useCallback(
+    () => (timeZone ? getCurrentTimeInZone(timeZone) : getCurrentCyprusTime()),
+    [timeZone],
+  );
+  const [now, setNow] = useState(readNow);
 
   useEffect(() => {
+    setNow(readNow());
     const interval = setInterval(() => {
-      setNow(getCurrentCyprusTime());
+      setNow(readNow());
     }, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [readNow]);
 
   const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
 
