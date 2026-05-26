@@ -38,17 +38,10 @@ function firstTagColor(
   return null;
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
-
 // Блок 2: карточка клиента. Три состояния:
 // — пусто + readonly=false → кнопка выбрать + «+ Создать»
-// — заполнен + readonly=false → аватар/имя/телефон + ✏️/✕
-// — заполнен + readonly=true → аватар/имя/телефон (tel-link)
+// — заполнен + readonly=false → имя/телефон + ✏️/✕
+// — заполнен + readonly=true → имя/телефон (tel-link)
 export default function ClientBlock({
   client,
   readonly,
@@ -76,34 +69,19 @@ export default function ClientBlock({
             className="flex gap-1.5 overflow-x-auto"
             style={{ scrollbarWidth: "none" }}
           >
-            {recentClients.map((c) => {
-              const dot = firstTagColor(c.tag_ids, tagsById);
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => onPickRecent?.(c)}
-                  // STORY audit: recent-client chips raised h-8 → h-10
-                  // (32 → 40 px). With the parent scroll row's pad this
-                  // gives ≥44 pt of real tap zone. These chips are the
-                  // single-tap shortcut for repeat customers — the most
-                  // common case in HVAC service.
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 pl-1.5 pr-3.5 h-10 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
-                >
-                  <span className="w-7 h-7 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center text-[11px] font-bold">
-                    {initials(c.full_name)}
-                  </span>
-                  {dot && (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: dot }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span className="truncate max-w-[140px]">{c.full_name}</span>
-                </button>
-              );
-            })}
+            {recentClients.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onPickRecent?.(c)}
+                // STORY audit: recent-client chips are the single-tap
+                // shortcut for repeat customers — the most common case in
+                // HVAC service. h-10 keeps ≥44 pt of real tap zone.
+                className="flex-shrink-0 inline-flex items-center px-3.5 h-10 rounded-full bg-[var(--surface-card)] border border-[var(--separator)] text-[13px] font-semibold text-[var(--label)] active:scale-[0.97]"
+              >
+                <span className="truncate max-w-[140px]">{c.full_name}</span>
+              </button>
+            ))}
           </div>
         )}
         {/* v722 — two entry points: pick an existing client (search /
@@ -150,9 +128,6 @@ export default function ClientBlock({
           disabled={readonly}
           className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70"
         >
-          <div className="w-10 h-10 rounded-full bg-[var(--accent-tint)] text-[var(--accent)] flex items-center justify-center font-bold text-[13px] flex-shrink-0">
-            {initials(client.full_name)}
-          </div>
           <div className="flex-1 min-w-0">
             <div className="text-[16px] font-bold text-[var(--label)] truncate flex items-center gap-1.5">
               {filledDot && (

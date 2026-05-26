@@ -19,13 +19,7 @@ interface LocationsBlockProps {
    *  The inline note input was removed; CommentBlock handles brigade
    *  notes now. View-mode still renders historic address_note text. */
   onAddressNoteChange?: (note: string) => void;
-  /** v607 P0 #5 — anonymous-mode address. When no client is picked,
-   *  the operator can still type an address; it lives on the
-   *  appointment row (apt.address) instead of on a client.locations
-   *  entry. Empty string when client is set (real locations win). */
-  anonymousAddress?: string;
-  onAnonymousAddressChange?: (next: string) => void;
-  /** v607 P0 #5 — placeholder hint driven by the day's city-tag, e.g.
+  /** Placeholder hint driven by the day's city-tag, e.g.
    *  "Лимассол, ул. ..." or fallback "Адрес или Google Maps ссылка". */
   placeholder?: string;
 }
@@ -48,8 +42,6 @@ export default function LocationsBlock({
   readOnly,
   addressNote,
   onSelectLocation,
-  anonymousAddress = "",
-  onAnonymousAddressChange,
   placeholder,
 }: LocationsBlockProps) {
   const { locationLabels } = useLocationLabels();
@@ -72,11 +64,6 @@ export default function LocationsBlock({
     null;
 
   const hasAddress = Boolean(selected);
-  // v607 P0 #5 — anonymous mode replaces the legacy "client first"
-  // lock with a plain address input. Address is stored on the
-  // appointment row directly (apt.address) so the dispatcher can take
-  // a call and book a slot before naming the customer.
-  const anonymousMode = !client;
   const presets = locationLabels.map((l) => l.name);
   const addrPlaceholder = placeholder ?? "Адрес или Google Maps ссылка";
 
@@ -165,78 +152,7 @@ export default function LocationsBlock({
     cancelForm();
   };
 
-  const navInput = anonymousMode
-    ? anonymousAddress.trim()
-    : selected?.mapUrl || selected?.address || "";
-  const hasNavTarget = navInput.length > 0;
-
-  // v607 P0 #5 — anonymous (no-client) branch. A plain address input
-  // + optional note + Nav button when an address has been typed. No
-  // chip strip and no preset-label form (those need a client to live
-  // under). Keeps the same outer card shell for visual continuity.
-  if (anonymousMode) {
-    return (
-      <div className="px-4 pt-2">
-        <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden">
-          <div className="h-12 flex items-center gap-2 px-3">
-            <span className="flex-shrink-0 text-[var(--system-red)]">
-              <PinIcon />
-            </span>
-            {readOnly ? (
-              <span className="flex-1 min-w-0 text-[15px] text-[var(--label)] truncate">
-                {anonymousAddress.trim() || "—"}
-              </span>
-            ) : (
-              <input
-                type="text"
-                value={anonymousAddress}
-                onChange={(e) => onAnonymousAddressChange?.(e.target.value)}
-                placeholder={addrPlaceholder}
-                className="flex-1 h-9 bg-transparent text-[15px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none"
-              />
-            )}
-          </div>
-
-          {hasNavTarget && (
-            <>
-              <div className="h-px bg-[var(--separator)]" />
-              <div className="p-2">
-                <button
-                  type="button"
-                  onClick={() => setNavOpen(true)}
-                  className="w-full h-10 rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-1.5 bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--accent-tint)]/70"
-                >
-                  <Navigation size={14} strokeWidth={2} />
-                  Навигация
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* v660 — address-note inline row HIDDEN in edit/create mode.
-              Brigade notes (intercom code, etc.) now live in the single
-              «Заметка для бригады» field below. View mode still shows
-              the old address_note string when present so historic
-              records remain readable. */}
-          {readOnly && addressNote.trim() && (
-            <>
-              <div className="h-px bg-[var(--separator)]" />
-              <div className="px-3 py-2 text-[12px] text-[var(--label-secondary)]">
-                <span className="text-[var(--label-tertiary)]">Примечание: </span>
-                {addressNote}
-              </div>
-            </>
-          )}
-        </div>
-
-        <MapNavPopup
-          open={navOpen}
-          onClose={() => setNavOpen(false)}
-          input={navInput}
-        />
-      </div>
-    );
-  }
+  const navInput = selected?.mapUrl || selected?.address || "";
 
   return (
     <div className="px-4 pt-2">
