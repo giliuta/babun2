@@ -67,10 +67,6 @@ interface DayColumnProps {
   dragEnabled?: boolean;
   /** Resolver returning the team colour for a given appointment. */
   teamColorFor?: (apt: Appointment) => string | null;
-  /** True when this is the leftmost-visible column in the week strip.
-   *  WeekView passes it so we can render the hour-axis labels only
-   *  once per visible week, not seven times. */
-  isFirstVisible?: boolean;
 }
 
 // Expressions used for vertical positioning. They reference the live
@@ -172,7 +168,6 @@ function DayColumnInner({
   hasLabels = true,
   hideCancelled = false,
   bufferMinutes = 0,
-  isFirstVisible = false,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
   const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
@@ -206,13 +201,10 @@ function DayColumnInner({
   useEffect(() => setHydrated(true), []);
   const showAsOff = hydrated && isWeekend;
   const monthShort = getMonthNameShort(date.getMonth());
-  // STORY-060 F3.1 — month-short is now rendered on every column,
-  // not just the 1st-of-month edge case; this flag is kept for any
-  // future per-column emphasis. `void` silences the unused-warning
-  // without removing the computation in case downstream branches
-  // bring it back.
+  // Month short shows only on the 1st of a month so a week that spans
+  // two months still reads which month each column belongs to. Every
+  // other day relies on the global header for month context.
   const isFirstOfMonth = date.getDate() === 1;
-  void isFirstOfMonth;
   // Prefer user-extended City.color (custom tags like «Германия»,
   // «День ног»). Fall back to the legacy hardcoded CITIES dict for
   // the original 4 Cyprus presets. Finally null = neutral grey chip.
@@ -350,10 +342,6 @@ function DayColumnInner({
             }`}
           >
             {dayName}
-            <span className="ml-1 opacity-80">{monthShort}</span>
-            {isFirstVisible && (
-              <span className="ml-1 opacity-80">{date.getFullYear()}</span>
-            )}
           </span>
 
           {/* Day number. Today → accent colour + 2-px accent underline;
@@ -406,6 +394,18 @@ function DayColumnInner({
             ))}
         </div>
 
+        {/* Month flag — only on the 1st of a month, so a week that
+            crosses a month boundary still reads which month a column
+            belongs to. Absolutely positioned so it never shifts the
+            centered weekday/number/label stack; numbers stay aligned
+            across the row. The global header carries month for every
+            other day. */}
+        {isFirstOfMonth && (
+          <span className="absolute top-1 left-1.5 z-10 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
+            {monthShort}
+          </span>
+        )}
+
         {dayAppointments.length > 0 && (
           <span className="absolute top-1 right-1.5 z-10 text-[12px] font-semibold tabular-nums text-[var(--label-tertiary)]">
             {dayAppointments.length}
@@ -452,20 +452,20 @@ function DayColumnInner({
               ? "rgba(124,58,237,0.04)"
               : "#FFFFFF",
           // v491 — grid lines follow the «Шаг сетки» setting. Hour
-          // line is always drawn (12% alpha hairline). Sub-hour lines
+          // line is always drawn (20% alpha hairline). Sub-hour lines
           // appear when snapMinutes < 60:
           //   • 30 → one half-hour line per hour
           //   • 15 → quarter-hour lines (3 sub-lines per hour)
           //   • 60 → no sub-lines, only hour separators.
-          // Sub-lines are softer (6% alpha) so the hourly rhythm
+          // Sub-lines are softer (9% alpha) so the hourly rhythm
           // stays the primary read.
           backgroundImage: (() => {
             const hourGrad =
-              "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgba(60,60,67,0.12) calc(var(--hh) - 1px), rgba(60,60,67,0.12) var(--hh))";
+              "repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) - 1px), rgba(60,60,67,0.20) calc(var(--hh) - 1px), rgba(60,60,67,0.20) var(--hh))";
             const divisions =
               snapMinutes >= 60 ? 1 : Math.max(1, Math.round(60 / snapMinutes));
             if (divisions <= 1) return hourGrad;
-            const subGrad = `repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / ${divisions} - 1px), rgba(60,60,67,0.06) calc(var(--hh) / ${divisions} - 1px), rgba(60,60,67,0.06) calc(var(--hh) / ${divisions}))`;
+            const subGrad = `repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hh) / ${divisions} - 1px), rgba(60,60,67,0.09) calc(var(--hh) / ${divisions} - 1px), rgba(60,60,67,0.09) calc(var(--hh) / ${divisions}))`;
             return `${hourGrad}, ${subGrad}`;
           })(),
           contain: "layout paint",

@@ -33,7 +33,7 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
     <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)] relative">
       {/* Header spacer must match DayColumn header exactly, else hour
           labels drift vs the grid rows under pinch-zoom. */}
-      <div className="sticky top-0 z-30 h-[72px] lg:h-[82px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
+      <div className="sticky top-0 z-30 h-[64px] lg:h-[70px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
 
       {visibleHours.map((hour, idx) => (
         <div

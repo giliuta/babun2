@@ -123,9 +123,9 @@ export default function WeekView({
   const colPct = visibleDates.length > 0 ? 100 / visibleDates.length : 0;
 
   // Offset below the day-header (height hardcoded in DayColumn:
-  // h-[82px] lg:h-[82px]). We replicate it here so the line sits
+  // h-[64px] lg:h-[70px]). We replicate it here so the line sits
   // relative to the grid, not the page top.
-  const HEADER_PX = 72; // mobile; DayColumn header is 72-82 px
+  const HEADER_PX = 64; // mobile; DayColumn header is 64-70 px
 
   // v477 — week-level off-hours wash removed. It used CalendarSettings,
   // while DayColumn paints its own wash from the day's TeamSchedule, so
@@ -153,15 +153,11 @@ export default function WeekView({
           </div>
         </div>
       )}
-      {visibleDates.map((date, idx) => {
+      {visibleDates.map((date) => {
         // Local YYYY-MM-DD — единый формат с DayColumn/page.tsx.
         // toISOString() converts to UTC and ломает ключ для GMT+2/+3
         // Cyprus (особенно до 3am когда UTC-сутки ещё не сменились).
         const dateKey = formatDateKey(date);
-        // STORY-060 F3.1 — only the leftmost day shows the year next
-        // to the month. All other columns keep the compact "ВТ 12 май"
-        // form so the header strip doesn't read like a price tag.
-        const isFirstVisible = idx === 0;
         return (
           <DayColumn
             key={date.toISOString()}
@@ -191,7 +187,6 @@ export default function WeekView({
             hasLabels={hasLabels}
             hideCancelled={hideCancelled}
             bufferMinutes={bufferMinutes}
-            isFirstVisible={isFirstVisible}
           />
         );
       })}
