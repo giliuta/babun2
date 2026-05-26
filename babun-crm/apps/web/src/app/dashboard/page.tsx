@@ -597,6 +597,11 @@ function DashboardPageInner() {
 
   // Single shared vertical scroller for time column + day columns
   const outerScrollerRef = useRef<HTMLDivElement>(null);
+  // Remembers the last user-facing context we auto-scrolled for, so a
+  // background data reload (Supabase on slow mobile) that changes the
+  // derived window bounds does NOT yank the grid back to the open-hour.
+  // See the scroll useLayoutEffect below.
+  const lastScrollKeyRef = useRef<string>("");
 
   // Write --hh on the scroller and update the ref. Does NOT touch React
   // state — intended for the hot path during pinch-zoom.
@@ -735,6 +740,25 @@ function DashboardPageInner() {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
     if (!el) return;
+    // Only auto-scroll when the *user-facing* context changed — view
+    // mode, active brigade, or one of the explicit scroll-time settings.
+    // windowStart/windowEnd are read below for the math but deliberately
+    // NOT part of this key: a background `teams`/schedule reload (Supabase
+    // on slow 5G, ~10-15 s after a tab switch) can flip those derived
+    // values and would otherwise re-run this effect and throw the user
+    // back to the open-hour even though they'd scrolled elsewhere. The
+    // key gate keeps the grid where the user left it on a pure refresh,
+    // while still scrolling on a real tab/view switch or a settings save.
+    const scrollKey = [
+      viewMode,
+      activeTeamId,
+      activeBrigadeScroll,
+      calendarSettings.scrollOpenHour ?? "",
+      calendarSettings.workStartHour ?? "",
+      calendarSettings.workEndHour ?? "",
+    ].join("|");
+    if (lastScrollKeyRef.current === scrollKey) return;
+    lastScrollKeyRef.current = scrollKey;
     const hh = hourHeightRef.current;
     // Absolute-hour → grid-offset helper. With a brigade window the
     // grid starts at windowStart hours, so visual top = (hour - windowStart) * hh.
@@ -806,6 +830,10 @@ function DashboardPageInner() {
     hourHeightRef,
     writeHourHeight,
     windowDurationHours: windowEnd - windowStart,
+    // Scroller (and thus the zoom listeners) only exists in week/day —
+    // month + agenda unmount it. Pass this so the listeners re-attach to
+    // the new node when returning to week/day.
+    gridActive: viewMode === "week" || viewMode === "day",
   });
 
   // STORY-043 G1 — MOCK_APPOINTMENTS seed-on-mount removed. Pre-cloud
