@@ -1,25 +1,25 @@
 "use client";
 
-// Sprint 033 Phase I16 — Brigade calendar settings, iOS-Settings redesign.
+// Brigade calendar settings — mirrors the personal «Мой календарь»
+// layout so a brigade calendar is configured the same way:
+//  · Метки / Запись nav rows on top (quick access)
+//  · ЧАСЫ ДНЯ — Видимое / Рабочее / Открывается время
+//  · ШАГ ПРИ ТАПЕ
+//  · ПОВЕДЕНИЕ КАЛЕНДАРЯ
 //
-// Instant save on blur — no top-right Save pill. Grouped cards:
-//  · СЕТКА КАЛЕНДАРЯ — range with с / по inputs; explainer moved to
-//    card footer
-//  · ОТКРЫВАТЬ НА — single time input; explainer as footer
+// «Рабочее время» writes to the brigade TeamSchedule start/end (the same
+// field the calendar grid reads to grey out non-working hours), so the
+// dedicated Расписание editor page is no longer needed. Days-off, breaks
+// and vacations still live in the schedule data and still render; they're
+// edited per-day by tapping a day header on the calendar.
 //
-// Each field commits to upsertTeam on blur so closing the page
-// persists the change without an extra tap.
+// Each field commits instantly (no Save pill).
 
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, FileEdit, MapPin } from "@babun/shared/icons";
+import { FileEdit, MapPin } from "@babun/shared/icons";
 import { useTeams, useSchedules } from "@/components/layout/DashboardClientLayout";
-import {
-  DEFAULT_SCHEDULE,
-  WEEKDAY_KEYS,
-  WEEKDAY_NAMES,
-  type WeekdayKey,
-} from "@babun/shared/local/schedule";
+import { DEFAULT_SCHEDULE } from "@babun/shared/local/schedule";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
@@ -32,28 +32,9 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   const { id } = use(params);
   const router = useRouter();
   const { teams, upsertTeam } = useTeams();
-  const { schedules } = useSchedules();
+  const { schedules, setSchedules } = useSchedules();
   const team = teams.find((t) => t.id === id);
   const schedule = schedules[id] ?? DEFAULT_SCHEDULE;
-
-  // Subtitle previews for the nested nav rows (Расписание / Запись /
-  // Метки), mirroring the brigade index so the calendar hub shows the
-  // same at-a-glance state. Computed before the `!team` guard so the
-  // hook order stays stable.
-  const schedulePreview = useMemo(() => {
-    const off: WeekdayKey[] = WEEKDAY_KEYS.filter((k) => {
-      const ov = schedule.overrides?.[k];
-      return ov && !ov.is_working;
-    });
-    const hours = `${schedule.start}–${schedule.end}`;
-    const breakBit =
-      schedule.breaks && schedule.breaks.length > 0 ? " · с перерывом" : "";
-    const offBit =
-      off.length > 0
-        ? ` · вых: ${off.map((k) => WEEKDAY_NAMES[k]).join(", ")}`
-        : "";
-    return `${hours}${breakBit}${offBit}`;
-  }, [schedule]);
 
   const appointmentBlocksPreview = useMemo(() => {
     const blocks = team?.appointment_blocks;
@@ -82,7 +63,7 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
 
   useEffect(() => {
     // Reset form when `team` flips (different team picked or realtime
-    // sync brought a fresh copy). React batches 4 setters into one
+    // sync brought a fresh copy). React batches the setters into one
     // re-render — React-Compiler's cascade warning is a false positive
     // for this canonical form-reset pattern.
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -106,10 +87,8 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   }
 
   // Commit on every change (not just on blur). iOS Safari time pickers
-  // don't always fire blur cleanly — user can dismiss the picker and
+  // don't always fire blur cleanly — the user can dismiss the picker and
   // tap the back arrow before blur bubbles up, losing the edit.
-  // Writing on change guarantees persistence the instant the native
-  // picker commits a new value.
   const commitWindow = (startVal: string, endVal: string) => {
     upsertTeam({
       ...team,
@@ -129,7 +108,15 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       default_slot_minutes: v && v > 0 ? v : undefined,
     });
   };
-  // Phase I39 — behaviour knobs, mirror /settings/calendar.
+  // Working hours live on the brigade TeamSchedule (start/end). The
+  // calendar grid greys out everything outside this band, so editing it
+  // here is what the old Расписание page used to do.
+  const commitWorkHours = (startVal: string, endVal: string) => {
+    setSchedules({
+      ...schedules,
+      [id]: { ...schedule, start: startVal, end: endVal },
+    });
+  };
   const commitBuffer = (m: number) => {
     upsertTeam({
       ...team,
@@ -149,56 +136,77 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     });
   };
 
-  // Phase I36 — reduced to three — 15/30/60. This value now doubles
-  // as the snap grid for tap-to-create: если выбрано 30, тап на
-  // 11:27 → ставим 11:30; на 11:43 → ставим 11:30 (ближайшее снизу
-  // кратное). Новая запись наследует эту же длительность.
   const SLOT_PRESETS = [15, 30, 60];
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Календарь" hideSave>
+      {/* Метки / Запись on top — quick access to the two most-edited
+          sub-screens. Each opens its existing full-page editor; the back
+          arrow returns here via BrigadeSectionShell's backHref. */}
+      <ListGroup>
+        <NavRow
+          icon={<MapPin size={18} strokeWidth={2} />}
+          tone="bg-[var(--tile-red)]"
+          title="Метки"
+          value={citiesPreview.text}
+          warning={citiesPreview.warning}
+          onClick={() => router.push(`/dashboard/teams/${id}/cities`)}
+        />
+        <NavRow
+          icon={<FileEdit size={18} strokeWidth={2} />}
+          tone="bg-[var(--tile-yellow)]"
+          title="Запись"
+          value={appointmentBlocksPreview}
+          onClick={() =>
+            router.push(`/dashboard/teams/${id}/appointment-blocks`)
+          }
+        />
+      </ListGroup>
+
       <Group
-        title="Сетка календаря"
-        footer="Сколько часов видно в календаре. Пусто = 00:00–24:00."
+        title="Часы дня"
+        footer="Видимое — сколько часов видно в сетке (пусто = 00:00–24:00). Рабочее — рабочие часы подсвечиваются. Открывается — куда проскроллить при открытии."
       >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
-          <div className="grid grid-cols-2 gap-2">
-            <TimePair
-              prefix="с"
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+          <HoursRow label="Видимое время">
+            <TimeInput
               value={wStart}
               onChange={(v) => {
                 setWStart(v);
                 commitWindow(v, wEnd);
               }}
             />
-            <TimePair
-              prefix="по"
+            <span className="text-[var(--label-tertiary)]">—</span>
+            <TimeInput
               value={wEnd}
               onChange={(v) => {
                 setWEnd(v);
                 commitWindow(wStart, v);
               }}
             />
-          </div>
-        </div>
-      </Group>
+          </HoursRow>
 
-      <Group
-        title="Открывать на"
-        footer="При открытии команды календарь проскроллится сюда. Пусто = как обычно."
-      >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
-          <input
-            type="time"
-            value={scroll}
-            onChange={(e) => {
-              const v = e.target.value;
-              setScroll(v);
-              commitScroll(v);
-            }}
-            step={1800}
-            className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-          />
+          <HoursRow label="Рабочее время" border>
+            <TimeInput
+              value={schedule.start}
+              onChange={(v) => commitWorkHours(v, schedule.end)}
+            />
+            <span className="text-[var(--label-tertiary)]">—</span>
+            <TimeInput
+              value={schedule.end}
+              onChange={(v) => commitWorkHours(schedule.start, v)}
+            />
+          </HoursRow>
+
+          <HoursRow label="Открывается время" border>
+            <TimeInput
+              value={scroll}
+              onChange={(v) => {
+                setScroll(v);
+                commitScroll(v);
+              }}
+            />
+          </HoursRow>
         </div>
       </Group>
 
@@ -238,8 +246,8 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
         </div>
       </Group>
 
-      {/* Phase I39 — behaviour knobs for this brigade. Overrides the
-          global «Мой календарь» values when this brigade is active. */}
+      {/* Behaviour knobs for this brigade. Overrides the global «Мой
+          календарь» values when this brigade is active. */}
       <Group
         title="Поведение календаря"
         footer="Действует только для этой команды. Если пусто / выкл — подтягивается глобальный вариант из «Мой календарь»."
@@ -309,37 +317,6 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
           </div>
         </div>
       </Group>
-
-      {/* Расписание / Запись / Метки — moved under the calendar hub so
-          all calendar-related setup lives in one place (like «Мой
-          календарь»). Each opens its existing full-page editor; the back
-          arrow returns here via BrigadeSectionShell's backHref. */}
-      <ListGroup>
-        <NavRow
-          icon={<Clock size={18} strokeWidth={2} />}
-          tone="bg-[var(--tile-green)]"
-          title="Расписание"
-          value={schedulePreview}
-          onClick={() => router.push(`/dashboard/teams/${id}/schedule`)}
-        />
-        <NavRow
-          icon={<FileEdit size={18} strokeWidth={2} />}
-          tone="bg-[var(--tile-yellow)]"
-          title="Запись"
-          value={appointmentBlocksPreview}
-          onClick={() =>
-            router.push(`/dashboard/teams/${id}/appointment-blocks`)
-          }
-        />
-        <NavRow
-          icon={<MapPin size={18} strokeWidth={2} />}
-          tone="bg-[var(--tile-red)]"
-          title="Метки"
-          value={citiesPreview.text}
-          warning={citiesPreview.warning}
-          onClick={() => router.push(`/dashboard/teams/${id}/cities`)}
-        />
-      </ListGroup>
     </BrigadeSectionShell>
   );
 }
@@ -370,27 +347,43 @@ function Group({
   );
 }
 
-function TimePair({
-  prefix,
+// One labeled row inside the «Часы дня» card — label on the left, time
+// pickers on the right (mirrors the personal calendar layout).
+function HoursRow({
+  label,
+  border,
+  children,
+}: {
+  label: string;
+  border?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 px-4 py-3 ${
+        border ? "border-t border-[var(--separator)]" : ""
+      }`}
+    >
+      <span className="text-[15px] text-[var(--label)] shrink-0">{label}</span>
+      <div className="flex items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
+function TimeInput({
   value,
   onChange,
 }: {
-  prefix: string;
   value: string;
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[12px] text-[var(--label-tertiary)] w-6 text-right shrink-0">
-        {prefix}
-      </span>
-      <input
-        type="time"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        step={1800}
-        className="flex-1 h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-      />
-    </div>
+    <input
+      type="time"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      step={1800}
+      className="h-9 px-2 rounded-[8px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+    />
   );
 }
