@@ -48,9 +48,10 @@ interface UnifiedTimePopupProps {
   }) => void;
 }
 
-const ITEM_HEIGHT = 36;
+const ITEM_HEIGHT = 40;
 const VISIBLE_ROWS = 3;
-const COLUMN_WIDTH = 52;
+const COLUMN_WIDTH = 58;
+const DIGIT_FONT = 26;
 const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS;
 const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;
 // Carousel window — how many weeks before / after the anchor week we
@@ -346,7 +347,7 @@ export default function UnifiedTimePopup({
 
           {/* Core — two big separated wheel columns. Hidden when all-day. */}
           {!draft.allDay && (
-            <div className="flex items-start justify-center gap-7 pt-1">
+            <div className="flex items-start justify-center gap-12 pt-1">
               <WheelSide
                 label="Начало"
                 minutes={MINUTES}
@@ -422,13 +423,14 @@ function WheelSide({
             width={COLUMN_WIDTH}
             itemHeight={ITEM_HEIGHT}
             visibleRows={VISIBLE_ROWS}
+            fontSize={DIGIT_FONT}
             loop
           />
         </WheelWithLines>
         <span
           className="select-none"
           style={{
-            fontSize: 22,
+            fontSize: DIGIT_FONT,
             fontWeight: 300,
             color: "var(--label-tertiary)",
             padding: "0 2px",
@@ -445,6 +447,7 @@ function WheelSide({
             width={COLUMN_WIDTH}
             itemHeight={ITEM_HEIGHT}
             visibleRows={VISIBLE_ROWS}
+            fontSize={DIGIT_FONT}
             loop
           />
         </WheelWithLines>
