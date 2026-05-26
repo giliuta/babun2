@@ -59,6 +59,7 @@ import {
 import {
   generateId,
   getTeamMembers,
+  TEAM_COLORS,
   type Master,
   type Team,
 } from "@babun/shared/local/masters";
@@ -97,7 +98,26 @@ export default function TeamsPage() {
     }),
   );
 
-  const openNew = () => router.push("/dashboard/teams/new");
+  // Inline-create — no separate «Информация» form anymore. Make a blank
+  // team and jump straight to its calendar settings, where name + colour
+  // are edited inline at the top.
+  const openNew = () => {
+    haptic("tap");
+    const team: Team = {
+      id: generateId("team"),
+      name: "Новая команда",
+      region: "",
+      color: TEAM_COLORS[0].value,
+      default_city: "",
+      lead_id: null,
+      helper_ids: [],
+      payout_percentage: 30,
+      active: true,
+      created_at: new Date().toISOString(),
+    };
+    upsertTeam(team);
+    router.push(`/dashboard/teams/${team.id}/calendar`);
+  };
   const openTeam = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
   const openCalendarForTeam = (team: Team) => {
     // /dashboard reads the `?team=<id>` param and hydrates
