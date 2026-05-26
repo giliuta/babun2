@@ -715,6 +715,12 @@ function DashboardPageInner() {
     return 30;
   }, [teams, activeTeamId, calendarSettings.gridStep]);
 
+  // Per-brigade timezone for the "now" line. Undefined = Cyprus default.
+  const activeBrigadeTimezone = useMemo<string | undefined>(
+    () => teams.find((x) => x.id === activeTeamId)?.timezone,
+    [teams, activeTeamId],
+  );
+
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
@@ -1599,6 +1605,7 @@ function DashboardPageInner() {
           hasLabels={brigadeHasLabels}
           hideCancelled={effectiveHideCancelled}
           bufferMinutes={effectiveBufferMinutes}
+          timeZone={activeBrigadeTimezone}
           dragEnabled
         />
       );

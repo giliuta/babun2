@@ -24,6 +24,7 @@ import { TIMEZONE_OPTIONS } from "@babun/shared/local/calendar-settings";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
+import TimeWheelSheet from "@/components/teams/TimeWheelSheet";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -58,6 +59,9 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   const [wStart, setWStart] = useState(team?.calendar_window_start ?? "");
   const [wEnd, setWEnd] = useState(team?.calendar_window_end ?? "");
   const [scroll, setScroll] = useState(team?.default_scroll_time ?? "");
+  const [openField, setOpenField] = useState<
+    null | "visible" | "work" | "scroll"
+  >(null);
 
   useEffect(() => {
     // Reset form when `team` flips (different team picked or realtime
@@ -161,46 +165,58 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
           <HoursRow label="Видимое время">
-            <TimeInput
-              value={wStart}
-              onChange={(v) => {
-                setWStart(v);
-                commitWindow(v, wEnd);
-              }}
-            />
-            <span className="text-[var(--label-tertiary)]">—</span>
-            <TimeInput
-              value={wEnd}
-              onChange={(v) => {
-                setWEnd(v);
-                commitWindow(wStart, v);
-              }}
-            />
+            <ValueChip onClick={() => setOpenField("visible")}>
+              {wStart || "00:00"} — {wEnd || "24:00"}
+            </ValueChip>
           </HoursRow>
 
           <HoursRow label="Рабочее время" border>
-            <TimeInput
-              value={schedule.start}
-              onChange={(v) => commitWorkHours(v, schedule.end)}
-            />
-            <span className="text-[var(--label-tertiary)]">—</span>
-            <TimeInput
-              value={schedule.end}
-              onChange={(v) => commitWorkHours(schedule.start, v)}
-            />
+            <ValueChip onClick={() => setOpenField("work")}>
+              {schedule.start} — {schedule.end}
+            </ValueChip>
           </HoursRow>
 
           <HoursRow label="Открывается время" border>
-            <TimeInput
-              value={scroll}
-              onChange={(v) => {
-                setScroll(v);
-                commitScroll(v);
-              }}
-            />
+            <ValueChip onClick={() => setOpenField("scroll")}>
+              {scroll || "—"}
+            </ValueChip>
           </HoursRow>
         </div>
       </Group>
+
+      <TimeWheelSheet
+        open={openField === "visible"}
+        title="Видимое время"
+        mode="range"
+        start={wStart || "00:00"}
+        end={wEnd || "24:00"}
+        onClose={() => setOpenField(null)}
+        onChange={(s, e) => {
+          setWStart(s);
+          setWEnd(e);
+          commitWindow(s, e);
+        }}
+      />
+      <TimeWheelSheet
+        open={openField === "work"}
+        title="Рабочее время"
+        mode="range"
+        start={schedule.start}
+        end={schedule.end}
+        onClose={() => setOpenField(null)}
+        onChange={(s, e) => commitWorkHours(s, e)}
+      />
+      <TimeWheelSheet
+        open={openField === "scroll"}
+        title="Открывается время"
+        mode="single"
+        start={scroll || "09:00"}
+        onClose={() => setOpenField(null)}
+        onChange={(s) => {
+          setScroll(s);
+          commitScroll(s);
+        }}
+      />
 
       {/* Behaviour knobs for this brigade. */}
       <Group
@@ -341,20 +357,22 @@ function HoursRow({
   );
 }
 
-function TimeInput({
-  value,
-  onChange,
+// Tappable value chip — opens the wheel sheet. Mirrors the time chips in
+// the appointment sheet (tap → drum picker) rather than a native input.
+function ValueChip({
+  onClick,
+  children,
 }: {
-  value: string;
-  onChange: (v: string) => void;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <input
-      type="time"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      step={1800}
-      className="h-9 px-2 rounded-[8px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-    />
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-9 px-3 rounded-[8px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] tabular-nums press-scale active:bg-[var(--fill-secondary)]"
+    >
+      {children}
+    </button>
   );
 }
