@@ -129,3 +129,35 @@ export function getCurrentCyprusTime(): Date {
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
   return new Date(utc + 3 * 3600000);
 }
+
+// Current wall-clock time in an IANA timezone (e.g. "Europe/Nicosia"),
+// returned as a local Date whose getHours()/getMinutes() read that zone's
+// clock. Used so a brigade calendar can place its "now" line in the
+// brigade's own timezone. Falls back to Cyprus time on a bad zone id.
+export function getCurrentTimeInZone(timeZone: string): Date {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).formatToParts(new Date());
+    const get = (type: string) =>
+      Number(parts.find((p) => p.type === type)?.value);
+    const hour = get("hour") % 24; // Intl can emit "24" at midnight
+    return new Date(
+      get("year"),
+      get("month") - 1,
+      get("day"),
+      hour,
+      get("minute"),
+      get("second"),
+    );
+  } catch {
+    return getCurrentCyprusTime();
+  }
+}

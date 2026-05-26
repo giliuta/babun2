@@ -133,17 +133,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
     return { text: `${count} ${equipmentWord(count)}`, warning: false };
   }, [team, equipment]);
 
-  const calendarPreview = useMemo(() => {
-    if (!team) return "";
-    const start = team.calendar_window_start;
-    const end = team.calendar_window_end;
-    const scroll = team.default_scroll_time;
-    if (!start && !end && !scroll) return "как в общих настройках";
-    const window = start && end ? `${start}–${end}` : "";
-    const scrollBit = scroll ? ` · откр. на ${scroll}` : "";
-    return `${window || "24 ч"}${scrollBit}`;
-  }, [team]);
-
   const activeCities = cities.filter((c) => c.isActive);
   void activeCities;
 
@@ -240,7 +229,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               icon={<CalendarDays size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-orange)]"
               title="Календарь"
-              value={calendarPreview}
+              value=""
               onClick={() => router.push(`/dashboard/teams/${team.id}/calendar`)}
             />
           </ListGroup>
