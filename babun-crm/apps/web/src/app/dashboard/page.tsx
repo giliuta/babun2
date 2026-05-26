@@ -1839,40 +1839,57 @@ function DashboardPageInner() {
             }}
           />
         ) : (
-          <div
-            ref={outerScrollerRef}
-            // v475 — bg back to surface-card (white). v474 already
-            // clamps pinch-zoom-out so the grid fills the viewport,
-            // so the gray «empty area below 23:59» from v472 is no
-            // longer needed — and it read as a bug to the user.
-            // White matches the personal calendar's column body, so
-            // any residual sub-pixel gap blends invisibly.
-            className="flex-1 flex bg-[var(--surface-card)] min-h-0 relative"
-            style={{
-              overflowY: "auto",
-              overflowX: "clip",
-              touchAction: "pan-y",
-              overscrollBehavior: "none",
-              // iOS momentum scrolling + GPU composition for butter-smooth
-              // 120 Hz scrolling. transform forces a dedicated layer so the
-              // compositor can scroll without touching the main thread.
-              WebkitOverflowScrolling: "touch",
-              transform: "translateZ(0)",
-              willChange: "scroll-position",
-              contain: "paint",
-            }}
-          >
-            <TimeColumn startHour={windowStart} endHour={windowEnd} />
-            <SwipeableCalendar
-              renderPage={renderPage}
-              onSwipeLeft={handleNextWeek}
-              onSwipeRight={handlePrevWeek}
+          // Non-scrolling wrapper. The scroller below owns the vertical
+          // scroll + pinch-zoom; the divider/corner overlays live here,
+          // OUTSIDE the scroll content, so they can't drift on scroll or
+          // lift on zoom (the previous in-column divider + sticky corner
+          // moved together when applyZoom wrote scrollTop while --hh
+          // changed inside the composited scroller).
+          <div className="flex-1 flex flex-col min-h-0 relative">
+            <div
+              ref={outerScrollerRef}
+              // v475 — bg back to surface-card (white). v474 already
+              // clamps pinch-zoom-out so the grid fills the viewport,
+              // so the gray «empty area below 23:59» from v472 is no
+              // longer needed — and it read as a bug to the user.
+              // White matches the personal calendar's column body, so
+              // any residual sub-pixel gap blends invisibly.
+              className="flex-1 flex bg-[var(--surface-card)] min-h-0 relative"
+              style={{
+                overflowY: "auto",
+                overflowX: "clip",
+                touchAction: "pan-y",
+                overscrollBehavior: "none",
+                // iOS momentum scrolling + GPU composition for butter-smooth
+                // 120 Hz scrolling. transform forces a dedicated layer so the
+                // compositor can scroll without touching the main thread.
+                WebkitOverflowScrolling: "touch",
+                transform: "translateZ(0)",
+                willChange: "scroll-position",
+                contain: "paint",
+              }}
+            >
+              <TimeColumn startHour={windowStart} endHour={windowEnd} />
+              <SwipeableCalendar
+                renderPage={renderPage}
+                onSwipeLeft={handleNextWeek}
+                onSwipeRight={handlePrevWeek}
+              />
+            </div>
+
+            {/* Fixed top-left corner mask — covers the time-column header
+                cell so labels scrolling/zooming under it never show. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute top-0 left-0 z-[5] w-12 lg:w-16 h-[64px] lg:h-[70px] bg-[var(--surface-card)]"
             />
-            {/* Sprint 033 Phase I17 — removed absolute-positioned 2-px
-                "stable vertical rule" that was drifting visibly during
-                pinch-zoom. The separator now lives as border-right on
-                TimeColumn itself (see TimeColumn.tsx), so it's
-                physically part of the time column and can't shift. */}
+            {/* Static time/grid divider — fixed in this non-scrolling
+                wrapper, below the header, so it can't drift or lift. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute z-[5] left-12 lg:left-16 top-[64px] lg:top-[70px] bottom-0 w-[1.5px]"
+              style={{ backgroundColor: "rgba(60, 60, 67, 0.26)" }}
+            />
           </div>
         )}
       </DndContext>

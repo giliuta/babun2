@@ -20,26 +20,19 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
   const to = Math.max(from + 1, Math.min(24, Math.ceil(endHour)));
   const visibleHours = HOURS.slice(from, to);
   return (
-    // The time/grid divider is a plain `border-right` on the column
-    // itself — NOT an absolutely-positioned overlay. Earlier attempts:
-    //  · Absolute line OUTSIDE the column → drifted at sub-pixel zoom.
-    //  · Absolute line INSIDE the column (top-0 right-0 bottom-0) →
-    //    still jittered: its `bottom-0` height recomputed every pinch
-    //    frame while applyZoom wrote scrollTop synchronously, so the
-    //    line visibly shifted while zooming/scrolling.
-    //  · border-right + per-hour border-b → tiny gaps at every hour
-    //    boundary where the row border-b anti-aliased against the
-    //    border-r corner.
-    // Fix: keep the divider as a static border-right and DROP the
-    // per-hour border-b (the day grid already paints the hour lines,
-    // so the time column doesn't need its own). The border is part of
-    // the element at a fixed x, full height — it can't drift on zoom
-    // or scroll. Width 1.5px ≈ 3 device px on retina; ~26 % alpha lands
-    // clearly above the inter-day hairlines without looking heavy.
-    <div
-      className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)]"
-      style={{ borderRight: "1.5px solid rgba(60, 60, 67, 0.26)" }}
-    >
+    // The time/grid divider is NOT drawn here. Every in-column attempt
+    // moved with the scroll/zoom:
+    //  · border-right on this (scrolling) column, or an absolute line
+    //    inside it → the line + the sticky header corner lifted together
+    //    during pinch-zoom (applyZoom writes scrollTop while --hh changes
+    //    and `sticky` doesn't hold inside the composited scroller).
+    // Fix: the divider AND the top-left corner mask now live as FIXED
+    // overlays in the non-scrolling wrapper around the scroller (see
+    // dashboard/page.tsx). They sit outside the scroll content, so they
+    // can't drift on scroll or lift on zoom. Here we only render the
+    // scrolling hour labels; the header spacer keeps the label rows
+    // aligned with the day grid below the headers.
+    <div className="w-12 lg:w-16 flex-shrink-0 bg-[var(--surface-card)]">
       {/* Header spacer must match DayColumn header exactly, else hour
           labels drift vs the grid rows under pinch-zoom. */}
       <div className="sticky top-0 z-30 h-[64px] lg:h-[70px] border-b border-[var(--separator-opaque)] bg-[var(--surface-card)]" />
