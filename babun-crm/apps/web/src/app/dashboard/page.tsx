@@ -38,6 +38,12 @@ import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalendarChoice";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
+import DayFinanceFooter from "@/components/calendar/DayFinanceFooter";
+import {
+  computeDayFinance,
+  resolveDayFinanceRows,
+  type DayFinanceTotals,
+} from "@babun/shared/local/finance/day-summary";
 // CalendarLegend убран из рендера (см. место использования ниже).
 // Импорт сохранён закомментированным как маркер «это компонент есть,
 // просто не маршрутизируется в текущем UI».
@@ -65,8 +71,8 @@ const CityPickerModal = dynamic(
   () => import("@/components/calendar/CityPickerModal"),
   { ssr: false },
 );
-const DayFinanceModal = dynamic(
-  () => import("@/components/calendar/DayFinanceModal"),
+const DayFinanceDetailModal = dynamic(
+  () => import("@/components/calendar/DayFinanceDetailModal"),
   { ssr: false },
 );
 const SpecialScheduleModal = dynamic(
@@ -1521,6 +1527,30 @@ function DashboardPageInner() {
   const effectiveBufferMinutes =
     activeTeam?.buffer_minutes ?? calendarSettings.bufferMinutes ?? 0;
 
+  // Per-day finance footer. Rows are resolved from the active calendar:
+  // brigade override wins, personal tab falls back to the global
+  // «Мой календарь» config. Dates mirror exactly what the grid renders
+  // for the current offset-0 page (1 / 3 / 7 days from currentMonday).
+  const dayFinanceRows = useMemo(
+    () =>
+      resolveDayFinanceRows(
+        activeTeam ? activeTeam.day_finance_rows : calendarSettings.dayFinanceRows,
+      ),
+    [activeTeam, calendarSettings.dayFinanceRows],
+  );
+  const footerDates = useMemo(() => {
+    const count = viewMode === "week" ? 7 : viewMode === "3days" ? 3 : 1;
+    return Array.from({ length: count }, (_, i) => addDays(currentMonday, i));
+  }, [viewMode, currentMonday]);
+  const dayFinanceSummary = useCallback(
+    (dateKey: string): DayFinanceTotals => {
+      const apptsForDay = visibleAppointments.filter((a) => a.date === dateKey);
+      const extras = getExtrasFor(activeTeamId || null, dateKey);
+      return computeDayFinance(apptsForDay, services, extras);
+    },
+    [visibleAppointments, services, getExtrasFor, activeTeamId],
+  );
+
   // v462 diagnostic — surface tab/data state so we can see at a glance
   // whether masters/teams are populated. Fires only when the relevant
   // counts change (mount + data loads), not on every render.
@@ -1803,6 +1833,8 @@ function DashboardPageInner() {
           <MonthView
             currentDate={currentMonday}
             appointments={visibleAppointments}
+            financeRows={dayFinanceRows}
+            summaryFor={dayFinanceSummary}
             onDayClick={(date) => {
               // Brief 2 #2 («Мой календарь»): clicking 15 May should
               // open day view on 15 May, not the Monday of that week.
@@ -1869,11 +1901,21 @@ function DashboardPageInner() {
               className="pointer-events-none absolute top-0 left-0 z-[5] w-12 lg:w-16 h-[64px] lg:h-[70px] bg-[var(--surface-card)]"
             />
             {/* Static time/grid divider — fixed in this non-scrolling
-                wrapper, below the header, so it can't drift or lift. */}
+                wrapper, below the header, so it can't drift or lift. It
+                runs down through the finance footer's gutter edge, which
+                doubles as the label/numbers separator there. */}
             <div
               aria-hidden
               className="pointer-events-none absolute z-[5] left-12 lg:left-16 top-[64px] lg:top-[70px] bottom-0 w-[1.5px]"
               style={{ backgroundColor: "rgba(60, 60, 67, 0.26)" }}
+            />
+            {/* Pinned per-day finance footer — static strip below the
+                grid, never scrolls. Mirrors the visible day columns. */}
+            <DayFinanceFooter
+              dates={footerDates}
+              rows={dayFinanceRows}
+              summaryFor={dayFinanceSummary}
+              onDayTap={handleFooterTap}
             />
           </div>
         )}
@@ -2104,17 +2146,24 @@ function DashboardPageInner() {
           marker — если понадобится вернуть, достаточно одного блока
           <CalendarFab .../>. */}
 
-      {/* Day finance modal */}
+      {/* Day finance detail popup — opens from the per-day footer tap.
+          Shows totals + payment-method breakdown + completed services,
+          and keeps the manual income/expense entry. */}
       {financeDateKey && (
-        <DayFinanceModal
+        <DayFinanceDetailModal
           open
           onClose={() => setFinanceDateKey(null)}
-          dateKey={financeDateKey}
           dateLabel={formatDateLongRu(financeDateKey)}
           appointments={visibleAppointments.filter(
             (a) => a.date === financeDateKey
           )}
           services={services}
+          clientNameFor={(apt) => {
+            const name = apt.client_id
+              ? clients.find((c) => c.id === apt.client_id)?.full_name
+              : null;
+            return name || apt.comment?.trim() || "Без имени";
+          }}
           extras={getExtrasFor(activeTeamId || null, financeDateKey)}
           onSave={(next) => {
             if (activeTeamId) setExtrasFor(activeTeamId, financeDateKey, next);
