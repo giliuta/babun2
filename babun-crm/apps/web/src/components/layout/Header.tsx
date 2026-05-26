@@ -598,7 +598,7 @@ function TeamChip({
       // Telegram-style horizontal-scroll feel, but the hit zone now
       // covers ≥44 pt once you count the surrounding pb-2 padding from
       // TeamTabStrip's outer div.
-      className={`relative flex items-center gap-1.5 px-3.5 h-10 max-w-[180px] rounded-full text-[13px] font-semibold whitespace-nowrap select-none transition-shadow ${tone} ${
+      className={`relative flex items-center gap-1.5 px-3.5 h-10 max-w-[180px] text-[14px] font-semibold whitespace-nowrap select-none transition-shadow ${tone} ${
         isDragging
           ? "z-20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] scale-[1.06] rotate-[-1.5deg] cursor-grabbing"
           : ""
@@ -607,7 +607,7 @@ function TeamChip({
       {team.color && (
         <span
           aria-hidden
-          className="w-2 h-2 rounded-full shrink-0"
+          className="w-2.5 h-2.5 shrink-0"
           style={{ backgroundColor: team.color }}
         />
       )}
