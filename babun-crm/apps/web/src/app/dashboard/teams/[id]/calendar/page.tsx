@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { FileEdit, MapPin } from "@babun/shared/icons";
 import { useTeams, useSchedules } from "@/components/layout/DashboardClientLayout";
 import { DEFAULT_SCHEDULE } from "@babun/shared/local/schedule";
+import { TIMEZONE_OPTIONS } from "@babun/shared/local/calendar-settings";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
@@ -135,6 +136,12 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
       allow_overtime: next || undefined,
     });
   };
+  const commitWeekStart = (v: "monday" | "sunday") => {
+    upsertTeam({ ...team, week_start: v });
+  };
+  const commitTimezone = (v: string) => {
+    upsertTeam({ ...team, timezone: v || undefined });
+  };
 
   const SLOT_PRESETS = [15, 30, 60];
 
@@ -246,6 +253,30 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
         </div>
       </Group>
 
+      <Group title="Начало недели">
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-2">
+          <div className="inline-flex w-full p-0.5 rounded-[10px] bg-[var(--fill-tertiary)]">
+            {(["monday", "sunday"] as const).map((day) => {
+              const active = (team.week_start ?? "monday") === day;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => commitWeekStart(day)}
+                  className={`flex-1 h-9 rounded-[8px] text-[14px] font-medium press-scale transition-colors ${
+                    active
+                      ? "bg-[var(--surface-card)] text-[var(--label)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
+                      : "text-[var(--label-secondary)]"
+                  }`}
+                >
+                  {day === "monday" ? "Понедельник" : "Воскресенье"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Group>
+
       {/* Behaviour knobs for this brigade. Overrides the global «Мой
           календарь» values when this brigade is active. */}
       <Group
@@ -315,6 +346,22 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
               ariaLabel="Разрешить продлить рабочий день"
             />
           </div>
+        </div>
+      </Group>
+
+      <Group title="Часовой пояс">
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
+          <select
+            value={team.timezone ?? "Europe/Nicosia"}
+            onChange={(e) => commitTimezone(e.target.value)}
+            className="w-full h-11 px-3 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] text-[var(--label)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          >
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
         </div>
       </Group>
     </BrigadeSectionShell>
