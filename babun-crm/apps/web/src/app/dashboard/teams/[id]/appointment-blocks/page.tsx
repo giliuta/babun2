@@ -181,7 +181,12 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Запись" hideSave>
+      <BrigadeSectionShell
+        brigadeId={id}
+        backHref={`/dashboard/teams/${id}/calendar`}
+        title="Запись"
+        hideSave
+      >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Команда не найдена.
         </div>
@@ -242,7 +247,12 @@ export default function BrigadeAppointmentBlocksPage({ params }: RouteParams) {
   };
 
   return (
-    <BrigadeSectionShell brigadeId={id} title="Запись" hideSave>
+    <BrigadeSectionShell
+        brigadeId={id}
+        backHref={`/dashboard/teams/${id}/calendar`}
+        title="Запись"
+        hideSave
+      >
       {/* ── Мини-превью формы записи (с drag-to-reorder) ───── */}
       <div>
         <div className="px-4 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)]">

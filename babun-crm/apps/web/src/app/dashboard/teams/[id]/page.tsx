@@ -19,14 +19,9 @@
 import { use, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle,
   CalendarDays,
   ChevronLeft,
-  ChevronRight,
-  Clock,
-  FileEdit,
   Info,
-  MapPin,
   Package,
   Trash2,
   Users as UsersIcon,
@@ -36,6 +31,7 @@ import { haptic } from "@/lib/haptics";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { safeBack } from "@/lib/nav/safe-back";
 import IOSSwitch from "@/components/ui/IOSSwitch";
+import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
 import {
   useMasters,
   useTeams,
@@ -43,19 +39,12 @@ import {
   useAppointments,
   useCities,
   useEquipment,
-  useSchedules,
 } from "@/components/layout/DashboardClientLayout";
 import {
   getTeamLeadIds,
   type Master,
   type Team,
 } from "@babun/shared/local/masters";
-import {
-  DEFAULT_SCHEDULE,
-  WEEKDAY_KEYS,
-  WEEKDAY_NAMES,
-  type WeekdayKey,
-} from "@babun/shared/local/schedule";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -72,7 +61,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const { appointments, upsertAppointment } = useAppointments();
   const { cities } = useCities();
   const { equipment } = useEquipment();
-  const { schedules } = useSchedules();
 
   // BUGFIX (bug-hunt sweep) — `if (isNew) early-return` was here,
   // but the eight `useMemo` hooks below it ran conditionally
@@ -82,7 +70,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   // (empty) page; the visual flash is the same as before since the
   // page renders nothing (team is undefined, all previews are "").
   const team = teams.find((t) => t.id === id);
-  const schedule = schedules[id] ?? DEFAULT_SCHEDULE;
 
   // ── Compose preview strings for each row ────────────────────────────
   const infoPreview = useMemo(() => {
@@ -95,17 +82,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   // Previews now also return a `warning` flag so the row can tint its
   // subtitle yellow + show a ⚠ icon when the subsection isn't set up.
   // Consistent with the brigades-list row treatment.
-  const citiesPreview = useMemo((): { text: string; warning: boolean } => {
-    if (!team) return { text: "", warning: false };
-    const list = team.cities ?? [];
-    if (list.length === 0) return { text: "не заданы", warning: true };
-    const text =
-      list.length <= 3
-        ? list.join(", ")
-        : `${list.slice(0, 2).join(", ")} и ещё ${list.length - 2}`;
-    return { text, warning: false };
-  }, [team]);
-
   const mastersPreview = useMemo((): { text: string; warning: boolean } => {
     if (!team) return { text: "", warning: false };
     // Phase I43 — prefer new `members` shape when defined; fall back
@@ -167,30 +143,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
     const scrollBit = scroll ? ` · откр. на ${scroll}` : "";
     return `${window || "24 ч"}${scrollBit}`;
   }, [team]);
-
-  const schedulePreview = useMemo(() => {
-    const off: WeekdayKey[] = WEEKDAY_KEYS.filter((k) => {
-      const ov = schedule.overrides?.[k];
-      return ov && !ov.is_working;
-    });
-    const hours = `${schedule.start}–${schedule.end}`;
-    const breakBit = schedule.breaks && schedule.breaks.length > 0 ? " · с перерывом" : "";
-    const offBit =
-      off.length > 0
-        ? ` · вых: ${off.map((k) => WEEKDAY_NAMES[k]).join(", ")}`
-        : "";
-    return `${hours}${breakBit}${offBit}`;
-  }, [schedule]);
-
-  const appointmentBlocksPreview = useMemo(() => {
-    if (!team) return "";
-    const blocks = team.appointment_blocks;
-    if (!blocks) return "стандартные блоки";
-    const overrides = Object.keys(blocks).length;
-    if (overrides === 0) return "стандартные блоки";
-    return `${overrides} настроек изменено`;
-  }, [team]);
-
 
   const activeCities = cities.filter((c) => c.isActive);
   void activeCities;
@@ -291,14 +243,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               onClick={() => router.push(`/dashboard/teams/${team.id}/info`)}
             />
             <NavRow
-              icon={<MapPin size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-red)]"
-              title="Метки"
-              value={citiesPreview.text}
-              warning={citiesPreview.warning}
-              onClick={() => router.push(`/dashboard/teams/${team.id}/cities`)}
-            />
-            <NavRow
               icon={<UsersIcon size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
               // STORY audit: было «Команда», заголовок целевой страницы
@@ -334,22 +278,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               title="Календарь"
               value={calendarPreview}
               onClick={() => router.push(`/dashboard/teams/${team.id}/calendar`)}
-            />
-            <NavRow
-              icon={<Clock size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-green)]"
-              title="Расписание"
-              value={schedulePreview}
-              onClick={() => router.push(`/dashboard/teams/${team.id}/schedule`)}
-            />
-            <NavRow
-              icon={<FileEdit size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-yellow)]"
-              title="Запись"
-              value={appointmentBlocksPreview}
-              onClick={() =>
-                router.push(`/dashboard/teams/${team.id}/appointment-blocks`)
-              }
             />
           </ListGroup>
 
@@ -409,75 +337,6 @@ function equipmentWord(n: number): string {
   if (n === 1) return "предмет";
   if (n >= 2 && n <= 4) return "предмета";
   return "предметов";
-}
-
-// ─── Layout primitives (local — tiny and brigade-specific) ────────────
-
-function ListGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--separator)]">
-      {children}
-    </div>
-  );
-}
-
-function NavRow({
-  icon,
-  tone,
-  title,
-  value,
-  warning,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  tone: string;
-  title: string;
-  value: string;
-  /** When true, subtitle tints yellow and gets a ⚠ icon — signals
-   *  that this subsection isn't set up yet. */
-  warning?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        haptic("tap");
-        onClick();
-      }}
-      className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] active:bg-[var(--fill-quaternary)] transition press-scale"
-    >
-      <span
-        className={`w-8 h-8 rounded-lg flex items-center justify-center text-[var(--label-on-accent)] shrink-0 ${tone}`}
-      >
-        {icon}
-      </span>
-      <span className="flex-1 text-left min-w-0">
-        <span className="block text-[15px] font-medium text-[var(--label)] truncate">
-          {title}
-        </span>
-        {value && (
-          <span
-            className={`text-[13px] truncate mt-0.5 flex items-center gap-1 ${
-              warning
-                ? "text-[color:var(--system-yellow-strong,#B78600)] font-medium"
-                : "text-[var(--label-secondary)]"
-            }`}
-          >
-            {warning && (
-              <AlertTriangle
-                size={12}
-                strokeWidth={2.5}
-                className="shrink-0 text-[var(--system-yellow)] fill-[var(--system-yellow)]"
-              />
-            )}
-            <span className="truncate">{value}</span>
-          </span>
-        )}
-      </span>
-      <ChevronRight size={16} className="text-[var(--label-quaternary)] shrink-0" />
-    </button>
-  );
 }
 
 // Re-exported for subroute pages so they can import the same type.
