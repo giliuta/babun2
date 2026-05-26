@@ -75,30 +75,16 @@ export default function ClientPickerSheet({
   const [showComment, setShowComment] = useState(false);
   const [newTelegram, setNewTelegram] = useState<string | null>(null);
   const [newInstagram, setNewInstagram] = useState<string | null>(null);
-  const [clipboardHint, setClipboardHint] = useState<string | null>(null);
 
-  // Clipboard-detect: when the dispatcher opens "Новый клиент" we peek
-  // at the clipboard once — if it looks like a phone number, offer to
-  // prefill. No auto-fill (iOS permission prompt is jarring if it fires
-  // without a reason). The dispatcher taps "Вставить" to accept.
-  useEffect(() => {
-    if (!showNewForm) return;
-    if (clipboardHint !== null) return;
-    const ask = async () => {
-      try {
-        if (typeof navigator === "undefined" || !navigator.clipboard) return;
-        const text = await navigator.clipboard.readText();
-        if (!text) return;
-        const digits = text.replace(/\D/g, "");
-        if (digits.length >= 7 && digits.length <= 16) {
-          setClipboardHint(text.trim());
-        }
-      } catch {
-        // Permission denied — fine, the dispatcher can paste manually.
-      }
-    };
-    ask();
-  }, [showNewForm, clipboardHint]);
+  // v730 — REMOVED the auto clipboard-peek that ran on form-open.
+  // `navigator.clipboard.readText()` triggers iOS Safari's native
+  // «Вставить» (Paste) authorization callout the moment the «Новый
+  // клиент» form opens — unprompted. Worse, that callout steals focus
+  // from the autoFocus name input, so the dispatcher couldn't type the
+  // name, it stayed empty, and «Добавить» (which needs name + phone)
+  // stayed disabled. The operator reads this as «кнопка не нажимается и
+  // пишет вставить». The convenience never justified the cost: iOS
+  // already offers a native long-press → Paste on the phone field.
 
   const filtered = useMemo(() => {
     if (!query.trim()) return clients;
@@ -292,24 +278,6 @@ export default function ClientPickerSheet({
           </button>
         ) : (
           <div className="space-y-2.5">
-            {clipboardHint && newPhones[0] !== clipboardHint && (
-              <button
-                type="button"
-                onClick={() => {
-                  updatePhone(0, clipboardHint);
-                  setClipboardHint(null);
-                }}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[10px] bg-[var(--surface-card)] border border-[var(--accent)] text-[12px] text-[var(--accent)] active:bg-[var(--accent-tint)]"
-              >
-                <span className="truncate">
-                  <span className="font-semibold">В буфере:</span> {clipboardHint}
-                </span>
-                <span className="text-[12px] font-semibold text-[var(--accent)] shrink-0">
-                  Вставить →
-                </span>
-              </button>
-            )}
-
             <input
               type="text"
               autoFocus

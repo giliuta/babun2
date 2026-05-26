@@ -139,23 +139,25 @@ export default function AppointmentSheet({
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setLiveMode(mode), [mode, appointment.id]);
 
-  // STORY audit: iOS Safari клавиатура перекрывает sticky footer
-  // (AppointmentSaveButton). Использую visualViewport API — на open
-  // keyboard `visualViewport.height` уменьшается, и мы передаём это
-  // как inline height на sheet-container. Footer остаётся в видимой
-  // зоне, scroll внутри sheet работает как раньше. Резерв 16px чтобы
-  // sheet не прилипал к самому верху клавиатуры. На десктопе и
-  // Android Chrome visualViewport совпадает с innerHeight — стандартный
-  // 92vh.
-  const [sheetHeight, setSheetHeight] = useState<string>("92vh");
+  // iOS PWA keyboard fix — «когда начинаю писать текст, оно всё
+  // смещается». Корень: overlay это `position: fixed` относительно
+  // LAYOUT viewport. На open keyboard iOS скроллит VISUAL viewport
+  // (и микро-скроллит на каждый каретко-сдвиг / переключение строки
+  // подсказок), а fixed-элемент уезжает вместе с ним. Лечим тем, что
+  // ПРИБИВАЕМ overlay к visual viewport: height = vv.height,
+  // translateY = vv.offsetTop. Тогда overlay всегда строго над
+  // клавиатурой и не дрейфует — sheet внутри остаётся статичным. На
+  // десктопе и Android Chrome vv совпадает с innerHeight (offsetTop=0)
+  // → no-op, полноэкранный overlay + 92vh sheet как раньше.
+  const [viewport, setViewport] = useState<{
+    height: number;
+    offsetTop: number;
+  } | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
     const update = () => {
-      // Когда клавиатура закрыта vv.height ≈ window.innerHeight → 92vh
-      // выглядит обычно. Когда открыта — берём 92% vv.height.
-      const usable = vv.height;
-      setSheetHeight(`${Math.max(320, Math.floor(usable * 0.92))}px`);
+      setViewport({ height: vv.height, offsetTop: vv.offsetTop });
     };
     update();
     vv.addEventListener("resize", update);
@@ -165,6 +167,12 @@ export default function AppointmentSheet({
       vv.removeEventListener("scroll", update);
     };
   }, []);
+  // Sheet занимает 92% видимой области (как прежде). Деривируем из
+  // pinned viewport, без отдельного state — height клавиатуры уже
+  // учтён в vv.height.
+  const sheetHeight = viewport
+    ? `${Math.max(320, Math.floor(viewport.height * 0.92))}px`
+    : "92vh";
 
   const [kind, setKind] = useState<Kind>(
     personalMode ||
@@ -729,7 +737,24 @@ export default function AppointmentSheet({
       // только через явную кнопку ✕ или swipe-down (тоже идёт через
       // attemptClose). Esc на keyboard через useBodyScrollLock тоже
       // работает.
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-x-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      // Pin to the visual viewport (iOS keyboard fix — see `viewport`
+      // effect above). `top` follows vv.offsetTop so the overlay never
+      // drifts when the keyboard scrolls the page; height follows
+      // vv.height so the sheet + footer stay above the keyboard.
+      //
+      // IMPORTANT: we use `top`, NOT `transform`. A CSS transform on
+      // this overlay would make it the containing block for every
+      // `position: fixed` descendant — the client picker, service
+      // picker and confirm dialogs (DialogModal is `fixed inset-0` and
+      // renders inside this overlay, not via a body portal). That would
+      // mis-position those sub-sheets («всё ломается»). `top` repositions
+      // without creating a containing block. Fallback 100dvh / top:0 on
+      // first paint and on browsers without visualViewport.
+      style={{
+        top: viewport ? `${viewport.offsetTop}px` : 0,
+        height: viewport ? `${viewport.height}px` : "100dvh",
+      }}
     >
       <div
         // STORY-056 — desktop cap at 720 px so the modal reads as a
