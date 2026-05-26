@@ -824,6 +824,10 @@ function DashboardPageInner() {
     hourHeightRef,
     writeHourHeight,
     windowDurationHours: windowEnd - windowStart,
+    // Scroller (and thus the zoom listeners) only exists in week/day —
+    // month + agenda unmount it. Pass this so the listeners re-attach to
+    // the new node when returning to week/day.
+    gridActive: viewMode === "week" || viewMode === "day",
   });
 
   // STORY-043 G1 — MOCK_APPOINTMENTS seed-on-mount removed. Pre-cloud
