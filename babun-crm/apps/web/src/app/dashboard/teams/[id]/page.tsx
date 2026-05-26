@@ -233,6 +233,18 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-3 py-4 pb-[calc(env(safe-area-inset-bottom)+80px)] space-y-6">
+          {/* Calendar first — it is the most-used section and the hub for
+              all calendar-related setup (Запись / Метки / hours). */}
+          <ListGroup>
+            <NavRow
+              icon={<CalendarDays size={18} strokeWidth={2} />}
+              tone="bg-[var(--tile-orange)]"
+              title="Календарь"
+              value={calendarPreview}
+              onClick={() => router.push(`/dashboard/teams/${team.id}/calendar`)}
+            />
+          </ListGroup>
+
           {/* Main brigade sections as nav rows */}
           <ListGroup>
             <NavRow
@@ -268,16 +280,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
               value={equipmentPreview.text}
               warning={equipmentPreview.warning}
               onClick={() => router.push(`/dashboard/teams/${team.id}/equipment`)}
-            />
-          </ListGroup>
-
-          <ListGroup>
-            <NavRow
-              icon={<CalendarDays size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-orange)]"
-              title="Календарь"
-              value={calendarPreview}
-              onClick={() => router.push(`/dashboard/teams/${team.id}/calendar`)}
             />
           </ListGroup>
 
