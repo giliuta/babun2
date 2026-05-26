@@ -51,13 +51,12 @@ import UnifiedTimePopup from "./UnifiedTimePopup";
 import TimeSummaryRow from "./TimeSummaryRow";
 import AppointmentHeader from "./AppointmentHeader";
 import AppointmentSaveButton from "./AppointmentSaveButton";
-import PaymentBlock from "./PaymentBlock";
 import { createRecurringReminder } from "@babun/shared/db/repositories/recurring-reminders";
 // jspdf + invoice builder are heavy (~350 kB combined). Load them on
 // demand when the dispatcher actually taps "Скачать счёт" instead of
 // shipping the module in the main dashboard bundle.
 
-export type AppointmentSheetMode = "create" | "view" | "done" | "edit";
+export type AppointmentSheetMode = "create" | "edit";
 
 interface AppointmentSheetProps {
   open: boolean;
@@ -103,11 +102,12 @@ interface AppointmentSheetProps {
 
 type Kind = "work" | "event";
 
-// STORY-002-FINAL единый экран записи. Один layout, три режима.
-// Внешний слой — bottom sheet 92vh. Сверху по mode:
-//  - create: segment [Клиент / Событие] + sticky footer «Создать»
-//  - view:   PaymentBlock + QuickActions + AdminActions
-//  - done:   зелёный бейдж статуса + QuickActions + AdminActions
+// Единый экран записи. ОДИН layout для создания и для всех
+// существующих записей (inline-редактирование). Внешний слой —
+// bottom sheet 92vh. Различие режимов только в шапке (create → таб
+// Клиент/Событие; existing → текстовый статус) и в том, что блок
+// оплаты + действия появляются только после создания. Нижняя кнопка
+// «Создать»/«Сохранить» всегда на одном месте.
 export default function AppointmentSheet({
   open,
   onClose,
@@ -123,7 +123,6 @@ export default function AppointmentSheet({
   cityForDate,
   onSave,
   onReschedule,
-  onCompleteQuick,
   onDelete,
   personalMode = false,
 }: AppointmentSheetProps) {
@@ -132,9 +131,7 @@ export default function AppointmentSheet({
   // uses it to color the dot on recent-client chips and on the filled
   // card. Cheap context read, no fetch.
   const { tags: clientTags } = useClients();
-  // Локальный mode-state: позволяет переключаться в 'edit' из 'view'
-  // при тапе на «Редактировать» в AdminActions без перекомпоновки
-  // sheet родителем.
+  // Локальный mode-state: create или edit. Зеркалит проп `mode`.
   const [liveMode, setLiveMode] = useState<AppointmentSheetMode>(mode);
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setLiveMode(mode), [mode, appointment.id]);
@@ -530,19 +527,9 @@ export default function AppointmentSheet({
       : activeTeam.name
     : "—";
 
-  // Sprint 025 STORY-005: header quick actions (✓ / 📷 / ↻). Visible
-  // only in view mode for records that are still actionable (scheduled
-  // or in-progress). Completed / cancelled records already show the
-  // status badge in the header slot so these don't appear.
+  // photoScrollRef lets the PhotoBlock scroll itself into view when the
+  // keyboard opens / on focus.
   const photoScrollRef = useRef<HTMLDivElement | null>(null);
-  const showQuickActions =
-    liveMode === "view" &&
-    !isEventMode &&
-    appointment.status !== "completed" &&
-    appointment.status !== "cancelled";
-  const scrollToPhotos = () => {
-    photoScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
 
   // v607 P0 #3 — Источник заявки больше не блокирует создание. KPI
   // «20 секунд на мотороллере» важнее аналитического gap'а; источник
@@ -697,19 +684,26 @@ export default function AppointmentSheet({
   // (Replacing emoji with @babun/shared/icons components would require
   // changing the AppointmentHeader prop shape from string to ReactNode;
   // simpler to drop the decoration since text + colour suffices.)
-  const doneBadge = (() => {
-    if (mode !== "done" || !appointment.payment) return null;
-    const p = appointment.payment;
-    if (p.method === "cash") {
-      return `Выполнено · нал · ${formatEUR(p.cashAmount)}`;
+  // Header status label for EXISTING records (create shows the
+  // Клиент/Событие tabs instead). Same slot, just text + tone — so the
+  // layout never changes between view and edit, only the wording.
+  const headerStatus = ((): { text: string; tone: "accent" | "green" | "red" } | null => {
+    if (liveMode === "create") return null;
+    if (appointment.status === "completed") {
+      const p = appointment.payment;
+      const text = !p
+        ? "Выполнено"
+        : p.method === "cash"
+          ? `Выполнено · нал · ${formatEUR(p.cashAmount)}`
+          : p.method === "card"
+            ? `Выполнено · карта · ${formatEUR(p.cardAmount)}`
+            : p.method === "split"
+              ? `Выполнено · нал ${formatEUR(p.cashAmount)} + карта ${formatEUR(p.cardAmount)}`
+              : `Выполнено · счёт компании · ${formatEUR(appointment.total_amount)}`;
+      return { text, tone: "green" };
     }
-    if (p.method === "card") {
-      return `Выполнено · карта · ${formatEUR(p.cardAmount)}`;
-    }
-    if (p.method === "split") {
-      return `Выполнено · нал ${formatEUR(p.cashAmount)} + карта ${formatEUR(p.cardAmount)}`;
-    }
-    return `Выполнено · счёт компании · ${formatEUR(appointment.total_amount)}`;
+    if (appointment.status === "cancelled") return { text: "Отменена", tone: "red" };
+    return { text: "Редактирование", tone: "accent" };
   })();
 
   // STORY audit: dialog label depends on liveMode so screen readers
@@ -721,11 +715,7 @@ export default function AppointmentSheet({
       : "Событие"
     : liveMode === "create"
       ? "Новая запись"
-      : liveMode === "done"
-        ? "Завершённая запись"
-        : liveMode === "edit"
-          ? "Редактирование записи"
-          : "Запись клиента";
+      : "Запись клиента";
 
   return (
     <div
@@ -805,12 +795,7 @@ export default function AppointmentSheet({
           kind={kind}
           eventFormDirty={eventFormDirty}
           workDirty={workDirty}
-          doneBadge={doneBadge}
-          showQuickActions={showQuickActions}
-          onCompleteQuick={onCompleteQuick}
-          onReschedule={onReschedule}
-          appointment={appointment}
-          scrollToPhotos={scrollToPhotos}
+          status={headerStatus}
           setKind={setKind}
           setSegmentSwitchConfirm={setSegmentSwitchConfirm}
           attemptClose={attemptClose}
@@ -907,7 +892,7 @@ export default function AppointmentSheet({
                   onClose();
                 }
               }}
-              mode={liveMode === "edit" ? "edit" : liveMode === "view" ? "view" : "create"}
+              mode={liveMode === "edit" ? "edit" : "create"}
               event={eventSeed}
               // STORY audit (design-keeper #2): EventForm context flips
               // by personalMode prop. Раньше personal-tab события
@@ -928,7 +913,6 @@ export default function AppointmentSheet({
           {!isEventMode && (
             <AppointmentWorkBody
               liveMode={liveMode}
-              isEditable={isEditable}
               readonly={readonly}
               client={client}
               recentClientsResolved={recentClientsResolved}
@@ -969,11 +953,10 @@ export default function AppointmentSheet({
               setCancelFlag={setCancelFlag}
               cancelReason={cancelReason}
               setCancelReason={setCancelReason}
-              viewBlocks={
-                liveMode === "view" ? (
-                  <PaymentBlock total={appointment.total_amount} onPay={handlePay} />
-                ) : null
-              }
+              showPayment={liveMode !== "create"}
+              paymentTotal={appointment.total_amount}
+              onPay={handlePay}
+              onReschedule={onReschedule ? () => onReschedule(appointment) : undefined}
             />
           )}
         </div>

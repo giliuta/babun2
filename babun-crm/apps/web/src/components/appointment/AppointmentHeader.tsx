@@ -14,8 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Check, Camera, CalendarClock, Palette } from "@babun/shared/icons";
-import type { Appointment } from "@babun/shared/local/appointments";
+import { Palette } from "@babun/shared/icons";
 import type { AppointmentSheetMode } from "./AppointmentSheet";
 import { PRESET_COLORS } from "@babun/shared/common/utils/colors";
 
@@ -31,12 +30,10 @@ interface AppointmentHeaderProps {
    *  protected; tapping «Событие» after typing into the work form
    *  silently nuked all work fields. */
   workDirty: boolean;
-  doneBadge: string | null;
-  showQuickActions: boolean;
-  onCompleteQuick?: (appointment: Appointment) => void;
-  onReschedule?: (appointment: Appointment) => void;
-  appointment: Appointment;
-  scrollToPhotos: () => void;
+  /** For EXISTING records: the status label shown in the header's title
+   *  slot (same slot the create-mode Клиент/Событие tabs occupy). null
+   *  in create mode. tone drives the colour. */
+  status: { text: string; tone: "accent" | "green" | "red" } | null;
   setKind: (k: Kind) => void;
   setSegmentSwitchConfirm: (v: boolean) => void;
   attemptClose: () => void;
@@ -55,12 +52,7 @@ export default function AppointmentHeader({
   kind,
   eventFormDirty,
   workDirty,
-  doneBadge,
-  showQuickActions,
-  onCompleteQuick,
-  onReschedule,
-  appointment,
-  scrollToPhotos,
+  status,
   setKind,
   setSegmentSwitchConfirm,
   attemptClose,
@@ -132,13 +124,17 @@ export default function AppointmentHeader({
               );
             })}
           </div>
-        ) : liveMode === "edit" ? (
-          <div className="flex-1 text-[15px] font-semibold text-[var(--accent)]">
-            Редактирование
-          </div>
-        ) : liveMode === "done" ? (
-          <div className="flex-1 text-[13px] font-semibold text-[var(--system-green)] truncate">
-            {doneBadge}
+        ) : status ? (
+          <div
+            className={`flex-1 text-[14px] font-semibold truncate ${
+              status.tone === "green"
+                ? "text-[var(--system-green)]"
+                : status.tone === "red"
+                  ? "text-[var(--system-red)]"
+                  : "text-[var(--accent)]"
+            }`}
+          >
+            {status.text}
           </div>
         ) : (
           <div className="flex-1" />
@@ -146,42 +142,6 @@ export default function AppointmentHeader({
 
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          {showQuickActions && (
-            <>
-              {onCompleteQuick && (
-                <button
-                  type="button"
-                  onClick={() => onCompleteQuick(appointment)}
-                  aria-label="Отметить выполненной"
-                  title="Выполнено"
-                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-green)] active:bg-[rgba(52,199,89,0.1)]"
-                >
-                  <Check size={22} strokeWidth={2.5} />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={scrollToPhotos}
-                aria-label="Перейти к фото"
-                title="Фото"
-                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--accent)] active:bg-[var(--accent-tint)]"
-              >
-                <Camera size={20} strokeWidth={2} />
-              </button>
-              {onReschedule && (
-                <button
-                  type="button"
-                  onClick={() => onReschedule(appointment)}
-                  aria-label="Перенести запись"
-                  title="Перенести"
-                  className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--system-orange)] active:bg-[rgba(255,149,0,0.1)]"
-                >
-                  <CalendarClock size={20} strokeWidth={2} />
-                </button>
-              )}
-            </>
-          )}
-
           {/* v708 — palette icon next to ✕, shown whenever the sheet is
               editable — both «Клиент» and «Событие». Tap opens the swatch
               grid; pick washes the whole sheet. Icon tints to the picked
