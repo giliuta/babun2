@@ -21,7 +21,6 @@ import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   ChevronLeft,
-  Info,
   Package,
   Trash2,
   Users as UsersIcon,
@@ -72,13 +71,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   const team = teams.find((t) => t.id === id);
 
   // ── Compose preview strings for each row ────────────────────────────
-  const infoPreview = useMemo(() => {
-    if (!team) return "";
-    const parts = [team.name];
-    if (!team.active) parts.push("архив");
-    return parts.filter(Boolean).join(" · ");
-  }, [team]);
-
   // Previews now also return a `warning` flag so the row can tint its
   // subtitle yellow + show a ⚠ icon when the subsection isn't set up.
   // Consistent with the brigades-list row treatment.
@@ -144,7 +136,7 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
   // renders nothing-visible during the redirect (team is undefined,
   // hits the not-found branch — same UX as before).
   useEffect(() => {
-    if (isNew) router.replace("/dashboard/teams/new/info");
+    if (isNew) router.replace("/dashboard/teams");
   }, [isNew, router]);
 
   // ── Guard for unknown id ────────────────────────────────────────────
@@ -236,13 +228,6 @@ export default function BrigadeIndexPage({ params }: RouteParams) {
 
           {/* Main brigade sections as nav rows */}
           <ListGroup>
-            <NavRow
-              icon={<Info size={18} strokeWidth={2} />}
-              tone="bg-[var(--tile-blue)]"
-              title="Информация"
-              value={infoPreview}
-              onClick={() => router.push(`/dashboard/teams/${team.id}/info`)}
-            />
             <NavRow
               icon={<UsersIcon size={18} strokeWidth={2} />}
               tone="bg-[var(--tile-indigo)]"
