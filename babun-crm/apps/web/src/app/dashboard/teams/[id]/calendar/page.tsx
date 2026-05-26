@@ -24,7 +24,7 @@ import { TIMEZONE_OPTIONS } from "@babun/shared/local/calendar-settings";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
-import TimeWheelSheet from "@/components/teams/TimeWheelSheet";
+import CalendarTimePopup from "@/components/teams/CalendarTimePopup";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -184,35 +184,35 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
         </div>
       </Group>
 
-      <TimeWheelSheet
+      <CalendarTimePopup
         open={openField === "visible"}
         title="Видимое время"
         mode="range"
         start={wStart || "00:00"}
-        end={wEnd || "24:00"}
+        end={wEnd || "23:30"}
         onClose={() => setOpenField(null)}
-        onChange={(s, e) => {
+        onCommit={(s, e) => {
           setWStart(s);
           setWEnd(e);
           commitWindow(s, e);
         }}
       />
-      <TimeWheelSheet
+      <CalendarTimePopup
         open={openField === "work"}
         title="Рабочее время"
         mode="range"
         start={schedule.start}
         end={schedule.end}
         onClose={() => setOpenField(null)}
-        onChange={(s, e) => commitWorkHours(s, e)}
+        onCommit={(s, e) => commitWorkHours(s, e)}
       />
-      <TimeWheelSheet
+      <CalendarTimePopup
         open={openField === "scroll"}
         title="Открывается время"
         mode="single"
         start={scroll || "09:00"}
         onClose={() => setOpenField(null)}
-        onChange={(s) => {
+        onCommit={(s) => {
           setScroll(s);
           commitScroll(s);
         }}
