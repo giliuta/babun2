@@ -109,7 +109,12 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Метки" hideSave>
+      <BrigadeSectionShell
+        brigadeId={id}
+        backHref={`/dashboard/teams/${id}/calendar`}
+        title="Метки"
+        hideSave
+      >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Команда не найдена.
         </div>
@@ -306,6 +311,7 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
   return (
     <BrigadeSectionShell
       brigadeId={id}
+      backHref={`/dashboard/teams/${id}/calendar`}
       title="Метки"
       hideSave
     >
