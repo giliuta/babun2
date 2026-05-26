@@ -370,28 +370,21 @@ function DayColumnInner({
           {/* Brief 1 #9: label pill carries a pin icon + native hover
               tooltip with the full city name, so a hovering dispatcher
               sees «Пафос» without having to remember «ПАФ». */}
-          {hasLabels &&
-            (cityShort ? (
-              <span
-                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
-                title={cityLabel}
-                style={{
-                  background: cityCfg?.color ?? "var(--fill-primary)",
-                  color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
-                }}
-              >
-                <MapPin size={9} strokeWidth={2.5} aria-hidden />
-                {cityShort}
-              </span>
-            ) : (
-              <span
-                className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[11px] font-medium text-[var(--label-tertiary)] bg-[var(--fill-tertiary)] whitespace-nowrap"
-                title="Добавить метку дня"
-              >
-                <MapPin size={9} strokeWidth={2.5} aria-hidden />
-                метка
-              </span>
-            ))}
+          {/* Only the set label renders a pill. A day with no label shows
+              nothing (no «метка» placeholder) — tap the header to pick one. */}
+          {hasLabels && cityShort && (
+            <span
+              className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+              title={cityLabel}
+              style={{
+                background: cityCfg?.color ?? "var(--fill-primary)",
+                color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
+              }}
+            >
+              <MapPin size={9} strokeWidth={2.5} aria-hidden />
+              {cityShort}
+            </span>
+          )}
         </div>
 
         {/* Month flag — only on the 1st of a month, so a week that
