@@ -2,13 +2,32 @@
 
 import { memo, useEffect, useMemo, useState } from "react";
 import type { Appointment } from "@babun/shared/local/appointments";
-import { getPaidAmount } from "@babun/shared/local/appointments";
+import { formatEUR } from "@babun/shared/common/utils/money";
+import type {
+  DayFinanceRowsConfig,
+  DayFinanceTotals,
+} from "@babun/shared/local/finance/day-summary";
 
 interface MonthViewProps {
   currentDate: Date;
   appointments: Appointment[];
   onDayClick: (date: Date) => void;
+  /** Which finance rows to show in each day cell (mirrors the week
+   *  footer). When omitted, no money mini-list is rendered. */
+  financeRows?: DayFinanceRowsConfig;
+  /** Per-day totals, same source as the week footer. */
+  summaryFor?: (dateKey: string) => DayFinanceTotals;
 }
+
+type RowKey = "planned" | "earned" | "spent" | "profit";
+
+const ROW_ORDER: RowKey[] = ["planned", "earned", "spent", "profit"];
+const ROW_COLOR: Record<RowKey, string> = {
+  planned: "text-[var(--label-secondary)]",
+  earned: "text-[var(--system-green)]",
+  spent: "text-[var(--system-red)]",
+  profit: "text-[var(--accent)]",
+};
 
 const DAYS_OF_WEEK = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -23,6 +42,8 @@ function MonthViewInner({
   currentDate,
   appointments,
   onDayClick,
+  financeRows,
+  summaryFor,
 }: MonthViewProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -53,18 +74,16 @@ function MonthViewInner({
     return grid;
   }, [year, month]);
 
-  // Group appointments by date for quick lookup.
-  const byDate = useMemo(() => {
-    const map: Record<string, { count: number; income: number }> = {};
+  // Appointment count per date for the badge.
+  const countByDate = useMemo(() => {
+    const map: Record<string, number> = {};
     for (const apt of appointments) {
-      if (!map[apt.date]) map[apt.date] = { count: 0, income: 0 };
-      map[apt.date].count += 1;
-      if (apt.status === "completed" || apt.status === "in_progress") {
-        map[apt.date].income += getPaidAmount(apt);
-      }
+      map[apt.date] = (map[apt.date] ?? 0) + 1;
     }
     return map;
   }, [appointments]);
+
+  const activeRows = ROW_ORDER.filter((k) => financeRows?.[k]);
 
   return (
     <div className="flex-1 flex flex-col bg-[var(--surface-card)] min-h-0 overflow-hidden">
@@ -84,7 +103,9 @@ function MonthViewInner({
       <div className="flex-1 grid grid-cols-7 grid-rows-6 min-h-0">
         {cells.map((date, i) => {
           const key = formatDateKey(date);
-          const data = byDate[key];
+          const count = countByDate[key] ?? 0;
+          const totals =
+            summaryFor && activeRows.length > 0 ? summaryFor(key) : null;
           const inCurrentMonth = date.getMonth() === month;
           const isToday = key === todayKey;
           // Hydration-gated: показываем red только после mount.
@@ -116,15 +137,36 @@ function MonthViewInner({
                     {date.getDate()}
                   </span>
                 )}
-                {data && data.count > 0 && (
+                {count > 0 && (
                   <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent-tint)] rounded-full px-1.5 leading-[16px]">
-                    {data.count}
+                    {count}
                   </span>
                 )}
               </div>
-              {data && data.income > 0 && (
-                <div className="text-[12px] text-[var(--system-green)] font-semibold mt-0.5 tabular-nums truncate w-full">
-                  {data.income}€
+              {totals && totals.hasAny && (
+                <div className="mt-0.5 w-full flex flex-col gap-0 leading-[13px]">
+                  {activeRows.map((k) => {
+                    const v =
+                      k === "planned"
+                        ? totals.planned
+                        : k === "earned"
+                          ? totals.earned
+                          : k === "spent"
+                            ? totals.spent
+                            : totals.profit;
+                    if (k !== "profit" && v === 0) return null;
+                    const negativeProfit = k === "profit" && totals.profit < 0;
+                    return (
+                      <span
+                        key={k}
+                        className={`text-[10px] font-semibold tabular-nums truncate w-full ${
+                          negativeProfit ? "text-[var(--system-red)]" : ROW_COLOR[k]
+                        }`}
+                      >
+                        {formatEUR(v)}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </button>
