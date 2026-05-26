@@ -10,7 +10,7 @@
 
 interface CloseConfirmDialogProps {
   open: boolean;
-  mode: "create" | "edit" | "view" | "done";
+  mode: "create" | "edit";
   canSave: boolean;
   onCancel: () => void;
   onDiscard: () => void;
