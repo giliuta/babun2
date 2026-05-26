@@ -8,6 +8,11 @@ interface BrigadeSectionShellProps {
    *  back to /dashboard/teams (the list) since no concrete brigade
    *  record exists yet. */
   brigadeId: string;
+  /** Override the back route. Use when a section is reached from
+   *  somewhere other than the brigade index — e.g. Расписание / Запись /
+   *  Метки now open from the Календарь page, so their back arrow returns
+   *  there instead of the brigade root. */
+  backHref?: string;
   /** Title shown centered in the nav bar. */
   title: string;
   /** Label of the primary button (top-right). "Сохранить" by default. */
@@ -30,6 +35,7 @@ interface BrigadeSectionShellProps {
 
 export default function BrigadeSectionShell({
   brigadeId,
+  backHref: backHrefOverride,
   title,
   saveLabel = "Сохранить",
   canSave = true,
@@ -41,7 +47,8 @@ export default function BrigadeSectionShell({
 }: BrigadeSectionShellProps) {
   const router = useRouter();
   const backHref =
-    brigadeId === "new" ? "/dashboard/teams" : `/dashboard/teams/${brigadeId}`;
+    backHrefOverride ??
+    (brigadeId === "new" ? "/dashboard/teams" : `/dashboard/teams/${brigadeId}`);
 
   const handleSave = async () => {
     if (!onSave) return;

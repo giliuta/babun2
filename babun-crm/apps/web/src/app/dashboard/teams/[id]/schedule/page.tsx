@@ -57,7 +57,12 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
 
   if (!team) {
     return (
-      <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
+      <BrigadeSectionShell
+        brigadeId={id}
+        backHref={`/dashboard/teams/${id}/calendar`}
+        title="Расписание"
+        hideSave
+      >
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-[13px] text-[var(--label-tertiary)]">
           Команда не найдена.
         </div>
@@ -201,7 +206,12 @@ export default function BrigadeSchedulePage({ params }: RouteParams) {
   };
 
   return (
-    <BrigadeSectionShell brigadeId={id} title="Расписание" hideSave>
+    <BrigadeSectionShell
+        brigadeId={id}
+        backHref={`/dashboard/teams/${id}/calendar`}
+        title="Расписание"
+        hideSave
+      >
       {/* ── Working hours (general) ─────────────────────── */}
       <Group
         title="Время работы"

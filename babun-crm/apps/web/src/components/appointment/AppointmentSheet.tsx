@@ -194,12 +194,6 @@ export default function AppointmentSheet({
   );
   const [comment, setComment] = useState(appointment.comment);
   const [addressNote, setAddressNote] = useState(appointment.address_note ?? "");
-  // v607 P0 #5 — anonymous (no-client) address. Lives on apt.address.
-  // Seeded from the appointment record so re-opening a no-client draft
-  // keeps the address visible.
-  const [anonymousAddress, setAnonymousAddress] = useState(
-    appointment.client_id ? "" : appointment.address ?? ""
-  );
   const [cancelFlag, setCancelFlag] = useState(appointment.status === "cancelled");
   const [cancelReason, setCancelReason] = useState(appointment.cancel_reason ?? "");
   const [source, setSource] = useState<AppointmentSource | null>(appointment.source ?? null);
@@ -321,7 +315,6 @@ export default function AppointmentSheet({
     setLocationId(appointment.location_id);
     setComment(appointment.comment);
     setAddressNote(appointment.address_note ?? "");
-    setAnonymousAddress(appointment.client_id ? "" : appointment.address ?? "");
     setCancelFlag(appointment.status === "cancelled");
     setCancelReason(appointment.cancel_reason ?? "");
     setSource(appointment.source ?? null);
@@ -391,12 +384,9 @@ export default function AppointmentSheet({
     return clientLocations.find((l) => l.isPrimary) ?? clientLocations[0];
   }, [clientLocations, locationId]);
 
-  // v607 P0 #5 — without a client, the address lives on the appointment
-  // row directly (anonymousAddress). With a client, the picked location
-  // wins as before.
-  const address = client
-    ? selectedLocation?.address ?? appointment.address ?? ""
-    : anonymousAddress.trim();
+  // Client is required, so the address always comes from the picked
+  // client location (falls back to the stored value when editing).
+  const address = selectedLocation?.address ?? appointment.address ?? "";
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
@@ -423,46 +413,6 @@ export default function AppointmentSheet({
     if (!open) return;
     setOtherApts(loadAppointments().filter((a) => a.id !== appointment.id));
   }, [open, appointment.id]);
-
-  // v611 P0 §1.6 — top-3 most-used services across the tenant's
-  // appointment history. Lives here because it needs `otherApts`
-  // (loaded above for the double-booking check), so we reuse it.
-  const popularServices = useMemo<Service[]>(() => {
-    const freq = new Map<string, number>();
-    for (const a of otherApts) {
-      for (const id of a.service_ids) freq.set(id, (freq.get(id) ?? 0) + 1);
-    }
-    return [...freq.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => catalog.find((s) => s.id === id))
-      .filter((s): s is Service => Boolean(s))
-      .slice(0, 3);
-  }, [otherApts, catalog]);
-
-  // v698 — top-2 services this specific client has historically ordered.
-  // Rendered as ↻ chips above the popular row so the dispatcher can
-  // add "the usual" with one tap. Empty when no client is picked or
-  // the client has no history. Cancelled appointments still count —
-  // the question is "what does this client ask for", not "what was
-  // delivered". Already-added services are hidden so we never offer
-  // a duplicate.
-  const clientHistoryServices = useMemo<Service[]>(() => {
-    if (!clientId) return [];
-    const alreadyAdded = new Set(appointmentServices.map((s) => s.serviceId));
-    const freq = new Map<string, number>();
-    for (const a of otherApts) {
-      if (a.client_id !== clientId) continue;
-      for (const id of a.service_ids) {
-        if (alreadyAdded.has(id)) continue;
-        freq.set(id, (freq.get(id) ?? 0) + 1);
-      }
-    }
-    return [...freq.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => catalog.find((s) => s.id === id))
-      .filter((s): s is Service => Boolean(s))
-      .slice(0, 2);
-  }, [clientId, otherApts, catalog, appointmentServices]);
 
   const overlapConflict = useMemo<Appointment | null>(() => {
     if (!activeTeam || kind === "event") return null;
@@ -612,7 +562,7 @@ export default function AppointmentSheet({
   // In work mode, the AppointmentSheet's own services list drives it.
   const canSave = isEventMode
     ? eventCanSave
-    : appointmentServices.length > 0;
+    : appointmentServices.length > 0 && clientId != null;
 
   // v607 P0 #1.8 — live preview button text. Shows date · time ·
   // duration · price when ready; lists what's missing otherwise so the
@@ -623,6 +573,7 @@ export default function AppointmentSheet({
   // eventCanSave is false → "название" missing.
   const missingParts: string[] = [];
   if (!isEventMode) {
+    if (!clientId) missingParts.push("клиента");
     if (appointmentServices.length === 0) missingParts.push("услугу");
   } else if (!eventCanSave) {
     missingParts.push("название");
@@ -638,13 +589,7 @@ export default function AppointmentSheet({
     }
     const shortDate = formatShortDate(dateKey);
     const verb = liveMode === "edit" ? "Сохранить" : "Создать";
-    // STORY audit: signal when a record is being saved without a client
-    // attached so the dispatcher knows they'll need to attach one later.
-    // Common workflow on AirFix: customer calls, agrees on time, hangs
-    // up before giving full name — operator saves draft, fills client
-    // when the next call comes in.
-    const noClient = !clientId ? " · без клиента" : "";
-    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}${noClient}`;
+    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}`;
   })();
 
   // Whether the user has entered anything worth protecting on close.
@@ -667,7 +612,6 @@ export default function AppointmentSheet({
           clientId ||
           appointmentServices.length > 0 ||
           comment.trim() ||
-          anonymousAddress.trim() ||
           addressNote.trim() ||
           source !== null ||
           globalDiscount !== null,
@@ -991,14 +935,10 @@ export default function AppointmentSheet({
               locationId={locationId}
               addressNote={addressNote}
               setAddressNote={setAddressNote}
-              anonymousAddress={anonymousAddress}
-              setAnonymousAddress={setAnonymousAddress}
               addressPlaceholder={addressPlaceholder}
               selectedLocation={selectedLocation}
               appointmentServices={appointmentServices}
               globalDiscount={globalDiscount}
-              popularServices={popularServices}
-              clientHistoryServices={clientHistoryServices}
               setAppointmentServices={setAppointmentServices}
               setGlobalDiscount={setGlobalDiscount}
               setAskClientFirst={setAskClientFirst}
@@ -1167,7 +1107,6 @@ export default function AppointmentSheet({
             setAppointmentServices([]);
             setComment("");
             setAddressNote("");
-            setAnonymousAddress("");
             setSource(null);
             setGlobalDiscount(null);
             setKind("event");
