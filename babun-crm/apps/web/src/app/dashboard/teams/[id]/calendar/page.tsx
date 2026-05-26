@@ -10,10 +10,19 @@
 // Each field commits to upsertTeam on blur so closing the page
 // persists the change without an extra tap.
 
-import { use, useEffect, useState } from "react";
-import { useTeams } from "@/components/layout/DashboardClientLayout";
+import { use, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Clock, FileEdit, MapPin } from "@babun/shared/icons";
+import { useTeams, useSchedules } from "@/components/layout/DashboardClientLayout";
+import {
+  DEFAULT_SCHEDULE,
+  WEEKDAY_KEYS,
+  WEEKDAY_NAMES,
+  type WeekdayKey,
+} from "@babun/shared/local/schedule";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
+import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -21,8 +30,48 @@ interface RouteParams {
 
 export default function BrigadeCalendarPage({ params }: RouteParams) {
   const { id } = use(params);
+  const router = useRouter();
   const { teams, upsertTeam } = useTeams();
+  const { schedules } = useSchedules();
   const team = teams.find((t) => t.id === id);
+  const schedule = schedules[id] ?? DEFAULT_SCHEDULE;
+
+  // Subtitle previews for the nested nav rows (Расписание / Запись /
+  // Метки), mirroring the brigade index so the calendar hub shows the
+  // same at-a-glance state. Computed before the `!team` guard so the
+  // hook order stays stable.
+  const schedulePreview = useMemo(() => {
+    const off: WeekdayKey[] = WEEKDAY_KEYS.filter((k) => {
+      const ov = schedule.overrides?.[k];
+      return ov && !ov.is_working;
+    });
+    const hours = `${schedule.start}–${schedule.end}`;
+    const breakBit =
+      schedule.breaks && schedule.breaks.length > 0 ? " · с перерывом" : "";
+    const offBit =
+      off.length > 0
+        ? ` · вых: ${off.map((k) => WEEKDAY_NAMES[k]).join(", ")}`
+        : "";
+    return `${hours}${breakBit}${offBit}`;
+  }, [schedule]);
+
+  const appointmentBlocksPreview = useMemo(() => {
+    const blocks = team?.appointment_blocks;
+    if (!blocks) return "стандартные блоки";
+    const overrides = Object.keys(blocks).length;
+    if (overrides === 0) return "стандартные блоки";
+    return `${overrides} настроек изменено`;
+  }, [team]);
+
+  const citiesPreview = useMemo((): { text: string; warning: boolean } => {
+    const list = team?.cities ?? [];
+    if (list.length === 0) return { text: "не заданы", warning: true };
+    const text =
+      list.length <= 3
+        ? list.join(", ")
+        : `${list.slice(0, 2).join(", ")} и ещё ${list.length - 2}`;
+    return { text, warning: false };
+  }, [team]);
 
   const [wStart, setWStart] = useState(team?.calendar_window_start ?? "");
   const [wEnd, setWEnd] = useState(team?.calendar_window_end ?? "");
@@ -260,6 +309,37 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
           </div>
         </div>
       </Group>
+
+      {/* Расписание / Запись / Метки — moved under the calendar hub so
+          all calendar-related setup lives in one place (like «Мой
+          календарь»). Each opens its existing full-page editor; the back
+          arrow returns here via BrigadeSectionShell's backHref. */}
+      <ListGroup>
+        <NavRow
+          icon={<Clock size={18} strokeWidth={2} />}
+          tone="bg-[var(--tile-green)]"
+          title="Расписание"
+          value={schedulePreview}
+          onClick={() => router.push(`/dashboard/teams/${id}/schedule`)}
+        />
+        <NavRow
+          icon={<FileEdit size={18} strokeWidth={2} />}
+          tone="bg-[var(--tile-yellow)]"
+          title="Запись"
+          value={appointmentBlocksPreview}
+          onClick={() =>
+            router.push(`/dashboard/teams/${id}/appointment-blocks`)
+          }
+        />
+        <NavRow
+          icon={<MapPin size={18} strokeWidth={2} />}
+          tone="bg-[var(--tile-red)]"
+          title="Метки"
+          value={citiesPreview.text}
+          warning={citiesPreview.warning}
+          onClick={() => router.push(`/dashboard/teams/${id}/cities`)}
+        />
+      </ListGroup>
     </BrigadeSectionShell>
   );
 }
