@@ -46,7 +46,7 @@ function TimeColumnInner({ startHour = 0, endHour = 24 }: TimeColumnProps) {
               закрывает кусочек времени»). Остальные сидят НА часовой
               линии в iOS-стиле. */}
           <span
-            className={`text-[12px] lg:text-[12px] font-medium text-[var(--label-tertiary)] select-none tabular-nums ${idx === 0 ? "mt-0.5" : "-mt-2"}`}
+            className={`text-[12px] lg:text-[13px] font-semibold text-[var(--label)] select-none tabular-nums ${idx === 0 ? "mt-0.5" : "-mt-2"}`}
           >
             {String(hour).padStart(2, "0")}:00
           </span>
