@@ -546,6 +546,12 @@ export interface Team {
   buffer_minutes?: number;
   hide_cancelled?: boolean;
   allow_overtime?: boolean;
+  /** Per-brigade calendar parity with «Мой календарь». Like the
+   *  personal settings, these are stored but not yet wired into grid
+   *  rendering — adding the controls keeps the two screens consistent.
+   *  Undefined = inherit the global default. */
+  week_start?: "monday" | "sunday";
+  timezone?: string;
 
   // ── Sprint 033 Phase I42 — per-brigade AppointmentSheet layout ──
   /** Which optional blocks show up in the create/edit sheet when the
