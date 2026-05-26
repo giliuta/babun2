@@ -10,10 +10,9 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import WheelColumn from "./WheelColumn";
+import { WheelSide } from "./TimeWheels";
 import { IOSSwitch } from "@/components/ui";
 import {
-  HOURS,
   pad2,
   dateToKey,
   parseTime,
@@ -48,12 +47,6 @@ interface UnifiedTimePopupProps {
   }) => void;
 }
 
-const ITEM_HEIGHT = 40;
-const VISIBLE_ROWS = 3;
-const COLUMN_WIDTH = 58;
-const DIGIT_FONT = 26;
-const WHEEL_H = ITEM_HEIGHT * VISIBLE_ROWS;
-const PAD = (WHEEL_H - ITEM_HEIGHT) / 2;
 // Carousel window — how many weeks before / after the anchor week we
 // render as snap pages. 26 each way ≈ a year of scroll either side.
 const WEEKS_BACK = 26;
@@ -390,84 +383,6 @@ export default function UnifiedTimePopup({
         </div>
         <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
       </div>
-    </div>
-  );
-}
-
-function WheelSide({
-  label,
-  minutes,
-  hourIdx,
-  minIdx,
-  onHour,
-  onMin,
-}: {
-  label: string;
-  minutes: string[];
-  hourIdx: number;
-  minIdx: number;
-  onHour: (idx: number) => void;
-  onMin: (idx: number) => void;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-        {label}
-      </span>
-      <div className="flex items-center">
-        <WheelWithLines>
-          <WheelColumn
-            items={HOURS}
-            selectedIndex={hourIdx}
-            onChange={onHour}
-            width={COLUMN_WIDTH}
-            itemHeight={ITEM_HEIGHT}
-            visibleRows={VISIBLE_ROWS}
-            fontSize={DIGIT_FONT}
-            loop
-          />
-        </WheelWithLines>
-        <span
-          className="select-none"
-          style={{
-            fontSize: DIGIT_FONT,
-            fontWeight: 300,
-            color: "var(--label-tertiary)",
-            padding: "0 2px",
-            lineHeight: `${WHEEL_H}px`,
-          }}
-        >
-          :
-        </span>
-        <WheelWithLines>
-          <WheelColumn
-            items={minutes}
-            selectedIndex={minIdx}
-            onChange={onMin}
-            width={COLUMN_WIDTH}
-            itemHeight={ITEM_HEIGHT}
-            visibleRows={VISIBLE_ROWS}
-            fontSize={DIGIT_FONT}
-            loop
-          />
-        </WheelWithLines>
-      </div>
-    </div>
-  );
-}
-
-function WheelWithLines({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative">
-      {children}
-      <div
-        className="pointer-events-none absolute z-10"
-        style={{ left: 2, right: 2, top: PAD, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
-      />
-      <div
-        className="pointer-events-none absolute z-10"
-        style={{ left: 2, right: 2, top: PAD + ITEM_HEIGHT - 1, height: 1, background: "rgba(15, 23, 42, 0.12)" }}
-      />
     </div>
   );
 }
