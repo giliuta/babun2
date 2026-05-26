@@ -17,7 +17,8 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileEdit, MapPin } from "@babun/shared/icons";
+import { FileEdit, MapPin, Palette } from "@babun/shared/icons";
+import { haptic } from "@/lib/haptics";
 import { useTeams, useSchedules } from "@/components/layout/DashboardClientLayout";
 import { DEFAULT_SCHEDULE } from "@babun/shared/local/schedule";
 import { TIMEZONE_OPTIONS } from "@babun/shared/local/calendar-settings";
@@ -25,6 +26,7 @@ import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
 import CalendarTimePopup from "@/components/teams/CalendarTimePopup";
+import TeamColorPopup from "@/components/teams/TeamColorPopup";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -56,6 +58,8 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     return { text, warning: false };
   }, [team]);
 
+  const [name, setName] = useState(team?.name ?? "");
+  const [colorOpen, setColorOpen] = useState(false);
   const [wStart, setWStart] = useState(team?.calendar_window_start ?? "");
   const [wEnd, setWEnd] = useState(team?.calendar_window_end ?? "");
   const [scroll, setScroll] = useState(team?.default_scroll_time ?? "");
@@ -70,6 +74,7 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
     // for this canonical form-reset pattern.
     /* eslint-disable react-hooks/set-state-in-effect */
     if (team) {
+      setName(team.name ?? "");
       setWStart(team.calendar_window_start ?? "");
       setWEnd(team.calendar_window_end ?? "");
       setScroll(team.default_scroll_time ?? "");
@@ -133,12 +138,50 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   const commitTimezone = (v: string) => {
     upsertTeam({ ...team, timezone: v || undefined });
   };
+  const commitName = (next: string) => {
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === team.name) return;
+    upsertTeam({ ...team, name: trimmed });
+  };
+  const commitColor = (next: string) => {
+    if (next === team.color) return;
+    haptic("tap");
+    upsertTeam({ ...team, color: next });
+  };
 
   return (
     <BrigadeSectionShell brigadeId={id} title="Календарь" hideSave>
-      {/* Метки / Запись on top — quick access to the two most-edited
-          sub-screens. Each opens its existing full-page editor; the back
-          arrow returns here via BrigadeSectionShell's backHref. */}
+      {/* Name + colour — the calendar/team title. Type the name; the
+          palette icon opens the colour picker. Replaces the old
+          «Информация» page. */}
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] pl-4 pr-2 flex items-center gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={(e) => commitName(e.target.value)}
+          placeholder="Название"
+          maxLength={60}
+          className="flex-1 min-w-0 h-12 bg-transparent text-[16px] font-semibold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-normal focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => setColorOpen(true)}
+          aria-label="Цвет команды"
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 press-scale"
+          style={{ backgroundColor: team.color }}
+        >
+          <Palette
+            size={18}
+            strokeWidth={2}
+            className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+          />
+        </button>
+      </div>
+
+      {/* Метки / Запись — quick access to the two most-edited sub-screens.
+          Each opens its existing full-page editor; the back arrow returns
+          here via BrigadeSectionShell's backHref. */}
       <ListGroup>
         <NavRow
           icon={<MapPin size={18} strokeWidth={2} />}
@@ -304,6 +347,13 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
           </select>
         </div>
       </Group>
+
+      <TeamColorPopup
+        open={colorOpen}
+        current={team.color}
+        onPick={commitColor}
+        onClose={() => setColorOpen(false)}
+      />
     </BrigadeSectionShell>
   );
 }
