@@ -14,9 +14,10 @@
  * callbacks.
  */
 
-import type { ReactNode, MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import type {
   Appointment,
+  AppointmentPayment,
   AppointmentService,
   AppointmentSource,
   Discount,
@@ -25,12 +26,14 @@ import type { AppointmentPhotoRecord } from "@babun/shared/db/repositories/appoi
 import type { Client, ClientTag, Location } from "@babun/shared/local/clients";
 import type { Service } from "@babun/shared/local/services";
 import { IOSSwitch } from "@/components/ui";
+import { CalendarClock } from "@babun/shared/icons";
 
 import ClientBlock from "./ClientBlock";
 import ClientHistoryStrip from "./ClientHistoryStrip";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
 import IncomeBlock from "./IncomeBlock";
+import PaymentBlock from "./PaymentBlock";
 import CommentBlock from "./CommentBlock";
 import PhotoBlock from "./PhotoBlock";
 import SourceBlock from "./SourceBlock";
@@ -39,7 +42,6 @@ import type { AppointmentSheetMode } from "./AppointmentSheet";
 
 interface AppointmentWorkBodyProps {
   liveMode: AppointmentSheetMode;
-  isEditable: boolean;
   readonly: boolean;
 
   client: Client | null;
@@ -87,12 +89,16 @@ interface AppointmentWorkBodyProps {
   cancelReason: string;
   setCancelReason: (next: string) => void;
 
-  viewBlocks?: ReactNode;
+  /** Payment block appears only AFTER creation (existing records). */
+  showPayment: boolean;
+  paymentTotal: number;
+  onPay: (payment: AppointmentPayment) => void;
+  /** Reschedule action for existing scheduled records. */
+  onReschedule?: () => void;
 }
 
 export default function AppointmentWorkBody({
   liveMode,
-  isEditable,
   readonly,
   client,
   recentClientsResolved,
@@ -133,7 +139,10 @@ export default function AppointmentWorkBody({
   setCancelFlag,
   cancelReason,
   setCancelReason,
-  viewBlocks,
+  showPayment,
+  paymentTotal,
+  onPay,
+  onReschedule,
 }: AppointmentWorkBodyProps) {
   return (
     <>
@@ -214,88 +223,63 @@ export default function AppointmentWorkBody({
         onGlobalDiscountChange={setGlobalDiscount}
       />
 
-      {/* STORY audit: Комментарий — это первое что диспетчер слышит
-          от клиента по телефону («домофон 25, второй этаж, синяя
-          дверь»). Раньше CommentBlock жил внутри Details accordion и
-          был закрыт по умолчанию в create-mode — приходилось тапать
-          «Подробнее», чтобы записать важную инфо. Теперь Comment
-          выведен НАД accordion в editable-mode тоже, оставаясь дублёром
-          внутри (для совместимости с старой видимостью). */}
-      {isEditable && (
-        <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
-      )}
-      {isEditable ? (
-        <details
-          className="group px-4 pt-3"
-          // v700 — auto-open «Подробнее» for fresh clients (created
-          // within 24 h) so the dispatcher actually sets an
-          // acquisition source on first contact. Without this nudge
-          // ~90 % of new-client records ship with source=null, which
-          // gutted the «откуда узнал» analytics. Edit-mode keeps its
-          // existing default-open behaviour.
-          open={
-            liveMode === "edit" ||
-            (client?.created_at != null &&
-              Date.now() - new Date(client.created_at).getTime() <
-                24 * 60 * 60 * 1000)
-          }
-        >
-          <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
-            <span>Подробнее</span>
-            <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
-          </summary>
-          <div className="pt-1 -mx-4">
-            <SourceBlock
-              value={source}
-              readonly={readonly}
-              onChange={(next) => {
-                setSource(next);
-                if (next && typeof window !== "undefined") {
-                  window.localStorage.setItem("babun.lastSource", next);
-                  setLastUsedSource(next);
-                }
-              }}
-              lastUsed={lastUsedSource}
-            />
+      {/* Оплата — блок появляется только у существующих записей (после
+          создания), на фиксированном месте под «Доход». Оплата
+          завершает запись (handlePay). */}
+      {showPayment && <PaymentBlock total={paymentTotal} onPay={onPay} />}
 
-            {client && client.phone && (
-              <div className="px-4 pt-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[15px] font-semibold text-[var(--label)]">
-                    SMS-напоминание
-                  </div>
-                  <div className="text-[12px] text-[var(--label-secondary)]">
-                    за сутки и за час до визита
-                  </div>
+      {/* Комментарий всегда над «Подробнее» — это первое, что диспетчер
+          слышит по телефону («домофон 25, синяя дверь»). */}
+      <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
+
+      <details
+        className="group px-4 pt-3"
+        // v700 — auto-open «Подробнее» for existing records and for
+        // fresh clients (created within 24 h) so the dispatcher actually
+        // sets an acquisition source on first contact.
+        open={
+          liveMode === "edit" ||
+          (client?.created_at != null &&
+            Date.now() - new Date(client.created_at).getTime() <
+              24 * 60 * 60 * 1000)
+        }
+      >
+        <summary className="flex items-center justify-between cursor-pointer list-none px-3 h-10 rounded-[10px] bg-[var(--fill-tertiary)] text-[13px] font-semibold text-[var(--label)]">
+          <span>Подробнее</span>
+          <span className="text-[var(--label-secondary)] text-[12px] group-open:rotate-180 transition">▾</span>
+        </summary>
+        <div className="pt-1 -mx-4">
+          <SourceBlock
+            value={source}
+            readonly={readonly}
+            onChange={(next) => {
+              setSource(next);
+              if (next && typeof window !== "undefined") {
+                window.localStorage.setItem("babun.lastSource", next);
+                setLastUsedSource(next);
+              }
+            }}
+            lastUsed={lastUsedSource}
+          />
+
+          {client && client.phone && (
+            <div className="px-4 pt-4 flex items-center justify-between">
+              <div>
+                <div className="text-[15px] font-semibold text-[var(--label)]">
+                  SMS-напоминание
                 </div>
-                <IOSSwitch
-                  checked={smsEnabled}
-                  onChange={setSmsEnabled}
-                  ariaLabel="SMS-напоминание"
-                />
+                <div className="text-[12px] text-[var(--label-secondary)]">
+                  за сутки и за час до визита
+                </div>
               </div>
-            )}
-
-            {/* CommentBlock уже отрендерен выше accordion (см. STORY
-                audit) — дубль внутри details снят. */}
-
-            <div ref={photoScrollRef}>
-              <PhotoBlock
-                photos={photos}
-                readonly={readonly}
-                tenantId={tenantId}
-                appointmentId={appointment.id}
-                locationLabel={selectedLocation?.label}
-                onChange={setPhotos}
-                canUpload={liveMode !== "create"}
+              <IOSSwitch
+                checked={smsEnabled}
+                onChange={setSmsEnabled}
+                ariaLabel="SMS-напоминание"
               />
             </div>
-          </div>
-        </details>
-      ) : (
-        <>
-          <SourceBlock value={source} readonly={readonly} onChange={setSource} />
-          <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
+          )}
+
           <div ref={photoScrollRef}>
             <PhotoBlock
               photos={photos}
@@ -304,23 +288,31 @@ export default function AppointmentWorkBody({
               appointmentId={appointment.id}
               locationLabel={selectedLocation?.label}
               onChange={setPhotos}
+              canUpload={liveMode !== "create"}
             />
           </div>
-        </>
-      )}
-
-      {!isEditable && appointment.status === "cancelled" && (
-        <div className="px-4 pt-3">
-          <div className="px-3 py-2 rounded-[14px] bg-[rgba(255,59,48,0.08)] border border-[rgba(255,59,48,0.2)] text-[13px] text-[var(--label)]">
-            <div className="text-[12px] font-semibold uppercase tracking-wider text-[var(--system-red)] mb-0.5">
-              Запись отменена
-            </div>
-            <div>{appointment.cancel_reason?.trim() || "Причина не указана"}</div>
-          </div>
         </div>
-      )}
+      </details>
 
-      {appointment.status !== "completed" && liveMode === "edit" && (
+      {/* Перенести — для существующих запланированных записей. */}
+      {liveMode !== "create" &&
+        appointment.status === "scheduled" &&
+        onReschedule && (
+          <div className="px-4 pt-3">
+            <button
+              type="button"
+              onClick={onReschedule}
+              className="w-full h-11 flex items-center justify-center gap-2 rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] text-[15px] font-semibold text-[var(--system-orange)] active:bg-[var(--fill-quaternary)]"
+            >
+              <CalendarClock size={18} strokeWidth={2} />
+              Перенести
+            </button>
+          </div>
+        )}
+
+      {/* Отмена — для существующих не-завершённых записей. Для уже
+          отменённой запись тумблер показывает текущую причину. */}
+      {liveMode !== "create" && appointment.status !== "completed" && (
         <CancelToggleBlock
           cancelFlag={cancelFlag}
           cancelReason={cancelReason}
@@ -328,8 +320,6 @@ export default function AppointmentWorkBody({
           onReasonChange={setCancelReason}
         />
       )}
-
-      {viewBlocks}
     </>
   );
 }

@@ -102,15 +102,9 @@ import {
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import { sumExtras } from "@babun/shared/local/day-extras";
 import { loadChats } from "@babun/shared/local/chats";
-// Post-save and finance/reschedule sheets — also lazy. SuccessOverlay
-// is the brief checkmark animation after a save; PaymentSheet and
-// ExpenseSheet open from the day-finance modal; RescheduleSheet
-// opens via the appointment action menu. None of them paint on the
-// initial render path.
-const SuccessOverlay = dynamic(
-  () => import("@/components/appointment/SuccessOverlay"),
-  { ssr: false },
-);
+// Finance/reschedule sheets — lazy. PaymentSheet and ExpenseSheet open
+// from the day-finance modal; RescheduleSheet opens via the appointment
+// action menu. None of them paint on the initial render path.
 const PaymentSheet = dynamic(
   () => import("@/components/finance/PaymentSheet"),
   { ssr: false },
@@ -1116,15 +1110,6 @@ function DashboardPageInner() {
     timeEnd: string;
   } | null>(null);
 
-  // Success overlay after a booking is saved — 2 sec with Call/Chat
-  // quick actions, then auto-dismiss.
-  const [savedSuccess, setSavedSuccess] = useState<{
-    name: string;
-    phone?: string;
-    chatHref?: string;
-    smsText?: string;
-  } | null>(null);
-
   // STORY-003: payment + expense sheet state.
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
   const [expenseFor, setExpenseFor] = useState<{
@@ -1990,42 +1975,10 @@ function DashboardPageInner() {
           onSave={(apt) => {
             upsertAppointment(apt);
             setBooking(null);
-            if (apt.kind === "work" && apt.client_id) {
-              const c = clients.find((x) => x.id === apt.client_id);
-              if (c) {
-                const chatLinkId = loadChats().find((ch) => ch.client_id === c.id)?.id;
-                const dateLabel = (() => {
-                  const [y, m, d] = apt.date.split("-").map(Number);
-                  const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
-                  return Number.isFinite(dt.getTime())
-                    ? dt.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })
-                    : apt.date;
-                })();
-                const greet = c.full_name ? `${c.full_name}, ` : "";
-                const smsText = `${greet}ваша запись назначена на ${dateLabel} в ${apt.time_start}. Babun CRM`;
-                setSavedSuccess({
-                  name: c.full_name,
-                  phone: c.phone,
-                  chatHref: chatLinkId
-                    ? `/dashboard/chats?chat_id=${chatLinkId}`
-                    : `/dashboard/chats?client_id=${c.id}`,
-                  smsText,
-                });
-              }
-            }
           }}
         />
       )}
 
-      {savedSuccess && (
-        <SuccessOverlay
-          clientName={savedSuccess.name}
-          phone={savedSuccess.phone}
-          chatHref={savedSuccess.chatHref}
-          smsText={savedSuccess.smsText}
-          onDone={() => setSavedSuccess(null)}
-        />
-      )}
 
       {/* STORY-003 — PaymentSheet. Долгий тап по scheduled-записи →
           «Отметить оплату» → этот sheet. Создаёт Payment и меняет
@@ -2165,27 +2118,11 @@ function DashboardPageInner() {
         <AppointmentSheet
           open
           onClose={() => setInlineSheet(null)}
-          // STORY audit: was always "view"/"done" regardless of inlineSheet.mode.
-          // FAB → openNewAppointmentInline pushes mode="new", so the sheet
-          // opened as view of an empty record — including ✓/📷/📅 quick
-          // actions that have no meaning on a blank draft (no client, no
-          // services, nothing to mark complete or photograph). For "new",
-          // open in "create" mode (segment toggle, primary "Создать" CTA);
-          // for existing records keep the original "done"/"view" split.
-          mode={
-            inlineSheet.mode === "new"
-              ? "create"
-              : inlineSheet.initial.status === "completed"
-                ? "done"
-                : // v658 — events have no "view" mode (no quick-actions
-                  // make sense on a lunch-break or meeting), so tap-to-open
-                  // jumps straight to edit. Work records keep view→edit
-                  // transition via AdminActions inside the work body.
-                  (inlineSheet.initial.kind === "event" ||
-                    inlineSheet.initial.kind === "personal")
-                  ? "edit"
-                  : "view"
-          }
+          // Single inline screen: new records → create, every existing
+          // record (scheduled / completed / cancelled, work or event) →
+          // edit. Status is shown as a header label, not a separate
+          // read-only layout.
+          mode={inlineSheet.mode === "new" ? "create" : "edit"}
           appointment={inlineSheet.initial}
           clients={clients}
           recentClientIds={recentInChats}
