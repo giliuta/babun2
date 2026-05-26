@@ -737,14 +737,23 @@ export default function AppointmentSheet({
       // только через явную кнопку ✕ или swipe-down (тоже идёт через
       // attemptClose). Esc на keyboard через useBodyScrollLock тоже
       // работает.
-      className="fixed inset-x-0 top-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-x-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
       // Pin to the visual viewport (iOS keyboard fix — see `viewport`
-      // effect above). Height follows vv.height; translateY counters
-      // vv.offsetTop so the overlay never drifts when the keyboard
-      // scrolls the page. Fallback 100dvh on first paint / no-VV envs.
+      // effect above). `top` follows vv.offsetTop so the overlay never
+      // drifts when the keyboard scrolls the page; height follows
+      // vv.height so the sheet + footer stay above the keyboard.
+      //
+      // IMPORTANT: we use `top`, NOT `transform`. A CSS transform on
+      // this overlay would make it the containing block for every
+      // `position: fixed` descendant — the client picker, service
+      // picker and confirm dialogs (DialogModal is `fixed inset-0` and
+      // renders inside this overlay, not via a body portal). That would
+      // mis-position those sub-sheets («всё ломается»). `top` repositions
+      // without creating a containing block. Fallback 100dvh / top:0 on
+      // first paint and on browsers without visualViewport.
       style={{
+        top: viewport ? `${viewport.offsetTop}px` : 0,
         height: viewport ? `${viewport.height}px` : "100dvh",
-        transform: viewport ? `translateY(${viewport.offsetTop}px)` : undefined,
       }}
     >
       <div
