@@ -9,6 +9,9 @@ interface WheelColumnProps {
   width?: number;
   itemHeight?: number;
   visibleRows?: number;
+  /** Font size (px) of the selected row. The dimmed rows render 3 px
+   *  smaller. Defaults to 22. */
+  fontSize?: number;
   /** Infinite-loop mode: tripled list, scrollTop wraps back to the
    *  middle copy on boundary so values flow continuously in both
    *  directions. Default true — the common case (hours, minutes). */
@@ -32,6 +35,7 @@ export default function WheelColumn({
   width = 44,
   itemHeight = 34,
   visibleRows = 5,
+  fontSize = 22,
   loop = true,
 }: WheelColumnProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -170,7 +174,7 @@ export default function WheelColumn({
               fontVariantNumeric: "tabular-nums",
               color: active ? "rgb(15 23 42)" : "rgb(148 163 184)",
               fontWeight: active ? 700 : 500,
-              fontSize: active ? 22 : 19,
+              fontSize: active ? fontSize : fontSize - 3,
               transition:
                 "color 150ms ease-out, font-weight 150ms ease-out, font-size 150ms ease-out",
               userSelect: "none",
