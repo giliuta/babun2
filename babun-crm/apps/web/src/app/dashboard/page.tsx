@@ -721,6 +721,16 @@ function DashboardPageInner() {
     [teams, activeTeamId],
   );
 
+  // Where the label picker's gear navigates: the active brigade's «Метки»
+  // page, or the personal labels page on «Мой календарь».
+  const labelSettingsHref = useMemo<string>(
+    () =>
+      teams.some((x) => x.id === activeTeamId)
+        ? `/dashboard/teams/${activeTeamId}/cities`
+        : "/dashboard/settings/calendar/labels",
+    [teams, activeTeamId],
+  );
+
   useLayoutEffect(() => {
     if (viewMode === "month") return;
     const el = outerScrollerRef.current;
@@ -1942,6 +1952,7 @@ function DashboardPageInner() {
         brigadeCities={activeLabelNames}
         onPick={handleCityPick}
         onReset={handleCityReset}
+        settingsHref={labelSettingsHref}
       />
 
       {/* STORY audit (design-keeper unification): объединили два create-
