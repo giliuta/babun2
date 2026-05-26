@@ -162,7 +162,7 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
           onBlur={(e) => commitName(e.target.value)}
           placeholder="Название"
           maxLength={60}
-          className="flex-1 min-w-0 h-12 bg-transparent text-[16px] font-semibold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-normal focus:outline-none"
+          className="flex-1 min-w-0 h-12 bg-transparent text-[16px] font-semibold text-[var(--label)] placeholder:text-[var(--label-tertiary)] placeholder:font-normal outline-none focus:outline-none focus-visible:outline-none"
         />
         <button
           type="button"

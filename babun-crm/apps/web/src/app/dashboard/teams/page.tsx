@@ -54,6 +54,7 @@ import { haptic } from "@/lib/haptics";
 import {
   useAppointments,
   useMasters,
+  useSchedules,
   useTeams,
 } from "@/components/layout/DashboardClientLayout";
 import {
@@ -69,6 +70,7 @@ export default function TeamsPage() {
   const { teams, upsertTeam, deleteTeam } = useTeams();
   const { masters, setMasters } = useMasters();
   const { appointments, upsertAppointment } = useAppointments();
+  const { schedules, setSchedules } = useSchedules();
   const confirm = useConfirm();
 
   const [menu, setMenu] = useState<{
@@ -114,8 +116,17 @@ export default function TeamsPage() {
       payout_percentage: 30,
       active: true,
       created_at: new Date().toISOString(),
+      // Creation defaults (editable afterwards): visible 00:00–23:00,
+      // open-at 10:00. Working hours (10:00–20:00) live on the schedule.
+      calendar_window_start: "00:00",
+      calendar_window_end: "23:00",
+      default_scroll_time: "10:00",
     };
     upsertTeam(team);
+    setSchedules({
+      ...schedules,
+      [team.id]: { start: "10:00", end: "20:00", breaks: [] },
+    });
     router.push(`/dashboard/teams/${team.id}/calendar`);
   };
   const openTeam = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
