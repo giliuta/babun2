@@ -20,10 +20,14 @@ import { useEffect } from "react";
  * `scrollIntoView({block: "center"})` on the focused element. iOS
  * Safari respects this even mid-keyboard-animation.
  *
- * Belt-and-braces: also listen to `visualViewport.resize`. When the
- * keyboard rises mid-scroll-flow (e.g. user typed, scrolled, typed
- * again), the resize event fires and we re-center on the currently
- * focused element if it's inside our container.
+ * We deliberately DO NOT re-center on `visualViewport.resize`. iOS
+ * fires resize on every predictive-suggestion-bar toggle while you
+ * type, and a smooth `scrollIntoView` on each one made the whole sheet
+ * visibly «прыгать» on every keystroke. The one-time focusin reveal is
+ * enough — the keyboard height is stable while typing, so the input
+ * stays in view once centered. The overlay itself is pinned to the
+ * visual viewport by AppointmentSheet, which handles keyboard-driven
+ * drift.
  *
  * Apply once per modal — pass the ref to the scroll container, NOT
  * to individual inputs.
@@ -60,23 +64,10 @@ export function useScrollFocusIntoView(
       center(t);
     };
 
-    const onViewportResize = () => {
-      const active = document.activeElement;
-      if (!isEditable(active)) return;
-      if (!container.contains(active)) return;
-      // Wait a tick — visualViewport.resize fires before iOS finishes
-      // the keyboard animation, and scrollIntoView during the
-      // animation is jittery on iOS 16/17. 80 ms is the sweet spot.
-      window.setTimeout(() => center(active), 80);
-    };
-
     container.addEventListener("focusin", onFocusIn);
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", onViewportResize);
 
     return () => {
       container.removeEventListener("focusin", onFocusIn);
-      vv?.removeEventListener("resize", onViewportResize);
     };
   }, [scrollContainerRef]);
 }
