@@ -1948,7 +1948,6 @@ function DashboardPageInner() {
                 grid, never scrolls. Mirrors the visible day columns. */}
             <DayFinanceFooter
               dates={footerDates}
-              rows={dayFinanceRows}
               summaryFor={dayFinanceSummary}
               onDayTap={handleFooterTap}
             />
