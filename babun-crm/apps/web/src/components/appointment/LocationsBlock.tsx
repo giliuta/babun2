@@ -26,11 +26,14 @@ interface LocationsBlockProps {
 
 type Mode = "idle" | "form";
 
+// Note max length — matches Location.note constraint (140 chars).
+const NOTE_MAX = 140;
+
 // Inline address block — no popup. Three states:
 //   no client  → greyed row "Сначала выберите клиента"
 //   empty      → "+ Добавить адрес" row; tapping reveals inline form
-//   filled     → address row + Nav + note; "+ Добавить ещё адрес" link;
-//                tap on the row enters edit mode (same inline form,
+//   filled     → address row + Nav + object note; "+ Добавить ещё адрес"
+//                link; tap on the row enters edit mode (same inline form,
 //                prefilled). If client has multiple non-empty locations,
 //                chips above the row let you switch.
 //
@@ -50,7 +53,12 @@ export default function LocationsBlock({
   const [label, setLabel] = useState("");
   const [customMode, setCustomMode] = useState(false);
   const [input, setInput] = useState("");
+  // Per-object note in the add/edit form.
+  const [noteInput, setNoteInput] = useState("");
   const [navOpen, setNavOpen] = useState(false);
+  // Inline note edit for the selected (non-form) address.
+  const [editingNote, setEditingNote] = useState(false);
+  const [inlineNote, setInlineNote] = useState("");
 
   const rawLocations: Location[] = client?.locations ?? [];
   const realLocations = rawLocations.filter(
@@ -67,6 +75,12 @@ export default function LocationsBlock({
   const presets = locationLabels.map((l) => l.name);
   const addrPlaceholder = placeholder ?? "Адрес или Google Maps ссылка";
 
+  // Sync inline note field when the selected location changes.
+  useEffect(() => {
+    setInlineNote(selected?.note ?? "");
+    setEditingNote(false);
+  }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Close form if the user picks a different location externally.
   useEffect(() => {
     if (!hasAddress && mode === "idle") return;
@@ -78,6 +92,7 @@ export default function LocationsBlock({
     setLabel("");
     setCustomMode(false);
     setInput("");
+    setNoteInput("");
     setMode("form");
   };
 
@@ -88,6 +103,7 @@ export default function LocationsBlock({
     setLabel(legacySeed ? "" : loc.label ?? "");
     setCustomMode(!legacySeed && loc.label !== "" && !isPreset);
     setInput(loc.address || loc.mapUrl || "");
+    setNoteInput(loc.note ?? "");
     setMode("form");
   };
 
@@ -97,6 +113,7 @@ export default function LocationsBlock({
     setLabel("");
     setCustomMode(false);
     setInput("");
+    setNoteInput("");
   };
 
   const saveForm = () => {
@@ -110,11 +127,10 @@ export default function LocationsBlock({
     const address = isUrl
       ? (extractAddressFromMapUrl(rawInput) ?? "")
       : rawInput;
+    const note = noteInput.trim().slice(0, NOTE_MAX) || undefined;
 
     if (editingId) {
-      // Edit existing location — whether it was a legacy "Основной"
-      // seed or a real one, we rewrite in place and mark as primary
-      // if nothing else was primary yet.
+      // Edit existing location.
       const existing = rawLocations.find((l) => l.id === editingId);
       if (!existing) return;
       const updated: Location = {
@@ -122,6 +138,7 @@ export default function LocationsBlock({
         label: lbl || existing.label || "Объект",
         address,
         mapUrl,
+        note,
       };
       const nextLocations = rawLocations.map((l) =>
         l.id === editingId ? updated : l
@@ -140,6 +157,7 @@ export default function LocationsBlock({
         label: lbl || "Объект",
         address,
         mapUrl,
+        note,
         isPrimary: realLocations.length === 0,
       };
       const nextLocations =
@@ -150,6 +168,18 @@ export default function LocationsBlock({
       onSelectLocation(nextId);
     }
     cancelForm();
+  };
+
+  /** Persist a note change on the currently selected location. */
+  const saveInlineNote = () => {
+    if (!client || !selected) return;
+    const note = inlineNote.trim().slice(0, NOTE_MAX) || undefined;
+    const updated: Location = { ...selected, note };
+    const nextLocations = rawLocations.map((l) =>
+      l.id === selected.id ? updated : l
+    );
+    upsertClient({ ...client, locations: nextLocations });
+    setEditingNote(false);
   };
 
   const navInput = selected?.mapUrl || selected?.address || "";
@@ -312,6 +342,16 @@ export default function LocationsBlock({
                 className="w-full h-11 px-3.5 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[15px] text-[var(--label)] focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
               />
 
+              {/* Per-object note field — persisted on Location.note. */}
+              <textarea
+                value={noteInput}
+                onChange={(e) => setNoteInput(e.target.value.slice(0, NOTE_MAX))}
+                placeholder="зелёная дверь, домофон 25, что на объекте…"
+                rows={2}
+                maxLength={NOTE_MAX}
+                className="w-full px-3.5 py-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[14px] text-[var(--label)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+              />
+
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
@@ -333,8 +373,7 @@ export default function LocationsBlock({
           </>
         )}
 
-        {/* Row 2: Navigation — v607 P0 #5 hides instead of disabling
-            when there's no address yet (cleaner thumb-zone). */}
+        {/* Row 2: Navigation — hidden when there's no address yet. */}
         {hasAddress && (
           <>
             <div className="h-px bg-[var(--separator)]" />
@@ -351,19 +390,83 @@ export default function LocationsBlock({
           </>
         )}
 
-        {/* v660 — Row 3 address-note removed in edit/create mode (now
-            lives in the unified «Заметка для бригады» field).
-            View-mode still surfaces historic notes. */}
-        {readOnly && addressNote.trim() && (
+        {/* Row 3: per-object note. In edit mode: editable inline;
+            in read-only: show the saved note (if any). */}
+        {hasAddress && !readOnly && mode !== "form" && (
           <>
             <div className="h-px bg-[var(--separator)]" />
-            <div className="px-3 py-2 text-[12px] text-[var(--label-secondary)]">
-              <span className="text-[var(--label-tertiary)]">Примечание: </span>
-              {addressNote}
-            </div>
+            {editingNote ? (
+              <div className="px-3 py-2 space-y-1.5">
+                <textarea
+                  value={inlineNote}
+                  onChange={(e) => setInlineNote(e.target.value.slice(0, NOTE_MAX))}
+                  placeholder="зелёная дверь, домофон 25, что на объекте…"
+                  rows={2}
+                  maxLength={NOTE_MAX}
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus
+                  className="w-full px-3 py-2 rounded-[10px] bg-[var(--fill-tertiary)] border border-transparent text-[13px] text-[var(--label)] resize-none focus:outline-none focus:bg-[var(--surface-card)] focus:border-[var(--accent)]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInlineNote(selected?.note ?? "");
+                      setEditingNote(false);
+                    }}
+                    className="flex-1 h-9 rounded-[8px] text-[var(--accent)] text-[13px] font-medium"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveInlineNote}
+                    className="flex-1 h-9 rounded-[8px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[13px] font-semibold"
+                  >
+                    Сохранить
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setInlineNote(selected?.note ?? "");
+                  setEditingNote(true);
+                }}
+                className="w-full px-3 py-2 text-left active:bg-[var(--fill-quaternary)]"
+              >
+                {selected?.note ? (
+                  <span className="text-[12px] text-[var(--label-secondary)]">
+                    {selected.note}
+                  </span>
+                ) : (
+                  <span className="text-[12px] text-[var(--label-tertiary)]">
+                    + Заметка об объекте
+                  </span>
+                )}
+              </button>
+            )}
           </>
         )}
 
+        {/* Read-only: show saved note and legacy address_note. */}
+        {readOnly && (selected?.note || addressNote.trim()) && (
+          <>
+            <div className="h-px bg-[var(--separator)]" />
+            <div className="px-3 py-2 text-[12px] text-[var(--label-secondary)]">
+              {selected?.note && (
+                <div>{selected.note}</div>
+              )}
+              {addressNote.trim() && (
+                <div className="mt-0.5">
+                  <span className="text-[var(--label-tertiary)]">Примечание: </span>
+                  {addressNote}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <MapNavPopup
