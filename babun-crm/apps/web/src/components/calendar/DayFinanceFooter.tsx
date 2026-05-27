@@ -16,10 +16,11 @@ interface DayFinanceFooterProps {
   onDayTap: (dateKey: string) => void;
 }
 
-// Two quiet lines per day — Доход (green) over Расход (red). No labels:
-// colour alone carries the meaning, so the footer reads as clean as
-// possible. Everything else (план, прибыль, разбивка по оплате) lives
-// in the per-day popup that opens on tap.
+// Two quiet lines per day — Доход (green) over Расход (red). No labels;
+// colour carries the meaning. €0 cells are blank (not «—»), so empty
+// days show nothing but the thin day separators — maximally clean.
+// Everything else (план, прибыль, разбивка по оплате) lives in the
+// per-day popup that opens on tap.
 type LineKey = "earned" | "spent";
 
 const LINES: Array<{ key: LineKey; color: string }> = [
@@ -27,13 +28,14 @@ const LINES: Array<{ key: LineKey; color: string }> = [
   { key: "spent", color: "text-[var(--system-red)]" },
 ];
 
-// Fixed line height so columns line up even when a cell shows «—».
+// Fixed line height so columns line up even when a cell is blank.
 const LINE = "h-[17px] leading-[17px] text-[12px] tabular-nums";
 
 function cellValue(key: LineKey, t: DayFinanceTotals): string {
   const v = key === "earned" ? t.earned : t.spent;
-  // Zero stays «—» so empty days read clean.
-  return v === 0 ? "—" : formatEUR(v);
+  // €0 → blank (no dash): empty days stay completely clean, only the
+  // thin day separators remain.
+  return v === 0 ? "" : formatEUR(v);
 }
 
 function DayFinanceFooterInner({
