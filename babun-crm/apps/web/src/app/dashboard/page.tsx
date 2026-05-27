@@ -18,7 +18,14 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { getMonday, addWeeks, addDays, formatDateLongRu } from "@babun/shared/common/utils/date-utils";
+import {
+  getMonday,
+  addWeeks,
+  addDays,
+  formatDateLongRu,
+  getCurrentCyprusTime,
+  getCurrentTimeInZone,
+} from "@babun/shared/common/utils/date-utils";
 import type { Client } from "@babun/shared/local/clients";
 import { getTeamSchedule, type TeamSchedule } from "@babun/shared/local/schedule";
 import {
@@ -2181,6 +2188,12 @@ function DashboardPageInner() {
         <DayFinanceDetailModal
           open
           onClose={() => setFinanceDateKey(null)}
+          dateKey={financeDateKey}
+          todayKey={toYmd(
+            activeBrigadeTimezone
+              ? getCurrentTimeInZone(activeBrigadeTimezone)
+              : getCurrentCyprusTime(),
+          )}
           dateLabel={formatDateLongRu(financeDateKey)}
           appointments={visibleAppointments.filter(
             (a) => a.date === financeDateKey
