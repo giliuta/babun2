@@ -16,15 +16,15 @@ interface DayFinanceFooterProps {
   onDayTap: (dateKey: string) => void;
 }
 
-// Two quiet lines per day — Доход (green) over Расход (red). Everything
-// else (план, прибыль, разбивка по способам оплаты) lives in the
-// per-day popup that opens on tap, so the footer stays a clean glance
-// instead of a cramped 4-row table.
+// Two quiet lines per day — Доход (green) over Расход (red). No labels:
+// colour alone carries the meaning, so the footer reads as clean as
+// possible. Everything else (план, прибыль, разбивка по оплате) lives
+// in the per-day popup that opens on tap.
 type LineKey = "earned" | "spent";
 
-const LINES: Array<{ key: LineKey; label: string; color: string }> = [
-  { key: "earned", label: "Доход", color: "text-[var(--system-green)]" },
-  { key: "spent", label: "Расход", color: "text-[var(--system-red)]" },
+const LINES: Array<{ key: LineKey; color: string }> = [
+  { key: "earned", color: "text-[var(--system-green)]" },
+  { key: "spent", color: "text-[var(--system-red)]" },
 ];
 
 // Fixed line height so columns line up even when a cell shows «—».
@@ -52,17 +52,9 @@ function DayFinanceFooterInner({
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex w-full">
-        {/* Row-label gutter — aligns with the TimeColumn width (w-12/16). */}
-        <div className="w-12 lg:w-16 flex-shrink-0 flex flex-col justify-center py-2 pr-1">
-          {activeLines.map((l) => (
-            <div
-              key={l.key}
-              className={`${LINE} text-right text-[9px] font-semibold uppercase tracking-wide ${l.color}`}
-            >
-              {l.label}
-            </div>
-          ))}
-        </div>
+        {/* Empty gutter — reserves the TimeColumn width (w-12/16) so the
+            day columns line up with the grid above. No label. */}
+        <div className="w-12 lg:w-16 flex-shrink-0" aria-hidden />
 
         {/* One tappable column per visible day → opens the detail popup. */}
         {dates.map((date) => {
