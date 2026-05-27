@@ -1,151 +1,40 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type {
   AppointmentService,
   Discount,
 } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
 import {
-  appointmentTotal,
   globalDiscountAmount,
   lineTotal,
   subtotal,
-  totalDuration,
 } from "@babun/shared/local/finance/appointment-calc";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { Tag, X } from "@babun/shared/icons";
+import { X } from "@babun/shared/icons";
 
-interface IncomeBlockProps {
-  services: AppointmentService[];
-  globalDiscount: Discount | null;
-  catalog: Service[];
-  readonly: boolean;
-  onServicesChange: (next: AppointmentService[]) => void;
-  onGlobalDiscountChange: (next: Discount | null) => void;
-}
-
-// ДОХОД card — always visible, tappable.
-// Tap opens a popup with:
-//  - per-service breakdown (name × qty = line total, editable price)
-//  - global discount toggle (€ / %)
-//  - grand total
-export default function IncomeBlock({
-  services,
-  globalDiscount,
-  catalog,
-  readonly,
-  onServicesChange,
-  onGlobalDiscountChange,
-}: IncomeBlockProps) {
-  const byId = useMemo(() => {
-    const map = new Map<string, Service>();
-    for (const s of catalog) map.set(s.id, s);
-    return map;
-  }, [catalog]);
-
-  const sub = subtotal(services);
-  const total = appointmentTotal(services, globalDiscount);
-  const discount = globalDiscountAmount(services, globalDiscount);
-  const duration = totalDuration(services);
-
-  const [open, setOpen] = useState(false);
-  const canEdit = !readonly;
-
-  // v657 — when no services are added the big "Доход €0" headline was
-  // the largest number on screen in create mode. Mobile UX auditor:
-  // "€0 figure when no services exist is noise, not signal." Hide the
-  // entire block until at least one service exists. ServicesBlock CTA
-  // already signals "add a service" — we don't need to also shout €0.
-  if (services.length === 0) return null;
-
-  return (
-    <div className="px-4 pt-2">
-      <button
-        type="button"
-        onClick={() => canEdit && setOpen(true)}
-        disabled={!canEdit}
-        className="w-full rounded-[14px] bg-[var(--fill-tertiary)] border border-[var(--separator)] p-3 text-left active:bg-[var(--fill-secondary)] disabled:active:bg-[var(--fill-tertiary)] transition"
-      >
-        {discount > 0 && (
-          <>
-            <div className="flex items-center justify-between text-[12px] text-[var(--label-secondary)]">
-              <span>Подытог ({services.length} усл.)</span>
-              <span className="tabular-nums">{formatEUR(sub)}</span>
-            </div>
-            <div className="flex items-center justify-between text-[12px] text-[var(--system-red)] font-semibold">
-              <span className="inline-flex items-center gap-1">
-                <Tag size={12} strokeWidth={2} />
-                {globalDiscount?.type === "percent"
-                  ? `−${globalDiscount.value}%`
-                  : `Скидка`}
-                {/* v704 — proper « · reason » separator instead of a
-                    bare space, so «−10% · Лояльность» reads as one
-                    labeled item, not «−10% Лояльность» mushed
-                    together. The reason is already saved by
-                    useLoyaltyAutoApply; this just surfaces it
-                    legibly. */}
-                {globalDiscount?.reason && ` · ${globalDiscount.reason}`}
-              </span>
-              <span className="tabular-nums">−{formatEUR(discount)}</span>
-            </div>
-            <div className="h-px bg-[var(--separator)] my-1.5" />
-          </>
-        )}
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">Доход</span>
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-[22px] font-bold tabular-nums ${
-                total > 0 ? "text-[var(--label)]" : "text-[var(--label-tertiary)]"
-              }`}
-            >
-              {formatEUR(total)}
-            </span>
-            {canEdit && services.length > 0 && (
-              <span className="text-[var(--label-quaternary)]">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
-          {duration} мин общей длительности
-        </div>
-      </button>
-
-      {open && (
-        <IncomePopup
-          services={services}
-          byId={byId}
-          globalDiscount={globalDiscount}
-          onServicesChange={onServicesChange}
-          onGlobalDiscountChange={onGlobalDiscountChange}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-function IncomePopup({
-  services,
-  byId,
-  globalDiscount,
-  onServicesChange,
-  onGlobalDiscountChange,
-  onClose,
-}: {
+interface IncomePopupProps {
   services: AppointmentService[];
   byId: Map<string, Service>;
   globalDiscount: Discount | null;
   onServicesChange: (next: AppointmentService[]) => void;
   onGlobalDiscountChange: (next: Discount | null) => void;
   onClose: () => void;
-}) {
+}
+
+// Попап детализации дохода: разбивка по услугам (редактируемые цены),
+// глобальная скидка, итог. Открывается из «Итого» строки в ServicesBlock.
+// Всегда центрированный (items-center, rounded-2xl) — см. popup-design rule.
+export default function IncomePopup({
+  services,
+  byId,
+  globalDiscount,
+  onServicesChange,
+  onGlobalDiscountChange,
+  onClose,
+}: IncomePopupProps) {
   const confirmDialog = useConfirm();
   const [discType, setDiscType] = useState<"none" | "fixed" | "percent">(
     globalDiscount?.type ?? "none"
@@ -169,11 +58,20 @@ function IncomePopup({
   };
 
   const attemptClose = async () => {
-    if (!dirty && discType === (globalDiscount?.type ?? "none") && discValue === (globalDiscount ? String(globalDiscount.value) : "")) {
+    const discUnchanged =
+      discType === (globalDiscount?.type ?? "none") &&
+      discValue === (globalDiscount ? String(globalDiscount.value) : "");
+    if (!dirty && discUnchanged) {
       onClose();
       return;
     }
-    if (await confirmDialog({ title: "Отменить изменения цены / скидки?", confirmLabel: "Отменить", danger: false })) {
+    if (
+      await confirmDialog({
+        title: "Отменить изменения цены / скидки?",
+        confirmLabel: "Отменить",
+        danger: false,
+      })
+    ) {
       onClose();
     }
   };
@@ -219,7 +117,9 @@ function IncomePopup({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--separator)]">
-          <div className="text-[17px] font-semibold tracking-tight text-[var(--label)]">Доход</div>
+          <div className="text-[17px] font-semibold tracking-tight text-[var(--label)]">
+            Доход
+          </div>
           <button
             type="button"
             onClick={attemptClose}
@@ -255,7 +155,9 @@ function IncomePopup({
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className="text-[12px] text-[var(--label-secondary)]">€/шт</span>
+                        <span className="text-[12px] text-[var(--label-secondary)]">
+                          €/шт
+                        </span>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -325,7 +227,9 @@ function IncomePopup({
               {previewDiscount > 0 && (
                 <div className="flex items-center justify-between text-[12px] text-[var(--system-red)] font-semibold">
                   <span>Скидка</span>
-                  <span className="tabular-nums">−{formatEUR(previewDiscount)}</span>
+                  <span className="tabular-nums">
+                    −{formatEUR(previewDiscount)}
+                  </span>
                 </div>
               )}
               <div className="h-px bg-[var(--separator)] my-1.5" />
@@ -343,7 +247,9 @@ function IncomePopup({
 
         <div
           className="flex-shrink-0 px-4 pt-2 border-t border-[var(--separator)]"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)" }}
+          style={{
+            paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 10px)",
+          }}
         >
           <button
             type="button"

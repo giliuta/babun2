@@ -160,7 +160,7 @@ export default function PhotoBlock({
   if (readonly && photos.length === 0) return null;
 
   return (
-    <div className="px-4 pt-2">
+    <div className="px-4 pt-3">
       {/* v671 — hint when upload is gated by «save first». Only shown
           on the empty state; once there are photos this row is hidden
           because canUpload=false also implies an existing record. */}
