@@ -77,7 +77,7 @@ export default function ClientBlock({
   if (!client) {
     if (readonly) return null;
     return (
-      <div className="px-4 pt-2 space-y-2">
+      <div className="px-4 pt-3 space-y-2">
         {recentClients.length > 0 && (
           <div
             className="flex gap-1.5 overflow-x-auto"
@@ -103,7 +103,7 @@ export default function ClientBlock({
         <button
           type="button"
           onClick={onPick}
-          className="w-full h-14 flex items-center gap-3 px-3 rounded-[14px] bg-[var(--surface-card)] border border-dashed border-[var(--separator)] active:scale-[0.99]"
+          className="w-full min-h-[68px] flex items-center gap-3 px-3 rounded-[14px] bg-[var(--surface-card)] border border-dashed border-[var(--separator)] shadow-[var(--shadow-card)] active:scale-[0.99]"
         >
           <div className="w-9 h-9 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-tertiary)] flex items-center justify-center flex-shrink-0 text-[16px] font-bold">
             +
@@ -138,8 +138,8 @@ export default function ClientBlock({
   })();
 
   return (
-    <div className="px-4 pt-2">
-      <div className="min-h-14 flex items-center gap-3 px-3 py-2 rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)]">
+    <div className="px-4 pt-3">
+      <div className="min-h-[68px] flex items-center gap-3 px-3 py-2 rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] shadow-[var(--shadow-card)]">
         <button
           type="button"
           onClick={readonly ? undefined : onPick}

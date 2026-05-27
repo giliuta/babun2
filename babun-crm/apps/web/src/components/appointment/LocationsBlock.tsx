@@ -22,6 +22,10 @@ interface LocationsBlockProps {
   /** Placeholder hint driven by the day's city-tag, e.g.
    *  "Лимассол, ул. ..." or fallback "Адрес или Google Maps ссылка". */
   placeholder?: string;
+  /** Called when the user taps «+ Добавить адрес» but no client is
+   *  selected yet. Parent shows the "выберите клиента" prompt instead
+   *  of opening the inline form. */
+  onRequireClient?: () => void;
 }
 
 type Mode = "idle" | "form";
@@ -46,6 +50,7 @@ export default function LocationsBlock({
   addressNote,
   onSelectLocation,
   placeholder,
+  onRequireClient,
 }: LocationsBlockProps) {
   const { locationLabels } = useLocationLabels();
   const [mode, setMode] = useState<Mode>("idle");
@@ -88,6 +93,12 @@ export default function LocationsBlock({
   }, [hasAddress, mode]);
 
   const openNew = () => {
+    // When no client is selected, intercept the tap and ask the
+    // dispatcher to pick a client first instead of opening the form.
+    if (!client) {
+      onRequireClient?.();
+      return;
+    }
     setEditingId(null);
     setLabel("");
     setCustomMode(false);
@@ -185,8 +196,8 @@ export default function LocationsBlock({
   const navInput = selected?.mapUrl || selected?.address || "";
 
   return (
-    <div className="px-4 pt-2">
-      <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] overflow-hidden">
+    <div className="px-4 pt-3">
+      <div className="rounded-[14px] bg-[var(--surface-card)] border border-[var(--separator)] shadow-[var(--shadow-card)] overflow-hidden">
         {/* v616 §6 — multi-address chip switcher + [+] at the right
             edge. Chips themselves only render for 2+ locations; with
             a single one the row collapses to just the [+] add button

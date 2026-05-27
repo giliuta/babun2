@@ -5,8 +5,8 @@
  * sheet is in work-record mode (kind === "work"). Hosts every block
  * the dispatcher fills in for a client visit:
  *
- *   Client(card+stats) → Locations → Services → Income → Payment →
- *   Comment → Photo → Reschedule → CancelToggle
+ *   Client(card+stats) → Locations(always) → Services(+Итого footer) →
+ *   Payment → Comment → Photo → Reschedule → CancelToggle
  *
  * Source / SMS toggle removed (form-cleanup task).
  * ClientHistoryStrip removed; replaced by the stats row in ClientBlock.
@@ -32,7 +32,6 @@ import { CalendarClock } from "@babun/shared/icons";
 import ClientBlock from "./ClientBlock";
 import LocationsBlock from "./LocationsBlock";
 import ServicesBlock from "./ServicesBlock";
-import IncomeBlock from "./IncomeBlock";
 import PaymentBlock from "./PaymentBlock";
 import CommentBlock from "./CommentBlock";
 import PhotoBlock from "./PhotoBlock";
@@ -167,26 +166,27 @@ export default function AppointmentWorkBody({
         }}
       />
 
-      {/* Block 2: Locations — inline address + object note */}
-      {client && (
-        <LocationsBlock
-          client={client}
-          selectedLocationId={locationId}
-          readOnly={readonly}
-          addressNote={addressNote}
-          onSelectLocation={setLocationId}
-          onAddressNoteChange={setAddressNote}
-          placeholder={addressPlaceholder}
-        />
-      )}
+      {/* Block 2: Locations — always visible; intercepts add-tap when no
+          client is selected and shows the «выберите клиента» prompt. */}
+      <LocationsBlock
+        client={client}
+        selectedLocationId={locationId}
+        readOnly={readonly}
+        addressNote={addressNote}
+        onSelectLocation={setLocationId}
+        onAddressNoteChange={setAddressNote}
+        placeholder={addressPlaceholder}
+        onRequireClient={() => setAskClientFirst(true)}
+      />
 
-      {/* Block 3: Services */}
+      {/* Block 3: Services + Итого footer (income popup lives inside ServicesBlock) */}
       <ServicesBlock
         services={appointmentServices}
         globalDiscount={globalDiscount}
         catalog={catalog}
         readonly={readonly}
         onServicesChange={setAppointmentServices}
+        onGlobalDiscountChange={setGlobalDiscount}
         onOpenPicker={() => {
           if (!clientId) {
             setAskClientFirst(true);
@@ -196,23 +196,13 @@ export default function AppointmentWorkBody({
         }}
       />
 
-      {/* Block 4: Income */}
-      <IncomeBlock
-        services={appointmentServices}
-        globalDiscount={globalDiscount}
-        catalog={catalog}
-        readonly={readonly}
-        onServicesChange={setAppointmentServices}
-        onGlobalDiscountChange={setGlobalDiscount}
-      />
-
-      {/* Block 5: Payment — only for existing records (after creation). */}
+      {/* Block 4: Payment — only for existing records (after creation). */}
       {showPayment && <PaymentBlock total={paymentTotal} onPay={onPay} />}
 
-      {/* Block 6: Appointment note (per-visit brigade comment). */}
+      {/* Block 5: Appointment note (per-visit brigade comment). */}
       <CommentBlock value={comment} readonly={readonly} onChange={setComment} />
 
-      {/* Block 7: Photos — standalone, no accordion wrapper. */}
+      {/* Block 6: Photos — standalone, no accordion wrapper. */}
       <div ref={photoScrollRef}>
         <PhotoBlock
           photos={photos}
@@ -225,7 +215,7 @@ export default function AppointmentWorkBody({
         />
       </div>
 
-      {/* Block 8: Reschedule — for existing scheduled records. */}
+      {/* Block 7: Reschedule — for existing scheduled records. */}
       {liveMode !== "create" &&
         appointment.status === "scheduled" &&
         onReschedule && (
@@ -241,7 +231,7 @@ export default function AppointmentWorkBody({
           </div>
         )}
 
-      {/* Block 9: Cancel toggle — for existing non-completed records. */}
+      {/* Block 8: Cancel toggle — for existing non-completed records. */}
       {liveMode !== "create" && appointment.status !== "completed" && (
         <CancelToggleBlock
           cancelFlag={cancelFlag}
