@@ -149,12 +149,21 @@ export default function AppointmentSheet({
   const [viewport, setViewport] = useState<{
     height: number;
     offsetTop: number;
+    keyboard: boolean;
   } | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
     const update = () => {
-      setViewport({ height: vv.height, offsetTop: vv.offsetTop });
+      // iOS keeps window.innerHeight at the LAYOUT-viewport height while
+      // the keyboard only shrinks visualViewport.height — so the delta is
+      // the keyboard inset. >100 px ⇒ keyboard is up.
+      const keyboardInset = window.innerHeight - vv.height;
+      setViewport({
+        height: vv.height,
+        offsetTop: vv.offsetTop,
+        keyboard: keyboardInset > 100,
+      });
     };
     update();
     vv.addEventListener("resize", update);
@@ -164,11 +173,17 @@ export default function AppointmentSheet({
       vv.removeEventListener("scroll", update);
     };
   }, []);
-  // Sheet занимает 92% видимой области (как прежде). Деривируем из
-  // pinned viewport, без отдельного state — height клавиатуры уже
-  // учтён в vv.height.
+  // Keyboard CLOSED → 92 vh centered dialog (unchanged look). Keyboard
+  // OPEN → fill the visible viewport (minus the overlay's 8 px padding
+  // each side) instead of shrinking to 92 % of the already-reduced
+  // height and floating centered — that was the «всё
+  // уменьшается/сдвигается» bug while typing into the address form. A
+  // full-height sheet gives the scroll body max room so the focused
+  // input (and its Save/Cancel) scroll above the keyboard.
   const sheetHeight = viewport
-    ? `${Math.max(320, Math.floor(viewport.height * 0.92))}px`
+    ? viewport.keyboard
+      ? `${Math.max(320, Math.floor(viewport.height) - 16)}px`
+      : `${Math.max(320, Math.floor(viewport.height * 0.92))}px`
     : "92vh";
 
   const [kind, setKind] = useState<Kind>(
