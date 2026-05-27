@@ -29,6 +29,13 @@ interface UseCalendarGesturesParams {
    *  dynamic min hour-height so pinch-zoom-out can't shrink the grid
    *  below the viewport (no empty gap under 23:59). */
   windowDurationHours: number;
+  /** True only while the scroller element is actually mounted (week /
+   *  day views). Month + agenda views unmount the scroller, so its DOM
+   *  node — and any listeners bound to it — is destroyed. When the user
+   *  returns to week/day a NEW node is mounted; this flag re-runs the
+   *  listener-attach effects so pinch-zoom keeps working after switching
+   *  views (month → list → week was leaving zoom dead). */
+  gridActive: boolean;
 }
 
 interface UseCalendarGesturesResult {
@@ -42,6 +49,7 @@ export function useCalendarGestures({
   hourHeightRef,
   writeHourHeight,
   windowDurationHours,
+  gridActive,
 }: UseCalendarGesturesParams): UseCalendarGesturesResult {
 
   // v473 — viewport-aware floor for --hh. The grid body height is
@@ -114,6 +122,9 @@ export function useCalendarGestures({
     writeHourHeight,
     getViewportFloor,
     windowDurationHours,
+    // Re-attach the ResizeObserver to the freshly-mounted scroller when
+    // returning to week/day from month/agenda.
+    gridActive,
   ]);
 
   const handleZoomIn = useCallback(
@@ -249,7 +260,13 @@ export function useCalendarGestures({
       el.removeEventListener("gestureend", onGestureEnd as EventListener);
       el.removeEventListener("wheel", onWheel);
     };
-  }, []); // refs are stable — no deps needed
+    // `gridActive` is the re-attach trigger: the scroller node is
+    // destroyed when switching to month/agenda and a NEW node is mounted
+    // on returning to week/day. Without this dep the effect ran once and
+    // left the new node with no pinch/gesture/wheel listeners → zoom dead
+    // after month → list → week. The other inputs are stable refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gridActive]);
 
   return { zoomBy, handleZoomIn, handleZoomOut };
 }

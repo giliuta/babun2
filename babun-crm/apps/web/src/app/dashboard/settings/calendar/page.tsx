@@ -14,6 +14,10 @@ import {
   TIMEZONE_OPTIONS,
   type CalendarSettings,
 } from "@babun/shared/local/calendar-settings";
+import {
+  resolveDayFinanceRows,
+  type DayFinanceRowsConfig,
+} from "@babun/shared/local/finance/day-summary";
 import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
 
@@ -21,6 +25,17 @@ import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/per
 // optional reminder". No more "Запись клиента" / "Событие" / "Push"
 // sub-feature toggles in settings — the reminder/push lead-time will
 // be a per-event field inside the create-event sheet itself.
+
+const PERSONAL_FINANCE_ROWS: Array<{
+  key: keyof DayFinanceRowsConfig;
+  title: string;
+  hint: string;
+}> = [
+  { key: "planned", title: "Планируемый доход", hint: "Сколько можно заработать по записям дня." },
+  { key: "earned", title: "Заработано", hint: "Фактически оплачено за день." },
+  { key: "spent", title: "Потрачено", hint: "Материалы и расходы за день." },
+  { key: "profit", title: "Прибыль", hint: "Заработано минус потрачено." },
+];
 
 export default function CalendarSettingsPage() {
   const { calendarSettings, setCalendarSettings } = useCalendarSettings();
@@ -364,6 +379,41 @@ export default function CalendarSettingsPage() {
               <ChevronRight size={18} strokeWidth={2} className="text-[var(--label-tertiary)] shrink-0" />
             </div>
           </Link>
+
+          {/* Per-day finance footer rows. Same as brigade «Финансы по
+              дню», scoped to the personal calendar. */}
+          <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-4 pt-3.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+              Финансы по дню
+            </div>
+            {PERSONAL_FINANCE_ROWS.map((row, idx) => {
+              const resolved = resolveDayFinanceRows(settings.dayFinanceRows);
+              return (
+                <div
+                  key={row.key}
+                  className={`flex items-center gap-3 px-4 py-3 ${
+                    idx > 0 ? "border-t border-[var(--separator)]" : ""
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[15px] text-[var(--label)]">
+                      {row.title}
+                    </div>
+                    <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
+                      {row.hint}
+                    </div>
+                  </div>
+                  <IOSSwitch
+                    checked={resolved[row.key]}
+                    onChange={(v) =>
+                      patch({ dayFinanceRows: { ...resolved, [row.key]: v } })
+                    }
+                    ariaLabel={row.title}
+                  />
+                </div>
+              );
+            })}
+          </div>
 
           {/* Timezone */}
           <div className="bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] p-4 space-y-3">

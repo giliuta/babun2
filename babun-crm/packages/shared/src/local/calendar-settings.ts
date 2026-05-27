@@ -1,6 +1,8 @@
 // Calendar display settings. Persisted in localStorage.
 // Drives auto-scroll start position and grid range on the calendar.
 
+import type { DayFinanceRowsConfig } from "./finance/day-summary";
+
 export interface CalendarSettings {
   /** Visible-grid start hour. Determines what the user actually sees
    *  on the calendar — 0-23, default 9. Renamed conceptually in v438:
@@ -43,6 +45,10 @@ export interface CalendarSettings {
    *  that has no per-date override. Empty / undefined → grey «+ метка»
    *  chip on every untagged day. */
   personalDefaultLabel?: string;
+  /** Personal-calendar day-finance footer rows. Each flag toggles one
+   *  row of the per-day money summary under the calendar columns.
+   *  Undefined = all rows on (DEFAULT_DAY_FINANCE_ROWS). */
+  dayFinanceRows?: DayFinanceRowsConfig;
 }
 
 const STORAGE_KEY = "babun2:settings:calendar";
