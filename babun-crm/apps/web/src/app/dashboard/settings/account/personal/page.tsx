@@ -17,7 +17,6 @@ import AccountSection from "@/components/settings/account/AccountSection";
 import BusinessSection from "@/components/settings/account/BusinessSection";
 import BrandContactsSection from "@/components/settings/account/BrandContactsSection";
 import RegionSection from "@/components/settings/account/RegionSection";
-import AppearanceSection from "@/components/settings/account/AppearanceSection";
 // v429 — PersonalCalendarSection toggle moved to /dashboard/settings/calendar
 // (lives next to the rest of the calendar-shape config).
 import ImportLocalAppointmentsSection from "@/components/settings/account/ImportLocalAppointmentsSection";
@@ -79,7 +78,6 @@ export default async function PersonalInfoPage() {
             initialCountry={tenant.country ?? "CY"}
             initialCurrency={(tenant.currency ?? "EUR") as "EUR" | "USD" | "RUB" | "UAH" | "GBP"}
           />
-          <AppearanceSection />
           <BrandContactsSection
             initial={{
               logo_url: tenant.logo_url ?? null,
