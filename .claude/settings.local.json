@@ -36,7 +36,8 @@
       "mcp__b3fcc84d-6868-4dbe-989a-14277aafc026__list_projects",
       "mcp__b3fcc84d-6868-4dbe-989a-14277aafc026__list_deployments",
       "mcp__1d8a5954-5020-4a81-8680-c7c2b9cf6ff4__list_projects",
-      "mcp__e917741e-0551-4a65-a5da-5da43e0e73e0__get_sentry_resource"
+      "mcp__e917741e-0551-4a65-a5da-5da43e0e73e0__get_sentry_resource",
+      "mcp__1d8a5954-5020-4a81-8680-c7c2b9cf6ff4__generate_typescript_types"
     ],
     "additionalDirectories": [
       "c:\\Users\\Dmitry\\Desktop\\Babun2\\.claude\\commands",

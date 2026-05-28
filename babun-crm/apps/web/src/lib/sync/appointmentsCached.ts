@@ -402,6 +402,15 @@ function makeOptimisticRow(
     created_by: null,
     created_at: input.created_at ?? nowIso,
     updated_at: nowIso,
+    // Event-mode fields (personal calendar). All have safe defaults so
+    // a non-event appointment slots in as a regular work record.
+    event_all_day: input.event_all_day ?? false,
+    event_notes: input.event_notes ?? "",
+    event_url: input.event_url ?? "",
+    event_push_enabled: input.event_push_enabled ?? false,
+    event_push_offsets: (input.event_push_offsets ?? []) as unknown as CachedAppointment["event_push_offsets"],
+    event_push_at: input.event_push_at ?? null,
+    event_repeat: (input.event_repeat ?? { kind: "none" }) as unknown as CachedAppointment["event_repeat"],
   };
 }
 
