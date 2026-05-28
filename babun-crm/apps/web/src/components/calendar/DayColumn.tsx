@@ -608,10 +608,6 @@ function DayColumnInner({
           const timedOffset = reservedPx > 0 ? `${reservedPx + 4}px` : "0px";
 
           const layout = computeOverlapLayout(timed);
-          // Phase I35 — appointments whose end time has passed get
-          // rendered at reduced opacity so the dispatcher sees the
-          // present/future stand out.
-          const nowMs = Date.now();
 
           const renderApt = (
             apt: Appointment,
@@ -625,9 +621,6 @@ function DayColumnInner({
               undefined,
               client?.property_type ?? null,
             );
-            const endIso = `${apt.date}T${apt.time_end}:00`;
-            const endMs = Date.parse(endIso);
-            const isPast = Number.isFinite(endMs) && endMs < nowMs;
             return (
               <AppointmentBlock
                 key={apt.id}
@@ -640,7 +633,6 @@ function DayColumnInner({
                 onClick={onAppointmentClick}
                 onLongPress={onAppointmentLongPress}
                 draggable={dragEnabled}
-                dimmed={isPast}
                 overlapStyle={override}
               />
             );
