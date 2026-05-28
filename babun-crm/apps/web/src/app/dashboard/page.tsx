@@ -1151,6 +1151,8 @@ function DashboardPageInner() {
     dateKey: string;
     timeStart: string;
     timeEnd: string;
+    /** Chosen in TimeConfirmPopup: «Клиент» → "work", «Событие» → "event". */
+    kind: "work" | "event";
   } | null>(null);
 
   // Pre-confirm popup: slot tap sets this, the popup confirms/edits the
@@ -1195,12 +1197,15 @@ function DashboardPageInner() {
     // Personal tab → event for the current master, no team.
     // Brigade tab → work appointment, no master.
     const personal = activeTeamId === PERSONAL_TAB_ID;
+    // Personal-tab → event (no team). Otherwise honour the kind picked
+    // in TimeConfirmPopup («Клиент» / «Событие»).
+    const recordKind: "work" | "event" = personal ? "event" : booking.kind;
     const base = createBlankAppointment({
       date: booking.dateKey,
       time_start: booking.timeStart,
       time_end: booking.timeEnd,
       team_id: personal ? null : activeTeamId || null,
-      kind: personal ? "event" : "work",
+      kind: recordKind,
       // Brief #7 («Мой календарь»): a personal event without a
       // reminder is dead weight — the whole point of putting it in
       // the calendar is to be nudged. Seed push ON with a 15-minute
@@ -2056,9 +2061,9 @@ function DashboardPageInner() {
         allDayRange={{ start: "00:00", end: "23:59" }}
         stepMinutes={activeSlotMinutes}
         onChange={(t) => setPendingTimeConfirm(t)}
-        onConfirm={() => {
+        onConfirm={(kind) => {
           if (pendingTimeConfirm) {
-            setBooking(pendingTimeConfirm);
+            setBooking({ ...pendingTimeConfirm, kind });
             setPendingTimeConfirm(null);
           }
         }}
