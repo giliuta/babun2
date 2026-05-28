@@ -11,6 +11,7 @@ import type { Database } from "../database.types";
 import type {
   DayExtra,
   DayExtraKind,
+  DayExtraPaymentMethod,
   DayExtrasMap,
   ExpenseCategoryKey,
 } from "../../local/day-extras";
@@ -19,14 +20,27 @@ import { dayExtrasKey } from "../../local/day-extras";
 type DbSupabase = SupabaseClient<Database>;
 type Row = Database["public"]["Tables"]["day_extras"]["Row"];
 
+const PAYMENT_METHODS: readonly DayExtraPaymentMethod[] = [
+  "cash",
+  "card",
+  "transfer",
+  "other",
+];
+
 function rowToExtra(r: Row): DayExtra {
   const category = r.category as ExpenseCategoryKey | null;
+  const method =
+    r.payment_method && (PAYMENT_METHODS as readonly string[]).includes(r.payment_method)
+      ? (r.payment_method as DayExtraPaymentMethod)
+      : null;
   return {
     id: r.id,
     name: r.name,
     amount: Number(r.amount ?? 0),
     kind: r.kind as DayExtraKind,
     ...(category ? { category } : {}),
+    ...(method ? { payment_method: method } : {}),
+    ...(r.receipt_url ? { receipt_url: r.receipt_url } : {}),
   };
 }
 
@@ -76,6 +90,8 @@ export async function setDayExtras(
     amount: e.amount,
     kind: e.kind,
     category: e.category ?? null,
+    payment_method: e.payment_method ?? null,
+    receipt_url: e.receipt_url ?? null,
   }));
   const { error: insErr } = await supabase.from("day_extras").insert(rows);
   if (insErr) throw new Error(`setDayExtras (insert): ${insErr.message}`);
