@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * TimeConfirmPopup — centered pre-confirm popup shown between a slot
- * tap and the full AppointmentSheet. Lets the dispatcher verify or
- * adjust the time before committing to the create flow.
+ * TimeConfirmPopup — compact centered popup shown between a slot tap
+ * and the full AppointmentSheet. Lets the dispatcher verify the time
+ * AND pick the record type (Клиент / Событие) before committing.
  *
  * Popup-design rule: fixed inset-0 flex items-center justify-center,
  * rounded-[20px], no grabber pill. Never slides up from the bottom.
@@ -22,11 +22,11 @@ interface TimeConfirmPopupProps {
   allDayRange: { start: string; end: string };
   stepMinutes?: number;
   onChange: (next: { dateKey: string; timeStart: string; timeEnd: string }) => void;
-  onConfirm: () => void;
+  /** Caller passes the chosen record kind. */
+  onConfirm: (kind: "work" | "event") => void;
   onClose: () => void;
 }
 
-// Derive duration in minutes from two "HH:MM" strings.
 function durationMinutes(start: string, end: string): number {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
@@ -52,67 +52,62 @@ export default function TimeConfirmPopup({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[88] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
         onClick={onClose}
       >
-        {/* Card — stops propagation so tapping inside doesn't close */}
         <div
-          className="w-full max-w-sm bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-5 relative"
+          className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] p-3 relative"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close button */}
+          {/* Close ✕ */}
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
+            className="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
           >
-            <X size={18} strokeWidth={2.5} />
+            <X size={16} strokeWidth={2.5} />
           </button>
 
-          {/* Date line */}
-          <div className="text-[13px] text-[var(--label-secondary)] mb-1 pr-10">
-            {formatDateRu(dateKey)}
-          </div>
-
-          {/* Time line */}
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-[28px] font-bold text-[var(--label)] tracking-tight leading-none">
+          {/* Tappable time row — same style as the form's TimeSummaryRow.
+              Tap → opens UnifiedTimePopup for inline editing. */}
+          <button
+            type="button"
+            onClick={() => setTimeEditOpen(true)}
+            className="w-full text-left rounded-[12px] border border-[var(--separator)] bg-[var(--fill-tertiary)] px-3 py-2.5 mt-1 mr-9 active:bg-[var(--fill-quaternary)] transition"
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+              Время
+            </div>
+            <div className="text-[17px] font-bold text-[var(--label)] tabular-nums leading-tight mt-0.5">
               {timeStart} — {timeEnd}
-            </span>
-          </div>
+            </div>
+            <div className="text-[12px] text-[var(--label-secondary)] tabular-nums mt-0.5">
+              {formatDateRu(dateKey)} · {dur} мин
+            </div>
+          </button>
 
-          {/* Duration hint */}
-          <div className="text-[13px] text-[var(--label-secondary)] mb-5">
-            {dur} мин
-          </div>
-
-          {/* Action row */}
-          <div className="flex gap-3">
-            {/* Изменить — opens the time editor inline */}
+          {/* Two record-type buttons */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
             <button
               type="button"
-              onClick={() => setTimeEditOpen(true)}
-              className="flex-1 h-11 rounded-[12px] border border-[var(--separator)] bg-[var(--surface-card)] text-[15px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+              onClick={() => onConfirm("work")}
+              className="h-11 rounded-[10px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold active:opacity-80 transition"
             >
-              Изменить
+              Клиент
             </button>
-
-            {/* Дальше — confirm and open the full sheet */}
             <button
               type="button"
-              onClick={onConfirm}
-              className="flex-1 h-11 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:opacity-80 transition"
+              onClick={() => onConfirm("event")}
+              className="h-11 rounded-[10px] border border-[var(--separator)] bg-[var(--surface-card)] text-[14px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
             >
-              Дальше →
+              Событие
             </button>
           </div>
         </div>
       </div>
 
-      {/* Inner time picker — renders as its own centered popup on top */}
       <UnifiedTimePopup
         open={timeEditOpen}
         onClose={() => setTimeEditOpen(false)}
