@@ -45,6 +45,13 @@ interface UnifiedTimePopupProps {
     timeEnd: string;
     allDay: boolean;
   }) => void;
+  /** Optional: when provided, the footer replaces «Готово» with two
+   *  «Клиент» / «Событие» buttons that commit the time AND signal the
+   *  chosen record kind. Used by the slot-tap pre-confirm. */
+  onTypeSelect?: (
+    kind: "work" | "event",
+    next: { date: string; timeStart: string; timeEnd: string; allDay: boolean },
+  ) => void;
 }
 
 // Carousel window — how many weeks before / after the anchor week we
@@ -70,6 +77,7 @@ export default function UnifiedTimePopup({
   allDayRange,
   stepMinutes,
   onCommit,
+  onTypeSelect,
 }: UnifiedTimePopupProps) {
   const [draft, setDraft] = useState<Draft>({
     date: dateKey,
@@ -361,25 +369,47 @@ export default function UnifiedTimePopup({
           )}
         </div>
 
-        {/* Footer — Отмена / Готово */}
+        {/* Footer — Отмена / Готово, OR Клиент / Событие when the
+            caller passes `onTypeSelect` (slot-tap pre-confirm flow). */}
         <div className="flex-shrink-0 flex gap-2 px-4 py-3 border-t border-[var(--separator)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 h-11 rounded-[12px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onCommit(draft);
-              onClose();
-            }}
-            className="flex-1 h-11 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] transition"
-          >
-            Готово
-          </button>
+          {onTypeSelect ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onTypeSelect("work", draft)}
+                className="flex-1 h-11 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] transition"
+              >
+                Клиент
+              </button>
+              <button
+                type="button"
+                onClick={() => onTypeSelect("event", draft)}
+                className="flex-1 h-11 rounded-[12px] border border-[var(--separator)] bg-[var(--surface-card)] text-[15px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+              >
+                Событие
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 h-11 rounded-[12px] bg-[var(--fill-tertiary)] text-[15px] font-semibold text-[var(--label)] active:bg-[var(--fill-quaternary)] transition"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCommit(draft);
+                  onClose();
+                }}
+                className="flex-1 h-11 rounded-[12px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] active:scale-[0.99] transition"
+              >
+                Готово
+              </button>
+            </>
+          )}
         </div>
         <style>{`.wheel-col-scroll::-webkit-scrollbar{display:none;}`}</style>
       </div>
