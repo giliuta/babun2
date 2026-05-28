@@ -90,8 +90,8 @@ const AppointmentSheet = dynamic(
   () => import("@/components/appointment/AppointmentSheet"),
   { ssr: false },
 );
-const UnifiedTimePopup = dynamic(
-  () => import("@/components/appointment/UnifiedTimePopup"),
+const SlotConfirmPopup = dynamic(
+  () => import("@/components/appointment/SlotConfirmPopup"),
   { ssr: false },
 );
 import ActionMenuModal, {
@@ -2049,29 +2049,20 @@ function DashboardPageInner() {
           PersonalEventSheet остаётся как deprecated wrapper для
           обратной совместимости imports, но dispatch на нём больше
           не висит. */}
-      {/* Slot-tap pre-confirm: the same UnifiedTimePopup the form uses,
-          but with «Клиент»/«Событие» buttons instead of «Готово». Tapping
-          either commits the time AND opens the corresponding form.
-          FAB path (openNewAppointmentInline) and existing-record taps do
-          NOT go through this popup. */}
-      <UnifiedTimePopup
+      {/* Slot-tap pre-confirm: one-wheel SlotConfirmPopup with
+          stacked Событие / Клиент buttons. FAB path
+          (openNewAppointmentInline) and existing-record taps do NOT go
+          through this popup. */}
+      <SlotConfirmPopup
         open={pendingTimeConfirm !== null}
         onClose={() => setPendingTimeConfirm(null)}
-        readonly={false}
         dateKey={pendingTimeConfirm?.dateKey ?? ""}
         timeStart={pendingTimeConfirm?.timeStart ?? ""}
         timeEnd={pendingTimeConfirm?.timeEnd ?? ""}
-        allDay={false}
         allDayRange={{ start: "00:00", end: "23:59" }}
-        stepMinutes={activeSlotMinutes}
-        onCommit={({ date, timeStart: s, timeEnd: e }) => {
-          // Only used as a fallback; the type-select footer is the
-          // active path. Update the draft anyway so it survives.
-          setPendingTimeConfirm({ dateKey: date, timeStart: s, timeEnd: e });
-        }}
-        onTypeSelect={(kind, next) => {
+        onConfirm={(kind, next) => {
           setBooking({
-            dateKey: next.date,
+            dateKey: next.dateKey,
             timeStart: next.timeStart,
             timeEnd: next.timeEnd,
             kind,
