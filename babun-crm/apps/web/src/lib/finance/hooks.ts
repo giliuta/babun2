@@ -31,6 +31,10 @@ import {
   deleteFinanceTemplate,
   type TemplateDraft,
 } from "@babun/shared/db/repositories/finance-templates";
+import {
+  listFinanceCategories,
+  type FinanceCategory,
+} from "@babun/shared/db/repositories/finance-categories";
 import type { Account } from "@babun/shared/local/finance/account";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 import type { FinanceTemplate } from "@babun/shared/local/finance/template";
@@ -257,4 +261,26 @@ export function useFinanceTemplates(tenantId: string): UseFinanceTemplatesResult
   }, []);
 
   return { templates, loading, error, refresh, add, update, remove };
+}
+
+export function useFinanceCategories(tenantId: string): {
+  categories: FinanceCategory[];
+  loading: boolean;
+  error: string | null;
+} {
+  const [categories, setCategories] = useState<FinanceCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    listFinanceCategories(getSupabaseBrowser(), tenantId)
+      .then((list) => { if (alive) { setCategories(list); setError(null); } })
+      .catch((e) => { if (alive) setError(e instanceof Error ? e.message : String(e)); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [tenantId]);
+
+  return { categories, loading, error };
 }
