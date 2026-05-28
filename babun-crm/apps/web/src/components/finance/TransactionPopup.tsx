@@ -21,6 +21,7 @@ interface TransactionPopupProps {
   categories: FinanceCategory[];
   onDelete: (tx: FinanceTransaction) => Promise<void>;
   onRefund: (tx: FinanceTransaction, amount: number) => Promise<void>;
+  onInvoice?: (tx: FinanceTransaction) => void;
 }
 
 const METHOD_LABEL: Record<string, string> = {
@@ -46,6 +47,7 @@ export default function TransactionPopup({
   categories,
   onDelete,
   onRefund,
+  onInvoice,
 }: TransactionPopupProps) {
   const [showRefundForm, setShowRefundForm] = useState(false);
   const [refundAmount, setRefundAmount] = useState("");
@@ -70,6 +72,11 @@ export default function TransactionPopup({
       : "−";
 
   const canRefund = transaction.type === "income" && !showRefundForm;
+  const canInvoice =
+    transaction.type === "income" &&
+    !transaction.invoice_id &&
+    !!onInvoice &&
+    !showRefundForm;
 
   const refundNum = parseFloat(refundAmount.replace(",", "."));
   const refundValid = Number.isFinite(refundNum) && refundNum > 0 && refundNum <= transaction.amount;
@@ -135,28 +142,40 @@ export default function TransactionPopup({
 
         {/* Actions */}
         {!showRefundForm && (
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={busy}
-              className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold text-[var(--system-red)] border border-[var(--system-red)]/40 active:scale-[0.98] disabled:opacity-50"
-            >
-              Удалить
-            </button>
-            {canRefund && (
+          <div className="space-y-2 pt-1">
+            {canInvoice && (
               <button
                 type="button"
-                onClick={() => {
-                  setShowRefundForm(true);
-                  setRefundAmount(String(transaction.amount));
-                }}
+                onClick={() => onInvoice?.(transaction)}
                 disabled={busy}
-                className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] active:scale-[0.98] disabled:opacity-50"
+                className="w-full h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold bg-[var(--system-green)] text-[var(--label-on-accent)] active:scale-[0.98] disabled:opacity-50"
               >
-                Создать возврат
+                Выставить инвойс
               </button>
             )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={busy}
+                className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold text-[var(--system-red)] border border-[var(--system-red)]/40 active:scale-[0.98] disabled:opacity-50"
+              >
+                Удалить
+              </button>
+              {canRefund && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRefundForm(true);
+                    setRefundAmount(String(transaction.amount));
+                  }}
+                  disabled={busy}
+                  className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] active:scale-[0.98] disabled:opacity-50"
+                >
+                  Создать возврат
+                </button>
+              )}
+            </div>
           </div>
         )}
 

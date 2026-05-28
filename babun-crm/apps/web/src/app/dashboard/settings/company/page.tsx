@@ -3,6 +3,37 @@
 import { useEffect, useState } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { loadCompany, saveCompany, type CompanyInfo, type VatMode } from "@babun/shared/local/finance/company";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import type { Database } from "@babun/shared/db/database.types";
+
+type TenantUpdate = Database["public"]["Tables"]["tenants"]["Update"];
+
+// ─── DB-backed company details (used by the new server-issued
+// invoices flow). Distinct from the localStorage `CompanyInfo` below
+// which still drives the legacy jsPDF generator.
+
+interface DbCompanyDetails {
+  legal_name: string;
+  vat_number: string;
+  address: string;
+  iban: string;
+  bank_name: string;
+  contact_email: string;
+  contact_phone: string;
+  invoice_prefix: string;
+}
+
+const DB_FIELDS: Array<{ key: keyof DbCompanyDetails; label: string; placeholder?: string }> = [
+  { key: "legal_name", label: "Юр. название", placeholder: "AirFix LTD" },
+  { key: "vat_number", label: "VAT-номер", placeholder: "CY10123456X" },
+  { key: "address", label: "Юр. адрес", placeholder: "Limassol, Cyprus" },
+  { key: "iban", label: "IBAN", placeholder: "CY00..." },
+  { key: "bank_name", label: "Банк", placeholder: "Bank of Cyprus" },
+  { key: "contact_email", label: "Email", placeholder: "billing@airfix.cy" },
+  { key: "contact_phone", label: "Телефон", placeholder: "+357 ..." },
+  { key: "invoice_prefix", label: "Префикс инвойса", placeholder: "INV" },
+];
 
 // Company / VAT settings. Printed verbatim on every invoice PDF, so
 // typos here become typos on every client receipt — keep the form
@@ -16,7 +47,49 @@ const VAT_MODE_LABEL: Record<VatMode, string> = {
 };
 
 export default function CompanySettingsPage() {
+  const tenantId = useTenantId();
   const [info, setInfo] = useState<CompanyInfo | null>(null);
+  const [db, setDb] = useState<DbCompanyDetails | null>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getSupabaseBrowser()
+      .from("tenants")
+      .select("legal_name, vat_number, address, iban, bank_name, contact_email, contact_phone, invoice_prefix")
+      .eq("id", tenantId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) {
+          setDbError(error.message);
+          return;
+        }
+        setDb({
+          legal_name: data?.legal_name ?? "",
+          vat_number: data?.vat_number ?? "",
+          address: data?.address ?? "",
+          iban: data?.iban ?? "",
+          bank_name: data?.bank_name ?? "",
+          contact_email: data?.contact_email ?? "",
+          contact_phone: data?.contact_phone ?? "",
+          invoice_prefix: data?.invoice_prefix ?? "INV",
+        });
+      });
+    return () => { alive = false; };
+  }, [tenantId]);
+
+  const updateDb = async <K extends keyof DbCompanyDetails>(key: K, value: DbCompanyDetails[K]) => {
+    if (!db) return;
+    const next = { ...db, [key]: value };
+    setDb(next);
+    const update = { [key]: value } as TenantUpdate;
+    const { error } = await getSupabaseBrowser()
+      .from("tenants")
+      .update(update)
+      .eq("id", tenantId);
+    if (error) setDbError(error.message);
+  };
 
   useEffect(() => {
     // Client-only hydration: loadCompany() reads localStorage which
@@ -42,6 +115,27 @@ export default function CompanySettingsPage() {
       <PageHeader title="Реквизиты компании" backHref="/dashboard/settings" />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-xl mx-auto px-4 py-4 space-y-5">
+
+          {/* DB-backed company details (used by the new server-issued
+              invoice flow). Saves directly to public.tenants. */}
+          {db && (
+            <Section title="Реквизиты для PDF-инвойсов">
+              {DB_FIELDS.map((f) => (
+                <Field
+                  key={f.key}
+                  label={f.label}
+                  value={db[f.key]}
+                  onChange={(v) => updateDb(f.key, v)}
+                  placeholder={f.placeholder}
+                />
+              ))}
+              {dbError && (
+                <div className="text-[12px] text-[var(--system-red)] mt-1">
+                  Ошибка: {dbError}
+                </div>
+              )}
+            </Section>
+          )}
 
           <Section title="Название и реквизиты">
             <Field
