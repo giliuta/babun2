@@ -518,7 +518,7 @@ function TeamTabStrip({
   };
 
   return (
-    <div className="px-3 lg:px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x">
+    <div className="px-3 lg:px-4 pb-1 overflow-x-auto scrollbar-hide touch-pan-x">
       <div className="inline-flex items-center gap-2 min-w-min">
         {pinnedTab && (
           <TeamChip
@@ -612,7 +612,7 @@ function TeamChip({
       // Telegram-style horizontal-scroll feel, but the hit zone now
       // covers ≥44 pt once you count the surrounding pb-2 padding from
       // TeamTabStrip's outer div.
-      className={`relative flex items-center px-3.5 h-10 max-w-[180px] rounded-full text-[13px] font-semibold whitespace-nowrap select-none transition-shadow ${toneClass} ${
+      className={`relative flex items-center px-3 h-9 max-w-[180px] rounded-full text-[12px] font-semibold whitespace-nowrap select-none transition-shadow ${toneClass} ${
         isDragging
           ? "z-20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] scale-[1.06] rotate-[-1.5deg] cursor-grabbing"
           : ""
