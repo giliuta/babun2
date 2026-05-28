@@ -66,6 +66,9 @@ interface DayColumnProps {
   dragEnabled?: boolean;
   /** Resolver returning the team colour for a given appointment. */
   teamColorFor?: (apt: Appointment) => string | null;
+  /** Tint the day-column background with the city/label colour. Default
+   *  true — toggled from the brigade «Метки» settings (team.tint_days_by_label). */
+  tintByLabel?: boolean;
 }
 
 // Expressions used for vertical positioning. They reference the live
@@ -167,6 +170,7 @@ function DayColumnInner({
   hasLabels = true,
   hideCancelled = false,
   bufferMinutes = 0,
+  tintByLabel = true,
 }: DayColumnProps) {
   const windowStartMin = Math.max(0, Math.min(24, windowStart)) * 60;
   const windowEndMin = Math.max(windowStartMin, Math.min(24, windowEnd) * 60);
@@ -435,13 +439,14 @@ function DayColumnInner({
           // header; tinting the body column made Sat/Sun feel "off-
           // duty" even on the personal calendar where every day is
           // equal.
-          backgroundColor: cityCfg
-            ? isToday
-              ? cityCfg.bgToday
-              : cityCfg.bg
-            : isToday
-              ? "rgba(124,58,237,0.04)"
-              : "#FFFFFF",
+          backgroundColor:
+            tintByLabel && cityCfg
+              ? isToday
+                ? cityCfg.bgToday
+                : cityCfg.bg
+              : isToday
+                ? "rgba(124,58,237,0.04)"
+                : "#FFFFFF",
           // v491 — grid lines follow the «Шаг сетки» setting. Hour
           // line is always drawn (20% alpha hairline). Sub-hour lines
           // appear when snapMinutes < 60:
