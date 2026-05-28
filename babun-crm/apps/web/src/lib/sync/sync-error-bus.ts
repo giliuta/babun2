@@ -82,7 +82,23 @@ export function reportSyncError(err: unknown): void {
   // with Sentry installed, the error lands in the dashboard tagged
   // `subsystem=sync` so the user-pill UX and the error inbox stay
   // in sync (pun intended).
-  captureException(err, { subsystem: "sync" });
+  //
+  // Supabase rejects with PostgrestError-shaped plain objects
+  // `{ code, details, hint, message }`, not Error instances. Passing
+  // them straight to Sentry produced the BABUN-WEB-7 / BABUN-WEB-9
+  // noise: «Object captured as exception with keys: code, details,
+  // hint, message» — no stack, hard to triage. Wrap non-Error values
+  // in a real Error so Sentry gets a stack from this point and
+  // keep the original payload as extra context.
+  const wrapped =
+    err instanceof Error
+      ? err
+      : Object.assign(new Error(message), { name: "SyncError" });
+  const extras: Record<string, unknown> = { subsystem: "sync" };
+  if (!(err instanceof Error) && typeof err === "object" && err !== null) {
+    extras.original = err;
+  }
+  captureException(wrapped, extras);
 }
 
 export function clearSyncError(): void {
