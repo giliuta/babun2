@@ -180,11 +180,13 @@ export default function AppointmentSheet({
   // уменьшается/сдвигается» bug while typing into the address form. A
   // full-height sheet gives the scroll body max room so the focused
   // input (and its Save/Cancel) scroll above the keyboard.
+  // v755 — full-screen: always fill the entire visual viewport.
+  // The 92-vh centered dialog look is replaced by a full-page sheet.
+  // On iOS keyboard open, `viewport.height` shrinks to the area above
+  // the keyboard — we fill that exactly, no extra reduction needed.
   const sheetHeight = viewport
-    ? viewport.keyboard
-      ? `${Math.max(320, Math.floor(viewport.height) - 16)}px`
-      : `${Math.max(320, Math.floor(viewport.height * 0.92))}px`
-    : "92vh";
+    ? `${Math.max(320, Math.floor(viewport.height))}px`
+    : "100dvh";
 
   const [kind, setKind] = useState<Kind>(
     personalMode ||
@@ -265,6 +267,49 @@ export default function AppointmentSheet({
   const [clientSheetCreate, setClientSheetCreate] = useState(false);
   const [servicePickerOpen, setServicePickerOpen] = useState(false);
   const [closeConfirm, setCloseConfirm] = useState(false);
+
+  // v755 — auto-open guiding popups: on create, client picker pops
+  // immediately; once a client is chosen, service picker pops next.
+  // One-shot per sheet open (autoFlowRef guards re-trigger).
+  const autoFlowRef = useRef<{ clientOpened: boolean; servicesOpened: boolean }>({
+    clientOpened: false,
+    servicesOpened: false,
+  });
+
+  // Reset the auto-flow guard when the sheet closes.
+  useEffect(() => {
+    if (!open) {
+      autoFlowRef.current = { clientOpened: false, servicesOpened: false };
+    }
+  }, [open]);
+
+  // Step 1: open client picker immediately on create when no client yet.
+  // Uses `kind` directly because `isEventMode` is derived below this block.
+  useEffect(() => {
+    if (!open) return;
+    if (liveMode !== "create" || kind === "event") return;
+    if (!autoFlowRef.current.clientOpened && !clientId) {
+      autoFlowRef.current.clientOpened = true;
+      setClientSheetCreate(false);
+      setClientSheet(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, liveMode, kind, clientId]);
+
+  // Step 2: once client is chosen and no services yet, open service picker.
+  useEffect(() => {
+    if (!open) return;
+    if (liveMode !== "create" || kind === "event") return;
+    if (
+      clientId &&
+      !autoFlowRef.current.servicesOpened &&
+      appointmentServices.length === 0
+    ) {
+      autoFlowRef.current.servicesOpened = true;
+      setServicePickerOpen(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, liveMode, kind, clientId, appointmentServices.length]);
   const [askClientFirst, setAskClientFirst] = useState(false);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
@@ -741,7 +786,7 @@ export default function AppointmentSheet({
       // только через явную кнопку ✕ или swipe-down (тоже идёт через
       // attemptClose). Esc на keyboard через useBodyScrollLock тоже
       // работает.
-      className="fixed inset-x-0 z-[70] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-2"
+      className="fixed inset-x-0 z-[70] flex bg-[var(--surface-overlay)] backdrop-blur-[2px] p-0"
       // Pin to the visual viewport (iOS keyboard fix — see `viewport`
       // effect above). `top` follows vv.offsetTop so the overlay never
       // drifts when the keyboard scrolls the page; height follows
@@ -774,7 +819,7 @@ export default function AppointmentSheet({
         role="dialog"
         aria-modal="true"
         aria-label={dialogLabel}
-        className="w-full max-w-lg bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] flex flex-col lg:max-h-[720px]"
+        className="w-full bg-[var(--surface-card)] shadow-[var(--shadow-sheet)] flex flex-col"
         // STORY audit: height теперь следует за visualViewport (iOS
         // keyboard fix). Раньше было фиксированное 92vh — sticky
         // footer уезжал за клавиатуру при фокусе в textarea / поиск.
