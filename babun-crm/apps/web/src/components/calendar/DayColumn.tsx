@@ -440,13 +440,7 @@ function DayColumnInner({
           // duty" even on the personal calendar where every day is
           // equal.
           backgroundColor:
-            tintByLabel && cityCfg
-              ? isToday
-                ? cityCfg.bgToday
-                : cityCfg.bg
-              : isToday
-                ? "rgba(124,58,237,0.04)"
-                : "#FFFFFF",
+            tintByLabel && cityCfg ? cityCfg.bg : "#FFFFFF",
           // v491 — grid lines follow the «Шаг сетки» setting. Hour
           // line is always drawn (20% alpha hairline). Sub-hour lines
           // appear when snapMinutes < 60:
