@@ -118,6 +118,7 @@ import {
   listDayExtras as listDayExtrasRepo,
   setDayExtras as setDayExtrasRepo,
 } from "@babun/shared/db/repositories/day-extras";
+import { insertAccount } from "@babun/shared/db/repositories/accounts";
 import { signOut } from "@/lib/supabase/auth-client";
 import UnconfirmedEmailBanner from "@/components/auth/UnconfirmedEmailBanner";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
@@ -1411,17 +1412,39 @@ export default function DashboardClientLayout({
   const upsertTeam = useCallback((team: Team) => {
     setTeamsState((prev) => {
       const idx = prev.findIndex((t) => t.id === team.id);
-      const next = idx >= 0 ? prev.map((t, i) => (i === idx ? team : t)) : [...prev, team];
+      const isNew = idx < 0;
+      const next = isNew ? [...prev, team] : prev.map((t, i) => (i === idx ? team : t));
       saveTeams(next);
       logAudit({
         entity: "team",
-        action: idx >= 0 ? "update" : "create",
+        action: isNew ? "create" : "update",
         summary: team.name,
         entityId: team.id,
       });
+      if (isNew) {
+        // Fire-and-forget: seed a default «Наличка» account for the
+        // new brigade so /finances has somewhere to land transactions
+        // immediately. The (tenant_id, brigade_id, name) unique on
+        // the table makes this idempotent in case the team was re-
+        // created or the user lands here after a reload.
+        void insertAccount(getSupabaseBrowser(), tenantId, {
+          brigade_id: team.id,
+          name: "Наличка",
+          kind: "cash",
+          opening_balance: 0,
+          icon: "💵",
+        }).catch((e) => {
+          // unique-violation is fine (already exists); log everything
+          // else for visibility but don't block the UI.
+          if (!String(e).toLowerCase().includes("unique")) {
+            // eslint-disable-next-line no-console
+            console.warn("auto-seed Наличка failed", e);
+          }
+        });
+      }
       return next;
     });
-  }, []);
+  }, [tenantId]);
 
   const deleteTeam = useCallback((id: string) => {
     setTeamsState((prev) => {

@@ -84,6 +84,13 @@ const NAV_GROUPS: NavGroup[] = [
         desc: "Реквизиты для инвойсов",
       },
       {
+        href: "/dashboard/settings/finance/templates",
+        icon: Receipt,
+        tone: "bg-[var(--tile-yellow)]",
+        title: "Шаблоны транзакций",
+        desc: "Аренда, ЗП, чаевые — в один тап",
+      },
+      {
         href: "/dashboard/settings/account/security",
         icon: Shield,
         tone: "bg-[var(--tile-orange)]",
