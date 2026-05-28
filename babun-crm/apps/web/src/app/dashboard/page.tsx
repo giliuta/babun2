@@ -735,6 +735,13 @@ function DashboardPageInner() {
     [teams, activeTeamId],
   );
 
+  // Per-brigade «подсветка дня цветом метки». Default true (current look);
+  // false when the brigade explicitly turned it off in «Метки».
+  const activeTintByLabel = useMemo<boolean>(() => {
+    const t = teams.find((x) => x.id === activeTeamId);
+    return t?.tint_days_by_label ?? true;
+  }, [teams, activeTeamId]);
+
   // Where the label picker's gear navigates: the active brigade's «Метки»
   // page, or the personal labels page on «Мой календарь».
   const labelSettingsHref = useMemo<string>(
@@ -1674,6 +1681,7 @@ function DashboardPageInner() {
           hideCancelled={effectiveHideCancelled}
           bufferMinutes={effectiveBufferMinutes}
           timeZone={activeBrigadeTimezone}
+          tintByLabel={activeTintByLabel}
           dragEnabled
         />
       );

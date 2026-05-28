@@ -549,6 +549,10 @@ export interface Team {
   /** Per-brigade timezone for the calendar. Undefined = inherit the
    *  global default (Europe/Nicosia). */
   timezone?: string;
+  /** Tint each day-column with the city/label colour. Undefined = true
+   *  (current behaviour); false leaves columns plain white. Toggled from
+   *  the brigade «Метки» settings. */
+  tint_days_by_label?: boolean;
 
   // ── Sprint 033 Phase I42 — per-brigade AppointmentSheet layout ──
   /** Which optional blocks show up in the create/edit sheet when the
