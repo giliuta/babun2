@@ -3,19 +3,14 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
-import type {
-  DayFinanceRowsConfig,
-  DayFinanceTotals,
-} from "@babun/shared/local/finance/day-summary";
+import type { DayFinanceTotals } from "@babun/shared/local/finance/day-summary";
 
 interface MonthViewProps {
   currentDate: Date;
   appointments: Appointment[];
   onDayClick: (date: Date) => void;
-  /** Which finance rows to show in each day cell (mirrors the week
-   *  footer). When omitted, no money mini-list is rendered. */
-  financeRows?: DayFinanceRowsConfig;
-  /** Per-day totals, same source as the week footer. */
+  /** Per-day totals, same source as the week footer. When omitted, no
+   *  money mini-list is rendered. */
   summaryFor?: (dateKey: string) => DayFinanceTotals;
 }
 
@@ -42,7 +37,6 @@ function MonthViewInner({
   currentDate,
   appointments,
   onDayClick,
-  financeRows,
   summaryFor,
 }: MonthViewProps) {
   const year = currentDate.getFullYear();
@@ -83,7 +77,9 @@ function MonthViewInner({
     return map;
   }, [appointments]);
 
-  const activeRows = ROW_ORDER.filter((k) => financeRows?.[k]);
+  // Always show all four lines in month cells now that per-brigade row
+  // toggles are gone (the week footer is also unconditional after v755).
+  const activeRows = ROW_ORDER;
 
   return (
     <div className="flex-1 flex flex-col bg-[var(--surface-card)] min-h-0 overflow-hidden">

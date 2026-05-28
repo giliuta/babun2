@@ -1,51 +1,41 @@
 "use client";
 
 import { memo } from "react";
-import { formatDateKey } from "@babun/shared/common/utils/date-utils";
+import {
+  formatDateKey,
+  getCurrentCyprusTime,
+} from "@babun/shared/common/utils/date-utils";
 import { formatEUR } from "@babun/shared/common/utils/money";
-import type {
-  DayFinanceRowsConfig,
-  DayFinanceTotals,
+import {
+  getDayMode,
+  type DayFinanceTotals,
 } from "@babun/shared/local/finance/day-summary";
 
 interface DayFinanceFooterProps {
   /** Same visible dates the calendar grid renders (1 / 3 / 7). */
   dates: Date[];
-  rows: DayFinanceRowsConfig;
   summaryFor: (dateKey: string) => DayFinanceTotals;
   onDayTap: (dateKey: string) => void;
 }
 
-// Two quiet lines per day — Доход (green) over Расход (red). No labels;
-// colour carries the meaning. €0 cells are blank (not «—»), so empty
-// days show nothing but the thin day separators — maximally clean.
-// Everything else (план, прибыль, разбивка по оплате) lives in the
-// per-day popup that opens on tap.
-type LineKey = "earned" | "spent";
-
-const LINES: Array<{ key: LineKey; color: string }> = [
-  { key: "earned", color: "text-[var(--system-green)]" },
-  { key: "spent", color: "text-[var(--system-red)]" },
-];
-
-// Fixed line height so columns line up even when a cell is blank.
-const LINE = "h-[17px] leading-[17px] text-[12px] tabular-nums";
-
-function cellValue(key: LineKey, t: DayFinanceTotals): string {
-  const v = key === "earned" ? t.earned : t.spent;
-  // €0 → blank (no dash): empty days stay completely clean, only the
-  // thin day separators remain.
-  return v === 0 ? "" : formatEUR(v);
-}
+// Two small numbers per day: Доход (green) over Расход (red).
+//
+// «Доход» is contextual so it's never empty for a booked day — actual
+// PAID income is €0 for upcoming/unpaid work, which made the footer
+// look broken. Past days show what was actually earned; today + future
+// show the day's planned revenue (what the booked work is worth). This
+// mirrors the day-finance popup, which already headlines the plan for
+// future days. Расход is the day's costs. Both numbers always render
+// (€0 too) so every day is visibly accounted for. Tap → popup.
+const NUM =
+  "h-[13px] leading-[13px] text-[11px] tabular-nums truncate text-center";
 
 function DayFinanceFooterInner({
   dates,
-  rows,
   summaryFor,
   onDayTap,
 }: DayFinanceFooterProps) {
-  const activeLines = LINES.filter((l) => rows[l.key]);
-  if (activeLines.length === 0) return null;
+  const todayKey = formatDateKey(getCurrentCyprusTime());
 
   return (
     <div
@@ -55,29 +45,30 @@ function DayFinanceFooterInner({
     >
       <div className="flex w-full">
         {/* Empty gutter — reserves the TimeColumn width (w-12/16) so the
-            day columns line up with the grid above. No label. */}
+            day columns line up with the grid above. */}
         <div className="w-12 lg:w-16 flex-shrink-0" aria-hidden />
 
-        {/* One tappable column per visible day → opens the detail popup. */}
         {dates.map((date) => {
           const dateKey = formatDateKey(date);
-          const totals = summaryFor(dateKey);
+          const t = summaryFor(dateKey);
+          // Past → actually earned; today/future → planned revenue.
+          const income =
+            getDayMode(dateKey, todayKey) === "past" ? t.earned : t.planned;
+          const expense = t.spent;
           return (
             <button
               key={dateKey}
               type="button"
               onClick={() => onDayTap(dateKey)}
               aria-label={`Финансы за ${dateKey}`}
-              className="flex-1 min-w-0 flex flex-col justify-center py-2 px-0.5 border-l border-[var(--separator)] first:border-l-0 active:bg-[var(--fill-quaternary)] transition-colors"
+              className="flex-1 min-w-0 flex flex-col justify-center gap-0 py-1 px-0.5 border-l border-[var(--separator)] first:border-l-0 active:bg-[var(--fill-quaternary)] transition-colors"
             >
-              {activeLines.map((l) => (
-                <div
-                  key={l.key}
-                  className={`${LINE} text-center truncate font-semibold ${l.color}`}
-                >
-                  {cellValue(l.key, totals)}
-                </div>
-              ))}
+              <span className={`${NUM} font-semibold text-[var(--system-green)]`}>
+                {formatEUR(income)}
+              </span>
+              <span className={`${NUM} font-medium text-[var(--system-red)]`}>
+                {formatEUR(expense)}
+              </span>
             </button>
           );
         })}

@@ -3,8 +3,6 @@
 // Single source of truth for the people and brigades that work in the field.
 // Persisted in localStorage now, will move to Supabase later.
 
-import type { DayFinanceRowsConfig } from "./finance/day-summary";
-
 export type MasterRole = "admin" | "dispatcher" | "lead" | "helper";
 
 // Sprint 027 — the permission surface grew from 9 to ~25 flags to
@@ -548,10 +546,6 @@ export interface Team {
   buffer_minutes?: number;
   hide_cancelled?: boolean;
   allow_overtime?: boolean;
-  /** Per-brigade day-finance footer rows. Each flag toggles one row
-   *  of the per-day money summary under the calendar columns. Undefined
-   *  = all rows on (DEFAULT_DAY_FINANCE_ROWS). */
-  day_finance_rows?: DayFinanceRowsConfig;
   /** Per-brigade timezone for the calendar. Undefined = inherit the
    *  global default (Europe/Nicosia). */
   timezone?: string;

@@ -11,6 +11,10 @@ export type DayExtraKind = "income" | "expense";
  *  EXPENSE_CATEGORIES в lib/finance/expense-categories.ts. */
 export type ExpenseCategoryKey = "fuel" | "food" | "supplies" | "other";
 
+/** Способ оплаты ручной транзакции. Зеркалирует
+ *  `appointments.payment_method` (cash | card | transfer | other). */
+export type DayExtraPaymentMethod = "cash" | "card" | "transfer" | "other";
+
 export interface DayExtra {
   id: string;
   name: string;
@@ -18,6 +22,11 @@ export interface DayExtra {
   kind: DayExtraKind;
   /** Категория — только для расходов. Income-extras её не используют. */
   category?: ExpenseCategoryKey;
+  /** Как пришли/ушли деньги. Опционально (legacy-строки без значения). */
+  payment_method?: DayExtraPaymentMethod;
+  /** Путь к фото чека внутри приватного бакета `receipts`:
+   *  `<tenant_id>/<extra_id>/<file>`. */
+  receipt_url?: string;
 }
 
 export type DayExtrasMap = Record<string, DayExtra[]>; // key = "teamId:date"

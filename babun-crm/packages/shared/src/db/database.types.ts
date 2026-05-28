@@ -617,6 +617,8 @@ export type Database = {
           id: string
           kind: string
           name: string
+          payment_method: string | null
+          receipt_url: string | null
           team_id: string
           tenant_id: string
           updated_at: string
@@ -629,6 +631,8 @@ export type Database = {
           id?: string
           kind: string
           name: string
+          payment_method?: string | null
+          receipt_url?: string | null
           team_id: string
           tenant_id: string
           updated_at?: string
@@ -641,6 +645,8 @@ export type Database = {
           id?: string
           kind?: string
           name?: string
+          payment_method?: string | null
+          receipt_url?: string | null
           team_id?: string
           tenant_id?: string
           updated_at?: string
