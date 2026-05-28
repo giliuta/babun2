@@ -13,44 +13,6 @@ import { getServiceMaterialCost } from "../services";
 import type { DayExtra } from "../day-extras";
 import { sumExtras } from "../day-extras";
 
-// ─── Which footer rows a calendar shows ─────────────────────────────
-// Toggled per brigade (Team.day_finance_rows) and on the personal
-// calendar (CalendarSettings.dayFinanceRows). Undefined = all on.
-export interface DayFinanceRowsConfig {
-  /** Планируемый доход — потенциал по всем не-отменённым записям. */
-  planned: boolean;
-  /** Заработано — фактически оплачено + ручной доход. */
-  earned: boolean;
-  /** Потрачено — материалы + расходы по записям + ручные расходы. */
-  spent: boolean;
-  /** Прибыль — Заработано − Потрачено. */
-  profit: boolean;
-}
-
-export const DEFAULT_DAY_FINANCE_ROWS: DayFinanceRowsConfig = {
-  planned: true,
-  earned: true,
-  spent: true,
-  profit: true,
-};
-
-/** Resolve a (possibly partial / undefined) stored config to a full one. */
-export function resolveDayFinanceRows(
-  cfg: Partial<DayFinanceRowsConfig> | undefined | null,
-): DayFinanceRowsConfig {
-  if (!cfg) return DEFAULT_DAY_FINANCE_ROWS;
-  return {
-    planned: cfg.planned ?? DEFAULT_DAY_FINANCE_ROWS.planned,
-    earned: cfg.earned ?? DEFAULT_DAY_FINANCE_ROWS.earned,
-    spent: cfg.spent ?? DEFAULT_DAY_FINANCE_ROWS.spent,
-    profit: cfg.profit ?? DEFAULT_DAY_FINANCE_ROWS.profit,
-  };
-}
-
-export function anyRowEnabled(cfg: DayFinanceRowsConfig): boolean {
-  return cfg.planned || cfg.earned || cfg.spent || cfg.profit;
-}
-
 // ─── Payment-method breakdown (for the detail popup) ────────────────
 export interface DayPaymentBreakdown {
   cash: number;

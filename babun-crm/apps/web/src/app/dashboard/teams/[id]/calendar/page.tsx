@@ -22,10 +22,6 @@ import { haptic } from "@/lib/haptics";
 import { useTeams, useSchedules } from "@/components/layout/DashboardClientLayout";
 import { DEFAULT_SCHEDULE } from "@babun/shared/local/schedule";
 import { TIMEZONE_OPTIONS } from "@babun/shared/local/calendar-settings";
-import {
-  resolveDayFinanceRows,
-  type DayFinanceRowsConfig,
-} from "@babun/shared/local/finance/day-summary";
 import IOSSwitch from "@/components/ui/IOSSwitch";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
 import { ListGroup, NavRow } from "@/components/teams/BrigadeNavRow";
@@ -141,13 +137,6 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
   };
   const commitTimezone = (v: string) => {
     upsertTeam({ ...team, timezone: v || undefined });
-  };
-  const commitFinanceRow = (key: keyof DayFinanceRowsConfig, value: boolean) => {
-    const current = resolveDayFinanceRows(team.day_finance_rows);
-    upsertTeam({
-      ...team,
-      day_finance_rows: { ...current, [key]: value },
-    });
   };
   const commitName = (next: string) => {
     const trimmed = next.trim();
@@ -343,39 +332,6 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
         </div>
       </Group>
 
-      <Group
-        title="Финансы по дню"
-        footer="Какие строки показывать под колонками календаря этой команды. Выключенные строки исчезают из футера и из ячеек месяца."
-      >
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
-          {FINANCE_ROW_META.map((row, idx) => {
-            const resolved = resolveDayFinanceRows(team.day_finance_rows);
-            return (
-              <div
-                key={row.key}
-                className={`flex items-center gap-3 px-4 py-3 ${
-                  idx > 0 ? "border-t border-[var(--separator)]" : ""
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="text-[15px] text-[var(--label)]">
-                    {row.title}
-                  </div>
-                  <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
-                    {row.hint}
-                  </div>
-                </div>
-                <IOSSwitch
-                  checked={resolved[row.key]}
-                  onChange={(v) => commitFinanceRow(row.key, v)}
-                  ariaLabel={row.title}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </Group>
-
       <Group title="Часовой пояс">
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-3 py-3">
           <select
@@ -403,33 +359,6 @@ export default function BrigadeCalendarPage({ params }: RouteParams) {
 }
 
 // ─── Shared building blocks ──────────────────────────────────────
-
-const FINANCE_ROW_META: Array<{
-  key: keyof DayFinanceRowsConfig;
-  title: string;
-  hint: string;
-}> = [
-  {
-    key: "planned",
-    title: "Планируемый доход",
-    hint: "Сколько можно заработать по записям дня.",
-  },
-  {
-    key: "earned",
-    title: "Заработано",
-    hint: "Фактически оплачено за день.",
-  },
-  {
-    key: "spent",
-    title: "Потрачено",
-    hint: "Материалы и расходы за день.",
-  },
-  {
-    key: "profit",
-    title: "Прибыль",
-    hint: "Заработано минус потрачено.",
-  },
-];
 
 function Group({
   title,

@@ -22,9 +22,6 @@ import {
   getMonday,
   addWeeks,
   addDays,
-  formatDateLongRu,
-  getCurrentCyprusTime,
-  getCurrentTimeInZone,
 } from "@babun/shared/common/utils/date-utils";
 import type { Client } from "@babun/shared/local/clients";
 import { getTeamSchedule, type TeamSchedule } from "@babun/shared/local/schedule";
@@ -48,7 +45,6 @@ import TimeColumn from "@/components/calendar/TimeColumn";
 import DayFinanceFooter from "@/components/calendar/DayFinanceFooter";
 import {
   computeDayFinance,
-  resolveDayFinanceRows,
   type DayFinanceTotals,
 } from "@babun/shared/local/finance/day-summary";
 // CalendarLegend убран из рендера (см. место использования ниже).
@@ -78,8 +74,8 @@ const CityPickerModal = dynamic(
   () => import("@/components/calendar/CityPickerModal"),
   { ssr: false },
 );
-const DayFinanceDetailModal = dynamic(
-  () => import("@/components/calendar/DayFinanceDetailModal"),
+const DayFinanceModal = dynamic(
+  () => import("@/components/finance/DayFinanceModal"),
   { ssr: false },
 );
 const SpecialScheduleModal = dynamic(
@@ -111,6 +107,7 @@ import {
   useDayExtras,
   useCalendarSettings,
   useCities,
+  useTenantId,
 } from "@/components/layout/DashboardClientLayout";
 import { getTeamDisplayName } from "@babun/shared/local/masters";
 import { sumExtras } from "@babun/shared/local/day-extras";
@@ -254,6 +251,7 @@ function DashboardPageInner() {
   const { teams, setTeams } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
+  const tenantId = useTenantId();
   const { calendarSettings } = useCalendarSettings();
   const { cities } = useCities();
   const { appointments, upsertAppointment, deleteAppointment } = useAppointments();
@@ -1562,17 +1560,8 @@ function DashboardPageInner() {
   const effectiveBufferMinutes =
     activeTeam?.buffer_minutes ?? calendarSettings.bufferMinutes ?? 0;
 
-  // Per-day finance footer. Rows are resolved from the active calendar:
-  // brigade override wins, personal tab falls back to the global
-  // «Мой календарь» config. Dates mirror exactly what the grid renders
+  // Per-day finance footer. Dates mirror exactly what the grid renders
   // for the current offset-0 page (1 / 3 / 7 days from currentMonday).
-  const dayFinanceRows = useMemo(
-    () =>
-      resolveDayFinanceRows(
-        activeTeam ? activeTeam.day_finance_rows : calendarSettings.dayFinanceRows,
-      ),
-    [activeTeam, calendarSettings.dayFinanceRows],
-  );
   const footerDates = useMemo(() => {
     const count = viewMode === "week" ? 7 : viewMode === "3days" ? 3 : 1;
     return Array.from({ length: count }, (_, i) => addDays(currentMonday, i));
@@ -1868,7 +1857,6 @@ function DashboardPageInner() {
           <MonthView
             currentDate={currentMonday}
             appointments={visibleAppointments}
-            financeRows={dayFinanceRows}
             summaryFor={dayFinanceSummary}
             onDayClick={(date) => {
               // Brief 2 #2 («Мой календарь»): clicking 15 May should
@@ -2184,16 +2172,11 @@ function DashboardPageInner() {
           Shows totals + payment-method breakdown + completed services,
           and keeps the manual income/expense entry. */}
       {financeDateKey && (
-        <DayFinanceDetailModal
+        <DayFinanceModal
           open
           onClose={() => setFinanceDateKey(null)}
           dateKey={financeDateKey}
-          todayKey={toYmd(
-            activeBrigadeTimezone
-              ? getCurrentTimeInZone(activeBrigadeTimezone)
-              : getCurrentCyprusTime(),
-          )}
-          dateLabel={formatDateLongRu(financeDateKey)}
+          cityLabel={cityForDate(financeDateKey) || undefined}
           appointments={visibleAppointments.filter(
             (a) => a.date === financeDateKey
           )}
@@ -2205,6 +2188,7 @@ function DashboardPageInner() {
             return name || apt.comment?.trim() || "Без имени";
           }}
           extras={getExtrasFor(activeTeamId || null, financeDateKey)}
+          tenantId={tenantId}
           onSave={(next) => {
             if (activeTeamId) setExtrasFor(activeTeamId, financeDateKey, next);
           }}
