@@ -41,7 +41,6 @@ function DayFinanceFooterInner({
     <div
       data-testid="day-finance-footer"
       className="flex-shrink-0 border-t border-[var(--separator)] bg-[var(--surface-card)] select-none"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex w-full">
         {/* Empty gutter — reserves the TimeColumn width (w-12/16) so the
