@@ -90,6 +90,10 @@ const AppointmentSheet = dynamic(
   () => import("@/components/appointment/AppointmentSheet"),
   { ssr: false },
 );
+const TimeConfirmPopup = dynamic(
+  () => import("@/components/appointment/TimeConfirmPopup"),
+  { ssr: false },
+);
 import ActionMenuModal, {
   type ActionMenuOption,
 } from "@/components/calendar/ActionMenuModal";
@@ -1149,6 +1153,14 @@ function DashboardPageInner() {
     timeEnd: string;
   } | null>(null);
 
+  // Pre-confirm popup: slot tap sets this, the popup confirms/edits the
+  // time, then onConfirm transfers it into `booking` to open the sheet.
+  const [pendingTimeConfirm, setPendingTimeConfirm] = useState<{
+    dateKey: string;
+    timeStart: string;
+    timeEnd: string;
+  } | null>(null);
+
   // STORY-003: payment + expense sheet state.
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
   const [expenseFor, setExpenseFor] = useState<{
@@ -1260,7 +1272,9 @@ function DashboardPageInner() {
       const endH = Math.floor(endMin / 60) % 24;
       const endM = endMin % 60;
       const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
-      setBooking({ dateKey: date, timeStart: time, timeEnd });
+      // Open the pre-confirm popup first; the AppointmentSheet opens
+      // only after the dispatcher taps «Дальше →» (or edits the time).
+      setPendingTimeConfirm({ dateKey: date, timeStart: time, timeEnd });
     },
     [activeSlotMinutes],
   );
@@ -2030,6 +2044,27 @@ function DashboardPageInner() {
           PersonalEventSheet остаётся как deprecated wrapper для
           обратной совместимости imports, но dispatch на нём больше
           не висит. */}
+      {/* Pre-confirm time popup — slot tap lands here first.
+          Only «Дальше →» transfers pendingTimeConfirm → booking.
+          FAB path (openNewAppointmentInline) and existing-record taps
+          do NOT go through this popup. */}
+      <TimeConfirmPopup
+        open={pendingTimeConfirm !== null}
+        dateKey={pendingTimeConfirm?.dateKey ?? ""}
+        timeStart={pendingTimeConfirm?.timeStart ?? ""}
+        timeEnd={pendingTimeConfirm?.timeEnd ?? ""}
+        allDayRange={{ start: "00:00", end: "23:59" }}
+        stepMinutes={activeSlotMinutes}
+        onChange={(t) => setPendingTimeConfirm(t)}
+        onConfirm={() => {
+          if (pendingTimeConfirm) {
+            setBooking(pendingTimeConfirm);
+            setPendingTimeConfirm(null);
+          }
+        }}
+        onClose={() => setPendingTimeConfirm(null)}
+      />
+
       {booking && bookingAppointment && (
         <AppointmentSheet
           open={booking !== null}
