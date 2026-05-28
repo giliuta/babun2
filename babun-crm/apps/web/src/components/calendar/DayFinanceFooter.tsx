@@ -25,10 +25,10 @@ interface DayFinanceFooterProps {
 // look broken. Past days show what was actually earned; today + future
 // show the day's planned revenue (what the booked work is worth). This
 // mirrors the day-finance popup, which already headlines the plan for
-// future days. Расход is the day's costs. Either number is blank when
-// €0, so empty days show just the thin day separators. Tap → popup.
+// future days. Расход is the day's costs. Both numbers always render
+// (€0 too) so every day is visibly accounted for. Tap → popup.
 const NUM =
-  "h-[16px] leading-[16px] text-[11px] tabular-nums truncate text-center";
+  "h-[13px] leading-[13px] text-[11px] tabular-nums truncate text-center";
 
 function DayFinanceFooterInner({
   dates,
@@ -61,13 +61,13 @@ function DayFinanceFooterInner({
               type="button"
               onClick={() => onDayTap(dateKey)}
               aria-label={`Финансы за ${dateKey}`}
-              className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 py-2 px-0.5 border-l border-[var(--separator)] first:border-l-0 active:bg-[var(--fill-quaternary)] transition-colors"
+              className="flex-1 min-w-0 flex flex-col justify-center gap-0 py-1 px-0.5 border-l border-[var(--separator)] first:border-l-0 active:bg-[var(--fill-quaternary)] transition-colors"
             >
               <span className={`${NUM} font-semibold text-[var(--system-green)]`}>
-                {income === 0 ? "" : formatEUR(income)}
+                {formatEUR(income)}
               </span>
               <span className={`${NUM} font-medium text-[var(--system-red)]`}>
-                {expense === 0 ? "" : formatEUR(expense)}
+                {formatEUR(expense)}
               </span>
             </button>
           );
