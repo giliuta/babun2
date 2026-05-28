@@ -53,6 +53,9 @@ interface WeekViewProps {
   /** Phase I39 — effective «behaviour» resolved by the parent. */
   hideCancelled?: boolean;
   bufferMinutes?: number;
+  /** Tint day-columns with their city/label colour. Default true;
+   *  toggled per-brigade via the «Метки» settings. */
+  tintByLabel?: boolean;
   /** IANA timezone of the active brigade calendar. When set, the "now"
    *  line is placed by this zone's wall clock instead of Cyprus time.
    *  Undefined (personal / no override) = Cyprus. */
@@ -86,6 +89,7 @@ export default function WeekView({
   hasLabels,
   hideCancelled,
   bufferMinutes,
+  tintByLabel,
   timeZone,
 }: WeekViewProps) {
   const weekDates = getWeekDates(mondayDate);
@@ -202,6 +206,7 @@ export default function WeekView({
             hasLabels={hasLabels}
             hideCancelled={hideCancelled}
             bufferMinutes={bufferMinutes}
+            tintByLabel={tintByLabel}
           />
         );
       })}

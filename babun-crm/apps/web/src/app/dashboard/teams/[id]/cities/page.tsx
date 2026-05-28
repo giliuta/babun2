@@ -34,6 +34,7 @@ import {
   type City,
 } from "@babun/shared/local/cities";
 import BrigadeSectionShell from "@/components/teams/BrigadeSectionShell";
+import IOSSwitch from "@/components/ui/IOSSwitch";
 import ContextMenu, {
   type ContextMenuOption,
 } from "@/components/ui/ContextMenu";
@@ -315,6 +316,26 @@ export default function BrigadeCitiesPage({ params }: RouteParams) {
       title="Метки"
       hideSave
     >
+      {/* Tint toggle — when off the calendar's day columns stay white
+          instead of taking the label's tint. Default is on (current look). */}
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] px-4 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-[15px] text-[var(--label)]">
+            Подсвечивать день цветом метки
+          </div>
+          <div className="text-[12px] text-[var(--label-tertiary)] leading-snug mt-0.5">
+            Столбец дня окрашивается в цвет основной метки. Выключи — столбец остаётся белым.
+          </div>
+        </div>
+        <IOSSwitch
+          checked={team.tint_days_by_label ?? true}
+          onChange={(next) =>
+            upsertTeam({ ...team, tint_days_by_label: next })
+          }
+          ariaLabel="Подсвечивать день цветом метки"
+        />
+      </div>
+
       {listEmpty ? (
         <div className="px-6 pt-8 pb-4 flex flex-col items-center text-center gap-3">
           <span className="w-16 h-16 rounded-full bg-[var(--accent-tint)] flex items-center justify-center text-[var(--accent)]">
