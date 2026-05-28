@@ -22,6 +22,7 @@ import TransactionsFeed from "@/components/finance/TransactionsFeed";
 import AddTransactionSheet from "@/components/finance/AddTransactionSheet";
 import TransferSheet from "@/components/finance/TransferSheet";
 import TransactionPopup from "@/components/finance/TransactionPopup";
+import InvoiceSheet from "@/components/finance/InvoiceSheet";
 import {
   useAccounts,
   useFinanceTransactions,
@@ -53,6 +54,7 @@ export default function FinancesPage() {
     add: addTransaction,
     remove: removeTransaction,
     transfer: createTransferTx,
+    refresh: refreshTransactions,
   } = useFinanceTransactions(tenantId, range, listOpts);
   const { templates } = useFinanceTemplates(tenantId);
   const { categories } = useFinanceCategories(tenantId);
@@ -85,6 +87,7 @@ export default function FinancesPage() {
   const [addKind, setAddKind] = useState<"income" | "expense" | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [popupTx, setPopupTx] = useState<FinanceTransaction | null>(null);
+  const [invoiceTx, setInvoiceTx] = useState<FinanceTransaction | null>(null);
 
   const defaultBrigadeId =
     selectedBrigadeIds.length === 1 ? selectedBrigadeIds[0] : undefined;
@@ -210,6 +213,23 @@ export default function FinancesPage() {
             await removeTransaction(tx.id);
           }}
           onRefund={handleRefund}
+          onInvoice={(tx) => {
+            setPopupTx(null);
+            setInvoiceTx(tx);
+          }}
+        />
+      )}
+
+      {invoiceTx && (
+        <InvoiceSheet
+          open
+          onClose={() => setInvoiceTx(null)}
+          transaction={invoiceTx}
+          onIssued={() => {
+            // The route already linked invoice_id to the tx; refresh so
+            // the «Выставить инвойс» button disappears from popup.
+            void refreshTransactions();
+          }}
         />
       )}
     </>
