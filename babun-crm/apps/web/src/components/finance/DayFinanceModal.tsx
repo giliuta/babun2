@@ -173,21 +173,15 @@ export default function DayFinanceModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] sm:items-center"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-3 bg-[var(--surface-overlay)] backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-md bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] max-h-[88vh] flex flex-col overflow-hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] max-h-[85vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle — visual cue that this is a bottom sheet. */}
-        <div className="flex-shrink-0 flex items-center justify-center pt-2 pb-1">
-          <span className="h-1 w-9 rounded-full bg-[var(--fill-secondary)]" />
-        </div>
-
         {/* Header: ДЕНЬ · ДАТА · МЕТКА + big net profit */}
-        <div className="flex-shrink-0 px-4 pt-1 pb-2.5">
+        <div className="flex-shrink-0 px-4 pt-4 pb-2.5">
           <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-tertiary)]">
             {formatHeaderDate(dateKey)}
             {cityLabel ? ` · ${cityLabel}` : ""}
