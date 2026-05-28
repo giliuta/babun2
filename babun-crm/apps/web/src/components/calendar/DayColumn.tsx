@@ -21,7 +21,6 @@ import { getServiceMaterialCost } from "@babun/shared/local/services";
 import type { Client } from "@babun/shared/local/clients";
 import { getCityConfig, cityConfigFromColor, type CityConfig } from "@babun/shared/local/day-cities";
 import type { City } from "@babun/shared/local/cities";
-import { MapPin } from "@babun/shared/icons";
 import AppointmentBlock from "./AppointmentBlock";
 
 interface DayColumnProps {
@@ -374,14 +373,13 @@ function DayColumnInner({
               nothing (no «метка» placeholder) — tap the header to pick one. */}
           {hasLabels && cityShort && (
             <span
-              className="inline-flex items-center justify-center gap-0.5 h-[18px] px-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide max-w-full whitespace-nowrap"
+              className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[12px] font-bold uppercase max-w-full whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.10)]"
               title={cityLabel}
               style={{
                 background: cityCfg?.color ?? "var(--fill-primary)",
                 color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
               }}
             >
-              <MapPin size={9} strokeWidth={2.5} aria-hidden />
               {cityShort}
             </span>
           )}
@@ -419,12 +417,12 @@ function DayColumnInner({
           height: `calc(var(--hh) * ${windowDurationMin / 60})`,
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
-          // Sprint 030.1: 3-px coloured top stripe per city — visible
-          // even when glancing at a full week without reading labels.
-          // Sits above the hourly grid via a separate gradient layer.
-          borderTop: cityCfg
-            ? `3px solid ${cityCfg.color}`
-            : "3px solid transparent",
+          // The 3-px slot stays for layout (the gradient + the time
+          // labels are aligned to a grid that includes this offset),
+          // but it's transparent — the visible coloured stripe under
+          // the label was visual noise on scroll, the label pill above
+          // already carries the city colour.
+          borderTop: "3px solid transparent",
           // Phase I41 — label colour paints the whole day column
           // lightly. cityCfg.bg / bgToday are already rgba(…,0.08) /
           // rgba(…,0.16) from cityConfigFromColor, so using them
