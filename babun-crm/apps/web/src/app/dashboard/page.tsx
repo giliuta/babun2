@@ -22,7 +22,6 @@ import {
   getMonday,
   addWeeks,
   addDays,
-  formatDateLongRu,
 } from "@babun/shared/common/utils/date-utils";
 import type { Client } from "@babun/shared/local/clients";
 import { getTeamSchedule, type TeamSchedule } from "@babun/shared/local/schedule";
@@ -2176,7 +2175,8 @@ function DashboardPageInner() {
         <DayFinanceModal
           open
           onClose={() => setFinanceDateKey(null)}
-          dateLabel={formatDateLongRu(financeDateKey)}
+          dateKey={financeDateKey}
+          cityLabel={cityForDate(financeDateKey) || undefined}
           appointments={visibleAppointments.filter(
             (a) => a.date === financeDateKey
           )}

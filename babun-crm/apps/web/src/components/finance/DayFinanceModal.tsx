@@ -1,17 +1,19 @@
 "use client";
 
-// Centered, 2-column day-finance modal (replaces DayFinanceDetailModal).
+// Bottom-sheet day-finance modal (replaces the centered DialogModal).
 //
-// Left = Доход (auto-derived income from completed/in-progress appointments
-// + manual income lines). Right = Расход (material costs from completed
-// appointments + manual expenses). Header shows net profit for the day.
-// «+ Доход / + Расход» buttons expand an inline form below the columns
-// — not a separate modal — for amount, category, payment method and
-// (for expenses) an optional receipt photo uploaded to the private
-// `receipts` bucket. Hard-delete per card; autosave on every mutation.
+// Rises from the bottom with a drag handle. Left column = Доход
+// (completed appointments + manual income). Right column = Расход
+// (aggregated materials + manual expenses). Header is a compact
+// «день · дата · метка» line over the day's net profit (red on
+// negative). «+ Доход / + Расход» live at the bottom of each column;
+// tapping one expands the inline add form (chip category for expenses,
+// chip payment method, amount, description, optional receipt photo
+// uploaded to the private `receipts` bucket). Autosave on every add /
+// remove; hard delete via × on each card.
 
 import { useEffect, useMemo, useState } from "react";
-import DialogModal from "@/components/appointment/DialogModal";
+import { getDayNameShort } from "@babun/shared/common/utils/date-utils";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
@@ -38,7 +40,8 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 interface DayFinanceModalProps {
   open: boolean;
   onClose: () => void;
-  dateLabel: string;
+  dateKey: string; // YYYY-MM-DD
+  cityLabel?: string;
   /** ВСЕ записи дня (любой статус). */
   appointments: Appointment[];
   services: Service[];
@@ -56,10 +59,33 @@ const METHODS: Array<{ key: DayExtraPaymentMethod; label: string; emoji: string 
   { key: "other", label: "Иное", emoji: "📦" },
 ];
 
+const MONTHS_GENITIVE = [
+  "янв.",
+  "фев.",
+  "мар.",
+  "апр.",
+  "мая",
+  "июн.",
+  "июл.",
+  "авг.",
+  "сен.",
+  "окт.",
+  "ноя.",
+  "дек.",
+];
+
+function formatHeaderDate(dateKey: string): string {
+  const d = new Date(`${dateKey}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateKey;
+  const day = getDayNameShort(d).toUpperCase();
+  return `${day} · ${d.getDate()} ${MONTHS_GENITIVE[d.getMonth()]}`;
+}
+
 export default function DayFinanceModal({
   open,
   onClose,
-  dateLabel,
+  dateKey,
+  cityLabel,
   appointments,
   services,
   clientNameFor,
@@ -76,6 +102,20 @@ export default function DayFinanceModal({
       setAddKind(null);
     }
   }, [open, extras]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
 
   const closable = useMemo(
     () => appointments.filter((a) => a.status === "completed" || a.status === "in_progress"),
@@ -129,103 +169,123 @@ export default function DayFinanceModal({
     commit(localExtras.filter((e) => e.id !== id));
   };
 
+  if (!open) return null;
+
   return (
-    <DialogModal open={open} onClose={onClose} title={`Финансы · ${dateLabel}`}>
-      <div className="px-4 pt-3 pb-2">
-        <div className="text-[12px] uppercase tracking-wide text-[var(--label-tertiary)]">
-          Чистая прибыль
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-md bg-[var(--surface-card)] rounded-t-[20px] sm:rounded-[20px] shadow-[var(--shadow-sheet)] max-h-[88vh] flex flex-col overflow-hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle — visual cue that this is a bottom sheet. */}
+        <div className="flex-shrink-0 flex items-center justify-center pt-2 pb-1">
+          <span className="h-1 w-9 rounded-full bg-[var(--fill-secondary)]" />
         </div>
-        <div
-          className={`text-[28px] font-bold tabular-nums leading-tight ${
-            netProfit < 0 ? "text-[var(--system-red)]" : "text-[var(--label)]"
-          }`}
-        >
-          {formatEUR(netProfit)}
+
+        {/* Header: ДЕНЬ · ДАТА · МЕТКА + big net profit */}
+        <div className="flex-shrink-0 px-4 pt-1 pb-2.5">
+          <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-tertiary)]">
+            {formatHeaderDate(dateKey)}
+            {cityLabel ? ` · ${cityLabel}` : ""}
+          </div>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <span
+              className={`text-[28px] font-bold tabular-nums leading-tight ${
+                netProfit < 0 ? "text-[var(--system-red)]" : "text-[var(--label)]"
+              }`}
+            >
+              {formatEUR(netProfit)}
+            </span>
+            <span className="text-[13px] text-[var(--label-tertiary)]">чистая прибыль</span>
+          </div>
         </div>
-      </div>
 
-      <div className="flex border-t border-[var(--separator)] divide-x divide-[var(--separator)]">
-        <ColumnHeader
-          tone="income"
-          label="Доход"
-          sum={incomeTotal}
-          onAdd={() => setAddKind("income")}
-        />
-        <ColumnHeader
-          tone="expense"
-          label="Расход"
-          sum={expenseTotal}
-          onAdd={() => setAddKind("expense")}
-        />
-      </div>
+        {/* Scrollable body: columns + (optionally) add form. */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="flex border-t border-[var(--separator)] divide-x divide-[var(--separator)]">
+            <Column
+              tone="income"
+              label="Доход"
+              sum={incomeTotal}
+              onAdd={() => setAddKind("income")}
+            >
+              {closable.map((apt) => (
+                <IncomeApptCard
+                  key={apt.id}
+                  apt={apt}
+                  name={clientNameFor(apt)}
+                  services={apt.services
+                    .map((s) => serviceById.get(s.serviceId)?.name)
+                    .filter(Boolean)
+                    .join(", ")}
+                />
+              ))}
+              {manualIncome.map((e) => (
+                <ExtraCard key={e.id} extra={e} onRemove={() => handleRemove(e.id)} />
+              ))}
+              {closable.length === 0 && manualIncome.length === 0 && <EmptyHint />}
+            </Column>
 
-      <div className="flex divide-x divide-[var(--separator)]">
-        <div className="flex-1 min-w-0 px-2 py-1.5 space-y-1.5">
-          {closable.map((apt) => (
-            <IncomeApptCard
-              key={apt.id}
-              apt={apt}
-              name={clientNameFor(apt)}
-              services={apt.services
-                .map((s) => serviceById.get(s.serviceId)?.name)
-                .filter(Boolean)
-                .join(", ")}
+            <Column
+              tone="expense"
+              label="Расход"
+              sum={expenseTotal}
+              onAdd={() => setAddKind("expense")}
+            >
+              {apptMaterials > 0 && (
+                <div className="rounded-[10px] bg-[rgba(255,59,48,0.08)] px-2.5 py-2">
+                  <div className="text-[12px] text-[var(--label)]">Материалы</div>
+                  <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">
+                    По выполненным записям
+                  </div>
+                  <div className="text-[13px] font-semibold tabular-nums text-[var(--system-red)] mt-1 text-right">
+                    −{formatEUR(apptMaterials)}
+                  </div>
+                </div>
+              )}
+              {manualExpense.map((e) => (
+                <ExtraCard key={e.id} extra={e} onRemove={() => handleRemove(e.id)} />
+              ))}
+              {apptMaterials === 0 && manualExpense.length === 0 && <EmptyHint />}
+            </Column>
+          </div>
+
+          {addKind && (
+            <AddTransactionForm
+              kind={addKind}
+              tenantId={tenantId}
+              onCancel={() => setAddKind(null)}
+              onAdd={handleAdd}
             />
-          ))}
-          {manualIncome.map((e) => (
-            <ExtraCard key={e.id} extra={e} onRemove={() => handleRemove(e.id)} />
-          ))}
-          {closable.length === 0 && manualIncome.length === 0 && (
-            <EmptyHint />
           )}
-        </div>
-        <div className="flex-1 min-w-0 px-2 py-1.5 space-y-1.5">
-          {apptMaterials > 0 && (
-            <div className="rounded-[10px] bg-[var(--fill-tertiary)] px-2.5 py-2">
-              <div className="text-[12px] text-[var(--label)]">Материалы</div>
-              <div className="text-[11px] text-[var(--label-tertiary)] mt-0.5">
-                По выполненным записям
-              </div>
-              <div className="text-[13px] font-semibold tabular-nums text-[var(--system-red)] mt-1">
-                −{formatEUR(apptMaterials)}
-              </div>
-            </div>
-          )}
-          {manualExpense.map((e) => (
-            <ExtraCard key={e.id} extra={e} onRemove={() => handleRemove(e.id)} />
-          ))}
-          {apptMaterials === 0 && manualExpense.length === 0 && <EmptyHint />}
         </div>
       </div>
-
-      {addKind && (
-        <AddTransactionForm
-          kind={addKind}
-          tenantId={tenantId}
-          onCancel={() => setAddKind(null)}
-          onAdd={handleAdd}
-        />
-      )}
-    </DialogModal>
+    </div>
   );
 }
 
-function ColumnHeader({
+function Column({
   tone,
   label,
   sum,
   onAdd,
+  children,
 }: {
   tone: "income" | "expense";
   label: string;
   sum: number;
   onAdd: () => void;
+  children: React.ReactNode;
 }) {
   const color =
     tone === "income" ? "text-[var(--system-green)]" : "text-[var(--system-red)]";
   return (
-    <div className="flex-1 min-w-0 px-3 py-2">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex items-baseline justify-between px-3 pt-3 pb-2">
         <span className={`text-[11px] font-semibold uppercase tracking-wide ${color}`}>
           {label}
         </span>
@@ -234,17 +294,20 @@ function ColumnHeader({
           {formatEUR(sum)}
         </span>
       </div>
-      <button
-        type="button"
-        onClick={onAdd}
-        className={`mt-1.5 w-full h-7 rounded-[8px] border border-dashed text-[12px] font-medium active:scale-[0.98] ${
-          tone === "income"
-            ? "border-[var(--system-green)]/50 text-[var(--system-green)]"
-            : "border-[var(--system-red)]/50 text-[var(--system-red)]"
-        }`}
-      >
-        + {tone === "income" ? "Доход" : "Расход"}
-      </button>
+      <div className="px-2 space-y-1.5 flex-1">{children}</div>
+      <div className="px-2 pt-2 pb-3">
+        <button
+          type="button"
+          onClick={onAdd}
+          className={`w-full h-9 rounded-[10px] border border-dashed text-[12px] font-semibold active:scale-[0.98] ${
+            tone === "income"
+              ? "border-[var(--system-green)]/50 text-[var(--system-green)]"
+              : "border-[var(--system-red)]/50 text-[var(--system-red)]"
+          }`}
+        >
+          + {tone === "income" ? "Доход" : "Расход"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -268,7 +331,7 @@ function IncomeApptCard({
           ? "🏦"
           : null;
   return (
-    <div className="rounded-[10px] bg-[var(--fill-tertiary)] px-2.5 py-2">
+    <div className="rounded-[10px] bg-[rgba(52,199,89,0.08)] px-2.5 py-2">
       <div className="flex items-center justify-between gap-1.5">
         <span className="text-[12px] text-[var(--label)] truncate flex-1">{name}</span>
         <span className="text-[11px] text-[var(--label-tertiary)] tabular-nums flex-shrink-0">
@@ -294,8 +357,9 @@ function ExtraCard({ extra, onRemove }: { extra: DayExtra; onRemove: () => void 
   const isIncome = extra.kind === "income";
   const cat = extra.category ? EXPENSE_CATEGORIES[extra.category] : null;
   const methodEmoji = METHODS.find((m) => m.key === extra.payment_method)?.emoji ?? null;
+  const tintBg = isIncome ? "bg-[rgba(52,199,89,0.08)]" : "bg-[rgba(255,59,48,0.08)]";
   return (
-    <div className="rounded-[10px] bg-[var(--fill-tertiary)] px-2.5 py-2 relative group">
+    <div className={`rounded-[10px] ${tintBg} px-2.5 py-2 relative`}>
       <div className="flex items-center justify-between gap-1.5">
         <span className="text-[12px] text-[var(--label)] truncate flex-1">
           {cat ? `${cat.emoji} ` : ""}
@@ -321,9 +385,7 @@ function ExtraCard({ extra, onRemove }: { extra: DayExtra; onRemove: () => void 
           {formatEUR(extra.amount)}
         </span>
       </div>
-      {extra.receipt_url && (
-        <ReceiptPreview path={extra.receipt_url} />
-      )}
+      {extra.receipt_url && <ReceiptPreview path={extra.receipt_url} />}
     </div>
   );
 }
@@ -389,8 +451,6 @@ function AddTransactionForm({
     try {
       const blob = await compressImage(file);
       const extraId = generateId("xtra");
-      // Reuse extraId as the path-key so a future save links to the same blob.
-      // We stash both via state below so the resulting DayExtra carries them.
       const path = await uploadReceipt(getSupabaseBrowser(), {
         tenantId,
         extraId,
