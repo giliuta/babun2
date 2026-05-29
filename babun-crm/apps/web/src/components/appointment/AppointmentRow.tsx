@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 
 interface AppointmentRowProps {
-  /** Small uppercase section label shown above the value. */
+  /** Small uppercase section label shown above the value. Hidden when
+   *  `icon` is set (the icon identifies the row instead). */
   label: string;
   /** Primary display text. Not rendered when `hint` or `children` is provided. */
   value?: string;
@@ -23,11 +24,16 @@ interface AppointmentRowProps {
   /** Force-show (true) or force-hide (false) chevron. Default: show when
    *  onTap is set and rightAccessory is absent. */
   showChevron?: boolean;
+  /** Colored tile icon on the left (Variant B). When set, the uppercase
+   *  label is hidden — the icon identifies the row. */
+  icon?: ReactNode;
+  /** Tailwind bg class for the icon tile, e.g. "bg-[var(--tile-blue)]". */
+  tileClass?: string;
 }
 
 // Reusable row component for the unified appointment form card.
-// Renders: small uppercase label + main content (value text OR children)
-// + optional sub-line + optional chevron/right accessory.
+// Renders: optional colored tile icon + main content (value text OR
+// children) + optional sub-line + optional chevron/right accessory.
 export default function AppointmentRow({
   label,
   value,
@@ -38,17 +44,29 @@ export default function AppointmentRow({
   hint,
   children,
   showChevron,
+  icon,
+  tileClass,
 }: AppointmentRowProps) {
   const chevron =
     showChevron !== undefined
       ? showChevron
       : Boolean(onTap) && !rightAccessory;
 
+  const tile = icon ? (
+    <span
+      className={`w-[30px] h-[30px] rounded-[7px] flex items-center justify-center flex-shrink-0 text-white ${tileClass ?? ""}`}
+    >
+      {icon}
+    </span>
+  ) : null;
+
   const content = (
     <div className="flex-1 min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-0.5">
-        {label}
-      </div>
+      {!icon && (
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-tertiary)] mb-0.5">
+          {label}
+        </div>
+      )}
       {children ? (
         children
       ) : hint ? (
@@ -100,8 +118,9 @@ export default function AppointmentRow({
       <button
         type="button"
         onClick={onTap}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left active:bg-[var(--fill-quaternary)] transition"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--fill-quaternary)] transition"
       >
+        {tile}
         {content}
         {rightSide}
       </button>
@@ -109,7 +128,8 @@ export default function AppointmentRow({
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3">
+    <div className="flex items-center gap-3 px-4 py-3">
+      {tile}
       {content}
       {rightSide}
     </div>

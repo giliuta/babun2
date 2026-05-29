@@ -31,6 +31,8 @@ export default function NoteCard({
     <SectionCard>
       <AppointmentRow
         label="ЗАМЕТКА К ЗАПИСИ"
+        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h14v16H5z" /><path d="M8 9h8M8 13h6" /></svg>}
+        tileClass="bg-[var(--tile-gray)]"
         value={value}
         accent={!trimmed && !readonly}
         onTap={readonly ? undefined : onTap}

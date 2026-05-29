@@ -218,7 +218,7 @@ export default function AppointmentWorkBody({
   return (
     <div className="pb-4">
       {(!readonly || client) && (
-        <SectionGroup>
+        <SectionGroup title="Клиент">
           <ClientCard
             readonly={readonly}
             clientName={clientName}
@@ -230,7 +230,7 @@ export default function AppointmentWorkBody({
         </SectionGroup>
       )}
 
-      <SectionGroup>
+      <SectionGroup title="Объект и адрес">
         <ObjectCard
           readonly={readonly}
           locationValue={locationValue}
@@ -243,7 +243,7 @@ export default function AppointmentWorkBody({
         />
       </SectionGroup>
 
-      <SectionGroup>
+      <SectionGroup title="Услуги и сумма">
         <ServicesCard
           readonly={readonly}
           serviceCount={serviceCount}
@@ -259,7 +259,7 @@ export default function AppointmentWorkBody({
         />
       </SectionGroup>
 
-      <SectionGroup>
+      <SectionGroup title="Заметка и фото">
         <NoteCard
           readonly={readonly}
           comment={comment}
