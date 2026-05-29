@@ -44,6 +44,7 @@ import IncomeCard from "./IncomeCard";
 import NavigationCard from "./NavigationCard";
 import NoteCard from "./NoteCard";
 import PhotoCard from "./PhotoCard";
+import SectionGroup from "./SectionGroup";
 import type { AppointmentSheetMode } from "./AppointmentSheet";
 
 interface ClientStats {
@@ -217,56 +218,61 @@ export default function AppointmentWorkBody({
   return (
     <div className="pb-4">
       {(!readonly || client) && (
-        <ClientCard
-          readonly={readonly}
-          clientName={clientName}
-          clientPhone={clientPhone}
-          clientSub={clientSub}
-          onTap={openClientPicker}
-          onMenuOpen={() => setClientMenuOpen(true)}
-        />
+        <SectionGroup>
+          <ClientCard
+            readonly={readonly}
+            clientName={clientName}
+            clientPhone={clientPhone}
+            clientSub={clientSub}
+            onTap={openClientPicker}
+            onMenuOpen={() => setClientMenuOpen(true)}
+          />
+        </SectionGroup>
       )}
 
-      <ObjectCard
-        readonly={readonly}
-        locationValue={locationValue}
-        locationSub={locationSub}
-        onTap={openLocationEditor}
-      />
-
-      <ServicesCard
-        readonly={readonly}
-        serviceCount={serviceCount}
-        firstServiceName={firstServiceName}
-        onTap={openServicePicker}
-      />
-
-      <IncomeCard
-        readonly={readonly}
-        total={grandTotal}
-        durationMinutes={dur}
-        hasServices={serviceCount > 0}
-        onTap={() => setIncomeOpen(true)}
-      />
-
-      <NavigationCard
-        hasAddress={hasNav}
-        onTap={() => setNavOpen(true)}
-      />
-
-      <NoteCard
-        readonly={readonly}
-        comment={comment}
-        onTap={() => setNoteOpen(true)}
-      />
-
-      <div ref={photoScrollRef}>
-        <PhotoCard
-          photoCount={photoCount}
-          canUpload={canUpload}
-          onTap={() => setPhotoPopupOpen(true)}
+      <SectionGroup>
+        <ObjectCard
+          readonly={readonly}
+          locationValue={locationValue}
+          locationSub={locationSub}
+          onTap={openLocationEditor}
         />
-      </div>
+        <NavigationCard
+          hasAddress={hasNav}
+          onTap={() => setNavOpen(true)}
+        />
+      </SectionGroup>
+
+      <SectionGroup>
+        <ServicesCard
+          readonly={readonly}
+          serviceCount={serviceCount}
+          firstServiceName={firstServiceName}
+          onTap={openServicePicker}
+        />
+        <IncomeCard
+          readonly={readonly}
+          total={grandTotal}
+          durationMinutes={dur}
+          hasServices={serviceCount > 0}
+          onTap={() => setIncomeOpen(true)}
+        />
+      </SectionGroup>
+
+      <SectionGroup>
+        <NoteCard
+          readonly={readonly}
+          comment={comment}
+          onTap={() => setNoteOpen(true)}
+        />
+        <div ref={photoScrollRef}>
+          <PhotoCard
+            photoCount={photoCount}
+            canUpload={canUpload}
+            onTap={() => setPhotoPopupOpen(true)}
+          />
+        </div>
+      </SectionGroup>
 
       {/* ОПЛАТА — existing records only */}
       {showPayment && (

@@ -7,12 +7,19 @@
  */
 
 import type { ReactNode } from "react";
+import { useGrouped } from "./SectionGroup";
 
 interface SectionCardProps {
   children: ReactNode;
 }
 
 export default function SectionCard({ children }: SectionCardProps) {
+  // Inside a SectionGroup the row renders bare — the group owns the
+  // border, background and hairline separators. Standalone (default),
+  // it keeps the original bordered plashka with fixed min-height.
+  const grouped = useGrouped();
+  if (grouped) return <>{children}</>;
+
   return (
     <div className="px-4 pt-3">
       <div
