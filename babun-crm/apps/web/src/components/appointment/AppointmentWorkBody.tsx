@@ -319,6 +319,8 @@ export default function AppointmentWorkBody({
             onAddressNoteChange={setAddressNote}
             placeholder={addressPlaceholder}
             onRequireClient={() => setAskClientFirst(true)}
+            autoOpen
+            onClose={() => setLocationEditorTrigger(false)}
           />
         </div>
       )}

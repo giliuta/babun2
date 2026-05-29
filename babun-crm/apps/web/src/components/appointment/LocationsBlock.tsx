@@ -27,6 +27,14 @@ interface LocationsBlockProps {
    *  selected yet. Parent shows the "выберите клиента" prompt instead
    *  of opening the form. */
   onRequireClient?: () => void;
+  /** When true (headless mount from ObjectCard) the editor opens
+   *  immediately on mount — editing the selected/primary object, or a
+   *  new one if the client has none. Without this the hidden h-0 host
+   *  swallows the tap and nothing happens. */
+  autoOpen?: boolean;
+  /** Called after the editor closes or saves so the parent can reset
+   *  its trigger and unmount the headless instance. */
+  onClose?: () => void;
 }
 
 // Note max length — matches Location.note constraint (140 chars).
@@ -57,6 +65,8 @@ export default function LocationsBlock({
   onSelectLocation,
   placeholder,
   onRequireClient,
+  autoOpen,
+  onClose,
 }: LocationsBlockProps) {
   const { locationLabels } = useLocationLabels();
   const [editor, setEditor] = useState<EditorState | null>(null);
@@ -107,6 +117,16 @@ export default function LocationsBlock({
       note: loc.note ?? "",
     });
   };
+
+  // Headless mount via ObjectCard tap — open the editor immediately so
+  // the hidden h-0 host doesn't swallow the interaction. Edit the
+  // selected/primary object, or start a new one if the client has none.
+  useEffect(() => {
+    if (!autoOpen || !client) return;
+    if (selected) openEdit(selected);
+    else openNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEditorSave = (data: {
     label: string;
@@ -166,10 +186,12 @@ export default function LocationsBlock({
     }
 
     setEditor(null);
+    onClose?.();
   };
 
   const handleEditorClose = () => {
     setEditor(null);
+    onClose?.();
   };
 
   const navInput = selected?.mapUrl || selected?.address || "";
