@@ -627,18 +627,28 @@ export default function AppointmentSheet({
     missingParts.push("название");
   }
   const savePreviewLabel = (() => {
-    if (!canSave) {
-      return missingParts.length > 0
-        ? `Заполните: ${missingParts.join(", ")} →`
-        : (liveMode === "edit" ? "Сохранить" : "Создать запись");
-    }
     if (isEventMode) {
+      if (!canSave) {
+        return missingParts.length > 0
+          ? `Заполните: ${missingParts.join(", ")} →`
+          : (liveMode === "edit" ? "Сохранить событие" : "Создать событие");
+      }
       return liveMode === "edit" ? "Сохранить событие" : "Создать событие";
     }
+    // Work mode — always show the live итог; ✓ appears only once the
+    // record can actually be saved. Missing parts move to the tap nudge.
     const shortDate = formatShortDate(dateKey);
     const verb = liveMode === "edit" ? "Сохранить" : "Создать";
-    return `✓ ${verb} · ${shortDate} ${timeStart} · ${totalDur}мин · ${formatEUR(price)}`;
+    const parts: string[] = [`${shortDate} ${timeStart}`];
+    if (totalDur > 0) parts.push(`${totalDur}мин`);
+    if (price > 0) parts.push(formatEUR(price));
+    const summary = `${verb} · ${parts.join(" · ")}`;
+    return canSave ? `✓ ${summary}` : summary;
   })();
+  const incompleteHint =
+    missingParts.length > 0
+      ? `Заполните: ${missingParts.join(", ")}`
+      : "Заполните сначала данные";
 
   // Whether the user has entered anything worth protecting on close.
   // v619 — data-loss audit P1: previously the check only caught
@@ -1014,6 +1024,7 @@ export default function AppointmentSheet({
           <AppointmentSaveButton
             canSave={canSave}
             label={savePreviewLabel}
+            incompleteHint={incompleteHint}
             onSave={
               isEventMode
                 ? () => eventSubmitRef.current?.() ?? false

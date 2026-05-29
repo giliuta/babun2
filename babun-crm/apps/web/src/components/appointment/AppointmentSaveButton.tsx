@@ -27,12 +27,15 @@ interface AppointmentSaveButtonProps {
    *    • `Promise<boolean>`: same rules, awaited.
    *    • thrown error: treated as `false`, lock released. */
   onSave: () => boolean | void | Promise<boolean | void>;
+  /** Specific "what's missing" text shown in the nudge on an incomplete tap. */
+  incompleteHint?: string;
 }
 
 export default function AppointmentSaveButton({
   canSave,
   label,
   onSave,
+  incompleteHint,
 }: AppointmentSaveButtonProps) {
   const [bottomWarning, setBottomWarning] = useState<string | null>(null);
   // STORY audit (tester 1.1): без isSubmitting guard два быстрых тапа
@@ -78,7 +81,7 @@ export default function AppointmentSaveButton({
         onClick={() => {
           if (submitLocked) return;
           if (incomplete) {
-            setBottomWarning("Заполните сначала данные");
+            setBottomWarning(incompleteHint ?? "Заполните сначала данные");
             return;
           }
           setIsSubmitting(true);
