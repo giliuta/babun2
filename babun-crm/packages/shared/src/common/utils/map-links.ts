@@ -6,7 +6,7 @@
 // raw input; the three "open in" buttons route that input through the
 // appropriate deep link.
 
-export type MapService = "google" | "apple" | "waze";
+export type MapService = "google" | "apple" | "waze" | "yandex";
 
 export interface ParsedAddress {
   raw: string;
@@ -109,6 +109,9 @@ export function buildMapUrl(
     if (service === "apple") {
       return `https://maps.apple.com/?ll=${lat},${lng}&q=${lat},${lng}`;
     }
+    if (service === "yandex") {
+      return `https://yandex.ru/maps/?rtext=~${lat}%2C${lng}&rtt=auto`;
+    }
     return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
   }
 
@@ -125,6 +128,9 @@ export function buildMapUrl(
   }
   if (service === "apple") {
     return `https://maps.apple.com/?q=${q}`;
+  }
+  if (service === "yandex") {
+    return `https://yandex.ru/maps/?text=${q}`;
   }
   return `https://waze.com/ul?q=${q}&navigate=yes`;
 }
