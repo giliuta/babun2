@@ -40,7 +40,6 @@ import LocationsBlock from "./LocationsBlock";
 import ClientCard from "./ClientCard";
 import ObjectCard from "./ObjectCard";
 import ServicesCard from "./ServicesCard";
-import IncomeCard from "./IncomeCard";
 import NavigationCard from "./NavigationCard";
 import NoteCard from "./NoteCard";
 import PhotoCard from "./PhotoCard";
@@ -248,14 +247,10 @@ export default function AppointmentWorkBody({
           readonly={readonly}
           serviceCount={serviceCount}
           firstServiceName={firstServiceName}
-          onTap={openServicePicker}
-        />
-        <IncomeCard
-          readonly={readonly}
           total={grandTotal}
           durationMinutes={dur}
-          hasServices={serviceCount > 0}
-          onTap={() => setIncomeOpen(true)}
+          onTap={openServicePicker}
+          onIncomeTap={() => setIncomeOpen(true)}
         />
       </SectionGroup>
 

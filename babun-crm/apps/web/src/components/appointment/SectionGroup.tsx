@@ -28,9 +28,9 @@ interface SectionGroupProps {
 
 export default function SectionGroup({ title, children }: SectionGroupProps) {
   return (
-    <div className="px-4 pt-4">
+    <div className="px-4 pt-3.5">
       {title && (
-        <div className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+        <div className="px-1 pb-1 text-[13px] font-semibold text-[var(--label-secondary)]">
           {title}
         </div>
       )}
