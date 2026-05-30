@@ -44,12 +44,17 @@ export default function AddressEditorPopup({
   const [label, setLabel] = useState(initialLabel);
   const [input, setInput] = useState(initialInput);
   const [noteInput, setNoteInput] = useState(initialNote);
+  // Chip edit mode: the ✕ delete badges only show here, so a normal
+  // tap (select) can never accidentally delete a label (user-reported
+  // mis-tap). Always starts off when the popup opens.
+  const [editChips, setEditChips] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setLabel(initialLabel);
     setInput(initialInput);
     setNoteInput(initialNote);
+    setEditChips(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -135,36 +140,46 @@ export default function AddressEditorPopup({
                 placeholder="Дом, Квартира, Офис…"
                 className={`${fieldCls} h-11`}
               />
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap gap-1.5 mt-2 items-center">
                 {labels.map((l) => {
                   const active = trimmedLabel === l.name;
+                  // Edit mode — delete-only: the label is a plain span,
+                  // only the red ✕ is tappable. No select here, so a
+                  // mis-tap can't both select and delete.
+                  if (editChips) {
+                    return (
+                      <span
+                        key={l.id}
+                        className="h-9 pl-3.5 pr-1 rounded-full text-[13px] font-semibold inline-flex items-center gap-0.5 border bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
+                      >
+                        <span className="pr-0.5">{l.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveLabel(l.id)}
+                          aria-label={`Удалить ${l.name}`}
+                          className="w-7 h-7 flex items-center justify-center rounded-full text-[var(--system-red)] active:bg-[var(--fill-quaternary)]"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 6l12 12M18 6L6 18" />
+                          </svg>
+                        </button>
+                      </span>
+                    );
+                  }
+                  // Normal mode — select-only: whole chip selects, no ✕.
                   return (
-                    <span
+                    <button
                       key={l.id}
-                      className={`h-9 pl-3.5 pr-1 rounded-full text-[13px] font-semibold inline-flex items-center gap-0.5 border ${
+                      type="button"
+                      onClick={() => setLabel(active ? "" : l.name)}
+                      className={`h-9 px-3.5 rounded-full text-[13px] font-semibold border active:opacity-70 ${
                         active
                           ? "bg-[var(--accent-tint)] text-[var(--accent)] border-[var(--accent)]"
                           : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setLabel(active ? "" : l.name)}
-                        className="h-full pr-0.5 flex items-center active:opacity-70"
-                      >
-                        {l.name}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveLabel(l.id)}
-                        aria-label={`Удалить ${l.name}`}
-                        className="w-7 h-7 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)]"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 6l12 12M18 6L6 18" />
-                        </svg>
-                      </button>
-                    </span>
+                      {l.name}
+                    </button>
                   );
                 })}
                 {canAddChip && (
@@ -174,6 +189,15 @@ export default function AddressEditorPopup({
                     className="h-9 px-3.5 rounded-full text-[13px] font-semibold bg-[var(--accent-tint)] text-[var(--accent)] border border-dashed border-[var(--accent)]"
                   >
                     ＋ сохранить «{trimmedLabel}»
+                  </button>
+                )}
+                {labels.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setEditChips((v) => !v)}
+                    className="h-9 px-2.5 text-[13px] font-semibold text-[var(--accent)] active:opacity-70"
+                  >
+                    {editChips ? "Готово" : "Изменить"}
                   </button>
                 )}
               </div>
