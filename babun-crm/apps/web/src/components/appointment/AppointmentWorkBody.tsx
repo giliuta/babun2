@@ -39,6 +39,7 @@ import MapNavPopup from "./MapNavPopup";
 import LocationsBlock from "./LocationsBlock";
 import ClientCard from "./ClientCard";
 import ObjectCard from "./ObjectCard";
+import ObjectNoteCard from "./ObjectNoteCard";
 import ServicesCard from "./ServicesCard";
 import NavigationCard from "./NavigationCard";
 import NoteCard from "./NoteCard";
@@ -183,10 +184,17 @@ export default function AppointmentWorkBody({
 
   // ── Location ─────────────────────────────────────────────────────
   const navInput = selectedLocation?.mapUrl || selectedLocation?.address || "";
-  const locationValue =
-    selectedLocation?.address ||
-    (selectedLocation?.mapUrl ? "Google Maps ссылка" : null);
-  const locationSub = selectedLocation?.note?.trim() || undefined;
+  const hasObject = Boolean(selectedLocation);
+  // Name (label) is the title when present; the address drops to the
+  // sub-line. The crew note is promoted to its own row (ObjectNoteCard)
+  // below so the brigade sees the door code / floor on arrival.
+  const objName = selectedLocation?.label?.trim();
+  const objAddr =
+    selectedLocation?.address?.trim() ||
+    (selectedLocation?.mapUrl ? "Ссылка на карту" : "");
+  const locationValue = hasObject ? objName || objAddr || "Объект" : null;
+  const locationSub = objName ? objAddr || undefined : undefined;
+  const crewNote = selectedLocation?.note?.trim() || undefined;
   const hasNav = Boolean(navInput);
 
   const openLocationEditor = () => {
@@ -236,10 +244,19 @@ export default function AppointmentWorkBody({
           locationSub={locationSub}
           onTap={openLocationEditor}
         />
-        <NavigationCard
-          hasAddress={hasNav}
-          onTap={() => setNavOpen(true)}
-        />
+        {hasObject && (
+          <ObjectNoteCard
+            readonly={readonly}
+            note={crewNote}
+            onTap={openLocationEditor}
+          />
+        )}
+        {hasNav && (
+          <NavigationCard
+            hasAddress
+            onTap={() => setNavOpen(true)}
+          />
+        )}
       </SectionGroup>
 
       <SectionGroup title="Услуги и сумма">

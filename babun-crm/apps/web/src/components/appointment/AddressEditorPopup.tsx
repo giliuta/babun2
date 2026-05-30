@@ -141,7 +141,7 @@ export default function AddressEditorPopup({
                   return (
                     <span
                       key={l.id}
-                      className={`h-8 pl-3 pr-1 rounded-full text-[12px] font-semibold inline-flex items-center gap-1 border ${
+                      className={`h-9 pl-3.5 pr-1 rounded-full text-[13px] font-semibold inline-flex items-center gap-0.5 border ${
                         active
                           ? "bg-[var(--accent-tint)] text-[var(--accent)] border-[var(--accent)]"
                           : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
@@ -150,7 +150,7 @@ export default function AddressEditorPopup({
                       <button
                         type="button"
                         onClick={() => setLabel(active ? "" : l.name)}
-                        className="active:opacity-70"
+                        className="h-full pr-0.5 flex items-center active:opacity-70"
                       >
                         {l.name}
                       </button>
@@ -158,9 +158,9 @@ export default function AddressEditorPopup({
                         type="button"
                         onClick={() => onRemoveLabel(l.id)}
                         aria-label={`Удалить ${l.name}`}
-                        className="w-5 h-5 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)]"
+                        className="w-7 h-7 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)]"
                       >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M6 6l12 12M18 6L6 18" />
                         </svg>
                       </button>
@@ -171,7 +171,7 @@ export default function AddressEditorPopup({
                   <button
                     type="button"
                     onClick={() => onAddLabel(trimmedLabel)}
-                    className="h-8 px-3 rounded-full text-[12px] font-semibold bg-[var(--accent-tint)] text-[var(--accent)] border border-dashed border-[var(--accent)]"
+                    className="h-9 px-3.5 rounded-full text-[13px] font-semibold bg-[var(--accent-tint)] text-[var(--accent)] border border-dashed border-[var(--accent)]"
                   >
                     ＋ сохранить «{trimmedLabel}»
                   </button>
