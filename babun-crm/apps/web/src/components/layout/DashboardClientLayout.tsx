@@ -1332,6 +1332,63 @@ export default function DashboardClientLayout({
     onResync: refetchSchedule,
   });
 
+  // ── Multi-device freshness: foreground refetch + re-arm + poll ────
+  // Realtime (above) delivers live updates only while the tab is
+  // foreground AND its websocket is alive. iOS PWAs suspend the socket
+  // in the background, so a change made on another device / the web app
+  // while this PWA was backgrounded is silently missed — the operator
+  // reopens the app and the calendar is stale (user-reported). Three
+  // layers close that gap:
+  //   A. Refetch the calendar tables when the tab returns to the
+  //      foreground (visibilitychange / focus), debounced ~2 s.
+  //   B. Re-arm the realtime socket on foreground so live updates
+  //      resume after an iOS background suspend. connect() is
+  //      idempotent (no-op if already up); channels auto-rejoin and
+  //      their onResync backfills anything missed.
+  //   C. A slow 30 s poll while the tab is visible — a safety net for
+  //      events realtime dropped without a clean reconnect (so two
+  //      dispatchers watching the same calendar converge even if a
+  //      socket silently died).
+  useEffect(() => {
+    if (!tenantId) return;
+    if (typeof document === "undefined") return;
+    let lastRefetch = Date.now();
+    const refetchCalendar = (includeClients: boolean) => {
+      lastRefetch = Date.now();
+      refetchAppointments();
+      refetchSchedule();
+      if (includeClients) refetchClients();
+    };
+    const onForeground = () => {
+      if (document.visibilityState !== "visible") return;
+      // B — best-effort socket revival (no-op if already connected).
+      try {
+        supabaseClient.realtime.connect();
+      } catch {
+        /* socket already up / unavailable — ignore */
+      }
+      // A — debounced backfill so a quick tab-switch doesn't spam.
+      if (Date.now() - lastRefetch > 2000) refetchCalendar(true);
+    };
+    document.addEventListener("visibilitychange", onForeground);
+    window.addEventListener("focus", onForeground);
+    // C — safety-net poll, only while the tab is actually visible.
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState === "visible") refetchCalendar(false);
+    }, 30_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onForeground);
+      window.removeEventListener("focus", onForeground);
+      window.clearInterval(pollId);
+    };
+  }, [
+    tenantId,
+    refetchAppointments,
+    refetchSchedule,
+    refetchClients,
+    supabaseClient,
+  ]);
+
   // STORY-007 (legacy): components in appointments / chats still call
   // `upsertClient` from @babun/shared/local/clients which writes to
   // localStorage and dispatches babun:clients-changed. We listen and
