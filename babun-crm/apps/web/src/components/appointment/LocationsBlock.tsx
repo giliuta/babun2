@@ -196,7 +196,7 @@ export default function LocationsBlock({
 
   const navInput = selected?.mapUrl || selected?.address || "";
 
-  const editorTitle = editor?.editingId ? "Редактировать адрес" : "Новый адрес";
+  const editorTitle = editor?.editingId ? "Объект" : "Новый объект";
 
   return (
     <div className="px-4 pt-3">
