@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import type { Client, Location } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@babun/shared/common/utils/map-links";
+import {
+  generateLocationLabelId,
+  type LocationLabel,
+} from "@babun/shared/local/location-labels";
 import { useLocationLabels, useClients } from "@/components/layout/DashboardClientLayout";
 import { Navigation } from "@babun/shared/icons";
 import MapNavPopup from "./MapNavPopup";
@@ -40,10 +44,19 @@ interface LocationsBlockProps {
 // Note max length — matches Location.note constraint (140 chars).
 const NOTE_MAX = 140;
 
+// Default reusable name chips shown when the account has no labels yet.
+// They live in the label store the moment the operator edits one (add /
+// remove persists via setLocationLabels) — no separate seeding step.
+const DEFAULT_LABELS: LocationLabel[] = [
+  { id: "loclbl-house", name: "Дом" },
+  { id: "loclbl-flat", name: "Квартира" },
+  { id: "loclbl-office", name: "Офис" },
+  { id: "loclbl-dacha", name: "Дача" },
+];
+
 interface EditorState {
   editingId: string | null;
   label: string;
-  custom: boolean;
   input: string;
   note: string;
 }
@@ -68,7 +81,7 @@ export default function LocationsBlock({
   autoOpen,
   onClose,
 }: LocationsBlockProps) {
-  const { locationLabels } = useLocationLabels();
+  const { locationLabels, setLocationLabels } = useLocationLabels();
   const { upsertClient } = useClients();
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -86,9 +99,17 @@ export default function LocationsBlock({
     null;
 
   const hasAddress = Boolean(selected);
-  const presets = locationLabels.length
-    ? locationLabels.map((l) => l.name)
-    : ["Дом", "Квартира", "Офис", "Дача"];
+  // Editable reusable name chips. Show the stored labels, or the
+  // defaults until the operator first edits one (then it persists).
+  const labels = locationLabels.length ? locationLabels : DEFAULT_LABELS;
+  const addLabel = (name: string) => {
+    const n = name.trim();
+    if (!n || labels.some((l) => l.name === n)) return;
+    setLocationLabels([...labels, { id: generateLocationLabelId(), name: n }]);
+  };
+  const removeLabel = (id: string) => {
+    setLocationLabels(labels.filter((l) => l.id !== id));
+  };
   const addrPlaceholder = placeholder ?? "Адрес или Google Maps ссылка";
 
   // Close editor popup if the client changes while it is open.
@@ -104,19 +125,16 @@ export default function LocationsBlock({
     setEditor({
       editingId: null,
       label: "",
-      custom: false,
       input: "",
       note: "",
     });
   };
 
   const openEdit = (loc: Location) => {
-    const isPreset = presets.includes(loc.label);
     const legacySeed = loc.label === "Основной";
     setEditor({
       editingId: loc.id,
       label: legacySeed ? "" : loc.label ?? "",
-      custom: !legacySeed && loc.label !== "" && !isPreset,
       input: loc.address || loc.mapUrl || "",
       note: loc.note ?? "",
     });
@@ -363,9 +381,10 @@ export default function LocationsBlock({
         <AddressEditorPopup
           open={editor !== null}
           title={editorTitle}
-          presets={presets}
+          labels={labels}
+          onAddLabel={addLabel}
+          onRemoveLabel={removeLabel}
           initialLabel={editor.label}
-          initialCustom={editor.custom}
           initialInput={editor.input}
           initialNote={editor.note}
           addrPlaceholder={addrPlaceholder}

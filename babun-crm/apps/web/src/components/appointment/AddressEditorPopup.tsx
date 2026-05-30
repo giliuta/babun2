@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { X } from "@babun/shared/icons";
 import { isLikelyUrl } from "@babun/shared/common/utils/map-links";
+import type { LocationLabel } from "@babun/shared/local/location-labels";
 
 interface AddressEditorPopupProps {
   open: boolean;
   title: string;
-  presets: string[];
+  /** Editable reusable name chips (managed right here in the form). */
+  labels: LocationLabel[];
+  onAddLabel: (name: string) => void;
+  onRemoveLabel: (id: string) => void;
   initialLabel: string;
-  initialCustom: boolean;
   initialInput: string;
   initialNote: string;
   addrPlaceholder: string;
@@ -21,16 +24,17 @@ interface AddressEditorPopupProps {
 const NOTE_MAX = 140;
 
 // Centered popup for adding/editing an object's address and crew note.
-// Link-first: the address / map-link field is the prominent first input
-// (paste a Google/Waze/Apple/Yandex link or type an address). The name
-// is optional and secondary. Follows popup-design rule: fixed inset-0
-// centered, rounded-[20px], no grabber pill.
+// Link-first (address / map link is the prominent first field). The
+// optional name has EDITABLE chips: tap a chip to fill the name, ✕ to
+// remove it, and "＋ сохранить «…»" to save the typed name as a new
+// reusable chip. Chip management lives only here in the booking form.
 export default function AddressEditorPopup({
   open,
   title,
-  presets,
+  labels,
+  onAddLabel,
+  onRemoveLabel,
   initialLabel,
-  initialCustom,
   initialInput,
   initialNote,
   addrPlaceholder,
@@ -38,16 +42,12 @@ export default function AddressEditorPopup({
   onClose,
 }: AddressEditorPopupProps) {
   const [label, setLabel] = useState(initialLabel);
-  const [customMode, setCustomMode] = useState(initialCustom);
   const [input, setInput] = useState(initialInput);
   const [noteInput, setNoteInput] = useState(initialNote);
 
-  // Reset local state each time the popup opens so a stale draft from a
-  // previous edit does not bleed through.
   useEffect(() => {
     if (!open) return;
     setLabel(initialLabel);
-    setCustomMode(initialCustom);
     setInput(initialInput);
     setNoteInput(initialNote);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,6 +58,9 @@ export default function AddressEditorPopup({
   // The object is its address/link; the name is optional.
   const canSave = Boolean(input.trim());
   const isLink = isLikelyUrl(input.trim());
+  const trimmedLabel = label.trim();
+  const canAddChip =
+    Boolean(trimmedLabel) && !labels.some((l) => l.name === trimmedLabel);
 
   const handleSave = () => {
     if (!canSave) return;
@@ -105,7 +108,6 @@ export default function AddressEditorPopup({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={addrPlaceholder}
-                inputMode="text"
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
                 className={`${fieldCls} h-12`}
@@ -121,63 +123,60 @@ export default function AddressEditorPopup({
               </div>
             </div>
 
-            {/* 2. Name — optional, secondary */}
+            {/* 2. Name — optional, with editable chips */}
             <div>
               <div className="px-1 pb-1.5 text-[12px] font-semibold text-[var(--label-secondary)]">
                 Название · необязательно
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {presets.map((p) => {
-                  const active = !customMode && label === p;
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Дом, Квартира, Офис…"
+                className={`${fieldCls} h-11`}
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {labels.map((l) => {
+                  const active = trimmedLabel === l.name;
                   return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => {
-                        setCustomMode(false);
-                        setLabel(active ? "" : p);
-                      }}
-                      className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
+                    <span
+                      key={l.id}
+                      className={`h-8 pl-3 pr-1 rounded-full text-[12px] font-semibold inline-flex items-center gap-1 border ${
                         active
-                          ? "bg-[var(--accent-tint)] text-[var(--accent)] border border-[var(--accent)]"
-                          : "bg-[var(--surface-card)] text-[var(--label-secondary)] border border-[var(--separator)]"
+                          ? "bg-[var(--accent-tint)] text-[var(--accent)] border-[var(--accent)]"
+                          : "bg-[var(--surface-card)] text-[var(--label-secondary)] border-[var(--separator)]"
                       }`}
                     >
-                      {p}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setLabel(active ? "" : l.name)}
+                        className="active:opacity-70"
+                      >
+                        {l.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveLabel(l.id)}
+                        aria-label={`Удалить ${l.name}`}
+                        className="w-5 h-5 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)]"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                      </button>
+                    </span>
                   );
                 })}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (customMode) {
-                      setCustomMode(false);
-                      if (!presets.includes(label)) setLabel("");
-                    } else {
-                      setCustomMode(true);
-                      if (presets.includes(label)) setLabel("");
-                    }
-                  }}
-                  className={`h-8 px-3 rounded-full text-[12px] font-semibold transition ${
-                    customMode
-                      ? "bg-[var(--accent-tint)] text-[var(--accent)] border border-[var(--accent)]"
-                      : "bg-[var(--surface-card)] text-[var(--label-secondary)] border border-dashed border-[var(--separator)]"
-                  }`}
-                >
-                  Другое…
-                </button>
+                {canAddChip && (
+                  <button
+                    type="button"
+                    onClick={() => onAddLabel(trimmedLabel)}
+                    className="h-8 px-3 rounded-full text-[12px] font-semibold bg-[var(--accent-tint)] text-[var(--accent)] border border-dashed border-[var(--accent)]"
+                  >
+                    ＋ сохранить «{trimmedLabel}»
+                  </button>
+                )}
               </div>
-              {customMode && (
-                <input
-                  type="text"
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="Своё название (Дом, Дача, Офис…)"
-                  // eslint-disable-next-line jsx-a11y/no-autofocus
-                  autoFocus
-                  className={`${fieldCls} h-11 mt-2`}
-                />
-              )}
             </div>
 
             {/* 3. Crew note */}
