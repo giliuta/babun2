@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Client, Location } from "@babun/shared/local/clients";
-import { upsertClient } from "@babun/shared/local/clients";
 import { generateId } from "@babun/shared/local/masters";
 import { extractAddressFromMapUrl, isLikelyUrl } from "@babun/shared/common/utils/map-links";
-import { useLocationLabels } from "@/components/layout/DashboardClientLayout";
+import { useLocationLabels, useClients } from "@/components/layout/DashboardClientLayout";
 import { Navigation } from "@babun/shared/icons";
 import MapNavPopup from "./MapNavPopup";
 import AddressEditorPopup from "./AddressEditorPopup";
@@ -70,6 +69,7 @@ export default function LocationsBlock({
   onClose,
 }: LocationsBlockProps) {
   const { locationLabels } = useLocationLabels();
+  const { upsertClient } = useClients();
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [picker, setPicker] = useState(false);
@@ -86,7 +86,9 @@ export default function LocationsBlock({
     null;
 
   const hasAddress = Boolean(selected);
-  const presets = locationLabels.map((l) => l.name);
+  const presets = locationLabels.length
+    ? locationLabels.map((l) => l.name)
+    : ["Дом", "Квартира", "Офис", "Дача"];
   const addrPlaceholder = placeholder ?? "Адрес или Google Maps ссылка";
 
   // Close editor popup if the client changes while it is open.
