@@ -796,7 +796,11 @@ export default function AppointmentSheet({
       // только через явную кнопку ✕ или swipe-down (тоже идёт через
       // attemptClose). Esc на keyboard через useBodyScrollLock тоже
       // работает.
-      className="fixed inset-x-0 z-[70] flex bg-[var(--surface-overlay)] backdrop-blur-[2px] p-0"
+      // Desktop (lg+) — center the sheet as a floating dialog instead of
+      // a full-width takeover. Mobile keeps the full-bleed sheet (no lg:).
+      // Only flex-alignment + padding — NO transform (would make this the
+      // containing block for the fixed sub-pickers, per the note below).
+      className="fixed inset-x-0 z-[70] flex lg:items-center lg:justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-0 lg:p-6"
       // Pin to the visual viewport (iOS keyboard fix — see `viewport`
       // effect above). `top` follows vv.offsetTop so the overlay never
       // drifts when the keyboard scrolls the page; height follows
@@ -829,7 +833,11 @@ export default function AppointmentSheet({
         role="dialog"
         aria-modal="true"
         aria-label={dialogLabel}
-        className="w-full bg-[var(--surface-card)] shadow-[var(--shadow-sheet)] flex flex-col"
+        // Desktop: cap width (dialog, not full-bleed) and height via
+        // max-h (clamps the inline `height: sheetHeight` WITHOUT touching
+        // it — the iOS-keyboard fix stays intact on mobile, where no lg:
+        // applies). Rounded + clipped corners on desktop only.
+        className="w-full lg:max-w-[460px] lg:max-h-[88vh] lg:rounded-[20px] lg:overflow-hidden bg-[var(--surface-card)] shadow-[var(--shadow-sheet)] flex flex-col"
         // STORY audit: height теперь следует за visualViewport (iOS
         // keyboard fix). Раньше было фиксированное 92vh — sticky
         // footer уезжал за клавиатуру при фокусе в textarea / поиск.
