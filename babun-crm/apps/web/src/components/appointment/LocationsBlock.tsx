@@ -9,6 +9,7 @@ import { useLocationLabels } from "@/components/layout/DashboardClientLayout";
 import { Navigation } from "@babun/shared/icons";
 import MapNavPopup from "./MapNavPopup";
 import AddressEditorPopup from "./AddressEditorPopup";
+import ObjectPickerPopup from "./ObjectPickerPopup";
 
 interface LocationsBlockProps {
   client: Client | null;
@@ -71,6 +72,7 @@ export default function LocationsBlock({
   const { locationLabels } = useLocationLabels();
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [picker, setPicker] = useState(false);
 
   const rawLocations: Location[] = client?.locations ?? [];
   const realLocations = rawLocations.filter(
@@ -123,8 +125,8 @@ export default function LocationsBlock({
   // selected/primary object, or start a new one if the client has none.
   useEffect(() => {
     if (!autoOpen || !client) return;
-    if (selected) openEdit(selected);
-    else openNew();
+    if (realLocations.length === 0) openNew();
+    else setPicker(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -369,6 +371,29 @@ export default function LocationsBlock({
           onClose={handleEditorClose}
         />
       )}
+
+      <ObjectPickerPopup
+        open={picker}
+        locations={realLocations}
+        selectedId={selected?.id ?? null}
+        onSelect={(id) => {
+          onSelectLocation(id);
+          setPicker(false);
+          onClose?.();
+        }}
+        onAddNew={() => {
+          setPicker(false);
+          openNew();
+        }}
+        onEdit={(loc) => {
+          setPicker(false);
+          openEdit(loc);
+        }}
+        onClose={() => {
+          setPicker(false);
+          onClose?.();
+        }}
+      />
     </div>
   );
 }
