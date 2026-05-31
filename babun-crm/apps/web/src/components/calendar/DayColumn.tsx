@@ -366,28 +366,38 @@ function DayColumnInner({
             )}
           </span>
 
-          {/* Label pill — main visual anchor of the header.
-              Phase I38: hide entirely when the brigade has no labels
-              configured — nothing to offer, the day header falls back
-              to just weekday + number. */}
-          {/* Brief 1 #9: label pill carries a pin icon + native hover
-              tooltip with the full city name, so a hovering dispatcher
-              sees «Пафос» without having to remember «ПАФ». */}
-          {/* Only the set label renders a pill. A day with no label shows
-              nothing (no «метка» placeholder) — tap the header to pick one. */}
+          {/* Day label — plain text in the city colour (variant C, was a
+              filled pill). The colour signal now lives in the bottom
+              "spine" bar below; this text just names the label, with a
+              native tooltip carrying the full name (e.g. «Пафос» → «ПАФ»).
+              Falls back to neutral secondary when the label has no colour.
+              Phase I38: hidden entirely when the brigade has no labels
+              configured — the header then shows just weekday + number.
+              A day with no label shows nothing — tap the header to pick. */}
           {hasLabels && cityShort && (
             <span
-              className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[12px] font-bold uppercase max-w-full whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.10)]"
+              className="block max-w-full truncate text-[12px] font-semibold uppercase tracking-wide leading-none"
               title={cityLabel}
               style={{
-                background: cityCfg?.color ?? "var(--fill-primary)",
-                color: cityCfg ? "var(--label-on-accent)" : "var(--label-secondary)",
+                color: cityCfg?.color ?? "var(--label-secondary)",
               }}
             >
               {cityShort}
             </span>
           )}
         </div>
+
+        {/* Variant C — city colour spine pinned to the bottom edge of
+            the header. Scanning a week reads as a row of coloured bars
+            (one per label) even before reading the text. Inset 6px L/R
+            so the column separators stay visible at the corners; sits
+            on top of the header's bottom hairline. */}
+        {hasLabels && cityShort && (
+          <span
+            className="absolute bottom-0 left-1.5 right-1.5 h-[3px] rounded-t-full pointer-events-none"
+            style={{ background: cityCfg?.color ?? "var(--label-tertiary)" }}
+          />
+        )}
 
         {/* Month flag — only on the 1st of a month, so a week that
             crosses a month boundary still reads which month a column
