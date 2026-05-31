@@ -340,7 +340,15 @@ async function dispatch(
     )
       .eq("id", op.row_id)
       .select()
-      .single();
+      // maybeSingle, NOT single. When the force-update matches 0 rows —
+      // the target was deleted on the server, or RLS hides it from this
+      // user (a non-'work' row created by someone else, or a stale
+      // tenant JWT) — `.single()` throws PGRST116 «Cannot coerce the
+      // result to a single JSON object». That re-threw on every retry,
+      // wedging the op at attempt N/N and blocking the ENTIRE queue, so
+      // later writes never synced → silent cross-device desync
+      // (user-reported). maybeSingle returns { data: null } instead.
+      .maybeSingle();
     /* eslint-enable @typescript-eslint/no-explicit-any */
     const { data: forced, error: forceErr } = await forceFilter;
     if (forceErr)
@@ -349,6 +357,11 @@ async function dispatch(
       // Cache write-through with the canonical row.
       await cacheUpsert(op.table as CachedTable, forced);
     }
+    // forced === null → 0 rows: the update is unappliable (row gone /
+    // not writable for this user). DROP the op (return true) instead of
+    // looping forever — a permanently-stuck op blocks the whole queue.
+    // The local cache self-heals on the next full refetch (foreground
+    // revalidate / realtime onResync re-pulls the canonical rows).
     return true;
   }
 

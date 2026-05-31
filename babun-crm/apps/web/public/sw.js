@@ -1,6 +1,6 @@
 // Babun CRM Service Worker
 // Increment CACHE_VERSION on every deploy to invalidate caches
-const CACHE_VERSION = "babun-v788-multidevice-sync";
+const CACHE_VERSION = "babun-v789-sync-queue-unstick";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
