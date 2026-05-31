@@ -57,13 +57,13 @@ export async function signIn(
 
 export async function signOut(): Promise<void> {
   const supabase = getSupabaseBrowser();
-  // CROSS-TENANT LEAK FIX: wipe this device's local data (localStorage +
-  // IndexedDB cache + sync queue) BEFORE the Supabase signOut, so the
-  // next account signing in on this device can never inherit it. Awaited
-  // so the wipe finishes before the caller redirects to /login.
-  // Best-effort — never block logout on a wipe failure.
+  // CROSS-TENANT LEAK FIX (fast): synchronously clear localStorage and
+  // fire the IndexedDB clear in the background, so logout stays instant.
+  // The next account's sign-in guards (different-user wipe + owner-guard
+  // + foreign-tenant cache purge) await the clear before showing any
+  // data, so it's safe not to block here. Best-effort.
   try {
-    await wipeLocalData();
+    wipeLocalData();
   } catch {
     /* swallow — logout must still proceed */
   }

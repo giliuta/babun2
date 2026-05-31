@@ -81,6 +81,13 @@ const KEEP_KEYS = new Set([
   "babun-push-prompt-dismissed-at",
   "babun-view-mode",
   "babun-session-count",
+  // Leak-guard identity stamps — must SURVIVE a logout wipe so the next
+  // sign-in still has the previous identity to compare against (the
+  // different-user wipe + the owner-guard). Without this a fast logout
+  // would drop them and the next account couldn't be detected as
+  // different. Literals match LAST_USER_KEY / CACHE_OWNER_KEY below.
+  "babun:auth:last-user-id",
+  "babun:cache-owner",
 ]);
 
 function clearLegacyLocalStorage(): void {
@@ -136,10 +143,14 @@ async function performWipe(): Promise<void> {
  *  the next account (or anyone on a shared device) never inherits this
  *  account's cached data. Drops the user + cache-owner stamps too so
  *  the next sign-in starts from a clean slate. */
-export async function wipeLocalData(): Promise<void> {
-  await performWipe();
-  try { window.localStorage.removeItem(LAST_USER_KEY); } catch {}
-  try { window.localStorage.removeItem(CACHE_OWNER_KEY); } catch {}
+export function wipeLocalData(): void {
+  // Fast logout: clear the localStorage data mirrors SYNCHRONOUSLY
+  // (instant) and fire the heavy IndexedDB clear in the BACKGROUND. The
+  // identity stamps survive (KEEP_KEYS) so the next sign-in's leak
+  // guards still detect a different account and AWAIT the IDB clear
+  // before showing any data — so logout itself never blocks on it.
+  clearLegacyLocalStorage();
+  void cacheClearAll();
 }
 
 /** Defence-in-depth tenant-owner guard. Stamps the tenant that owns
