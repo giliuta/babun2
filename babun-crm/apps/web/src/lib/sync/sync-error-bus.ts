@@ -70,8 +70,34 @@ function scheduleAutoClear(): void {
   }, AUTO_CLEAR_MS);
 }
 
+// Supabase / PostgREST reject with plain objects { code, details, hint,
+// message }, not Error instances — so the old `String(err)` rendered
+// «[object Object]» both in the sync pill and as the Sentry issue title
+// (BABUN-WEB-B), making failures undiagnosable. Pull the real message
+// (prefixed with the PG error code when present) out instead; the full
+// payload still rides along as `extras.original` below.
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message) {
+      return typeof o.code === "string" && o.code
+        ? `[${o.code}] ${o.message}`
+        : o.message;
+    }
+    try {
+      const json = JSON.stringify(err);
+      if (json && json !== "{}") return json;
+    } catch {
+      /* circular reference — fall through to String() */
+    }
+  }
+  return String(err);
+}
+
 export function reportSyncError(err: unknown): void {
-  const message = err instanceof Error ? err.message : String(err);
+  const message = extractErrorMessage(err);
   recentFailureCount += 1;
   if (recentFailureCount >= SURFACE_THRESHOLD) {
     state = { lastError: { message, at: Date.now() } };
