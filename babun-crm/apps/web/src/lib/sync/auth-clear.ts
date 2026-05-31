@@ -116,6 +116,11 @@ function clearLegacyLocalStorage(): void {
 // user_id than last time — covering the "register a new account
 // without logging out first" path.
 const LAST_USER_KEY = "babun:auth:last-user-id";
+// Tenant that owns the local cache on THIS device. The owner-guard
+// (DashboardClientLayout) stamps it on mount and refuses to render /
+// back up another tenant's cache — defence-in-depth for the
+// cross-tenant leak below.
+export const CACHE_OWNER_KEY = "babun:cache-owner";
 
 async function performWipe(): Promise<void> {
   clearLegacyLocalStorage();
@@ -125,6 +130,41 @@ async function performWipe(): Promise<void> {
     // eslint-disable-next-line no-console
     console.warn("auth-clear: cacheClearAll failed", err);
   }
+}
+
+/** Full local wipe for an INTENTIONAL logout — call before signOut so
+ *  the next account (or anyone on a shared device) never inherits this
+ *  account's cached data. Drops the user + cache-owner stamps too so
+ *  the next sign-in starts from a clean slate. */
+export async function wipeLocalData(): Promise<void> {
+  await performWipe();
+  try { window.localStorage.removeItem(LAST_USER_KEY); } catch {}
+  try { window.localStorage.removeItem(CACHE_OWNER_KEY); } catch {}
+}
+
+/** Defence-in-depth tenant-owner guard. Stamps the tenant that owns
+ *  this device's cache; if a DIFFERENT tenant is seen (an account
+ *  switch the SIGNED_IN listener missed — e.g. a cold PWA start that
+ *  emits INITIAL_SESSION rather than SIGNED_IN), wipes localStorage +
+ *  IDB and returns true so the caller reloads into a clean state.
+ *  NEVER wipes on a first-ever load (owner unset) — only on a concrete
+ *  mismatch — so it can't cause data loss for legitimate sessions. */
+export async function enforceCacheOwner(
+  tenantId: string | null,
+): Promise<boolean> {
+  if (typeof window === "undefined" || !tenantId) return false;
+  let owner: string | null = null;
+  try { owner = window.localStorage.getItem(CACHE_OWNER_KEY); } catch {}
+  if (owner && owner !== tenantId) {
+    clearLegacyLocalStorage();
+    try { await cacheClearAll(); } catch {}
+    try { window.localStorage.setItem(CACHE_OWNER_KEY, tenantId); } catch {}
+    return true;
+  }
+  if (owner !== tenantId) {
+    try { window.localStorage.setItem(CACHE_OWNER_KEY, tenantId); } catch {}
+  }
+  return false;
 }
 
 export function attachAuthClearListener(): () => void {
@@ -163,7 +203,17 @@ export function attachAuthClearListener(): () => void {
     // wipe fires there. If it's the same account (or the same one
     // returning after a network blip), nothing was lost.
     if (event === "SIGNED_OUT") {
-      try { window.localStorage.removeItem(LAST_USER_KEY); } catch {}
+      // CROSS-TENANT LEAK FIX: do NOT clear LAST_USER_KEY here. Clearing
+      // it made the next SIGNED_IN see prev=null and SKIP the
+      // different-user wipe — so logging out of account A then into
+      // account B on the same device let B inherit A's cached data
+      // (appointments rendered from the un-wiped IndexedDB cache; A's
+      // reference books even got saved into B's tenant_state backup).
+      // Keeping the stamp lets the SIGNED_IN branch below compare A vs B
+      // and wipe ONLY when they differ — a same-user return after a
+      // spurious/auto signout still matches → no wipe, no data loss
+      // (the v504 concern stays addressed). Intentional logout already
+      // wipes via signOut()→wipeLocalData().
       return;
     }
     if (event === "SIGNED_IN" && session?.user?.id) {

@@ -120,6 +120,7 @@ import {
 } from "@babun/shared/db/repositories/day-extras";
 import { insertAccount } from "@babun/shared/db/repositories/accounts";
 import { signOut } from "@/lib/supabase/auth-client";
+import { enforceCacheOwner } from "@/lib/sync/auth-clear";
 import UnconfirmedEmailBanner from "@/components/auth/UnconfirmedEmailBanner";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
@@ -1135,6 +1136,28 @@ export default function DashboardClientLayout({
   useEffect(() => {
     void reloadSchedule();
   }, [reloadSchedule]);
+
+  // CROSS-TENANT LEAK FIX (defence-in-depth). The auth-clear listener
+  // (root layout) wipes on a SIGNED_IN whose user differs from the last
+  // seen — that's the primary guard. THIS is belt-and-suspenders: if the
+  // local cache on this device is stamped for a DIFFERENT tenant than
+  // the active session (e.g. a cold PWA start that emits INITIAL_SESSION
+  // rather than SIGNED_IN, so the listener never ran), refuse to show or
+  // back it up — wipe localStorage + IDB and reload into a clean state.
+  // Never fires on a first-ever load (owner unset), so legitimate
+  // sessions are never disrupted.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const wiped = await enforceCacheOwner(tenantId);
+      if (!cancelled && wiped && typeof window !== "undefined") {
+        window.location.reload();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
 
   // v505 — tenant_state backup hydration. Restores localStorage-only
   // entities (teams / masters / services / sms-templates /

@@ -8,6 +8,7 @@
 // unchanged; pages decide how to render `error` vs `data`.
 
 import { getSupabaseBrowser } from "./client";
+import { wipeLocalData } from "@/lib/sync/auth-clear";
 
 export interface AuthResult {
   ok: boolean;
@@ -56,6 +57,16 @@ export async function signIn(
 
 export async function signOut(): Promise<void> {
   const supabase = getSupabaseBrowser();
+  // CROSS-TENANT LEAK FIX: wipe this device's local data (localStorage +
+  // IndexedDB cache + sync queue) BEFORE the Supabase signOut, so the
+  // next account signing in on this device can never inherit it. Awaited
+  // so the wipe finishes before the caller redirects to /login.
+  // Best-effort — never block logout on a wipe failure.
+  try {
+    await wipeLocalData();
+  } catch {
+    /* swallow — logout must still proceed */
+  }
   await supabase.auth.signOut();
 }
 

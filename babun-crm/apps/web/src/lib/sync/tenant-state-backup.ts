@@ -226,6 +226,21 @@ export function scheduleTenantStateSave(
   supabase: SupabaseClient,
   tenantId: string,
 ): void {
+  // CROSS-TENANT LEAK FIX: never back up another tenant's local data.
+  // If this device's cache is stamped for a DIFFERENT tenant than the
+  // one we're saving for, refuse — the owner-guard wipes + reloads, and
+  // this stops the un-wiped reference books from leaking into the new
+  // tenant's tenant_state blob in the meantime. (Key must match
+  // CACHE_OWNER_KEY in lib/sync/auth-clear.ts; kept as a literal here to
+  // avoid an import cycle in the sync path.)
+  try {
+    if (typeof window !== "undefined") {
+      const owner = window.localStorage.getItem("babun:cache-owner");
+      if (owner && owner !== tenantId) return;
+    }
+  } catch {
+    /* storage unavailable — fall through and save */
+  }
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = null;
