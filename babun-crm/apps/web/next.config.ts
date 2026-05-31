@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
+import { withSentryConfig } from "@sentry/nextjs";
 import path from "path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "url";
 
 // Resolve this file's directory in ESM the safe way (tsconfig sets
@@ -121,4 +123,41 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
-export default withBundleAnalyzer(nextConfig);
+const analyzed = withBundleAnalyzer(nextConfig);
+
+// ── Sentry source maps → readable prod stack traces ───────────────
+// Wrap with withSentryConfig ONLY when SENTRY_AUTH_TOKEN is present
+// (set it in the Vercel Production env). This keeps token-less builds —
+// local dev, any build without the secret — byte-identical to before,
+// so adding this can't break the live build until the token is
+// deliberately set.
+//
+// Turbopack-safe upload: `useRunAfterProductionCompileHook` uploads the
+// maps in one pass AFTER `next build` finishes instead of hooking the
+// (non-existent under Turbopack) webpack compilation — the supported
+// path for Next 15.4.1+. The upload release MUST equal the SDK release
+// (`BUILD_VERSION`, set in sentry-adapter.ts) or Sentry won't apply the
+// maps to events; we read it from version.ts at config-eval time.
+const sentryRelease = (() => {
+  try {
+    const src = readFileSync(
+      path.resolve(monorepoRoot, "packages/shared/src/common/utils/version.ts"),
+      "utf8",
+    );
+    return src.match(/BUILD_VERSION\s*=\s*["']([^"']+)["']/)?.[1];
+  } catch {
+    return undefined;
+  }
+})();
+
+export default process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(analyzed, {
+      org: "babun",
+      project: "babun-web",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      useRunAfterProductionCompileHook: true,
+      widenClientFileUpload: true,
+      silent: !process.env.CI,
+      ...(sentryRelease ? { release: { name: sentryRelease } } : {}),
+    })
+  : analyzed;
