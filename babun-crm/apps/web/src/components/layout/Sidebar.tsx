@@ -426,7 +426,13 @@ function LogoutButton({ onLogout }: { onLogout: () => void }) {
       // STORY-058 — 44px tap target. Negative left padding pulls
       // the icon back to the column edge so the visible label
       // stays aligned with the build-version row below it.
-      className="flex items-center gap-2 min-h-[44px] -ml-1 px-1 text-[14px] text-[var(--system-red)] active:opacity-70 transition disabled:opacity-60 disabled:cursor-wait"
+      // v794 — dropped `transition` + `disabled:opacity-60`: the opacity
+      // fade-on-disable coincided with the «Выход»→«Выходим…» text swap,
+      // which on iOS Safari ghosts the old label over the new one
+      // («текст на текст»). The spinner already signals the pending
+      // state, so no dimming is needed. min-w reserves the wider
+      // «Выходим…» width so the row doesn't jump on the swap.
+      className="flex items-center gap-2 min-h-[44px] min-w-[112px] -ml-1 px-1 text-[14px] text-[var(--system-red)] active:opacity-70 disabled:cursor-wait"
     >
       {pending ? (
         // Inline spinner — Tailwind animate-spin on a 14×14 ring.
@@ -436,7 +442,7 @@ function LogoutButton({ onLogout }: { onLogout: () => void }) {
           className="inline-block w-3.5 h-3.5 rounded-full border-2 border-[var(--system-red)] border-t-transparent animate-spin"
         />
       ) : (
-        <LogOut size={16} strokeWidth={2} />
+        <LogOut size={14} strokeWidth={2} />
       )}
       {pending ? "Выходим…" : "Выход"}
     </button>
