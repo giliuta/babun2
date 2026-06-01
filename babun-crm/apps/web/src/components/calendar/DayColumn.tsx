@@ -203,11 +203,9 @@ function DayColumnInner({
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const showAsOff = hydrated && isWeekend;
+  // monthShort feeds the day-header aria-label (e.g. «ПН 1 ИЮН»). The
+  // visible per-column month flag was removed in v792 (overlap fix).
   const monthShort = getMonthNameShort(date.getMonth());
-  // Month short shows only on the 1st of a month so a week that spans
-  // two months still reads which month each column belongs to. Every
-  // other day relies on the global header for month context.
-  const isFirstOfMonth = date.getDate() === 1;
   // Prefer user-extended City.color (custom tags like «Германия»,
   // «День ног»). Fall back to the legacy hardcoded CITIES dict for
   // the original 4 Cyprus presets. Finally null = neutral grey chip.
@@ -399,17 +397,10 @@ function DayColumnInner({
           />
         )}
 
-        {/* Month flag — only on the 1st of a month, so a week that
-            crosses a month boundary still reads which month a column
-            belongs to. Absolutely positioned so it never shifts the
-            centered weekday/number/label stack; numbers stay aligned
-            across the row. The global header carries month for every
-            other day. */}
-        {isFirstOfMonth && (
-          <span className="absolute top-1 left-1.5 z-10 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
-            {monthShort}
-          </span>
-        )}
+        {/* v792 — per-column month flag removed. At ~50px column width the
+            absolute "ИЮН" on the 1st of a month overlapped the centered
+            weekday («ИЮН» налезал на «ПН»). The global header («Июнь 2026»)
+            already carries month context, so the flag was redundant. */}
 
         {dayAppointments.length > 0 && (
           <span className="absolute top-1 right-1.5 z-10 text-[12px] font-semibold tabular-nums text-[var(--label-tertiary)]">
