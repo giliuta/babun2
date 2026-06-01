@@ -629,6 +629,17 @@ function DashboardPageInner() {
     if (el) el.style.setProperty("--hh", `${h}px`);
   }, []);
 
+  // v800 — callback ref: write --hh the INSTANT the scroller node attaches,
+  // no matter when it mounts. The first-run «hold» gate (v796+) defers the
+  // scroller's mount past the one-time layout effect below, so the
+  // freshly-mounted scroller never received --hh and the whole grid
+  // collapsed — hour labels crushed at the top, the body left blank. A
+  // callback ref fires on every mount, so --hh is always set in time.
+  const setOuterScroller = useCallback((node: HTMLDivElement | null) => {
+    outerScrollerRef.current = node;
+    if (node) node.style.setProperty("--hh", `${hourHeightRef.current}px`);
+  }, []);
+
   // Initialize the CSS variable before paint so the first render already
   // has the correct layout without going through state. Also re-runs
   // whenever the outer scroller is remounted (e.g. after switching from
@@ -1942,7 +1953,7 @@ function DashboardPageInner() {
           // changed inside the composited scroller).
           <div className="flex-1 flex flex-col min-h-0 relative">
             <div
-              ref={outerScrollerRef}
+              ref={setOuterScroller}
               // v475 — bg back to surface-card (white). v474 already
               // clamps pinch-zoom-out so the grid fills the viewport,
               // so the gray «empty area below 23:59» from v472 is no
