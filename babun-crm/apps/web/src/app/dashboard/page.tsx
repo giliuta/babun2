@@ -39,6 +39,7 @@ import { useTenantQuota } from "@/lib/quota/useTenantQuota";
 import QuotaBanner from "@/components/quota/QuotaBanner";
 import { CalendarEmptyState } from "@/components/empty-states/CalendarEmptyState";
 import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
+import { PERSONAL_CALENDAR_ENABLED } from "@/lib/feature-flags";
 import { FirstRunCalendarChoice } from "@/components/empty-states/FirstRunCalendarChoice";
 import SwipeableCalendar from "@/components/calendar/SwipeableCalendar";
 import TimeColumn from "@/components/calendar/TimeColumn";
@@ -252,7 +253,7 @@ function DashboardPageInner() {
   const searchString = searchParams?.toString() ?? "";
   const sidebar = useSidebar();
   const { schedules, setSchedules } = useSchedules();
-  const { teams, setTeams } = useTeams();
+  const { teams, setTeams, teamsLoaded } = useTeams();
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
   const tenantId = useTenantId();
@@ -317,7 +318,10 @@ function DashboardPageInner() {
     // optimistic branch — the cache is the source of truth on first
     // paint, the DB refresh corrects it on the next render if it
     // diverged.
-    const personalEnabled = personalCal.enabled;
+    // v792 — «Мой календарь» parked behind a feature flag. Even when the
+    // tenant's stored personal_calendar_enabled is true, the tab stays
+    // hidden until the flag is flipped back on.
+    const personalEnabled = PERSONAL_CALENDAR_ENABLED && personalCal.enabled;
     if (!personalEnabled) return brigadeTabs;
     const personalName =
       currentMaster?.personal_calendar_name?.trim() || "Мой календарь";
@@ -1773,25 +1777,14 @@ function DashboardPageInner() {
       ]
     : [];
 
-  // STORY-085 — first-run gate. Brand-new tenants (no teams yet AND
-  // personal calendar not enabled) see a full-screen choice instead of
-  // an empty grid. Wait for personalCal.loaded so we don't flash the
-  // gate-screen on already-configured tenants while the column is
-  // being read.
-  //
-  // v515 P0 #2.3 — also require `!onboardedAt`. Otherwise a tenant who
-  // picked «Календарь для команды» during onboarding (which records
-  // `personal_calendar_enabled=false` + `onboarded_at` but doesn't auto-
-  // create a team) bounces back to this binary-choice screen forever.
-  // After onboarding the user has decided; respect it and render the
-  // calendar (empty grid is fine — the team picker / FAB guide what's
-  // next).
-  if (
-    personalCal.loaded &&
-    !personalCal.enabled &&
-    !personalCal.onboardedAt &&
-    teams.length === 0
-  ) {
+  // First-run / no-calendar gate. With «Мой календарь» parked behind
+  // PERSONAL_CALENDAR_ENABLED (v792), the only real calendar is a team,
+  // so when there are no active team tabs we show the «Создать календарь»
+  // screen instead of an empty grid. `teamsLoaded` (= backupHydrated)
+  // guarantees localStorage + backup blob + Supabase have all settled,
+  // so we never flash this screen on a tenant who actually has teams
+  // while their data hydrates.
+  if (teamsLoaded && teamTabs.length === 0) {
     return (
       <>
         <PageHeader
@@ -1808,7 +1801,7 @@ function DashboardPageInner() {
             </button>
           }
         />
-        <FirstRunCalendarChoice onEnabledRefresh={personalCal.refresh} />
+        <FirstRunCalendarChoice />
       </>
     );
   }

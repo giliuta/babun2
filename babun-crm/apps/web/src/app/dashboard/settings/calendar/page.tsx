@@ -16,6 +16,7 @@ import {
 } from "@babun/shared/local/calendar-settings";
 import { usePersonalCalendarEnabled } from "@/hooks/usePersonalCalendarEnabled";
 import { setPersonalCalendarEnabled } from "@/app/dashboard/settings/account/personal-calendar-action";
+import { PERSONAL_CALENDAR_ENABLED } from "@/lib/feature-flags";
 
 // v437 — Personal calendar is scoped to "an entry on a date+time with
 // optional reminder". No more "Запись клиента" / "Событие" / "Push"
@@ -48,13 +49,17 @@ export default function CalendarSettingsPage() {
   // Personal-calendar tenant toggle. v429 — moved here from "Личная
   // информация" so all calendar-shape settings live in one place.
   const personalCal = usePersonalCalendarEnabled();
-  const [pcEnabled, setPcEnabled] = useState(true);
+  // v792 — «Мой календарь» parked behind PERSONAL_CALENDAR_ENABLED. While
+  // the flag is off, pcEnabled is forced false so every personal-calendar
+  // section below stays hidden, and the toggle is replaced by a «Скоро»
+  // badge (see render) so the stored DB value can't be flipped on here.
+  const [pcEnabled, setPcEnabled] = useState(PERSONAL_CALENDAR_ENABLED);
   const [pcError, setPcError] = useState<string | null>(null);
   const [, startPcTransition] = useTransition();
   useEffect(() => {
     if (personalCal.loaded) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPcEnabled(personalCal.enabled);
+      setPcEnabled(PERSONAL_CALENDAR_ENABLED && personalCal.enabled);
     }
   }, [personalCal.loaded, personalCal.enabled]);
   const togglePersonalCal = (next: boolean) => {
@@ -181,14 +186,22 @@ export default function CalendarSettingsPage() {
                   Личный календарь
                 </div>
                 <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 leading-snug">
-                  Свои встречи и заметки. Видны только вам, не команде.
+                  {PERSONAL_CALENDAR_ENABLED
+                    ? "Свои встречи и заметки. Видны только вам, не команде."
+                    : "Свои встречи и заметки, отдельно от команды. Появится в одном из ближайших обновлений."}
                 </div>
               </div>
-              <IOSSwitch
-                checked={pcEnabled}
-                onChange={togglePersonalCal}
-                ariaLabel="Включить личный календарь"
-              />
+              {PERSONAL_CALENDAR_ENABLED ? (
+                <IOSSwitch
+                  checked={pcEnabled}
+                  onChange={togglePersonalCal}
+                  ariaLabel="Включить личный календарь"
+                />
+              ) : (
+                <span className="shrink-0 text-[11px] font-semibold text-[var(--label-secondary)] bg-[var(--fill-tertiary)] rounded-full px-2.5 py-1 whitespace-nowrap">
+                  Скоро
+                </span>
+              )}
             </div>
             {pcError && (
               <div className="px-4 pb-3 text-[12px] text-[var(--system-red)] leading-snug">

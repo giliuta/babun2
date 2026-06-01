@@ -302,6 +302,10 @@ interface TeamsContextValue {
   setTeams: (next: Team[]) => void;
   upsertTeam: (team: Team) => void;
   deleteTeam: (id: string) => void;
+  /** True once all data sources (localStorage + backup blob + Supabase)
+   *  have settled, so `teams.length === 0` can be trusted as «no calendar»
+   *  rather than a pre-hydration flash. Tracks `backupHydrated`. */
+  teamsLoaded: boolean;
 }
 
 const TeamsContext = createContext<TeamsContextValue | null>(null);
@@ -1878,6 +1882,7 @@ export default function DashboardClientLayout({
     setTeams: handleTeamsChange,
     upsertTeam,
     deleteTeam,
+    teamsLoaded: backupHydrated,
   };
 
   const appointmentsValue: AppointmentsContextValue = {

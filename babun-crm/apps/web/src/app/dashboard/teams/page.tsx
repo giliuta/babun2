@@ -14,8 +14,8 @@
 //  · Inactive/archived brigades dim inline; no separate section yet
 //    (add it when a tenant has >3 archives).
 
-import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   PointerSensor,
@@ -67,6 +67,7 @@ import {
 
 export default function TeamsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { teams, upsertTeam, deleteTeam } = useTeams();
   const { masters, setMasters } = useMasters();
   const { appointments, upsertAppointment } = useAppointments();
@@ -129,6 +130,21 @@ export default function TeamsPage() {
     });
     router.push(`/dashboard/teams/${team.id}/calendar`);
   };
+
+  // One-tap create from the calendar's «Создать календарь» empty state.
+  // /dashboard/teams?new=1 lands here and immediately spins up a fresh
+  // team + its calendar settings. The ref guard makes it idempotent so a
+  // re-render or back-navigation can't spawn duplicate teams.
+  const autoNewHandledRef = useRef(false);
+  useEffect(() => {
+    if (autoNewHandledRef.current) return;
+    if (searchParams?.get("new") === "1") {
+      autoNewHandledRef.current = true;
+      openNew();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const openTeam = (team: Team) => router.push(`/dashboard/teams/${team.id}`);
   const openCalendarForTeam = (team: Team) => {
     // /dashboard reads the `?team=<id>` param and hydrates
