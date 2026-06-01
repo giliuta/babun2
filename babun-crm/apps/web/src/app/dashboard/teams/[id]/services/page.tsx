@@ -41,6 +41,7 @@ import {
   Copy,
   FolderPlus,
   GripVertical,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
@@ -52,11 +53,12 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useServices, useTeams } from "@/components/layout/DashboardClientLayout";
 import {
   createBlankService,
-  type DurationTier,
+  WEEKDAY_LABELS,
   type PriceTier,
   type Service,
   type ServiceCategory,
   type ServiceMaterialCost,
+  type Weekday,
 } from "@babun/shared/local/services";
 import { PRESET_COLOR_VALUES } from "@babun/shared/common/utils/colors";
 import { generateId } from "@babun/shared/local/masters";
@@ -82,6 +84,10 @@ const sortServices = (a: Service, b: Service) => {
   return (a.created_at ?? "").localeCompare(b.created_at ?? "");
 };
 
+// Sprint 034 — duration quick-pick presets. "Своё" reveals a numeric
+// field for anything off this grid.
+const PRESET_DURATIONS = [15, 30, 45, 60, 90, 120];
+
 export default function BrigadeServicesPage({ params }: RouteParams) {
   const { id } = use(params);
   const confirm = useConfirm();
@@ -96,6 +102,14 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     service: Service;
     anchor: { x: number; y: number };
   } | null>(null);
+  // Group (category) management — long-press / ⋯ on a group header.
+  // Sprint 034 — closes the "нельзя удалить группу" gap: a group can
+  // now be renamed, recoloured, and deleted right from the list.
+  const [groupMenu, setGroupMenu] = useState<{
+    cat: ServiceCategory;
+    anchor: { x: number; y: number };
+  } | null>(null);
+  const [groupEdit, setGroupEdit] = useState<ServiceCategory | null>(null);
 
   // Services belonging to this brigade (either explicitly listed or
   // legacy entries with empty brigade_ids = all brigades).
@@ -242,6 +256,36 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
     });
   };
 
+  // ─── Group actions (rename / recolour / delete) ──────────────────
+  const handleUpdateGroup = (catId: string, name: string, color: string) => {
+    haptic("tap");
+    setCategories(
+      categories.map((c) =>
+        c.id === catId ? { ...c, name: name.trim(), color } : c,
+      ),
+    );
+  };
+
+  const handleDeleteGroup = async (cat: ServiceCategory) => {
+    setGroupMenu(null);
+    // Count every service carrying this category — categories live at
+    // tenant level, so deletion reassigns ALL of them (not just this
+    // brigade's) to «Без группы». The services themselves are kept.
+    const affected = services.filter((s) => s.category_id === cat.id);
+    const ok = await confirm({
+      title: `Удалить группу «${cat.name}»?`,
+      message: affected.length
+        ? "Услуги из неё не удалятся — станут «Без группы». Это можно отменить, создав группу заново."
+        : "В группе нет услуг.",
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    haptic("warning");
+    affected.forEach((s) => upsertService({ ...s, category_id: null }));
+    setCategories(categories.filter((c) => c.id !== cat.id));
+  };
+
   const totalCount = brigadeServices.length;
 
   return (
@@ -293,6 +337,7 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
                   setAddOpen(true);
                   // Default category will be picked up by the modal.
                 }}
+                onGroupMenu={(anchor) => setGroupMenu({ cat, anchor })}
               />
             ))}
 
@@ -407,6 +452,61 @@ export default function BrigadeServicesPage({ params }: RouteParams) {
             : []
         }
       />
+
+      {/* Sprint 034 — group management menu (⋯ on a group header). */}
+      <ContextMenu
+        open={!!groupMenu}
+        onClose={() => setGroupMenu(null)}
+        anchor={groupMenu?.anchor ?? null}
+        title={groupMenu?.cat.name}
+        options={
+          groupMenu
+            ? [
+                {
+                  label: "Переименовать",
+                  icon: <Pencil size={18} strokeWidth={2} />,
+                  onSelect: () => {
+                    const c = groupMenu.cat;
+                    setGroupMenu(null);
+                    setGroupEdit(c);
+                  },
+                },
+                {
+                  label: "Изменить цвет",
+                  icon: (
+                    <span
+                      className="w-[18px] h-[18px] rounded-full"
+                      style={{ backgroundColor: groupMenu.cat.color }}
+                    />
+                  ),
+                  onSelect: () => {
+                    const c = groupMenu.cat;
+                    setGroupMenu(null);
+                    setGroupEdit(c);
+                  },
+                },
+                {
+                  label: "Удалить группу",
+                  icon: <Trash2 size={18} strokeWidth={2} />,
+                  danger: true,
+                  onSelect: () => handleDeleteGroup(groupMenu.cat),
+                },
+              ] as ContextMenuOption[]
+            : []
+        }
+      />
+
+      <CategoryFormModal
+        open={!!groupEdit}
+        mode="edit"
+        initialName={groupEdit?.name ?? ""}
+        initialColor={groupEdit?.color ?? GROUP_COLORS[0]}
+        onClose={() => setGroupEdit(null)}
+        onSubmit={(name, color) => {
+          if (groupEdit) handleUpdateGroup(groupEdit.id, name, color);
+          setGroupEdit(null);
+        }}
+      />
     </BrigadeSectionShell>
   );
 }
@@ -420,6 +520,7 @@ function CategorySection({
   onLongPress,
   onRemove,
   onAddService,
+  onGroupMenu,
 }: {
   cat: ServiceCategory;
   list: Service[];
@@ -427,6 +528,9 @@ function CategorySection({
   onLongPress: (svc: Service, anchor: { x: number; y: number }) => void;
   onRemove: (svc: Service) => void;
   onAddService: () => void;
+  /** Open the group-management menu (rename / colour / delete). Omitted
+   *  for the pseudo «Без группы» bucket, which can't be edited. */
+  onGroupMenu?: (anchor: { x: number; y: number }) => void;
 }) {
   return (
     <div>
@@ -438,6 +542,19 @@ function CategorySection({
         <div className="flex-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--label-secondary)] truncate">
           {cat.name}
         </div>
+        {onGroupMenu && (
+          <button
+            type="button"
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              onGroupMenu({ x: r.left + r.width / 2, y: r.bottom });
+            }}
+            aria-label="Меню группы"
+            className="shrink-0 h-7 w-7 flex items-center justify-center rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] press-scale"
+          >
+            <MoreHorizontal size={15} strokeWidth={2.5} />
+          </button>
+        )}
         <button
           type="button"
           onClick={onAddService}
@@ -544,8 +661,21 @@ function SortableServiceRow({
             <div className="text-[15px] text-[var(--label)] truncate">
               {service.name}
             </div>
-            <div className="text-[12px] text-[var(--label-secondary)] tabular-nums">
-              {service.duration_minutes} мин · €{service.price}
+            <div className="text-[12px] text-[var(--label-secondary)] flex items-center gap-1.5 flex-wrap tabular-nums">
+              <span>
+                {service.duration_minutes > 0
+                  ? `${service.duration_minutes} мин · `
+                  : ""}
+                €{service.price}
+              </span>
+              {service.price_tiers?.[0] &&
+                service.price_tiers[0].min_qty > 1 &&
+                service.price_tiers[0].price_per_unit > 0 && (
+                  <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-[var(--accent-tint)] text-[var(--accent)]">
+                    от {service.price_tiers[0].min_qty} · €
+                    {service.price_tiers[0].price_per_unit}
+                  </span>
+                )}
             </div>
           </div>
           {/* Drag handle — dnd-kit listeners live HERE only, so long-
@@ -627,16 +757,20 @@ function ServiceFormModal({
   const [colorManuallyPicked, setColorManuallyPicked] = useState(false);
   const [min, setMin] = useState(60);
   const [price, setPrice] = useState(0);
-  // Sprint 033 Phase I20 — extras reworked into two LIST sub-cards.
-  // priceTiers replaces the single bulk_threshold/bulk_price pair;
-  // materialCosts replaces the single cost_per_unit number with a
-  // full list of named expense items.
-  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
-  const [durationTiers, setDurationTiers] = useState<DurationTier[]>([]);
+  // Sprint 034 — simplified per user feedback ("слишком много
+  // ступенчатости"). A single optional volume price (от N шт → €X),
+  // persisted as a one-entry price_tiers ladder; the price & duration
+  // LADDERS are retired. Availability (weekdays / online / active)
+  // moves under «Дополнительно».
+  const [volOpen, setVolOpen] = useState(false);
+  const [volQty, setVolQty] = useState(0);
+  const [volPrice, setVolPrice] = useState(0);
   const [materialCosts, setMaterialCosts] = useState<ServiceMaterialCost[]>([]);
-  const [showTiers, setShowTiers] = useState(false);
-  const [showDurationTiers, setShowDurationTiers] = useState(false);
-  const [showMaterials, setShowMaterials] = useState(false);
+  const [days, setDays] = useState<Weekday[]>([]);
+  const [online, setOnline] = useState(true);
+  const [active, setActive] = useState(true);
+  const [custom, setCustom] = useState(false); // duration "Своё" field
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [inlineCatOpen, setInlineCatOpen] = useState(false);
   // Sprint 033 Phase I21 — groups created inline during this modal
@@ -658,32 +792,42 @@ function ServiceFormModal({
       setColor(service.color || GROUP_COLORS[0]);
       setColorManuallyPicked(true); // don't stomp existing colour
       setMin(service.duration_minutes);
+      setCustom(
+        service.duration_minutes > 0 &&
+          !PRESET_DURATIONS.includes(service.duration_minutes),
+      );
       setPrice(service.price);
-      // Load tiers — migration in loadServices() may have already
-      // turned a legacy bulk_threshold/bulk_price pair into the
-      // single-entry price_tiers array.
-      const tiers = service.price_tiers ?? [];
-      setPriceTiers(tiers);
-      setShowTiers(tiers.length > 0);
-      const dTiers = service.duration_tiers ?? [];
-      setDurationTiers(dTiers);
-      setShowDurationTiers(dTiers.length > 0);
+      // Volume price — first price tier (single-step model). Legacy
+      // bulk_threshold/bulk_price was already migrated to price_tiers
+      // by loadServices(); we read the first tier and ignore the rest.
+      const tier = (service.price_tiers ?? [])[0];
+      setVolQty(tier?.min_qty ?? 0);
+      setVolPrice(tier?.price_per_unit ?? 0);
+      setVolOpen(!!tier);
       const costs = service.material_costs ?? [];
       setMaterialCosts(costs);
-      setShowMaterials(costs.length > 0);
+      setDays(service.available_weekdays ?? []);
+      setOnline(service.online_enabled ?? true);
+      setActive(service.is_active ?? true);
+      setShowAdvanced(
+        costs.length > 0 || (service.available_weekdays?.length ?? 0) > 0,
+      );
     } else {
       setCategoryId("");
       setName("");
       setColor(GROUP_COLORS[0]);
       setColorManuallyPicked(false);
       setMin(60);
+      setCustom(false);
       setPrice(0);
-      setPriceTiers([]);
-      setDurationTiers([]);
+      setVolOpen(false);
+      setVolQty(0);
+      setVolPrice(0);
       setMaterialCosts([]);
-      setShowTiers(false);
-      setShowDurationTiers(false);
-      setShowMaterials(false);
+      setDays([]);
+      setOnline(true);
+      setActive(true);
+      setShowAdvanced(false);
     }
     // Reset pending cats whenever the modal (re)opens so we don't
     // carry orphans from a previous cancelled session.
@@ -724,103 +868,52 @@ function ServiceFormModal({
   const submit = () => {
     if (!canSubmit) return;
     haptic("tap");
-    // Clean up tiers: drop incomplete ones, sort by qty asc.
-    const cleanPriceTiers = priceTiers
-      .filter((t) => t.min_qty > 1 && t.price_per_unit >= 0)
-      .sort((a, b) => a.min_qty - b.min_qty);
-    const cleanDurationTiers = durationTiers
-      .filter((t) => t.min_qty > 1 && t.duration_minutes >= 0)
-      .sort((a, b) => a.min_qty - b.min_qty);
-    // Clean up materials: drop unnamed / zero items.
+    // Drop unnamed / negative material lines; keep cost_per_unit in
+    // sync as their sum (the finances page reads it for net revenue).
     const cleanMaterials = materialCosts.filter(
       (m) => m.name.trim().length > 0 && m.amount >= 0,
     );
-    // cost_per_unit kept in sync as sum of material amounts — used
-    // by the finances page for quick net-revenue maths.
     const sumCostPerUnit = cleanMaterials.reduce(
       (s, m) => s + Math.max(0, m.amount),
       0,
     );
-    // Legacy bulk_* fields zeroed; price_tiers is canonical now.
+    // Single optional volume step → one-entry price_tiers ladder.
+    // Legacy bulk_* fields are zeroed; the duration ladder is retired.
+    const tiers: PriceTier[] | undefined =
+      volOpen && volQty > 1 && volPrice > 0
+        ? [{ min_qty: volQty, price_per_unit: volPrice }]
+        : undefined;
+    const patch = {
+      name: name.trim(),
+      color,
+      duration_minutes: Math.max(0, min),
+      price: Math.max(0, price),
+      category_id: categoryId,
+      price_tiers: tiers,
+      duration_tiers: undefined,
+      bulk_threshold: 0,
+      bulk_price: 0,
+      material_costs: cleanMaterials,
+      cost_per_unit: sumCostPerUnit,
+      is_countable: true,
+      available_weekdays: days,
+      online_enabled: online,
+      is_active: active,
+    };
     if (mode === "edit" && service) {
-      onSubmit({
-        ...service,
-        name: name.trim(),
-        color,
-        duration_minutes: Math.max(0, min),
-        price: Math.max(0, price),
-        category_id: categoryId,
-        price_tiers: cleanPriceTiers.length > 0 ? cleanPriceTiers : undefined,
-        duration_tiers: cleanDurationTiers.length > 0 ? cleanDurationTiers : undefined,
-        bulk_threshold: 0,
-        bulk_price: 0,
-        material_costs: cleanMaterials,
-        cost_per_unit: sumCostPerUnit,
-        is_countable: true,
-      });
+      onSubmit({ ...service, ...patch });
     } else {
-      onSubmit(
-        createBlankService({
-          name: name.trim(),
-          color,
-          duration_minutes: Math.max(0, min),
-          price: Math.max(0, price),
-          category_id: categoryId,
-          price_tiers: cleanPriceTiers.length > 0 ? cleanPriceTiers : undefined,
-          duration_tiers: cleanDurationTiers.length > 0 ? cleanDurationTiers : undefined,
-          material_costs: cleanMaterials,
-          cost_per_unit: sumCostPerUnit,
-          is_countable: true,
-          brigade_ids: [brigadeId],
-        }),
-      );
+      onSubmit(createBlankService({ ...patch, brigade_ids: [brigadeId] }));
     }
   };
 
-  // ── Tier handlers ───────────────────────────────────────────────
-  const addTier = () => {
-    haptic("tap");
-    // Seed a sensible next step: (last+1 qty, base price − 5 €).
-    const last =
-      priceTiers.length > 0 ? priceTiers[priceTiers.length - 1].min_qty : 1;
-    const suggestedQty = Math.max(2, last + 1);
-    setPriceTiers([
-      ...priceTiers,
-      { min_qty: suggestedQty, price_per_unit: Math.max(0, price - 5) },
-    ]);
-  };
-  const updateTier = (idx: number, patch: Partial<PriceTier>) => {
-    setPriceTiers(
-      priceTiers.map((t, i) => (i === idx ? { ...t, ...patch } : t)),
+  // ── Weekday availability ───────────────────────────────────────
+  const toggleDay = (day: Weekday) => {
+    setDays((d) =>
+      d.includes(day)
+        ? d.filter((x) => x !== day)
+        : ([...d, day].sort((a, b) => a - b) as Weekday[]),
     );
-  };
-  const removeTier = (idx: number) => {
-    haptic("warning");
-    setPriceTiers(priceTiers.filter((_, i) => i !== idx));
-  };
-
-  // ── Duration-tier handlers ─────────────────────────────────────
-  const addDurationTier = () => {
-    haptic("tap");
-    const last =
-      durationTiers.length > 0
-        ? durationTiers[durationTiers.length - 1].min_qty
-        : 1;
-    const suggestedQty = Math.max(2, last + 1);
-    // Seed with base duration × qty as a sensible starting point.
-    setDurationTiers([
-      ...durationTiers,
-      { min_qty: suggestedQty, duration_minutes: Math.max(1, min * suggestedQty) },
-    ]);
-  };
-  const updateDurationTier = (idx: number, patch: Partial<DurationTier>) => {
-    setDurationTiers(
-      durationTiers.map((t, i) => (i === idx ? { ...t, ...patch } : t)),
-    );
-  };
-  const removeDurationTier = (idx: number) => {
-    haptic("warning");
-    setDurationTiers(durationTiers.filter((_, i) => i !== idx));
   };
 
   // ── Material-cost handlers ─────────────────────────────────────
@@ -844,6 +937,17 @@ function ServiceFormModal({
     setMaterialCosts(materialCosts.filter((m) => m.id !== id));
   };
 
+  // Live read-outs for the price card.
+  const matSum = materialCosts.reduce(
+    (s, m) => s + Math.max(0, m.amount || 0),
+    0,
+  );
+  const margin = price - matSum;
+  const volPct =
+    volQty > 1 && volPrice > 0 && price > 0
+      ? Math.round((1 - volPrice / price) * 100)
+      : 0;
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-4"
@@ -853,10 +957,27 @@ function ServiceFormModal({
         className="w-full max-w-[380px] bg-[var(--surface-grouped)] rounded-[16px] overflow-hidden shadow-[var(--shadow-sheet)] max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center shrink-0">
-          <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            {mode === "create" ? "Новая услуга" : "Редактировать услугу"}
+        {/* Header — Отмена · title · Сохранить. Save lives here now
+            (no bottom button bar) to keep the form compact. */}
+        <div className="flex items-center gap-2 px-3 h-12 bg-[var(--surface-card)] border-b border-[var(--separator)] shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[15px] text-[var(--accent)] px-1 press-scale"
+          >
+            Отмена
+          </button>
+          <div className="flex-1 text-center text-[16px] font-semibold text-[var(--label)] tracking-tight">
+            {mode === "create" ? "Новая услуга" : "Услуга"}
           </div>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!canSubmit}
+            className="h-8 px-3.5 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] text-[14px] font-semibold press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
+          >
+            Сохранить
+          </button>
         </div>
 
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
@@ -937,12 +1058,297 @@ function ServiceFormModal({
             />
           </div>
 
-          {/* 3. COLOR */}
+          {/* DURATION — quick-pick chips in one scrollable row. "Своё"
+              reveals a numeric field for off-grid values. */}
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-              Цвет
+              Длительность
             </label>
-            <div className="mt-1 bg-[var(--surface-card)] rounded-[10px] p-3">
+            <div className="mt-1 flex gap-1.5 overflow-x-auto scrollbar-hide">
+              {PRESET_DURATIONS.map((p) => {
+                const on = !custom && min === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      haptic("tap");
+                      setCustom(false);
+                      setMin(p);
+                    }}
+                    className={`shrink-0 h-9 min-w-[44px] px-3 rounded-[10px] text-[15px] font-semibold press-scale ${
+                      on
+                        ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                        : "bg-[var(--surface-card)] text-[var(--label)]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setCustom(true);
+                  if (PRESET_DURATIONS.includes(min)) setMin(0);
+                }}
+                className={`shrink-0 h-9 px-3 rounded-[10px] text-[14px] font-medium press-scale ${
+                  custom && !PRESET_DURATIONS.includes(min)
+                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                    : "bg-[var(--surface-card)] text-[var(--label-secondary)]"
+                }`}
+              >
+                {custom && min > 0 && !PRESET_DURATIONS.includes(min)
+                  ? `${min} м`
+                  : "Своё"}
+              </button>
+            </div>
+            {custom && !PRESET_DURATIONS.includes(min) && (
+              <div className="mt-2 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pr-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoFocus
+                  value={min === 0 ? "" : String(min)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setMin(digits === "" ? 0 : parseInt(digits, 10));
+                  }}
+                  placeholder="минут"
+                  className="flex-1 min-w-0 h-11 pl-3 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
+                />
+                <span className="text-[13px] text-[var(--label-secondary)]">
+                  мин
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* PRICE — base price + live margin + one optional volume step. */}
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
+              Цена
+            </label>
+            <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pl-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
+              <span className="text-[15px] text-[var(--label-secondary)]">€</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={price === 0 ? "" : String(price)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  setPrice(digits === "" ? 0 : parseInt(digits, 10));
+                }}
+                placeholder="0"
+                className="flex-1 min-w-0 h-11 pr-3 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
+              />
+            </div>
+            {materialCosts.length > 0 && (
+              <div className="mt-1.5 px-1 text-[12px] font-semibold text-[var(--system-green)]">
+                маржа €{margin} · €{price} − €{matSum} расход
+              </div>
+            )}
+            {volOpen ? (
+              <div className="mt-2 bg-[var(--surface-card)] rounded-[10px] p-2.5">
+                <div className="flex items-center gap-1.5 text-[13px] text-[var(--label-tertiary)]">
+                  <span>от</span>
+                  <div className="flex items-center gap-1 bg-[var(--fill-tertiary)] rounded-[8px] px-2 h-9">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={volQty === 0 ? "" : String(volQty)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        setVolQty(digits === "" ? 0 : parseInt(digits, 10));
+                      }}
+                      placeholder="3"
+                      className="w-8 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                    />
+                    <span className="text-[12px] text-[var(--label-secondary)]">
+                      шт
+                    </span>
+                  </div>
+                  <span>по</span>
+                  <div className="flex items-center gap-1 bg-[var(--fill-tertiary)] rounded-[8px] px-2 h-9">
+                    <span className="text-[12px] text-[var(--label-secondary)]">
+                      €
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={volPrice === 0 ? "" : String(volPrice)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        setVolPrice(digits === "" ? 0 : parseInt(digits, 10));
+                      }}
+                      placeholder="0"
+                      className="w-10 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptic("warning");
+                      setVolOpen(false);
+                      setVolQty(0);
+                      setVolPrice(0);
+                    }}
+                    aria-label="Убрать объёмную цену"
+                    className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+                  >
+                    <X size={15} strokeWidth={2.5} />
+                  </button>
+                </div>
+                <div className="mt-1.5 text-[12px] font-semibold text-[var(--system-green)]">
+                  {volQty > 1 && volPrice > 0
+                    ? `от ${volQty} шт → €${volPrice} вместо €${price}${
+                        volPct > 0 ? ` · −${volPct}%` : ""
+                      }`
+                    : "От какого количества цена за штуку ниже."}
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setVolOpen(true);
+                  if (!volQty) setVolQty(3);
+                  if (!volPrice) setVolPrice(Math.max(0, price - 5));
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--accent)] press-scale"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Цена за объём
+              </button>
+            )}
+          </div>
+
+          {/* Дополнительно — расход материалов · доступность · цвет.
+              Collapsed by default to keep the form short. */}
+          <ExtraSection
+            open={showAdvanced}
+            onToggle={() => setShowAdvanced(!showAdvanced)}
+            title="Дополнительно"
+          >
+            {/* Materials */}
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+                Расход материалов
+              </div>
+              {materialCosts.map((m) => (
+                <div key={m.id} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={m.name}
+                    onChange={(e) =>
+                      updateMaterial(m.id, { name: e.target.value })
+                    }
+                    placeholder="Название расхода"
+                    className="flex-1 min-w-0 h-9 px-3 rounded-[8px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    maxLength={40}
+                  />
+                  <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 w-[90px] shrink-0">
+                    <span className="text-[12px] text-[var(--label-secondary)]">
+                      €
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={m.amount === 0 ? "" : String(m.amount)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        updateMaterial(m.id, {
+                          amount: digits === "" ? 0 : parseInt(digits, 10),
+                        });
+                      }}
+                      placeholder="0"
+                      className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeMaterial(m.id)}
+                    aria-label="Удалить расход"
+                    className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
+                  >
+                    <Trash2 size={14} strokeWidth={2} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addMaterial}
+                className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Добавить расход
+              </button>
+              {materialCosts.length > 0 && (
+                <div className="flex items-center justify-between text-[12px] text-[var(--label-secondary)] pt-0.5">
+                  <span>На 1 шт · маржа €{margin}</span>
+                  <span className="font-semibold text-[var(--system-red)]">
+                    −€{matSum}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Availability — weekdays + online + active. */}
+            <div className="space-y-2 pt-2 mt-2 border-t border-[var(--separator)]">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+                Доступность
+              </div>
+              <div className="flex gap-1">
+                {([1, 2, 3, 4, 5, 6, 7] as Weekday[]).map((d) => {
+                  const on = days.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDay(d)}
+                      className={`flex-1 h-9 rounded-[8px] text-[12px] font-semibold press-scale ${
+                        on
+                          ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
+                          : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)]"
+                      }`}
+                    >
+                      {WEEKDAY_LABELS[d]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-[11px] text-[var(--label-tertiary)]">
+                Пусто = любой день.
+              </div>
+              <ToggleRow
+                label="Онлайн-запись"
+                hint="клиент может выбрать сам"
+                value={online}
+                onChange={() => setOnline((v) => !v)}
+              />
+              <ToggleRow
+                label="Услуга активна"
+                hint="видна в новых записях"
+                value={active}
+                onChange={() => setActive((v) => !v)}
+              />
+            </div>
+
+            {/* Colour — defaults to the group colour. */}
+            <div className="space-y-2 pt-2 mt-2 border-t border-[var(--separator)]">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--label-secondary)]">
+                Цвет{" "}
+                <span className="normal-case font-medium text-[var(--label-tertiary)]">
+                  · по умолчанию из группы
+                </span>
+              </div>
               <div className="grid grid-cols-7 gap-2">
                 {GROUP_COLORS.map((c) => {
                   const picked = c === color;
@@ -970,295 +1376,8 @@ function ServiceFormModal({
                 })}
               </div>
             </div>
-          </div>
-
-          {/* 4. DURATION + PRICE */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Длительность
-              </label>
-              <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pr-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={min === 0 ? "" : String(min)}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    setMin(digits === "" ? 0 : parseInt(digits, 10));
-                  }}
-                  placeholder="60"
-                  className="flex-1 min-w-0 h-11 pl-3 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
-                />
-                <span className="text-[13px] text-[var(--label-secondary)]">
-                  мин
-                </span>
-              </div>
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] px-1">
-                Цена
-              </label>
-              <div className="mt-1 flex items-center gap-2 bg-[var(--surface-card)] rounded-[10px] pl-3 focus-within:ring-2 focus-within:ring-[var(--accent)]">
-                <span className="text-[15px] text-[var(--label-secondary)]">
-                  €
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={price === 0 ? "" : String(price)}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    setPrice(digits === "" ? 0 : parseInt(digits, 10));
-                  }}
-                  placeholder="0"
-                  className="flex-1 min-w-0 h-11 pr-3 bg-transparent text-[15px] text-[var(--label)] focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 5. PRICE TIERS — ladder, own collapsible tab */}
-          <ExtraSection
-            open={showTiers}
-            onToggle={() => setShowTiers(!showTiers)}
-            title="Оптовая цена"
-            hint={
-              priceTiers.length === 0
-                ? "Скидки за объём — при определённом количестве цена за штуку снижается."
-                : undefined
-            }
-          >
-            {priceTiers.map((tier, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="text-[12px] text-[var(--label-tertiary)]">
-                  от
-                </span>
-                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={tier.min_qty === 0 ? "" : String(tier.min_qty)}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      updateTier(idx, {
-                        min_qty: digits === "" ? 0 : parseInt(digits, 10),
-                      });
-                    }}
-                    placeholder="2"
-                    className="w-10 h-9 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                  />
-                  <span className="text-[12px] text-[var(--label-secondary)]">
-                    шт.
-                  </span>
-                </div>
-                <span className="text-[12px] text-[var(--label-tertiary)]">
-                  по
-                </span>
-                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 flex-1 min-w-0">
-                  <span className="text-[12px] text-[var(--label-secondary)]">
-                    €
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={tier.price_per_unit === 0 ? "" : String(tier.price_per_unit)}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      updateTier(idx, {
-                        price_per_unit: digits === "" ? 0 : parseInt(digits, 10),
-                      });
-                    }}
-                    placeholder="0"
-                    className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeTier(idx)}
-                  aria-label="Удалить ступень"
-                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
-                >
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addTier}
-              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              Добавить ступень
-            </button>
           </ExtraSection>
 
-          {/* 5b. DURATION TIERS — ladder for total minutes per qty. */}
-          <ExtraSection
-            open={showDurationTiers}
-            onToggle={() => setShowDurationTiers(!showDurationTiers)}
-            title="Длительность от объёма"
-            hint={
-              durationTiers.length === 0
-                ? "Если команда укладывается быстрее при партии — укажите, сколько минут занимает от N штук."
-                : undefined
-            }
-          >
-            {durationTiers.map((tier, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="text-[12px] text-[var(--label-tertiary)]">
-                  от
-                </span>
-                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] px-2.5">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={tier.min_qty === 0 ? "" : String(tier.min_qty)}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      updateDurationTier(idx, {
-                        min_qty: digits === "" ? 0 : parseInt(digits, 10),
-                      });
-                    }}
-                    placeholder="2"
-                    className="w-10 h-9 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                  />
-                  <span className="text-[12px] text-[var(--label-secondary)]">
-                    шт.
-                  </span>
-                </div>
-                <span className="text-[12px] text-[var(--label-tertiary)]">
-                  по
-                </span>
-                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 flex-1 min-w-0">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={
-                      tier.duration_minutes === 0
-                        ? ""
-                        : String(tier.duration_minutes)
-                    }
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      updateDurationTier(idx, {
-                        duration_minutes:
-                          digits === "" ? 0 : parseInt(digits, 10),
-                      });
-                    }}
-                    placeholder="90"
-                    className="flex-1 min-w-0 h-9 pr-1 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                  />
-                  <span className="text-[12px] text-[var(--label-secondary)] pr-2.5">
-                    мин
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeDurationTier(idx)}
-                  aria-label="Удалить ступень"
-                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
-                >
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addDurationTier}
-              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              Добавить ступень
-            </button>
-          </ExtraSection>
-
-          {/* 6. MATERIAL COSTS — list of named items, own tab */}
-          <ExtraSection
-            open={showMaterials}
-            onToggle={() => setShowMaterials(!showMaterials)}
-            title="Расход материалов"
-            hint={
-              materialCosts.length === 0
-                ? "Что уходит на одну штуку услуги. Сумма вычитается из выручки в финансах."
-                : undefined
-            }
-          >
-            {materialCosts.map((m) => (
-              <div key={m.id} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={m.name}
-                  onChange={(e) =>
-                    updateMaterial(m.id, { name: e.target.value })
-                  }
-                  placeholder="Название расхода"
-                  className="flex-1 min-w-0 h-9 px-3 rounded-[8px] bg-[var(--fill-tertiary)] text-[14px] text-[var(--label)] placeholder:text-[var(--label-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                  maxLength={40}
-                />
-                <div className="flex items-center gap-1.5 bg-[var(--fill-tertiary)] rounded-[8px] pl-2.5 w-[90px] shrink-0">
-                  <span className="text-[12px] text-[var(--label-secondary)]">
-                    €
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={m.amount === 0 ? "" : String(m.amount)}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      updateMaterial(m.id, {
-                        amount: digits === "" ? 0 : parseInt(digits, 10),
-                      });
-                    }}
-                    placeholder="0"
-                    className="flex-1 min-w-0 h-9 pr-2.5 bg-transparent text-[14px] text-[var(--label)] text-right focus:outline-none tabular-nums"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeMaterial(m.id)}
-                  aria-label="Удалить расход"
-                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--label-tertiary)] active:bg-[var(--fill-quaternary)] press-scale"
-                >
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addMaterial}
-              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-[8px] bg-[var(--accent-tint)] text-[var(--accent)] text-[13px] font-medium press-scale"
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              Добавить расход
-            </button>
-          </ExtraSection>
-
-        </div>
-
-        <div className="px-4 pb-4 pt-1 flex gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--fill-tertiary)] text-[15px] font-medium text-[var(--label)] press-scale"
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!canSubmit}
-            className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
-          >
-            {mode === "create" ? "Создать" : "Сохранить"}
-          </button>
         </div>
       </div>
 
@@ -1296,18 +1415,26 @@ function CategoryFormModal({
   open,
   onClose,
   onSubmit,
+  mode = "create",
+  initialName = "",
+  initialColor,
 }: {
   open: boolean;
   onClose: () => void;
   onSubmit: (name: string, color: string) => void;
+  /** "edit" prefills name + colour and swaps the title / submit label.
+   *  Used by the group ⋯ menu (rename / recolour). */
+  mode?: "create" | "edit";
+  initialName?: string;
+  initialColor?: string;
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(GROUP_COLORS[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useMemoizedInit(open, () => {
-    setName("");
-    setColor(GROUP_COLORS[0]);
+    setName(initialName);
+    setColor(initialColor ?? GROUP_COLORS[0]);
     const t = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(t);
   });
@@ -1332,7 +1459,7 @@ function CategoryFormModal({
       >
         <div className="px-5 pt-5 pb-3 bg-[var(--surface-card)] border-b border-[var(--separator)] text-center">
           <div className="text-[17px] font-semibold text-[var(--label)] tracking-tight">
-            Новая группа
+            {mode === "edit" ? "Группа" : "Новая группа"}
           </div>
         </div>
 
@@ -1403,11 +1530,52 @@ function CategoryFormModal({
             disabled={!canSubmit}
             className="flex-1 h-11 rounded-[10px] bg-[var(--accent)] text-[15px] font-semibold text-[var(--label-on-accent)] press-scale disabled:bg-[var(--fill-tertiary)] disabled:text-[var(--label-tertiary)] disabled:pointer-events-none"
           >
-            Создать
+            {mode === "edit" ? "Сохранить" : "Создать"}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Toggle row (label + iOS-style switch) ───────────────────────
+function ToggleRow({
+  label,
+  hint,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className="w-full flex items-center gap-3 py-1 text-left press-scale"
+    >
+      <span className="flex-1">
+        <span className="block text-[14px] text-[var(--label)]">{label}</span>
+        {hint && (
+          <span className="block text-[11px] text-[var(--label-tertiary)]">
+            {hint}
+          </span>
+        )}
+      </span>
+      <span
+        className={`relative w-[46px] h-[28px] rounded-full transition-colors shrink-0 ${
+          value ? "bg-[var(--system-green)]" : "bg-[var(--fill-primary)]"
+        }`}
+      >
+        <span
+          className={`absolute top-[2px] w-[24px] h-[24px] rounded-full bg-white shadow transition-all ${
+            value ? "left-[20px]" : "left-[2px]"
+          }`}
+        />
+      </span>
+    </button>
   );
 }
 
