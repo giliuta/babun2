@@ -97,7 +97,6 @@ export default function FinancesPage() {
         : [...prev, brigadeId],
     );
   }, []);
-  const handleResetBrigades = useCallback(() => setSelectedBrigadeIds([]), []);
   const handleBrigadeTap = useCallback((brigadeId: string) => {
     setSelectedBrigadeIds([brigadeId]);
   }, []);
@@ -148,7 +147,6 @@ export default function FinancesPage() {
           teams={teams}
           selectedBrigadeIds={selectedBrigadeIds}
           onToggleBrigade={handleToggleBrigade}
-          onResetBrigades={handleResetBrigades}
           period={period}
           onPeriodChange={setPeriod}
           range={range}

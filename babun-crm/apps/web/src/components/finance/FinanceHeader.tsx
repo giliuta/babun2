@@ -12,9 +12,8 @@ import type { PeriodTotals } from "@/lib/finance/ledger-compute";
 
 interface FinanceHeaderProps {
   teams: Team[];
-  selectedBrigadeIds: string[]; // empty = «Все бригады»
+  selectedBrigadeIds: string[]; // empty = all brigades (no «all» chip)
   onToggleBrigade: (brigadeId: string) => void;
-  onResetBrigades: () => void;
   period: PeriodKind;
   onPeriodChange: (kind: PeriodKind) => void;
   range: PeriodRange;
@@ -26,20 +25,16 @@ export default function FinanceHeader({
   teams,
   selectedBrigadeIds,
   onToggleBrigade,
-  onResetBrigades,
   period,
   onPeriodChange,
   range,
   onCustomRange,
   totals,
 }: FinanceHeaderProps) {
-  const allActive = selectedBrigadeIds.length === 0;
-
   return (
     <div className="sticky top-0 z-20 bg-[var(--surface-card)] border-b border-[var(--separator)] px-3 pt-2 pb-2 space-y-2">
       {/* Brigade chips */}
       <div className="flex gap-1.5 overflow-x-auto">
-        <BrigadeChip label="Все бригады" active={allActive} onClick={onResetBrigades} />
         {teams.map((t) => (
           <BrigadeChip
             key={t.id}
