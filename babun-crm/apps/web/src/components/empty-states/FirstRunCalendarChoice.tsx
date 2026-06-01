@@ -37,10 +37,10 @@ export function FirstRunCalendarChoice() {
               <CalendarPlus size={28} strokeWidth={2} />
             </div>
             <h1 className="text-[22px] font-semibold text-[var(--label)] tracking-tight">
-              Создадим календарь
+              Здесь будет ваш календарь
             </h1>
             <p className="mt-2 text-[14px] text-[var(--label-secondary)] leading-snug">
-              Календарь — это бригада мастеров, на которую записывают клиентов. Добавим первый и начнём работать.
+              Календарь — это расписание, куда вы записываете клиентов по дням и часам. Создайте первый — и можно начинать.
             </p>
           </div>
 

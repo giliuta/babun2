@@ -302,10 +302,6 @@ interface TeamsContextValue {
   setTeams: (next: Team[]) => void;
   upsertTeam: (team: Team) => void;
   deleteTeam: (id: string) => void;
-  /** True once all data sources (localStorage + backup blob + Supabase)
-   *  have settled, so `teams.length === 0` can be trusted as «no calendar»
-   *  rather than a pre-hydration flash. Tracks `backupHydrated`. */
-  teamsLoaded: boolean;
 }
 
 const TeamsContext = createContext<TeamsContextValue | null>(null);
@@ -711,7 +707,11 @@ export default function DashboardClientLayout({
   }, []);
   const [schedules, setSchedulesState] = useState<ScheduleMap>({});
   const [masters, setMastersState] = useState<Master[]>([]);
-  const [teams, setTeamsState] = useState<Team[]>([]);
+  // v796 — lazy-init from localStorage (same pattern as dayCities /
+  // calendarSettings below) so the team list is known on the client's
+  // FIRST render. The calendar page gates its whole render on this: no
+  // teams → «Создать календарь» screen, never a flash of the empty grid.
+  const [teams, setTeamsState] = useState<Team[]>(() => loadTeams());
   // v482 — hydrate from localStorage synchronously so the UI paints
   // any rows the user created right before closing the app, even if
   // the IDB / Supabase round-trip from `reloadAppointments` is still
@@ -1882,7 +1882,6 @@ export default function DashboardClientLayout({
     setTeams: handleTeamsChange,
     upsertTeam,
     deleteTeam,
-    teamsLoaded: backupHydrated,
   };
 
   const appointmentsValue: AppointmentsContextValue = {

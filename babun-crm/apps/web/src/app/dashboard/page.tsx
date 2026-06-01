@@ -253,7 +253,12 @@ function DashboardPageInner() {
   const searchString = searchParams?.toString() ?? "";
   const sidebar = useSidebar();
   const { schedules, setSchedules } = useSchedules();
-  const { teams, setTeams, teamsLoaded } = useTeams();
+  const { teams, setTeams } = useTeams();
+  // v796 — gate the whole calendar render on client mount; see the
+  // «hold» early-return below. Kills the SSR / SW-cached empty-grid flash
+  // that appeared before the «Создать календарь» screen.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const { getCityFor, setCityFor } = useDayCities();
   const { getExtrasFor, setExtrasFor } = useDayExtras();
   const tenantId = useTenantId();
@@ -1777,14 +1782,40 @@ function DashboardPageInner() {
       ]
     : [];
 
-  // First-run / no-calendar gate. With «Мой календарь» parked behind
-  // PERSONAL_CALENDAR_ENABLED (v792), the only real calendar is a team,
-  // so when there are no active team tabs we show the «Создать календарь»
-  // screen instead of an empty grid. `teamsLoaded` (= backupHydrated)
-  // guarantees localStorage + backup blob + Supabase have all settled,
-  // so we never flash this screen on a tenant who actually has teams
-  // while their data hydrates.
-  if (teamsLoaded && teamTabs.length === 0) {
+  // v796 — hold a neutral screen until the client has mounted. The SSR /
+  // SW-cached HTML can't read localStorage, so it always sees zero teams;
+  // painting the grid from that state is what flashed the empty calendar
+  // before «Создать календарь» popped in. The hold reuses the same
+  // PageHeader as the create screen, so on a teamless tenant the
+  // transition just fades the card in — no grid, no jump.
+  if (!hydrated) {
+    return (
+      <>
+        <PageHeader
+          title="Календарь"
+          showBack={false}
+          leftContent={
+            <button
+              type="button"
+              onClick={sidebar.toggle}
+              aria-label="Меню"
+              className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              <Menu size={22} strokeWidth={2} />
+            </button>
+          }
+        />
+        <div className="flex-1 bg-[var(--surface-grouped)]" />
+      </>
+    );
+  }
+
+  // No-calendar gate. «Мой календарь» is parked (PERSONAL_CALENDAR_ENABLED),
+  // so the only real calendar is a team. teams is lazy-inited from
+  // localStorage, so teamTabs is already correct on this first mounted
+  // frame — when it's empty we go straight to «Создать календарь» and the
+  // grid is never rendered for a tenant that has no calendar.
+  if (teamTabs.length === 0) {
     return (
       <>
         <PageHeader
