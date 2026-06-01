@@ -226,25 +226,32 @@ export default function Sidebar({
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* STORY-064 — quieter brand header. The full-bleed accent
-            wash read as loud + dated against the iOS-grouped tile
-            grid below it; switched to surface-card with the brand
-            mark using the unified gradient. Tenant name in primary
-            label, email in secondary — same hierarchy as the iOS
-            Settings header. */}
-        <div className="flex-shrink-0 bg-[var(--surface-card)] px-4 pt-6 pb-5 border-b border-[var(--separator)]">
-          <div className="flex items-center gap-3">
+        {/* «Кабинет» header ③ (approved mockup): deep indigo→blue
+            gradient hero with a soft top sheen. Avatar = company
+            INITIAL. Company name is the tenant's (FIXED for everyone in
+            the tenant); the email below is the logged-in user's, so it
+            changes per master who signs in. Both come from props
+            (tenantName / userEmail). */}
+        <div className="flex-shrink-0 p-3 pt-5">
+          <div
+            className="relative overflow-hidden rounded-[18px] p-4 flex items-center gap-3.5 shadow-[0_8px_22px_rgba(47,123,240,0.35)]"
+            style={{ background: "linear-gradient(140deg,#5B6BFF,#2D7AF0 70%)" }}
+          >
             <div
-              className="w-12 h-12 rounded-[14px] flex items-center justify-center text-white text-[20px] font-bold tracking-tight shadow-[0_2px_6px_rgba(62,136,247,0.18)]"
-              style={{ background: "var(--brand-mark-grad)" }}
-            >
-              B
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(180deg,rgba(255,255,255,0.18),transparent 42%)",
+              }}
+            />
+            <div className="relative w-[52px] h-[52px] rounded-[15px] flex items-center justify-center text-white text-[22px] font-bold flex-shrink-0 bg-white/[0.16] border border-white/40">
+              {(tenantName || "?").trim().charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <div className="text-[16px] font-semibold text-[var(--label)] leading-tight truncate">
+            <div className="relative min-w-0 flex-1">
+              <div className="text-[18px] font-bold text-white leading-tight truncate">
                 {tenantName}
               </div>
-              <div className="text-[12px] text-[var(--label-secondary)] truncate">
+              <div className="text-[12.5px] text-white/80 truncate mt-0.5">
                 {userEmail}
               </div>
             </div>
