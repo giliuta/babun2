@@ -67,6 +67,11 @@ export default function BottomTabBar() {
   // swipe escape" feel the user expected.
   const go = (path: string) => {
     haptic("tap");
+    // Close the full-screen «Кабинет» drawer on any tab tap. Navigation
+    // alone closes it via Sidebar's pathname effect, but that only fires
+    // on a pathname CHANGE — tapping the tab of the route you're already
+    // on (e.g. Календарь while on /dashboard) wouldn't close it.
+    sidebar.close();
     router.replace(path);
   };
 
