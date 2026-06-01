@@ -10,6 +10,8 @@
 
 import { useMemo, useState, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
+import { useRouter } from "next/navigation";
+import { Settings } from "@babun/shared/icons";
 import {
   useAppointments,
   useTeams,
@@ -30,7 +32,11 @@ import {
   useFinanceTemplates,
   useFinanceCategories,
 } from "@/lib/finance/hooks";
-import { getPeriodRange, type PeriodKind } from "@/lib/finance/period";
+import {
+  getPeriodRange,
+  type PeriodKind,
+  type PeriodRange,
+} from "@/lib/finance/period";
 import { computePeriodTotals } from "@/lib/finance/ledger-compute";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 
@@ -39,10 +45,22 @@ export default function FinancesPage() {
   const { teams } = useTeams();
   const { appointments } = useAppointments();
 
+  const router = useRouter();
   const [period, setPeriod] = useState<PeriodKind>("month");
+  const [customRange, setCustomRange] = useState<PeriodRange | null>(null);
   const [selectedBrigadeIds, setSelectedBrigadeIds] = useState<string[]>([]);
 
-  const range = useMemo(() => getPeriodRange({ kind: period }), [period]);
+  const range = useMemo(
+    () =>
+      period === "custom" && customRange
+        ? getPeriodRange({ kind: "custom", custom: customRange })
+        : getPeriodRange({ kind: period }),
+    [period, customRange],
+  );
+  const handleCustomRange = useCallback((r: PeriodRange) => {
+    setCustomRange(r);
+    setPeriod("custom");
+  }, []);
 
   const listOpts = useMemo(
     () => (selectedBrigadeIds.length > 0 ? { brigadeIds: selectedBrigadeIds } : {}),
@@ -112,7 +130,19 @@ export default function FinancesPage() {
 
   return (
     <>
-      <PageHeader title="Финансы" />
+      <PageHeader
+        title="Финансы"
+        leftContent={
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/settings/finance")}
+            aria-label="Настройки финансов"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)] transition press-scale"
+          >
+            <Settings size={20} strokeWidth={2} />
+          </button>
+        }
+      />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] pb-[120px]">
         <FinanceHeader
           teams={teams}
@@ -121,6 +151,8 @@ export default function FinancesPage() {
           onResetBrigades={handleResetBrigades}
           period={period}
           onPeriodChange={setPeriod}
+          range={range}
+          onCustomRange={handleCustomRange}
           totals={totals}
         />
 

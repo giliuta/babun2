@@ -7,7 +7,7 @@
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { Team } from "@babun/shared/local/masters";
 import PeriodPicker from "./PeriodPicker";
-import type { PeriodKind } from "@/lib/finance/period";
+import type { PeriodKind, PeriodRange } from "@/lib/finance/period";
 import type { PeriodTotals } from "@/lib/finance/ledger-compute";
 
 interface FinanceHeaderProps {
@@ -17,6 +17,8 @@ interface FinanceHeaderProps {
   onResetBrigades: () => void;
   period: PeriodKind;
   onPeriodChange: (kind: PeriodKind) => void;
+  range: PeriodRange;
+  onCustomRange: (range: PeriodRange) => void;
   totals: PeriodTotals;
 }
 
@@ -27,6 +29,8 @@ export default function FinanceHeader({
   onResetBrigades,
   period,
   onPeriodChange,
+  range,
+  onCustomRange,
   totals,
 }: FinanceHeaderProps) {
   const allActive = selectedBrigadeIds.length === 0;
@@ -48,7 +52,12 @@ export default function FinanceHeader({
       </div>
 
       {/* Period switcher */}
-      <PeriodPicker value={period} onChange={onPeriodChange} />
+      <PeriodPicker
+        value={period}
+        onChange={onPeriodChange}
+        range={range}
+        onCustomRange={onCustomRange}
+      />
 
       {/* Banner — 2 big tiles + inline secondary metrics */}
       <div className="grid grid-cols-2 gap-2">
