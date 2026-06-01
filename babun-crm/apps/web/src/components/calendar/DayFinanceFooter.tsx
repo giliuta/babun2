@@ -43,9 +43,17 @@ function DayFinanceFooterInner({
       className="flex-shrink-0 border-t border-[var(--separator)] bg-[var(--surface-card)] select-none"
     >
       <div className="flex w-full">
-        {/* Empty gutter — reserves the TimeColumn width (w-12/16) so the
-            day columns line up with the grid above. */}
-        <div className="w-12 lg:w-16 flex-shrink-0" aria-hidden />
+        {/* Gutter — reserves the TimeColumn width (w-12/16) so the day
+            columns line up with the grid, AND labels the two rows
+            (Доход / Расход), right-aligned against the grid divider. */}
+        <div className="w-12 lg:w-16 flex-shrink-0 flex flex-col justify-center gap-0 py-1 pr-1.5 items-end">
+          <span className="h-[13px] leading-[13px] text-[9px] font-semibold text-[var(--system-green)]">
+            Доход
+          </span>
+          <span className="h-[13px] leading-[13px] text-[9px] font-medium text-[var(--system-red)]">
+            Расход
+          </span>
+        </div>
 
         {dates.map((date) => {
           const dateKey = formatDateKey(date);

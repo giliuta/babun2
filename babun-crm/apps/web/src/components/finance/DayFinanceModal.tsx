@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDayNameShort } from "@babun/shared/common/utils/date-utils";
 import type { Appointment } from "@babun/shared/local/appointments";
-import { getPaidAmount } from "@babun/shared/local/appointments";
+import { getPaidAmount, getDebtAmount } from "@babun/shared/local/appointments";
 import type { Service } from "@babun/shared/local/services";
 import { getServiceMaterialCost } from "@babun/shared/local/services";
 import type {
@@ -50,6 +50,8 @@ interface DayFinanceModalProps {
   tenantId: string | null;
   /** Autosave — called on every add/remove of a manual entry. */
   onSave: (extras: DayExtra[]) => void;
+  /** Открыть запись (из вкладки «Ожидается» — чтобы отметить оплату). */
+  onOpenAppointment?: (apt: Appointment) => void;
 }
 
 const METHODS: Array<{ key: DayExtraPaymentMethod; label: string; emoji: string }> = [
@@ -92,16 +94,26 @@ export default function DayFinanceModal({
   extras,
   tenantId,
   onSave,
+  onOpenAppointment,
 }: DayFinanceModalProps) {
   const [localExtras, setLocalExtras] = useState<DayExtra[]>(extras);
   const [addKind, setAddKind] = useState<DayExtraKind | null>(null);
+  const [segment, setSegment] = useState<"income" | "expense" | "pending">(
+    "income",
+  );
 
   useEffect(() => {
     if (open) {
       setLocalExtras(extras);
       setAddKind(null);
+      setSegment("income");
     }
   }, [open, extras]);
+
+  const handleSegment = (s: "income" | "expense" | "pending") => {
+    setSegment(s);
+    setAddKind(null);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -155,6 +167,21 @@ export default function DayFinanceModal({
   const expenseTotal = apptMaterials + manualExpenseSum;
   const netProfit = incomeTotal - expenseTotal;
 
+  // «Ожидается» — неоплаченный остаток по не-отменённым записям дня.
+  const pendingAppts = useMemo(
+    () =>
+      appointments.filter(
+        (a) => a.status !== "cancelled" && getDebtAmount(a) > 0,
+      ),
+    [appointments],
+  );
+  const pendingTotal = useMemo(
+    () => pendingAppts.reduce((s, a) => s + getDebtAmount(a), 0),
+    [pendingAppts],
+  );
+  const billedTotal = incomeTotal + pendingTotal;
+  const potential = netProfit + pendingTotal;
+
   const commit = (next: DayExtra[]) => {
     setLocalExtras(next);
     onSave(next);
@@ -180,33 +207,59 @@ export default function DayFinanceModal({
         className="w-full max-w-md bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] max-h-[85vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header: ДЕНЬ · ДАТА · МЕТКА + big net profit */}
-        <div className="flex-shrink-0 px-4 pt-4 pb-2.5">
+        {/* Header: ДЕНЬ · ДАТА · МЕТКА + understated day total. */}
+        <div className="flex-shrink-0 px-4 pt-4 pb-2">
           <div className="text-[12px] font-medium uppercase tracking-wide text-[var(--label-tertiary)]">
             {formatHeaderDate(dateKey)}
             {cityLabel ? ` · ${cityLabel}` : ""}
           </div>
-          <div className="flex items-baseline gap-2 mt-0.5">
+          <div className="mt-1.5 text-[13px] text-[var(--label-secondary)]">
+            Итог дня{" "}
             <span
-              className={`text-[28px] font-bold tabular-nums leading-tight ${
+              className={`text-[15px] font-semibold tabular-nums ${
                 netProfit < 0 ? "text-[var(--system-red)]" : "text-[var(--label)]"
               }`}
             >
               {formatEUR(netProfit)}
             </span>
-            <span className="text-[13px] text-[var(--label-tertiary)]">чистая прибыль</span>
           </div>
+          {pendingTotal > 0 && (
+            <div className="mt-0.5 text-[11px] text-[var(--label-tertiary)] tabular-nums">
+              оплачено {formatEUR(incomeTotal)} из {formatEUR(billedTotal)} ·
+              потенциал {formatEUR(potential)}
+            </div>
+          )}
         </div>
 
-        {/* Scrollable body: columns + (optionally) add form. */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="flex border-t border-[var(--separator)] divide-x divide-[var(--separator)]">
-            <Column
-              tone="income"
-              label="Доход"
-              sum={incomeTotal}
-              onAdd={() => setAddKind("income")}
-            >
+        {/* Segmented control — switches the list below + the bottom action. */}
+        <div className="flex-shrink-0 mx-3 mt-1 mb-1 flex gap-1 rounded-[12px] bg-[var(--fill-tertiary)] p-1">
+          <SegmentButton
+            label="Доход"
+            sum={incomeTotal}
+            tone="income"
+            active={segment === "income"}
+            onClick={() => handleSegment("income")}
+          />
+          <SegmentButton
+            label="Расход"
+            sum={expenseTotal}
+            tone="expense"
+            active={segment === "expense"}
+            onClick={() => handleSegment("expense")}
+          />
+          <SegmentButton
+            label="Ожид."
+            sum={pendingTotal}
+            tone="pending"
+            active={segment === "pending"}
+            onClick={() => handleSegment("pending")}
+          />
+        </div>
+
+        {/* Scrollable list for the active segment + (optionally) add form. */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-2 py-2 space-y-1.5">
+          {segment === "income" && (
+            <>
               {closable.map((apt) => (
                 <IncomeApptCard
                   key={apt.id}
@@ -222,14 +275,11 @@ export default function DayFinanceModal({
                 <ExtraCard key={e.id} extra={e} onRemove={() => handleRemove(e.id)} />
               ))}
               {closable.length === 0 && manualIncome.length === 0 && <EmptyHint />}
-            </Column>
+            </>
+          )}
 
-            <Column
-              tone="expense"
-              label="Расход"
-              sum={expenseTotal}
-              onAdd={() => setAddKind("expense")}
-            >
+          {segment === "expense" && (
+            <>
               {apptMaterials > 0 && (
                 <div className="rounded-[10px] bg-[rgba(255,59,48,0.08)] px-2.5 py-2">
                   <div className="text-[12px] text-[var(--label)]">Материалы</div>
@@ -245,8 +295,24 @@ export default function DayFinanceModal({
                 <ExtraCard key={e.id} extra={e} onRemove={() => handleRemove(e.id)} />
               ))}
               {apptMaterials === 0 && manualExpense.length === 0 && <EmptyHint />}
-            </Column>
-          </div>
+            </>
+          )}
+
+          {segment === "pending" && (
+            <>
+              {pendingAppts.map((apt) => (
+                <PendingApptCard
+                  key={apt.id}
+                  apt={apt}
+                  name={clientNameFor(apt)}
+                  onOpen={onOpenAppointment}
+                />
+              ))}
+              {pendingAppts.length === 0 && (
+                <EmptyHint text="Нет неоплаченных записей" />
+              )}
+            </>
+          )}
 
           {addKind && (
             <AddTransactionForm
@@ -257,52 +323,123 @@ export default function DayFinanceModal({
             />
           )}
         </div>
+
+        {/* Bottom action — contextual to the active segment. */}
+        {!addKind && (
+          <div className="flex-shrink-0 px-3 py-3 border-t border-[var(--separator)]">
+            {segment === "income" && (
+              <button
+                type="button"
+                onClick={() => setAddKind("income")}
+                className="w-full h-10 rounded-[12px] text-[13px] font-semibold bg-[var(--system-green)] text-[var(--label-on-accent)] active:scale-[0.98]"
+              >
+                + Доход
+              </button>
+            )}
+            {segment === "expense" && (
+              <button
+                type="button"
+                onClick={() => setAddKind("expense")}
+                className="w-full h-10 rounded-[12px] text-[13px] font-semibold bg-[var(--system-red)] text-[var(--label-on-accent)] active:scale-[0.98]"
+              >
+                + Расход
+              </button>
+            )}
+            {segment === "pending" && (
+              <div className="text-center text-[11px] text-[var(--label-tertiary)] py-1.5">
+                Оплата отмечается в записи — нажмите на запись выше
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function Column({
-  tone,
+function SegmentButton({
   label,
   sum,
-  onAdd,
-  children,
+  tone,
+  active,
+  onClick,
 }: {
-  tone: "income" | "expense";
   label: string;
   sum: number;
-  onAdd: () => void;
-  children: React.ReactNode;
+  tone: "income" | "expense" | "pending";
+  active: boolean;
+  onClick: () => void;
 }) {
-  const color =
-    tone === "income" ? "text-[var(--system-green)]" : "text-[var(--system-red)]";
+  const activeColor =
+    tone === "income"
+      ? "text-[var(--system-green)]"
+      : tone === "expense"
+        ? "text-[var(--system-red)]"
+        : "text-[var(--system-orange)]";
   return (
-    <div className="flex-1 min-w-0 flex flex-col">
-      <div className="flex items-baseline justify-between px-3 pt-3 pb-2">
-        <span className={`text-[11px] font-semibold uppercase tracking-wide ${color}`}>
-          {label}
-        </span>
-        <span className={`text-[14px] font-bold tabular-nums ${color}`}>
-          {tone === "income" ? "+" : "−"}
-          {formatEUR(sum)}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 min-w-0 rounded-[9px] py-1.5 transition ${
+        active
+          ? "bg-[var(--surface-card)] shadow-[var(--shadow-card)]"
+          : "active:bg-[var(--fill-quaternary)]"
+      }`}
+    >
+      <span
+        className={`block text-[10px] font-semibold ${
+          active ? activeColor : "text-[var(--label-secondary)]"
+        }`}
+      >
+        {label}
+      </span>
+      <span
+        className={`block text-[13px] font-bold tabular-nums leading-tight ${
+          active ? activeColor : "text-[var(--label-secondary)]"
+        }`}
+      >
+        {formatEUR(sum)}
+      </span>
+    </button>
+  );
+}
+
+function PendingApptCard({
+  apt,
+  name,
+  onOpen,
+}: {
+  apt: Appointment;
+  name: string;
+  onOpen?: (apt: Appointment) => void;
+}) {
+  const debt = getDebtAmount(apt);
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(apt)}
+      disabled={!onOpen}
+      className="w-full text-left rounded-[10px] bg-[rgba(255,149,0,0.10)] px-2.5 py-2 active:scale-[0.99] disabled:active:scale-100"
+    >
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="text-[12px] text-[var(--label)] truncate flex-1">{name}</span>
+        <span className="text-[11px] text-[var(--label-tertiary)] tabular-nums flex-shrink-0">
+          {apt.time_start}
         </span>
       </div>
-      <div className="px-2 space-y-1.5 flex-1">{children}</div>
-      <div className="px-2 pt-2 pb-3">
-        <button
-          type="button"
-          onClick={onAdd}
-          className={`w-full h-9 rounded-[10px] border border-dashed text-[12px] font-semibold active:scale-[0.98] ${
-            tone === "income"
-              ? "border-[var(--system-green)]/50 text-[var(--system-green)]"
-              : "border-[var(--system-red)]/50 text-[var(--system-red)]"
-          }`}
-        >
-          + {tone === "income" ? "Доход" : "Расход"}
-        </button>
+      <div className="flex items-center justify-between mt-1.5">
+        {onOpen ? (
+          <span className="text-[10px] font-semibold text-[var(--system-orange)] border border-[var(--system-orange)] rounded-full px-2 py-[1px]">
+            Отметить оплату
+          </span>
+        ) : (
+          <span className="text-[11px] text-[var(--label-tertiary)]">не оплачено</span>
+        )}
+        <span className="text-[13px] font-semibold tabular-nums text-[var(--system-orange)]">
+          ~{formatEUR(debt)}
+        </span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -384,10 +521,10 @@ function ExtraCard({ extra, onRemove }: { extra: DayExtra; onRemove: () => void 
   );
 }
 
-function EmptyHint() {
+function EmptyHint({ text = "Пусто" }: { text?: string }) {
   return (
     <div className="px-2 py-3 text-[11px] text-[var(--label-tertiary)] text-center">
-      Пусто
+      {text}
     </div>
   );
 }

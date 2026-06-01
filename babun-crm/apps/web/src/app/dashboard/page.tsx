@@ -2265,6 +2265,10 @@ function DashboardPageInner() {
           onSave={(next) => {
             if (activeTeamId) setExtrasFor(activeTeamId, financeDateKey, next);
           }}
+          onOpenAppointment={(apt) => {
+            setFinanceDateKey(null);
+            handleAppointmentClick(apt);
+          }}
         />
       )}
 
