@@ -7,7 +7,7 @@ import {
   Users as UsersIcon,
   MessageSquare,
   Wallet,
-  Menu,
+  UserCircle2,
 } from "@babun/shared/icons";
 import {
   useSidebar,
@@ -119,10 +119,10 @@ export default function BottomTabBar() {
             icon={<Wallet size={20} strokeWidth={2.2} />}
           />
           <TabButton
-            label="Ещё"
+            label="Кабинет"
             active={false}
             onClick={sidebar.toggle}
-            icon={<Menu size={20} strokeWidth={2.2} />}
+            icon={<UserCircle2 size={21} strokeWidth={2} />}
           />
         </div>
       </nav>
