@@ -253,7 +253,7 @@ function DashboardPageInner() {
   const searchString = searchParams?.toString() ?? "";
   const sidebar = useSidebar();
   const { schedules, setSchedules } = useSchedules();
-  const { teams, setTeams } = useTeams();
+  const { teams, setTeams, teamsLoaded } = useTeams();
   // v796 — gate the whole calendar render on client mount; see the
   // «hold» early-return below. Kills the SSR / SW-cached empty-grid flash
   // that appeared before the «Создать календарь» screen.
@@ -1788,7 +1788,12 @@ function DashboardPageInner() {
   // before «Создать календарь» popped in. The hold reuses the same
   // PageHeader as the create screen, so on a teamless tenant the
   // transition just fades the card in — no grid, no jump.
-  if (!hydrated) {
+  // v797 — also hold while the local store shows no teams but the cloud
+  // backup hasn't settled (fresh device / cleared cache): the real
+  // calendars may still be restoring, so we must NOT flash the create
+  // screen prematurely (the user would make a junk team that the restore
+  // then clobbers → the «бах»). `teamsLoaded` gates the real decision.
+  if (!hydrated || (teamTabs.length === 0 && !teamsLoaded)) {
     return (
       <>
         <PageHeader
@@ -1810,11 +1815,10 @@ function DashboardPageInner() {
     );
   }
 
-  // No-calendar gate. «Мой календарь» is parked (PERSONAL_CALENDAR_ENABLED),
-  // so the only real calendar is a team. teams is lazy-inited from
-  // localStorage, so teamTabs is already correct on this first mounted
-  // frame — when it's empty we go straight to «Создать календарь» and the
-  // grid is never rendered for a tenant that has no calendar.
+  // No-calendar gate. Reached only after the cloud backup has settled
+  // (teamsLoaded) AND there are still no team tabs — so this is genuinely a
+  // tenant with no calendar, not a mid-restore flash. «Мой календарь» is
+  // parked (PERSONAL_CALENDAR_ENABLED), so the only real calendar is a team.
   if (teamTabs.length === 0) {
     return (
       <>

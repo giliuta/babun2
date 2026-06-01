@@ -302,6 +302,11 @@ interface TeamsContextValue {
   setTeams: (next: Team[]) => void;
   upsertTeam: (team: Team) => void;
   deleteTeam: (id: string) => void;
+  /** True once the tenant_state backup blob has been consulted (cloud
+   *  restore settled). Until then a fresh-device / cleared-cache session
+   *  has an empty local store even though real calendars may be loading —
+   *  so `teams.length === 0` cannot yet be trusted as «no calendar». */
+  teamsLoaded: boolean;
 }
 
 const TeamsContext = createContext<TeamsContextValue | null>(null);
@@ -1178,13 +1183,20 @@ export default function DashboardClientLayout({
       try {
         const blob = await fetchTenantState(getSupabaseBrowser(), tenantId);
         if (cancelled || !blob) return;
+        // v797 — capture which local stores were empty BEFORE the restore
+        // writes to localStorage, so below we only push blob data into
+        // React state for stores that were GENUINELY empty. Otherwise a
+        // team the user just created (e.g. via «Создать календарь») gets
+        // clobbered in memory by the stale blob → the «бах» (an old/other
+        // team appears instead of the freshly created one).
+        const teamsWasEmpty = loadTeams().length === 0;
         const restored = restoreEmptyStoresFromBlob(blob);
         if (!restored) return;
         // Reflect the just-restored data into the React state owned by
         // this layout. Without this, the dashboard would keep rendering
         // its empty initial state until the next reload.
         if (blob.masters?.length) setMastersState(blob.masters);
-        if (blob.teams?.length) setTeamsState(blob.teams);
+        if (blob.teams?.length && teamsWasEmpty) setTeamsState(blob.teams);
         if (blob.services?.length) setServicesState(blob.services);
         if (blob.serviceCategories?.length)
           setServiceCategoriesState(blob.serviceCategories);
@@ -1882,6 +1894,7 @@ export default function DashboardClientLayout({
     setTeams: handleTeamsChange,
     upsertTeam,
     deleteTeam,
+    teamsLoaded: backupHydrated,
   };
 
   const appointmentsValue: AppointmentsContextValue = {

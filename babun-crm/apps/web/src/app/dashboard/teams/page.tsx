@@ -133,13 +133,19 @@ export default function TeamsPage() {
 
   // One-tap create from the calendar's «Создать календарь» empty state.
   // /dashboard/teams?new=1 lands here and immediately spins up a fresh
-  // team + its calendar settings. The ref guard makes it idempotent so a
-  // re-render or back-navigation can't spawn duplicate teams.
+  // team + its calendar settings.
+  //
+  // v797 — the in-component ref does NOT survive a remount, so a BACK
+  // navigation to /dashboard/teams?new=1 (which Next remounts) used to
+  // re-fire openNew() and spawn duplicate teams. We now strip ?new=1 from
+  // this history entry the instant we handle it, so there's nothing to
+  // re-trigger on BACK. openNew() then pushes the new calendar on top.
   const autoNewHandledRef = useRef(false);
   useEffect(() => {
     if (autoNewHandledRef.current) return;
     if (searchParams?.get("new") === "1") {
       autoNewHandledRef.current = true;
+      router.replace("/dashboard/teams");
       openNew();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
