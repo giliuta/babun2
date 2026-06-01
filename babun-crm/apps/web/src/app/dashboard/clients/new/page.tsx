@@ -1,17 +1,16 @@
 "use client";
 
-// STORY-068 — full-screen client creation per user feedback.
+// STORY-061 (clients redesign · slice 1) — "create in 5 seconds".
 //
-// Old flow was: name + phone + (modal to add 1 object) + "fill the rest
-// after creation". User pushback: "хочу сразу чтоб при создании сразу
-// все было на виду не нужно было тап туда потом тап туда".
+// Approved mockup direction: the create screen is name + phone first,
+// everything else (messengers, birthday, city, source, note, status)
+// folds under a single «Ещё». Objects stay one optional dashed button.
+// 90 % of real entries are a client dictating name + number on the
+// phone — those must cost two fields, not a scroll past eight.
 //
-// New flow:
-//   * One scrollable screen, no modals.
-//   * Contact card — name, phone, + WhatsApp/Telegram/Instagram inline.
-//   * Objects card — multi, inline expand-form (no LocationEditor sheet).
-//   * Дополнительно accordion — city, birthday, email, comment.
-// Only name+phone are required to enable Save.
+// Logic preserved verbatim from the previous version: E.164 dedup
+// guard, createBlankClient seed, city reference-book loading, country
+// phone input. Only the JSX layout changed.
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -101,6 +100,7 @@ export default function NewClientPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [draftLoc, setDraftLoc] = useState<LocationDraft | null>(null);
 
+  // STORY-061 — single «Ещё» fold holds messengers + details + status.
   const [moreOpen, setMoreOpen] = useState(false);
   const [city, setCity] = useState("");
   const [birthday, setBirthday] = useState("");
@@ -266,17 +266,19 @@ export default function NewClientPage() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto p-3 pb-10 space-y-3">
-          {/* ───────── Contact card ───────── */}
+          {/* ───────── Contact — name + phone, first-class ───────── */}
           <Card>
             <CardTitle>Контакт</CardTitle>
             <div className="space-y-2.5">
               <Field label="Имя" required>
-                <Input
-                  inputRef={nameRef}
+                <input
+                  ref={nameRef}
+                  type="text"
                   value={fullName}
-                  onChange={setFullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Имя или Имя Фамилия"
                   maxLength={120}
+                  className={inputCls + " h-12 text-[17px] font-semibold"}
                 />
               </Field>
               <Field label="Телефон" required>
@@ -289,223 +291,242 @@ export default function NewClientPage() {
                   placeholder="Номер телефона"
                 />
               </Field>
-              <label className="flex items-center gap-2 text-[13px] text-[var(--label-secondary)] -mt-1 select-none">
-                <input
-                  type="checkbox"
-                  checked={waSameAsPhone}
-                  onChange={(e) => setWaSameAsPhone(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--accent)]"
-                />
-                WhatsApp на этом номере
-              </label>
-              {!waSameAsPhone && (
-                <Field label="Другой WhatsApp">
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    placeholder="+357 ..."
-                    className={inputCls + " tabular-nums"}
-                  />
-                </Field>
-              )}
-              <Field label="Telegram">
-                <Input
-                  value={telegram}
-                  onChange={setTelegram}
-                  placeholder="@username"
-                  maxLength={64}
-                />
-              </Field>
-              <Field label="Instagram">
-                <Input
-                  value={instagram}
-                  onChange={setInstagram}
-                  placeholder="@handle"
-                  maxLength={64}
-                />
-              </Field>
             </div>
           </Card>
 
-          {/* ───────── Objects card ───────── */}
-          <Card>
-            <CardTitle subtitle="дом, офис, вилла — каждый со своим адресом">
-              Объекты
-            </CardTitle>
-            {locations.length === 0 && !draftLoc && (
-              <p className="text-[12px] text-[var(--label-tertiary)] mb-2">
-                Можно добавить позже из карточки клиента.
-              </p>
-            )}
-
-            <div className="space-y-2">
-              {locations.map((loc, idx) => (
-                <LocationRow
-                  key={loc.id}
-                  location={loc}
-                  onRemove={() => handleRemoveObject(idx)}
-                />
-              ))}
-            </div>
-
-            {draftLoc ? (
-              <InlineLocationForm
-                draft={draftLoc}
-                onChange={setDraftLoc}
-                onSave={handleSaveObject}
-                onCancel={() => {
-                  haptic("light");
-                  setDraftLoc(null);
-                }}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={handleStartObject}
-                className="mt-2 w-full h-11 flex items-center justify-center gap-1.5 rounded-[12px] border border-dashed border-[var(--separator)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--accent-tint)]"
-              >
-                <Plus size={14} strokeWidth={2.5} />
-                {locations.length === 0
-                  ? "Добавить объект"
-                  : "Добавить ещё объект"}
-              </button>
-            )}
-          </Card>
-
-          {/* ───────── P1 #23 — status chips ───────── */}
-          <Card>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="flex-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Статус
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <StatusChip
-                label="VIP"
-                active={vip}
-                onClick={() => {
-                  haptic("tap");
-                  setVip((v) => !v);
-                  // VIP and blacklist are mutually exclusive — a flagged
-                  // problem client shouldn't be lit up as a top-tier guest.
-                  if (!vip) setBlacklisted(false);
-                }}
-                tone="vip"
-              />
-              <StatusChip
-                label="Чёрный список"
-                active={blacklisted}
-                onClick={() => {
-                  haptic("tap");
-                  setBlacklisted((v) => !v);
-                  if (!blacklisted) setVip(false);
-                }}
-                tone="blacklist"
-              />
-            </div>
-            <div className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
-              «Новый» и «Постоянный» система ставит сама — по визитам и
-              возрасту записи.
-            </div>
-          </Card>
-
-          {/* ───────── Дополнительно accordion ───────── */}
-          <Card>
+          {/* ───────── Objects — one optional dashed button ───────── */}
+          {locations.length === 0 && !draftLoc ? (
             <button
               type="button"
-              onClick={() => {
-                haptic("light");
-                setMoreOpen((v) => !v);
-              }}
-              className="w-full flex items-center gap-2 -my-1 -mx-1 px-1 py-1"
-              aria-expanded={moreOpen}
+              onClick={handleStartObject}
+              className="w-full h-12 flex items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-[var(--separator-opaque)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--accent-tint)]"
             >
-              <span className="flex-1 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-                Дополнительно
-              </span>
-              <span className="text-[12px] text-[var(--label-tertiary)]">
-                {moreOpen ? "Скрыть" : "Показать"}
-              </span>
-              <span
-                className={`text-[var(--label-tertiary)] transition-transform ${
-                  moreOpen ? "rotate-180" : ""
-                }`}
-              >
-                <ChevronDown size={14} strokeWidth={2.5} />
-              </span>
+              <Plus size={15} strokeWidth={2.5} />
+              Добавить объект (адрес, кондиционеры)
             </button>
-            {moreOpen && (
-              <div className="space-y-2.5 mt-3">
-                <Field label="Город">
-                  {cityList.length > 0 ? (
+          ) : (
+            <Card>
+              <CardTitle subtitle="дом, офис, вилла — каждый со своим адресом">
+                Объекты
+              </CardTitle>
+              <div className="space-y-2">
+                {locations.map((loc, idx) => (
+                  <LocationRow
+                    key={loc.id}
+                    location={loc}
+                    onRemove={() => handleRemoveObject(idx)}
+                  />
+                ))}
+              </div>
+              {draftLoc ? (
+                <InlineLocationForm
+                  draft={draftLoc}
+                  onChange={setDraftLoc}
+                  onSave={handleSaveObject}
+                  onCancel={() => {
+                    haptic("light");
+                    setDraftLoc(null);
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleStartObject}
+                  className="mt-2 w-full h-11 flex items-center justify-center gap-1.5 rounded-[12px] border border-dashed border-[var(--separator)] text-[var(--accent)] text-[14px] font-semibold active:bg-[var(--accent-tint)]"
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  Добавить ещё объект
+                </button>
+              )}
+            </Card>
+          )}
+
+          {/* ───────── «Ещё» — everything non-essential folds here ───────── */}
+          <button
+            type="button"
+            onClick={() => {
+              haptic("light");
+              setMoreOpen((v) => !v);
+            }}
+            aria-expanded={moreOpen}
+            className="w-full flex items-center gap-2 bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] px-4 py-3.5 active:bg-[var(--fill-quaternary)]"
+          >
+            <span className="flex-1 text-left">
+              <span className="block text-[15px] font-semibold text-[var(--label)]">
+                Ещё
+              </span>
+              <span className="block text-[12px] text-[var(--label-secondary)] mt-0.5">
+                мессенджеры, день рождения, город, заметка, статус
+              </span>
+            </span>
+            <span
+              className={`text-[var(--label-tertiary)] transition-transform ${
+                moreOpen ? "rotate-180" : ""
+              }`}
+            >
+              <ChevronDown size={18} strokeWidth={2.5} />
+            </span>
+          </button>
+
+          {moreOpen && (
+            <>
+              {/* Messengers */}
+              <Card>
+                <CardTitle>Мессенджеры</CardTitle>
+                <label className="flex items-center gap-2 text-[13px] text-[var(--label-secondary)] select-none mb-2.5">
+                  <input
+                    type="checkbox"
+                    checked={waSameAsPhone}
+                    onChange={(e) => setWaSameAsPhone(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--accent)]"
+                  />
+                  WhatsApp на этом номере
+                </label>
+                {!waSameAsPhone && (
+                  <Field label="Другой WhatsApp">
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      placeholder="+357 ..."
+                      className={inputCls + " tabular-nums"}
+                    />
+                  </Field>
+                )}
+                <div className="space-y-2.5">
+                  <Field label="Telegram">
+                    <Input
+                      value={telegram}
+                      onChange={setTelegram}
+                      placeholder="@username"
+                      maxLength={64}
+                    />
+                  </Field>
+                  <Field label="Instagram">
+                    <Input
+                      value={instagram}
+                      onChange={setInstagram}
+                      placeholder="@handle"
+                      maxLength={64}
+                    />
+                  </Field>
+                </div>
+              </Card>
+
+              {/* Детали */}
+              <Card>
+                <CardTitle>Детали</CardTitle>
+                <div className="space-y-2.5">
+                  <Field label="Город">
+                    {cityList.length > 0 ? (
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className={inputCls}
+                      >
+                        <option value="">— не указан —</option>
+                        {cityList.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        value={city}
+                        onChange={setCity}
+                        placeholder="Добавьте города в Настройках → Города"
+                      />
+                    )}
+                  </Field>
+                  <Field label="День рождения">
+                    <input
+                      type="date"
+                      value={birthday}
+                      onChange={(e) => setBirthday(e.target.value)}
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Email">
+                    <input
+                      type="email"
+                      inputMode="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ivan@example.com"
+                      className={inputCls}
+                    />
+                  </Field>
+                  {/* clients-99 F2.8 — acquisition source. */}
+                  <Field label="Источник">
                     <select
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      value={source}
+                      onChange={(e) =>
+                        setSource(e.target.value as AcquisitionSource)
+                      }
                       className={inputCls}
                     >
-                      <option value="">— не указан —</option>
-                      {cityList.map((c) => (
-                        <option key={c.id} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
+                      {(Object.keys(ACQUISITION_LABELS) as AcquisitionSource[]).map(
+                        (key) => (
+                          <option key={key} value={key}>
+                            {ACQUISITION_LABELS[key]}
+                          </option>
+                        ),
+                      )}
                     </select>
-                  ) : (
-                    <Input
-                      value={city}
-                      onChange={setCity}
-                      placeholder="Добавьте города в Настройках → Города"
+                  </Field>
+                  <Field label="Заметки">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      rows={3}
+                      placeholder="Особенности, предпочтения, всё важное…"
+                      className={`${inputCls} h-auto py-2 leading-snug`}
                     />
-                  )}
-                </Field>
-                <Field label="День рождения">
-                  <input
-                    type="date"
-                    value={birthday}
-                    onChange={(e) => setBirthday(e.target.value)}
-                    className={inputCls}
+                  </Field>
+                </div>
+              </Card>
+
+              {/* P1 #23 — status chips */}
+              <Card>
+                <CardTitle>Статус</CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  <StatusChip
+                    label="VIP"
+                    active={vip}
+                    onClick={() => {
+                      haptic("tap");
+                      setVip((v) => !v);
+                      // VIP and blacklist are mutually exclusive — a flagged
+                      // problem client shouldn't be lit up as a top-tier guest.
+                      if (!vip) setBlacklisted(false);
+                    }}
+                    tone="vip"
                   />
-                </Field>
-                <Field label="Email">
-                  <input
-                    type="email"
-                    inputMode="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ivan@example.com"
-                    className={inputCls}
+                  <StatusChip
+                    label="Чёрный список"
+                    active={blacklisted}
+                    onClick={() => {
+                      haptic("tap");
+                      setBlacklisted((v) => !v);
+                      if (!blacklisted) setVip(false);
+                    }}
+                    tone="blacklist"
                   />
-                </Field>
-                {/* clients-99 F2.8 — acquisition source. */}
-                <Field label="Источник">
-                  <select
-                    value={source}
-                    onChange={(e) => setSource(e.target.value as AcquisitionSource)}
-                    className={inputCls}
-                  >
-                    {(Object.keys(ACQUISITION_LABELS) as AcquisitionSource[]).map(
-                      (key) => (
-                        <option key={key} value={key}>
-                          {ACQUISITION_LABELS[key]}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </Field>
-                <Field label="Заметки">
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={3}
-                    placeholder="Особенности, предпочтения, всё важное…"
-                    className={`${inputCls} h-auto py-2 leading-snug`}
-                  />
-                </Field>
-              </div>
-            )}
-          </Card>
+                </div>
+                <div className="mt-2 text-[11px] text-[var(--label-tertiary)] leading-snug">
+                  «Новый» и «Постоянный» система ставит сама — по визитам и
+                  возрасту записи.
+                </div>
+              </Card>
+            </>
+          )}
+
+          <p className="text-[12px] text-[var(--label-tertiary)] text-center px-4 leading-snug">
+            Имя и телефон — и клиент в базе. Объекты, кондиционеры и остальное
+            можно дозаполнить из карточки в любой момент.
+          </p>
 
           {saveError && (
             <div className="text-[13px] text-[var(--system-red)] text-center px-2">
