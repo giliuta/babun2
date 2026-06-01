@@ -15,14 +15,10 @@ import { bumpSessionCount } from "@/lib/session-count";
 // instead of blocking initial JS execution on them. Each component
 // is still rendered unconditionally below — React just shows nothing
 // until its chunk lands, which is the same as the gated render path.
-const InstallPrompt = dynamic(
-  () => import("@/components/pwa/InstallPrompt").then((m) => ({ default: m.InstallPrompt })),
-  { ssr: false },
-);
-const IOSInstallPrompt = dynamic(
-  () => import("@/components/install/IOSInstallPrompt").then((m) => ({ default: m.IOSInstallPrompt })),
-  { ssr: false },
-);
+// PWA install prompts (pwa/InstallPrompt + install/IOSInstallPrompt)
+// intentionally NOT mounted — the «Установить Babun» nag kept popping
+// up while working via web. Components left on disk; re-mount them
+// (here + in the JSX below) when a proper native app ships.
 // v495 — splash needs to be in the SSR HTML so the first paint
 // already covers the calendar. Previously `dynamic(..., {ssr:false})`
 // rendered nothing on the server, the calendar flashed during
@@ -2189,17 +2185,15 @@ export default function DashboardClientLayout({
           </main>
 
           <BottomTabBar />
-          {/* STORY-056 — PWA install / iOS install / notifications
-              prompts only make sense on mobile.  On desktop the user
-              is in a real browser tab, the SW still registers
-              silently, but the «Поставить приложение» / «Включить
-              уведомления» modals are noise.  ServiceWorkerRegister
-              stays unconditional — it does no UI, only side-effects
+          {/* STORY-056 — splash + notifications prompt only make sense
+              on mobile.  On desktop the user is in a real browser tab,
+              the SW still registers silently, but the «Включить
+              уведомления» modal is noise.  (PWA install prompts removed
+              — see note at top of file.)  ServiceWorkerRegister stays
+              unconditional — it does no UI, only side-effects
               (cache warm-up, version bump). */}
           {!isDesktop && (
             <>
-              <InstallPrompt />
-              <IOSInstallPrompt />
               <SplashScreen tenantName={tenantName} />
               <EnableNotificationsPrompt />
             </>
