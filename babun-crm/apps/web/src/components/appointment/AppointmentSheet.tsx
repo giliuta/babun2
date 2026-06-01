@@ -429,7 +429,19 @@ export default function AppointmentSheet({
 
   // Client is required, so the address always comes from the picked
   // client location (falls back to the stored value when editing).
-  const address = selectedLocation?.address ?? appointment.address ?? "";
+  // Object-as-LINK fix — a location added as a Google/Waze/Apple map
+  // link stores only `mapUrl`; its `address` is "". Resolving address
+  // to that empty string made the saved appointment carry address="",
+  // so the calendar block rendered nothing AND flagged «no_address»
+  // (yellow «адреса нет») — the object looked unsaved even though it
+  // persisted to the client + location_id. Fall back to the object's
+  // label so a link-only object still shows on the calendar.
+  const address = selectedLocation
+    ? selectedLocation.address?.trim() ||
+      selectedLocation.label?.trim() ||
+      appointment.address ||
+      ""
+    : appointment.address ?? "";
 
   const city = cityForDate(dateKey);
   const cityColor = city ? getCityColor(city) : "#64748b";
