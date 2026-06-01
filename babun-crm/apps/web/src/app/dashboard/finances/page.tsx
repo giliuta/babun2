@@ -23,6 +23,7 @@ import AddTransactionSheet from "@/components/finance/AddTransactionSheet";
 import TransferSheet from "@/components/finance/TransferSheet";
 import TransactionPopup from "@/components/finance/TransactionPopup";
 import InvoiceSheet from "@/components/finance/InvoiceSheet";
+import AddAccountSheet from "@/components/finance/AddAccountSheet";
 import {
   useAccounts,
   useFinanceTransactions,
@@ -48,7 +49,7 @@ export default function FinancesPage() {
     [selectedBrigadeIds],
   );
 
-  const { accounts } = useAccounts(tenantId);
+  const { accounts, add: addAccount } = useAccounts(tenantId);
   const {
     transactions,
     add: addTransaction,
@@ -88,6 +89,7 @@ export default function FinancesPage() {
   const [transferOpen, setTransferOpen] = useState(false);
   const [popupTx, setPopupTx] = useState<FinanceTransaction | null>(null);
   const [invoiceTx, setInvoiceTx] = useState<FinanceTransaction | null>(null);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
 
   const defaultBrigadeId =
     selectedBrigadeIds.length === 1 ? selectedBrigadeIds[0] : undefined;
@@ -137,6 +139,7 @@ export default function FinancesPage() {
           transactions={transactions}
           teams={teams}
           selectedBrigadeIds={selectedBrigadeIds}
+          onAddAccount={() => setAddAccountOpen(true)}
         />
 
         <TransactionsFeed
@@ -229,6 +232,18 @@ export default function FinancesPage() {
             // The route already linked invoice_id to the tx; refresh so
             // the «Выставить инвойс» button disappears from popup.
             void refreshTransactions();
+          }}
+        />
+      )}
+
+      {addAccountOpen && (
+        <AddAccountSheet
+          open
+          onClose={() => setAddAccountOpen(false)}
+          teams={teams}
+          defaultBrigadeId={defaultBrigadeId}
+          onSubmit={async (draft) => {
+            await addAccount(draft);
           }}
         />
       )}
