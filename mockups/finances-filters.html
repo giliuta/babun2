@@ -1,0 +1,414 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Babun2 — Финансы · фильтры</title>
+<style>
+
+  :root{
+    --surface-grouped:#EFEFF4;--surface-card:#FFFFFF;--surface-card-secondary:#F2F2F7;--surface-overlay:rgba(0,0,0,0.40);
+    --separator:rgba(60,60,67,0.10);--label:#000;--label-secondary:#3C3C4399;--label-tertiary:rgba(60,60,67,0.30);
+    --label-quaternary:rgba(60,60,67,0.18);--label-on-accent:#FFF;--fill-tertiary:rgba(118,118,128,0.12);--fill-quaternary:rgba(116,116,128,0.08);
+    --system-red:#FF3B30;--system-orange:#FF9500;--system-green:#34C759;--accent:#3E88F7;--accent-pressed:#2D7BE5;--accent-tint:rgba(62,136,247,0.12);
+    --orange-tint:rgba(255,149,0,0.12);--glass-bg:rgba(255,255,255,0.72);
+    --shadow-card:0 0 0 0.5px rgba(15,23,42,0.04),0 1px 2px rgba(15,23,42,0.04);
+    --shadow-fab:0 8px 24px -6px rgba(62,136,247,0.45),0 2px 6px rgba(0,0,0,0.12);--radius-pill:9999px;
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  }
+
+
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;}
+  body{font-family:var(--font-sans);background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:30px 16px 90px;color:var(--label);font-variant-numeric:tabular-nums;}
+  .caption{font-size:12.5px;color:#6b7280;text-align:center;max-width:392px;line-height:1.45;}
+  .caption b{color:#374151;font-weight:600;}
+  .anno{font-size:11.5px;color:#7c8694;text-align:center;max-width:392px;line-height:1.4;margin:-4px 0 0;}
+  .anno b{color:#475569;font-weight:600;}
+  .frame-label{font-size:13px;font-weight:700;color:#334155;margin-top:10px;}
+  .device{width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25);}
+  .screen{width:392px;height:812px;background:var(--surface-grouped);border-radius:45px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .statusbar{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;background:var(--surface-card);position:relative;z-index:30;}
+  .statusbar .time{font-size:15px;font-weight:600;}
+  .island{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:108px;height:28px;background:#000;border-radius:18px;}
+  .sb-right{display:flex;align-items:center;gap:6px;} .sb-right svg{display:block;}
+  .scroll{flex:1;overflow-y:auto;background:var(--surface-grouped);} .scroll::-webkit-scrollbar{display:none;}
+  .spacer{height:84px;flex:none;}
+  .tabbar{height:60px;flex:none;display:flex;align-items:flex-start;justify-content:space-around;gap:2px;padding:4px 8px 0;background:var(--glass-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--separator);position:relative;z-index:26;}
+  .tab{flex:1;min-width:44px;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--label-secondary);}
+  .tab.active{color:var(--accent);} .tab .lbl{font-size:10px;line-height:1;font-weight:500;} .tab.active .lbl{font-weight:600;}
+  .tab .count{position:absolute;top:-2px;right:18px;min-width:16px;height:16px;padding:0 4px;border-radius:9999px;background:var(--system-red);color:#fff;font-size:10px;font-weight:600;line-height:16px;text-align:center;box-shadow:0 0 0 2px var(--surface-card);}
+
+  /* brigade pills */
+  .spill{flex:none;height:30px;padding:0 13px;border-radius:9999px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;background:var(--fill-tertiary);color:var(--label);white-space:nowrap;}
+  .spill.on{background:var(--accent);color:var(--label-on-accent);} .spill .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+
+  /* segment chips (v21: uniform filter row + result line) */
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 4px;margin:0 -4px;
+    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);
+    mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:9999px;
+    font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid transparent;font-family:inherit;
+    transition:background .15s,border-color .15s,color .15s,transform .1s;}
+  .chip:active{transform:scale(.97);}
+  .chip.sort{margin-right:7px;}   /* visual gap: reorder control vs the narrowing filters */
+  .chip.idle{background:var(--surface-card);border-color:var(--separator);color:var(--label);box-shadow:var(--shadow-card);}
+  .chip.idle .cnt{color:var(--label-tertiary);}
+  .chip.on-accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.on-accent .cnt{opacity:.9;}
+  .chip .pillcount{background:rgba(255,255,255,.26);color:#fff;border-radius:9999px;min-width:18px;height:18px;
+    padding:0 5px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .chip.on-sort{background:var(--accent-tint);border-color:transparent;color:var(--accent);}
+  .chip.on-sort .sortic{color:var(--accent);}
+  .chip.idle .sortic{color:var(--label-tertiary);}
+  /* result line: live count + clear-all */
+  .resultline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label-secondary);
+    padding:1px 4px 0;min-height:18px;}
+  .resultline .rc{font-weight:700;color:var(--label);font-variant-numeric:tabular-nums;}
+  .resultline .grow{flex:1;}
+  .resultline .clearall{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;}
+  .resultline .clearall:active{opacity:.55;}
+  .resultline .clearall.hide{visibility:hidden;}
+  .empty-reset{margin:14px auto 0;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 18px;
+    border-radius:11px;background:var(--accent-tint);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;}
+  .empty-reset:active{background:var(--accent);color:#fff;}
+  /* per-value count inside facet popups */
+  .fmodal-row .sub{margin-left:auto;color:var(--label-tertiary);font-size:13px;font-variant-numeric:tabular-nums;padding-right:8px;}
+  .fmodal-row.sel .sub{color:var(--accent);}
+  .fmodal-clear{position:absolute;top:0;right:0;height:45px;display:flex;align-items:center;padding:0 15px;
+    color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;z-index:2;}
+  .fmodal-clear.dim{color:var(--label-tertiary);pointer-events:none;}
+  .sep{align-self:center;color:var(--separator);padding:0 2px;}
+  .tagchip{flex:none;display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:9999px;
+    font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--separator);
+    background:var(--surface-card);color:var(--label-secondary);}
+  /* v7: dropdown filter chips + centered picker modal */
+  .fchip{gap:5px;}
+  .fchip > svg{flex:none;}
+  .chip.idle.fchip > svg{color:var(--label-tertiary);}
+  .fdotc{width:9px;height:9px;border-radius:50%;flex:none;}
+  .emptyf{text-align:center;color:var(--label-tertiary);font-size:14px;padding:44px 0;}
+  /* v22: native bottom-sheet shell (Apple/Material idiom for "choose from a set"; live results show through) */
+  .fmodal-backdrop{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.18);
+    display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .22s ease;}
+  .fmodal-backdrop.show{opacity:1;}
+  .fmodal{position:relative;width:100%;max-width:100%;max-height:88%;overflow-y:auto;background:var(--surface-card);
+    border-radius:20px 20px 0 0;box-shadow:0 -14px 44px -14px rgba(15,23,42,.34),0 0 0 .5px rgba(15,23,42,.05);
+    padding-bottom:8px;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);
+    overscroll-behavior:contain;}
+  .fmodal-backdrop.show .fmodal{transform:translateY(0);}
+  .fmodal-grab{height:5px;width:38px;border-radius:3px;background:var(--label-quaternary);margin:8px auto 2px;
+    flex:none;touch-action:none;cursor:grab;}
+  .fmodal-back{position:absolute;top:10px;left:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    color:var(--accent);border-radius:50%;cursor:pointer;z-index:3;}
+  .fmodal-back:active{background:var(--fill-tertiary);}
+  .fmodal-title{position:sticky;top:0;background:var(--surface-card);padding:6px 16px 12px;border-bottom:.5px solid var(--separator);
+    font-size:16px;font-weight:700;text-align:center;color:var(--label);z-index:1;}
+  .fmodal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;min-height:48px;
+    border-bottom:.5px solid var(--separator);cursor:pointer;}
+  .fmodal-row:last-child{border-bottom:0;}
+  .fmodal-row:active{background:var(--fill-quaternary);}
+  .fmodal-row .fl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .fmodal-row .lbl{font-size:15px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fmodal-row.sel{background:var(--accent-tint);}
+  .fmodal-row.sel .lbl{color:var(--accent);font-weight:600;}
+  .fmodal-row .ck{flex:none;color:var(--accent);}
+  .fmodal-row.sel .ck{animation:ckpop .2s cubic-bezier(.32,.72,0,1);}
+  @keyframes ckpop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+  /* .fmodal-done removed — modal now closes on tap outside */
+  /* v15: period custom-range calendar (no native inputs) */
+  .pcal{padding:6px 12px 14px;}
+  .pcal-top{display:flex;justify-content:flex-end;height:30px;align-items:center;margin:0 -4px 2px;}
+  .pcal-x{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--label-secondary);cursor:pointer;border-radius:50%;}
+  .pcal-x:active{background:var(--fill-tertiary);}
+  .pcal-fields{display:flex;gap:8px;margin-bottom:8px;}
+  .pcal-field{flex:1;border-radius:12px;background:var(--fill-tertiary);padding:7px 12px;display:flex;flex-direction:column;gap:1px;}
+  .pcal-field.active{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);}
+  .pcal-field .fl-lbl{font-size:11px;color:var(--label-tertiary);}
+  .pcal-field .fl-val{font-size:15px;font-weight:600;color:var(--label);}
+  .pcal-field.active .fl-val{color:var(--accent);}
+  .frow-ic{color:var(--label-tertiary);display:flex;flex:none;}
+  .pcal-nav{display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 2px;}
+  .pcal-arrow{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;border-radius:50%;}
+  .pcal-arrow:active{background:var(--fill-tertiary);}
+  .pcal-month{font-size:15px;font-weight:600;color:var(--label);}
+  .pcal-wd{display:grid;grid-template-columns:repeat(7,1fr);margin-top:2px;}
+  .pcal-wd span{text-align:center;font-size:11px;font-weight:600;color:var(--label-tertiary);padding:4px 0;}
+  .pcal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+  .pc-empty{height:38px;}
+  .pc-day{height:38px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--label);cursor:pointer;}
+  .pc-day:active{background:var(--fill-quaternary);}
+  .pc-today{color:var(--accent);font-weight:700;}
+  .pc-mid{background:var(--accent-tint);}
+  .pc-edge{background:var(--accent);color:#fff;font-weight:600;border-radius:10px;}
+  /* v17: period custom-range — iOS wheel pickers (day / month / year), С + До */
+  .wrange{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;
+    color:var(--label);padding:0 0 8px;}
+  .wrange .warrow{color:var(--label-tertiary);font-weight:400;}
+  .wpick{padding:0 0 4px;}
+  .wpick + .wpick{border-top:.5px solid var(--separator);padding-top:6px;}
+  .wpick-hd{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--label-secondary);padding:2px 4px 2px;}
+  .wheels{position:relative;display:flex;height:150px;}
+  .wheel{flex:1 1 auto;overflow-y:scroll;scroll-snap-type:y mandatory;text-align:center;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);}
+  .wheel::-webkit-scrollbar{display:none;}
+  .wheel.wheel-day{flex:0 0 58px;}
+  .wheel.wheel-year{flex:0 0 76px;}
+  .wopt{height:30px;line-height:30px;scroll-snap-align:center;font-size:17px;color:var(--label-tertiary);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .wopt.cur{color:var(--label);font-weight:600;}
+  .wspacer{height:60px;}
+  .wband{position:absolute;left:6px;right:6px;top:50%;height:30px;transform:translateY(-50%);
+    pointer-events:none;background:var(--fill-quaternary);border-radius:8px;}
+  .wdone{margin-top:8px;height:44px;border-radius:12px;background:var(--accent);color:#fff;
+    font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .wdone:active{background:var(--accent-pressed);}
+  /* v20: period custom-range view — segmented С/До + wheels, inside the shared .fmodal */
+  .pcv{padding:8px 14px 14px;}
+  .seg2{display:flex;gap:3px;background:var(--fill-tertiary);border-radius:13px;padding:3px;margin:0 0 12px;}
+  .seg2-b{flex:1;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;cursor:pointer;transition:background .18s;}
+  .seg2-b.on{background:var(--surface-card);box-shadow:var(--shadow-card);}
+  .seg2-b .k{font-size:11px;font-weight:600;color:var(--label-tertiary);}
+  .seg2-b.on .k{color:var(--accent);}
+  .seg2-b .v{font-size:15px;font-weight:700;color:var(--label);}
+
+  /* Row A nav: gear · period stepper (center) · spacer */
+  .ff-nav{height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px;background:var(--surface-card);position:relative;z-index:31;}
+  .ff-gear,.ff-spacer{width:44px;height:44px;flex:none;}
+  .ff-gear{display:flex;align-items:center;justify-content:center;color:var(--accent);}
+  .ff-step{display:inline-flex;align-items:center;gap:2px;height:34px;padding:0 4px;border-radius:var(--radius-pill);}
+  .ff-step.active{background:var(--accent-tint);}              /* tint only when non-default (custom range) */
+  .ff-step-btn{width:30px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--label-secondary);font-size:18px;}
+  .ff-step-btn.dis{color:var(--label-quaternary);}
+  .ff-step-lbl{font-size:16px;font-weight:600;color:var(--label);padding:0 4px;display:inline-flex;align-items:center;gap:5px;}
+  .ff-step.active .ff-step-lbl{color:var(--accent);}
+  .ff-caret{color:var(--label-tertiary);display:inline-flex;} .ff-step.active .ff-caret{color:var(--accent);}
+
+  /* Row B brigade row */
+  .ff-brig{height:44px;flex:none;display:flex;align-items:center;gap:6px;padding:0 12px;overflow-x:auto;background:var(--surface-card);border-bottom:.5px solid var(--separator);position:relative;z-index:30;}
+  .ff-brig::-webkit-scrollbar{display:none;}
+  /* brigade as a single chip (N>4 escalation) */
+  .ff-brigchip{flex:none;height:30px;padding:0 11px;border-radius:9999px;background:var(--fill-tertiary);color:var(--label);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+  .ff-brigchip.on{background:var(--accent);color:#fff;} .ff-brigchip .dot{width:8px;height:8px;border-radius:50%;}
+
+  /* hero mini (context) */
+  .ff-hero{padding:14px 16px 8px;}
+  .ff-hero .cap{font-size:12px;color:var(--label-secondary);}
+  .ff-hero .val{font-size:28px;font-weight:700;color:var(--system-green);line-height:1.1;margin-top:2px;}
+  .ff-hero .sub{font-size:13px;color:var(--label-secondary);margin-top:5px;}
+  .ff-hero .sub .in{color:var(--system-green);font-weight:600;} .ff-hero .sub .ex{color:var(--system-red);font-weight:600;}
+
+  /* feed head: title · readable type segment · search */
+  .ff-feedhead{display:flex;align-items:center;gap:10px;padding:0 4px;margin:0 12px 8px;}
+  .ff-feedhead .ttl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--label-secondary);}
+  .ff-feedhead .grow{flex:1;}
+  .ff-seg{display:inline-flex;background:var(--fill-tertiary);border-radius:9px;padding:2px;gap:2px;}
+  .ff-seg-b{height:26px;padding:0 11px;border-radius:7px;font-size:12px;font-weight:600;color:var(--label-secondary);display:inline-flex;align-items:center;}
+  .ff-seg-b.on{background:var(--surface-card);color:var(--label);box-shadow:0 1px 2px rgba(0,0,0,.12);}
+  .ff-seg-b.on.income{color:var(--system-green);} .ff-seg-b.on.expense{color:var(--system-red);}
+  .ff-search{width:44px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--label-secondary);}
+
+  /* result line (feed filter applied) */
+  .ff-result{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label-secondary);padding:0 4px 8px;margin:0 12px;}
+  .ff-result .rc{font-weight:700;color:var(--label);}
+  .ff-result .grow{flex:1;} .ff-result .reset{color:var(--accent);font-weight:600;}
+
+  /* feed card (context) */
+  .ff-card{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden;margin:0 12px;}
+  .ff-dsep{height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--surface-card);border-bottom:.5px solid var(--separator);}
+  .ff-dsep .dd{font-size:12px;color:var(--label-secondary);} .ff-dsep .dn{font-size:13px;font-weight:600;}
+  .ff-trow{height:52px;display:flex;align-items:center;gap:12px;padding:0 12px;position:relative;}
+  .ff-trow::before{content:"";position:absolute;top:0;left:54px;right:0;height:.5px;background:var(--separator);}
+  .ff-trow:first-of-type::before{display:none;}
+  .ff-tile{width:30px;height:30px;border-radius:9px;background:var(--fill-quaternary);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+  .ff-trow .mid{flex:1;min-width:0;} .ff-trow .t{font-size:14px;color:var(--label);} .ff-trow .s{font-size:12px;color:var(--label-tertiary);}
+  .ff-amt{font-size:15px;font-weight:600;} .ff-amt.in{color:var(--system-green);} .ff-amt.ex{color:var(--system-red);}
+
+  /* add bar */
+  .ff-addbar{position:absolute;left:0;right:0;bottom:60px;padding:10px 14px 12px;z-index:25;background:linear-gradient(to top,var(--surface-grouped) 55%,rgba(239,239,244,0));}
+  .ff-opbtn{width:100%;height:50px;border:0;border-radius:var(--radius-pill);background:var(--accent);color:#fff;font-size:17px;font-weight:600;box-shadow:var(--shadow-fab);display:flex;align-items:center;justify-content:center;gap:8px;}
+
+  /* ── CENTERED popup: override the shared bottom-sheet .fmodal ── */
+  .fmodal-backdrop.center{align-items:center;justify-content:center;background:rgba(0,0,0,.36);}
+  .fmodal-backdrop.center .fmodal{width:min(340px,calc(100% - 32px));max-width:340px;max-height:70%;margin:0;
+    border-radius:20px;transform:translateY(-5%) scale(.94);box-shadow:0 24px 60px -16px rgba(15,23,42,.34),0 0 0 .5px rgba(15,23,42,.05);padding-bottom:8px;}
+  .fmodal-backdrop.center.show .fmodal{transform:translateY(-5%) scale(1);}
+  .fmodal--minh{min-height:248px;}
+  .fmodal-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--label-secondary);background:var(--fill-tertiary);font-size:15px;z-index:3;}
+  .fmodal .fmt2{padding:14px 16px 10px;font-size:16px;font-weight:700;text-align:center;}
+  .pcv2{padding:4px 14px 14px;}
+  .applybtn{margin:10px 0 2px;height:46px;border-radius:13px;background:var(--accent);color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+
+</style></head><body>
+  <div class="caption"><b>Финансы — фильтры (по итогам аудита 16 источников).</b> Гибрид: ‹ Июнь › степпер (1 тап) + центр-попап на тап по названию; бригада инлайн, при росте — центр-попап; тип — инлайн-сегмент; центр-попап в середине экрана (зона пальца). Подсветка активного фильтра + «N операций · Сбросить».</div>
+  <div class="frame-label">① Покой — фильтры сверху</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar"><span class="time">9:41</span><div class="island"></div><div class="sb-right">
+        <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+        <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+      </div></div>
+      <div class="ff-nav"><span class="ff-gear"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <div class="ff-step"><span class="ff-step-btn">‹</span><span class="ff-step-lbl">Июнь<span class="ff-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span><span class="ff-step-btn">›</span></div>
+        <span class="ff-spacer"></span>
+      </div>
+      <div class="ff-brig"><span class="spill on">Все</span><span class="spill"><span class="dot" style="background:#5E5CE6"></span>Север</span><span class="spill"><span class="dot" style="background:#34C759"></span>Юг</span></div>
+      <div class="scroll">
+      <div class="ff-hero"><div class="cap">Прибыль · Июнь · Все</div><div class="val">€11&#160;140</div>
+        <div class="sub">Доход <span class="in">€15&#160;500</span> · Расход <span class="ex">€4&#160;360</span> · ожид. €12&#160;300</div></div>
+      <div class="ff-feedhead"><span class="ttl">Движения</span><span class="grow"></span>
+        <span class="ff-seg"><span class="ff-seg-b on">Все</span><span class="ff-seg-b">Доход</span><span class="ff-seg-b">Расход</span></span><span class="ff-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span></div>
+
+      <div class="ff-card"><div class="ff-dsep"><span class="dd">15 июн</span><span class="dn">+€440</span></div><div class="ff-trow"><span class="ff-tile">💵</span><div class="mid"><div class="t">Оплата за монтаж</div><div class="s">Монтаж · Наличка</div></div><span class="ff-amt in">+€520</span></div><div class="ff-trow"><span class="ff-tile">⛽</span><div class="mid"><div class="t">Бензин</div><div class="s">Топливо · Наличка</div></div><span class="ff-amt ex">−€80</span></div><div class="ff-trow"><span class="ff-tile">💳</span><div class="mid"><div class="t">Ремонт кондиционера</div><div class="s">Ремонт · Карта Юры</div></div><span class="ff-amt in">+€690</span></div></div>
+        <div class="spacer"></div>
+      </div>
+      <div class="ff-addbar"><button class="ff-opbtn">＋ Операция</button></div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+  </div></div>
+  <div class="frame-label">② Период — центр-попап (пресеты)</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar"><span class="time">9:41</span><div class="island"></div><div class="sb-right">
+        <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+        <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+      </div></div>
+      <div class="ff-nav"><span class="ff-gear"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <div class="ff-step"><span class="ff-step-btn">‹</span><span class="ff-step-lbl">Июнь<span class="ff-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span><span class="ff-step-btn">›</span></div>
+        <span class="ff-spacer"></span>
+      </div>
+      <div class="ff-brig"><span class="spill on">Все</span><span class="spill"><span class="dot" style="background:#5E5CE6"></span>Север</span><span class="spill"><span class="dot" style="background:#34C759"></span>Юг</span></div>
+      <div class="scroll">
+      <div class="ff-hero"><div class="cap">Прибыль · Июнь · Все</div><div class="val">€11&#160;140</div>
+        <div class="sub">Доход <span class="in">€15&#160;500</span> · Расход <span class="ex">€4&#160;360</span> · ожид. €12&#160;300</div></div>
+      <div class="ff-feedhead"><span class="ttl">Движения</span><span class="grow"></span>
+        <span class="ff-seg"><span class="ff-seg-b on">Все</span><span class="ff-seg-b">Доход</span><span class="ff-seg-b">Расход</span></span><span class="ff-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span></div>
+
+      <div class="ff-card"><div class="ff-dsep"><span class="dd">15 июн</span><span class="dn">+€440</span></div><div class="ff-trow"><span class="ff-tile">💵</span><div class="mid"><div class="t">Оплата за монтаж</div><div class="s">Монтаж · Наличка</div></div><span class="ff-amt in">+€520</span></div><div class="ff-trow"><span class="ff-tile">⛽</span><div class="mid"><div class="t">Бензин</div><div class="s">Топливо · Наличка</div></div><span class="ff-amt ex">−€80</span></div><div class="ff-trow"><span class="ff-tile">💳</span><div class="mid"><div class="t">Ремонт кондиционера</div><div class="s">Ремонт · Карта Юры</div></div><span class="ff-amt in">+€690</span></div></div>
+        <div class="spacer"></div>
+      </div>
+      <div class="ff-addbar"><button class="ff-opbtn">＋ Операция</button></div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+      <div class="fmodal-backdrop center show"><div class="fmodal fmodal--minh"><span class="fmodal-x">✕</span>
+        <div class="fmt2">Период</div><div class="fmodal-row"><span class="fl"><span class="lbl">Сегодня</span></span><span class="ck"></span></div><div class="fmodal-row"><span class="fl"><span class="lbl">Вчера</span></span><span class="ck"></span></div><div class="fmodal-row"><span class="fl"><span class="lbl">Неделя</span></span><span class="ck"></span></div><div class="fmodal-row sel"><span class="fl"><span class="lbl">Месяц</span></span><span class="ck"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div><div class="fmodal-row"><span class="fl"><span class="lbl">Год</span></span><span class="ck"></span></div><div class="fmodal-row"><span class="fl"><span class="lbl">Произвольный период</span></span><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label-tertiary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div></div></div>
+  </div></div>
+  <div class="anno"><b>Центр-попап</b> вместо выезда снизу: 4 скруглённых угла, привязка к ~44% высоты (центр = зона большого пальца), X справа-сверху, стабильная высота. Пресеты списком, активный — галочкой, «Произвольный период» — последней строкой.</div>
+  <div class="frame-label">③ Период — свой (барабан С/До)</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar"><span class="time">9:41</span><div class="island"></div><div class="sb-right">
+        <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+        <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+      </div></div>
+      <div class="ff-nav"><span class="ff-gear"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <div class="ff-step active"><span class="ff-step-btn">‹</span><span class="ff-step-lbl">1–9 июн<span class="ff-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span><span class="ff-step-btn">›</span></div>
+        <span class="ff-spacer"></span>
+      </div>
+      <div class="ff-brig"><span class="spill on">Все</span><span class="spill"><span class="dot" style="background:#5E5CE6"></span>Север</span><span class="spill"><span class="dot" style="background:#34C759"></span>Юг</span></div>
+      <div class="scroll">
+      <div class="ff-hero"><div class="cap">Прибыль · Июнь · Все</div><div class="val">€11&#160;140</div>
+        <div class="sub">Доход <span class="in">€15&#160;500</span> · Расход <span class="ex">€4&#160;360</span> · ожид. €12&#160;300</div></div>
+      <div class="ff-feedhead"><span class="ttl">Движения</span><span class="grow"></span>
+        <span class="ff-seg"><span class="ff-seg-b on">Все</span><span class="ff-seg-b">Доход</span><span class="ff-seg-b">Расход</span></span><span class="ff-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span></div>
+
+      <div class="ff-card"><div class="ff-dsep"><span class="dd">15 июн</span><span class="dn">+€440</span></div><div class="ff-trow"><span class="ff-tile">💵</span><div class="mid"><div class="t">Оплата за монтаж</div><div class="s">Монтаж · Наличка</div></div><span class="ff-amt in">+€520</span></div><div class="ff-trow"><span class="ff-tile">⛽</span><div class="mid"><div class="t">Бензин</div><div class="s">Топливо · Наличка</div></div><span class="ff-amt ex">−€80</span></div><div class="ff-trow"><span class="ff-tile">💳</span><div class="mid"><div class="t">Ремонт кондиционера</div><div class="s">Ремонт · Карта Юры</div></div><span class="ff-amt in">+€690</span></div></div>
+        <div class="spacer"></div>
+      </div>
+      <div class="ff-addbar"><button class="ff-opbtn">＋ Операция</button></div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+      <div class="fmodal-backdrop center show"><div class="fmodal"><span class="fmodal-x">✕</span>
+        <div class="fmt2">Произвольный период</div>
+        <div class="pcv2">
+          <div class="seg2"><div class="seg2-b on"><span class="k">С</span><span class="v">1 июн</span></div><div class="seg2-b"><span class="k">До</span><span class="v">9 июн</span></div></div>
+          <div class="wheels"><div class="wheel wheel-day"><div class="wspacer"></div><div class="wopt">7</div><div class="wopt">8</div><div class="wopt cur">9</div><div class="wopt">10</div><div class="wopt">11</div><div class="wspacer"></div></div><div class="wheel wheel-mon"><div class="wspacer"></div><div class="wopt">май</div><div class="wopt cur">июн</div><div class="wopt">июл</div><div class="wspacer"></div></div><div class="wheel wheel-year"><div class="wspacer"></div><div class="wopt">2025</div><div class="wopt cur">2026</div><div class="wopt">2027</div><div class="wspacer"></div></div><div class="wband"></div></div>
+          <div class="applybtn">Применить</div>
+        </div></div></div>
+  </div></div>
+  <div class="frame-label">④ Бригада — центр-попап (рост N>4)</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar"><span class="time">9:41</span><div class="island"></div><div class="sb-right">
+        <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+        <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+      </div></div>
+      <div class="ff-nav"><span class="ff-gear"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <div class="ff-step"><span class="ff-step-btn">‹</span><span class="ff-step-lbl">Июнь<span class="ff-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span><span class="ff-step-btn">›</span></div>
+        <span class="ff-spacer"></span>
+      </div>
+      <div class="ff-brig"><span class="spill on">Все</span><span class="spill"><span class="dot" style="background:#5E5CE6"></span>Север</span><span class="spill"><span class="dot" style="background:#34C759"></span>Юг</span></div>
+      <div class="scroll">
+      <div class="ff-hero"><div class="cap">Прибыль · Июнь · Все</div><div class="val">€11&#160;140</div>
+        <div class="sub">Доход <span class="in">€15&#160;500</span> · Расход <span class="ex">€4&#160;360</span> · ожид. €12&#160;300</div></div>
+      <div class="ff-feedhead"><span class="ttl">Движения</span><span class="grow"></span>
+        <span class="ff-seg"><span class="ff-seg-b on">Все</span><span class="ff-seg-b">Доход</span><span class="ff-seg-b">Расход</span></span><span class="ff-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span></div>
+
+      <div class="ff-card"><div class="ff-dsep"><span class="dd">15 июн</span><span class="dn">+€440</span></div><div class="ff-trow"><span class="ff-tile">💵</span><div class="mid"><div class="t">Оплата за монтаж</div><div class="s">Монтаж · Наличка</div></div><span class="ff-amt in">+€520</span></div><div class="ff-trow"><span class="ff-tile">⛽</span><div class="mid"><div class="t">Бензин</div><div class="s">Топливо · Наличка</div></div><span class="ff-amt ex">−€80</span></div><div class="ff-trow"><span class="ff-tile">💳</span><div class="mid"><div class="t">Ремонт кондиционера</div><div class="s">Ремонт · Карта Юры</div></div><span class="ff-amt in">+€690</span></div></div>
+        <div class="spacer"></div>
+      </div>
+      <div class="ff-addbar"><button class="ff-opbtn">＋ Операция</button></div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+      <div class="fmodal-backdrop center show"><div class="fmodal fmodal--minh"><span class="fmodal-x">✕</span>
+        <div class="fmt2">Бригада</div><div class="fmodal-row sel"><span class="fl"><span class="lbl">Все</span></span><span class="ck"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div><div class="fmodal-row"><span class="fl"><span class="fdotc" style="background:#5E5CE6;margin-right:2px"></span><span class="lbl">Север</span></span><span class="ck"></span></div><div class="fmodal-row"><span class="fl"><span class="fdotc" style="background:#34C759;margin-right:2px"></span><span class="lbl">Юг</span></span><span class="ck"></span></div><div class="fmodal-row"><span class="fl"><span class="fdotc" style="background:#FF9F0A;margin-right:2px"></span><span class="lbl">Запад</span></span><span class="ck"></span></div><div class="fmodal-row"><span class="fl"><span class="fdotc" style="background:#BF5AF2;margin-right:2px"></span><span class="lbl">Восток</span></span><span class="ck"></span></div></div></div>
+  </div></div>
+  <div class="frame-label">⑤ Применённый фильтр — подсветка + «Сбросить»</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar"><span class="time">9:41</span><div class="island"></div><div class="sb-right">
+        <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+        <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+      </div></div>
+      <div class="ff-nav"><span class="ff-gear"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <div class="ff-step active"><span class="ff-step-btn">‹</span><span class="ff-step-lbl">1–9 июн<span class="ff-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span><span class="ff-step-btn">›</span></div>
+        <span class="ff-spacer"></span>
+      </div>
+      <div class="ff-brig"><span class="spill">Все</span><span class="spill on"><span class="dot" style="background:#5E5CE6"></span>Север</span><span class="spill"><span class="dot" style="background:#34C759"></span>Юг</span></div>
+      <div class="scroll">
+      <div class="ff-hero"><div class="cap">Прибыль · 1–9 июн · Север</div><div class="val">€2&#160;980</div>
+        <div class="sub">Доход <span class="in">€15&#160;500</span> · Расход <span class="ex">€4&#160;360</span> · ожид. €12&#160;300</div></div>
+      <div class="ff-feedhead"><span class="ttl">Движения</span><span class="grow"></span>
+        <span class="ff-seg"><span class="ff-seg-b">Все</span><span class="ff-seg-b">Доход</span><span class="ff-seg-b on expense">Расход</span></span><span class="ff-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span></div>
+
+      <div class="ff-result"><span class="rc">12</span><span>операций · Расход</span><span class="grow"></span><span class="reset">Сбросить</span></div>
+      <div class="ff-card"><div class="ff-dsep"><span class="dd">15 июн</span><span class="dn">+€440</span></div><div class="ff-trow"><span class="ff-tile">💵</span><div class="mid"><div class="t">Оплата за монтаж</div><div class="s">Монтаж · Наличка</div></div><span class="ff-amt in">+€520</span></div><div class="ff-trow"><span class="ff-tile">⛽</span><div class="mid"><div class="t">Бензин</div><div class="s">Топливо · Наличка</div></div><span class="ff-amt ex">−€80</span></div><div class="ff-trow"><span class="ff-tile">💳</span><div class="mid"><div class="t">Ремонт кондиционера</div><div class="s">Ремонт · Карта Юры</div></div><span class="ff-amt in">+€690</span></div></div>
+        <div class="spacer"></div>
+      </div>
+      <div class="ff-addbar"><button class="ff-opbtn">＋ Операция</button></div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+  </div></div>
+</body></html>

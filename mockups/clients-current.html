@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Babun2 — Клиенты (как сейчас)</title>
+<style>
+  /* ── Real Babun2 design tokens (copied from app/globals.css) ── */
+  :root{
+    --surface-grouped:#EFEFF4; --surface-card:#FFFFFF; --surface-card-secondary:#F2F2F7;
+    --separator:rgba(60,60,67,0.10);
+    --label:#000000; --label-secondary:#3C3C4399; --label-tertiary:rgba(60,60,67,0.30);
+    --label-quaternary:rgba(60,60,67,0.18); --label-on-accent:#FFFFFF;
+    --fill-tertiary:rgba(118,118,128,0.12); --fill-quaternary:rgba(116,116,128,0.08);
+    --system-red:#FF3B30; --system-orange:#FF9500; --system-green:#34C759; --system-blue:#007AFF;
+    --accent:#3E88F7; --accent-pressed:#2D7BE5; --accent-tint:rgba(62,136,247,0.12);
+    --glass-bg:rgba(255,255,255,0.72);
+    --shadow-card:0 0 0 0.5px rgba(15,23,42,0.04),0 1px 2px rgba(15,23,42,0.04);
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:var(--font-sans);
+    background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    gap:14px;padding:30px 16px 60px;color:var(--label);font-variant-numeric:tabular-nums;
+  }
+  .caption{font-size:12.5px;color:#6b7280;letter-spacing:.01em;text-align:center;max-width:392px;line-height:1.45;}
+  .caption b{color:#374151;font-weight:600;}
+
+  /* ── Device frame ── */
+  .device{
+    width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;
+    box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25);
+  }
+  .screen{
+    width:392px;height:812px;background:var(--surface-grouped);border-radius:45px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;
+  }
+
+  /* ── Status bar ── */
+  .statusbar{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px 0 30px;background:var(--surface-card);position:relative;}
+  .statusbar .time{font-size:15px;font-weight:600;letter-spacing:.02em;}
+  .island{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;}
+  .sb-right{display:flex;align-items:center;gap:6px;}
+  .sb-right svg{display:block;}
+
+  /* ── Nav / PageHeader ── */
+  .nav{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 6px;background:var(--surface-card);border-bottom:.5px solid var(--separator);}
+  .nav .edit{color:var(--accent);font-size:14px;font-weight:600;padding:0 10px;height:36px;display:flex;align-items:center;}
+  .nav .titlewrap{display:inline-flex;align-items:center;justify-content:center;flex:1;min-width:0;}
+  .nav .title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .nav .actions{display:flex;align-items:center;gap:0;}
+  .iconbtn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);}
+  .iconbtn.sm{width:36px;height:36px;}
+  .nav .actions{position:relative;}
+  .iomenu{display:none;position:absolute;top:40px;right:6px;width:214px;background:var(--surface-card);border-radius:14px;
+    box-shadow:0 12px 30px -8px rgba(15,23,42,.30),0 0 0 .5px rgba(15,23,42,.06);overflow:hidden;z-index:50;}
+  .iomenu.open{display:block;}
+  .iorow{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;font-size:15px;color:var(--label);}
+  .iorow + .iorow{border-top:.5px solid var(--separator);}
+  .iorow svg{color:var(--label-secondary);flex:none;}
+  .cdot{width:8px;height:8px;border-radius:50%;flex:none;}
+
+  /* ── Scroll area ── */
+  .scroll{flex:1;overflow-y:auto;background:var(--surface-grouped);}
+  .scroll::-webkit-scrollbar{display:none;}
+  .content{padding:12px;display:flex;flex-direction:column;gap:12px;}
+
+  /* hero strip */
+  .hero{display:flex;align-items:center;justify-content:center;gap:6px;height:32px;margin-top:-4px;
+    font-size:12px;color:var(--label-secondary);}
+  .hero .bday{color:var(--system-orange);}
+  .hero .midot{color:var(--label-quaternary);}
+
+  /* search */
+  .search{position:relative;}
+  .search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--label-tertiary);pointer-events:none;}
+  .search input{width:100%;height:40px;border-radius:10px;background:var(--surface-card);
+    border:.5px solid var(--separator);box-shadow:var(--shadow-card);
+    padding:0 12px 0 34px;font-size:15px;color:var(--label);font-family:inherit;}
+  .search input::placeholder{color:var(--label-tertiary);}
+
+  /* segment chips (v21: uniform filter row + result line) */
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 4px;margin:0 -4px;
+    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);
+    mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:9999px;
+    font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid transparent;font-family:inherit;
+    transition:background .15s,border-color .15s,color .15s,transform .1s;}
+  .chip:active{transform:scale(.97);}
+  .chip.sort{margin-right:7px;}   /* visual gap: reorder control vs the narrowing filters */
+  .chip.idle{background:var(--surface-card);border-color:var(--separator);color:var(--label);box-shadow:var(--shadow-card);}
+  .chip.idle .cnt{color:var(--label-tertiary);}
+  .chip.on-accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.on-accent .cnt{opacity:.9;}
+  .chip .pillcount{background:rgba(255,255,255,.26);color:#fff;border-radius:9999px;min-width:18px;height:18px;
+    padding:0 5px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .chip.on-sort{background:var(--accent-tint);border-color:transparent;color:var(--accent);}
+  .chip.on-sort .sortic{color:var(--accent);}
+  .chip.idle .sortic{color:var(--label-tertiary);}
+  /* result line: live count + clear-all */
+  .resultline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label-secondary);
+    padding:1px 4px 0;min-height:18px;}
+  .resultline .rc{font-weight:700;color:var(--label);font-variant-numeric:tabular-nums;}
+  .resultline .grow{flex:1;}
+  .resultline .clearall{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;}
+  .resultline .clearall:active{opacity:.55;}
+  .resultline .clearall.hide{visibility:hidden;}
+  .empty-reset{margin:14px auto 0;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 18px;
+    border-radius:11px;background:var(--accent-tint);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;}
+  .empty-reset:active{background:var(--accent);color:#fff;}
+  /* per-value count inside facet popups */
+  .fmodal-row .sub{margin-left:auto;color:var(--label-tertiary);font-size:13px;font-variant-numeric:tabular-nums;padding-right:8px;}
+  .fmodal-row.sel .sub{color:var(--accent);}
+  .fmodal-clear{position:absolute;top:0;right:0;height:45px;display:flex;align-items:center;padding:0 15px;
+    color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;z-index:2;}
+  .fmodal-clear.dim{color:var(--label-tertiary);pointer-events:none;}
+  .sep{align-self:center;color:var(--separator);padding:0 2px;}
+  .tagchip{flex:none;display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:9999px;
+    font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--separator);
+    background:var(--surface-card);color:var(--label-secondary);}
+  /* v7: dropdown filter chips + centered picker modal */
+  .fchip{gap:5px;}
+  .fchip > svg{flex:none;}
+  .chip.idle.fchip > svg{color:var(--label-tertiary);}
+  .fdotc{width:9px;height:9px;border-radius:50%;flex:none;}
+  .emptyf{text-align:center;color:var(--label-tertiary);font-size:14px;padding:44px 0;}
+  /* v22: native bottom-sheet shell (Apple/Material idiom for "choose from a set"; live results show through) */
+  .fmodal-backdrop{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.18);
+    display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .22s ease;}
+  .fmodal-backdrop.show{opacity:1;}
+  .fmodal{position:relative;width:100%;max-width:100%;max-height:88%;overflow-y:auto;background:var(--surface-card);
+    border-radius:20px 20px 0 0;box-shadow:0 -14px 44px -14px rgba(15,23,42,.34),0 0 0 .5px rgba(15,23,42,.05);
+    padding-bottom:8px;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);
+    overscroll-behavior:contain;}
+  .fmodal-backdrop.show .fmodal{transform:translateY(0);}
+  .fmodal-grab{height:5px;width:38px;border-radius:3px;background:var(--label-quaternary);margin:8px auto 2px;
+    flex:none;touch-action:none;cursor:grab;}
+  .fmodal-back{position:absolute;top:10px;left:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    color:var(--accent);border-radius:50%;cursor:pointer;z-index:3;}
+  .fmodal-back:active{background:var(--fill-tertiary);}
+  .fmodal-title{position:sticky;top:0;background:var(--surface-card);padding:6px 16px 12px;border-bottom:.5px solid var(--separator);
+    font-size:16px;font-weight:700;text-align:center;color:var(--label);z-index:1;}
+  .fmodal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;min-height:48px;
+    border-bottom:.5px solid var(--separator);cursor:pointer;}
+  .fmodal-row:last-child{border-bottom:0;}
+  .fmodal-row:active{background:var(--fill-quaternary);}
+  .fmodal-row .fl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .fmodal-row .lbl{font-size:15px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fmodal-row.sel{background:var(--accent-tint);}
+  .fmodal-row.sel .lbl{color:var(--accent);font-weight:600;}
+  .fmodal-row .ck{flex:none;color:var(--accent);}
+  .fmodal-row.sel .ck{animation:ckpop .2s cubic-bezier(.32,.72,0,1);}
+  @keyframes ckpop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+  /* .fmodal-done removed — modal now closes on tap outside */
+  /* v15: period custom-range calendar (no native inputs) */
+  .pcal{padding:6px 12px 14px;}
+  .pcal-top{display:flex;justify-content:flex-end;height:30px;align-items:center;margin:0 -4px 2px;}
+  .pcal-x{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--label-secondary);cursor:pointer;border-radius:50%;}
+  .pcal-x:active{background:var(--fill-tertiary);}
+  .pcal-fields{display:flex;gap:8px;margin-bottom:8px;}
+  .pcal-field{flex:1;border-radius:12px;background:var(--fill-tertiary);padding:7px 12px;display:flex;flex-direction:column;gap:1px;}
+  .pcal-field.active{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);}
+  .pcal-field .fl-lbl{font-size:11px;color:var(--label-tertiary);}
+  .pcal-field .fl-val{font-size:15px;font-weight:600;color:var(--label);}
+  .pcal-field.active .fl-val{color:var(--accent);}
+  .frow-ic{color:var(--label-tertiary);display:flex;flex:none;}
+  .pcal-nav{display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 2px;}
+  .pcal-arrow{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;border-radius:50%;}
+  .pcal-arrow:active{background:var(--fill-tertiary);}
+  .pcal-month{font-size:15px;font-weight:600;color:var(--label);}
+  .pcal-wd{display:grid;grid-template-columns:repeat(7,1fr);margin-top:2px;}
+  .pcal-wd span{text-align:center;font-size:11px;font-weight:600;color:var(--label-tertiary);padding:4px 0;}
+  .pcal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+  .pc-empty{height:38px;}
+  .pc-day{height:38px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--label);cursor:pointer;}
+  .pc-day:active{background:var(--fill-quaternary);}
+  .pc-today{color:var(--accent);font-weight:700;}
+  .pc-mid{background:var(--accent-tint);}
+  .pc-edge{background:var(--accent);color:#fff;font-weight:600;border-radius:10px;}
+  /* v17: period custom-range — iOS wheel pickers (day / month / year), С + До */
+  .wrange{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;
+    color:var(--label);padding:0 0 8px;}
+  .wrange .warrow{color:var(--label-tertiary);font-weight:400;}
+  .wpick{padding:0 0 4px;}
+  .wpick + .wpick{border-top:.5px solid var(--separator);padding-top:6px;}
+  .wpick-hd{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--label-secondary);padding:2px 4px 2px;}
+  .wheels{position:relative;display:flex;height:150px;}
+  .wheel{flex:1 1 auto;overflow-y:scroll;scroll-snap-type:y mandatory;text-align:center;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);}
+  .wheel::-webkit-scrollbar{display:none;}
+  .wheel.wheel-day{flex:0 0 58px;}
+  .wheel.wheel-year{flex:0 0 76px;}
+  .wopt{height:30px;line-height:30px;scroll-snap-align:center;font-size:17px;color:var(--label-tertiary);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .wopt.cur{color:var(--label);font-weight:600;}
+  .wspacer{height:60px;}
+  .wband{position:absolute;left:6px;right:6px;top:50%;height:30px;transform:translateY(-50%);
+    pointer-events:none;background:var(--fill-quaternary);border-radius:8px;}
+  .wdone{margin-top:8px;height:44px;border-radius:12px;background:var(--accent);color:#fff;
+    font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .wdone:active{background:var(--accent-pressed);}
+  /* v20: period custom-range view — segmented С/До + wheels, inside the shared .fmodal */
+  .pcv{padding:8px 14px 14px;}
+  .seg2{display:flex;gap:3px;background:var(--fill-tertiary);border-radius:13px;padding:3px;margin:0 0 12px;}
+  .seg2-b{flex:1;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;cursor:pointer;transition:background .18s;}
+  .seg2-b.on{background:var(--surface-card);box-shadow:var(--shadow-card);}
+  .seg2-b .k{font-size:11px;font-weight:600;color:var(--label-tertiary);}
+  .seg2-b.on .k{color:var(--accent);}
+  .seg2-b .v{font-size:15px;font-weight:700;color:var(--label);}
+
+  /* ── v23: one summary bar + one centered «Фильтры» panel ── */
+  /* entry summary bar */
+  .filterbar{display:flex;align-items:center;gap:8px;min-height:44px;padding:7px 12px;border-radius:12px;
+    background:var(--surface-card);border:.5px solid var(--separator);box-shadow:var(--shadow-card);cursor:pointer;
+    flex-wrap:wrap;transition:transform .1s;}
+  .filterbar:active{transform:scale(.992);}
+  .fb-main{display:inline-flex;align-items:center;gap:7px;flex:none;}
+  .fb-ic{color:var(--label-secondary);display:flex;}
+  .fb-ic.on{color:var(--accent);}
+  .fb-word{font-size:15px;font-weight:600;color:var(--label);}
+  .fb-badge{min-width:19px;height:19px;padding:0 5px;border-radius:9999px;background:var(--accent);color:#fff;
+    font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .fb-right{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--label-tertiary);}
+  .fb-right .fb-chev{display:flex;color:var(--label-quaternary);}
+  .fb-toks{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;}
+  .fb-tok{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 4px 0 9px;border-radius:9999px;
+    background:var(--fill-tertiary);font-size:12.5px;font-weight:600;color:var(--label);}
+  .fb-tok .fdotc{width:7px;height:7px;}
+  .fb-x{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    color:var(--label-tertiary);}
+  .fb-x:active{background:var(--fill-quaternary);}
+  .fbresult{display:flex;align-items:center;gap:8px;min-height:0;height:0;overflow:hidden;font-size:12px;
+    color:var(--label-secondary);padding:0 4px;transition:height .18s ease;}
+  .fbresult.show{height:20px;margin-top:2px;}
+  .fbresult .rc{font-weight:700;color:var(--label);font-variant-numeric:tabular-nums;}
+  .fbresult .grow{flex:1;}
+  .fbresult .clearall{color:var(--accent);font-weight:600;cursor:pointer;}
+  .fbresult .clearall:active{opacity:.55;}
+
+  /* centered panel */
+  .fpanel-backdrop{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.42);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;padding:18px;opacity:0;transition:opacity .22s ease;}
+  .fpanel-backdrop.show{opacity:1;}
+  .fpanel{width:100%;max-width:344px;max-height:84%;display:flex;flex-direction:column;background:var(--surface-card);
+    border-radius:24px;box-shadow:0 24px 60px -12px rgba(15,23,42,.34),0 0 0 .5px rgba(15,23,42,.06);
+    transform:scale(.92);opacity:.4;transition:transform .26s cubic-bezier(.32,1.3,.5,1),opacity .2s ease;overflow:hidden;}
+  .fpanel-backdrop.show .fpanel{transform:scale(1);opacity:1;}
+  .fpanel-head{position:relative;display:flex;align-items:center;justify-content:center;height:52px;flex:none;
+    border-bottom:.5px solid var(--separator);padding:0 50px;}
+  .fpanel-title{font-size:17px;font-weight:700;color:var(--label);}
+  .fpanel-clear{position:absolute;left:0;top:0;height:52px;display:flex;align-items:center;padding:0 16px;
+    color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;}
+  .fpanel-clear.dim{color:var(--label-tertiary);pointer-events:none;}
+  .fpanel-x{position:absolute;right:8px;top:9px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;color:var(--label-secondary);cursor:pointer;}
+  .fpanel-x:active{background:var(--fill-tertiary);}
+  .fpanel-body{flex:1;overflow-y:auto;padding:6px 16px 12px;-webkit-overflow-scrolling:touch;}
+  .fpanel-foot{flex:none;border-top:.5px solid var(--separator);padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface-card);}
+  .fpbtn{height:50px;border-radius:14px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,transform .1s;
+    box-shadow:0 6px 16px -6px rgba(62,136,247,.55);}
+  .fpbtn:active{background:var(--accent-pressed);transform:scale(.99);}
+  .fpbtn.empty{background:var(--fill-tertiary);color:var(--label-tertiary);}
+  /* sections */
+  .fsection{padding:18px 0 8px;border-top:.5px solid var(--separator);}
+  .fsection:first-child{border-top:0;padding-top:10px;}
+  .fsection-cap{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--label-secondary);margin-bottom:13px;}
+  .fsection-cap .capic{width:25px;height:25px;border-radius:7px;background:var(--accent-tint);color:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;flex:none;}
+  /* sort pills (single-select, 2-col) */
+  .sortgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .sortpill{display:inline-flex;align-items:center;gap:5px;justify-content:center;height:42px;border-radius:12px;
+    background:var(--fill-tertiary);color:var(--label);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    border:1.5px solid transparent;transition:background .12s,border-color .12s,transform .1s;}
+  .sortpill:active{transform:scale(.97);}
+  .sortpill.sel{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+  .sortpill.sel svg{animation:ckpop .2s cubic-bezier(.32,.72,0,1);}
+  .sortpill svg{flex:none;}
+  /* token chips (multi/single facets + period presets) */
+  .tokwrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tok{display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 13px;border-radius:12px;
+    background:var(--fill-tertiary);color:var(--label);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    border:1.5px solid transparent;transition:background .12s,border-color .12s,transform .1s;}
+  .tok:active{transform:scale(.96);}
+  .tok .fdotc{width:9px;height:9px;flex:none;}
+  .tok .tok-l{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tok .tok-c{min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:var(--fill-quaternary);
+    display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--label-tertiary);
+    font-variant-numeric:tabular-nums;}
+  .tok.sel .tok-c{background:rgba(62,136,247,.18);}
+  .tok .tok-ck{display:inline-flex;color:var(--accent);margin-left:-1px;animation:ckpop .2s cubic-bezier(.32,.72,0,1);}
+  .tok .tok-chev{display:inline-flex;color:var(--label-tertiary);}
+  .tok.sel{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+  .tok.sel .tok-c{color:var(--accent);}
+  .tok.zero{opacity:.4;pointer-events:none;}
+  .tok.tokwide{grid-column:1 / -1;justify-content:flex-start;}
+  .tok.tokwide .tok-l{flex:1;display:inline-flex;align-items:center;gap:7px;}
+  .tok.tokwide .tok-chev,.tok.tokwide .tok-ck{margin-left:auto;}
+  .fwheel{margin-top:10px;}
+
+  /* cards */
+  .cards{display:flex;flex-direction:column;gap:8px;}
+  .card{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);padding:12px;display:flex;gap:12px;}
+  .avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:14px;flex:none;}
+  .cbody{flex:1;min-width:0;}
+  .r1{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .namewrap{display:flex;align-items:center;gap:6px;min-width:0;}
+  .name{font-size:16px;font-weight:600;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pin{color:var(--accent);flex:none;display:flex;}
+  .debt{flex:none;display:inline-flex;align-items:center;padding:0 6px;height:20px;border-radius:9999px;
+    background:rgba(255,59,48,.12);color:var(--system-red);font-size:11px;font-weight:700;}
+  .badge{flex:none;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .b-blk{background:rgba(255,59,48,.12);color:var(--system-red);}
+  .b-bday{background:rgba(255,149,0,.12);color:var(--system-orange);}
+  .b-cal{background:var(--accent-tint);color:var(--accent);}
+  .b-vip{background:rgba(255,204,0,.18);color:#B78600;}
+  .b-new{background:rgba(52,199,89,.12);color:var(--system-green);}
+  .rdot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--system-orange);}
+  .ltv{font-size:11px;font-weight:600;color:var(--label-secondary);flex:none;}
+  .r2{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:2px;min-width:0;}
+  .ph{color:var(--label-tertiary);flex:none;}
+  .mid{color:var(--label-quaternary);flex:none;}
+  .st-default{color:var(--label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .st-accent{color:var(--accent);font-weight:600;}
+  .st-muted{color:var(--label-tertiary);}
+  .r3{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--label-secondary);margin-top:2px;min-width:0;}
+  .r3 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .r4{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .acpill{display:inline-flex;align-items:center;gap:2px;padding:0 6px;height:20px;border-radius:9999px;
+    background:var(--fill-tertiary);color:var(--label-secondary);font-size:11px;font-weight:600;}
+  .tag{display:inline-flex;align-items:center;padding:0 6px;height:20px;border-radius:9999px;font-size:11px;font-weight:600;}
+  .phonebtn{width:40px;height:40px;border-radius:50%;background:rgba(52,199,89,.12);color:var(--system-green);
+    display:flex;align-items:center;justify-content:center;flex:none;align-self:center;}
+  /* v4: factual card — money figures (semantic colors), last visit date, muted team+label */
+  .name{flex:1;min-width:0;}
+  .money{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;font-weight:600;margin-top:3px;}
+  .m-exp{color:var(--label-secondary);}   /* будущая прибыль — серый */
+  .m-inc{color:var(--system-green);}        /* доход — зелёный */
+  .m-debt{color:#B78600;}                   /* долг — жёлтый/золото, читаемый на белом */
+  /* v6 — last visit + calendar + city label + tag on ONE line, black, small, ellipsis if overflow */
+  .meta{font-size:11px;color:var(--label);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .meta .seg::before{content:"·";margin:0 5px;color:var(--label-tertiary);}
+  .meta .seg:first-child::before{content:none;}
+  .meta .seg-last svg{vertical-align:-1.5px;margin-right:3px;color:var(--label-secondary);}
+  /* live mirror — toggling a field in settings hides it on every card */
+  .hide-exp .m-exp,.hide-inc .m-inc,.hide-debt .m-debt,.hide-last .seg-last,.hide-meta .seg-meta{display:none;}
+  .hide-last .seg.mfirst::before{content:none;}   /* drop leading dot when the date segment is toggled off */
+  /* iOS toggle switch (settings mirror) */
+  .sw{flex:none;width:44px;height:26px;border-radius:9999px;background:var(--fill-tertiary);position:relative;transition:background .2s ease;cursor:pointer;}
+  .sw.on{background:var(--system-green);}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s ease;}
+  .sw.on::after{transform:translateX(18px);}
+  .sw.locked{opacity:.45;cursor:not-allowed;}
+  .fdot{width:9px;height:9px;border-radius:50%;flex:none;}
+
+  /* bottom tab bar */
+  .tabbar{height:60px;flex:none;display:flex;align-items:flex-start;justify-content:space-around;gap:2px;
+    padding:4px 8px 0;background:var(--glass-bg);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--separator);}
+  .tab{flex:1;min-width:44px;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;color:var(--label-secondary);position:relative;}
+  .tab.active{color:var(--accent);}
+  .tab .lbl{font-size:10px;line-height:1;font-weight:500;}
+  .tab.active .lbl{font-weight:600;}
+  .tab .count{position:absolute;top:-2px;right:18px;min-width:16px;height:16px;padding:0 4px;border-radius:9999px;
+    background:var(--system-red);color:#fff;font-size:10px;font-weight:600;line-height:16px;text-align:center;
+    box-shadow:0 0 0 2px var(--surface-card);}
+
+  /* ── v2: client-settings stub screen ── */
+  .sheetscreen{position:absolute;inset:0;z-index:60;background:var(--surface-grouped);display:none;flex-direction:column;}
+  .sheetscreen.open{display:flex;}
+  .sheetnav{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px;
+    background:var(--surface-card);border-bottom:.5px solid var(--separator);}
+  .sheetnav .back{display:flex;align-items:center;color:var(--accent);font-size:15px;font-weight:500;height:40px;padding:0 4px;}
+  .sheetnav .stitle{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .sheetbody{flex:1;overflow-y:auto;padding:6px 14px 24px;}
+  .sgroup-title{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--label-secondary);padding:16px 6px 6px;}
+  .sgroup{background:var(--surface-card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-card);}
+  .srow{display:flex;align-items:center;gap:12px;min-height:50px;padding:9px 14px;border-bottom:.5px solid var(--separator);}
+  .srow:last-child{border-bottom:0;}
+  .stile{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;flex:none;}
+  .stext{flex:1;min-width:0;}
+  .stext .t{display:block;font-size:15px;color:var(--label);}
+  .stext .s{display:block;font-size:12px;color:var(--label-tertiary);margin-top:1px;}
+  .chev{color:var(--label-tertiary);flex:none;}
+  .snote{margin-top:16px;padding:12px 14px;border-radius:12px;background:rgba(255,149,0,.10);color:var(--system-orange);
+    font-size:13px;font-weight:600;line-height:1.4;display:flex;align-items:flex-start;gap:8px;}
+  .snote svg{flex:none;margin-top:1px;}
+</style></style>
+</head>
+<body>
+
+  <div class="caption">
+    <b>Клиенты — правка 25.</b> Фильтры: строка-сводка с удаляемыми тегами → центрированная панель «Фильтры» (Порядок · Команда · Метка · Тег · Период с барабанами), применяется мгновенно, счётчики по значениям. </div>
+
+  <div class="device">
+    <div class="screen">
+
+      <!-- ── status bar ── -->
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <!-- signal -->
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <!-- wifi -->
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <!-- battery -->
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+
+      <!-- ── PageHeader ── -->
+      <div class="nav">
+        <span class="iconbtn" id="settingsBtn" title="Настройки клиентов" style="cursor:pointer"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <span class="titlewrap"><span class="title">Клиенты</span></span>
+        <div class="actions">
+          <span class="iconbtn" title="Добавить клиента">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- ── scroll ── -->
+      <div class="scroll">
+        <div class="content">
+
+          <!-- search -->
+          <div class="search">
+            <svg class="si" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input placeholder="Поиск по имени, телефону..." />
+          </div>
+
+          <!-- v23: single summary bar (entry) — opens the centered «Фильтры» panel; filled in JS -->
+          <div class="filterbar" id="filterbar"></div>
+          <div class="fbresult" id="fbResult"></div>
+
+          <!-- client cards -->
+          <div class="cards" id="cards"></div>
+
+        </div>
+      </div>
+
+      <!-- ── bottom tab bar ── -->
+      <div class="tabbar">
+        <div class="tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+          <span class="lbl">Календарь</span>
+        </div>
+        <div class="tab active">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+          <span class="lbl">Клиенты</span>
+        </div>
+        <div class="tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="lbl">Чаты</span>
+          <span class="count">3</span>
+        </div>
+        <div class="tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+          <span class="lbl">Финансы</span>
+        </div>
+        <div class="tab">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg>
+          <span class="lbl">Кабинет</span>
+        </div>
+      </div>
+
+      <!-- v2: client-settings stub screen (opens from the gear in the header) -->
+      <div class="sheetscreen" id="settingsScreen">
+        <div class="sheetnav">
+          <span class="back" id="settingsBack" style="cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Клиенты</span>
+          <span class="stitle">Настройки клиентов</span>
+          <span style="width:64px"></span>
+        </div>
+        <div class="sheetbody">
+          <div class="sgroup-title">Отображение</div>
+          <div class="sgroup">
+            <div class="srow" id="openCardFields" style="cursor:pointer">
+              <span class="stile" style="background:#3E88F7"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="stext"><span class="t">Что показывать на карточке</span><span class="s">Имя · доход · долг · последняя запись · команда</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+            <div class="srow" id="sortRow" style="cursor:pointer">
+              <span class="stile" style="background:#5E5CE6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg></span>
+              <span class="stext"><span class="t">Сортировка списка</span><span class="s" id="sortMirror">По имени (А–Я)</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+            <div class="srow">
+              <span class="stile" style="background:#30B0C7"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"/></svg></span>
+              <span class="stext"><span class="t">Фильтры списка</span><span class="s">Календари: Y&amp;D, D&amp;K</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+          </div>
+
+          <div class="sgroup-title">Редактирование</div>
+          <div class="sgroup">
+            <div class="srow">
+              <span class="stile" style="background:#34C759"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+              <span class="stext"><span class="t">Какие поля можно редактировать</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+            <div class="srow">
+              <span class="stile" style="background:#FF9500"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3.5" x2="3.51" y1="6" y2="6"/><line x1="3.5" x2="3.51" y1="12" y2="12"/><line x1="3.5" x2="3.51" y1="18" y2="18"/></svg></span>
+              <span class="stext"><span class="t">Поля и блоки профиля</span><span class="s">Объекты · визиты · финансы · заметки</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+          </div>
+
+          <div class="sgroup-title">Данные</div>
+          <div class="sgroup">
+            <div class="srow" style="cursor:pointer">
+              <span class="stile" style="background:#3E88F7"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v8"/><path d="m8 17 4-4 4 4"/><path d="M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.3"/></svg></span>
+              <span class="stext"><span class="t">Импорт из CSV</span><span class="s">Загрузить клиентов из файла</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+            <div class="srow" style="cursor:pointer">
+              <span class="stile" style="background:#30B0C7"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg></span>
+              <span class="stext"><span class="t">Экспорт в CSV</span><span class="s">Выгрузить список (с учётом фильтров)</span></span>
+              <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+          </div>
+
+          <div class="snote"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg> Раздел в разработке. «Что показывать на карточке» уже работает — остальное настроим дальше.</div>
+        </div>
+      </div>
+
+      <!-- v4: nested "Что показывать на карточке" — live mirror of card fields -->
+      <div class="sheetscreen" id="cardFieldsScreen">
+        <div class="sheetnav">
+          <span class="back" id="cardFieldsBack" style="cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Настройки</span>
+          <span class="stitle">Что показывать</span>
+          <span style="width:96px"></span>
+        </div>
+        <div class="sheetbody">
+          <div class="sgroup-title">Поля карточки</div>
+          <div class="sgroup">
+            <div class="srow"><span class="fdot" style="background:var(--label-tertiary)"></span><span class="stext"><span class="t">Имя клиента</span><span class="s">всегда видно</span></span><span class="sw on locked"></span></div>
+            <div class="srow"><span class="fdot" style="background:var(--label-secondary)"></span><span class="stext"><span class="t">Ожидаемая прибыль</span><span class="s">серая</span></span><span class="sw on" data-field="exp"></span></div>
+            <div class="srow"><span class="fdot" style="background:var(--system-green)"></span><span class="stext"><span class="t">Доход</span><span class="s">зелёный</span></span><span class="sw on" data-field="inc"></span></div>
+            <div class="srow"><span class="fdot" style="background:#B78600"></span><span class="stext"><span class="t">Долг</span><span class="s">жёлтый</span></span><span class="sw on" data-field="debt"></span></div>
+            <div class="srow"><span class="fdot" style="background:var(--label-tertiary)"></span><span class="stext"><span class="t">Последняя запись</span></span><span class="sw on" data-field="last"></span></div>
+            <div class="srow"><span class="fdot" style="background:var(--label-tertiary)"></span><span class="stext"><span class="t">Календарь, метка, тег</span></span><span class="sw on" data-field="meta"></span></div>
+          </div>
+          <div class="snote" style="background:var(--accent-tint);color:var(--accent)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> Выключи поле — оно сразу пропадёт с карточек в списке. Имя всегда видно.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="caption" style="opacity:.8">
+    iPhone · 392 px · нижний таб-бар «Клиенты» активен. Прокрути список внутри рамки — всего 12 карточек.
+  </div>
+
+<script>
+  // ── SVG icon snippets (lucide), kept tiny ──
+  const I = {
+    pin:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>',
+    ban:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>',
+    cake:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3M12 8v3M17 8v3"/></svg>',
+    cal:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>',
+    star:'<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg>',
+    spark:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 2.5 12 8l5.5 2.1L12 12.2 9.9 17.7 7.8 12.2 2.3 10.1 7.8 8z"/></svg>',
+    pin_addr:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+    wind:'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>',
+    phone:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.8.4 1.6.7 2.3a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.7-1.3a2 2 0 0 1 2.1-.4c.7.3 1.5.6 2.3.7A2 2 0 0 1 22 16.9z"/></svg>',
+  };
+
+  function tagAlpha(hex,a){const c=hex.replace('#','');const r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);return `rgba(${r},${g},${b},${a})`;}
+
+  // v6 — one-line meta: последняя запись · календарь · метка(город) · тег. brig=null → no team.
+  const clients = [
+    { first:'Angela',    ini:'AM', color:'#FF2D55', brig:'D&K',  city:'Лимассол', tag:'',           exp:80,  inc:0,   debt:0,   last:null,     appts:[] },
+    { first:'Johannes',  ini:'JW', color:'#FFCC00', brig:'D&K',  city:'',         tag:'',           exp:0,   inc:0,   debt:0,   last:null,     appts:[] },
+    { first:'John',      ini:'JT', color:'#FF9500', brig:'Y&D',  city:'Ларнака',  tag:'VIP',        exp:120, inc:420, debt:0,   last:'2 мар',  appts:['2026-01-15','2026-03-02'] },
+    { first:'Laima',     ini:'LB', color:'#32ADE6', brig:'Y&D',  city:'Пафос',    tag:'',           exp:0,   inc:90,  debt:0,   last:'12 фев', appts:['2026-02-12'] },
+    { first:'Marina',    ini:'MA', color:'#AF52DE', brig:null,   city:'',         tag:'',           exp:0,   inc:0,   debt:0,   last:null,     appts:[] },
+    { first:'Александр', ini:'АС', color:'#A2845E', brig:'Y&D',  city:'Никосия',  tag:'Проблемный', exp:0,   inc:120, debt:0,   last:'18 апр', appts:['2025-11-20','2026-04-18'] },
+    { first:'Анастасия', ini:'АП', color:'#007AFF', brig:'Y&D',  city:'Лимассол', tag:'VIP',        exp:160, inc:640, debt:0,   last:'30 мая', appts:['2026-01-10','2026-04-09','2026-05-30'] },
+    { first:'Надежда',   ini:'НВ', color:'#34C759', brig:'D&K',  city:'Никосия',  tag:'',           exp:0,   inc:240, debt:0,   last:'3 мая',  appts:['2026-03-03','2026-05-03'] },
+    { first:'Ольга',     ini:'ОН', color:'#5E5CE6', brig:'Y&D',  city:'Пафос',    tag:'',           exp:0,   inc:270, debt:0,   last:'25 мая', appts:['2026-05-25'] },
+    { first:'Руслан',    ini:'РА', color:'#00C7BE', brig:'D&K',  city:'',         tag:'',           exp:0,   inc:0,   debt:0,   last:null,     appts:[] },
+    { first:'Светлана',  ini:'СК', color:'#30B0C7', brig:'Y&D',  city:'Айя-Напа', tag:'',           exp:0,   inc:180, debt:0,   last:'1 июн',  appts:['2026-02-01','2026-06-01'] },
+    { first:'Сергей',    ini:'СМ', color:'#FF3B30', brig:'Y&D',  city:'Лимассол', tag:'Постоянный', exp:120, inc:560, debt:135, last:'10 мая', appts:['2026-02-20','2026-05-10'] },
+  ];
+
+  // ── v7: filter state + dropdown pickers (команда / метка / тег) ──
+  const CARET = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  const CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const TEAM_COLORS = { 'Y&D':'#6366f1', 'D&K':'#8b5cf6' };
+  const CITY_COLORS = { 'Лимассол':'#FF9500','Пафос':'#32ADE6','Ларнака':'#34C759','Никосия':'#AF52DE','Айя-Напа':'#FFCC00' };
+  const TAG_COLORS  = { 'VIP':'#f59e0b','Постоянный':'#10b981','Проблемный':'#ef4444' };
+  const uniq = (a) => [...new Set(a.filter(Boolean))];
+  const teams  = uniq(clients.map(c=>c.brig));
+  const cities = uniq(clients.map(c=>c.city));
+  const tags   = uniq(clients.map(c=>c.tag));
+  const filters = { team:[], city:[], tag:[], period:null };   // value facets are arrays; period is {k,from,to} or null
+  // v21: sort state (single source of truth; mirrored in Settings) + chip glyph
+  let sort = 'az';
+  const SORTS = [
+    { k:'az',   l:'По имени (А–Я)' },
+    { k:'za',   l:'По имени (Я–А)' },
+    { k:'last', l:'Недавно посещали' },
+    { k:'old',  l:'Давно не были' },
+    { k:'inc',  l:'По доходу' },
+    { k:'debt', l:'С долгом сверху' },
+  ];
+  const SORT_SHORT = { az:'А–Я', za:'Я–А', last:'Недавние', old:'Давно не были', inc:'Доход', debt:'Долг' };
+  const SORTIC = '<svg class="sortic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 4-4 4 4M7 4v16M21 16l-4 4-4-4M17 20V4"/></svg>';
+  const lastAppt = (c) => c.appts.length ? c.appts.reduce((a,b)=> a>b?a:b) : '';
+  const byName = (a,b) => a.first.localeCompare(b.first,'ru');
+  function sortClients(list){
+    const a = [...list];
+    switch (sort){
+      case 'za':   a.sort((x,y)=> byName(y,x)); break;
+      case 'last': a.sort((x,y)=> lastAppt(y).localeCompare(lastAppt(x)) || byName(x,y)); break;  // recent first; never-visited last
+      case 'old':  a.sort((x,y)=> lastAppt(x).localeCompare(lastAppt(y)) || byName(x,y)); break;  // overdue/never first
+      case 'inc':  a.sort((x,y)=> y.inc - x.inc  || byName(x,y)); break;
+      case 'debt': a.sort((x,y)=> y.debt - x.debt || byName(x,y)); break;
+      default:     a.sort(byName);
+    }
+    return a;
+  }
+  // per-value client counts (decision aid in facet popups) — over the whole base
+  const FACET_FIELD = { team:'brig', city:'city', tag:'tag' };
+  const facetCount = (type,v) => clients.filter(c => c[FACET_FIELD[type]]===v).length;
+  const activeCount = () => (filters.team.length?1:0)+(filters.city.length?1:0)+(filters.tag.length?1:0)+(filters.period?1:0);
+  const pluralClients = (n) => { const a=n%100,b=n%10; if(a>10&&a<20)return 'клиентов'; if(b===1)return 'клиент'; if(b>=2&&b<=4)return 'клиента'; return 'клиентов'; };
+  function clearAllFilters(){ filters.team=[]; filters.city=[]; filters.tag=[]; filters.period=null; renderCards(); }
+
+  function cardHTML(c){
+    // compact money — colored € amounts, no words (grey=ожид · green=доход · gold=долг)
+    const figs = [];
+    if (c.exp > 0)  figs.push(`<span class="m-exp">€${c.exp}</span>`);
+    if (c.inc > 0)  figs.push(`<span class="m-inc">€${c.inc}</span>`);
+    if (c.debt > 0) figs.push(`<span class="m-debt">€${c.debt}</span>`);
+    const money = figs.length ? `<div class="money">${figs.join('')}</div>` : '';
+    const clock = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>';
+    const segs = [`<span class="seg seg-last">${c.last ? clock + c.last : 'нет записей'}</span>`];
+    let mfirst = true;
+    const addMeta = (t) => { segs.push(`<span class="seg seg-meta${mfirst ? ' mfirst' : ''}">${t}</span>`); mfirst = false; };
+    if (c.brig) addMeta(c.brig);
+    if (c.city) addMeta(c.city);
+    if (c.tag)  addMeta(c.tag);
+    return `
+      <div class="card">
+        <div class="avatar" style="background:${c.color}">${c.ini}</div>
+        <div class="cbody">
+          <div class="r1"><span class="name">${c.first}</span></div>
+          ${money}
+          <div class="meta">${segs.join('')}</div>
+        </div>
+        <div class="phonebtn">${I.phone}</div>
+      </div>`;
+  }
+
+  // Period filter — client's last-appointment date within the selected range (today = 2026-06-02).
+  const PERIOD_RANGES = {
+    month:{ from:'2026-06-01', to:'2026-06-30' },
+    prev: { from:'2026-05-01', to:'2026-05-31' },
+    '3m': { from:'2026-03-02', to:'2026-06-02' },
+    year: { from:'2026-01-01', to:'2026-12-31' },
+  };
+  function setPeriod(k){
+    if (k === 'all') { filters.period = null; return; }
+    filters.period = { k, ...PERIOD_RANGES[k] };
+  }
+  // client shown if ANY of their bookings falls in the range
+  // (≈ SELECT DISTINCT client_id FROM bookings WHERE date BETWEEN :from AND :to)
+  const periodOk = (c) => !filters.period ||
+    c.appts.some(d => d >= filters.period.from && d <= filters.period.to);
+  const visibleClients = () => sortClients(clients.filter(c =>
+    (filters.team.length===0 || filters.team.includes(c.brig)) &&
+    (filters.city.length===0 || filters.city.includes(c.city)) &&
+    (filters.tag.length===0  || filters.tag.includes(c.tag)) &&
+    periodOk(c)));
+
+  function renderCards(){
+    const list = visibleClients();
+    document.getElementById('cards').innerHTML = list.length
+      ? list.map(cardHTML).join('')
+      : '<div class="emptyf">Никого не нашлось по фильтру<div class="empty-reset" id="emptyReset">Сбросить фильтры</div></div>';
+    document.getElementById('emptyReset')?.addEventListener('click', clearAllFilters);
+    renderBar();
+  }
+
+  // ── v23: wheel infra (lifted to scope) ──
+  const M_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const M_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const pad = (n)=>String(n).padStart(2,'0');
+  const ymd = (y,mo,d)=>`${y}-${pad(mo+1)}-${pad(d)}`;
+  const fmtShort = (d)=>{ const [y,mo,dd]=d.split('-').map(Number); return `${dd} ${M_GEN[mo-1].slice(0,3)}`; };
+  const human = (d)=>{ const [y,mo,dd]=d.split('-').map(Number); return `${dd} ${M_GEN[mo-1]} ${y}`; };
+  const shortD = (st)=>`${st.d} ${M_NOM[st.m].slice(0,3).toLowerCase()} ${String(st.y).slice(2)}`;
+  const IH = 30;
+  const YEARS = []; for (let y=2020; y<=2030; y++) YEARS.push(y);
+  const dimDays = (y,mo)=> new Date(y, mo+1, 0).getDate();
+  const markCur = (w, idx)=> w.querySelectorAll('.wopt').forEach(o=> o.classList.toggle('cur', +o.dataset.i===idx));
+  function makeWheel(w, count, label, initIdx, onCommit){
+    w.innerHTML = '<div class="wspacer"></div>' + Array.from({length:count},(_,i)=>`<div class="wopt" data-i="${i}">${label(i)}</div>`).join('') + '<div class="wspacer"></div>';
+    let suppress = true, t;
+    w.scrollTop = initIdx*IH; markCur(w, initIdx);
+    setTimeout(()=>{ suppress=false; }, 160);
+    w.onscroll = ()=>{ const idx = Math.max(0, Math.min(count-1, Math.round(w.scrollTop/IH))); markCur(w, idx); if (suppress) return; clearTimeout(t); t = setTimeout(()=> onCommit(idx), 90); };
+  }
+  function buildPicker(root, st, onChange){
+    root.innerHTML = '<div class="wheels"><div class="wheel wheel-day"></div><div class="wheel wheel-mon"></div><div class="wheel wheel-year"></div><div class="wband"></div></div>';
+    const dEl=root.querySelector('.wheel-day'), mEl=root.querySelector('.wheel-mon'), yEl=root.querySelector('.wheel-year');
+    function buildDay(){ const max=dimDays(st.y, st.m); if (st.d>max) st.d=max; makeWheel(dEl, max, (i)=>String(i+1), st.d-1, (i)=>{ st.d=i+1; onChange(); }); }
+    buildDay();
+    makeWheel(mEl, 12, (i)=>M_NOM[i], st.m, (i)=>{ st.m=i; buildDay(); onChange(); });
+    const yi=YEARS.indexOf(st.y);
+    makeWheel(yEl, YEARS.length, (i)=>String(YEARS[i]), yi<0?6:yi, (i)=>{ st.y=YEARS[i]; buildDay(); onChange(); });
+  }
+  const TODAY = '2026-06-02';
+  const dAgo = (n)=>{ const d=new Date(2026,5,2); d.setDate(d.getDate()-n); return ymd(d.getFullYear(), d.getMonth(), d.getDate()); };
+  const PRESETS = [
+    { k:'all',   l:'Всё время',     from:null,         to:null },
+    { k:'today', l:'Сегодня',       from:TODAY,        to:TODAY },
+    { k:'7d',    l:'7 дней',        from:dAgo(6),      to:TODAY },
+    { k:'30d',   l:'30 дней',       from:dAgo(29),     to:TODAY },
+    { k:'90d',   l:'90 дней',       from:dAgo(89),     to:TODAY },
+    { k:'month', l:'Этот месяц',    from:'2026-06-01', to:'2026-06-30' },
+    { k:'prev',  l:'Прошлый месяц', from:'2026-05-01', to:'2026-05-31' },
+    { k:'year',  l:'Этот год',      from:'2026-01-01', to:'2026-12-31' },
+  ];
+
+  // ── v23: icons ──
+  const FUNNEL = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>';
+  const XSMALL = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  const XBIG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  const CHEVR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  const G_SORT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 4-4 4 4M7 4v16M21 16l-4 4-4-4M17 20V4"/></svg>';
+  const G_TEAM = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>';
+  const G_CITY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+  const G_TAG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 2.6a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8l-6.4 6.4a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2 11V4a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="7.5" r="1.6" fill="currentColor" stroke="none"/></svg>';
+  const G_CAL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>';
+
+  const FACETS = [
+    { key:'team', cap:'Команда', glyph:G_TEAM, items:teams,  colors:TEAM_COLORS },
+    { key:'city', cap:'Метка',   glyph:G_CITY, items:cities, colors:CITY_COLORS },
+    { key:'tag',  cap:'Тег',     glyph:G_TAG,  items:tags,   colors:TAG_COLORS },
+  ];
+  const periodLabel = (p)=> p.k==='custom' ? `${fmtShort(p.from)} – ${fmtShort(p.to)}` : ((PRESETS.find(x=>x.k===p.k)||{}).l||'Период');
+
+  function ctxCount(key, val){
+    const field = FACET_FIELD[key];
+    return clients.filter(c=>{
+      if (c[field]!==val) return false;
+      for (const k of ['team','city','tag']){ if (k===key) continue; const arr=filters[k]; if (arr.length && !arr.includes(c[FACET_FIELD[k]])) return false; }
+      return periodOk(c);
+    }).length;
+  }
+  function activeTokens(){
+    const out=[];
+    filters.team.forEach(v=>out.push({key:'team',val:v,label:v,color:TEAM_COLORS[v]}));
+    filters.city.forEach(v=>out.push({key:'city',val:v,label:v,color:CITY_COLORS[v]}));
+    filters.tag.forEach(v=>out.push({key:'tag',val:v,label:v,color:TAG_COLORS[v]}));
+    if (filters.period) out.push({key:'period',val:'',label:periodLabel(filters.period),color:'var(--accent)'});
+    return out;
+  }
+  function removeToken(key, val){
+    if (key==='period') filters.period=null;
+    else { const arr=filters[key]; const i=arr.indexOf(val); if (i>=0) arr.splice(i,1); }
+    renderCards();
+  }
+
+  // ── v23: summary bar (entry) ──
+  function renderBar(){
+    const bar=document.getElementById('filterbar');
+    const rl=document.getElementById('fbResult');
+    const toks=activeTokens();
+    const total=clients.length;
+    if (toks.length===0){
+      bar.innerHTML = `<span class="fb-main"><span class="fb-ic">${FUNNEL}</span><span class="fb-word">Фильтры</span></span><span class="fb-right">Всего ${total} ${pluralClients(total)} <span class="fb-chev">${CHEVR}</span></span>`;
+      rl.className='fbresult'; rl.innerHTML='';
+    } else {
+      const tokens=toks.map(t=>`<span class="fb-tok" data-key="${t.key}" data-val="${t.val}"><span class="fdotc" style="background:${t.color}"></span>${t.label}<span class="fb-x">${XSMALL}</span></span>`).join('');
+      bar.innerHTML = `<span class="fb-main"><span class="fb-ic on">${FUNNEL}</span><span class="fb-badge">${activeCount()}</span></span><span class="fb-toks">${tokens}</span>`;
+      const n=visibleClients().length;
+      rl.className='fbresult show';
+      rl.innerHTML = `<span>Найдено: <span class="rc">${n}</span></span><span class="grow"></span><span class="clearall" id="fbClear">Сбросить</span>`;
+      rl.querySelector('#fbClear').addEventListener('click', clearAllFilters);
+    }
+    bar.querySelectorAll('.fb-x').forEach(x=>x.addEventListener('click',(e)=>{ e.stopPropagation(); const t=x.closest('.fb-tok'); removeToken(t.dataset.key, t.dataset.val); }));
+    const sm=document.getElementById('sortMirror'); if (sm) sm.textContent=(SORTS.find(s=>s.k===sort)||{}).l||'По имени (А–Я)';
+  }
+
+  // ── v23: one centered «Фильтры» panel (all filters, live) ──
+  function openFilterPanel(){
+    const m=document.createElement('div');
+    m.className='fpanel-backdrop';
+    m.innerHTML = `<div class="fpanel"><div class="fpanel-head"><span class="fpanel-clear" id="fpClear">Сбросить</span><span class="fpanel-title">Фильтры</span><span class="fpanel-x" id="fpX">${XBIG}</span></div><div class="fpanel-body" id="fpBody"></div><div class="fpanel-foot"><div class="fpbtn" id="fpShow"></div></div></div>`;
+    const body=m.querySelector('#fpBody');
+    const close=()=>{ m.classList.remove('show'); setTimeout(()=>m.remove(),240); };
+    let customOpen = !!(filters.period && filters.period.k==='custom');
+
+    function secSort(){
+      const pills=SORTS.map(s=>`<button class="sortpill${sort===s.k?' sel':''}" data-act="sort" data-k="${s.k}">${sort===s.k?CHECK:''}${s.l}</button>`).join('');
+      return `<div class="fsection"><div class="fsection-cap"><span class="capic">${G_SORT}</span>Порядок</div><div class="sortgrid">${pills}</div></div>`;
+    }
+    function secFacet(cfg){
+      const sel=filters[cfg.key];
+      const chips=cfg.items.map(v=>{ const on=sel.includes(v); const cnt=ctxCount(cfg.key,v); const zero=cnt===0&&!on;
+        return `<button class="tok${on?' sel':''}${zero?' zero':''}" data-act="facet" data-key="${cfg.key}" data-val="${v}"><span class="fdotc" style="background:${cfg.colors[v]}"></span><span class="tok-l">${v}</span><span class="tok-c">${cnt}</span>${on?`<span class="tok-ck">${CHECK}</span>`:''}</button>`;
+      }).join('');
+      return `<div class="fsection"><div class="fsection-cap"><span class="capic">${cfg.glyph}</span>${cfg.cap}</div><div class="tokwrap">${chips}</div></div>`;
+    }
+    function secPeriod(){
+      const curK=filters.period?filters.period.k:'all';
+      const chips=PRESETS.map(p=>`<button class="tok${curK===p.k?' sel':''}" data-act="preset" data-k="${p.k}"><span class="tok-l">${p.l}</span>${curK===p.k?`<span class="tok-ck">${CHECK}</span>`:''}</button>`).join('');
+      const onC=curK==='custom';
+      const cLbl=onC?periodLabel(filters.period):'Свой диапазон';
+      const customChip=`<button class="tok tokwide${onC?' sel':''}" data-act="custom"><span class="tok-l">${G_CAL} ${cLbl}</span>${onC?`<span class="tok-ck">${CHECK}</span>`:`<span class="tok-chev">${CHEVR}</span>`}</button>`;
+      const wheel=customOpen?`<div class="fwheel"><div class="wrange" id="wRange"></div><div class="seg2"><div class="seg2-b on" data-e="from"><span class="k">С</span><span class="v" id="segFrom"></span></div><div class="seg2-b" data-e="to"><span class="k">До</span><span class="v" id="segTo"></span></div></div><div class="wpick" id="wPick"></div></div>`:'';
+      return `<div class="fsection"><div class="fsection-cap"><span class="capic">${G_CAL}</span>Период</div><div class="tokwrap">${chips}${customChip}</div>${wheel}</div>`;
+    }
+    function updateFoot(){ const n=visibleClients().length; const b=m.querySelector('#fpShow'); b.textContent=n>0?`Показать ${n} ${pluralClients(n)}`:'Ничего не найдено'; b.classList.toggle('empty',n===0); }
+    function updateClear(){ m.querySelector('#fpClear').classList.toggle('dim', activeCount()===0); }
+    function mountWheel(){
+      let sf,st0;
+      if (filters.period && filters.period.k==='custom'){ const a=filters.period.from.split('-').map(Number),b=filters.period.to.split('-').map(Number); sf={y:a[0],m:a[1]-1,d:a[2]}; st0={y:b[0],m:b[1]-1,d:b[2]}; }
+      else { sf={y:2026,m:5,d:1}; st0={y:2026,m:5,d:2}; }
+      const fromSt={...sf}, toSt={...st0}; let active='from';
+      const wPick=body.querySelector('#wPick'); if(!wPick) return;
+      const refresh=()=>{ const r=body.querySelector('#wRange'); if(r) r.innerHTML=`<span>${human(ymd(fromSt.y,fromSt.m,fromSt.d))}</span><span class="warrow">→</span><span>${human(ymd(toSt.y,toSt.m,toSt.d))}</span>`; const a2=body.querySelector('#segFrom'),b2=body.querySelector('#segTo'); if(a2)a2.textContent=shortD(fromSt); if(b2)b2.textContent=shortD(toSt); };
+      const applyNow=()=>{ let a=ymd(fromSt.y,fromSt.m,fromSt.d),b=ymd(toSt.y,toSt.m,toSt.d); if(a>b){const t=a;a=b;b=t;} filters.period={k:'custom',from:a,to:b}; renderCards(); updateFoot(); updateClear(); };
+      const buildActive=()=> buildPicker(wPick, active==='from'?fromSt:toSt, ()=>{ applyNow(); refresh(); });
+      buildActive(); refresh();
+      body.querySelectorAll('.seg2-b').forEach(bb=>bb.addEventListener('click',()=>{ active=bb.dataset.e; body.querySelectorAll('.seg2-b').forEach(x=>x.classList.toggle('on',x.dataset.e===active)); buildActive(); }));
+    }
+    function render(){
+      body.innerHTML = secSort() + FACETS.map(secFacet).join('') + secPeriod();
+      if (customOpen) mountWheel();
+      updateFoot(); updateClear();
+    }
+    body.addEventListener('click',(e)=>{
+      const el=e.target.closest('[data-act]'); if(!el) return;
+      const act=el.dataset.act;
+      if (act==='sort'){ sort=el.dataset.k; renderCards(); render(); }
+      else if (act==='facet'){ const k=el.dataset.key,v=el.dataset.val; const arr=filters[k]; const i=arr.indexOf(v); if(i>=0)arr.splice(i,1); else arr.push(v); renderCards(); render(); }
+      else if (act==='preset'){ const p=PRESETS.find(x=>x.k===el.dataset.k); filters.period=p.k==='all'?null:{k:p.k,from:p.from,to:p.to}; customOpen=false; renderCards(); render(); }
+      else if (act==='custom'){ customOpen=true; render(); }
+    });
+    m.querySelector('#fpX').addEventListener('click', close);
+    m.querySelector('#fpShow').addEventListener('click', close);
+    m.querySelector('#fpClear').addEventListener('click', ()=>{ if (activeCount()===0) return; clearAllFilters(); customOpen=false; render(); });
+    m.addEventListener('click',(e)=>{ if (e.target===m) close(); });
+    document.querySelector('.screen').appendChild(m);
+    render();
+    requestAnimationFrame(()=> m.classList.add('show'));
+  }
+
+  document.getElementById('filterbar').addEventListener('click', openFilterPanel);
+  document.getElementById('sortRow')?.addEventListener('click', openFilterPanel);
+  renderCards();
+
+  // v2: combined Import/Export button toggles its dropdown list.
+  const ioBtn = document.getElementById('ioBtn');
+  const ioMenu = document.querySelector('.iomenu');
+  if (ioBtn && ioMenu){
+    ioBtn.addEventListener('click', (e)=>{ e.stopPropagation(); ioMenu.classList.toggle('open'); });
+    document.addEventListener('click', ()=> ioMenu.classList.remove('open'));
+  }
+
+  // v2: gear → client-settings stub screen.
+  document.getElementById('settingsBtn')?.addEventListener('click', ()=>
+    document.getElementById('settingsScreen').classList.add('open'));
+  document.getElementById('settingsBack')?.addEventListener('click', ()=>
+    document.getElementById('settingsScreen').classList.remove('open'));
+
+  // v4: nested "Что показывать" screen + live field toggles (mirror of the card).
+  document.getElementById('openCardFields')?.addEventListener('click', ()=>
+    document.getElementById('cardFieldsScreen').classList.add('open'));
+  document.getElementById('cardFieldsBack')?.addEventListener('click', ()=>
+    document.getElementById('cardFieldsScreen').classList.remove('open'));
+  document.querySelectorAll('.sw[data-field]').forEach((sw)=>{
+    sw.addEventListener('click', ()=>{
+      sw.classList.toggle('on');
+      document.getElementById('cards').classList.toggle('hide-' + sw.dataset.field, !sw.classList.contains('on'));
+    });
+  });
+</script>
+</body>
+</html>

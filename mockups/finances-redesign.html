@@ -1,0 +1,2506 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Babun2 — Финансы (редизайн v2, поблочно)</title>
+<style>
+
+  :root{
+    --surface-grouped:#EFEFF4; --surface-card:#FFFFFF; --surface-card-secondary:#F2F2F7;
+    --surface-overlay:rgba(0,0,0,0.40);
+    --separator:rgba(60,60,67,0.10); --separator-opaque:#E6E7E8;
+    --label:#000000; --label-secondary:#3C3C4399; --label-tertiary:rgba(60,60,67,0.30);
+    --label-quaternary:rgba(60,60,67,0.18); --label-on-accent:#FFFFFF;
+    --fill-tertiary:rgba(118,118,128,0.12); --fill-quaternary:rgba(116,116,128,0.08);
+    --system-red:#FF3B30; --system-orange:#FF9500; --system-green:#34C759; --system-blue:#007AFF;
+    --accent:#3E88F7; --accent-pressed:#2D7BE5; --accent-tint:rgba(62,136,247,0.12);
+    --orange-tint:rgba(255,149,0,0.12); --red-tint:rgba(255,59,48,0.10);
+    --glass-bg:rgba(255,255,255,0.72);
+    --shadow-card:0 0 0 0.5px rgba(15,23,42,0.04),0 1px 2px rgba(15,23,42,0.04);
+    --shadow-fab:0 8px 24px -6px rgba(62,136,247,0.45),0 2px 6px rgba(0,0,0,0.12);
+    --shadow-sheet:0 -8px 40px -10px rgba(0,0,0,0.30);
+    --radius-pill:9999px;
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  }
+
+
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;}
+  body{font-family:var(--font-sans);
+    background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    gap:14px;padding:30px 16px 90px;color:var(--label);font-variant-numeric:tabular-nums;}
+  .caption{font-size:12.5px;color:#6b7280;letter-spacing:.01em;text-align:center;max-width:392px;line-height:1.45;}
+  .caption b{color:#374151;font-weight:600;}
+  .anno{font-size:11.5px;color:#7c8694;text-align:center;max-width:392px;line-height:1.4;margin:-4px 0 0;}
+  .anno b{color:#475569;font-weight:600;}
+  .frame-label{font-size:13px;font-weight:700;color:#334155;letter-spacing:.02em;margin-top:10px;}
+  .device{width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;
+    box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25);}
+  .screen{width:392px;height:812px;background:var(--surface-grouped);border-radius:45px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;}
+  .statusbar{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px 0 30px;background:var(--surface-card);position:relative;z-index:30;}
+  .statusbar .time{font-size:15px;font-weight:600;letter-spacing:.02em;}
+  .island{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:108px;height:28px;background:#000;border-radius:18px;}
+  .sb-right{display:flex;align-items:center;gap:6px;} .sb-right svg{display:block;}
+  .scroll{flex:1;overflow-y:auto;background:var(--surface-grouped);} .scroll::-webkit-scrollbar{display:none;}
+  .spacer{height:84px;flex:none;}
+  /* brigade pills (shared with clients language) */
+  .spill{flex:none;height:30px;padding:0 13px;border-radius:9999px;font-size:13px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;background:var(--fill-tertiary);color:var(--label);white-space:nowrap;cursor:pointer;}
+  .spill.on{background:var(--accent);color:var(--label-on-accent);}
+  .spill .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  /* tab bar */
+  .tabbar{height:60px;flex:none;display:flex;align-items:flex-start;justify-content:space-around;gap:2px;
+    padding:4px 8px 0;background:var(--glass-bg);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--separator);position:relative;z-index:26;}
+  .tab{flex:1;min-width:44px;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;color:var(--label-secondary);position:relative;}
+  .tab.active{color:var(--accent);}
+  .tab .lbl{font-size:10px;line-height:1;font-weight:500;} .tab.active .lbl{font-weight:600;}
+  .tab .count{position:absolute;top:-2px;right:18px;min-width:16px;height:16px;padding:0 4px;border-radius:9999px;
+    background:var(--system-red);color:#fff;font-size:10px;font-weight:600;line-height:16px;text-align:center;
+    box-shadow:0 0 0 2px var(--surface-card);}
+  /* small gap-fills */
+  .chev{display:inline-flex;align-items:center;color:var(--label-tertiary);}
+  .f-plist{display:block;} .fmodal-list{display:block;}
+
+/* segment chips (v21: uniform filter row + result line) */
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 4px;margin:0 -4px;
+    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);
+    mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:9999px;
+    font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid transparent;font-family:inherit;
+    transition:background .15s,border-color .15s,color .15s,transform .1s;}
+  .chip:active{transform:scale(.97);}
+  .chip.sort{margin-right:7px;}   /* visual gap: reorder control vs the narrowing filters */
+  .chip.idle{background:var(--surface-card);border-color:var(--separator);color:var(--label);box-shadow:var(--shadow-card);}
+  .chip.idle .cnt{color:var(--label-tertiary);}
+  .chip.on-accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.on-accent .cnt{opacity:.9;}
+  .chip .pillcount{background:rgba(255,255,255,.26);color:#fff;border-radius:9999px;min-width:18px;height:18px;
+    padding:0 5px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .chip.on-sort{background:var(--accent-tint);border-color:transparent;color:var(--accent);}
+  .chip.on-sort .sortic{color:var(--accent);}
+  .chip.idle .sortic{color:var(--label-tertiary);}
+  /* result line: live count + clear-all */
+  .resultline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label-secondary);
+    padding:1px 4px 0;min-height:18px;}
+  .resultline .rc{font-weight:700;color:var(--label);font-variant-numeric:tabular-nums;}
+  .resultline .grow{flex:1;}
+  .resultline .clearall{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;}
+  .resultline .clearall:active{opacity:.55;}
+  .resultline .clearall.hide{visibility:hidden;}
+  .empty-reset{margin:14px auto 0;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 18px;
+    border-radius:11px;background:var(--accent-tint);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;}
+  .empty-reset:active{background:var(--accent);color:#fff;}
+  /* per-value count inside facet popups */
+  .fmodal-row .sub{margin-left:auto;color:var(--label-tertiary);font-size:13px;font-variant-numeric:tabular-nums;padding-right:8px;}
+  .fmodal-row.sel .sub{color:var(--accent);}
+  .fmodal-clear{position:absolute;top:0;right:0;height:45px;display:flex;align-items:center;padding:0 15px;
+    color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;z-index:2;}
+  .fmodal-clear.dim{color:var(--label-tertiary);pointer-events:none;}
+  .sep{align-self:center;color:var(--separator);padding:0 2px;}
+  .tagchip{flex:none;display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:9999px;
+    font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--separator);
+    background:var(--surface-card);color:var(--label-secondary);}
+  /* v7: dropdown filter chips + centered picker modal */
+  .fchip{gap:5px;}
+  .fchip > svg{flex:none;}
+  .chip.idle.fchip > svg{color:var(--label-tertiary);}
+  .fdotc{width:9px;height:9px;border-radius:50%;flex:none;}
+  .emptyf{text-align:center;color:var(--label-tertiary);font-size:14px;padding:44px 0;}
+  /* v22: native bottom-sheet shell (Apple/Material idiom for "choose from a set"; live results show through) */
+  .fmodal-backdrop{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.18);
+    display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .22s ease;}
+  .fmodal-backdrop.show{opacity:1;}
+  .fmodal{position:relative;width:100%;max-width:100%;max-height:88%;overflow-y:auto;background:var(--surface-card);
+    border-radius:20px 20px 0 0;box-shadow:0 -14px 44px -14px rgba(15,23,42,.34),0 0 0 .5px rgba(15,23,42,.05);
+    padding-bottom:8px;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);
+    overscroll-behavior:contain;}
+  .fmodal-backdrop.show .fmodal{transform:translateY(0);}
+  .fmodal-grab{height:5px;width:38px;border-radius:3px;background:var(--label-quaternary);margin:8px auto 2px;
+    flex:none;touch-action:none;cursor:grab;}
+  .fmodal-back{position:absolute;top:10px;left:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    color:var(--accent);border-radius:50%;cursor:pointer;z-index:3;}
+  .fmodal-back:active{background:var(--fill-tertiary);}
+  .fmodal-title{position:sticky;top:0;background:var(--surface-card);padding:6px 16px 12px;border-bottom:.5px solid var(--separator);
+    font-size:16px;font-weight:700;text-align:center;color:var(--label);z-index:1;}
+  .fmodal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;min-height:48px;
+    border-bottom:.5px solid var(--separator);cursor:pointer;}
+  .fmodal-row:last-child{border-bottom:0;}
+  .fmodal-row:active{background:var(--fill-quaternary);}
+  .fmodal-row .fl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .fmodal-row .lbl{font-size:15px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fmodal-row.sel{background:var(--accent-tint);}
+  .fmodal-row.sel .lbl{color:var(--accent);font-weight:600;}
+  .fmodal-row .ck{flex:none;color:var(--accent);}
+  .fmodal-row.sel .ck{animation:ckpop .2s cubic-bezier(.32,.72,0,1);}
+  @keyframes ckpop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+  /* .fmodal-done removed — modal now closes on tap outside */
+  /* v15: period custom-range calendar (no native inputs) */
+  .pcal{padding:6px 12px 14px;}
+  .pcal-top{display:flex;justify-content:flex-end;height:30px;align-items:center;margin:0 -4px 2px;}
+  .pcal-x{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--label-secondary);cursor:pointer;border-radius:50%;}
+  .pcal-x:active{background:var(--fill-tertiary);}
+  .pcal-fields{display:flex;gap:8px;margin-bottom:8px;}
+  .pcal-field{flex:1;border-radius:12px;background:var(--fill-tertiary);padding:7px 12px;display:flex;flex-direction:column;gap:1px;}
+  .pcal-field.active{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);}
+  .pcal-field .fl-lbl{font-size:11px;color:var(--label-tertiary);}
+  .pcal-field .fl-val{font-size:15px;font-weight:600;color:var(--label);}
+  .pcal-field.active .fl-val{color:var(--accent);}
+  .frow-ic{color:var(--label-tertiary);display:flex;flex:none;}
+  .pcal-nav{display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 2px;}
+  .pcal-arrow{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;border-radius:50%;}
+  .pcal-arrow:active{background:var(--fill-tertiary);}
+  .pcal-month{font-size:15px;font-weight:600;color:var(--label);}
+  .pcal-wd{display:grid;grid-template-columns:repeat(7,1fr);margin-top:2px;}
+  .pcal-wd span{text-align:center;font-size:11px;font-weight:600;color:var(--label-tertiary);padding:4px 0;}
+  .pcal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+  .pc-empty{height:38px;}
+  .pc-day{height:38px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--label);cursor:pointer;}
+  .pc-day:active{background:var(--fill-quaternary);}
+  .pc-today{color:var(--accent);font-weight:700;}
+  .pc-mid{background:var(--accent-tint);}
+  .pc-edge{background:var(--accent);color:#fff;font-weight:600;border-radius:10px;}
+  /* v17: period custom-range — iOS wheel pickers (day / month / year), С + До */
+  .wrange{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;
+    color:var(--label);padding:0 0 8px;}
+  .wrange .warrow{color:var(--label-tertiary);font-weight:400;}
+  .wpick{padding:0 0 4px;}
+  .wpick + .wpick{border-top:.5px solid var(--separator);padding-top:6px;}
+  .wpick-hd{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--label-secondary);padding:2px 4px 2px;}
+  .wheels{position:relative;display:flex;height:150px;}
+  .wheel{flex:1 1 auto;overflow-y:scroll;scroll-snap-type:y mandatory;text-align:center;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);}
+  .wheel::-webkit-scrollbar{display:none;}
+  .wheel.wheel-day{flex:0 0 58px;}
+  .wheel.wheel-year{flex:0 0 76px;}
+  .wopt{height:30px;line-height:30px;scroll-snap-align:center;font-size:17px;color:var(--label-tertiary);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .wopt.cur{color:var(--label);font-weight:600;}
+  .wspacer{height:60px;}
+  .wband{position:absolute;left:6px;right:6px;top:50%;height:30px;transform:translateY(-50%);
+    pointer-events:none;background:var(--fill-quaternary);border-radius:8px;}
+  .wdone{margin-top:8px;height:44px;border-radius:12px;background:var(--accent);color:#fff;
+    font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .wdone:active{background:var(--accent-pressed);}
+  /* v20: period custom-range view — segmented С/До + wheels, inside the shared .fmodal */
+  .pcv{padding:8px 14px 14px;}
+  .seg2{display:flex;gap:3px;background:var(--fill-tertiary);border-radius:13px;padding:3px;margin:0 0 12px;}
+  .seg2-b{flex:1;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;cursor:pointer;transition:background .18s;}
+  .seg2-b.on{background:var(--surface-card);box-shadow:var(--shadow-card);}
+  .seg2-b .k{font-size:11px;font-weight:600;color:var(--label-tertiary);}
+  .seg2-b.on .k{color:var(--accent);}
+  .seg2-b .v{font-size:15px;font-weight:700;color:var(--label);}
+/* ── Block 1: finances header (nav) — .f-* only. Tokens + shared .spill/.fmodal/.pcv provided elsewhere. ── */
+/* Top nav row: ⚙ (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. */
+.f-nav{height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 6px;background:var(--surface-card);position:relative;z-index:31;}
+
+/* Settings gear — accent, pill-shaped, clearly tappable (NOT grey). →/dashboard/settings/finance. */
+.f-gear{min-width:44px;height:44px;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:0 8px;border-radius:var(--radius-pill);color:var(--accent);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.f-gear:active{background:var(--fill-tertiary);}
+.f-gear .f-gear-ic{display:flex;}
+.f-gear .f-gear-lbl{font-size:13px;font-weight:500;color:var(--accent);}   /* optional inline "Настройки" */
+
+/* Right spacer — mirrors the gear's min width so the stepper is optically centred. */
+.f-navspacer{min-width:44px;height:44px;flex:none;}
+
+/* Period stepper ‹ label › — center. */
+.f-step{display:inline-flex;align-items:center;gap:2px;height:44px;}
+.f-step-btn{width:38px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accent);
+  cursor:pointer;border-radius:var(--radius-pill);-webkit-tap-highlight-color:transparent;}
+.f-step-btn:active{background:var(--fill-tertiary);}
+.f-step-btn.f-disabled{color:var(--label-tertiary);pointer-events:none;}   /* edge: no data that way */
+
+/* Center label = RU preset name (PERIOD_LABELS); tap opens the .fmodal picker. */
+.f-step-lbl{min-width:92px;height:44px;padding:0 6px;display:inline-flex;flex-direction:column;align-items:center;
+  justify-content:center;cursor:pointer;border-radius:12px;-webkit-tap-highlight-color:transparent;}
+.f-step-lbl:active{background:var(--fill-tertiary);}
+.f-step-name{font-size:16px;font-weight:600;color:var(--label);line-height:1.05;
+  display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.f-step-name .f-caret{color:var(--label-tertiary);display:flex;margin-top:1px;}   /* "this opens a picker" hint */
+.f-step.f-custom .f-step-name{font-size:14px;}   /* custom range label is longer → a touch smaller */
+/* Block 2 — brigade row. Reuses shared .spill / .spill.on verbatim (provided).
+   Only the f- classes below are new; tokens & .spill are NOT redefined here. */
+
+/* the 44px scope bar, on surface-card with bottom hairline, below the period stepper */
+.f-brigades{
+  height:44px;flex:none;display:flex;align-items:center;gap:6px;padding:0 12px;
+  overflow-x:auto;background:var(--surface-card);
+  border-bottom:.5px solid var(--separator);position:relative;z-index:30;
+  scrollbar-width:none;-ms-overflow-style:none;
+  /* right-edge fade affordance — copied verbatim from the Клиенты .chips row */
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 20px),transparent 100%);
+  mask-image:linear-gradient(to right,#000 calc(100% - 20px),transparent 100%);
+}
+.f-brigades::-webkit-scrollbar{display:none;}
+
+/* full 44px vertical hit area while the visible .spill stays 30px (≥44px tap target) */
+.f-brigades .spill{
+  padding-top:7px;padding-bottom:7px;height:auto;min-height:44px;
+  background-clip:padding-box;cursor:pointer;border:0;font-family:inherit;
+  transition:transform .1s ease;-webkit-tap-highlight-color:transparent;
+}
+.f-brigades .spill:active{transform:scale(.97);}
+
+/* long-name guard — truncate the label, keep the dot */
+.f-spill-name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* «Все» is pinned at the scroll start so it stays reachable when many brigades scroll */
+.f-brigades .spill:first-child{position:sticky;left:12px;z-index:1;}
+/* ── Блок 3 — Прибыль (герой). On grouped-grey, NO card. ── */
+.f-hero{padding:16px 16px 8px;}
+
+/* Line 1 — self-describing scope caption */
+.f-hero-cap{font-size:12px;line-height:1.3;color:var(--label-secondary);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* Line 2 — the hero number (the ONLY loud thing) */
+.f-hero-val{margin-top:2px;font-size:30px;font-weight:700;line-height:1.08;
+  letter-spacing:-.01em;color:var(--system-green);font-variant-numeric:tabular-nums;}
+.f-hero-val.neg{color:var(--system-red);}
+
+/* Line 3 — one quiet supporting line: run (left) · debt pill (right) */
+.f-hero-sub{margin-top:6px;display:flex;align-items:center;justify-content:space-between;
+  gap:8px 12px;flex-wrap:wrap;font-size:13px;line-height:1.35;color:var(--label-secondary);}
+.f-hero-run{display:flex;flex-wrap:wrap;gap:1px 5px;min-width:0;}
+.f-hero-run .f-in{color:var(--system-green);font-weight:600;}
+.f-hero-run .f-ex{color:var(--system-red);font-weight:600;}
+.f-hero-run .f-exp{color:var(--label-tertiary);}
+
+/* Долг — the block's only affordance. Visible pill h24, invisible 44px hit area. */
+.f-debt-hit{flex:none;display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;margin:-10px -4px -10px 0;padding:0 4px;
+  background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  outline:none;border-radius:var(--radius-pill);}
+.f-debt-pill{height:24px;padding:0 10px;border-radius:var(--radius-pill);
+  background:var(--orange-tint);color:var(--system-orange);
+  font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;
+  display:inline-flex;align-items:center;gap:3px;white-space:nowrap;
+  transition:background .12s ease;}
+.f-debt-pill .f-debt-chev{font-size:14px;line-height:1;opacity:.85;margin-left:1px;}
+.f-debt-hit:active .f-debt-pill{background:rgba(255,149,0,.22);}
+.f-debt-hit:focus-visible{box-shadow:0 0 0 2px var(--accent);}
+/* ===== Блок 4 — Счета (quiet vertical accounts list) ===== */
+/* Reuses tokens + shared .fmodal* / .spill. Defines only .f-acct* / .f-aas* (AddAccountSheet). */
+
+/* — section header — */
+.f-acct-block{padding:16px 12px 0;}
+.f-acct-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 8px;}
+.f-acct-lt{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--label-secondary);display:inline-flex;align-items:baseline;gap:8px;}
+/* total rides inline — calm, NOT loud: 13/600 label-secondary, no caps */
+.f-acct-tot{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--label-secondary);}
+/* quiet "+ Счёт": plain accent text, no tinted bg, ≥44px hit area via padding */
+.f-acct-add{display:inline-flex;align-items:center;gap:2px;height:30px;padding:0 2px;
+  color:var(--accent);font-size:14px;font-weight:500;cursor:pointer;background:none;border:0;font-family:inherit;}
+.f-acct-add:active{opacity:.5;}
+
+/* — the single card — */
+.f-acct-card{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden;}
+
+/* — fixed-height rows (never reflow) — */
+.f-acct-row{height:52px;display:flex;align-items:center;gap:12px;padding:0 12px;position:relative;cursor:pointer;
+  border-radius:14px;}
+/* hairline inset between rows, aligned past the tile */
+.f-acct-row + .f-acct-row::before{content:"";position:absolute;top:0;left:54px;right:0;height:.5px;background:var(--separator);}
+.f-acct-row:active{background:var(--fill-quaternary);}
+.f-acct-tile{width:30px;height:30px;border-radius:9px;background:var(--fill-quaternary);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+/* mid: two reserved lines so subline toggle never changes height */
+.f-acct-mid{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.f-acct-name{font-size:14px;font-weight:500;color:var(--label);line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px;min-width:0;}
+.f-acct-name .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.f-acct-sub{font-size:11px;line-height:1.3;color:var(--label-tertiary);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* balance — never truncates, red if <0 */
+.f-acct-bal{font-size:15px;font-weight:600;color:var(--label);flex:none;font-variant-numeric:tabular-nums;}
+.f-acct-bal.neg{color:var(--system-red);}
+
+/* single-brigade scope: drop sublines, keep 52px, center the name */
+.f-acct-card.f-scope-one .f-acct-sub{display:none;}
+/* (name stays vertically centered automatically — mid uses justify-content:center) */
+
+/* active-account selection: inset ring (zero layout cost) + faint wash */
+.f-acct-row.is-active{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);}
+.f-acct-row.is-active + .f-acct-row::before,
+.f-acct-row.is-active::before{display:none;}            /* hide hairlines touching the ring */
+.f-acct-flag{flex:none;font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-tint);
+  padding:1px 6px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:3px;}
+
+/* empty state — calm, single row */
+.f-acct-empty{min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:16px 12px;text-align:center;}
+.f-acct-empty .em-t{font-size:14px;color:var(--label-tertiary);}
+.f-acct-empty .em-a{font-size:14px;font-weight:500;color:var(--accent);cursor:pointer;}
+.f-acct-empty .em-a:active{opacity:.5;}
+
+/* ===== AddAccountSheet — compact bottom sheet ===== */
+.f-aas-dim{position:absolute;inset:0;background:var(--surface-overlay,rgba(0,0,0,.40));z-index:40;}
+.f-aas-sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface-card);
+  border-radius:22px 22px 0 0;box-shadow:var(--shadow-sheet);z-index:41;
+  padding:8px 16px 18px;display:flex;flex-direction:column;}
+.f-aas-handle{width:36px;height:5px;border-radius:3px;background:var(--label-quaternary);margin:2px auto 8px;}
+.f-aas-title{font-size:15px;font-weight:600;text-align:center;color:var(--label);margin-bottom:14px;}
+/* prefilled brigade chip row (reuses .spill look; locked vs editable) */
+.f-aas-brig{display:flex;justify-content:center;margin-bottom:14px;}
+.f-aas-brig .spill{cursor:pointer;}
+.f-aas-brig.locked .spill{cursor:default;}
+/* grouped form, iOS inset style */
+.f-aas-group{background:var(--surface-card-secondary);border-radius:12px;overflow:hidden;}
+.f-aas-field{display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;position:relative;}
+.f-aas-field + .f-aas-field::before{content:"";position:absolute;top:0;left:14px;right:0;height:.5px;background:var(--separator);}
+.f-aas-k{font-size:14px;color:var(--label-secondary);flex:none;width:96px;}
+.f-aas-in{flex:1;min-width:0;font-size:15px;color:var(--label);font-family:inherit;border:0;background:none;outline:none;
+  text-align:right;font-variant-numeric:tabular-nums;}
+.f-aas-in::placeholder{color:var(--label-tertiary);}
+/* kind row shows current emoji + label, opens shared .fmodal */
+.f-aas-pick{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;cursor:pointer;}
+.f-aas-pick .kemoji{font-size:18px;}
+.f-aas-pick .klbl{font-size:15px;color:var(--label);}
+.f-aas-pick .kchev{color:var(--label-tertiary);display:flex;}
+.f-aas-cur{color:var(--label-tertiary);font-size:15px;flex:none;}     /* € prefix on balance */
+.f-aas-iconbtn{width:30px;height:30px;border-radius:9px;background:var(--fill-quaternary);
+  display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;flex:none;}
+.f-aas-hint{font-size:11px;color:var(--label-tertiary);text-align:center;margin:10px 0 0;}
+.f-aas-do{margin-top:14px;height:50px;border-radius:var(--radius-pill);background:var(--accent);
+  color:var(--label-on-accent);font-size:17px;font-weight:600;border:0;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.f-aas-do:active{background:var(--accent-pressed);}
+/* emoji shown inside the shared .fmodal kind rows */
+.f-aas-kemoji{font-size:18px;width:24px;text-align:center;flex:none;}
+/* ===== Block 5 — Движения (continuous feed) ===== */
+/* All new classes are f- prefixed. Tokens + shared .spill/.fmodal are provided globally. */
+
+/* section wrapper — same page rhythm as other blocks (padding 16 12 0) */
+.f-feed{padding:16px 12px 0;}
+
+/* header row: label left · inline 3-seg + search right */
+.f-feedhead{display:flex;align-items:center;justify-content:space-between;margin:0 4px 8px;min-height:28px;}
+.f-feedhead .f-flabel{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--label-secondary);}
+.f-feedctl{display:flex;align-items:center;gap:8px;}
+/* inline 3-seg TEXT filter (not pills) */
+.f-seg{display:inline-flex;align-items:center;font-size:12px;line-height:1;}
+.f-seg .f-s{color:var(--label-tertiary);font-weight:600;padding:6px 0;cursor:pointer;}
+.f-seg .f-s.on{color:var(--label);font-weight:600;}
+.f-seg .f-sd{color:var(--label-quaternary);padding:0 7px;font-weight:400;}
+/* 16px search glyph at a 44px tap target */
+.f-search{width:32px;height:32px;margin:-6px -6px -6px 0;display:flex;align-items:center;justify-content:center;
+  color:var(--label-tertiary);cursor:pointer;}
+.f-search:active{color:var(--label-secondary);}
+
+/* ONE continuous card */
+.f-card{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden;}
+
+/* thin sticky day separator (~28px) — NOT a card per day */
+.f-dsep{height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;
+  background:var(--surface-card-secondary);position:sticky;top:0;z-index:2;
+  border-top:.5px solid var(--separator);border-bottom:.5px solid var(--separator);}
+.f-dsep:first-child{border-top:0;}
+.f-dsep .f-dd{font-size:12px;color:var(--label-secondary);font-weight:500;}
+.f-dsep .f-dn{font-size:13px;font-weight:600;color:var(--label);font-variant-numeric:tabular-nums;}
+.f-dsep .f-dn.neg{color:var(--system-red);}
+
+/* tx row — 52px, hairline inset at 54 (aligns to accounts list) */
+.f-tx{min-height:52px;display:flex;align-items:center;gap:12px;padding:7px 12px;position:relative;cursor:pointer;}
+.f-tx + .f-tx::before,.f-dsep + .f-tx::before{content:none;}
+.f-tx::after{content:"";position:absolute;bottom:0;left:54px;right:0;height:.5px;background:var(--separator);}
+.f-tx:last-child::after{display:none;}
+.f-tx:active{background:var(--fill-quaternary);}
+/* method/category 30px tile */
+.f-tile{width:30px;height:30px;border-radius:9px;background:var(--fill-quaternary);display:flex;
+  align-items:center;justify-content:center;font-size:15px;flex:none;line-height:1;}
+.f-tile.f-trtile{color:var(--label-tertiary);font-size:16px;}
+/* middle column */
+.f-tmid{flex:1;min-width:0;}
+.f-ttl{font-size:14px;color:var(--label);display:flex;align-items:center;gap:6px;min-width:0;}
+.f-ttl .f-tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.f-tsub{font-size:12px;color:var(--label-tertiary);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* brigade chip — appended ONLY when scope=Все (reuse existing bchip look) */
+.f-bchip{flex:none;font-size:10px;font-weight:600;color:var(--label-secondary);background:var(--fill-tertiary);
+  padding:1px 7px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:4px;line-height:1.5;}
+.f-bchip .f-bd{width:6px;height:6px;border-radius:50%;flex:none;}
+/* signed amount — color carries the semantics */
+.f-amt{font-size:14px;font-weight:600;flex:none;font-variant-numeric:tabular-nums;}
+.f-amt.f-in{color:var(--system-green);}   /* income / refund */
+.f-amt.f-ex{color:var(--system-red);}     /* expense */
+.f-amt.f-tr{color:var(--label-secondary);} /* transfer — NEUTRAL */
+/* 10px chevron */
+.f-chev{color:var(--label-tertiary);flex:none;display:flex;}
+
+/* ── TransactionPopup detail strip (sits inside shared .fmodal, above action rows) ── */
+.f-txdetail{padding:14px 16px 12px;border-bottom:.5px solid var(--separator);}
+.f-txd-amt{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.1;}
+.f-txd-amt.f-in{color:var(--system-green);}
+.f-txd-amt.f-ex{color:var(--system-red);}
+.f-txd-amt.f-tr{color:var(--label-secondary);}
+.f-txd-meta{margin-top:5px;font-size:12px;color:var(--label-secondary);display:flex;align-items:center;
+  flex-wrap:wrap;gap:0 6px;}
+.f-txd-meta .f-mdot{color:var(--label-quaternary);}
+.f-txd-meta .f-mb{display:inline-flex;align-items:center;gap:4px;}
+.f-txd-meta .f-mb .f-bd{width:7px;height:7px;border-radius:50%;}
+/* action rows — reuse .fmodal-row; just color the icon/label for destructive + accent */
+.fmodal-row .f-aic{flex:none;display:flex;color:var(--label-secondary);}
+.fmodal-row.f-act-del .lbl,.fmodal-row.f-act-del .f-aic{color:var(--system-red);}
+.fmodal-row.f-act-inv .lbl,.fmodal-row.f-act-inv .f-aic{color:var(--accent);}
+
+/* ── Empty state ── */
+.f-empty{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);
+  padding:38px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;}
+.f-empty .f-eic{color:var(--label-quaternary);margin-bottom:2px;}
+.f-empty .f-et{font-size:14px;font-weight:600;color:var(--label-secondary);}
+.f-empty .f-eh{font-size:12px;color:var(--label-tertiary);line-height:1.4;max-width:220px;}
+/* ───────── Block 6 — Action + quick entry (3 taps) ─────────
+   New .f-* classes only. Tokens + shared .fmodal*/.fdotc are provided
+   by the assembled document. Brigade dot colors are inline hex (allowed). */
+
+/* (A) Primary add bar — ONE wide pill over a gradient fade, above the 60px tab bar */
+.f-addbar{position:absolute;left:0;right:0;bottom:60px;padding:10px 14px 12px;z-index:25;
+  background:linear-gradient(to top,var(--surface-grouped) 55%,rgba(239,239,244,0));}
+.f-opbtn{width:100%;height:50px;border:0;border-radius:var(--radius-pill);background:var(--accent);
+  color:var(--label-on-accent);font-family:inherit;font-size:17px;font-weight:600;
+  box-shadow:var(--shadow-fab);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+.f-opbtn:active{background:var(--accent-pressed);transform:scale(.99);}
+
+/* (B/C) Amount-first sheet */
+.f-dim{position:absolute;inset:0;background:var(--surface-overlay);z-index:40;}
+.f-sheet{position:absolute;left:0;right:0;bottom:0;z-index:41;background:var(--surface-card);
+  border-radius:22px 22px 0 0;box-shadow:var(--shadow-sheet);padding:8px 16px 18px;
+  display:flex;flex-direction:column;}
+.f-sheet.is-behind{opacity:.5;filter:blur(1px);pointer-events:none;}   /* dimmed while account pick is forced */
+.f-handle{width:36px;height:5px;border-radius:3px;background:var(--label-quaternary);margin:2px auto 12px;}
+
+/* segmented type toggle — active leg tints to the type (red default; .income/.transfer override) */
+.f-seg{display:flex;background:var(--fill-tertiary);border-radius:11px;padding:3px;gap:3px;}
+.f-st{flex:1;height:34px;border-radius:9px;font-family:inherit;font-size:14px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;color:var(--label-secondary);cursor:pointer;}
+.f-st.on{background:var(--surface-card);color:var(--system-red);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.f-st.on.income{color:var(--system-green);}
+.f-st.on.transfer{color:var(--label-secondary);}      /* transfer = neutral, never red/green */
+
+/* big € amount display (autofocus, no OS keyboard) */
+.f-amount{text-align:center;font-size:46px;font-weight:700;letter-spacing:-.02em;
+  margin:18px 0 4px;line-height:1.05;}
+.f-amount .f-cur{color:var(--label-tertiary);font-weight:600;}
+.f-amount .f-ph{color:var(--label-tertiary);}          /* placeholder 0 when empty */
+.f-amount .f-op-live{color:var(--accent);font-weight:600;padding:0 2px;}  /* the + inside a live expression */
+.f-caret{display:inline-block;width:2px;height:.92em;vertical-align:-.08em;margin-left:1px;
+  background:var(--accent);border-radius:1px;animation:f-blink 1.1s steps(1,start) infinite;}
+@keyframes f-blink{50%{opacity:0;}}
+
+/* context chip row (Расход/Доход) — brigade·account · template · receipt */
+.f-chips{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.f-chip{height:32px;padding:0 13px;border-radius:var(--radius-pill);background:var(--fill-tertiary);
+  color:var(--label);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.f-chip:active{background:var(--fill-quaternary);}
+.f-chip.icon{padding:0;width:32px;justify-content:center;}        /* 📷 receipt — square */
+.f-chip .f-dot{width:8px;height:8px;border-radius:50%;flex:none;} /* brigade dot, inline color */
+
+/* (C) Перевод — from→to account picker replaces the category row */
+.f-xfer{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.f-leg{flex:1;min-width:0;border-radius:12px;background:var(--fill-quaternary);
+  padding:7px 12px;display:flex;flex-direction:column;gap:1px;cursor:pointer;}
+.f-leg.act{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);}
+.f-leg .f-leg-k{font-size:11px;color:var(--label-tertiary);}
+.f-leg .f-leg-v{font-size:14px;font-weight:600;color:var(--label);
+  display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.f-leg.act .f-leg-v{color:var(--accent);}
+.f-leg .f-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.f-xfer-arrow{flex:none;color:var(--label-tertiary);display:flex;align-items:center;}
+
+/* custom numpad */
+.f-numpad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.f-nk{height:52px;border-radius:13px;background:var(--fill-quaternary);
+  font-size:22px;font-weight:500;color:var(--label);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-user-select:none;user-select:none;}
+.f-nk:active{background:var(--fill-tertiary);}
+.f-nk.op{color:var(--accent);font-weight:600;}                    /* inline + operator */
+.f-nk.confirm{grid-row:span 2;height:auto;font-size:26px;color:#fff;
+  background:var(--system-red);}                                  /* type-tinted ✓ in thumb zone */
+.f-nk.confirm.income{background:var(--system-green);}
+.f-nk.confirm.transfer{background:var(--label-secondary);}
+.f-nk.confirm.is-disabled{background:var(--label-quaternary);pointer-events:none;}
+
+.f-note{font-size:11.5px;color:var(--label-tertiary);text-align:center;margin-top:12px;line-height:1.4;}
+.f-note b{color:var(--label-secondary);font-weight:600;}
+
+/* account-pick modal: balance on the right inside the shared .fmodal-row */
+.f-acct-bal{margin-left:auto;color:var(--label-tertiary);font-size:13px;font-variant-numeric:tabular-nums;padding-right:2px;}
+.fmodal-row.sel .f-acct-bal{color:var(--accent);}
+/* ===== ART-DIRECTOR SHARED HARMONIZATION OVERRIDES =====
+   Paste AFTER all six f- blocks' cssFragments. Resolves cross-block drift.
+   Defines no tokens; only reconciles f- classes + one shared alias. ===== */
+
+/* 1) Money column: one 'value' size down the right edge of BOTH calm lists.
+      Account balance is already 15/600; bump feed amount to match. */
+.f-amt{font-size:15px;}
+
+/* 2) Resting list rows square (card clips corners); radius only on the
+      active-account ring variant. Makes accounts + feed read as one document. */
+.f-acct-row{border-radius:0;}
+.f-acct-row.is-active{border-radius:14px;}
+
+/* 3) ONE disclosure-chevron idiom. Collapse .f-caret into .f-chev. */
+.f-chev,.f-caret{color:var(--label-tertiary);flex:none;display:flex;}
+
+/* 4) ONE micro-pill shape, two color roles (brigade tag vs account filter). */
+.f-bchip,.f-acct-flag{font-size:10px;font-weight:600;line-height:1.5;
+  padding:1px 7px;border-radius:var(--radius-pill);
+  display:inline-flex;align-items:center;gap:4px;}
+/* colors stay per-role: .f-bchip = fill-tertiary/label-secondary;
+   .f-acct-flag = accent-tint/accent (set in their own blocks). */
+
+/* 5) Quiet text buttons get a real 44px hit area without growing visually.
+      Matches the .f-debt-hit / .f-search slop pattern used elsewhere. */
+.f-acct-add,.f-acct-empty .em-a{
+  min-height:44px;padding-top:7px;padding-bottom:7px;
+  margin-top:-7px;margin-bottom:-7px;}
+
+/* 6) Uniform inter-block rhythm: trim the hero's bottom pad so every
+      scroll block-to-block gap is governed by the next block's 16px top. */
+.f-hero{padding:16px 16px 4px;}
+
+/* 7) Brigade dot palette must avoid the 4 reserved semantic hues
+      (green/red/orange = income/expense/debt; accent = nav/Север).
+      Enforced in markup, not CSS — documented here as the rule. */
+/* RESERVED: #34C759 #FF3B30 #FF9500 #3E88F7 — never a brigade dot beyond Север/Юг sample. */
+</style>
+</head>
+<body>
+  <div class="caption"><b>Финансы — редизайн v2 (поблочно).</b> Главный экран + отдельные кадры по блокам: модалка периода (пресеты и барабан «С/До» как на «Клиентах»), лист «Новый счёт» с выбором типа, быстрый ввод «+ Операция» (Расход / Перевод, 3 касания) и попап операции с «Выставить инвойс». Данные — пример AirFix.</div>
+  <div class="frame-label">① Главный экран</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+    </div></div>
+  <div class="anno"><b>Шапка ~90px вместо ~270px.</b> ⚙ слева · период по центру · бригады строкой ниже. Прибыль — единственный громкий акцент; счета и движения — спокойно. Один бар «+ Операция».</div>
+  <div class="frame-label">② Период · пресеты</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- Period picker — same .fmodal family as clients (presets + .ck check on active). Opens from the center label. -->
+<div class="fmodal-backdrop show" id="fPeriodModal" role="dialog" aria-label="Период">
+  <div class="fmodal">
+    <div class="fmodal-title">Период</div>
+    <div class="f-plist">
+      <!-- DAY unit -->
+      <div class="fmodal-row" data-k="today"><span class="fl"><span class="lbl">Сегодня</span></span><span class="ck"></span></div>
+      <div class="fmodal-row" data-k="yest"><span class="fl"><span class="lbl">Вчера</span></span><span class="ck"></span></div>
+      <!-- WEEK unit -->
+      <div class="fmodal-row" data-k="week"><span class="fl"><span class="lbl">Неделя</span></span><span class="ck"></span></div>
+      <!-- MONTH unit (shipped default → active) -->
+      <div class="fmodal-row sel" data-k="month"><span class="fl"><span class="lbl">Месяц</span></span><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+      <!-- YEAR unit -->
+      <div class="fmodal-row" data-k="year"><span class="fl"><span class="lbl">Год</span></span><span class="ck"></span></div>
+      <!-- discloses the custom-range .pcv view; chevron (not check) in .ck -->
+      <div class="fmodal-row" id="rowCustom"><span class="fl"><span class="lbl">Свой период</span></span><span class="ck"><span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+    </div>
+  </div>
+</div>
+    </div></div>
+  <div class="frame-label">③ Период · свой период (барабан С/До)</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- Custom range — shared .fmodal-back + .pcv + .seg2 (С/До) + wheels, byte-for-byte the clients picker. -->
+<div class="fmodal-backdrop show" id="fPeriodModalCustom" role="dialog" aria-label="Свой период">
+  <div class="fmodal">
+    <span class="fmodal-back" role="button" aria-label="Назад к пресетам"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <div class="fmodal-title">Свой период</div>
+    <div class="pcv">
+      <div class="wrange"><span>1 июня 2026</span><span class="warrow">→</span><span>9 июня 2026</span></div>
+      <div class="seg2">
+        <div class="seg2-b on" data-e="from"><span class="k">С</span><span class="v">1 июн 26</span></div>
+        <div class="seg2-b" data-e="to"><span class="k">До</span><span class="v">9 июн 26</span></div>
+      </div>
+      <div class="wpick">
+        <div class="wheels">
+          <div class="wheel wheel-day"><div class="wspacer"></div><div class="wopt">30</div><div class="wopt">31</div><div class="wopt cur">1</div><div class="wopt">2</div><div class="wopt">3</div><div class="wspacer"></div></div>
+          <div class="wheel wheel-mon"><div class="wspacer"></div><div class="wopt">Апрель</div><div class="wopt">Май</div><div class="wopt cur">Июнь</div><div class="wopt">Июль</div><div class="wopt">Август</div><div class="wspacer"></div></div>
+          <div class="wheel wheel-year"><div class="wspacer"></div><div class="wopt">2024</div><div class="wopt">2025</div><div class="wopt cur">2026</div><div class="wopt">2027</div><div class="wopt">2028</div><div class="wspacer"></div></div>
+          <div class="wband"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </div></div>
+  <div class="frame-label">④ Новый счёт</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- AddAccountSheet over a dim. Brigade prefilled to scope. Kind row opens shared .fmodal (next fragment). -->
+<div class="f-aas-dim" id="aasDim"></div>
+<div class="f-aas-sheet" id="aasSheet">
+  <div class="f-aas-handle"></div>
+  <div class="f-aas-title">Новый счёт</div>
+
+  <!-- prefilled brigade (scope=Север shown locked; when scope=Все, drop .locked → tappable .spill) -->
+  <div class="f-aas-brig locked">
+    <span class="spill"><span class="dot" style="background:#3E88F7"></span>Север</span>
+  </div>
+
+  <div class="f-aas-group">
+    <div class="f-aas-field">
+      <span class="f-aas-k">Название</span>
+      <input class="f-aas-in" placeholder="Напр. Касса" />
+    </div>
+    <div class="f-aas-field">
+      <span class="f-aas-k">Тип</span>
+      <span class="f-aas-pick" id="aasKind">
+        <span class="kemoji">💵</span>
+        <span class="klbl">Наличные</span>
+        <span class="kchev"><svg width="8" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+      </span>
+    </div>
+    <div class="f-aas-field">
+      <span class="f-aas-k">Баланс</span>
+      <span class="f-aas-cur">€</span>
+      <input class="f-aas-in" inputmode="numeric" placeholder="0" style="text-align:left;flex:1" />
+    </div>
+    <div class="f-aas-field">
+      <span class="f-aas-k">Иконка</span>
+      <span style="flex:1"></span>
+      <span class="f-aas-iconbtn">💵</span>
+      <span class="f-aas-hint" style="margin:0 0 0 8px">необязательно</span>
+    </div>
+  </div>
+
+  <div class="f-aas-hint">Счёт привязан к бригаде · виден всей бригаде</div>
+  <button class="f-aas-do">Добавить</button>
+</div>
+    </div></div>
+  <div class="frame-label">⑤ Новый счёт · тип счёта</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- Kind picker = shared .fmodal family (same shell as clients facet pickers). Tap row selects+closes; tap outside closes. -->
+<div class="fmodal-backdrop show" id="aasKindModal">
+  <div class="fmodal">
+    <div class="fmodal-title">Тип счёта</div>
+    <div class="fmodal-list">
+      <div class="fmodal-row sel" data-kind="cash">
+        <span class="fl"><span class="f-aas-kemoji">💵</span><span class="lbl">Наличные</span></span>
+        <span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </div>
+      <div class="fmodal-row" data-kind="card">
+        <span class="fl"><span class="f-aas-kemoji">💳</span><span class="lbl">Карта</span></span>
+        <span class="ck"></span>
+      </div>
+      <div class="fmodal-row" data-kind="bank">
+        <span class="fl"><span class="f-aas-kemoji">🏦</span><span class="lbl">Банк</span></span>
+        <span class="ck"></span>
+      </div>
+      <div class="fmodal-row" data-kind="other">
+        <span class="fl"><span class="f-aas-kemoji">📦</span><span class="lbl">Прочее</span></span>
+        <span class="ck"></span>
+      </div>
+    </div>
+  </div>
+</div>
+    </div></div>
+  <div class="frame-label">⑥ Быстрый ввод · Расход (3 касания)</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- Quick-entry sheet — Расход (default). open→type→✓ = 3 taps. -->
+<div class="f-dim"></div>
+<div class="f-sheet">
+  <div class="f-handle"></div>
+
+  <!-- type toggle: active leg tints the ✓ key. Расход = red (default) -->
+  <div class="f-seg">
+    <span class="f-st on">Расход</span>
+    <span class="f-st">Доход</span>
+    <span class="f-st">Перевод</span>
+  </div>
+
+  <!-- big € amount, autofocused, NO OS keyboard (blinking caret) -->
+  <div class="f-amount"><span class="f-cur">€</span>80<span class="f-caret"></span></div>
+
+  <!-- context chips: brigade·account (from scope+active acct) · template · receipt(expense only) -->
+  <div class="f-chips">
+    <span class="f-chip"><span class="f-dot" style="background:#3E88F7"></span>Север · Наличка</span>
+    <span class="f-chip">⛽ Бензин</span>
+    <span class="f-chip icon">📷</span>
+  </div>
+
+  <!-- numpad: digits · inline + · ⌫ · 2-row ✓ tinted to type (red) in thumb zone -->
+  <div class="f-numpad">
+    <span class="f-nk">1</span><span class="f-nk">2</span><span class="f-nk">3</span><span class="f-nk op">+</span>
+    <span class="f-nk">4</span><span class="f-nk">5</span><span class="f-nk">6</span><span class="f-nk confirm">✓</span>
+    <span class="f-nk">7</span><span class="f-nk">8</span><span class="f-nk">9</span>
+    <span class="f-nk">.</span><span class="f-nk">0</span><span class="f-nk">⌫</span>
+  </div>
+
+  <div class="f-note"><b>3 касания:</b> открыть → набрать сумму → ✓. Шаблон «⛽ Бензин» подставляет сумму и категорию.</div>
+</div>
+    </div></div>
+  <div class="frame-label">⑦ Быстрый ввод · Перевод</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- Quick-entry sheet — Перевод. Category row → from→to account picker. Neutral confirm. -->
+<div class="f-dim"></div>
+<div class="f-sheet">
+  <div class="f-handle"></div>
+
+  <div class="f-seg">
+    <span class="f-st">Расход</span>
+    <span class="f-st">Доход</span>
+    <span class="f-st on transfer">Перевод</span>
+  </div>
+
+  <!-- transfer figure is NEUTRAL (no +/−, no green/red) -->
+  <div class="f-amount"><span class="f-cur">€</span>800<span class="f-caret"></span></div>
+
+  <!-- from → to account legs (tap either to open the .fmodal account list); active leg ringed -->
+  <div class="f-xfer">
+    <span class="f-leg">
+      <span class="f-leg-k">Откуда</span>
+      <span class="f-leg-v"><span class="f-dot" style="background:#34C759"></span>Наличка · Юг</span>
+    </span>
+    <span class="f-xfer-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    <span class="f-leg act">
+      <span class="f-leg-k">Куда</span>
+      <span class="f-leg-v"><span class="f-dot" style="background:#34C759"></span>Банк AirFix</span>
+    </span>
+  </div>
+
+  <div class="f-numpad">
+    <span class="f-nk">1</span><span class="f-nk">2</span><span class="f-nk">3</span><span class="f-nk op">+</span>
+    <span class="f-nk">4</span><span class="f-nk">5</span><span class="f-nk">6</span><span class="f-nk confirm transfer">✓</span>
+    <span class="f-nk">7</span><span class="f-nk">8</span><span class="f-nk">9</span>
+    <span class="f-nk">.</span><span class="f-nk">0</span><span class="f-nk">⌫</span>
+  </div>
+
+  <div class="f-note">Перевод между счетами — прибыль не меняется.</div>
+</div>
+    </div></div>
+  <div class="frame-label">⑧ Операция · попап (возврат / инвойс / удалить)</div>
+  <div class="device"><div class="screen">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+<!-- Top nav: gear (left) · period stepper (center) · balanced spacer (right). 46px, surface-card. -->
+<div class="f-nav">
+  <!-- ⚙ settings → /dashboard/settings/finance (invoice/company config). Accent = clearly tappable, not grey. -->
+  <a class="f-gear" href="/dashboard/settings/finance" role="link" aria-label="Настройки финансов">
+    <span class="f-gear-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    <!-- room permitting, surface the word too: <span class="f-gear-lbl">Настройки</span> -->
+  </a>
+
+  <!-- Period stepper. Unit = current granularity (here MONTH). ‹/› step one unit; label opens the picker. -->
+  <div class="f-step">
+    <span class="f-step-btn" role="button" aria-label="Предыдущий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+    <span class="f-step-lbl" role="button" aria-haspopup="dialog" aria-label="Период: Июнь. Открыть выбор периода">
+      <span class="f-step-name">Июнь<span class="f-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></span>
+    </span>
+    <span class="f-step-btn" role="button" aria-label="Следующий месяц"><svg width="11" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+  </div>
+
+  <span class="f-navspacer"></span>
+</div>
+<!-- Block 2: brigade row — page-wide scope. Exactly one .spill is .on at all times. -->
+<!-- Tapping a brigade re-scopes hero caption, accounts list, feed, and the +Операция / +Счёт sheet defaults. -->
+<div class="f-brigades" role="tablist" aria-label="Бригада — фильтр всей страницы">
+  <button class="spill on" role="tab" aria-selected="true" aria-pressed="true" data-scope="all">Все</button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="sever"><span class="dot" style="background:#3E88F7" aria-hidden="true"></span><span class="f-spill-name">Север</span></button>
+  <button class="spill" role="tab" aria-selected="false" aria-pressed="false" data-scope="yug"><span class="dot" style="background:#34C759" aria-hidden="true"></span><span class="f-spill-name">Юг</span></button>
+</div>
+      <div class="scroll">
+<!-- Block 3 — Profit hero. Grouped-grey, no card. -->
+<div class="f-hero">
+  <!-- Line 1: self-describing scope -->
+  <div class="f-hero-cap">Прибыль · Июнь · Все</div>
+
+  <!-- Line 2: the hero (green ≥0) -->
+  <div class="f-hero-val">€11&#160;140</div>
+
+  <!-- Line 3: quiet supporting line + Долг affordance -->
+  <div class="f-hero-sub">
+    <span class="f-hero-run">
+      <span>Доход&#160;<span class="f-in">€15&#160;500</span></span>
+      <span>· Расход&#160;<span class="f-ex">€4&#160;360</span></span>
+      <span class="f-exp">· ожид.&#160;€12&#160;300</span>
+    </span>
+    <!-- only present when debt>0; taps → R5 receivables list -->
+    <button class="f-debt-hit" type="button" aria-label="Долг 580 евро, открыть список долгов">
+      <span class="f-debt-pill">Долг&#160;€580<span class="f-debt-chev">›</span></span>
+    </button>
+  </div>
+</div>
+<!-- Блок 4 · Счета — DEFAULT (scope=Все). Total = sum of VISIBLE accounts. -->
+<div class="f-acct-block">
+  <div class="f-acct-head">
+    <span class="f-acct-lt">Счета <span class="f-acct-tot">€15&#160;500</span></span>
+    <button class="f-acct-add" id="acctAddBtn">＋ Счёт</button>
+  </div>
+
+  <!-- scope=Все → keep brigade sublines (no .f-scope-one) -->
+  <div class="f-acct-card" id="acctCard">
+
+    <div class="f-acct-row" data-acct="nal-sever">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;240</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="karta-sever">
+      <span class="f-acct-tile">💳</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Карта Юры</span></div>
+        <div class="f-acct-sub">Север</div>
+      </div>
+      <span class="f-acct-bal">€4&#160;020</span>
+    </div>
+
+    <div class="f-acct-row" data-acct="nal-yug">
+      <span class="f-acct-tile">💵</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Наличные</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€1&#160;000</span>
+    </div>
+
+    <!-- largest balance — flex:none, never clipped -->
+    <div class="f-acct-row" data-acct="bank-yug">
+      <span class="f-acct-tile">🏦</span>
+      <div class="f-acct-mid">
+        <div class="f-acct-name"><span class="nm">Банк AirFix</span></div>
+        <div class="f-acct-sub">Юг</div>
+      </div>
+      <span class="f-acct-bal">€9&#160;240</span>
+    </div>
+
+  </div>
+</div>
+<!-- BLOCK 5 — Движения · scope=Все (brigade chips shown). Drop into .scroll after the Счета block. -->
+<div class="f-feed">
+  <div class="f-feedhead">
+    <span class="f-flabel">Движения</span>
+    <div class="f-feedctl">
+      <span class="f-seg">
+        <span class="f-s on">Все</span><span class="f-sd">·</span><span class="f-s">Доход</span><span class="f-sd">·</span><span class="f-s">Расход</span>
+      </span>
+      <span class="f-search" title="Поиск по движениям">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="f-card">
+
+    <!-- ── 15 июн ── -->
+    <div class="f-dsep"><span class="f-dd">15 июн</span><span class="f-dn">+€440</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💵</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Оплата за монтаж</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Монтаж · ООО «Лагуна»</div>
+      </div>
+      <span class="f-amt f-in">+€520</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">⛽</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Бензин</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Топливо</div>
+      </div>
+      <span class="f-amt f-ex">−€80</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- NEUTRAL transfer — never reads as expense -->
+    <div class="f-tx">
+      <span class="f-tile f-trtile">↔</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Перевод на Банк AirFix</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Наличка Юг → Банк AirFix</div>
+      </div>
+      <span class="f-amt f-tr">€800</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- ── 14 июн ── -->
+    <div class="f-dsep"><span class="f-dd">14 июн</span><span class="f-dn">+€530</span></div>
+
+    <!-- income -->
+    <div class="f-tx">
+      <span class="f-tile">💳</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Ремонт кондиционера</span><span class="f-bchip"><span class="f-bd" style="background:#3E88F7"></span>Север</span></div>
+        <div class="f-tsub">Ремонт · Анастасия П.</div>
+      </div>
+      <span class="f-amt f-in">+€690</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- refund (received-back / money returned to client = expense-side refund shown green as a return) -->
+    <div class="f-tx">
+      <span class="f-tile" style="color:var(--system-green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+      </span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Возврат переплаты</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Возврат от поставщика · Запчасти</div>
+      </div>
+      <span class="f-amt f-in">+€150</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+    <!-- expense -->
+    <div class="f-tx">
+      <span class="f-tile">📦</span>
+      <div class="f-tmid">
+        <div class="f-ttl"><span class="f-tname">Запчасти</span><span class="f-bchip"><span class="f-bd" style="background:#34C759"></span>Юг</span></div>
+        <div class="f-tsub">Материалы</div>
+      </div>
+      <span class="f-amt f-ex">−€310</span>
+      <span class="f-chev"><svg width="7" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+
+  </div>
+</div>
+        <div class="spacer"></div>
+      </div>
+<!-- Primary add bar: ONE wide pill over a gradient fade, fixed above the 5-tab bar -->
+<div class="f-addbar">
+  <button class="f-opbtn" id="fOpAdd">＋ Операция</button>
+</div>
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span><span class="count">3</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+<!-- BLOCK 5 — TransactionPopup. Reuses shared .fmodal family verbatim. Render with .show; closes on backdrop tap. -->
+<div class="fmodal-backdrop show" id="fTxPopup">
+  <div class="fmodal">
+    <span class="fmodal-back" title="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+    <div class="fmodal-title">Оплата за монтаж</div>
+
+    <!-- read-only detail strip -->
+    <div class="f-txdetail">
+      <div class="f-txd-amt f-in">+€520</div>
+      <div class="f-txd-meta">
+        <span>Монтаж</span><span class="f-mdot">·</span><span>💵 Наличка</span><span class="f-mdot">·</span>
+        <span class="f-mb"><span class="f-bd" style="background:#3E88F7"></span>Север</span><span class="f-mdot">·</span><span>15 июн</span>
+      </div>
+    </div>
+
+    <!-- actions -->
+    <div class="fmodal-row f-act-inv">
+      <span class="fl"><span class="f-aic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></span><span class="lbl">Выставить инвойс</span></span>
+      <span class="ck"><svg width="8" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--label-tertiary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+    <div class="fmodal-row">
+      <span class="fl"><span class="f-aic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></span><span class="lbl">Создать возврат</span></span>
+      <span class="ck"><svg width="8" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--label-tertiary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+    </div>
+    <div class="fmodal-row f-act-del">
+      <span class="fl"><span class="f-aic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg></span><span class="lbl">Удалить</span></span>
+    </div>
+  </div>
+</div>
+    </div></div>
+</body>
+</html>
