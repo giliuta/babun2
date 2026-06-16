@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Babun2 — Финансы (как сейчас)</title>
+<style>
+  /* ── Real Babun2 design tokens (copied from app/globals.css) ── */
+  :root{
+    --surface-grouped:#EFEFF4; --surface-card:#FFFFFF; --surface-card-secondary:#F2F2F7;
+    --surface-overlay:rgba(0,0,0,0.40);
+    --separator:rgba(60,60,67,0.10); --separator-opaque:#E6E7E8;
+    --label:#000000; --label-secondary:#3C3C4399; --label-tertiary:rgba(60,60,67,0.30);
+    --label-quaternary:rgba(60,60,67,0.18); --label-on-accent:#FFFFFF;
+    --fill-tertiary:rgba(118,118,128,0.12); --fill-quaternary:rgba(116,116,128,0.08);
+    --system-red:#FF3B30; --system-orange:#FF9500; --system-green:#34C759; --system-blue:#007AFF;
+    --accent:#3E88F7; --accent-pressed:#2D7BE5; --accent-tint:rgba(62,136,247,0.12);
+    --glass-bg:rgba(255,255,255,0.72);
+    --shadow-card:0 0 0 0.5px rgba(15,23,42,0.04),0 1px 2px rgba(15,23,42,0.04);
+    --radius-pill:9999px;
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:var(--font-sans);
+    background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    gap:14px;padding:30px 16px 60px;color:var(--label);font-variant-numeric:tabular-nums;
+  }
+  .caption{font-size:12.5px;color:#6b7280;letter-spacing:.01em;text-align:center;max-width:392px;line-height:1.45;}
+  .caption b{color:#374151;font-weight:600;}
+
+  /* ── Device frame ── */
+  .device{
+    width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;
+    box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25);
+  }
+  .screen{
+    width:392px;height:812px;background:var(--surface-grouped);border-radius:45px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;
+  }
+
+  /* ── Status bar ── */
+  .statusbar{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px 0 30px;background:var(--surface-card);position:relative;}
+  .statusbar .time{font-size:15px;font-weight:600;letter-spacing:.02em;}
+  .island{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;}
+  .sb-right{display:flex;align-items:center;gap:6px;}
+  .sb-right svg{display:block;}
+
+  /* ── Nav / PageHeader ── */
+  .nav{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 6px;background:var(--surface-card);border-bottom:.5px solid var(--separator);}
+  .nav .titlewrap{display:inline-flex;align-items:center;justify-content:center;flex:1;min-width:0;}
+  .nav .title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .iconbtn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  /* On /finances the gear is secondary-label grey, not accent */
+  .iconbtn.gear{color:var(--label-secondary);}
+  .nav .spacer{width:40px;height:40px;flex:none;}
+
+  /* ── Scroll area ── */
+  .scroll{flex:1;overflow-y:auto;background:var(--surface-grouped);}
+  .scroll::-webkit-scrollbar{display:none;}
+
+  /* ── Sticky FinanceHeader ── */
+  .fh{position:sticky;top:0;z-index:20;background:var(--surface-card);
+    border-bottom:.5px solid var(--separator);padding:8px 12px;display:flex;flex-direction:column;gap:8px;}
+  .fh-chips{display:flex;gap:6px;overflow-x:auto;}
+  .fh-chips::-webkit-scrollbar{display:none;}
+  .bchip{flex:none;height:28px;padding:0 12px;border-radius:9999px;font-size:12px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;border:1px solid var(--separator);
+    background:var(--surface-card);color:var(--label);}
+  .bchip.on{background:var(--accent);color:var(--label-on-accent);border-color:transparent;}
+  .bchip .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+
+  .periodpill{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;
+    border-radius:9999px;background:var(--fill-tertiary);font-size:14px;font-weight:600;color:var(--label);}
+  .periodpill .emoji{font-size:13px;}
+  .periodpill .chev{font-size:10px;color:var(--label-tertiary);}
+
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tile{background:var(--fill-tertiary);border-radius:10px;padding:8px 12px;}
+  .tile .t-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--label-tertiary);font-weight:600;}
+  .tile .t-val{font-size:20px;font-weight:700;line-height:1.1;margin-top:2px;}
+  .tile.green .t-val{color:var(--system-green);}
+  .tile.red .t-val{color:var(--system-red);}
+
+  .metrics{font-size:12px;color:var(--label-tertiary);display:flex;flex-wrap:wrap;gap:2px 12px;}
+  .metrics b{font-weight:600;color:var(--label);}
+  .metrics b.muted{color:var(--label-secondary);}
+  .metrics b.warn{color:var(--system-orange);}
+
+  /* ── Section primitives ── */
+  .section{padding:12px 12px 0;}
+  .sec-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--label-tertiary);margin-bottom:6px;}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;}
+  .sec-head .lt{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--label-tertiary);}
+  .sec-head .bal{margin-left:6px;text-transform:none;letter-spacing:0;color:var(--label);font-weight:700;}
+  .addbtn{width:28px;height:28px;border-radius:8px;background:var(--surface-card);color:var(--accent);
+    font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px var(--separator);}
+
+  /* ── Brigade breakdown ── */
+  .bcard{background:var(--surface-card);border-radius:12px;overflow:hidden;}
+  .brow{display:flex;align-items:center;gap:12px;padding:10px 12px;text-align:left;}
+  .brow + .brow{border-top:.5px solid var(--separator);}
+  .brow .bdot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .brow .bname{flex:1;font-size:13px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .brow .inc{font-size:12px;font-weight:600;color:var(--system-green);width:60px;text-align:right;}
+  .brow .exp{font-size:12px;font-weight:600;color:var(--system-red);width:60px;text-align:right;}
+  .brow .pf{font-size:13px;font-weight:700;width:70px;text-align:right;color:var(--label);}
+  .brow .pf.neg{color:var(--system-red);}
+
+  /* ── Accounts ── */
+  .accts{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
+  .accts::-webkit-scrollbar{display:none;}
+  .acard{flex:none;width:140px;text-align:left;background:var(--surface-card);border-radius:14px;padding:12px;
+    box-shadow:0 1px 2px rgba(10,15,25,0.05),0 0 0 1px var(--separator);}
+  .acard .aicon{display:inline-flex;width:30px;height:30px;border-radius:9px;background:var(--fill-quaternary);
+    align-items:center;justify-content:center;font-size:16px;margin-bottom:8px;}
+  .acard .aname{font-size:12.5px;color:var(--label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .acard .abrig{font-size:10.5px;color:var(--label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .acard .abal{font-size:18px;font-weight:700;letter-spacing:-.01em;margin-top:2px;color:var(--label);}
+
+  /* ── Transactions feed ── */
+  .feed{display:flex;flex-direction:column;gap:8px;}
+  .tgroup{background:var(--surface-card);border-radius:12px;overflow:hidden;}
+  .thead{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:.5px solid var(--separator);}
+  .thead .td{font-size:12px;font-weight:600;color:var(--label-secondary);}
+  .thead .tn{font-size:13px;font-weight:600;color:var(--label);}
+  .thead .tn.neg{color:var(--system-red);}
+  .trow{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:.5px solid var(--separator);}
+  .trow:first-of-type{border-top:0;}
+  .trow .emoji{font-size:14px;width:20px;text-align:center;flex:none;}
+  .trow .mid{flex:1;min-width:0;}
+  .trow .ttl{font-size:12px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .trow .sub{font-size:11px;color:var(--label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .trow .amt{font-size:13px;font-weight:600;flex:none;}
+  .amt.in{color:var(--system-green);}
+  .amt.ex{color:var(--system-red);}
+  .amt.tr{color:var(--label-secondary);}
+
+  /* ── Sticky bottom action bar ── */
+  .actionbar{flex:none;padding:8px 12px;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);border-top:.5px solid var(--separator);}
+  .actionbar .inner{display:flex;gap:8px;}
+  .abtn{flex:1;height:40px;border-radius:9999px;font-size:13px;font-weight:600;color:var(--label-on-accent);
+    display:flex;align-items:center;justify-content:center;border:0;}
+  .abtn.income{background:var(--system-green);}
+  .abtn.expense{background:var(--system-red);}
+  .abtn.transfer{background:var(--accent);}
+
+  /* ── Bottom tab bar ── */
+  .tabbar{height:60px;flex:none;display:flex;align-items:flex-start;justify-content:space-around;gap:2px;
+    padding:4px 8px 0;background:var(--glass-bg);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--separator);}
+  .tab{flex:1;min-width:44px;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;color:var(--label-secondary);position:relative;}
+  .tab.active{color:var(--accent);}
+  .tab .lbl{font-size:10px;line-height:1;font-weight:500;}
+  .tab.active .lbl{font-weight:600;}
+  .tab .count{position:absolute;top:-2px;right:18px;min-width:16px;height:16px;padding:0 4px;border-radius:9999px;
+    background:var(--system-red);color:#fff;font-size:10px;font-weight:600;line-height:16px;text-align:center;
+    box-shadow:0 0 0 2px var(--surface-card);}
+</style>
+</head>
+<body>
+
+  <div class="caption">
+    <b>Финансы — как сейчас.</b> Точный снимок текущей страницы <code>/dashboard/finances</code>:
+    sticky-шапка (чипы бригад · период · плитки Доход/Расход · Прибыль/Ожидаемая/Долг),
+    блок «По бригадам», горизонтальные карточки счетов, лента «Движения» по дням и нижняя панель
+    действий «+ Доход / + Расход / ↔ Перевод». Данные — пример AirFix за июнь.
+  </div>
+
+  <div class="device">
+    <div class="screen">
+
+      <!-- ── status bar ── -->
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+
+      <!-- ── PageHeader (gear = secondary-label grey on /finances) ── -->
+      <div class="nav">
+        <span class="iconbtn gear" title="Настройки финансов">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        <span class="titlewrap"><span class="title">Финансы</span></span>
+        <span class="spacer"></span>
+      </div>
+
+      <!-- ── scroll ── -->
+      <div class="scroll">
+
+        <!-- Sticky FinanceHeader -->
+        <div class="fh">
+          <div class="fh-chips">
+            <span class="bchip"><span class="dot" style="background:#3E88F7"></span>Андреас</span>
+            <span class="bchip"><span class="dot" style="background:#FF9500"></span>Костас</span>
+          </div>
+
+          <span class="periodpill">
+            <span class="emoji">📅</span>
+            <span>1–30&#160;июн.</span>
+            <span class="chev">▼</span>
+          </span>
+
+          <div class="tiles">
+            <div class="tile green">
+              <div class="t-lbl">Доход</div>
+              <div class="t-val">€12&#160;480</div>
+            </div>
+            <div class="tile red">
+              <div class="t-lbl">Расход</div>
+              <div class="t-val">−€4&#160;360</div>
+            </div>
+          </div>
+
+          <div class="metrics">
+            <span>Прибыль <b>€8&#160;120</b></span>
+            <span>·</span>
+            <span>Ожидаемая <b class="muted">€2&#160;250</b></span>
+            <span>·</span>
+            <span>Долг <b class="warn">€580</b></span>
+          </div>
+        </div>
+
+        <!-- По бригадам -->
+        <div class="section">
+          <div class="sec-title">По бригадам</div>
+          <div class="bcard">
+            <div class="brow">
+              <span class="bdot" style="background:#3E88F7"></span>
+              <span class="bname">Андреас</span>
+              <span class="inc">€7&#160;350</span>
+              <span class="exp">−€2&#160;540</span>
+              <span class="pf">€4&#160;810</span>
+            </div>
+            <div class="brow">
+              <span class="bdot" style="background:#FF9500"></span>
+              <span class="bname">Костас</span>
+              <span class="inc">€5&#160;130</span>
+              <span class="exp">−€1&#160;820</span>
+              <span class="pf">€3&#160;310</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Счета -->
+        <div class="section">
+          <div class="sec-head">
+            <span class="lt">Счета<span class="bal">€15&#160;500</span></span>
+            <span class="addbtn" title="Добавить счёт">+</span>
+          </div>
+          <div class="accts">
+            <div class="acard">
+              <span class="aicon">💵</span>
+              <div class="aname">Наличка</div>
+              <div class="abrig">Андреас</div>
+              <div class="abal">€1&#160;920</div>
+            </div>
+            <div class="acard">
+              <span class="aicon">💳</span>
+              <div class="aname">Карта</div>
+              <div class="abrig">Андреас</div>
+              <div class="abal">€3&#160;480</div>
+            </div>
+            <div class="acard">
+              <span class="aicon">💵</span>
+              <div class="aname">Наличка</div>
+              <div class="abrig">Костас</div>
+              <div class="abal">€860</div>
+            </div>
+            <div class="acard">
+              <span class="aicon">🏦</span>
+              <div class="aname">Банк AirFix</div>
+              <div class="abrig">Андреас</div>
+              <div class="abal">€9&#160;240</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Движения -->
+        <div class="section" style="padding-bottom:12px;">
+          <div class="sec-title">Движения</div>
+          <div class="feed">
+
+            <div class="tgroup">
+              <div class="thead"><span class="td">15 июн</span><span class="tn">€440</span></div>
+              <div class="trow">
+                <span class="emoji">💵</span>
+                <div class="mid"><div class="ttl">Установка сплит-системы Daikin</div><div class="sub">Наличка · Андреас</div></div>
+                <span class="amt in">+€520</span>
+              </div>
+              <div class="trow">
+                <span class="emoji">💳</span>
+                <div class="mid"><div class="ttl">Заправка фреоном R32</div><div class="sub">Карта · Андреас</div></div>
+                <span class="amt ex">−€140</span>
+              </div>
+              <div class="trow">
+                <span class="emoji">💵</span>
+                <div class="mid"><div class="ttl">Диагностика кондиционера</div><div class="sub">Наличка · Костас</div></div>
+                <span class="amt in">+€60</span>
+              </div>
+            </div>
+
+            <div class="tgroup">
+              <div class="thead"><span class="td">14 июн</span><span class="tn neg">−€30</span></div>
+              <div class="trow">
+                <span class="emoji">💵</span>
+                <div class="mid"><div class="ttl">Чистка кондиционеров, офис</div><div class="sub">Наличка · Костас</div></div>
+                <span class="amt in">+€280</span>
+              </div>
+              <div class="trow">
+                <span class="emoji">🏦</span>
+                <div class="mid"><div class="ttl">Перевод на Банк AirFix</div><div class="sub">Андреас</div></div>
+                <span class="amt tr">−€800</span>
+              </div>
+              <div class="trow">
+                <span class="emoji">📦</span>
+                <div class="mid"><div class="ttl">Запчасти: компрессор</div><div class="sub">Банк AirFix · Андреас</div></div>
+                <span class="amt ex">−€310</span>
+              </div>
+            </div>
+
+            <div class="tgroup">
+              <div class="thead"><span class="td">13 июн</span><span class="tn">€690</span></div>
+              <div class="trow">
+                <span class="emoji">💳</span>
+                <div class="mid"><div class="ttl">Ремонт мульти-сплит системы</div><div class="sub">Карта · Андреас</div></div>
+                <span class="amt in">+€690</span>
+              </div>
+            </div>
+
+            <div class="tgroup">
+              <div class="thead"><span class="td">12 июн</span><span class="tn">€515</span></div>
+              <div class="trow">
+                <span class="emoji">💵</span>
+                <div class="mid"><div class="ttl">Монтаж кондиционера LG</div><div class="sub">Наличка · Костас</div></div>
+                <span class="amt in">+€430</span>
+              </div>
+              <div class="trow">
+                <span class="emoji">💳</span>
+                <div class="mid"><div class="ttl">Топливо (заправка фургона)</div><div class="sub">Карта · Костас</div></div>
+                <span class="amt ex">−€75</span>
+              </div>
+              <div class="trow">
+                <span class="emoji">💵</span>
+                <div class="mid"><div class="ttl">Доплата за срочность</div><div class="sub">Наличка · Костас</div></div>
+                <span class="amt in">+€160</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Sticky bottom action bar ── -->
+      <div class="actionbar">
+        <div class="inner">
+          <button class="abtn income">+ Доход</button>
+          <button class="abtn expense">+ Расход</button>
+          <button class="abtn transfer">↔ Перевод</button>
+        </div>
+      </div>
+
+      <!-- ── bottom tab bar (Финансы active) ── -->
+      <div class="tabbar">
+        <div class="tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+          <span class="lbl">Календарь</span>
+        </div>
+        <div class="tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+          <span class="lbl">Клиенты</span>
+        </div>
+        <div class="tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="lbl">Чаты</span>
+          <span class="count">3</span>
+        </div>
+        <div class="tab active">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+          <span class="lbl">Финансы</span>
+        </div>
+        <div class="tab">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg>
+          <span class="lbl">Кабинет</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

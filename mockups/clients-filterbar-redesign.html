@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Babun2 — Клиенты (фильтры, редизайн)</title>
+<style>
+  :root{
+    --surface-grouped:#EFEFF4; --surface-card:#FFFFFF; --surface-card-secondary:#F2F2F7;
+    --separator:rgba(60,60,67,0.10);
+    --label:#000000; --label-secondary:#3C3C4399; --label-tertiary:rgba(60,60,67,0.30);
+    --label-quaternary:rgba(60,60,67,0.18); --label-on-accent:#FFFFFF;
+    --fill-tertiary:rgba(118,118,128,0.12); --fill-quaternary:rgba(116,116,128,0.08);
+    --system-red:#FF3B30; --system-orange:#FF9500; --system-green:#34C759; --system-blue:#007AFF;
+    --accent:#3E88F7; --accent-pressed:#2D7BE5; --accent-tint:rgba(62,136,247,0.12);
+    --glass-bg:rgba(255,255,255,0.72);
+    --shadow-card:0 0 0 0.5px rgba(15,23,42,0.04),0 1px 2px rgba(15,23,42,0.04);
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font-sans);
+    background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:30px 16px 60px;
+    color:var(--label);font-variant-numeric:tabular-nums;}
+  .caption{font-size:12.5px;color:#6b7280;line-height:1.45;text-align:center;max-width:392px;}
+  .caption b{color:#374151;font-weight:600;}
+  .device{width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;
+    box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25);}
+  .screen{width:392px;height:812px;background:var(--surface-grouped);border-radius:45px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;}
+  .statusbar{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px 0 30px;background:var(--surface-card);position:relative;}
+  .statusbar .time{font-size:15px;font-weight:600;letter-spacing:.02em;}
+  .island{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;}
+  .sb-right{display:flex;align-items:center;gap:6px;}
+  .nav{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px;
+    background:var(--surface-card);}
+  .nav .titlewrap{display:inline-flex;align-items:center;justify-content:center;flex:1;}
+  .nav .title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .iconbtn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;}
+
+  /* sticky header zone: search + filter bar travel together, pinned above the list */
+  .header-zone{flex:none;background:var(--surface-card);border-bottom:.5px solid var(--separator);
+    padding:8px 12px 10px;display:flex;flex-direction:column;gap:9px;z-index:5;}
+
+  .search{position:relative;}
+  .search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--label-tertiary);pointer-events:none;}
+  .search input{width:100%;height:38px;border-radius:10px;background:var(--surface-card-secondary);
+    border:none;padding:0 12px 0 34px;font-size:15px;color:var(--label);font-family:inherit;}
+  .search input::placeholder{color:var(--label-tertiary);}
+
+  /* ── FILTER BAR (redesign) ── */
+  /* Anchor "Фильтр" pill on the left never scrolls; facet chips scroll to its right. */
+  .bar{display:flex;align-items:center;gap:8px;min-width:0;}
+  .bar-scroll{display:flex;gap:7px;overflow-x:auto;padding:2px 2px;margin:-2px -2px;flex:1;min-width:0;
+    scrollbar-width:none;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);
+    mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);}
+  .bar-scroll::-webkit-scrollbar{display:none;}
+
+  /* every chip — one shared shape so the bar reads as one system */
+  .chip{flex:none;display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 13px;border-radius:9999px;
+    font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;font-family:inherit;border:1px solid transparent;
+    transition:background .15s,border-color .15s,color .15s;}
+  .chip:active{transform:scale(.97);}
+  .chip svg{flex:none;}
+
+  /* idle facet chip */
+  .chip.idle{background:var(--surface-card);border-color:var(--separator);color:var(--label);box-shadow:var(--shadow-card);}
+  .chip.idle .caret{color:var(--label-tertiary);}
+  /* active facet chip — solid accent, shows the count of chosen values */
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.on .pillcount{background:rgba(255,255,255,.26);color:#fff;border-radius:9999px;min-width:17px;height:17px;
+    padding:0 4px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .chip.on .caret{color:rgba(255,255,255,.85);}
+
+  /* Sort chip — visually a peer, but uses an up/down-arrows glyph instead of a caret so it self-labels as "sort" */
+  .chip.sort.idle .sortic{color:var(--accent);}
+
+  /* Anchor: the always-present "Фильтр" entry. When any filter is active it turns into the count + clear. */
+  .anchor{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:9999px;
+    font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--separator);background:var(--surface-card);
+    color:var(--label);box-shadow:var(--shadow-card);font-family:inherit;}
+  .anchor:active{transform:scale(.97);}
+  .anchor .ic{color:var(--accent);display:flex;}
+  .anchor.has{background:var(--accent-tint);border-color:transparent;color:var(--accent);}
+  .anchor.has .ic{color:var(--accent);}
+  .anchor .badge{background:var(--accent);color:#fff;border-radius:9999px;min-width:18px;height:18px;padding:0 5px;
+    font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+
+  /* result line under the bar — count + active context, with one-tap clear-all when filters exist */
+  .resultline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label-secondary);
+    padding:1px 2px 0;min-height:18px;}
+  .resultline .rc{font-weight:600;color:var(--label);}
+  .resultline .grow{flex:1;}
+  .resultline .clearall{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;}
+  .resultline .clearall:active{opacity:.6;}
+  .resultline .clearall.hide{display:none;}
+
+  /* scroll list */
+  .scroll{flex:1;overflow-y:auto;background:var(--surface-grouped);}
+  .scroll::-webkit-scrollbar{display:none;}
+  .content{padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .emptyf{text-align:center;color:var(--label-tertiary);font-size:14px;padding:40px 18px;line-height:1.5;}
+  .emptyf .ebtn{margin-top:14px;display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 14px;border-radius:9999px;
+    background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+
+  /* cards (unchanged) */
+  .card{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);padding:12px;display:flex;gap:12px;}
+  .avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex:none;}
+  .cbody{flex:1;min-width:0;}
+  .r1{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .name{flex:1;min-width:0;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .money{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;font-weight:600;margin-top:3px;}
+  .m-exp{color:var(--label-secondary);} .m-inc{color:var(--system-green);} .m-debt{color:#B78600;}
+  .meta{font-size:11px;color:var(--label);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .meta .seg::before{content:"·";margin:0 5px;color:var(--label-tertiary);}
+  .meta .seg:first-child::before{content:none;}
+  .meta .seg-last svg{vertical-align:-1.5px;margin-right:3px;color:var(--label-secondary);}
+  .phonebtn{width:40px;height:40px;border-radius:50%;background:rgba(52,199,89,.12);color:var(--system-green);display:flex;align-items:center;justify-content:center;flex:none;align-self:center;}
+
+  .tabbar{height:60px;flex:none;display:flex;align-items:flex-start;justify-content:space-around;gap:2px;padding:4px 8px 0;
+    background:var(--glass-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-top:.5px solid var(--separator);}
+  .tab{flex:1;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--label-secondary);}
+  .tab.active{color:var(--accent);}
+  .tab .lbl{font-size:10px;font-weight:500;}
+  .tab.active .lbl{font-weight:600;}
+
+  /* ── shared popup shell (kept identical) ── */
+  .fmodal-backdrop{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.28);backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;transition:opacity .2s ease;}
+  .fmodal-backdrop.show{opacity:1;}
+  .fmodal{position:relative;width:100%;max-width:300px;max-height:74%;overflow-y:auto;background:var(--surface-card);
+    border-radius:20px;box-shadow:0 24px 60px -16px rgba(15,23,42,.42),0 0 0 .5px rgba(15,23,42,.06);
+    transform:scale(.94);opacity:.6;transition:transform .24s cubic-bezier(.32,.72,0,1),opacity .18s ease;scrollbar-width:none;}
+  .fmodal::-webkit-scrollbar{display:none;}
+  .fmodal-backdrop.show .fmodal{transform:scale(1);opacity:1;}
+  .fmodal-back{position:absolute;top:7px;left:7px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--accent);border-radius:50%;cursor:pointer;z-index:2;}
+  .fmodal-back:active{background:var(--fill-tertiary);}
+  /* header gets an inline "Сбросить" affordance on multi-select popups */
+  .fmodal-title{position:sticky;top:0;background:var(--surface-card);padding:13px 16px;border-bottom:.5px solid var(--separator);
+    font-size:15px;font-weight:600;text-align:center;color:var(--label);}
+  .fmodal-reset{position:absolute;top:11px;right:12px;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;padding:3px 4px;}
+  .fmodal-reset.dim{color:var(--label-tertiary);pointer-events:none;}
+  .fmodal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;min-height:48px;
+    border-bottom:.5px solid var(--separator);cursor:pointer;}
+  .fmodal-row:last-child{border-bottom:0;}
+  .fmodal-row:active{background:var(--fill-quaternary);}
+  .fmodal-row .fl{display:flex;align-items:center;gap:10px;min-width:0;}
+  .fmodal-row .lbl{font-size:15px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fmodal-row .sub{font-size:12px;color:var(--label-tertiary);margin-left:auto;padding-right:8px;}
+  .fmodal-row.sel .lbl{color:var(--accent);font-weight:600;}
+  .fmodal-row .ck{flex:none;color:var(--accent);}
+  .fdotc{width:9px;height:9px;border-radius:50%;flex:none;}
+  /* radio glyph for single-select popups (sort / period) so the user reads "pick one" */
+  .fmodal-row .radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--label-tertiary);flex:none;}
+  .fmodal-row.sel .radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 0 6px,transparent 7px);}
+
+  /* custom-range wheels (kept verbatim) */
+  .pcv{padding:8px 14px 14px;}
+  .seg2{display:flex;gap:3px;background:var(--fill-tertiary);border-radius:13px;padding:3px;margin:0 0 12px;}
+  .seg2-b{flex:1;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;transition:background .18s;}
+  .seg2-b.on{background:var(--surface-card);box-shadow:var(--shadow-card);}
+  .seg2-b .k{font-size:11px;font-weight:600;color:var(--label-tertiary);}
+  .seg2-b.on .k{color:var(--accent);}
+  .seg2-b .v{font-size:15px;font-weight:700;color:var(--label);}
+  .wrange{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:var(--label);padding:0 0 8px;}
+  .wrange .warrow{color:var(--label-tertiary);font-weight:400;}
+  .wpick{padding:0 0 4px;}
+  .wheels{position:relative;display:flex;height:150px;}
+  .wheel{flex:1 1 auto;overflow-y:scroll;scroll-snap-type:y mandatory;text-align:center;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);}
+  .wheel::-webkit-scrollbar{display:none;}
+  .wheel.wheel-day{flex:0 0 58px;} .wheel.wheel-year{flex:0 0 76px;}
+  .wopt{height:30px;line-height:30px;scroll-snap-align:center;font-size:17px;color:var(--label-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .wopt.cur{color:var(--label);font-weight:600;}
+  .wspacer{height:60px;}
+  .wband{position:absolute;left:6px;right:6px;top:50%;height:30px;transform:translateY(-50%);pointer-events:none;background:var(--fill-quaternary);border-radius:8px;}
+  .wdone{margin-top:10px;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .wdone:active{background:var(--accent-pressed);}
+</style>
+</head>
+<body>
+
+  <div class="caption">
+    <b>Клиенты — редизайн фильтр-бара.</b> Якорь «Фильтр» (всегда слева, не скроллится) → счётчик активных + «×». Чипы фасетов скроллятся, активный = синий со счётчиком. Сортировка вынесена в бар отдельным чипом со стрелками. Строка результата снизу: «N клиентов» + «Сбросить всё». «Период» — те же барабаны.
+  </div>
+
+  <div class="device">
+    <div class="screen">
+
+      <div class="statusbar">
+        <span class="time">9:41</span><div class="island"></div>
+        <div class="sb-right">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+
+      <div class="nav">
+        <span class="iconbtn" title="Настройки"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <span class="titlewrap"><span class="title">Клиенты</span></span>
+        <span class="iconbtn" title="Добавить"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg></span>
+      </div>
+
+      <!-- sticky header: search + filter bar + result line -->
+      <div class="header-zone">
+        <div class="search">
+          <svg class="si" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Поиск по имени, телефону..." />
+        </div>
+
+        <div class="bar">
+          <span class="anchor" id="anchor"></span>
+          <div class="bar-scroll">
+            <span class="chip sort idle" id="fSort"></span>
+            <span class="chip idle" id="fTeam"></span>
+            <span class="chip idle" id="fCity"></span>
+            <span class="chip idle" id="fTag"></span>
+            <span class="chip idle" id="fPeriod"></span>
+          </div>
+        </div>
+
+        <div class="resultline">
+          <span><span class="rc" id="rcount">12</span> клиентов</span>
+          <span class="grow"></span>
+          <span class="clearall hide" id="clearAll">Сбросить всё
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="scroll"><div class="content"><div class="cards" id="cards"></div></div></div>
+
+      <div class="tabbar">
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span class="lbl">Календарь</span></div>
+        <div class="tab active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span class="lbl">Клиенты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="lbl">Чаты</span></div>
+        <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span class="lbl">Финансы</span></div>
+        <div class="tab"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span class="lbl">Кабинет</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="caption" style="opacity:.8">iPhone · 392 px · «Период» использует те же барабаны «С / До».</div>
+
+<script>
+  const I={ phone:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.8.4 1.6.7 2.3a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.7-1.3a2 2 0 0 1 2.1-.4c.7.3 1.5.6 2.3.7A2 2 0 0 1 22 16.9z"/></svg>' };
+  const CARET='<svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  const SORTIC='<svg class="sortic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>';
+  const CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const FILTERIC='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="7" x2="17" y1="12" y2="12"/><line x1="10" x2="14" y1="18" y2="18"/></svg>';
+  const chevR='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  const chevL='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+
+  const clients=[
+    {first:'Angela',ini:'AM',color:'#FF2D55',brig:'D&K',city:'Лимассол',tag:'',exp:80,inc:0,debt:0,last:null,appts:[]},
+    {first:'Johannes',ini:'JW',color:'#FFCC00',brig:'D&K',city:'',tag:'',exp:0,inc:0,debt:0,last:null,appts:[]},
+    {first:'John',ini:'JT',color:'#FF9500',brig:'Y&D',city:'Ларнака',tag:'VIP',exp:120,inc:420,debt:0,last:'2 мар',appts:['2026-01-15','2026-03-02']},
+    {first:'Laima',ini:'LB',color:'#32ADE6',brig:'Y&D',city:'Пафос',tag:'',exp:0,inc:90,debt:0,last:'12 фев',appts:['2026-02-12']},
+    {first:'Marina',ini:'MA',color:'#AF52DE',brig:null,city:'',tag:'',exp:0,inc:0,debt:0,last:null,appts:[]},
+    {first:'Александр',ini:'АС',color:'#A2845E',brig:'Y&D',city:'Никосия',tag:'Проблемный',exp:0,inc:120,debt:0,last:'18 апр',appts:['2025-11-20','2026-04-18']},
+    {first:'Анастасия',ini:'АП',color:'#007AFF',brig:'Y&D',city:'Лимассол',tag:'VIP',exp:160,inc:640,debt:0,last:'30 мая',appts:['2026-01-10','2026-04-09','2026-05-30']},
+    {first:'Надежда',ini:'НВ',color:'#34C759',brig:'D&K',city:'Никосия',tag:'',exp:0,inc:240,debt:0,last:'3 мая',appts:['2026-03-03','2026-05-03']},
+    {first:'Ольга',ini:'ОН',color:'#5E5CE6',brig:'Y&D',city:'Пафос',tag:'',exp:0,inc:270,debt:0,last:'25 мая',appts:['2026-05-25']},
+    {first:'Руслан',ini:'РА',color:'#00C7BE',brig:'D&K',city:'',tag:'',exp:0,inc:0,debt:0,last:null,appts:[]},
+    {first:'Светлана',ini:'СК',color:'#30B0C7',brig:'Y&D',city:'Айя-Напа',tag:'',exp:0,inc:180,debt:0,last:'1 июн',appts:['2026-02-01','2026-06-01']},
+    {first:'Сергей',ini:'СМ',color:'#FF3B30',brig:'Y&D',city:'Лимассол',tag:'Постоянный',exp:120,inc:560,debt:135,last:'10 мая',appts:['2026-02-20','2026-05-10']},
+  ];
+
+  const TEAM_COLORS={'Y&D':'#6366f1','D&K':'#8b5cf6'};
+  const CITY_COLORS={'Лимассол':'#FF9500','Пафос':'#32ADE6','Ларнака':'#34C759','Никосия':'#AF52DE','Айя-Напа':'#FFCC00'};
+  const TAG_COLORS={'VIP':'#f59e0b','Постоянный':'#10b981','Проблемный':'#ef4444'};
+  const uniq=a=>[...new Set(a.filter(Boolean))];
+  const teams=uniq(clients.map(c=>c.brig)), cities=uniq(clients.map(c=>c.city)), tags=uniq(clients.map(c=>c.tag));
+  const filters={team:[],city:[],tag:[],period:null};
+  const SORTS=[
+    {k:'az',l:'По алфавиту (А–Я)'},
+    {k:'last',l:'По последнему визиту'},
+    {k:'inc',l:'По доходу'},
+    {k:'debt',l:'По долгу'},
+  ];
+  let sort='az';
+  const SORT_SHORT={az:'А–Я',last:'Визит',inc:'Доход',debt:'Долг'};
+
+  function cardHTML(c){
+    const figs=[];
+    if(c.exp>0)figs.push(`<span class="m-exp">€${c.exp}</span>`);
+    if(c.inc>0)figs.push(`<span class="m-inc">€${c.inc}</span>`);
+    if(c.debt>0)figs.push(`<span class="m-debt">€${c.debt}</span>`);
+    const money=figs.length?`<div class="money">${figs.join('')}</div>`:'';
+    const clock='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>';
+    const segs=[`<span class="seg seg-last">${c.last?clock+c.last:'нет записей'}</span>`];
+    if(c.brig)segs.push(`<span class="seg">${c.brig}</span>`);
+    if(c.city)segs.push(`<span class="seg">${c.city}</span>`);
+    if(c.tag)segs.push(`<span class="seg">${c.tag}</span>`);
+    return `<div class="card"><div class="avatar" style="background:${c.color}">${c.ini}</div>
+      <div class="cbody"><div class="r1"><span class="name">${c.first}</span></div>${money}<div class="meta">${segs.join('')}</div></div>
+      <div class="phonebtn">${I.phone}</div></div>`;
+  }
+
+  const TODAY='2026-06-02';
+  const pad=n=>String(n).padStart(2,'0');
+  const ymd=(y,mo,d)=>`${y}-${pad(mo+1)}-${pad(d)}`;
+  const dAgo=n=>{const d=new Date(2026,5,2);d.setDate(d.getDate()-n);return ymd(d.getFullYear(),d.getMonth(),d.getDate());};
+  const PRESETS=[
+    {k:'all',l:'Всё время',from:null,to:null},
+    {k:'today',l:'Сегодня',from:TODAY,to:TODAY},
+    {k:'7d',l:'Последние 7 дней',from:dAgo(6),to:TODAY},
+    {k:'30d',l:'Последние 30 дней',from:dAgo(29),to:TODAY},
+    {k:'90d',l:'Последние 90 дней',from:dAgo(89),to:TODAY},
+    {k:'month',l:'Этот месяц',from:'2026-06-01',to:'2026-06-30'},
+    {k:'prev',l:'Прошлый месяц',from:'2026-05-01',to:'2026-05-31'},
+    {k:'year',l:'Этот год',from:'2026-01-01',to:'2026-12-31'},
+  ];
+  const M_GEN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const M_NOM=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const fmt=s=>{const[y,mo,d]=s.split('-').map(Number);return `${d} ${M_GEN[mo-1]}`;};
+  const periodShort=()=>{ if(!filters.period)return''; if(filters.period.k==='custom')return `${fmt(filters.period.from)}–${fmt(filters.period.to)}`; return PRESETS.find(p=>p.k===filters.period.k).l; };
+
+  const periodOk=c=>!filters.period||c.appts.some(d=>d>=filters.period.from&&d<=filters.period.to);
+  const visibleClients=()=>{
+    let list=clients.filter(c=>
+      (filters.team.length===0||filters.team.includes(c.brig))&&
+      (filters.city.length===0||filters.city.includes(c.city))&&
+      (filters.tag.length===0||filters.tag.includes(c.tag))&&periodOk(c));
+    const lastVal=c=>c.appts.length?c.appts[c.appts.length-1]:'';
+    if(sort==='az')list.sort((a,b)=>a.first.localeCompare(b.first,'ru'));
+    if(sort==='last')list.sort((a,b)=>lastVal(b).localeCompare(lastVal(a)));
+    if(sort==='inc')list.sort((a,b)=>b.inc-a.inc);
+    if(sort==='debt')list.sort((a,b)=>b.debt-a.debt);
+    return list;
+  };
+  const activeCount=()=>filters.team.length+filters.city.length+filters.tag.length+(filters.period?1:0);
+
+  function renderCards(){
+    const list=visibleClients();
+    document.getElementById('rcount').textContent=list.length;
+    document.getElementById('cards').innerHTML=list.length
+      ? list.map(cardHTML).join('')
+      : `<div class="emptyf">Никого не нашлось по этим фильтрам.<br><span class="ebtn" id="emptyClear">Сбросить фильтры</span></div>`;
+    document.getElementById('emptyClear')?.addEventListener('click',clearAllFilters);
+  }
+
+  function updateChips(){
+    const setFacet=(id,base,arr)=>{
+      const el=document.getElementById(id), n=arr.length;
+      el.className='chip '+(n>0?'on':'idle');
+      el.innerHTML = n>0
+        ? `${base} <span class="pillcount">${n}</span>`
+        : `${base} ${CARET}`;
+    };
+    setFacet('fTeam','Команда',filters.team);
+    setFacet('fCity','Метка',filters.city);
+    setFacet('fTag','Тег',filters.tag);
+    const per=document.getElementById('fPeriod');
+    if(filters.period){ per.className='chip on'; per.innerHTML=`${periodShort()} ${CARET}`; }
+    else { per.className='chip idle'; per.innerHTML=`Период ${CARET}`; }
+    // sort chip — never "active blue" (it's not a filter); shows current mode
+    document.getElementById('fSort').innerHTML=`${SORTIC}${SORT_SHORT[sort]} ${CARET}`;
+    // anchor + result line
+    const n=activeCount(), a=document.getElementById('anchor');
+    if(n>0){ a.className='anchor has'; a.innerHTML=`${FILTERIC}<span>Фильтр</span><span class="badge">${n}</span>`; }
+    else { a.className='anchor'; a.innerHTML=`${FILTERIC}<span>Фильтр</span>`; }
+    document.getElementById('clearAll').classList.toggle('hide',n===0);
+  }
+
+  function clearAllFilters(){ filters.team=[];filters.city=[];filters.tag=[];filters.period=null; renderCards();updateChips(); }
+
+  // ── multi-select facet popups (Команда / Метка / Тег) ──
+  function openFacet(type){
+    const cfg={
+      team:{title:'Команда',all:'Все команды',items:teams.map(o=>({v:o,l:o,c:TEAM_COLORS[o]}))},
+      city:{title:'Метка',all:'Все метки',items:cities.map(o=>({v:o,l:o,c:CITY_COLORS[o]}))},
+      tag:{title:'Тег',all:'Все теги',items:tags.map(o=>({v:o,l:o,c:TAG_COLORS[o]}))},
+    }[type];
+    const m=document.createElement('div'); m.className='fmodal-backdrop';
+    m.innerHTML=`<div class="fmodal"><div class="fmodal-title">${cfg.title}<span class="fmodal-reset" id="fr">Сбросить</span></div><div class="fmodal-list"></div></div>`;
+    const listEl=m.querySelector('.fmodal-list'), resetEl=m.querySelector('#fr');
+    function paint(){
+      const sel=filters[type];
+      resetEl.classList.toggle('dim',sel.length===0);
+      const rows=[{v:null,l:cfg.all,c:null},...cfg.items];
+      listEl.innerHTML=rows.map(r=>{
+        const on=r.v===null?sel.length===0:sel.includes(r.v);
+        const dot=r.c?`<span class="fdotc" style="background:${r.c}"></span>`:'';
+        const cnt=r.v===null?'':`<span class="sub">${clients.filter(c=>c[type==='team'?'brig':type==='city'?'city':'tag']===r.v).length}</span>`;
+        return `<div class="fmodal-row${on?' sel':''}" data-val="${r.v??''}"><span class="fl">${dot}<span class="lbl">${r.l}</span></span>${cnt}<span class="ck">${on?CHECK:''}</span></div>`;
+      }).join('');
+      listEl.querySelectorAll('.fmodal-row').forEach(row=>row.addEventListener('click',()=>{
+        const v=row.dataset.val||null;
+        if(v===null)filters[type]=[];
+        else{const i=filters[type].indexOf(v);if(i>=0)filters[type].splice(i,1);else filters[type].push(v);}
+        paint();renderCards();updateChips();
+      }));
+    }
+    resetEl.addEventListener('click',()=>{filters[type]=[];paint();renderCards();updateChips();});
+    paint();
+    const close=()=>{m.classList.remove('show');setTimeout(()=>m.remove(),200);};
+    m.addEventListener('click',e=>{if(e.target===m)close();});
+    document.querySelector('.screen').appendChild(m);
+    requestAnimationFrame(()=>m.classList.add('show'));
+  }
+
+  // ── single-select Sort popup (radio rows) ──
+  function openSort(){
+    const m=document.createElement('div'); m.className='fmodal-backdrop';
+    m.innerHTML=`<div class="fmodal"><div class="fmodal-title">Сортировка</div><div class="fmodal-list"></div></div>`;
+    const listEl=m.querySelector('.fmodal-list');
+    listEl.innerHTML=SORTS.map(s=>`<div class="fmodal-row${sort===s.k?' sel':''}" data-k="${s.k}"><span class="fl"><span class="radio"></span><span class="lbl">${s.l}</span></span></div>`).join('');
+    const close=()=>{m.classList.remove('show');setTimeout(()=>m.remove(),200);};
+    listEl.querySelectorAll('.fmodal-row').forEach(row=>row.addEventListener('click',()=>{sort=row.dataset.k;renderCards();updateChips();close();}));
+    m.addEventListener('click',e=>{if(e.target===m)close();});
+    document.querySelector('.screen').appendChild(m);
+    requestAnimationFrame(()=>m.classList.add('show'));
+  }
+
+  // ── Период (single-select presets + wheel custom range, kept) ──
+  function openPeriod(){
+    const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+    const IH=30; const YEARS=[];for(let y=2020;y<=2030;y++)YEARS.push(y);
+    const dim=(y,mo)=>new Date(y,mo+1,0).getDate();
+    const markCur=(w,idx)=>w.querySelectorAll('.wopt').forEach(o=>o.classList.toggle('cur',+o.dataset.i===idx));
+    function makeWheel(w,count,label,initIdx,onCommit){
+      w.innerHTML='<div class="wspacer"></div>'+Array.from({length:count},(_,i)=>`<div class="wopt" data-i="${i}">${label(i)}</div>`).join('')+'<div class="wspacer"></div>';
+      let suppress=true,t; w.scrollTop=initIdx*IH; markCur(w,initIdx); setTimeout(()=>{suppress=false;},160);
+      w.onscroll=()=>{const idx=Math.max(0,Math.min(count-1,Math.round(w.scrollTop/IH)));markCur(w,idx);if(suppress)return;clearTimeout(t);t=setTimeout(()=>onCommit(idx),90);};
+    }
+    function buildPicker(root,st,onChange){
+      root.innerHTML='<div class="wheels"><div class="wheel wheel-day"></div><div class="wheel wheel-mon"></div><div class="wheel wheel-year"></div><div class="wband"></div></div>';
+      const dEl=root.querySelector('.wheel-day'),mEl=root.querySelector('.wheel-mon'),yEl=root.querySelector('.wheel-year');
+      function buildDay(){const max=dim(st.y,st.m);if(st.d>max)st.d=max;makeWheel(dEl,max,i=>String(i+1),st.d-1,i=>{st.d=i+1;onChange();});}
+      buildDay(); makeWheel(mEl,12,i=>M_NOM[i],st.m,i=>{st.m=i;buildDay();onChange();});
+      const yi=YEARS.indexOf(st.y); makeWheel(yEl,YEARS.length,i=>String(YEARS[i]),yi<0?6:yi,i=>{st.y=YEARS[i];buildDay();onChange();});
+    }
+    const human=s=>{const[y,mo,d]=s.split('-').map(Number);return `${d} ${M_GEN[mo-1]} ${y}`;};
+    const shortD=st=>`${st.d} ${M_NOM[st.m].slice(0,3).toLowerCase()} ${String(st.y).slice(2)}`;
+
+    const m=document.createElement('div'); m.className='fmodal-backdrop';
+    m.innerHTML=`<div class="fmodal"><span class="fmodal-back" id="pBack" style="display:none">${chevL}</span><div class="fmodal-title" id="pTitle">Период</div><div class="fmodal-list" id="pList"></div><div class="pcv" id="pCustom" style="display:none"></div></div>`;
+    const listEl=m.querySelector('#pList'),customEl=m.querySelector('#pCustom'),titleEl=m.querySelector('#pTitle'),backEl=m.querySelector('#pBack');
+    const close=()=>{m.classList.remove('show');setTimeout(()=>m.remove(),200);};
+    function paintList(){
+      customEl.style.display='none';listEl.style.display='';titleEl.textContent='Период';backEl.style.display='none';
+      const curK=filters.period?filters.period.k:'all';
+      let html=PRESETS.map(p=>{const on=curK===p.k;return `<div class="fmodal-row${on?' sel':''}" data-k="${p.k}"><span class="fl"><span class="radio"></span><span class="lbl">${p.l}</span></span></div>`;}).join('');
+      const onC=curK==='custom';
+      const cLbl=onC?`${fmt(filters.period.from)} – ${fmt(filters.period.to)}`:'Свой диапазон';
+      html+=`<div class="fmodal-row${onC?' sel':''}" id="rowCustom"><span class="fl"><span class="radio"></span><span class="lbl">${cLbl}</span></span><span class="ck"><span class="sub" style="padding:0">${chevR}</span></span></div>`;
+      listEl.innerHTML=html;
+      listEl.querySelectorAll('.fmodal-row[data-k]').forEach(row=>row.addEventListener('click',()=>{const p=PRESETS.find(x=>x.k===row.dataset.k);filters.period=p.k==='all'?null:{k:p.k,from:p.from,to:p.to};renderCards();updateChips();close();}));
+      listEl.querySelector('#rowCustom').addEventListener('click',openCustom);
+    }
+    function openCustom(){
+      let sf,st0;
+      if(filters.period&&filters.period.k==='custom'){const a=filters.period.from.split('-').map(Number),b=filters.period.to.split('-').map(Number);sf={y:a[0],m:a[1]-1,d:a[2]};st0={y:b[0],m:b[1]-1,d:b[2]};}
+      else{sf={y:2026,m:5,d:1};st0={y:2026,m:5,d:2};}
+      const fromSt={...sf},toSt={...st0}; let active='from';
+      listEl.style.display='none';customEl.style.display='';titleEl.textContent='Свой диапазон';backEl.style.display='flex';
+      customEl.innerHTML=`<div class="wrange" id="wRange"></div><div class="seg2"><div class="seg2-b on" data-e="from"><span class="k">С</span><span class="v" id="segFrom"></span></div><div class="seg2-b" data-e="to"><span class="k">До</span><span class="v" id="segTo"></span></div></div><div class="wpick" id="wPick"></div><div class="wdone" id="wDone">Применить</div>`;
+      const wPick=customEl.querySelector('#wPick');
+      const refresh=()=>{customEl.querySelector('#wRange').innerHTML=`<span>${human(ymd(fromSt.y,fromSt.m,fromSt.d))}</span><span class="warrow">→</span><span>${human(ymd(toSt.y,toSt.m,toSt.d))}</span>`;customEl.querySelector('#segFrom').textContent=shortD(fromSt);customEl.querySelector('#segTo').textContent=shortD(toSt);};
+      const applyNow=()=>{let a=ymd(fromSt.y,fromSt.m,fromSt.d),b=ymd(toSt.y,toSt.m,toSt.d);if(a>b){const t=a;a=b;b=t;}filters.period={k:'custom',from:a,to:b};renderCards();updateChips();};
+      const buildActive=()=>buildPicker(wPick,active==='from'?fromSt:toSt,()=>{applyNow();refresh();});
+      buildActive();refresh();
+      customEl.querySelectorAll('.seg2-b').forEach(b=>b.addEventListener('click',()=>{active=b.dataset.e;customEl.querySelectorAll('.seg2-b').forEach(x=>x.classList.toggle('on',x.dataset.e===active));buildActive();}));
+      customEl.querySelector('#wDone').addEventListener('click',()=>{applyNow();close();});
+    }
+    backEl.addEventListener('click',paintList); paintList();
+    m.addEventListener('click',e=>{if(e.target===m)close();});
+    document.querySelector('.screen').appendChild(m);
+    requestAnimationFrame(()=>m.classList.add('show'));
+  }
+
+  document.getElementById('fSort').addEventListener('click',openSort);
+  document.getElementById('fTeam').addEventListener('click',()=>openFacet('team'));
+  document.getElementById('fCity').addEventListener('click',()=>openFacet('city'));
+  document.getElementById('fTag').addEventListener('click',()=>openFacet('tag'));
+  document.getElementById('fPeriod').addEventListener('click',openPeriod);
+  document.getElementById('anchor').addEventListener('click',()=>{ if(activeCount()>0)clearAllFilters(); else document.querySelector('.bar-scroll').scrollTo({left:0}); });
+  document.getElementById('clearAll').addEventListener('click',clearAllFilters);
+  renderCards(); updateChips();
+</script>
+</body>
+</html>
