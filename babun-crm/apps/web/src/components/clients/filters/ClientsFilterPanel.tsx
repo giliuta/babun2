@@ -22,21 +22,13 @@ import { countWordRu } from "@babun/shared/common/utils/pluralize";
 import { SortPills } from "./SortPills";
 import { FacetSection } from "./FacetSection";
 import { PeriodSection } from "./PeriodSection";
-import type {
-  SortKey,
-  Segment,
-  ClientFilterResult,
+import {
+  SEGMENT_OPTIONS,
+  type SortKey,
+  type Segment,
+  type ClientFilterResult,
 } from "./useClientFilters";
 import type { PeriodValue } from "./types";
-
-const SEGMENT_OPTIONS: { key: Exclude<Segment, "all">; label: string }[] = [
-  { key: "debt", label: "Должники" },
-  { key: "birthday", label: "Дни рождения" },
-  { key: "blacklist", label: "Чёрный список" },
-  { key: "silent", label: "Давно не были" },
-  { key: "new", label: "Новые" },
-  { key: "loyal", label: "Постоянные" },
-];
 
 export interface SegmentCounts {
   debt: number;
@@ -113,8 +105,11 @@ export function ClientsFilterPanel({
   const shownCount = filtered.length;
   const nothingActive = activeCount === 0;
 
+  // Render a status pill when it has matches OR when it's the active
+  // segment — otherwise an active segment whose count just dropped to 0
+  // would vanish from the panel and become impossible to toggle off.
   const availableSegments = SEGMENT_OPTIONS.filter(
-    (s) => segmentCounts[s.key] > 0,
+    (s) => segmentCounts[s.key] > 0 || s.key === segment,
   );
 
   return (
@@ -252,8 +247,14 @@ export function ClientsFilterPanel({
             }}
             className="w-full h-12 rounded-[14px] bg-[var(--accent)] text-[var(--label-on-accent)] text-[15px] font-semibold active:bg-[var(--accent-pressed)] transition press-scale"
           >
-            Показать {shownCount}{" "}
-            {countWordRu(shownCount, "клиента", "клиентов", "клиентов")}
+            {shownCount === 0
+              ? "Ничего не найдено"
+              : `Показать ${shownCount} ${countWordRu(
+                  shownCount,
+                  "клиент",
+                  "клиента",
+                  "клиентов",
+                )}`}
           </button>
         </div>
       </div>

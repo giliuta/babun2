@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 // clients-99 F2.11 — virtualization when filtered list > VIRTUAL_THRESHOLD.
@@ -18,8 +18,6 @@ import {
   Check,
   Users,
   Ban,
-  Wind,
-  MapPin,
   X,
   Send,
   Plus,
@@ -29,8 +27,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Bell,
-  CloudUpload,
-  Download,
+  Settings,
 } from "@babun/shared/icons";
 import { exportClientsCsv } from "@/lib/csv/csv-export";
 import PageHeader from "@/components/layout/PageHeader";
@@ -58,6 +55,16 @@ import {
 import type { ActiveToken, PeriodValue } from "@/components/clients/filters/types";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
+// v811 — gear → «Настройки клиентов» + live «Что показывать на карточке».
+import { ClientsSettingsScreen } from "@/components/clients/ClientsSettingsScreen";
+import { CardFieldsScreen } from "@/components/clients/CardFieldsScreen";
+import {
+  getCardFields,
+  setCardFields,
+  DEFAULT_CARD_FIELDS,
+  type CardField,
+  type CardFieldPrefs,
+} from "@/lib/client-card-prefs";
 // ClientPanel is the full client profile view (~1500 lines). Mobile
 // renders it as a slide-up sheet on row tap; desktop renders it as a
 // right-side panel only when a client is selected. Either way it's
@@ -71,14 +78,11 @@ import { haptic } from "@/lib/haptics";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
   buildStatsMap,
-  getClientDisplayState,
   isLongSilence,
   isLoyalClient,
   isNewClient,
   type ClientStats,
 } from "@babun/shared/local/selectors/client-stats";
-import ClientCardStats from "@/components/clients/ClientCardStats";
-import ClientStatusBadges from "@/components/clients/ClientStatusBadges";
 // ClientQuickActionsSheet — bottom sheet that opens on long-press of
 // a client row. ImportClientsModal — opens from the page menu. Both
 // gated on user action, neither needs to ship in the initial bundle.
@@ -105,6 +109,14 @@ import {
 // v809 — SortKey kept for the ?sort= URL effect; SORT_LABELS moved into
 // the filter panel's SortPills (the only place that renders the labels).
 type SortKey = "recent" | "name" | "revenue" | "equipment";
+
+// v811 — RU labels for the «Сортировка» row in the settings screen.
+const SORT_LABELS_RU: Record<SortKey, string> = {
+  recent: "Недавно посещали",
+  name: "По имени (А–Я)",
+  revenue: "По доходу",
+  equipment: "По технике",
+};
 
 type Segment =
   | "all"
@@ -161,6 +173,15 @@ export default function ClientsPage() {
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [period, setPeriod] = useState<PeriodValue | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  // v811 — gear settings overlay + nested card-fields + live card prefs.
+  const [clientSettingsOpen, setClientSettingsOpen] = useState(false);
+  const [cardFieldsOpen, setCardFieldsOpen] = useState(false);
+  const [cardFields, setCardFieldsState] =
+    useState<CardFieldPrefs>(DEFAULT_CARD_FIELDS);
+  // SSR-safe hydrate of the persisted card-field visibility prefs.
+  useEffect(() => {
+    setCardFieldsState(getCardFields());
+  }, []);
   // clients-99 F2.10 — sort mirrors `?sort=…` so a deep-link survives
   // refresh + share.
   const searchParams = useSearchParams();
@@ -179,7 +200,10 @@ export default function ClientsPage() {
       ? `${window.location.pathname}?${qs}`
       : window.location.pathname;
     if (next !== window.location.pathname + window.location.search) {
-      window.history.replaceState(null, "", next);
+      // Preserve the current history state — when the «Фильтры» panel is
+      // open it owns the top entry ({babunModal:…}); nulling it here would
+      // orphan that sentinel and break the hardware Back button on close.
+      window.history.replaceState(window.history.state, "", next);
     }
   }, [sort]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -374,14 +398,6 @@ export default function ClientsPage() {
   // P2 #37 (CRM Core brief) — Intl returns nominative ("май") so
   // «1 новый в май» read wrong. Use the dedicated prepositional table.
 
-  // Equipment count is now per-location. Aggregate across locations
-  // so sort by «A/C» still works.
-  const acCount = (c: Client): number =>
-    (c.locations ?? []).reduce(
-      (sum, loc) => sum + (loc.equipment ?? []).length,
-      0,
-    ) + c.equipment.length;
-
   // v809 — filtering, contextual facet counts, and the active-token
   // list are delegated to useClientFilters. `filtered` keeps the EXACT
   // legacy predicate order + pinned-first comparator + 4 sort keys, so
@@ -396,8 +412,18 @@ export default function ClientsPage() {
       selectedCities,
       activeTags,
       period,
+      panelOpen: filterPanelOpen,
     }),
-    [search, sort, segment, selectedTeams, selectedCities, activeTags, period],
+    [
+      search,
+      sort,
+      segment,
+      selectedTeams,
+      selectedCities,
+      activeTags,
+      period,
+      filterPanelOpen,
+    ],
   );
   const filterResult = useClientFilters(
     clients,
@@ -443,7 +469,25 @@ export default function ClientsPage() {
     else if (token.key === "city") toggleCity(token.val);
     else if (token.key === "tag") toggleTag(token.val);
     else if (token.key === "period") setPeriod(null);
+    else if (token.key === "segment") setSegment("all");
   };
+
+  // Stable identity — the panel's history-back + scroll-lock effects key
+  // on onClose; a fresh closure per render would re-register the modal
+  // sentinel on every live filter tap (history thrash / spurious close).
+  const closeFilterPanel = useCallback(() => setFilterPanelOpen(false), []);
+
+  // v811 — settings overlays. Stable identities for the same reason
+  // (each screen registers a hardware-back sentinel keyed on its close).
+  const closeClientSettings = useCallback(() => setClientSettingsOpen(false), []);
+  const closeCardFields = useCallback(() => setCardFieldsOpen(false), []);
+  const toggleCardField = useCallback((f: CardField) => {
+    setCardFieldsState((prev) => {
+      const next = { ...prev, [f]: !prev[f] };
+      setCardFields(next);
+      return next;
+    });
+  }, []);
 
   const togglePin = (client: Client) => {
     haptic("tap");
@@ -687,21 +731,32 @@ export default function ClientsPage() {
           }
         }
         leftContent={
-          <button
-            type="button"
-            onClick={() => {
-              haptic("tap");
-              if (isSelecting) {
+          isSelecting ? (
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
                 setIsSelecting(false);
                 setSelectedIds(new Set());
-              } else {
-                setIsSelecting(true);
-              }
-            }}
-            className="h-9 px-3 flex items-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
-          >
-            {isSelecting ? "Готово" : "Править"}
-          </button>
+              }}
+              className="h-9 px-3 flex items-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] text-[14px] font-semibold transition"
+            >
+              Готово
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tap");
+                setClientSettingsOpen(true);
+              }}
+              aria-label="Настройки клиентов"
+              title="Настройки клиентов"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
+            >
+              <Settings size={20} strokeWidth={2.2} />
+            </button>
+          )
         }
         rightContent={
           isSelecting ? (
@@ -721,46 +776,8 @@ export default function ClientsPage() {
             </button>
           ) : (
             <div className="flex items-center gap-1">
-              {canImport && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic("tap");
-                    setImportOpen(true);
-                  }}
-                  aria-label="Импорт CSV"
-                  title="Импорт CSV"
-                  className="w-9 h-9 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
-                >
-                  <CloudUpload size={20} strokeWidth={2.2} />
-                </button>
-              )}
-              {/* P1 #29 (CRM Core brief) — CSV export. Filtered view
-                  wins over the full list so the user gets exactly
-                  what they see on screen; this matches how operators
-                  reason about «выгрузи мне сегмент». XLSX / PDF
-                  deferred (need libraries). */}
-              {clients.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic("tap");
-                    const set = filtered.length > 0 ? filtered : clients;
-                    track("clients.export_csv", { count: set.length });
-                    exportClientsCsv(set);
-                    toast.show({
-                      variant: "success",
-                      message: `CSV выгружен (${set.length})`,
-                    });
-                  }}
-                  aria-label="Экспорт CSV"
-                  title="Экспорт CSV"
-                  // STORY audit: 36 → 44 — iOS tap target floor.
-                  className="w-11 h-11 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--accent-tint)] transition"
-                >
-                  <Download size={20} strokeWidth={2.2} />
-                </button>
-              )}
+              {/* v811 — CSV import/export moved into «Настройки клиентов»
+                  (gear). Header keeps only the «+» add action, per mockup. */}
               <button
                 type="button"
                 data-tutorial="clients-add"
@@ -965,15 +982,14 @@ export default function ClientsPage() {
             const renderRow = (client: Client) => {
               const stats = statsMap.get(client.id);
               const phoneDigits = client.phone.replace(/\D/g, "");
-              const acTotal = acCount(client);
-              const primary = (client.locations ?? []).find((l) => l.isPrimary)
-                ?? (client.locations ?? [])[0]
-                ?? null;
               const debt = (stats?.debt ?? 0) > 0
                 ? stats!.debt
                 : client.balance < 0
                   ? Math.abs(client.balance)
                   : 0;
+              const teamName = stats?.lastTeamId
+                ? (teams.find((t) => t.id === stats.lastTeamId)?.name ?? null)
+                : null;
               const isPicked = selectedIds.has(client.id);
               const isPinned = Boolean(client.pinned_at);
 
@@ -982,14 +998,13 @@ export default function ClientsPage() {
                   client={client}
                   tags={tags}
                   stats={stats}
-                  acTotal={acTotal}
                   debt={debt}
-                  primaryAddress={primary?.address ?? ""}
+                  teamName={teamName}
+                  cardFields={cardFields}
                   phoneDigits={phoneDigits}
                   selectionMode={isSelecting}
                   picked={isPicked}
                   pinned={isPinned}
-                  reminderAt={client.reminder_at ?? null}
                   onPhoneLongPress={() => {
                     haptic("medium");
                     setQuickActionsFor(client);
@@ -1160,7 +1175,50 @@ export default function ClientsPage() {
           onToggleTag={toggleTag}
           onPeriodChange={setPeriod}
           onResetFilters={resetFilters}
-          onClose={() => setFilterPanelOpen(false)}
+          onClose={closeFilterPanel}
+        />
+      )}
+
+      {/* v811 — gear → «Настройки клиентов» full-screen overlay + the
+          nested live «Что показывать на карточке» field toggles. */}
+      {clientSettingsOpen && (
+        <ClientsSettingsScreen
+          cardFields={cardFields}
+          sortLabel={SORT_LABELS_RU[sort]}
+          canImport={canImport}
+          onClose={closeClientSettings}
+          onOpenCardFields={() => setCardFieldsOpen(true)}
+          onOpenSort={() => {
+            setClientSettingsOpen(false);
+            setFilterPanelOpen(true);
+          }}
+          onOpenFilters={() => {
+            setClientSettingsOpen(false);
+            setFilterPanelOpen(true);
+          }}
+          onImport={() => {
+            setClientSettingsOpen(false);
+            setImportOpen(true);
+          }}
+          onExport={() => {
+            const set = filtered.length > 0 ? filtered : clients;
+            track("clients.export_csv", { count: set.length });
+            exportClientsCsv(set);
+            toast.show({
+              variant: "success",
+              message: `CSV выгружен (${set.length})`,
+            });
+          }}
+          onStub={(label) =>
+            toast.show({ variant: "info", message: `${label} — в разработке` })
+          }
+        />
+      )}
+      {cardFieldsOpen && (
+        <CardFieldsScreen
+          prefs={cardFields}
+          onToggle={toggleCardField}
+          onBack={closeCardFields}
         />
       )}
 
@@ -1193,6 +1251,14 @@ export default function ClientsPage() {
             label: "Открыть карточку",
             icon: <Eye size={18} strokeWidth={2} />,
             onSelect: () => router.push(`/dashboard/clients/${c.id}`),
+          });
+          opts.push({
+            label: "Выбрать несколько",
+            icon: <Check size={18} strokeWidth={2} />,
+            onSelect: () => {
+              setIsSelecting(true);
+              setSelectedIds(new Set([c.id]));
+            },
           });
           opts.push({
             label: isPinned ? "Открепить" : "Закрепить",
@@ -1327,7 +1393,7 @@ export default function ClientsPage() {
         ).length;
         return (
           <ConfirmDialog
-            title={`Удалить ${targets.length} ${countWordRu(targets.length, "клиента", "клиентов", "клиентов")}?`}
+            title={`Удалить ${targets.length} ${countWordRu(targets.length, "клиента", "клиента", "клиентов")}?`}
             message={
               linkedCount === 0
                 ? "Связанных записей нет — удаление безопасно."
@@ -1449,22 +1515,32 @@ export default function ClientsPage() {
 }
 
 // v809 — SegmentChip removed: статусы переехали в секцию СТАТУС панели
-// «Фильтры». tagAlpha (ниже) сохранён — его использует ClientCard.
+// «Фильтры».
 
 // ─── Client list card ──────────────────────────────────────────────
+
+const VISIT_MONTHS = [
+  "янв", "фев", "мар", "апр", "мая", "июн",
+  "июл", "авг", "сен", "окт", "ноя", "дек",
+];
+/** «YYYY-MM-DD» → «2 мар» for the card's last-visit segment. */
+function formatVisitShort(key: string): string {
+  const [, m, d] = key.split("-").map(Number);
+  if (!m || !d) return key;
+  return `${d} ${VISIT_MONTHS[m - 1]}`;
+}
 
 function ClientCard({
   client,
   tags,
   stats,
-  acTotal,
   debt,
-  primaryAddress,
+  teamName,
+  cardFields,
   phoneDigits,
   selectionMode,
   picked,
   pinned,
-  reminderAt,
   onOpen,
   onLongPress,
   onPhoneLongPress,
@@ -1472,14 +1548,13 @@ function ClientCard({
   client: Client;
   tags: ClientTag[];
   stats: ClientStats | undefined;
-  acTotal: number;
   debt: number;
-  primaryAddress: string;
+  teamName: string | null;
+  cardFields: CardFieldPrefs;
   phoneDigits: string;
   selectionMode: boolean;
   picked: boolean;
   pinned: boolean;
-  reminderAt: string | null;
   onOpen: () => void;
   onLongPress: (anchor: { x: number; y: number }) => void;
   /** Fires when the green phone icon is held ≥500 ms.  Opens the
@@ -1488,19 +1563,10 @@ function ClientCard({
 }) {
   const color = getAvatarColor(client.full_name);
   const initials = getInitials(client.full_name || "?");
-  // v330 — LTV pill replaces the old DD.MM.YYYY label.  Money is
-  // more useful than "last visit date" at a glance — and the second
-  // row carries the natural-language age now ("Был 3 дня назад").
-  const ltv = Math.round(stats?.totalSpent ?? 0);
-  const displayState = stats ? getClientDisplayState(stats) : null;
-  // v332 — when there's a debt pill we bank one of the three icon
-  // slots, so ClientStatusBadges renders at most 2 extra icons.
-  const showDebtPill = debt > 0;
-  const iconBudget = showDebtPill ? 2 : 3;
-
-  const tagChips = client.tag_ids
-    .map((tid) => tags.find((t) => t.id === tid))
-    .filter((t): t is ClientTag => Boolean(t));
+  // v811 — money row (grey expected · green income · gold debt) + a
+  // single meta line; field visibility is driven by `cardFields`.
+  const exp = Math.round(stats?.expectedRevenue ?? 0);
+  const income = Math.round(stats?.totalSpent ?? 0);
 
   // Long-press detection — 500ms hold without movement.
   const longPressTimer = useRef<number | null>(null);
@@ -1532,6 +1598,58 @@ function ClientCard({
     }
     onOpen();
   };
+
+  // ── Money figures — grey expected · green income · gold debt ──
+  const figs: React.ReactNode[] = [];
+  if (cardFields.exp && exp > 0)
+    figs.push(
+      <span key="exp" className="text-[var(--label-secondary)]">
+        €{exp.toLocaleString("ru-RU")}
+      </span>,
+    );
+  if (cardFields.inc && income > 0)
+    figs.push(
+      <span key="inc" className="text-[var(--system-green)]">
+        €{income.toLocaleString("ru-RU")}
+      </span>,
+    );
+  if (cardFields.debt && debt > 0)
+    figs.push(
+      <span key="debt" style={{ color: "#B78600" }}>
+        €{debt.toLocaleString("ru-RU")}
+      </span>,
+    );
+
+  // ── Meta line — last visit · team · city · tags ──
+  const tagChips = client.tag_ids
+    .map((tid) => tags.find((t) => t.id === tid))
+    .filter((t): t is ClientTag => Boolean(t));
+  const metaSegs: React.ReactNode[] = [];
+  if (cardFields.last) {
+    metaSegs.push(
+      stats?.lastVisitDate ? (
+        <span key="last" className="inline-flex items-center gap-1">
+          <Clock
+            size={11}
+            strokeWidth={2.2}
+            className="text-[var(--label-secondary)]"
+          />
+          {formatVisitShort(stats.lastVisitDate)}
+        </span>
+      ) : (
+        <span key="last" className="text-[var(--label-tertiary)]">
+          нет записей
+        </span>
+      ),
+    );
+  }
+  if (cardFields.meta) {
+    if (teamName) metaSegs.push(<span key="team">{teamName}</span>);
+    const city = (client.city ?? "").trim();
+    if (city) metaSegs.push(<span key="city">{city}</span>);
+    for (const t of tagChips)
+      metaSegs.push(<span key={`tag-${t.id}`}>{t.name}</span>);
+  }
 
   return (
     <div
@@ -1574,92 +1692,34 @@ function ClientCard({
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {pinned && (
-              <span
-                title="Закреплён"
-                className="shrink-0 text-[var(--accent)]"
-              >
-                <Pin size={12} strokeWidth={2.5} />
-              </span>
-            )}
-            <span className="text-[16px] font-semibold text-[var(--label)] truncate">
-              {client.full_name || "Без имени"}
-            </span>
-            {showDebtPill && (
-              <span
-                title={`Долг €${debt}`}
-                className="shrink-0 inline-flex items-center px-1.5 h-5 rounded-full bg-[rgba(255,59,48,0.12)] text-[var(--system-red)] text-[11px] font-bold tabular-nums"
-              >
-                €{debt}
-              </span>
-            )}
-            <ClientStatusBadges
-              client={client}
-              stats={stats}
-              budget={iconBudget}
-            />
-            {reminderAt && (
-              <span
-                title={`Напомнить ${formatReminderShort(reminderAt)}`}
-                className="shrink-0 w-2 h-2 rounded-full bg-[var(--system-orange)]"
-                aria-label="Активно напоминание"
-              />
-            )}
-          </div>
-          {ltv > 0 && (
-            <span
-              className="text-[11px] font-semibold text-[var(--label-secondary)] shrink-0 tabular-nums"
-              title="Сумма всех визитов"
-            >
-              €{ltv.toLocaleString("ru-RU")}
+        {/* Name row */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          {pinned && (
+            <span title="Закреплён" className="shrink-0 text-[var(--accent)]">
+              <Pin size={12} strokeWidth={2.5} />
             </span>
           )}
+          <span className="text-[16px] font-semibold text-[var(--label)] truncate">
+            {client.full_name || "Без имени"}
+          </span>
         </div>
 
-        {/* v330 — phone + state line: «+357…  ·  Был 3 дня назад» */}
-        {(client.phone || displayState) && (
-          <div className="flex items-center gap-1.5 text-[12px] mt-0.5 truncate">
-            {client.phone && (
-              <span className="text-[var(--label-tertiary)] tabular-nums shrink-0">
-                {client.phone}
-              </span>
-            )}
-            {client.phone && displayState && (
-              <span className="text-[var(--label-quaternary)] shrink-0">·</span>
-            )}
-            {displayState && <ClientCardStats display={displayState} />}
+        {/* Money row */}
+        {figs.length > 0 && (
+          <div className="flex items-center gap-2.5 flex-wrap text-[11px] font-semibold mt-[3px] tabular-nums">
+            {figs}
           </div>
         )}
 
-        {primaryAddress && (
-          <div className="text-[12px] text-[var(--label-secondary)] mt-0.5 flex items-center gap-1 truncate">
-            <MapPin size={11} strokeWidth={2} className="shrink-0" />
-            <span className="truncate">{primaryAddress}</span>
-          </div>
-        )}
-
-        {/* v332 — debt pill moved up next to the name; this strip
-            now hosts non-urgent secondary chips only. */}
-        {(acTotal > 0 || tagChips.length > 0) && (
-          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-            {acTotal > 0 && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-[var(--fill-tertiary)] text-[var(--label-secondary)] text-[11px] font-semibold tabular-nums">
-                <Wind size={10} strokeWidth={2.5} />
-                {acTotal}
-              </span>
-            )}
-            {tagChips.map((tag) => (
-              <span
-                key={tag.id}
-                className="inline-flex items-center px-1.5 h-5 rounded-full text-[11px] font-semibold"
-                style={{
-                  background: tagAlpha(tag.color, 0.14),
-                  color: tag.color,
-                }}
-              >
-                {tag.name}
+        {/* Meta row — last visit · team · city · tags */}
+        {metaSegs.length > 0 && (
+          <div className="text-[11px] text-[var(--label)] mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
+            {metaSegs.map((seg, i) => (
+              <span key={i} className="inline-flex items-center align-middle">
+                {i > 0 && (
+                  <span className="mx-[5px] text-[var(--label-tertiary)]">·</span>
+                )}
+                {seg}
               </span>
             ))}
           </div>
@@ -1736,17 +1796,8 @@ function PhoneActionButton({
 }
 
 // v809 — TagChip removed: теги переехали в секцию ТЕГ панели «Фильтры».
-
-// Convert hex color (#RRGGBB) into rgba with given alpha for tag tints.
-// Still used by ClientCard for the per-card tag pills.
-function tagAlpha(hex: string, alpha: number): string {
-  const cleaned = hex.replace("#", "");
-  if (cleaned.length !== 6) return `rgba(124,124,128,${alpha})`;
-  const r = parseInt(cleaned.slice(0, 2), 16);
-  const g = parseInt(cleaned.slice(2, 4), 16);
-  const b = parseInt(cleaned.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+// v811 — tagAlpha removed: the card's tag pills became plain text segments
+// in the meta line, so the per-card tint helper is no longer needed.
 
 // ─── Bulk SMS sheet ─────────────────────────────────────────────────
 

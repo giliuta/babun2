@@ -38,9 +38,10 @@ export interface FacetOption {
 
 /** One removable token rendered in the summary bar. */
 export interface ActiveToken {
-  /** Which control owns this token — facet key or "period". */
-  key: FacetKey | "period";
-  /** The underlying value (facet value id, or period preset). */
+  /** Which control owns this token — facet key, "period", or the
+   *  status "segment" (so an active «Статус» is visible + removable). */
+  key: FacetKey | "period" | "segment";
+  /** The underlying value (facet value id, period preset, or segment). */
   val: string;
   /** Human label shown inside the token. */
   label: string;

@@ -39,6 +39,14 @@ export interface ClientStats {
   nextAptDays: number | null;
   /** Sum of debt across all completed visits. */
   debt: number;
+  /** Expected revenue — Σ total_amount of FUTURE scheduled/in-progress
+   *  appointments (today or later). Powers the card's grey «ожидаемая
+   *  прибыль» figure. 0 when the client has no upcoming bookings. */
+  expectedRevenue: number;
+  /** team_id of the client's most-recent COMPLETED visit that carried one
+   *  — drives the «команда» segment on the list card. null if the client
+   *  has no completed visits with a team (future-only bookings don't count). */
+  lastTeamId: string | null;
   /** Days since the client record was created. */
   ageDays: number;
   /** Days until the next birthday (0–365), or null when no birthday. */
@@ -53,6 +61,8 @@ const EMPTY_STATS: ClientStats = {
   nextApt: null,
   nextAptDays: null,
   debt: 0,
+  expectedRevenue: 0,
+  lastTeamId: null,
   ageDays: 0,
   birthdayInDays: null,
 };
@@ -104,6 +114,9 @@ export function buildStats(
   let debt = 0;
   let lastVisitDate = "";
   let nextApt: { date: string; time: string } | null = null;
+  let expectedRevenue = 0;
+  let lastTeamId: string | null = null;
+  let lastTeamKey = "";
   const today = todayKey();
 
   for (const a of apts) {
@@ -119,12 +132,23 @@ export function buildStats(
       totalSpent += getPaidAmount(a);
       debt += getDebtAmount(a);
       if (a.date > lastVisitDate) lastVisitDate = a.date;
+      // «команда» = team of the most-recent COMPLETED visit that had one.
+      // Composite date+time key (mirrors nextApt) so same-day visits
+      // resolve to the latest deterministically, not by array order.
+      if (a.team_id) {
+        const k = a.date + a.time_start;
+        if (k >= lastTeamKey) {
+          lastTeamKey = k;
+          lastTeamId = a.team_id;
+        }
+      }
     }
 
     // Future or in-progress visits → candidate for "next".
     const upcoming =
       a.status === "scheduled" || a.status === "in_progress";
     if (upcoming && a.date >= today) {
+      expectedRevenue += a.total_amount ?? 0;
       const cur = nextApt;
       const candKey = a.date + a.time_start;
       const curKey = cur ? cur.date + cur.time : "";
@@ -145,6 +169,8 @@ export function buildStats(
     visits,
     totalSpent: Math.round(totalSpent),
     debt: Math.round(debt),
+    expectedRevenue: Math.round(expectedRevenue),
+    lastTeamId,
     lastVisitDate,
     lastVisitDays,
     nextApt,
