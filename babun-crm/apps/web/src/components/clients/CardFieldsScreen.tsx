@@ -69,7 +69,9 @@ export function CardFieldsScreen({ prefs, onToggle, onBack }: CardFieldsScreenPr
         <div className="bg-[var(--surface-card)] rounded-[14px] overflow-hidden shadow-[var(--shadow-card)]">
           {ROWS.map((r) => {
             const locked = r.field === null;
-            const on = locked ? true : prefs[r.field];
+            // Narrow on `r.field` itself — TS won't carry the `locked`
+            // alias into the index expression.
+            const on = r.field === null ? true : prefs[r.field];
             return (
               <div
                 key={r.label}
