@@ -39,6 +39,13 @@ export interface ClientStats {
   nextAptDays: number | null;
   /** Sum of debt across all completed visits. */
   debt: number;
+  /** Expected revenue — Σ total_amount of FUTURE scheduled/in-progress
+   *  appointments (today or later). Powers the card's grey «ожидаемая
+   *  прибыль» figure. 0 when the client has no upcoming bookings. */
+  expectedRevenue: number;
+  /** team_id of the client's most-recent appointment that carried one —
+   *  drives the «команда» segment on the list card. null if none. */
+  lastTeamId: string | null;
   /** Days since the client record was created. */
   ageDays: number;
   /** Days until the next birthday (0–365), or null when no birthday. */
@@ -53,6 +60,8 @@ const EMPTY_STATS: ClientStats = {
   nextApt: null,
   nextAptDays: null,
   debt: 0,
+  expectedRevenue: 0,
+  lastTeamId: null,
   ageDays: 0,
   birthdayInDays: null,
 };
@@ -104,6 +113,9 @@ export function buildStats(
   let debt = 0;
   let lastVisitDate = "";
   let nextApt: { date: string; time: string } | null = null;
+  let expectedRevenue = 0;
+  let lastTeamId: string | null = null;
+  let lastTeamDate = "";
   const today = todayKey();
 
   for (const a of apts) {
@@ -113,6 +125,12 @@ export function buildStats(
     const matchByName =
       a.client_id == null && cname.length > 0 && normName(a.comment).includes(cname);
     if (!matchById && !matchByName) continue;
+
+    // Track the team of the most-recent appointment that carried one.
+    if (a.team_id && a.date >= lastTeamDate) {
+      lastTeamDate = a.date;
+      lastTeamId = a.team_id;
+    }
 
     if (a.status === "completed") {
       visits += 1;
@@ -125,6 +143,7 @@ export function buildStats(
     const upcoming =
       a.status === "scheduled" || a.status === "in_progress";
     if (upcoming && a.date >= today) {
+      expectedRevenue += a.total_amount ?? 0;
       const cur = nextApt;
       const candKey = a.date + a.time_start;
       const curKey = cur ? cur.date + cur.time : "";
@@ -145,6 +164,8 @@ export function buildStats(
     visits,
     totalSpent: Math.round(totalSpent),
     debt: Math.round(debt),
+    expectedRevenue: Math.round(expectedRevenue),
+    lastTeamId,
     lastVisitDate,
     lastVisitDays,
     nextApt,
