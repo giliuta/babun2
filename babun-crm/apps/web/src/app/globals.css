@@ -728,6 +728,19 @@ h1, h2, h3,
   animation: backdropFade var(--dur-base) var(--ease-ios) both;
 }
 
+/* v809 — check-pop: the ✓ that appears on a freshly-selected filter
+   pill springs in from 0 so the selection reads as a deliberate tick,
+   not a silent state flip. Used in the clients «Фильтры» panel. */
+@keyframes checkPop {
+  from { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.25); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.animate-check-pop {
+  display: inline-flex;
+  animation: checkPop 200ms var(--ease-ios-spring) both;
+}
+
 /* Centered popup — modal that pops in from 92 % scale.  iOS modal
    replacement for bottom sheet on small forms. */
 @keyframes popupIn {
