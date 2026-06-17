@@ -1346,7 +1346,7 @@ export default function ClientsPage() {
         ).length;
         return (
           <ConfirmDialog
-            title={`Удалить ${targets.length} ${countWordRu(targets.length, "клиента", "клиентов", "клиентов")}?`}
+            title={`Удалить ${targets.length} ${countWordRu(targets.length, "клиента", "клиента", "клиентов")}?`}
             message={
               linkedCount === 0
                 ? "Связанных записей нет — удаление безопасно."

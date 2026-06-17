@@ -251,7 +251,7 @@ export function ClientsFilterPanel({
               ? "Ничего не найдено"
               : `Показать ${shownCount} ${countWordRu(
                   shownCount,
-                  "клиента",
+                  "клиент",
                   "клиента",
                   "клиентов",
                 )}`}
