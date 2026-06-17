@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 // clients-99 F2.11 — virtualization when filtered list > VIRTUAL_THRESHOLD.
@@ -179,7 +179,10 @@ export default function ClientsPage() {
       ? `${window.location.pathname}?${qs}`
       : window.location.pathname;
     if (next !== window.location.pathname + window.location.search) {
-      window.history.replaceState(null, "", next);
+      // Preserve the current history state — when the «Фильтры» panel is
+      // open it owns the top entry ({babunModal:…}); nulling it here would
+      // orphan that sentinel and break the hardware Back button on close.
+      window.history.replaceState(window.history.state, "", next);
     }
   }, [sort]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -396,8 +399,18 @@ export default function ClientsPage() {
       selectedCities,
       activeTags,
       period,
+      panelOpen: filterPanelOpen,
     }),
-    [search, sort, segment, selectedTeams, selectedCities, activeTags, period],
+    [
+      search,
+      sort,
+      segment,
+      selectedTeams,
+      selectedCities,
+      activeTags,
+      period,
+      filterPanelOpen,
+    ],
   );
   const filterResult = useClientFilters(
     clients,
@@ -443,7 +456,13 @@ export default function ClientsPage() {
     else if (token.key === "city") toggleCity(token.val);
     else if (token.key === "tag") toggleTag(token.val);
     else if (token.key === "period") setPeriod(null);
+    else if (token.key === "segment") setSegment("all");
   };
+
+  // Stable identity — the panel's history-back + scroll-lock effects key
+  // on onClose; a fresh closure per render would re-register the modal
+  // sentinel on every live filter tap (history thrash / spurious close).
+  const closeFilterPanel = useCallback(() => setFilterPanelOpen(false), []);
 
   const togglePin = (client: Client) => {
     haptic("tap");
@@ -1160,7 +1179,7 @@ export default function ClientsPage() {
           onToggleTag={toggleTag}
           onPeriodChange={setPeriod}
           onResetFilters={resetFilters}
-          onClose={() => setFilterPanelOpen(false)}
+          onClose={closeFilterPanel}
         />
       )}
 

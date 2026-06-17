@@ -5,7 +5,7 @@
 // in-place С/До wheel range picker. Match logic lives in the hook
 // (ANY appointment date within [from, to]).
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check } from "@babun/shared/icons";
 import { haptic } from "@/lib/haptics";
 import { DateRangeWheel } from "./DateRangeWheel";
@@ -63,6 +63,12 @@ export function PeriodSection({ value, onChange }: PeriodSectionProps) {
   const [customOpen, setCustomOpen] = useState(
     value?.preset === "custom",
   );
+
+  // Collapse the wheel when the period is cleared from outside (panel
+  // «Сбросить» or a bar token ✕ sets value → null while we're open).
+  useEffect(() => {
+    if (value === null) setCustomOpen(false);
+  }, [value]);
 
   const isAll = value === null;
   const isCustom = value?.preset === "custom";

@@ -36,6 +36,18 @@ export type Segment =
   | "new"
   | "loyal";
 
+/** Canonical ordered status segments + RU labels. Single source of
+ *  truth for the panel's «Статус» pills AND the bar's segment token. */
+export const SEGMENT_OPTIONS: { key: Exclude<Segment, "all">; label: string }[] =
+  [
+    { key: "debt", label: "Должники" },
+    { key: "birthday", label: "Дни рождения" },
+    { key: "blacklist", label: "Чёрный список" },
+    { key: "silent", label: "Давно не были" },
+    { key: "new", label: "Новые" },
+    { key: "loyal", label: "Постоянные" },
+  ];
+
 export interface ClientFilterState {
   search: string;
   sort: SortKey;
@@ -44,6 +56,9 @@ export interface ClientFilterState {
   selectedCities: string[];
   activeTags: string[];
   period: PeriodValue | null;
+  /** Whether the «Фильтры» panel is open — facet counts are only the
+   *  panel's concern, so we skip recomputing them while it's closed. */
+  panelOpen: boolean;
 }
 
 export interface ClientFilterResult {
@@ -80,6 +95,14 @@ function acCount(c: Client): number {
 function normName(s: string): string {
   return (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
+
+/** Stable empty result returned by facetCounts while the panel is shut
+ *  (referential stability keeps it out of downstream memo deps). */
+const EMPTY_FACET_COUNTS: ClientFilterResult["facetCounts"] = {
+  team: {},
+  city: {},
+  tag: {},
+};
 
 interface ApptIndex {
   /** clientId → set of team_id used across that client's appointments. */
@@ -146,8 +169,16 @@ export function useClientFilters(
   statsMap: Map<string, ClientStats>,
   state: ClientFilterState,
 ): ClientFilterResult {
-  const { search, sort, segment, selectedTeams, selectedCities, activeTags, period } =
-    state;
+  const {
+    search,
+    sort,
+    segment,
+    selectedTeams,
+    selectedCities,
+    activeTags,
+    period,
+    panelOpen,
+  } = state;
 
   const index = useMemo(
     () => buildApptIndex(clients, appointments),
@@ -297,6 +328,11 @@ export function useClientFilters(
   // period + ALL OTHER active facets, EXCLUDING the facet being
   // counted. Drives the dimmed «0 unselected» state in the panel.
   const facetCounts = useMemo(() => {
+    // Only the panel consumes these counts. While it's closed, skip the
+    // O(clients × facetValues) sweep entirely — otherwise every keystroke
+    // in the search box (passesSearch is a fresh closure per char) burns
+    // ~4×O(clients) of throwaway work behind a shut panel.
+    if (!panelOpen) return EMPTY_FACET_COUNTS;
     // Base set: everything except the three facets (each facet excludes
     // itself from its own counting context).
     const base = clients.filter(
@@ -345,6 +381,7 @@ export function useClientFilters(
 
     return { team: countTeam, city: countCity, tag: countTag };
   }, [
+    panelOpen,
     clients,
     passesSearch,
     passesSegment,
@@ -361,6 +398,14 @@ export function useClientFilters(
   // ── Active tokens (for the summary bar) ──────────────────────────
   const activeTokens = useMemo<ActiveToken[]>(() => {
     const tokens: ActiveToken[] = [];
+    // Status segment first — it's the most prominent filter and the
+    // legacy chip row always showed it inline (one-tap clear).
+    if (segment !== "all") {
+      const seg = SEGMENT_OPTIONS.find((o) => o.key === segment);
+      if (seg) {
+        tokens.push({ key: "segment", val: segment, label: seg.label, color: "" });
+      }
+    }
     const teamLabel = new Map(teamOptions.map((o) => [o.value, o]));
     for (const id of selectedTeams) {
       const o = teamLabel.get(id);
@@ -389,6 +434,7 @@ export function useClientFilters(
     }
     return tokens;
   }, [
+    segment,
     selectedTeams,
     selectedCities,
     activeTags,
@@ -401,7 +447,8 @@ export function useClientFilters(
     selectedTeams.length +
     selectedCities.length +
     activeTags.length +
-    (period ? 1 : 0);
+    (period ? 1 : 0) +
+    (segment !== "all" ? 1 : 0);
 
   return {
     filtered,

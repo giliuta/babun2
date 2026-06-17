@@ -31,7 +31,9 @@ export function FacetSection({
           <button
             key={opt.value}
             type="button"
+            disabled={dimmed}
             onClick={() => {
+              if (dimmed) return;
               haptic("tap");
               onToggle(opt.value);
             }}
@@ -39,7 +41,7 @@ export function FacetSection({
               on
                 ? "bg-[var(--accent-tint)] border-[var(--accent)]"
                 : "bg-[var(--surface-card-secondary)] border-transparent active:bg-[var(--fill-quaternary)]"
-            } ${dimmed ? "opacity-40" : ""}`}
+            } ${dimmed ? "opacity-40 pointer-events-none" : ""}`}
           >
             <span
               className="w-2.5 h-2.5 rounded-full shrink-0"
