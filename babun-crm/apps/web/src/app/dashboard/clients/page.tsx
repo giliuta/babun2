@@ -15,13 +15,11 @@ import {
   CalendarPlus,
   MessageCircle,
   Search,
-  Cake,
   Check,
   Users,
   Ban,
   Wind,
   MapPin,
-  Wallet,
   X,
   Send,
   Plus,
@@ -31,8 +29,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Bell,
-  Sparkles,
-  Star,
   CloudUpload,
   Download,
 } from "@babun/shared/icons";
@@ -49,8 +45,17 @@ import { isUnlimited } from "@/components/settings/billing/types";
 import QuotaBanner from "@/components/quota/QuotaBanner";
 import SwipeableRow from "@/components/ui/SwipeableRow";
 import ContextMenu, { type ContextMenuOption } from "@/components/ui/ContextMenu";
-import { useClients, useAppointments } from "@/components/layout/DashboardClientLayout";
+import { useClients, useAppointments, useTeams } from "@/components/layout/DashboardClientLayout";
 import { type Client, type ClientTag } from "@babun/shared/local/clients";
+// v809 — one summary bar + one centered «Фильтры» panel replace the
+// old chip row + sort modal.
+import { ClientsFilterBar } from "@/components/clients/filters/ClientsFilterBar";
+import { ClientsFilterPanel } from "@/components/clients/filters/ClientsFilterPanel";
+import {
+  useClientFilters,
+  type ClientFilterState,
+} from "@/components/clients/filters/useClientFilters";
+import type { ActiveToken, PeriodValue } from "@/components/clients/filters/types";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
 import { countWordRu } from "@babun/shared/common/utils/pluralize";
 // ClientPanel is the full client profile view (~1500 lines). Mobile
@@ -62,7 +67,6 @@ const ClientPanel = dynamic(
   () => import("@/components/clients/ClientPanel"),
   { ssr: false },
 );
-import { matchesClient } from "@babun/shared/local/selectors/client-search";
 import { haptic } from "@/lib/haptics";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
@@ -98,14 +102,9 @@ import {
 // v312 — tag chips are tenant-managed: read from useClients().tags.
 // Settings UI for creating/editing/deleting tags lands in Phase 2.
 
+// v809 — SortKey kept for the ?sort= URL effect; SORT_LABELS moved into
+// the filter panel's SortPills (the only place that renders the labels).
 type SortKey = "recent" | "name" | "revenue" | "equipment";
-
-const SORT_LABELS: Record<SortKey, string> = {
-  recent: "Недавние",
-  name: "Имя",
-  revenue: "Доход",
-  equipment: "A/C",
-};
 
 type Segment =
   | "all"
@@ -133,6 +132,9 @@ export default function ClientsPage() {
     tags,
   } = useClients();
   const { appointments, upsertAppointment } = useAppointments();
+  // v809 — teams power the КОМАНДА facet (each client's team set is
+  // derived from their appointments' team_id).
+  const { teams } = useTeams();
   // STORY-052 G6 — quota state for the "Добавить клиента" gating.
   const { snapshot: quotaSnap } = useTenantQuota();
   const clientsAtCap =
@@ -154,6 +156,11 @@ export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [segment, setSegment] = useState<Segment>("all");
+  // v809 — multi-select facets + period for the «Фильтры» panel.
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [period, setPeriod] = useState<PeriodValue | null>(null);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   // clients-99 F2.10 — sort mirrors `?sort=…` so a deep-link survives
   // refresh + share.
   const searchParams = useSearchParams();
@@ -175,7 +182,6 @@ export default function ClientsPage() {
       window.history.replaceState(null, "", next);
     }
   }, [sort]);
-  const [sortOpen, setSortOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Client | null>(null);
   // STORY-059 — first-visit tutorial pointing at the "+" button. Only
@@ -376,78 +382,67 @@ export default function ClientsPage() {
       0,
     ) + c.equipment.length;
 
-  const filtered = useMemo(() => {
-    let list = clients;
-
-    if (search.trim()) {
-      list = list.filter((c) => matchesClient(c, search));
-    }
-
-    if (activeTags.length > 0) {
-      list = list.filter((c) =>
-        activeTags.every((t) => c.tag_ids.includes(t))
-      );
-    }
-
-    // Auto-segment filter
-    if (segment === "debt") {
-      list = list.filter((c) => {
-        const s = statsMap.get(c.id);
-        return (s?.debt ?? 0) > 0 || c.balance < 0;
-      });
-    } else if (segment === "birthday") {
-      list = list.filter((c) => {
-        const dd = statsMap.get(c.id)?.birthdayInDays ?? null;
-        return dd !== null && dd <= 14;
-      });
-    } else if (segment === "blacklist") {
-      list = list.filter((c) => c.blacklisted);
-    } else if (segment === "silent") {
-      list = list.filter((c) => {
-        const s = statsMap.get(c.id);
-        return s ? isLongSilence(s) : false;
-      });
-    } else if (segment === "new") {
-      list = list.filter((c) => {
-        const s = statsMap.get(c.id);
-        return s ? isNewClient(s) : false;
-      });
-    } else if (segment === "loyal") {
-      list = list.filter((c) => {
-        const s = statsMap.get(c.id);
-        return s ? isLoyalClient(s) : false;
-      });
-    }
-
-    // Sort — pinned clients always go first regardless of active sort.
-    list = [...list].sort((a, b) => {
-      const aPinned = a.pinned_at ? 1 : 0;
-      const bPinned = b.pinned_at ? 1 : 0;
-      if (aPinned !== bPinned) return bPinned - aPinned;
-      if (aPinned && bPinned) {
-        return (b.pinned_at ?? "").localeCompare(a.pinned_at ?? "");
-      }
-      if (sort === "name") return a.full_name.localeCompare(b.full_name, "ru");
-      if (sort === "revenue") {
-        return (
-          (statsMap.get(b.id)?.totalSpent ?? 0) -
-          (statsMap.get(a.id)?.totalSpent ?? 0)
-        );
-      }
-      if (sort === "equipment") return acCount(b) - acCount(a);
-      // "recent" — by last order date desc, then created_at
-      const aDate = statsMap.get(a.id)?.lastVisitDate || a.created_at;
-      const bDate = statsMap.get(b.id)?.lastVisitDate || b.created_at;
-      return bDate.localeCompare(aDate);
-    });
-
-    return list;
-  }, [clients, search, activeTags, segment, sort, statsMap]);
+  // v809 — filtering, contextual facet counts, and the active-token
+  // list are delegated to useClientFilters. `filtered` keeps the EXACT
+  // legacy predicate order + pinned-first comparator + 4 sort keys, so
+  // every downstream consumer (selection, bulk, export, virtual list,
+  // empty states) is unchanged.
+  const filterState: ClientFilterState = useMemo(
+    () => ({
+      search,
+      sort,
+      segment,
+      selectedTeams,
+      selectedCities,
+      activeTags,
+      period,
+    }),
+    [search, sort, segment, selectedTeams, selectedCities, activeTags, period],
+  );
+  const filterResult = useClientFilters(
+    clients,
+    appointments,
+    teams,
+    tags,
+    statsMap,
+    filterState,
+  );
+  const filtered = filterResult.filtered;
 
   const toggleTag = (tagId: string) => {
     setActiveTags((prev) =>
       prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
     );
+  };
+
+  const toggleTeam = (id: string) => {
+    setSelectedTeams((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+    );
+  };
+
+  const toggleCity = (city: string) => {
+    setSelectedCities((prev) =>
+      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city],
+    );
+  };
+
+  // Clear all FILTER values (teams / cities / tags / segment / period).
+  // Sort is intentionally preserved — it's not a filter.
+  const resetFilters = () => {
+    setSelectedTeams([]);
+    setSelectedCities([]);
+    setActiveTags([]);
+    setSegment("all");
+    setPeriod(null);
+  };
+
+  // Remove a single value token from the summary bar (live).
+  const removeToken = (token: ActiveToken) => {
+    if (token.key === "team") toggleTeam(token.val);
+    else if (token.key === "city") toggleCity(token.val);
+    else if (token.key === "tag") toggleTag(token.val);
+    else if (token.key === "period") setPeriod(null);
   };
 
   const togglePin = (client: Client) => {
@@ -688,7 +683,7 @@ export default function ClientsPage() {
         onTitleClick={
           isSelecting ? undefined : () => {
             haptic("tap");
-            setSortOpen(true);
+            setFilterPanelOpen(true);
           }
         }
         leftContent={
@@ -905,49 +900,31 @@ export default function ClientsPage() {
           </div>
         )}
         <div className="max-w-3xl mx-auto p-3 lg:p-4 space-y-3 stagger-children">
-          {/* v334 — Hero strip with three at-a-glance stats.  Each
-                  segment is a button that activates the matching
-                  segment filter.  Numbers come from segmentCounts,
-                  not hardcode. */}
-          <div className="flex items-center justify-center gap-1.5 h-8 -mt-1 text-[12px] text-[var(--label-secondary)] tabular-nums">
-            <button
-              type="button"
-              onClick={() => {
-                haptic("tap");
-                setSegment("all");
-              }}
-              className="active:opacity-60 truncate"
-            >
-              {segmentCounts.all}{" "}
-              {countWordRu(segmentCounts.all, "клиент", "клиента", "клиентов")}
-            </button>
-            {/* clients-99 F2.9 — "новых в [месяце]" hero counter
-                removed: duplicated the «Новые» segment chip below with
-                a different window (calendar-month vs 30 days), which
-                read as a bug. */}
-            {segmentCounts.birthdayThisWeek > 0 && (
-              <>
-                <span className="text-[var(--label-quaternary)]">·</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic("tap");
-                    setSegment("birthday");
-                  }}
-                  className="active:opacity-60 truncate text-[var(--system-orange)]"
-                >
-                  {segmentCounts.birthdayThisWeek}{" "}
-                  {countWordRu(
-                    segmentCounts.birthdayThisWeek,
-                    "ДР",
-                    "ДР",
-                    "ДР",
-                  )}{" "}
-                  на&nbsp;неделе
-                </button>
-              </>
-            )}
-          </div>
+          {/* v809 — hero strip keeps only the «ДР на неделе» nudge. The
+              duplicate «Всего N клиентов» counter moved into the filter
+              bar (idle state), so the strip hides entirely when no one
+              has a birthday this week. */}
+          {segmentCounts.birthdayThisWeek > 0 && (
+            <div className="flex items-center justify-center gap-1.5 h-8 -mt-1 text-[12px] tabular-nums">
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("tap");
+                  setSegment("birthday");
+                }}
+                className="active:opacity-60 truncate text-[var(--system-orange)]"
+              >
+                {segmentCounts.birthdayThisWeek}{" "}
+                {countWordRu(
+                  segmentCounts.birthdayThisWeek,
+                  "ДР",
+                  "ДР",
+                  "ДР",
+                )}{" "}
+                на&nbsp;неделе
+              </button>
+            </div>
+          )}
 
           {/* ── Search (hidden above the fold; pull list down to
                  reveal — iOS-Mail style) ────────────────────────── */}
@@ -966,99 +943,19 @@ export default function ClientsPage() {
             />
           </div>
 
-          {/* ── Auto-segments + tag chips (one scroll row) ───────── */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5 -mx-1 px-1">
-            <SegmentChip
-              active={segment === "all"}
-              count={segmentCounts.all}
-              onClick={() => setSegment("all")}
-            >
-              Все
-            </SegmentChip>
-            {/* STORY-082 design polish — segment chips hide when 0
-                so empty tenants don't see "Должники 0 / ДР 0 / ЧС 0"
-                noise. They reappear automatically when data lands. */}
-            {segmentCounts.debt > 0 && (
-              <SegmentChip
-                active={segment === "debt"}
-                count={segmentCounts.debt}
-                onClick={() => setSegment("debt")}
-                tone="bad"
-              >
-                <Wallet size={12} strokeWidth={2.5} />
-                Должники
-              </SegmentChip>
-            )}
-            {segmentCounts.birthday > 0 && (
-              <SegmentChip
-                active={segment === "birthday"}
-                count={segmentCounts.birthday}
-                onClick={() => setSegment("birthday")}
-                tone="warn"
-              >
-                <Cake size={12} strokeWidth={2.5} />
-                ДР
-              </SegmentChip>
-            )}
-            {segmentCounts.blacklist > 0 && (
-              <SegmentChip
-                active={segment === "blacklist"}
-                count={segmentCounts.blacklist}
-                onClick={() => setSegment("blacklist")}
-                tone="bad"
-              >
-                <Ban size={12} strokeWidth={2.5} />
-                ЧС
-              </SegmentChip>
-            )}
-            {/* v331 — smart filters: silence / new / loyal.  Each one
-                hides itself when the bucket is empty so the chip row
-                stays compact for fresh tenants. */}
-            {segmentCounts.silent > 0 && (
-              <SegmentChip
-                active={segment === "silent"}
-                count={segmentCounts.silent}
-                onClick={() => setSegment("silent")}
-                tone="warn"
-              >
-                <Clock size={12} strokeWidth={2.5} />
-                Давно не были
-              </SegmentChip>
-            )}
-            {segmentCounts.new > 0 && (
-              <SegmentChip
-                active={segment === "new"}
-                count={segmentCounts.new}
-                onClick={() => setSegment("new")}
-                tone="good"
-              >
-                <Sparkles size={12} strokeWidth={2.5} />
-                Новые
-              </SegmentChip>
-            )}
-            {segmentCounts.loyal > 0 && (
-              <SegmentChip
-                active={segment === "loyal"}
-                count={segmentCounts.loyal}
-                onClick={() => setSegment("loyal")}
-                tone="good"
-              >
-                <Star size={12} strokeWidth={2.5} />
-                Постоянные
-              </SegmentChip>
-            )}
-            {tags.length > 0 && (
-              <span className="self-center text-[var(--separator)] px-1">·</span>
-            )}
-            {tags.map((t) => (
-              <TagChip
-                key={t.id}
-                tag={t}
-                active={activeTags.includes(t.id)}
-                onClick={() => toggleTag(t.id)}
-              />
-            ))}
-          </div>
+          {/* ── v809 — summary filter bar (replaces the chip row).
+                 Idle shows «Фильтры · Всего N клиентов»; active shows a
+                 funnel + count badge + removable value tokens + a
+                 «Найдено: N / Сбросить» line. Tapping opens the panel. */}
+          <ClientsFilterBar
+            totalCount={segmentCounts.all}
+            foundCount={filtered.length}
+            activeCount={filterResult.activeCount}
+            tokens={filterResult.activeTokens}
+            onOpen={() => setFilterPanelOpen(true)}
+            onRemoveToken={removeToken}
+            onReset={resetFilters}
+          />
 
           {/* ── Client cards ─────────────────────────────────────── */}
           {/* clients-99 F2.11 — virtualize when the filtered list
@@ -1236,47 +1133,35 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Sort picker — opens via header button. Centered modal. */}
-      {sortOpen && (
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setSortOpen(false)}
-        >
-          <div
-            className="w-full max-w-[300px] bg-[var(--surface-card)] rounded-[20px] shadow-[var(--shadow-sheet)] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-[var(--separator)] text-[15px] font-semibold text-[var(--label)]">
-              Сортировать по
-            </div>
-            <div className="divide-y divide-[var(--separator)]">
-              {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => {
-                const active = sort === k;
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => {
-                      haptic("tap");
-                      setSort(k);
-                      setSortOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 min-h-[48px] active:bg-[var(--fill-quaternary)] transition ${
-                      active ? "bg-[var(--accent-tint)]" : ""
-                    }`}
-                  >
-                    <span className={`text-[15px] ${active ? "text-[var(--accent)] font-semibold" : "text-[var(--label)]"}`}>
-                      {SORT_LABELS[k]}
-                    </span>
-                    {active && (
-                      <Check size={16} strokeWidth={2.5} className="text-[var(--accent)]" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {/* v809 — centered «Фильтры» panel (replaces the old sort modal +
+          chip row). Sort, status, team, city, tag, period all live here
+          and apply live; the footer button just closes. */}
+      {filterPanelOpen && (
+        <ClientsFilterPanel
+          result={filterResult}
+          segmentCounts={{
+            debt: segmentCounts.debt,
+            birthday: segmentCounts.birthday,
+            blacklist: segmentCounts.blacklist,
+            silent: segmentCounts.silent,
+            new: segmentCounts.new,
+            loyal: segmentCounts.loyal,
+          }}
+          sort={sort}
+          segment={segment}
+          selectedTeams={selectedTeams}
+          selectedCities={selectedCities}
+          activeTags={activeTags}
+          period={period}
+          onSortChange={setSort}
+          onSegmentChange={setSegment}
+          onToggleTeam={toggleTeam}
+          onToggleCity={toggleCity}
+          onToggleTag={toggleTag}
+          onPeriodChange={setPeriod}
+          onResetFilters={resetFilters}
+          onClose={() => setFilterPanelOpen(false)}
+        />
       )}
 
       {/* FAB removed v313 — header «+» button is the canonical entry. */}
@@ -1563,50 +1448,8 @@ export default function ClientsPage() {
   );
 }
 
-// ─── Segment chip (auto-derived filter) ────────────────────────────
-
-function SegmentChip({
-  active,
-  count,
-  tone = "default",
-  onClick,
-  children,
-}: {
-  active: boolean;
-  count: number;
-  tone?: "default" | "warn" | "bad" | "good";
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  const activeBg =
-    tone === "bad"
-      ? "bg-[var(--system-red)] text-white"
-      : tone === "warn"
-        ? "bg-[var(--system-orange)] text-white"
-        : tone === "good"
-          ? "bg-[var(--system-green)] text-white"
-          : "bg-[var(--accent)] text-[var(--label-on-accent)]";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold whitespace-nowrap transition shrink-0 ${
-        active
-          ? activeBg
-          : "bg-[var(--surface-card)] border border-[var(--separator)] text-[var(--label)] active:bg-[var(--fill-quaternary)]"
-      }`}
-    >
-      {children}
-      <span
-        className={`tabular-nums ${
-          active ? "opacity-90" : "text-[var(--label-tertiary)]"
-        }`}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
+// v809 — SegmentChip removed: статусы переехали в секцию СТАТУС панели
+// «Фильтры». tagAlpha (ниже) сохранён — его использует ClientCard.
 
 // ─── Client list card ──────────────────────────────────────────────
 
@@ -1892,42 +1735,10 @@ function PhoneActionButton({
   );
 }
 
-// ─── Tag chip with dynamic color ────────────────────────────────────
-
-function TagChip({
-  tag,
-  active,
-  onClick,
-}: {
-  tag: ClientTag;
-  active: boolean;
-  onClick: () => void;
-}) {
-  const style = active
-    ? {
-        background: tagAlpha(tag.color, 0.14),
-        color: tag.color,
-        borderColor: tagAlpha(tag.color, 0.24),
-      }
-    : undefined;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={style}
-      className={`inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold whitespace-nowrap transition shrink-0 border ${
-        active
-          ? ""
-          : "bg-[var(--surface-card)] border-[var(--separator)] text-[var(--label-secondary)] active:bg-[var(--fill-quaternary)]"
-      }`}
-    >
-      {active && <Check size={11} strokeWidth={2.5} />}
-      {tag.name}
-    </button>
-  );
-}
+// v809 — TagChip removed: теги переехали в секцию ТЕГ панели «Фильтры».
 
 // Convert hex color (#RRGGBB) into rgba with given alpha for tag tints.
+// Still used by ClientCard for the per-card tag pills.
 function tagAlpha(hex: string, alpha: number): string {
   const cleaned = hex.replace("#", "");
   if (cleaned.length !== 6) return `rgba(124,124,128,${alpha})`;
