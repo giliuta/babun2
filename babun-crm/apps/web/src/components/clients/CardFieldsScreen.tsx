@@ -25,7 +25,7 @@ const ROWS: FieldRow[] = [
   { field: "inc", label: "Доход", sub: "зелёный", dot: "var(--system-green)" },
   { field: "debt", label: "Долг", sub: "жёлтый", dot: "#B78600" },
   { field: "last", label: "Последняя запись", dot: "var(--label-tertiary)" },
-  { field: "meta", label: "Календарь, метка, тег", dot: "var(--label-tertiary)" },
+  { field: "meta", label: "Команда, метка, тег", dot: "var(--label-tertiary)" },
 ];
 
 interface CardFieldsScreenProps {
@@ -39,6 +39,15 @@ export function CardFieldsScreen({ prefs, onToggle, onBack }: CardFieldsScreenPr
     const popClose = registerModalBack("clients-card-fields", onBack);
     return popClose;
   }, [onBack]);
+
+  // Lock background scroll while open (mirrors the filter panel).
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[85] flex flex-col bg-[var(--surface-grouped)] animate-slide-in-right">

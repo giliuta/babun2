@@ -43,8 +43,9 @@ export interface ClientStats {
    *  appointments (today or later). Powers the card's grey «ожидаемая
    *  прибыль» figure. 0 when the client has no upcoming bookings. */
   expectedRevenue: number;
-  /** team_id of the client's most-recent appointment that carried one —
-   *  drives the «команда» segment on the list card. null if none. */
+  /** team_id of the client's most-recent COMPLETED visit that carried one
+   *  — drives the «команда» segment on the list card. null if the client
+   *  has no completed visits with a team (future-only bookings don't count). */
   lastTeamId: string | null;
   /** Days since the client record was created. */
   ageDays: number;
@@ -115,7 +116,7 @@ export function buildStats(
   let nextApt: { date: string; time: string } | null = null;
   let expectedRevenue = 0;
   let lastTeamId: string | null = null;
-  let lastTeamDate = "";
+  let lastTeamKey = "";
   const today = todayKey();
 
   for (const a of apts) {
@@ -126,17 +127,21 @@ export function buildStats(
       a.client_id == null && cname.length > 0 && normName(a.comment).includes(cname);
     if (!matchById && !matchByName) continue;
 
-    // Track the team of the most-recent appointment that carried one.
-    if (a.team_id && a.date >= lastTeamDate) {
-      lastTeamDate = a.date;
-      lastTeamId = a.team_id;
-    }
-
     if (a.status === "completed") {
       visits += 1;
       totalSpent += getPaidAmount(a);
       debt += getDebtAmount(a);
       if (a.date > lastVisitDate) lastVisitDate = a.date;
+      // «команда» = team of the most-recent COMPLETED visit that had one.
+      // Composite date+time key (mirrors nextApt) so same-day visits
+      // resolve to the latest deterministically, not by array order.
+      if (a.team_id) {
+        const k = a.date + a.time_start;
+        if (k >= lastTeamKey) {
+          lastTeamKey = k;
+          lastTeamId = a.team_id;
+        }
+      }
     }
 
     // Future or in-progress visits → candidate for "next".

@@ -24,6 +24,16 @@
 
 let stack: Array<{ id: string; onPop: () => void }> = [];
 let listenerAttached = false;
+// Incremented by popClose() right before each history.back() that exists
+// only to consume its OWN sentinel. Those back()s schedule popstates that
+// must be no-ops — the modal already closed via React state and popClose
+// already cleaned the in-memory stack. Without this guard the deferred
+// popstate ran the NEXT layer's onPop: closing an inner sheet via its own
+// button also tore down the outer sheet, and opening the filter panel from
+// a settings row (close-A-then-open-B in one commit) immediately closed
+// the panel again. A counter (not a flag) so several programmatic closes
+// in one tick each suppress exactly one popstate.
+let pendingSelfPops = 0;
 
 const STATE_KEY = "babunModal";
 
@@ -36,6 +46,12 @@ function ensureListener(): void {
   listenerAttached = true;
 
   window.addEventListener("popstate", (ev: PopStateEvent) => {
+    // A popClose()-initiated back() just unwound its own sentinel — that
+    // popstate is bookkeeping only; never run the next layer's onPop.
+    if (pendingSelfPops > 0) {
+      pendingSelfPops -= 1;
+      return;
+    }
     // Edge case — page reload while a modal was open. Our pushState
     // entries are persisted in the browser's session history, but the
     // in-memory `stack` is empty (modules re-initialised). Without this
@@ -104,6 +120,10 @@ export function registerModalBack(id: string, onPop: () => void): () => void {
     // our sentinel and there's nothing to unwind.
     const currentState = (window.history.state ?? null) as BabunHistoryState | null;
     if (currentState && currentState[STATE_KEY] === id) {
+      // Pop our own sentinel from the browser history; the resulting
+      // popstate is a no-op (see pendingSelfPops) so it can't close the
+      // layer below us or a sibling modal opened in the same commit.
+      pendingSelfPops += 1;
       window.history.back();
     }
   };

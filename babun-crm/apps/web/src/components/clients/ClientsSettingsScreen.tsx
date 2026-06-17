@@ -68,6 +68,15 @@ export function ClientsSettingsScreen({
     return popClose;
   }, [onClose]);
 
+  // Lock background scroll while open (mirrors the filter panel).
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-[var(--surface-grouped)] animate-slide-in-right">
       {/* nav */}
