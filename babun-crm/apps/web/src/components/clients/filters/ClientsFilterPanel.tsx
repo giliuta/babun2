@@ -166,7 +166,7 @@ export function ClientsFilterPanel({
 
           {availableSegments.length > 0 && (
             <Section icon={<Sparkles size={15} strokeWidth={2.2} />} caption="Статус">
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {availableSegments.map((s) => {
                   const on = segment === s.key;
                   return (
@@ -177,7 +177,7 @@ export function ClientsFilterPanel({
                         haptic("tap");
                         onSegmentChange(on ? "all" : s.key);
                       }}
-                      className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-semibold whitespace-nowrap border transition press-scale ${
+                      className={`h-11 px-3 rounded-[12px] text-[14px] font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap border transition press-scale ${
                         on
                           ? "bg-[var(--accent-tint)] border-[var(--accent)] text-[var(--accent)]"
                           : "bg-[var(--surface-card-secondary)] border-transparent text-[var(--label)] active:bg-[var(--fill-quaternary)]"
@@ -185,7 +185,7 @@ export function ClientsFilterPanel({
                     >
                       {on && (
                         <span className="animate-check-pop">
-                          <Check size={13} strokeWidth={2.6} />
+                          <Check size={14} strokeWidth={2.6} />
                         </span>
                       )}
                       {s.label}

@@ -44,9 +44,10 @@ function buildPresets(): PresetDef[] {
   const yearEnd = key(new Date(y, 11, 31));
   return [
     { key: "today", label: "Сегодня", from: today, to: today },
-    { key: "7d", label: "Последние 7 дней", from: daysAgo(6), to: today },
-    { key: "30d", label: "Последние 30 дней", from: daysAgo(29), to: today },
-    { key: "90d", label: "Последние 90 дней", from: daysAgo(89), to: today },
+    // Short labels so they fit the 2-col grid; match the bar token labels.
+    { key: "7d", label: "7 дней", from: daysAgo(6), to: today },
+    { key: "30d", label: "30 дней", from: daysAgo(29), to: today },
+    { key: "90d", label: "90 дней", from: daysAgo(89), to: today },
     { key: "month", label: "Этот месяц", from: monthStart, to: monthEnd },
     { key: "prevMonth", label: "Прошлый месяц", from: prevStart, to: prevEnd },
     { key: "year", label: "Этот год", from: yearStart, to: yearEnd },
@@ -75,7 +76,7 @@ export function PeriodSection({ value, onChange }: PeriodSectionProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-2 gap-2">
         {/* «Всё время» = no selection */}
         <PresetChip
           active={isAll}
@@ -149,12 +150,17 @@ function PresetChip({
         haptic("tap");
         onClick();
       }}
-      className={`inline-flex items-center h-9 px-3 rounded-full text-[13px] font-semibold whitespace-nowrap border transition press-scale ${
+      className={`h-11 px-3 rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap border transition press-scale ${
         active
           ? "bg-[var(--accent-tint)] border-[var(--accent)] text-[var(--accent)]"
           : "bg-[var(--surface-card-secondary)] border-transparent text-[var(--label)] active:bg-[var(--fill-quaternary)]"
       }`}
     >
+      {active && (
+        <span className="animate-check-pop">
+          <Check size={13} strokeWidth={2.6} />
+        </span>
+      )}
       {children}
     </button>
   );

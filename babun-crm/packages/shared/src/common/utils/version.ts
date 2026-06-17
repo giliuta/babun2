@@ -14,7 +14,7 @@
 //                    patch = 513 % 100). This is what the user sees
 //                    in the sidebar footer and settings page footer.
 
-export const BUILD_VERSION = "v811-clients-card-settings";
+export const BUILD_VERSION = "v812-filter-panel-symmetry";
 
 function deriveDisplayVersion(slug: string): string {
   const match = slug.match(/^v(\d+)/);
