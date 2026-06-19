@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Babun2 — Клиенты (рабочий прототип)</title>
+<title>Babun2 — Клиенты (одна карточка: создание = открытие)</title>
 <style>
   :root{
     --grouped:#F2F2F7; --card:#FFFFFF; --sep:rgba(60,60,67,0.09);
@@ -30,13 +30,12 @@
   #router{flex:1;position:relative;min-height:0;}
   .view{position:absolute;inset:0;display:none;flex-direction:column;background:var(--grouped);}
   .view.active{display:flex;}
+  .gone{display:none!important;}
 
   .nav{height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:var(--card);z-index:2;border-bottom:.5px solid var(--sep);}
-  .nav .l,.nav .r{display:flex;align-items:center;}
-  .nav .ttl{font-size:16px;font-weight:600;}
+  .nav .l,.nav .r{display:flex;align-items:center;min-width:80px;}
+  .nav .r{justify-content:flex-end;}
   .nav .lnk{color:var(--accent);font-size:15px;padding:0 8px;height:40px;display:flex;align-items:center;gap:3px;cursor:pointer;}
-  .nav .lnk.bold{font-weight:600;}
-  .nav .lnk.off{color:var(--l3);}
   .icbtn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;border-radius:10px;}
   .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .body::-webkit-scrollbar{display:none;}
@@ -61,49 +60,37 @@
   .rs .g{color:var(--green);font-weight:600;} .rs .d{color:var(--gold);font-weight:600;}
   .chev{color:var(--l3);flex:none;}
 
-  /* ── CARD shared ── */
-  .hero-wrap{padding:8px 2px 16px;display:flex;gap:13px;align-items:flex-start;}
-  .hbody{flex:1;min-width:0;padding-top:1px;}
-  .hname{font-size:20px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:6px;}
-  .hname .star{color:var(--gold);display:inline-flex;}
-  .hmoney{display:flex;flex-wrap:wrap;gap:12px;font-size:14px;font-weight:600;margin-top:6px;}
+  /* ── CARD ── */
+  .pad{padding:8px 16px 36px;}
+  .hero-wrap{padding:8px 2px 14px;display:flex;gap:13px;align-items:flex-start;}
+  .ava-btn{flex:none;cursor:pointer;position:relative;}
+  .hbody{flex:1;min-width:0;padding-top:2px;}
+  .in{width:100%;border:0;background:transparent;font-family:inherit;outline:none;color:var(--label);padding:1px 0;}
+  .in.name{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+  .in.name::placeholder{color:var(--l3);font-weight:700;}
+  .fldp{display:flex;align-items:center;gap:8px;margin-top:3px;}
+  .in.phone{font-size:15px;font-weight:500;color:var(--lsec);}
+  .in.phone::placeholder{color:var(--l3);font-weight:500;}
+  .okdot{color:var(--green);flex:none;opacity:0;transition:opacity .15s;}
+  .okdot.on{opacity:1;}
+  .phtag{font-size:10px;color:var(--accent);background:var(--accent-tint);border-radius:5px;padding:1px 6px;flex:none;}
+  .hmoney{display:flex;flex-wrap:wrap;gap:12px;font-size:14px;font-weight:600;margin-top:8px;}
   .hmoney .inc{color:var(--green);} .hmoney .debt{color:var(--gold);} .hmoney .exp{color:var(--lsec);}
   .hmeta{font-size:12.5px;color:var(--lsec);margin-top:7px;}
   .htrust{font-size:12px;color:var(--l3);margin-top:4px;}
-  .pad{padding:8px 16px 30px;}
 
-  /* editable header (new) */
-  .fld{display:flex;align-items:center;gap:8px;}
-  .fld .in{flex:1;min-width:0;border:0;background:transparent;font-family:inherit;outline:none;color:var(--label);padding:2px 0;}
-  .in.phone{font-size:21px;font-weight:600;letter-spacing:-.01em;}
-  .in.phone::placeholder{color:var(--l3);font-weight:600;}
-  .in.name{font-size:16px;} .in.name::placeholder{color:var(--l3);}
-  .okdot{color:var(--green);flex:none;opacity:0;transition:opacity .15s;}
-  .okdot.on{opacity:1;}
-  .sub{font-size:11.5px;color:var(--l3);margin-top:2px;}
-  .preq{font-size:10px;color:var(--accent);background:var(--accent-tint);border-radius:5px;padding:1px 6px;margin-left:4px;}
-  .hsep{height:.5px;background:var(--sep);margin:9px 0;}
-  .dedupe{border:1px solid var(--accent-b);background:var(--accent-tint);border-radius:14px;padding:11px 13px;margin:0 0 16px;display:none;}
-  .dedupe.on{display:block;}
+  .dedupe{border:1px solid var(--accent-b);background:var(--accent-tint);border-radius:14px;padding:11px 13px;margin:2px 0 14px;}
   .dd-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#185FA5;margin-bottom:9px;}
   .dd-row{display:flex;align-items:center;gap:10px;}
   .dd-ava{width:34px;height:34px;border-radius:50%;background:#5E5CE6;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none;}
   .dd-open{font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent-b);border-radius:9px;padding:5px 12px;flex:none;cursor:pointer;}
-  .hint{font-size:12px;color:var(--l3);line-height:1.45;padding:0 2px 16px;}
+  .hint{font-size:12px;color:var(--l3);line-height:1.45;padding:2px 2px 14px;}
 
-  /* hero button */
-  .nextjob{display:flex;align-items:center;gap:13px;width:100%;height:64px;border-radius:16px;padding:0 15px;margin-bottom:16px;cursor:pointer;text-align:left;}
-  .nextjob.alert{background:var(--red-tint);border:1px solid var(--red-b);}
-  .nextjob.book{background:var(--accent);}
-  .nj-ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;}
-  .nextjob.alert .nj-ic{background:rgba(229,70,59,.14);color:var(--red);}
-  .nextjob.book .nj-ic{background:rgba(255,255,255,.2);color:#fff;}
-  .nj-t{flex:1;min-width:0;} .nj-tt{font-size:15px;font-weight:600;} .nj-ts{font-size:12.5px;color:var(--lsec);margin-top:1px;}
-  .nextjob.alert .nj-tt{color:var(--red);}
-  .nextjob.book .nj-tt{color:#fff;} .nextjob.book .nj-ts{color:rgba(255,255,255,.85);}
-  .nj-go{flex:none;color:var(--accent);} .nextjob.alert .nj-go{color:var(--red);} .nextjob.book .nj-go{color:#fff;}
+  .nextjob{display:flex;align-items:center;gap:13px;width:100%;height:64px;border-radius:16px;padding:0 15px;margin-bottom:16px;cursor:pointer;text-align:left;background:var(--red-tint);border:1px solid var(--red-b);}
+  .nj-ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(229,70,59,.14);color:var(--red);}
+  .nj-t{flex:1;min-width:0;} .nj-tt{font-size:15px;font-weight:600;color:var(--red);} .nj-ts{font-size:12.5px;color:var(--lsec);margin-top:1px;}
+  .nj-go{flex:none;color:var(--red);}
 
-  /* 5 actions */
   .qa{display:flex;justify-content:space-between;margin-bottom:22px;}
   .qa .b{display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;cursor:pointer;}
   .qa .circ{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-tint);color:var(--accent);}
@@ -116,7 +103,6 @@
   .addrow + .addrow{border-top:.5px solid var(--sep);}
   .nempty{padding:13px 16px;font-size:13px;color:var(--l3);}
 
-  /* service */
   .svc{padding:13px 16px;}
   .svc-row{display:flex;align-items:center;gap:10px;font-size:14px;}
   .svc-row + .svc-row{margin-top:10px;}
@@ -126,7 +112,6 @@
   .svc-rec{font-size:12.5px;color:var(--accent);flex:none;margin-left:10px;cursor:pointer;}
   .svc-ok{font-size:13px;color:var(--l3);padding:11px 16px;border-top:.5px solid var(--sep);}
 
-  /* objects */
   .obj{padding:14px 16px;}
   .obj-h{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;}
   .obj-pin{font-size:11px;font-weight:500;color:var(--accent);}
@@ -136,21 +121,21 @@
   .unit{display:flex;align-items:flex-start;gap:11px;margin-top:11px;}
   .unit-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);display:flex;align-items:center;justify-content:center;color:var(--l3);flex:none;margin-top:1px;}
   .unit-n{font-size:13.5px;} .unit-s{font-size:11.5px;color:var(--l3);margin-top:1px;}
-  .unit-due{font-size:12px;flex:none;margin-left:auto;} .unit-due.over{color:var(--red);} .unit-due.soon{color:var(--amber);}
+  .unit-due{font-size:12px;flex:none;margin-left:auto;} .unit-due.over{color:var(--red);}
   .obj-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:.5px solid var(--sep);font-size:12.5px;color:var(--lsec);}
   .obj-book{color:var(--accent);font-weight:500;cursor:pointer;}
 
-  /* reference rows */
   .ref{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;}
   .ref + .ref{border-top:.5px solid var(--sep);}
   .ref .l{font-size:14.5px;} .ref .r{font-size:13px;color:var(--lsec);display:flex;align-items:center;gap:7px;}
   .ref .r .debt{color:var(--gold);font-weight:600;}
-  .toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.82);color:#fff;font-size:13px;padding:9px 16px;border-radius:11px;opacity:0;transition:.25s;z-index:9;pointer-events:none;}
+
+  .toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.82);color:#fff;font-size:13px;padding:9px 16px;border-radius:11px;opacity:0;transition:.25s;z-index:9;pointer-events:none;max-width:80%;text-align:center;}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
-  <div class="cap"><b>Babun2 — рабочий прототип «Клиенты».</b> «+» справа сверху → создание клиента. Тап по клиенту → его карточка. Один и тот же экран — пустой при создании, заполненный при открытии. Кликай.</div>
+  <div class="cap"><b>Babun2 — одна карточка.</b> Создания как отдельного экрана нет. Тап по клиенту → открываю карточку и правлю прямо в ней. «+» → та же карточка, пустая, вношу данные в те же поля. Имя и телефон — редактируемые сразу.</div>
 
   <div class="device"><div class="screen">
     <div class="statusbar"><span class="time">9:41</span><div class="island"></div>
@@ -164,7 +149,7 @@
         <div class="body">
           <div class="lhead">
             <span class="big">Клиенты</span>
-            <span class="plus" onclick="openNew()" title="Новый клиент">
+            <span class="plus" onclick="openCard(null)" title="Новый клиент">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>
             </span>
           </div>
@@ -174,31 +159,45 @@
         </div>
       </section>
 
-      <!-- ============ VIEW (opened client) ============ -->
-      <section class="view" id="v-view">
+      <!-- ============ CARD (one screen for create + open) ============ -->
+      <section class="view" id="v-card">
         <div class="nav">
           <div class="l"><span class="lnk" onclick="go('v-list')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Клиенты</span></div>
           <div class="r"><span class="icbtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span></div>
         </div>
         <div class="body"><div class="pad">
 
+          <!-- editable header (always) -->
           <div class="hero-wrap">
-            <div class="ava big" id="vc-ava">СМ</div>
+            <div class="ava-btn" onclick="toast('Сменить фото')"><div class="ava big" id="c-ava"></div></div>
             <div class="hbody">
-              <div class="hname"><span id="vc-name">Сергей Морозов</span> <span class="star" id="vc-star"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg></span></div>
-              <div class="hmoney" id="vc-money"></div>
-              <div class="hmeta" id="vc-meta">🕘 10 мая · Y&amp;D · Лимассол</div>
-              <div class="htrust" id="vc-trust">Клиент с 2023 · 8 визитов · средний €140</div>
+              <input class="in name" id="c-name" placeholder="Имя" oninput="onName()" autocomplete="off">
+              <div class="fldp">
+                <input class="in phone" id="c-phone" placeholder="Телефон" oninput="onPhone()" autocomplete="off" inputmode="tel">
+                <span class="phtag m-new">главное</span>
+                <span class="okdot" id="c-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+              </div>
+              <div class="hmoney m-real" id="c-money"></div>
+              <div class="hmeta m-real" id="c-meta"></div>
+              <div class="htrust m-real" id="c-trust"></div>
             </div>
           </div>
 
-          <div class="nextjob alert" onclick="book()">
+          <!-- live dedupe (shows while typing a matching phone) -->
+          <div class="dedupe m-new gone" id="c-dedupe">
+            <div class="dd-h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg> Похоже, такой уже есть</div>
+            <div class="dd-row"><div class="dd-ava">АП</div><div class="rt"><div style="font-size:14px">Анна Петрова</div><div class="rs" style="margin-top:0">+357 99 12 34 56 · Лимассол</div></div><div class="dd-open" onclick="openCard('ap')">Открыть</div></div>
+          </div>
+
+          <!-- NEXT-JOB hero (existing) -->
+          <div class="nextjob m-real" onclick="book()">
             <div class="nj-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
             <div class="nj-t"><div class="nj-tt">ТО просрочено · Спальня</div><div class="nj-ts">Записать на ТО — команда и дата подставлены</div></div>
             <span class="nj-go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
 
-          <div class="qa">
+          <!-- 5 actions (existing) -->
+          <div class="qa m-real">
             <div class="b" onclick="toast('Звоним…')"><div class="circ g"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.8.4 1.6.7 2.3a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.7-1.3a2 2 0 0 1 2.1-.4c.7.3 1.5.6 2.3.7A2 2 0 0 1 22 16.9z"/></svg></div><span class="lab">Звонок</span></div>
             <div class="b" onclick="book()"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg></div><span class="lab">Записать</span></div>
             <div class="b" onclick="toast('WhatsApp')"><div class="circ g"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div><span class="lab">WhatsApp</span></div>
@@ -206,103 +205,80 @@
             <div class="b" onclick="toast('Напоминание')"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div><span class="lab">Напомнить</span></div>
           </div>
 
-          <div class="sec-t">Обслуживание</div>
-          <div class="cardb">
-            <div class="svc">
-              <div class="svc-row"><span class="dot" style="background:var(--red)"></span><span class="svc-u">Спальня · Daikin FTXB</span><span class="svc-when over">−18 дн</span><span class="svc-rec" onclick="book()">Записать ТО</span></div>
-              <div class="svc-row"><span class="dot" style="background:var(--amber)"></span><span class="svc-u">Гостиная · Mitsubishi</span><span class="svc-when soon">через 9 дн</span><span class="svc-rec" onclick="book()">Записать ТО</span></div>
-            </div>
-            <div class="svc-ok">Офис · 3 юнита — всё по графику</div>
-          </div>
-
-          <div class="sec-t">Объекты</div>
-          <div class="cardb">
-            <div class="obj">
-              <div class="obj-h">Дом <span class="obj-pin">· основной</span>
-                <span class="obj-tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+          <!-- service (existing) -->
+          <div class="m-real">
+            <div class="sec-t">Обслуживание</div>
+            <div class="cardb">
+              <div class="svc">
+                <div class="svc-row"><span class="dot" style="background:var(--red)"></span><span class="svc-u">Спальня · Daikin FTXB</span><span class="svc-when over">−18 дн</span><span class="svc-rec" onclick="book()">Записать ТО</span></div>
+                <div class="svc-row"><span class="dot" style="background:var(--amber)"></span><span class="svc-u">Гостиная · Mitsubishi</span><span class="svc-when soon">через 9 дн</span><span class="svc-rec" onclick="book()">Записать ТО</span></div>
               </div>
-              <div class="obj-addr">Лимассол, Agios Tychonas 21</div>
-              <div class="obj-key"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.5 12.5 8-8M16 7l2 2M19 4l2 2"/></svg> зелёная дверь, домофон 25</div>
-              <div class="unit"><div class="unit-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h4"/></svg></div><div class="rt"><div class="unit-n">Спальня · Daikin FTXS35 · сплит</div><div class="unit-s">ТО раз в 12 мес · посл. апр 2024</div></div><span class="unit-due over">просрочено</span></div>
-              <div class="obj-foot"><span>8 визитов · посл. 14 апр</span><span class="obj-book" onclick="book()">Записать сюда</span></div>
+              <div class="svc-ok">Офис · 3 юнита — всё по графику</div>
             </div>
-            <div class="addrow">＋ объект</div>
           </div>
 
-          <div class="cardb">
+          <!-- objects (existing) -->
+          <div class="m-real">
+            <div class="sec-t">Объекты</div>
+            <div class="cardb">
+              <div class="obj">
+                <div class="obj-h">Дом <span class="obj-pin">· основной</span><span class="obj-tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></div>
+                <div class="obj-addr">Лимассол, Agios Tychonas 21</div>
+                <div class="obj-key"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.5 12.5 8-8M16 7l2 2M19 4l2 2"/></svg> зелёная дверь, домофон 25</div>
+                <div class="unit"><div class="unit-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h4"/></svg></div><div class="rt"><div class="unit-n">Спальня · Daikin FTXS35 · сплит</div><div class="unit-s">ТО раз в 12 мес · посл. апр 2024</div></div><span class="unit-due over">просрочено</span></div>
+                <div class="obj-foot"><span>8 визитов · посл. 14 апр</span><span class="obj-book" onclick="book()">Записать сюда</span></div>
+              </div>
+              <div class="addrow" onclick="toast('Добавить объект')">＋ объект</div>
+            </div>
+          </div>
+
+          <!-- reference rows (existing) -->
+          <div class="cardb m-real">
             <div class="ref" onclick="toast('Визиты')"><span class="l">Визиты</span><span class="r">8 · посл. 10 мая <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
             <div class="ref" onclick="toast('Финансы')"><span class="l">Финансы</span><span class="r"><span class="debt">долг €135</span> <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
             <div class="ref" onclick="toast('Заметки')"><span class="l">Заметки</span><span class="r">2 <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
-            <div class="ref" onclick="toast('Контакты')"><span class="l">Контакты</span><span class="r">+357 99 · ещё 1 <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
             <div class="ref" onclick="toast('О клиенте')"><span class="l">О клиенте</span><span class="r">ДР 14 мар · VIP <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
           </div>
 
-        </div></div>
-      </section>
-
-      <!-- ============ NEW (create client) ============ -->
-      <section class="view" id="v-new">
-        <div class="nav">
-          <div class="l"><span class="lnk" onclick="go('v-list')">Отмена</span></div>
-          <div class="ttl">Новый клиент</div>
-          <div class="r"><span class="lnk bold off" id="done-btn" onclick="saveNew()">Готово</span></div>
-        </div>
-        <div class="body"><div class="pad">
-
-          <div class="hero-wrap">
-            <div class="ava big ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
-            <div class="hbody">
-              <div class="fld"><input class="in phone" id="np" placeholder="Телефон" oninput="onPhone()" autocomplete="off"><span class="okdot" id="okdot"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
-              <div class="sub">Телефон<span class="preq">главное</span></div>
-              <div class="hsep"></div>
-              <div class="fld"><input class="in name" id="nn" placeholder="Имя (можно позже)" autocomplete="off"></div>
-            </div>
+          <!-- new-client add affordances -->
+          <div class="hint m-new gone">Это та же карточка — просто пустая. Остальное добавишь прямо здесь, по мере работы.</div>
+          <div class="m-new gone"><div class="sec-t">Объекты и оборудование</div>
+            <div class="cardb"><div class="addrow" onclick="toast('Добавить объект')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить объект (адрес, кондиционеры)</div></div>
           </div>
-
-          <div class="dedupe" id="dedupe">
-            <div class="dd-h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg> Похоже, такой уже есть</div>
-            <div class="dd-row"><div class="dd-ava">АП</div><div class="rt"><div class="rn" style="font-size:14px;font-weight:400">Анна Петрова</div><div class="rs" style="margin-top:0">+357 99 12 34 56 · Лимассол</div></div><div class="dd-open" onclick="openView('ap')">Открыть</div></div>
+          <div class="m-new gone"><div class="sec-t">Заметка</div>
+            <div class="cardb"><div class="addrow" onclick="toast('Добавить заметку')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить заметку</div></div>
           </div>
-
-          <div class="hint">Это та же карточка — просто пустая. Объекты, оборудование, заметки добавишь прямо здесь, по мере работы.</div>
-
-          <div class="sec-t">Объекты и оборудование</div>
-          <div class="cardb"><div class="addrow" onclick="toast('Добавить объект')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить объект (адрес, кондиционеры)</div></div>
-
-          <div class="sec-t">Заметка</div>
-          <div class="cardb"><div class="addrow" onclick="toast('Добавить заметку')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить заметку</div></div>
-
-          <div class="sec-t">Ещё о клиенте</div>
-          <div class="cardb"><div class="nempty">Город, метка, тег, ДР, мессенджеры — появятся здесь после сохранения, как у обычной карточки.</div></div>
+          <div class="m-new gone"><div class="sec-t">Ещё о клиенте</div>
+            <div class="cardb"><div class="nempty">Город, метка, тег, ДР, мессенджеры — появятся здесь по мере заполнения.</div></div>
+          </div>
 
         </div></div>
       </section>
 
     </div>
-
     <div class="toast" id="toast"></div>
   </div></div>
 
-  <div class="cap" style="opacity:.8">Один экран карточки: пустой = создание, заполненный = просмотр. «+» сверху и тап по клиенту ведут на него же.</div>
+  <div class="cap" style="opacity:.8">Одна страница. Имя/телефон редактируются сразу. Пустая = новый клиент; заполненная = открыл существующего. Производные блоки (деньги, обслуживание, hero) появляются, когда есть данные.</div>
 
 <script>
   const CLIENTS = [
-    { id:"cm", name:"Сергей Морозов", ini:"СМ", color:"#E5463B", star:true,
+    { id:"cm", name:"Сергей Морозов", phone:"+357 99 123 456", ini:"СМ", color:"#E5463B", star:true,
       money:'<span class="inc">€1 120</span><span class="debt">долг €135</span><span class="exp">ждём €120</span>',
       meta:"🕘 10 мая · Y&D · Лимассол", trust:"Клиент с 2023 · 8 визитов · средний €140",
       rowSub:'<span class="g">€1 120</span><span class="d">долг €135</span><span>· 10 мая</span>' },
-    { id:"ap", name:"Анна Петрова", ini:"АП", color:"#5E5CE6", star:false,
+    { id:"ap", name:"Анна Петрова", phone:"+357 99 12 34 56", ini:"АП", color:"#5E5CE6", star:false,
       money:'<span class="inc">€640</span><span class="exp">ждём €80</span>',
       meta:"🕘 2 мая · A&K · Лимассол", trust:"Клиент с 2024 · 4 визита · средний €160",
       rowSub:'<span class="g">€640</span><span>· 2 мая</span>' },
-    { id:"dk", name:"Дмитрий Котов", ini:"ДК", color:"#0FB5A6", star:false,
-      money:'', meta:"", trust:"Новый клиент · ещё нет визитов",
+    { id:"dk", name:"Дмитрий Котов", phone:"+357 96 555 777", ini:"ДК", color:"#0FB5A6", star:false,
+      money:"", meta:"", trust:"Новый клиент · ещё нет визитов",
       rowSub:'<span style="color:var(--l3)">ещё не был</span>' },
   ];
 
   function renderList(){
     document.getElementById("list-rows").innerHTML = CLIENTS.map(c => `
-      <div class="row" onclick="openView('${c.id}')">
+      <div class="row" onclick="openCard('${c.id}')">
         <div class="ava" style="background:${c.color}">${c.ini}</div>
         <div class="rt">
           <div class="rn">${c.name} ${c.star?'<span class="star"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>':''}</div>
@@ -318,43 +294,60 @@
     document.querySelector("#"+id+" .body")?.scrollTo(0,0);
   }
 
-  function openView(id){
-    const c = CLIENTS.find(x => x.id === id) || CLIENTS[0];
-    document.getElementById("vc-ava").textContent = c.ini;
-    document.getElementById("vc-ava").style.background = c.color;
-    document.getElementById("vc-name").textContent = c.name;
-    document.getElementById("vc-star").style.display = c.star ? "inline-flex" : "none";
-    document.getElementById("vc-money").innerHTML = c.money;
-    document.getElementById("vc-money").style.display = c.money ? "flex" : "none";
-    document.getElementById("vc-meta").innerHTML = c.meta;
-    document.getElementById("vc-meta").style.display = c.meta ? "block" : "none";
-    document.getElementById("vc-trust").textContent = c.trust;
-    go("v-view");
+  function initials(name){
+    const p = name.trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return "";
+    return (p[0][0] + (p[1] ? p[1][0] : "")).toUpperCase();
   }
 
-  function openNew(){
-    document.getElementById("np").value = "";
-    document.getElementById("nn").value = "";
-    document.getElementById("dedupe").classList.remove("on");
-    document.getElementById("okdot").classList.remove("on");
-    document.getElementById("done-btn").classList.add("off");
-    go("v-new");
-    setTimeout(()=>document.getElementById("np").focus(), 250);
+  function setMode(isNew){
+    document.querySelectorAll(".m-new").forEach(e => e.classList.toggle("gone", !isNew));
+    document.querySelectorAll(".m-real").forEach(e => e.classList.toggle("gone", isNew));
+  }
+
+  function openCard(id){
+    const c = id ? CLIENTS.find(x => x.id === id) : null;
+    const ava = document.getElementById("c-ava");
+    setMode(!c);
+    if (c){
+      document.getElementById("c-name").value = c.name;
+      document.getElementById("c-phone").value = c.phone;
+      document.getElementById("c-money").innerHTML = c.money;
+      document.getElementById("c-money").classList.toggle("gone", !c.money);
+      document.getElementById("c-meta").innerHTML = c.meta;
+      document.getElementById("c-meta").classList.toggle("gone", !c.meta);
+      document.getElementById("c-trust").textContent = c.trust;
+      ava.className = "ava big"; ava.innerHTML = ""; ava.textContent = c.ini; ava.style.background = c.color;
+      document.getElementById("c-ok").classList.add("on");
+      document.getElementById("c-dedupe").classList.add("gone");
+    } else {
+      document.getElementById("c-name").value = "";
+      document.getElementById("c-phone").value = "";
+      ava.className = "ava big ph"; ava.style.background = "";
+      ava.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
+      document.getElementById("c-ok").classList.remove("on");
+      document.getElementById("c-dedupe").classList.add("gone");
+    }
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("v-card").classList.add("active");
+    document.querySelector("#v-card .body").scrollTo(0,0);
+    if (!c) setTimeout(() => document.getElementById("c-phone").focus(), 250);
+  }
+
+  function onName(){
+    const v = document.getElementById("c-name").value;
+    const ava = document.getElementById("c-ava");
+    const ini = initials(v);
+    if (ini){ ava.className = "ava big"; ava.innerHTML = ""; ava.textContent = ini; ava.style.background = "#8E8E93"; }
+    else { ava.className = "ava big ph"; ava.textContent = ""; ava.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>'; }
   }
 
   function onPhone(){
-    const v = document.getElementById("np").value.replace(/\D/g,"");
+    const v = document.getElementById("c-phone").value.replace(/\D/g, "");
     const ok = v.length >= 5;
-    document.getElementById("okdot").classList.toggle("on", ok);
-    document.getElementById("done-btn").classList.toggle("off", !ok);
-    document.getElementById("dedupe").classList.toggle("on", v.length >= 5);
-  }
-
-  function saveNew(){
-    const v = document.getElementById("np").value.replace(/\D/g,"");
-    if (v.length < 5) return;
-    toast("Клиент создан");
-    setTimeout(()=>openView("cm"), 500);
+    document.getElementById("c-ok").classList.toggle("on", ok);
+    const isNew = !document.querySelector(".m-new").classList.contains("gone");
+    document.getElementById("c-dedupe").classList.toggle("gone", !(isNew && ok));
   }
 
   function book(){ toast("Открываю запись — клиент, объект и команда подставлены"); }
@@ -364,7 +357,7 @@
     const t = document.getElementById("toast");
     t.textContent = msg; t.classList.add("on");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=>t.classList.remove("on"), 1600);
+    toastTimer = setTimeout(() => t.classList.remove("on"), 1700);
   }
 
   renderList();
