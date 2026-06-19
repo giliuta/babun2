@@ -1331,6 +1331,13 @@ function DashboardPageInner() {
     const kindParam = params.get("kind");
     const clientId = params.get("client_id");
     const client = clientId ? clients.find((c) => c.id === clientId) : null;
+    // Pre-aimed booking (card -> запись): object + brigade carried in the URL.
+    const locationId = params.get("location_id");
+    const teamParam = params.get("team_id");
+    const selectedLocation =
+      client && locationId
+        ? client.locations?.find((l) => l.id === locationId) ?? null
+        : null;
     const dateParam = params.get("date");
     const dateKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
       ? dateParam
@@ -1352,9 +1359,10 @@ function DashboardPageInner() {
         date: dateKey,
         time_start: "10:00",
         time_end: "11:00",
-        team_id: activeTeamId || null,
+        team_id: teamParam || activeTeamId || null,
         client_id: clientId || null,
-        address: client?.address ?? "",
+        location_id: locationId || null,
+        address: selectedLocation?.address ?? client?.address ?? "",
         kind: kindParam === "event" ? "event" : "work",
         service_ids: seededServiceIds,
       });
