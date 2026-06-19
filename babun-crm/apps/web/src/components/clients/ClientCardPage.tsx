@@ -9,7 +9,7 @@
 // page.tsx.  The legacy ClientProfileView stays in the repo as a
 // fallback (and remains used by /chats side-panel, see STORY-035).
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -27,11 +27,15 @@ import {
   useServices,
 } from "@/components/layout/DashboardClientLayout";
 import { buildStats } from "@babun/shared/local/selectors/client-stats";
+import { buildServiceDue } from "@babun/shared/local/selectors/service-due";
 import { loadBlockConfig } from "@babun/shared/local/business-blocks";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/Toast";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
 import ClientHeader from "./ClientHeader";
+import ClientNextJob from "./ClientNextJob";
 import ClientQuickActions from "./ClientQuickActions";
+import ClientServiceSpine from "./ClientServiceSpine";
 import ObjectsBlock from "./blocks/ObjectsBlock";
 import VisitsBlock from "./blocks/VisitsBlock";
 import FinanceBlock from "./blocks/FinanceBlock";
@@ -56,6 +60,7 @@ export default function ClientCardPage({
   const { appointments } = useAppointments();
   const { services } = useServices();
   const confirm = useConfirm();
+  const toast = useToast();
   const blockConfig = loadBlockConfig();
 
   const client = useMemo(
@@ -68,26 +73,24 @@ export default function ClientCardPage({
     [client, appointments],
   );
 
-  const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
+  // Wires the previously-dead serviceDueState into the «Обслуживание»
+  // spine + NEXT-JOB hero. Computed once here; passed down (single source).
+  const serviceDue = useMemo(
+    () => (client ? buildServiceDue(client) : null),
+    [client],
+  );
+
+  // The unit the NEXT-JOB hero already names — the spine drops it so the
+  // same overdue/soon unit is never shown twice (de-dup, one home per fact).
+  const heroUnitId = useMemo(() => {
+    if (!serviceDue || stats?.nextApt) return null;
+    return serviceDue.overdue[0]?.unitId ?? serviceDue.soon[0]?.unitId ?? null;
+  }, [serviceDue, stats]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
-  // v335 — When the «+ Заметка» quick-action fires we just bump a
-  // counter; NotesBlock (Group 3) will read it and refocus its input.
-  // Counter rather than boolean so two consecutive taps both register.
-  const [noteFocusToken, setNoteFocusToken] = useState(0);
-
-  // Default to the primary location once we have the client.
-  useEffect(() => {
-    if (!client) return;
-    if (activeLocationId) return;
-    const primary =
-      client.locations?.find((l) => l.isPrimary) ??
-      client.locations?.[0] ??
-      null;
-    // Defaulting from external client state — legitimate sync.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (primary) setActiveLocationId(primary.id);
-  }, [client, activeLocationId]);
+  // «Напомнить» quick-action triggers this native date input.
+  const reminderInputRef = useRef<HTMLInputElement>(null);
 
   if (!client) {
     // P0 #1 (CRM Core brief): while the clients list is still being
@@ -114,15 +117,22 @@ export default function ClientCardPage({
   const update = (patch: Partial<typeof client>) =>
     upsertClient({ ...client, ...patch });
 
-  const onAddNote = () => {
+  // «Напомнить» — open a native date picker; on pick, store reminder_at.
+  const onRemind = () => {
     haptic("tap");
-    setNoteFocusToken((t) => t + 1);
-    // Group 3 — focus the input inside NotesBlock via a hash + dom
-    // lookup.  For now ensure the URL has #notes so a fresh deep-link
-    // also lands on the right block when blocks ship.
-    if (typeof window !== "undefined" && !window.location.hash) {
-      window.history.replaceState({}, "", `${window.location.pathname}#notes`);
-    }
+    const el = reminderInputRef.current as
+      | (HTMLInputElement & { showPicker?: () => void })
+      | null;
+    if (!el) return;
+    if (typeof el.showPicker === "function") el.showPicker();
+    else el.click();
+  };
+
+  const onReminderPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value; // YYYY-MM-DD
+    if (!value) return;
+    update({ reminder_at: value });
+    toast.show({ variant: "success", message: "Напоминание поставлено" });
   };
 
   const onDeleteClient = async () => {
@@ -147,20 +157,37 @@ export default function ClientCardPage({
       <ClientHeader
         client={client}
         stats={stats}
-        activeLocationId={activeLocationId}
-        onChangeLocation={setActiveLocationId}
+        mode="view"
         onOpenMenu={() => setMenuOpen(true)}
         onBack={onBack}
-        appointments={appointments}
-        onAvatarChange={(url) => upsertClient({ ...client, avatar_url: url })}
+        onPatch={update}
       />
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto pb-24">
-          <ClientQuickActions client={client} onAddNote={onAddNote} />
+          {/* NEXT-JOB hero — what to do now (booked / overdue ТО / +Записать) */}
+          {serviceDue && (
+            <div className="mx-3 mt-3 mb-2">
+              <ClientNextJob client={client} stats={stats} serviceDue={serviceDue} />
+            </div>
+          )}
 
-          {/* v336 — Group 2 blocks.  Group 3 (v337) ships the rest
-              (Notes / Contacts / Personal / Meta). */}
+          {/* 5 always-visible quick actions */}
+          <ClientQuickActions client={client} stats={stats} onRemind={onRemind} />
+
+          {/* «Обслуживание» spine — equipment due for service (hides if none).
+              Drops the unit the hero already names (de-dup). */}
+          {serviceDue && (
+            <ClientServiceSpine
+              client={client}
+              stats={stats}
+              serviceDue={serviceDue}
+              excludeUnitId={heroUnitId}
+            />
+          )}
+
+          {/* ОБЪЕКТЫ first, then the collapsed reference blocks
+              (visits / finance / notes / contacts / personal / meta). */}
           <div className="mt-2">
             {blockConfig.map((cfg) => {
               switch (cfg.kind) {
@@ -199,7 +226,7 @@ export default function ClientCardPage({
                       key={cfg.kind}
                       client={client}
                       onUpdate={(next) => upsertClient(next)}
-                      focusToken={noteFocusToken}
+                      focusToken={0}
                     />
                   );
                 case "attachments":
@@ -319,6 +346,17 @@ export default function ClientCardPage({
         onClose={() => setSendMsgOpen(false)}
         phone={client.phone ?? null}
         clientName={client.full_name}
+      />
+
+      {/* Hidden picker for the «Напомнить» quick-action. */}
+      <input
+        ref={reminderInputRef}
+        type="date"
+        defaultValue={client.reminder_at ?? undefined}
+        onChange={onReminderPicked}
+        className="sr-only"
+        aria-hidden
+        tabIndex={-1}
       />
     </div>
   );
