@@ -1,37 +1,30 @@
 "use client";
 
-// STORY-034 Group 1 — Sticky header for the redesigned client card.
+// v813 — Sticky header for the unified «Карта-диспетчер» client card.
 //
-// Replaces the editable-form heading inside ClientProfileView.  Now
-// the dispatcher sees, in this order without scrolling:
-//   * Back arrow · «…» menu (right-anchored)
-//   * Avatar + name + status badges (VIP / blacklist / cake / next-apt)
-//   * Primary location row: type · address · «Открыть в Картах»
-//   * Next-appointment badge (📅 27 апр 14:00) when stats.nextApt set
-//   * Object switcher chips when client.locations.length > 1
+// The dispatcher sees, in this order without scrolling:
+//   * Back arrow · «Клиент» · «…» menu
+//   * Avatar + name + status badges (VIP / blacklist / cake)
+//   * MONEY ROW as coloured text: €доход (green) · долг €N (gold) ·
+//     ждём €N (grey) — each segment HIDES when its figure is 0.
+//   * META line: 🕘 последний визит · команда · город (hide-on-empty)
+//   * TRUST line: Клиент с YYYY · N визитов · средний €N
 //
-// Editable fields move into the per-block `ContactsBlock` /
-// `PersonalBlock` (Group 3) — header is read-only on purpose.
+// The phone line, primary-location card, object switcher and
+// next-appointment badge were intentionally REMOVED from the header
+// (locked design): the next appointment is now the NEXT-JOB hero,
+// navigation is one of the 5 quick actions, and objects/equipment live
+// in the ОБЪЕКТЫ section below. Editable fields live in the per-block
+// ContactsBlock / PersonalBlock — header is read-only on purpose.
 
-import { useMemo, useRef, useState } from "react";
-import {
-  ChevronLeft,
-  MoreHorizontal,
-  MapPin,
-  ArrowUpRight,
-  Calendar as CalendarIcon,
-  Camera,
-} from "@babun/shared/icons";
-import { useRouter } from "next/navigation";
-import type { Client, Location } from "@babun/shared/local/clients";
+import { useRef, useState } from "react";
+import { ChevronLeft, MoreHorizontal, Camera } from "@babun/shared/icons";
+import type { Client } from "@babun/shared/local/clients";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
-import type { Appointment } from "@babun/shared/local/appointments";
-import { buildMapUrl } from "@babun/shared/common/utils/map-links";
 import { getAvatarColor, getInitials } from "@babun/shared/common/utils/avatar-color";
-import { computeClientLtv, formatGapDays } from "@/lib/clients/ltv";
 import { uploadClientAvatar, AvatarUploadError } from "@/lib/clients/avatarUpload";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { useTenantId } from "@/components/layout/DashboardClientLayout";
+import { useTenantId, useTeams } from "@/components/layout/DashboardClientLayout";
 import { useToast } from "@/components/ui/Toast";
 import ClientStatusBadges from "./ClientStatusBadges";
 import { haptic } from "@/lib/haptics";
@@ -39,45 +32,47 @@ import { haptic } from "@/lib/haptics";
 interface ClientHeaderProps {
   client: Client;
   stats: ClientStats | undefined;
-  /** Currently shown location id; controlled by parent. */
-  activeLocationId: string | null;
-  onChangeLocation: (id: string) => void;
   onOpenMenu: () => void;
   onBack: () => void;
-  /**
-   * Full appointments list used to compute LTV/avg-check/frequency
-   * chips. Legacy callers omit it — chips are hidden in that case.
-   */
-  appointments?: Appointment[];
   /** F3.5 — persist a new avatar URL after upload. Omitted = read-only avatar. */
   onAvatarChange?: (avatarUrl: string) => void;
 }
 
-// Detects iOS so the «Открыть в Картах» button picks Apple Maps
-// over Google.  iPadOS reports as MacIntel + touch, so we OR that
-// in.  buildMapUrl returns an https://maps.apple.com URL on iOS,
-// not a maps:// scheme — the latter doesn't always launch in
-// Safari without a user gesture.
-function preferAppleMaps(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return (
-    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
+const MONTHS_RU_SHORT = [
+  "янв", "фев", "мар", "апр", "мая", "июн",
+  "июл", "авг", "сен", "окт", "ноя", "дек",
+];
+
+/** "2024-05-10" → "10 мая"; "" → "". */
+function formatShortDateRu(key: string): string {
+  if (!key) return "";
+  const [y, m, d] = key.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return `${d} ${MONTHS_RU_SHORT[m - 1] ?? ""}`.trim();
+}
+
+/** Russian plural for «визит». */
+function visitsWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "визит";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "визита";
+  return "визитов";
+}
+
+function euro(n: number): string {
+  return `€${Math.round(n).toLocaleString("ru-RU")}`;
 }
 
 export default function ClientHeader({
   client,
   stats,
-  activeLocationId,
-  onChangeLocation,
   onOpenMenu,
   onBack,
-  appointments,
   onAvatarChange,
 }: ClientHeaderProps) {
-  const router = useRouter();
   const tenantId = useTenantId();
+  const { teams } = useTeams();
   const toast = useToast();
   const color = getAvatarColor(client.full_name);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,37 +108,30 @@ export default function ClientHeader({
     }
   };
 
-  // F3.7 — LTV / avg-check / frequency chips. Recomputed only when
-  // the client id or the appointments array reference changes so the
-  // sticky header doesn't churn on every parent render.
-  const ltvStats = useMemo(
-    () => computeClientLtv(client.id, appointments ?? []),
-    [client.id, appointments],
-  );
+  // ─── derive the three summary lines from stats (single source) ──────
+  const income = stats && stats.totalSpent > 0 ? euro(stats.totalSpent) : null;
+  const debt = stats && stats.debt > 0 ? `долг ${euro(stats.debt)}` : null;
+  const expected =
+    stats && stats.expectedRevenue > 0 ? `ждём ${euro(stats.expectedRevenue)}` : null;
+  const hasMoney = Boolean(income || debt || expected);
 
-  const usableLocations = (client.locations ?? []).filter(
-    (l) => l.address || l.mapUrl,
-  );
-  const activeLocation: Location | null =
-    usableLocations.find((l) => l.id === activeLocationId) ??
-    usableLocations.find((l) => l.isPrimary) ??
-    usableLocations[0] ??
-    null;
+  const teamName = stats?.lastTeamId
+    ? teams.find((t) => t.id === stats.lastTeamId)?.name ?? null
+    : null;
+  const metaSegments = [
+    formatShortDateRu(stats?.lastVisitDate ?? ""),
+    teamName,
+    client.city || null,
+  ].filter(Boolean) as string[];
 
-  const openMaps = (loc: Location) => {
-    haptic("light");
-    const service = preferAppleMaps() ? "apple" : "google";
-    const url = buildMapUrl(service, loc.mapUrl || loc.address);
-    if (url) window.open(url, "_blank", "noopener");
-  };
-
-  const openNextAptInCalendar = () => {
-    if (!stats?.nextApt) return;
-    haptic("tap");
-    router.push(
-      `/dashboard?date=${encodeURIComponent(stats.nextApt.date)}`,
-    );
-  };
+  const sinceYear = (client.first_contact_date || client.created_at || "").slice(0, 4);
+  const avgCheck =
+    stats && stats.visits > 0 ? Math.round(stats.totalSpent / stats.visits) : 0;
+  const trustSegments = [
+    sinceYear ? `Клиент с ${sinceYear}` : null,
+    stats && stats.visits > 0 ? `${stats.visits} ${visitsWord(stats.visits)}` : null,
+    avgCheck > 0 ? `средний ${euro(avgCheck)}` : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="sticky top-0 z-20 bg-[var(--surface-card)] border-b border-[var(--separator)]">
@@ -179,16 +167,13 @@ export default function ClientHeader({
 
       {/* Identity */}
       <div className="px-4 pt-1 pb-3 flex items-start gap-3">
-        {/* clients-99 F3.5 — clickable avatar opens the file picker
-            when the parent supplied onAvatarChange. Falls back to a
-            non-interactive span (legacy callers, read-only). */}
         {onAvatarChange ? (
           <button
             type="button"
             onClick={handleAvatarClick}
             disabled={uploading}
             aria-label="Загрузить фото"
-            className="relative w-12 h-12 rounded-full shrink-0 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:opacity-80"
+            className="relative w-14 h-14 rounded-full shrink-0 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:opacity-80"
             style={{
               backgroundColor: client.avatar_url ? "transparent" : color,
             }}
@@ -201,7 +186,7 @@ export default function ClientHeader({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="flex w-full h-full items-center justify-center text-[var(--label-on-accent)] font-bold text-[15px]">
+              <span className="flex w-full h-full items-center justify-center text-[var(--label-on-accent)] font-bold text-[18px]">
                 {getInitials(client.full_name || "?")}
               </span>
             )}
@@ -216,7 +201,7 @@ export default function ClientHeader({
           </button>
         ) : (
           <span
-            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 overflow-hidden text-[var(--label-on-accent)] font-bold text-[15px]"
+            className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 overflow-hidden text-[var(--label-on-accent)] font-bold text-[18px]"
             style={{
               backgroundColor: client.avatar_url ? "transparent" : color,
             }}
@@ -249,118 +234,31 @@ export default function ClientHeader({
             </span>
             <ClientStatusBadges client={client} stats={stats} budget={3} />
           </div>
-          {client.phone && (
-            <div className="text-[13px] text-[var(--label-secondary)] tabular-nums mt-0.5 truncate">
-              {client.phone}
+
+          {/* Money row — coloured text, each segment hides at 0 */}
+          {hasMoney && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[14px] font-semibold tabular-nums">
+              {income && <span className="text-[var(--system-green)]">{income}</span>}
+              {debt && <span className="text-[#B78600]">{debt}</span>}
+              {expected && <span className="text-[var(--label-secondary)]">{expected}</span>}
             </div>
           )}
-          {ltvStats.visits > 0 && (
-            <div
-              className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--label-secondary)]"
-              aria-label="Статистика клиента"
-            >
-              <span title="Полная сумма всех завершённых визитов">
-                €{ltvStats.ltv.toLocaleString("ru-RU")}
-              </span>
-              <span aria-hidden>·</span>
-              <span title="Средний чек">
-                ~€{ltvStats.avgCheck.toLocaleString("ru-RU")}
-              </span>
-              {ltvStats.avgGapDays !== null && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span title="Средний интервал между визитами">
-                    {formatGapDays(ltvStats.avgGapDays)}
-                  </span>
-                </>
-              )}
+
+          {/* Meta line */}
+          {metaSegments.length > 0 && (
+            <div className="mt-1.5 text-[12.5px] text-[var(--label-secondary)] truncate">
+              🕘 {metaSegments.join(" · ")}
+            </div>
+          )}
+
+          {/* Trust line */}
+          {trustSegments.length > 0 && (
+            <div className="mt-0.5 text-[12px] text-[var(--label-tertiary)] truncate">
+              {trustSegments.join(" · ")}
             </div>
           )}
         </div>
       </div>
-
-      {/* Object switcher when >1 usable location */}
-      {usableLocations.length > 1 && (
-        <div className="px-3 pb-2 flex gap-1.5 overflow-x-auto scrollbar-hide">
-          {usableLocations.map((loc) => {
-            const active = loc.id === (activeLocation?.id ?? null);
-            return (
-              <button
-                key={loc.id}
-                type="button"
-                onClick={() => {
-                  haptic("light");
-                  onChangeLocation(loc.id);
-                }}
-                className={`shrink-0 h-7 px-2.5 rounded-full text-[12px] font-semibold transition ${
-                  active
-                    ? "bg-[var(--accent)] text-[var(--label-on-accent)]"
-                    : "bg-[var(--fill-tertiary)] text-[var(--label-secondary)] active:bg-[var(--fill-secondary)]"
-                }`}
-              >
-                {loc.label || "Объект"}
-                {loc.isPrimary && active && (
-                  <span className="opacity-80 ml-1">·</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Primary location row */}
-      {activeLocation && (
-        <div className="mx-3 mb-2 rounded-[12px] bg-[var(--fill-tertiary)] px-3 py-2 flex items-start gap-2">
-          <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[var(--system-red)] bg-[rgba(255,59,48,0.10)] mt-0.5">
-            <MapPin size={14} strokeWidth={2.2} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-semibold text-[var(--label)] truncate">
-              {activeLocation.label || "Объект"}
-            </div>
-            <div className="text-[12px] text-[var(--label-secondary)] truncate">
-              {activeLocation.address || "адрес не указан"}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => openMaps(activeLocation)}
-            disabled={!activeLocation.address && !activeLocation.mapUrl}
-            aria-label="Открыть в Картах"
-            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-full text-[12px] font-semibold bg-[rgba(0,122,255,0.10)] text-[var(--system-blue)] active:bg-[rgba(0,122,255,0.20)] disabled:text-[var(--label-tertiary)] disabled:cursor-not-allowed"
-          >
-            <ArrowUpRight size={13} strokeWidth={2.5} />
-            Карты
-          </button>
-        </div>
-      )}
-
-      {/* Next appointment badge */}
-      {stats?.nextApt && (
-        <button
-          type="button"
-          onClick={openNextAptInCalendar}
-          className="mx-3 mb-2 w-[calc(100%-1.5rem)] inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] font-semibold bg-[var(--accent-tint)] text-[var(--accent)] active:bg-[var(--fill-secondary)]"
-        >
-          <CalendarIcon size={13} strokeWidth={2.5} />
-          {formatNextAptLabel(stats.nextApt)}
-        </button>
-      )}
     </div>
   );
-}
-
-function formatNextAptLabel(nextApt: { date: string; time: string }): string {
-  const [y, m, d] = nextApt.date.split("-").map(Number);
-  if (!y || !m || !d) return `${nextApt.date} ${nextApt.time}`;
-  const dt = new Date(y, m - 1, d);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const days = Math.round((dt.getTime() - today.getTime()) / 86400000);
-  if (days === 0) return `📅 Сегодня · ${nextApt.time}`;
-  if (days === 1) return `📅 Завтра · ${nextApt.time}`;
-  return `📅 ${dt.toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "short",
-  })} · ${nextApt.time}`;
 }
