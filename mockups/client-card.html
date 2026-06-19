@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Babun2 — Карточка клиента (Карта-диспетчер)</title>
+<style>
+  :root{
+    --grouped:#F2F2F7; --card:#FFFFFF; --sep:rgba(60,60,67,0.09);
+    --label:#000; --l2:#3C3C434D; --l3:rgba(60,60,67,0.30); --lsec:rgba(60,60,67,0.6);
+    --fill:rgba(118,118,128,0.10);
+    --red:#E5463B; --green:#34C759; --gold:#B78600; --amber:#C77A00;
+    --accent:#3E88F7; --accent-tint:rgba(62,136,247,0.10);
+    --red-tint:rgba(229,70,59,0.08); --red-b:rgba(229,70,59,0.30);
+    --shadow:0 1px 2px rgba(15,23,42,0.04);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font);background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:30px 16px 60px;color:var(--label);font-variant-numeric:tabular-nums;}
+  .caption{font-size:12.5px;color:#6b7280;text-align:center;max-width:392px;line-height:1.45;}
+  .caption b{color:#374151;font-weight:600;}
+  .device{width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25);}
+  .screen{width:392px;height:812px;background:var(--grouped);border-radius:45px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .statusbar{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;background:var(--card);position:relative;z-index:3;}
+  .statusbar .time{font-size:15px;font-weight:600;}
+  .island{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;}
+  .nav{height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px;background:var(--card);z-index:2;}
+  .nav .back{display:flex;align-items:center;color:var(--accent);font-size:15px;font-weight:500;padding:0 6px;height:40px;}
+  .nav .ic{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--accent);}
+  .body{flex:1;overflow-y:auto;padding:8px 16px 30px;}
+  .body::-webkit-scrollbar{display:none;}
+
+  /* header — list-tile language, expanded */
+  .hero{display:flex;gap:13px;align-items:flex-start;padding:8px 2px 16px;}
+  .ava{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:600;flex:none;}
+  .hbody{flex:1;min-width:0;padding-top:1px;}
+  .hname{font-size:20px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:6px;}
+  .hname .star{color:var(--gold);display:inline-flex;}
+  .hmoney{display:flex;flex-wrap:wrap;gap:12px;font-size:14px;font-weight:600;margin-top:6px;}
+  .hmoney .inc{color:var(--green);} .hmoney .debt{color:var(--gold);} .hmoney .exp{color:var(--lsec);}
+  .hmeta{font-size:12.5px;color:var(--lsec);margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hmeta .clk{vertical-align:-2px;margin-right:3px;} .hmeta .d{margin:0 5px;color:var(--l3);}
+  .htrust{font-size:12px;color:var(--l3);margin-top:4px;}
+
+  /* NEXT-JOB hero button */
+  .nextjob{display:flex;align-items:center;gap:13px;width:100%;height:66px;border-radius:16px;padding:0 15px;margin-bottom:16px;cursor:pointer;}
+  .nextjob.alert{background:var(--red-tint);border:1px solid var(--red-b);}
+  .nextjob.book{background:var(--accent);}
+  .nj-ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;}
+  .nextjob.alert .nj-ic{background:rgba(229,70,59,.14);color:var(--red);}
+  .nj-t{flex:1;min-width:0;}
+  .nj-tt{font-size:15px;font-weight:600;}
+  .nj-ts{font-size:12.5px;color:var(--lsec);margin-top:1px;}
+  .nextjob.alert .nj-tt{color:var(--red);}
+  .nj-go{color:var(--accent);flex:none;}
+  .nextjob.alert .nj-go{color:var(--red);}
+
+  /* 5 actions, all visible */
+  .qa{display:flex;justify-content:space-between;margin-bottom:24px;}
+  .qa .b{display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;}
+  .qa .circ{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-tint);color:var(--accent);}
+  .qa .circ.g{background:rgba(52,199,89,.12);color:var(--green);}
+  .qa .lab{font-size:10.5px;color:var(--lsec);}
+
+  .sec{margin-bottom:22px;}
+  .sec-h{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 9px;}
+  .sec-t{font-size:12px;font-weight:600;color:var(--l2);letter-spacing:.06em;text-transform:uppercase;}
+  .sec-a{font-size:13px;color:var(--accent);}
+  .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+
+  /* service spine */
+  .svc{padding:13px 16px;}
+  .svc-row{display:flex;align-items:center;gap:10px;font-size:14px;}
+  .svc-row + .svc-row{margin-top:10px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .svc-u{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .svc-when{font-size:12.5px;flex:none;}
+  .svc-when.over{color:var(--red);} .svc-when.soon{color:var(--amber);}
+  .svc-rec{font-size:12.5px;color:var(--accent);flex:none;margin-left:10px;}
+  .svc-ok{font-size:13px;color:var(--l3);padding:11px 16px;border-top:.5px solid var(--sep);}
+
+  /* objects */
+  .obj{padding:14px 16px;}
+  .obj + .obj{border-top:.5px solid var(--sep);}
+  .obj-h{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;}
+  .obj-pin{font-size:11px;font-weight:500;color:var(--accent);}
+  .obj-tools{margin-left:auto;display:flex;gap:4px;color:var(--accent);}
+  .obj-addr{font-size:12.5px;color:var(--lsec);margin-top:2px;}
+  .obj-key{font-size:12px;color:var(--gold);margin-top:5px;display:flex;gap:6px;align-items:center;}
+  .unit{display:flex;align-items:flex-start;gap:11px;margin-top:11px;}
+  .unit-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);display:flex;align-items:center;justify-content:center;color:var(--l3);flex:none;margin-top:1px;}
+  .unit-t{flex:1;min-width:0;}
+  .unit-n{font-size:13.5px;}
+  .unit-s{font-size:11.5px;color:var(--l3);margin-top:1px;}
+  .unit-due{font-size:12px;flex:none;}
+  .unit-due.over{color:var(--red);} .unit-due.soon{color:var(--amber);} .unit-due.ok{color:var(--l3);}
+  .obj-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:.5px solid var(--sep);font-size:12.5px;color:var(--lsec);}
+  .obj-book{color:var(--accent);font-weight:500;}
+  .addrow{padding:13px 16px;color:var(--accent);font-size:14px;border-top:.5px solid var(--sep);}
+
+  /* collapsed reference rows */
+  .ref{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
+  .ref + .ref{border-top:.5px solid var(--sep);}
+  .ref .l{font-size:14.5px;}
+  .ref .r{font-size:13px;color:var(--lsec);display:flex;align-items:center;gap:7px;}
+  .ref .r .chev{color:var(--l3);}
+  .ref .r .debt{color:var(--gold);font-weight:600;}
+  svg{display:block;}
+</style>
+</head>
+<body>
+  <div class="caption"><b>Babun2 — Карточка-диспетчер.</b> Сверху — что сделать сейчас (NEXT-JOB), 5 действий на виду, спайн «Обслуживание», объекты с оборудованием. Справочное (визиты/финансы/заметки/контакты) свёрнуто в строки. Прокрути внутри рамки.</div>
+
+  <div class="device">
+    <div class="screen">
+      <div class="statusbar"><span class="time">9:41</span><div class="island"></div>
+        <div class="sb-right"><svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/></svg></div>
+      </div>
+      <div class="nav">
+        <span class="back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Клиенты</span>
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span>
+      </div>
+
+      <div class="body">
+
+        <!-- HEADER -->
+        <div class="hero">
+          <div class="ava" style="background:#E5463B">СМ</div>
+          <div class="hbody">
+            <div class="hname">Сергей Морозов <span class="star"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg></span></div>
+            <div class="hmoney"><span class="inc">€1 120</span><span class="debt">долг €135</span><span class="exp">ждём €120</span></div>
+            <div class="hmeta"><svg class="clk" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>10 мая<span class="d">·</span>Y&amp;D<span class="d">·</span>Лимассол</div>
+            <div class="htrust">Клиент с 2023 · 8 визитов · средний €140</div>
+          </div>
+        </div>
+
+        <!-- NEXT-JOB HERO -->
+        <div class="nextjob alert">
+          <div class="nj-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="nj-t"><div class="nj-tt">ТО просрочено · Спальня</div><div class="nj-ts">Записать на ТО — команда и дата уже подставлены</div></div>
+          <span class="nj-go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+
+        <!-- 5 ACTIONS -->
+        <div class="qa">
+          <div class="b"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.8.4 1.6.7 2.3a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.7-1.3a2 2 0 0 1 2.1-.4c.7.3 1.5.6 2.3.7A2 2 0 0 1 22 16.9z"/></svg></div><span class="lab">Звонок</span></div>
+          <div class="b"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg></div><span class="lab">Записать</span></div>
+          <div class="b"><div class="circ g"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div><span class="lab">WhatsApp</span></div>
+          <div class="b"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><span class="lab">Навигация</span></div>
+          <div class="b"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div><span class="lab">Напомнить</span></div>
+        </div>
+
+        <!-- SERVICE SPINE -->
+        <div class="sec">
+          <div class="sec-h"><span class="sec-t">Обслуживание</span></div>
+          <div class="card">
+            <div class="svc">
+              <div class="svc-row"><span class="dot" style="background:var(--red)"></span><span class="svc-u">Спальня · Daikin FTXB</span><span class="svc-when over">−18 дн</span><span class="svc-rec">Записать ТО</span></div>
+              <div class="svc-row"><span class="dot" style="background:var(--amber)"></span><span class="svc-u">Гостиная · Mitsubishi</span><span class="svc-when soon">через 9 дн</span><span class="svc-rec">Записать ТО</span></div>
+            </div>
+            <div class="svc-ok">Офис · 3 юнита — всё по графику</div>
+          </div>
+        </div>
+
+        <!-- OBJECTS + EQUIPMENT -->
+        <div class="sec">
+          <div class="sec-h"><span class="sec-t">Объекты</span></div>
+          <div class="card">
+            <div class="obj">
+              <div class="obj-h">Дом <span class="obj-pin">· основной</span>
+                <span class="obj-tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+              </div>
+              <div class="obj-addr">Лимассол, Agios Tychonas 21</div>
+              <div class="obj-key"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.5 12.5 8-8M16 7l2 2M19 4l2 2"/></svg> зелёная дверь, домофон 25</div>
+              <div class="unit"><div class="unit-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h4"/></svg></div><div class="unit-t"><div class="unit-n">Спальня · Daikin FTXS35 · сплит</div><div class="unit-s">установлен 2022 · ТО раз в 12 мес · посл. апр 2024</div></div><span class="unit-due over">просрочено</span></div>
+              <div class="unit"><div class="unit-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h4"/></svg></div><div class="unit-t"><div class="unit-n">Гостиная · Mitsubishi · канальный</div><div class="unit-s">установлен 2022 · ТО раз в 12 мес</div></div><span class="unit-due soon">через 9 дн</span></div>
+              <div class="obj-foot"><span>8 визитов · посл. 14 апр</span><span class="obj-book">Записать сюда</span></div>
+            </div>
+            <div class="obj">
+              <div class="obj-h">Офис <span class="obj-tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span></div>
+              <div class="obj-addr">Лимассол, Spyrou Kyprianou 15 · 3 юнита</div>
+            </div>
+            <div class="addrow">＋ объект</div>
+          </div>
+        </div>
+
+        <!-- COLLAPSED REFERENCE -->
+        <div class="sec">
+          <div class="card">
+            <div class="ref"><span class="l">Визиты</span><span class="r">8 · посл. 10 мая <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+            <div class="ref"><span class="l">Финансы</span><span class="r"><span class="debt">долг €135</span> <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+            <div class="ref"><span class="l">Заметки</span><span class="r">2 <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+            <div class="ref"><span class="l">Контакты</span><span class="r">+357 99 · ещё 1 <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+            <div class="ref"><span class="l">О клиенте</span><span class="r">ДР 14 мар · VIP <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="caption" style="opacity:.8">iPhone · 392 px · «Карта-диспетчер»: действие → обслуживание → объекты → свёрнутое справочное</div>
+</body>
+</html>

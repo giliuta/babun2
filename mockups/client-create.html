@@ -9,10 +9,10 @@
     --surface-grouped:#EFEFF4; --surface-card:#FFFFFF; --surface-card-secondary:#F2F2F7;
     --separator:rgba(60,60,67,0.10);
     --label:#000000; --label-secondary:#3C3C4399; --label-tertiary:rgba(60,60,67,0.30);
-    --label-quaternary:rgba(60,60,67,0.18);
-    --fill-tertiary:rgba(118,118,128,0.12); --fill-quaternary:rgba(116,116,128,0.08);
+    --fill-tertiary:rgba(118,118,128,0.12);
     --system-red:#FF3B30; --system-green:#34C759;
-    --accent:#3E88F7; --accent-pressed:#2D7BE5; --accent-tint:rgba(62,136,247,0.12);
+    --accent:#3E88F7; --accent-pressed:#2D7BE5; --accent-tint:rgba(62,136,247,0.10);
+    --accent-border:rgba(62,136,247,0.35); --accent-text:#185FA5;
     --shadow-card:0 0 0 0.5px rgba(15,23,42,0.04),0 1px 2px rgba(15,23,42,0.04);
     --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
   }
@@ -31,27 +31,49 @@
   .sb-right{display:flex;align-items:center;gap:6px;}
 
   /* nav */
-  .nav{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px;
+  .nav{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;
     background:var(--surface-card);border-bottom:.5px solid var(--separator);}
-  .nav .cancel{color:var(--accent);font-size:15px;font-weight:500;padding:0 8px;height:40px;display:flex;align-items:center;cursor:pointer;}
+  .nav .cancel{color:var(--accent);font-size:15px;font-weight:500;padding:0 4px;height:40px;display:flex;align-items:center;cursor:pointer;}
   .nav .title{font-size:17px;font-weight:600;letter-spacing:-.01em;}
-  .nav .sp{width:64px;}
+  .nav .sp{width:56px;}
 
   /* body */
   .body{flex:1;overflow-y:auto;padding:0 16px 20px;}
-  .ava{width:88px;height:88px;border-radius:50%;margin:22px auto 18px;display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:32px;font-weight:700;background:var(--fill-tertiary);transition:background .2s;flex:none;}
+  .ava{width:84px;height:84px;border-radius:50%;margin:22px auto 18px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:30px;font-weight:700;background:var(--fill-tertiary);transition:background .2s;flex:none;}
   .ava.empty{color:var(--label-tertiary);}
-  .group{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden;margin-bottom:16px;}
+  .group{background:var(--surface-card);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden;margin-bottom:14px;}
   .field{display:flex;align-items:center;gap:10px;min-height:54px;padding:0 15px;border-bottom:.5px solid var(--separator);}
   .field:last-child{border-bottom:0;}
-  .field .lbl{width:80px;flex:none;font-size:15px;color:var(--label-secondary);}
+  .field .lbl{width:78px;flex:none;font-size:15px;color:var(--label-secondary);}
+  .field .req{color:var(--system-red);font-size:13px;margin-left:1px;}
   .field .in{flex:1;min-width:0;border:0;background:transparent;font-family:inherit;font-size:16px;color:var(--label);padding:15px 0;outline:none;}
   .field .in::placeholder{color:var(--label-tertiary);}
   .field.col{flex-direction:column;align-items:stretch;padding:11px 15px;}
   .field.col .lbl{width:auto;font-size:12px;font-weight:600;margin-bottom:2px;}
   .field .ta{resize:none;padding:2px 0 8px;line-height:1.45;}
-  .hint{font-size:12px;color:var(--label-tertiary);line-height:1.45;padding:0 6px;}
+  .hint{font-size:12px;color:var(--label-tertiary);line-height:1.45;padding:2px 6px 0;}
+
+  /* early-dedupe card */
+  .dedupe{display:none;border:1px solid var(--accent-border);background:var(--accent-tint);border-radius:14px;padding:11px 13px;margin-bottom:14px;animation:dd .18s ease;}
+  .dedupe.show{display:block;}
+  @keyframes dd{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+  .dd-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--accent-text);margin-bottom:9px;}
+  .dd-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+  .dd-row + .dd-row{border-top:.5px solid var(--separator);}
+  .dd-ava{width:34px;height:34px;border-radius:50%;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;}
+  .dd-txt{flex:1;min-width:0;}
+  .dd-name{font-size:14px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dd-sub{font-size:12px;color:var(--label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dd-open{flex:none;font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent-border);border-radius:9px;padding:5px 12px;cursor:pointer;}
+  .dd-open:active{background:var(--accent);color:#fff;}
+  /* block variant — exact phone match: creation is not allowed */
+  .dedupe.block{border-color:rgba(255,59,48,.40);background:rgba(255,59,48,.07);}
+  .dedupe.block .dd-h{color:var(--system-red);}
+  .dedupe.block .dd-open{color:var(--system-red);border-color:rgba(255,59,48,.45);}
+  .dedupe.block .dd-open:active{background:var(--system-red);color:#fff;}
+  .dd-note{display:none;font-size:12px;color:var(--system-red);margin-top:9px;line-height:1.4;}
+  .dedupe.block .dd-note{display:block;}
 
   /* footer */
   .foot{flex:none;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface-card);border-top:.5px solid var(--separator);}
@@ -67,7 +89,7 @@
 </style>
 </head>
 <body>
-  <div class="caption"><b>Babun2 — Новый клиент.</b> Отдельная страница создания: минимум — Имя · Телефон · Заметка, живой аватар, кнопка «Сохранить». Команда, метка и тег назначаются позже в карточке.</div>
+  <div class="caption"><b>Babun2 — Новый клиент.</b> Чистый минимум: Имя · Телефон · Заметка. Ранний дедуп: похожее ИМЯ — мягко предупреждает; тот же ТЕЛЕФОН — создание блокируется (только «Открыть»). «Сохранить» — при Имя + телефон. Аватар не вводим (подтянется из соцсетей позже); команда/метка/тег — в карточке.</div>
 
   <div class="device">
     <div class="screen">
@@ -88,11 +110,21 @@
       </div>
 
       <div class="body">
-        <div class="ava empty" id="ava"><span id="ini">?</span></div>
         <div class="group">
-          <label class="field"><span class="lbl">Имя</span><input id="name" class="in" placeholder="Имя клиента" autocomplete="off"></label>
-          <label class="field"><span class="lbl">Телефон</span><input id="phone" class="in" placeholder="+357 99 ..." inputmode="tel" autocomplete="off"></label>
+          <label class="field"><span class="lbl">Имя<span class="req">*</span></span><input id="name" class="in" placeholder="Имя клиента" autocomplete="off"></label>
+          <label class="field"><span class="lbl">Телефон<span class="req">*</span></span><input id="phone" class="in" placeholder="+357 99 ..." inputmode="tel" autocomplete="off"></label>
         </div>
+
+        <!-- early-dedupe: appears as you type when similar clients exist; non-blocking -->
+        <div class="dedupe" id="dedupe">
+          <div class="dd-h">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+            <span id="ddHead">Похожие уже есть — возможно, дубль</span>
+          </div>
+          <div id="ddList"></div>
+          <div class="dd-note">Клиент с этим телефоном уже есть — откройте его, чтобы не создавать дубль.</div>
+        </div>
+
         <div class="group"><label class="field col"><span class="lbl">Заметка</span><textarea id="note" class="in ta" rows="3" placeholder="Язык, предпочтения, особенности…"></textarea></label></div>
         <div class="hint">Команда, метка и тег назначаются позже — в карточке клиента. Адрес и оборудование привяжутся при создании записи.</div>
       </div>
@@ -102,23 +134,68 @@
     </div>
   </div>
 
-  <div class="caption" style="opacity:.8">iPhone · 392 px · отдельный экран создания клиента</div>
+  <div class="caption" style="opacity:.8">iPhone · 392 px · экран создания клиента. Попробуй ввести «Анна» или «99 12» — появится карточка дубля.</div>
 
 <script>
   const PALETTE=['#FF3B30','#FF9500','#34C759','#007AFF','#5E5CE6','#AF52DE','#FF2D55','#30B0C7','#A2845E'];
-  const name=document.getElementById('name'), ava=document.getElementById('ava'), ini=document.getElementById('ini'), save=document.getElementById('save');
+  // demo базы для раннего дедупа (в реале — useClients().clients + findDuplicateCandidates)
+  const EXISTING=[
+    { name:'Анна Петрова',  phone:'+357 99 12 34 56', city:'Лимассол' },
+    { name:'Андрей Попов',  phone:'+357 96 55 44 33', city:'Пафос' },
+    { name:'Мария Иванова', phone:'+357 99 00 11 22', city:'Никосия' },
+  ];
+  const $=(id)=>document.getElementById(id);
+  const name=$('name'), phone=$('phone'), note=$('note'), save=$('save'), dedupe=$('dedupe'), ddList=$('ddList'), ddHead=$('ddHead');
+
+  const digits=(s)=>(s||'').replace(/\D/g,'');
   const initialsOf=(s)=>{ const w=s.trim().split(/\s+/).filter(Boolean); return w.length?(w[0][0]+(w[1]?w[1][0]:'')).toUpperCase():'?'; };
   const colorOf=(s)=>{ let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return PALETTE[h%PALETTE.length]; };
+
+  // mirror of findDuplicateCandidates: name ≥3 chars (substring) OR phone ≥5 digits (suffix match)
+  function candidates(){
+    const n=name.value.trim().toLowerCase(), dq=digits(phone.value);
+    if(n.length<3 && dq.length<5) return [];
+    return EXISTING.filter(c=>{
+      const byName=n.length>=3 && c.name.toLowerCase().includes(n);
+      const byPhone=dq.length>=5 && digits(c.phone).endsWith(dq);
+      return byName||byPhone;
+    }).slice(0,3);
+  }
+
+  // strong duplicate = SAME phone number (≥9 digits, exact/suffix) → creation is blocked.
+  function strongDup(){
+    const dq=digits(phone.value);
+    if(dq.length<9) return null;
+    return EXISTING.find(c=>{ const d=digits(c.phone); return d===dq || d.endsWith(dq); })||null;
+  }
+
+  function renderDedupe(blocked){
+    const list=candidates();
+    if(!list.length){ dedupe.className='dedupe'; ddList.innerHTML=''; return; }
+    ddHead.textContent = blocked ? 'Этот телефон уже у клиента — создать нельзя' : 'Похожие уже есть — возможно, дубль';
+    ddList.innerHTML=list.map(c=>`
+      <div class="dd-row">
+        <div class="dd-ava" style="background:${colorOf(c.name)}">${initialsOf(c.name)}</div>
+        <div class="dd-txt"><div class="dd-name">${c.name}</div><div class="dd-sub">${c.phone} · ${c.city}</div></div>
+        <div class="dd-open" data-name="${c.name}">Открыть</div>
+      </div>`).join('');
+    ddList.querySelectorAll('.dd-open').forEach(b=>b.addEventListener('click',()=>toast('Открываю карточку: '+b.dataset.name)));
+    dedupe.className = 'dedupe show' + (blocked ? ' block' : '');
+  }
+
   function refresh(){
     const n=name.value.trim();
-    if(n){ ava.classList.remove('empty'); ava.style.background=colorOf(n); ini.textContent=initialsOf(n); }
-    else { ava.classList.add('empty'); ava.style.background=''; ini.textContent='?'; }
-    save.classList.toggle('disabled', !n);
+    const blocked=!!strongDup();
+    // save gate: Имя + телефон (≥5 цифр); жёсткий блок при совпадении телефона
+    save.classList.toggle('disabled', blocked || !(n && digits(phone.value).length>=5));
+    renderDedupe(blocked);
   }
-  function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
+  function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
+
   name.addEventListener('input', refresh);
-  save.addEventListener('click', ()=>{ if(!name.value.trim()) return; toast('Клиент сохранён: '+name.value.trim()); });
-  document.getElementById('cancel').addEventListener('click', ()=>{ name.value=''; document.getElementById('phone').value=''; document.getElementById('note').value=''; refresh(); });
+  phone.addEventListener('input', refresh);
+  save.addEventListener('click', ()=>{ if(save.classList.contains('disabled')) return; toast('Клиент сохранён: '+name.value.trim()); });
+  $('cancel').addEventListener('click', ()=>{ name.value=''; phone.value=''; note.value=''; refresh(); });
   refresh();
   setTimeout(()=>name.focus(), 80);
 </script>
