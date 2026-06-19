@@ -16,6 +16,7 @@
 // Name/phone are real inputs that persist via onPatch (immediate in
 // view; into the draft in create).
 
+import { useEffect, useRef } from "react";
 import { ChevronLeft, MoreHorizontal, Check } from "@babun/shared/icons";
 import type { Client } from "@babun/shared/local/clients";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
@@ -73,6 +74,16 @@ export default function ClientHeader({
   onPatch,
 }: ClientHeaderProps) {
   const isCreate = mode === "create";
+
+  // Create mode: phone is THE primary field — autofocus it on mount so a
+  // dispatcher can start typing the number straight away (the key for
+  // dedup / звонок / запись). View mode never steals focus.
+  const phoneRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (isCreate) phoneRef.current?.focus();
+    // Mount-only; mode never flips on a live instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const debt = stats && stats.debt > 0 ? `Долг ${euro(stats.debt)}` : null;
   const trustSegments =
@@ -145,6 +156,7 @@ export default function ClientHeader({
           </div>
           <div className={`flex items-center gap-2 ${isCreate ? "order-1" : "order-2 mt-0.5"}`}>
             <input
+              ref={phoneRef}
               value={client.phone}
               onChange={(e) => onPatch({ phone: e.target.value })}
               placeholder="Телефон"
