@@ -18,6 +18,11 @@ interface ClientNextJobProps {
   client: Client;
   stats: ClientStats | undefined;
   serviceDue: ServiceDueSummary;
+  /**
+   * Create mode: run before navigating (persists the draft so the booking
+   * deep-link's client_id resolves). Returning false aborts the nav.
+   */
+  beforeNavigate?: () => Promise<boolean>;
 }
 
 type Tone = "accent" | "info" | "alert" | "warn";
@@ -71,7 +76,7 @@ const TONE: Record<Tone, { wrap: string; ic: string; title: string; sub: string;
   },
 };
 
-export default function ClientNextJob({ client, stats, serviceDue }: ClientNextJobProps) {
+export default function ClientNextJob({ client, stats, serviceDue, beforeNavigate }: ClientNextJobProps) {
   const router = useRouter();
   const primaryLocationId =
     client.locations?.find((l) => l.isPrimary)?.id ?? client.locations?.[0]?.id ?? null;
@@ -115,7 +120,11 @@ export default function ClientNextJob({ client, stats, serviceDue }: ClientNextJ
   return (
     <button
       type="button"
-      onClick={() => { haptic("tap"); router.push(href); }}
+      onClick={async () => {
+        haptic("tap");
+        if (beforeNavigate && !(await beforeNavigate())) return;
+        router.push(href);
+      }}
       className={`w-full flex items-center gap-3 min-h-[62px] rounded-2xl px-3.5 py-2.5 text-left ${t.wrap} active:opacity-90`}
     >
       <span className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${t.ic}`}>

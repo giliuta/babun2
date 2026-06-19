@@ -26,9 +26,14 @@ interface ClientQuickActionsProps {
   stats: ClientStats | undefined;
   /** Parent sets client.reminder_at (opens a date picker). */
   onRemind: () => void;
+  /**
+   * Create mode: run before navigating to booking / chat (persists the
+   * draft so its client_id resolves). Returning false aborts the nav.
+   */
+  beforeNavigate?: () => Promise<boolean>;
 }
 
-export default function ClientQuickActions({ client, stats, onRemind }: ClientQuickActionsProps) {
+export default function ClientQuickActions({ client, stats, onRemind, beforeNavigate }: ClientQuickActionsProps) {
   const router = useRouter();
 
   const tel = telUrl(client.phone);
@@ -36,14 +41,16 @@ export default function ClientQuickActions({ client, stats, onRemind }: ClientQu
   const primary =
     client.locations?.find((l) => l.isPrimary) ?? client.locations?.[0] ?? null;
 
-  const book = () => {
+  const book = async () => {
     haptic("tap");
+    if (beforeNavigate && !(await beforeNavigate())) return;
     router.push(
       buildBookingHref({ clientId: client.id, locationId: primary?.id ?? null, teamId: stats?.lastTeamId ?? null }),
     );
   };
-  const chat = () => {
+  const chat = async () => {
     haptic("tap");
+    if (beforeNavigate && !(await beforeNavigate())) return;
     router.push(`/dashboard/chats?client_id=${client.id}`);
   };
 

@@ -1,58 +1,75 @@
 "use client";
 
-// STORY-034 — Redesigned client card page (replaces ClientProfileView).
-// Group 1 lays down the skeleton: sticky header + quick actions +
-// placeholder for blocks.  Groups 2-3 fill in the collapsible cards
-// (Objects / Visits / Finance / Notes / Contacts / Personal / Meta).
+// Unified client card — ONE page for create + view + edit.
 //
-// Routing context: this is mounted by app/dashboard/clients/[id]/
-// page.tsx.  The legacy ClientProfileView stays in the repo as a
-// fallback (and remains used by /chats side-panel, see STORY-035).
+// • View  (clientId): existing client resolved from context; edits persist
+//   immediately (header inline edit, blocks via onUpdate).
+// • Create (createMode): the SAME card opened on an empty draft held in
+//   local state. Phone is the primary field (header create mode), a live
+//   dedupe strip surfaces matches, and «Готово» persists the draft and
+//   lands on its now-saved [id] card. Booking / chat deep-links persist
+//   the draft first (its id is stable) so they resolve.
+//
+// Routing: app/dashboard/clients/[id]/page.tsx → view;
+//          app/dashboard/clients/new/page.tsx  → create.
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ChevronLeft,
-  MessageSquare,
-  MessageCircle,
-  Share2,
-  Ban,
-  CheckCircle2,
-  Trash2,
-} from "@babun/shared/icons";
-import {
   useAppointments,
   useClients,
   useServices,
 } from "@/components/layout/DashboardClientLayout";
+import { createBlankClient, type Client } from "@babun/shared/local/clients";
 import { buildStats } from "@babun/shared/local/selectors/client-stats";
 import { buildServiceDue } from "@babun/shared/local/selectors/service-due";
-import { loadBlockConfig } from "@babun/shared/local/business-blocks";
+import { tryToE164 } from "@/lib/phone/normalize";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useToast } from "@/components/ui/Toast";
 import SendMessagePopup from "@/components/appointment/SendMessagePopup";
 import ClientHeader from "./ClientHeader";
+import ClientCardMenu from "./ClientCardMenu";
+import ClientCardSkeleton from "./ClientCardSkeleton";
+import ClientDedupeStrip from "./ClientDedupeStrip";
+import ClientCardBlocks from "./ClientCardBlocks";
 import ClientNextJob from "./ClientNextJob";
 import ClientQuickActions from "./ClientQuickActions";
 import ClientServiceSpine from "./ClientServiceSpine";
-import ObjectsBlock from "./blocks/ObjectsBlock";
-import VisitsBlock from "./blocks/VisitsBlock";
-import FinanceBlock from "./blocks/FinanceBlock";
-import NotesBlock from "./blocks/NotesBlock";
-import ContactsBlock from "./blocks/ContactsBlock";
-import PersonalBlock from "./blocks/PersonalBlock";
-import MetaBlock from "./blocks/MetaBlock";
-import AttachmentsBlock from "./blocks/AttachmentsBlock";
 import { haptic } from "@/lib/haptics";
 
 interface ClientCardPageProps {
-  clientId: string;
+  /** View mode — existing client id. */
+  clientId?: string;
+  /** Create mode — mount on an empty editable draft instead. */
+  createMode?: boolean;
   onBack: () => void;
+}
+
+/** Digits-only view of a phone string. */
+function phoneDigits(s: string): string {
+  return (s ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Confident, offline (localStorage-phase) duplicate match by phone digits.
+ * Exact equality matches at any length ≥5; otherwise a ≥7-digit shared
+ * suffix is required so a half-typed number can't false-positive against
+ * the whole base. (CY mobiles are 8 national digits → +357… = 11.)
+ */
+function phoneMatches(typed: string, existing: string): boolean {
+  const a = phoneDigits(typed);
+  const b = phoneDigits(existing);
+  if (a.length < 5 || b.length < 5) return false;
+  if (a === b) return true;
+  const n = Math.min(a.length, b.length, 9);
+  if (n < 7) return false;
+  return a.slice(-n) === b.slice(-n);
 }
 
 export default function ClientCardPage({
   clientId,
+  createMode = false,
   onBack,
 }: ClientCardPageProps) {
   const router = useRouter();
@@ -61,12 +78,16 @@ export default function ClientCardPage({
   const { services } = useServices();
   const confirm = useConfirm();
   const toast = useToast();
-  const blockConfig = loadBlockConfig();
 
-  const client = useMemo(
+  // Create mode holds the in-progress client here until «Готово». The id
+  // is stable from the start so booking deep-links resolve after persist.
+  const [draft, setDraft] = useState<Client>(() => createBlankClient());
+
+  const foundClient = useMemo(
     () => clients.find((c) => c.id === clientId),
     [clients, clientId],
   );
+  const client = createMode ? draft : foundClient;
 
   const stats = useMemo(
     () => (client ? buildStats(client, appointments) : undefined),
@@ -86,6 +107,15 @@ export default function ClientCardPage({
     if (!serviceDue || stats?.nextApt) return null;
     return serviceDue.overdue[0]?.unitId ?? serviceDue.soon[0]?.unitId ?? null;
   }, [serviceDue, stats]);
+
+  // Live dedupe (create only) — surfaced as the user types the phone.
+  // Opening a match IS the link; no separate «Привязать» step.
+  const dedupeMatches = useMemo(() => {
+    if (!createMode || phoneDigits(draft.phone).length < 5) return [];
+    return clients
+      .filter((c) => !c.deleted_at && phoneMatches(draft.phone, c.phone))
+      .slice(0, 3);
+  }, [createMode, clients, draft.phone]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
@@ -114,8 +144,57 @@ export default function ClientCardPage({
     );
   }
 
-  const update = (patch: Partial<typeof client>) =>
-    upsertClient({ ...client, ...patch });
+  // Persist a full client snapshot. View → straight to the store; create →
+  // into the local draft (not the store) until «Готово».
+  const commitClient = (next: Client) => {
+    if (createMode) setDraft(next);
+    else void upsertClient(next);
+  };
+  const update = (patch: Partial<Client>) => commitClient({ ...client, ...patch });
+
+  // Create: write the draft to the store (normalized). Returns false if the
+  // phone gate isn't met yet (so booking/chat nav aborts with a hint).
+  const draftPhoneValid = phoneDigits(draft.phone).length >= 5;
+  const persistDraft = async (): Promise<boolean> => {
+    if (!draftPhoneValid) {
+      toast.show({ variant: "info", message: "Сначала введите телефон" });
+      return false;
+    }
+    const name = draft.full_name.trim();
+    const phone = draft.phone.trim();
+    const toSave: Client = {
+      ...draft,
+      full_name: name,
+      phone,
+      phone_e164: tryToE164(phone, "CY"),
+      sms_name: name.split(/\s+/)[0] || "",
+    };
+    await upsertClient(toSave);
+    setDraft(toSave);
+    return true;
+  };
+
+  const handleDone = async () => {
+    haptic("medium");
+    if (!(await persistDraft())) return;
+    // Land on the same card, now persisted — objects / notes / city are
+    // added from here over time.
+    router.replace(`/dashboard/clients/${draft.id}`);
+  };
+
+  const handleBack = async () => {
+    if (createMode && (draft.full_name.trim() || draft.phone.trim())) {
+      const ok = await confirm({
+        title: "Отменить создание?",
+        message: "Введённые данные не сохранятся.",
+        confirmLabel: "Отменить",
+        cancelLabel: "Продолжить",
+        danger: true,
+      });
+      if (!ok) return;
+    }
+    onBack();
+  };
 
   // «Напомнить» — open a native date picker; on pick, store reminder_at.
   const onRemind = () => {
@@ -152,28 +231,48 @@ export default function ClientCardPage({
     onBack();
   };
 
+  const beforeNavigate = createMode ? persistDraft : undefined;
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-grouped)] h-full">
       <ClientHeader
         client={client}
         stats={stats}
-        mode="view"
-        onOpenMenu={() => setMenuOpen(true)}
-        onBack={onBack}
+        mode={createMode ? "create" : "view"}
+        onOpenMenu={createMode ? undefined : () => setMenuOpen(true)}
+        onDone={createMode ? handleDone : undefined}
+        doneEnabled={createMode ? draftPhoneValid : undefined}
+        onBack={handleBack}
         onPatch={update}
       />
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto pb-24">
+          {/* Live dedupe (create only) — opening a match IS the link. */}
+          <ClientDedupeStrip
+            matches={dedupeMatches}
+            onOpen={(id) => router.replace(`/dashboard/clients/${id}`)}
+          />
+
           {/* NEXT-JOB hero — what to do now (booked / overdue ТО / +Записать) */}
           {serviceDue && (
             <div className="mx-3 mt-3 mb-2">
-              <ClientNextJob client={client} stats={stats} serviceDue={serviceDue} />
+              <ClientNextJob
+                client={client}
+                stats={stats}
+                serviceDue={serviceDue}
+                beforeNavigate={beforeNavigate}
+              />
             </div>
           )}
 
           {/* 5 always-visible quick actions */}
-          <ClientQuickActions client={client} stats={stats} onRemind={onRemind} />
+          <ClientQuickActions
+            client={client}
+            stats={stats}
+            onRemind={onRemind}
+            beforeNavigate={beforeNavigate}
+          />
 
           {/* «Обслуживание» spine — equipment due for service (hides if none).
               Drops the unit the hero already names (de-dup). */}
@@ -188,157 +287,31 @@ export default function ClientCardPage({
 
           {/* ОБЪЕКТЫ first, then the collapsed reference blocks
               (visits / finance / notes / contacts / personal / meta). */}
-          <div className="mt-2">
-            {blockConfig.map((cfg) => {
-              switch (cfg.kind) {
-                case "objects":
-                  return (
-                    <ObjectsBlock
-                      key={cfg.kind}
-                      client={client}
-                      onUpdate={(next) => upsertClient(next)}
-                      appointments={appointments.filter(
-                        (a) => a.client_id === client.id,
-                      )}
-                    />
-                  );
-                case "visits":
-                  return (
-                    <VisitsBlock
-                      key={cfg.kind}
-                      clientId={client.id}
-                      appointments={appointments}
-                      services={services}
-                    />
-                  );
-                case "finance":
-                  return (
-                    <FinanceBlock
-                      key={cfg.kind}
-                      clientId={client.id}
-                      stats={stats}
-                      appointments={appointments}
-                    />
-                  );
-                case "notes":
-                  return (
-                    <NotesBlock
-                      key={cfg.kind}
-                      client={client}
-                      onUpdate={(next) => upsertClient(next)}
-                      focusToken={0}
-                    />
-                  );
-                case "attachments":
-                  return <AttachmentsBlock key={cfg.kind} client={client} />;
-                case "contacts":
-                  return (
-                    <ContactsBlock
-                      key={cfg.kind}
-                      client={client}
-                      onUpdate={(next) => upsertClient(next)}
-                    />
-                  );
-                case "personal":
-                  return (
-                    <PersonalBlock
-                      key={cfg.kind}
-                      client={client}
-                      onUpdate={(next) => upsertClient(next)}
-                    />
-                  );
-                case "meta":
-                  return (
-                    <MetaBlock
-                      key={cfg.kind}
-                      client={client}
-                      onUpdate={(next) => upsertClient(next)}
-                    />
-                  );
-                default:
-                  return null;
-              }
-            })}
-          </div>
+          <ClientCardBlocks
+            client={client}
+            stats={stats}
+            appointments={appointments}
+            services={services}
+            onUpdate={commitClient}
+          />
         </div>
       </div>
 
-      {/* «…» menu — a centered popup per feedback_center_modals. */}
+      {/* «…» menu — view mode only. */}
       {menuOpen && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--surface-overlay)] backdrop-blur-[2px] p-5"
-          onClick={() => setMenuOpen(false)}
-        >
-          <div
-            className="w-full max-w-[320px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] overflow-hidden animate-popup-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-[var(--separator)] text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)] truncate">
-              {client.full_name}
-            </div>
-            <MenuRow
-              icon={MessageSquare}
-              label="Отправить сообщение"
-              onClick={() => {
-                setMenuOpen(false);
-                setSendMsgOpen(true);
-              }}
-            />
-            <MenuRow
-              icon={MessageCircle}
-              label="Перейти в чат"
-              onClick={() => {
-                setMenuOpen(false);
-                router.push(`/dashboard/chats?client_id=${client.id}`);
-              }}
-            />
-            <MenuRow
-              icon={Share2}
-              label="Поделиться контактом"
-              onClick={async () => {
-                setMenuOpen(false);
-                const text = [client.full_name, client.phone]
-                  .filter(Boolean)
-                  .join(" · ");
-                if (typeof navigator !== "undefined" && navigator.share) {
-                  try {
-                    await navigator.share({ title: client.full_name, text });
-                  } catch {
-                    // user dismissed
-                  }
-                } else if (
-                  typeof navigator !== "undefined" &&
-                  navigator.clipboard
-                ) {
-                  await navigator.clipboard.writeText(text);
-                }
-              }}
-            />
-            <MenuRow
-              icon={client.blacklisted ? CheckCircle2 : Ban}
-              label={client.blacklisted ? "Убрать из ЧС" : "В чёрный список"}
-              onClick={() => {
-                update({ blacklisted: !client.blacklisted });
-                setMenuOpen(false);
-              }}
-              danger={!client.blacklisted}
-            />
-            {/* TODO(roles): hide for crew role */}
-            <MenuRow
-              icon={Trash2}
-              label="Удалить клиента"
-              onClick={onDeleteClient}
-              danger
-            />
-            <button
-              type="button"
-              onClick={() => setMenuOpen(false)}
-              className="w-full h-11 text-[13px] font-medium text-[var(--label-secondary)] border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)]"
-            >
-              Отмена
-            </button>
-          </div>
-        </div>
+        <ClientCardMenu
+          client={client}
+          onClose={() => setMenuOpen(false)}
+          onSendMessage={() => {
+            setMenuOpen(false);
+            setSendMsgOpen(true);
+          }}
+          onToggleBlacklist={() => {
+            update({ blacklisted: !client.blacklisted });
+            setMenuOpen(false);
+          }}
+          onDelete={onDeleteClient}
+        />
       )}
 
       <SendMessagePopup
@@ -358,82 +331,6 @@ export default function ClientCardPage({
         aria-hidden
         tabIndex={-1}
       />
-    </div>
-  );
-}
-
-function MenuRow({
-  icon: Icon,
-  label,
-  onClick,
-  danger,
-}: {
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--fill-quaternary)] border-b border-[var(--separator)] last:border-0"
-    >
-      <span
-        className={`w-6 flex items-center justify-center ${
-          danger ? "text-[var(--system-red)]" : "text-[var(--label-secondary)]"
-        }`}
-      >
-        <Icon size={18} strokeWidth={2} />
-      </span>
-      <span
-        className={`text-[15px] font-medium flex-1 ${
-          danger ? "text-[var(--system-red)]" : "text-[var(--label)]"
-        }`}
-      >
-        {label}
-      </span>
-      <span className="text-[var(--label-tertiary)]">
-        <ChevronLeft size={14} strokeWidth={2.5} className="rotate-180" />
-      </span>
-    </button>
-  );
-}
-
-// P0 #1 (CRM Core brief) — first-paint skeleton for the client card.
-// Mirrors the real layout coarsely: sticky header bar + avatar + name
-// + phone placeholders, two primary action chips, then two stub
-// content blocks. Renders only while `clientsLoading && !client`
-// (initial hydration). Once `clientsLoading` flips false, the real
-// not-found branch takes over.
-function ClientCardSkeleton() {
-  const bar = "bg-[var(--fill-secondary)] rounded animate-pulse";
-  return (
-    <div className="flex-1 flex flex-col bg-[var(--surface-grouped)]">
-      <div className="sticky top-0 z-10 bg-[var(--surface-card)] border-b border-[var(--separator)] px-4 py-3 flex items-center gap-3">
-        <div className={`w-7 h-7 rounded-full ${bar}`} />
-        <div className={`flex-1 h-4 ${bar}`} />
-        <div className={`w-7 h-7 rounded-full ${bar}`} />
-      </div>
-
-      <div className="px-4 pt-4 flex items-center gap-3">
-        <div className={`w-14 h-14 rounded-full ${bar}`} />
-        <div className="flex-1 space-y-2">
-          <div className={`h-4 w-2/3 ${bar}`} />
-          <div className={`h-3 w-1/2 ${bar}`} />
-        </div>
-      </div>
-
-      <div className="px-4 pt-4 flex items-center gap-2">
-        <div className={`flex-1 h-11 rounded-[10px] ${bar}`} />
-        <div className={`flex-1 h-11 rounded-[10px] ${bar}`} />
-        <div className={`w-11 h-11 rounded-full ${bar}`} />
-      </div>
-
-      <div className="px-4 pt-5 space-y-3">
-        <div className={`h-24 rounded-2xl ${bar}`} />
-        <div className={`h-32 rounded-2xl ${bar}`} />
-      </div>
     </div>
   );
 }
