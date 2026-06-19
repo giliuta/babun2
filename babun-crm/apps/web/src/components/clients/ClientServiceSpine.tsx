@@ -2,11 +2,11 @@
 
 // v813 — «Обслуживание» spine for the unified client card.
 //
-// Surfaces equipment that needs service, computed by buildServiceDue()
-// (which wires the previously-dead serviceDueState). Overdue units first
-// (red), then due-soon (amber), each with a pre-aimed «Записать ТО».
-// On-schedule units collapse to one quiet line per object. The whole
-// section hides when the client has no equipment with a schedule.
+// Surfaces equipment that needs service (buildServiceDue → serviceDueState).
+// The unit the NEXT-JOB hero already names is excluded (excludeUnitId) so
+// the same fact never appears twice. Overdue rows first, then due-soon
+// (amber), each with a pre-aimed «Записать ТО»; on-schedule units collapse
+// to one quiet line per object. Hidden when nothing is left to show.
 
 import { useRouter } from "next/navigation";
 import type { Client } from "@babun/shared/local/clients";
@@ -19,27 +19,28 @@ interface ClientServiceSpineProps {
   client: Client;
   stats: ClientStats | undefined;
   serviceDue: ServiceDueSummary;
+  /** Unit already shown in the hero — dropped here (de-dup). */
+  excludeUnitId?: string | null;
 }
 
 export default function ClientServiceSpine({
   client,
   stats,
   serviceDue,
+  excludeUnitId,
 }: ClientServiceSpineProps) {
   const router = useRouter();
 
-  if (serviceDue.totalScheduled === 0) return null;
+  const overdue = serviceDue.overdue.filter((u) => u.unitId !== excludeUnitId);
+  const soon = serviceDue.soon.filter((u) => u.unitId !== excludeUnitId);
+  const dueCount = overdue.length + soon.length;
 
-  const dueCount = serviceDue.overdue.length + serviceDue.soon.length;
+  if (dueCount === 0 && serviceDue.onSchedule.length === 0) return null;
 
   const book = (locationId: string) => {
     haptic("tap");
     router.push(
-      buildBookingHref({
-        clientId: client.id,
-        locationId,
-        teamId: stats?.lastTeamId ?? null,
-      }),
+      buildBookingHref({ clientId: client.id, locationId, teamId: stats?.lastTeamId ?? null }),
     );
   };
 
@@ -49,11 +50,9 @@ export default function ClientServiceSpine({
         className="shrink-0 w-[7px] h-[7px] rounded-full"
         style={{ backgroundColor: kind === "over" ? "var(--system-red)" : "#C77A00" }}
       />
-      <span className="flex-1 min-w-0 truncate text-[14px] text-[var(--label)]">
-        {u.unitLabel}
-      </span>
+      <span className="flex-1 min-w-0 truncate text-[15px] text-[var(--label)]">{u.unitLabel}</span>
       <span
-        className="shrink-0 text-[12.5px] tabular-nums"
+        className="shrink-0 text-[13px] tabular-nums"
         style={{ color: kind === "over" ? "var(--system-red)" : "#C77A00" }}
       >
         {kind === "over" ? `−${Math.abs(u.due.daysUntil)} дн` : `через ${u.due.daysUntil} дн`}
@@ -61,7 +60,7 @@ export default function ClientServiceSpine({
       <button
         type="button"
         onClick={() => book(u.locationId)}
-        className="shrink-0 text-[12.5px] font-medium text-[var(--accent)] active:opacity-70"
+        className="shrink-0 text-[13px] font-medium text-[var(--accent)] active:opacity-70"
       >
         Записать ТО
       </button>
@@ -70,33 +69,19 @@ export default function ClientServiceSpine({
 
   return (
     <div className="mx-3 mb-2 bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
-      <div className="flex items-center gap-2 px-3 h-11">
-        <span className="flex-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
-          Обслуживание
-        </span>
-        {dueCount > 0 && (
-          <span
-            className="text-[12px] font-semibold tabular-nums"
-            style={{ color: serviceDue.overdue.length > 0 ? "var(--system-red)" : "#C77A00" }}
-          >
-            {dueCount}
-          </span>
-        )}
+      <div className="px-4 pt-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wider text-[var(--label-secondary)]">
+        Обслуживание
       </div>
 
       {dueCount > 0 && (
-        <div className="border-t border-[var(--separator)] px-3 py-1.5">
-          {serviceDue.overdue.map((u) => (
-            <Row key={u.unitId} u={u} kind="over" />
-          ))}
-          {serviceDue.soon.map((u) => (
-            <Row key={u.unitId} u={u} kind="soon" />
-          ))}
+        <div className="px-4 py-1">
+          {overdue.map((u) => <Row key={u.unitId} u={u} kind="over" />)}
+          {soon.map((u) => <Row key={u.unitId} u={u} kind="soon" />)}
         </div>
       )}
 
       {serviceDue.onSchedule.length > 0 && (
-        <div className="border-t border-[var(--separator)] px-3 py-2.5 space-y-1">
+        <div className="border-t border-[var(--separator)] px-4 py-2.5 space-y-1">
           {serviceDue.onSchedule.map((o) => (
             <div key={o.locationId} className="text-[13px] text-[var(--label-tertiary)] truncate">
               {o.locationLabel} · {o.count} юнит{plural(o.count)} — всё по графику

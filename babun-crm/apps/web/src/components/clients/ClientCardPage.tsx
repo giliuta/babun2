@@ -80,6 +80,13 @@ export default function ClientCardPage({
     [client],
   );
 
+  // The unit the NEXT-JOB hero already names — the spine drops it so the
+  // same overdue/soon unit is never shown twice (de-dup, one home per fact).
+  const heroUnitId = useMemo(() => {
+    if (!serviceDue || stats?.nextApt) return null;
+    return serviceDue.overdue[0]?.unitId ?? serviceDue.soon[0]?.unitId ?? null;
+  }, [serviceDue, stats]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendMsgOpen, setSendMsgOpen] = useState(false);
   // «Напомнить» quick-action triggers this native date input.
@@ -150,9 +157,10 @@ export default function ClientCardPage({
       <ClientHeader
         client={client}
         stats={stats}
+        mode="view"
         onOpenMenu={() => setMenuOpen(true)}
         onBack={onBack}
-        onAvatarChange={(url) => upsertClient({ ...client, avatar_url: url })}
+        onPatch={update}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -167,9 +175,15 @@ export default function ClientCardPage({
           {/* 5 always-visible quick actions */}
           <ClientQuickActions client={client} stats={stats} onRemind={onRemind} />
 
-          {/* «Обслуживание» spine — equipment due for service (hides if none) */}
+          {/* «Обслуживание» spine — equipment due for service (hides if none).
+              Drops the unit the hero already names (de-dup). */}
           {serviceDue && (
-            <ClientServiceSpine client={client} stats={stats} serviceDue={serviceDue} />
+            <ClientServiceSpine
+              client={client}
+              stats={stats}
+              serviceDue={serviceDue}
+              excludeUnitId={heroUnitId}
+            />
           )}
 
           {/* ОБЪЕКТЫ first, then the collapsed reference blocks
