@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Babun2 — Клиенты (одна карточка: создание = открытие)</title>
+<title>Babun2 — Клиенты (единая карточка, v2)</title>
 <style>
   :root{
-    --grouped:#F2F2F7; --card:#FFFFFF; --sep:rgba(60,60,67,0.09);
-    --label:#000; --l2:#3C3C434D; --l3:rgba(60,60,67,0.30); --lsec:rgba(60,60,67,0.6);
+    --grouped:#F2F2F7; --card:#FFFFFF; --sep:rgba(60,60,67,0.10);
+    --label:#000; --l2:rgba(60,60,67,0.45); --l3:rgba(60,60,67,0.30); --lsec:rgba(60,60,67,0.6);
     --fill:rgba(118,118,128,0.10);
-    --red:#E5463B; --green:#34C759; --gold:#B78600; --amber:#C77A00;
     --accent:#3E88F7; --accent-tint:rgba(62,136,247,0.10); --accent-b:rgba(62,136,247,0.32);
-    --red-tint:rgba(229,70,59,0.08); --red-b:rgba(229,70,59,0.30);
+    --red:#E5463B; --red-tint:rgba(229,70,59,0.10);
+    --warn:#C77A00; --warn-tint:rgba(199,122,0,0.12);
+    --gold:#B78600; --green:#34C759;
     --shadow:0 1px 2px rgba(15,23,42,0.04);
     --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
@@ -32,117 +33,124 @@
   .view.active{display:flex;}
   .gone{display:none!important;}
 
+  /* ── TYPE LADDER (4 tokens + 1 caption) ── */
+  .t1{font-size:28px;font-weight:700;letter-spacing:-.02em;}
+  .t2{font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .t3{font-size:15px;font-weight:400;}
+  .t4{font-size:13px;font-weight:400;color:var(--lsec);}
+  .tc{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--l2);}
+
   .nav{height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:var(--card);z-index:2;border-bottom:.5px solid var(--sep);}
-  .nav .l,.nav .r{display:flex;align-items:center;min-width:80px;}
+  .nav .l,.nav .r{display:flex;align-items:center;min-width:84px;}
   .nav .r{justify-content:flex-end;}
   .nav .lnk{color:var(--accent);font-size:15px;padding:0 8px;height:40px;display:flex;align-items:center;gap:3px;cursor:pointer;}
+  .nav .lnk.off{color:var(--l3);}
   .icbtn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;border-radius:10px;}
   .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .body::-webkit-scrollbar{display:none;}
   svg{display:block;}
 
   /* ── LIST ── */
-  .lhead{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 4px;}
-  .lhead .big{font-size:28px;font-weight:700;letter-spacing:-.02em;}
+  .lhead{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 2px;}
   .plus{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(62,136,247,.4);}
-  .search{margin:6px 14px 10px;height:36px;border-radius:11px;background:var(--fill);display:flex;align-items:center;gap:7px;padding:0 11px;color:var(--l3);font-size:15px;}
+  .search{margin:6px 14px 8px;height:36px;border-radius:11px;background:var(--fill);display:flex;align-items:center;gap:7px;padding:0 11px;color:var(--l3);font-size:15px;}
+  .sortbar{display:flex;align-items:center;gap:6px;padding:2px 16px 8px;color:var(--accent);font-size:13px;}
   .lcard{background:var(--card);margin:0 12px;border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
-  .row{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;}
   .row + .row{border-top:.5px solid var(--sep);}
   .row:active{background:var(--fill);}
-  .ava{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:600;flex:none;}
-  .ava.big{width:56px;height:56px;font-size:20px;}
-  .ava.ph{background:var(--fill);color:var(--l3);}
-  .rt{flex:1;min-width:0;}
-  .rn{font-size:16px;font-weight:600;display:flex;align-items:center;gap:5px;}
-  .rn .star{color:var(--gold);display:inline-flex;}
-  .rs{font-size:13px;color:var(--lsec);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
-  .rs .g{color:var(--green);font-weight:600;} .rs .d{color:var(--gold);font-weight:600;}
+  .rt{flex:1;min-width:0;display:flex;align-items:center;gap:6px;}
+  .rn{font-weight:600;font-size:16px;}
+  .star{color:var(--gold);display:inline-flex;}
+  .rsig{font-size:14px;color:var(--lsec);flex:none;}
+  .rsig.debt{color:var(--red);font-weight:600;}
+  .rsig.muted{color:var(--l3);}
   .chev{color:var(--l3);flex:none;}
 
   /* ── CARD ── */
-  .pad{padding:8px 16px 36px;}
-  .hero-wrap{padding:8px 2px 14px;display:flex;gap:13px;align-items:flex-start;}
-  .ava-btn{flex:none;cursor:pointer;position:relative;}
-  .hbody{flex:1;min-width:0;padding-top:2px;display:flex;flex-direction:column;}
-  .in{width:100%;border:0;background:transparent;font-family:inherit;outline:none;color:var(--label);min-height:40px;display:flex;align-items:center;padding:0;border-radius:8px;transition:background .12s;}
-  .in:focus{background:var(--fill);padding:0 7px;}
-  /* default (view): name = title, phone = subtitle */
-  .in.name{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--label);}
+  .pad{padding:10px 16px 40px;}
+  .hbody{display:flex;flex-direction:column;}
+  .in{width:100%;border:0;background:transparent;font-family:inherit;outline:none;color:var(--label);min-height:38px;display:flex;align-items:center;padding:0;border-radius:8px;}
+  .in:focus{box-shadow:inset 0 -2px 0 var(--accent);}
+  /* view: name = title (t2), phone = subtitle (t3) */
+  .in.name{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--label);}
   .in.name::placeholder{color:var(--l3);font-weight:700;}
-  .fldp{display:flex;align-items:center;gap:8px;min-height:40px;}
-  .in.phone{font-size:15px;font-weight:500;color:var(--lsec);font-variant-numeric:tabular-nums;}
-  .in.phone::placeholder{color:var(--l3);font-weight:500;}
-  /* create: phone = big title (first), name = small subtitle (below) */
+  .in.phone{font-size:15px;font-weight:400;color:var(--lsec);font-variant-numeric:tabular-nums;}
+  .in.phone::placeholder{color:var(--l3);}
+  /* create: phone = big title, name = subtitle, phone first */
   .creating .fldp{order:-1;}
-  .creating .in.phone{font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--label);}
-  .creating .in.name{font-size:15px;font-weight:500;color:var(--lsec);}
-  .nav .lnk.off{color:var(--l3);}
-  .okdot{color:var(--green);flex:none;opacity:0;transition:opacity .15s;}
+  .creating .in.phone{font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--label);}
+  .creating .in.name{font-size:15px;font-weight:400;color:var(--lsec);}
+  .fldp{display:flex;align-items:center;gap:8px;min-height:38px;}
+  .okdot{color:var(--accent);flex:none;opacity:0;transition:opacity .15s;}
   .okdot.on{opacity:1;}
-  .phtag{font-size:10px;color:var(--accent);background:var(--accent-tint);border-radius:5px;padding:1px 6px;flex:none;}
-  .hmoney{display:flex;flex-wrap:wrap;gap:12px;font-size:14px;font-weight:600;margin-top:8px;}
-  .hmoney .inc{color:var(--green);} .hmoney .debt{color:var(--gold);} .hmoney .exp{color:var(--lsec);}
-  .hmeta{font-size:12.5px;color:var(--lsec);margin-top:7px;}
-  .htrust{font-size:12px;color:var(--l3);margin-top:4px;}
+  .hdebt{font-size:15px;font-weight:600;color:var(--red);margin-top:6px;}
+  .htrust{font-size:13px;color:var(--lsec);margin-top:5px;}
 
-  .dedupe{border:1px solid var(--accent-b);background:var(--accent-tint);border-radius:14px;padding:11px 13px;margin:2px 0 14px;}
-  .dd-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#185FA5;margin-bottom:9px;}
-  .dd-row{display:flex;align-items:center;gap:10px;}
-  .dd-ava{width:34px;height:34px;border-radius:50%;background:#5E5CE6;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none;}
-  .dd-open{font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent-b);border-radius:9px;padding:5px 12px;flex:none;cursor:pointer;}
-  .hint{font-size:12px;color:var(--l3);line-height:1.45;padding:2px 2px 14px;}
+  .dedupe{margin:8px 0 4px;padding-top:10px;border-top:.5px solid var(--sep);}
+  .dd-h{font-size:12px;font-weight:600;color:var(--l2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+  .dd-row{display:flex;align-items:center;gap:10px;padding:4px 0;}
+  .dd-t{flex:1;min-width:0;}
+  .dd-open{font-size:14px;font-weight:600;color:var(--accent);flex:none;cursor:pointer;}
 
-  .nextjob{display:flex;align-items:center;gap:13px;width:100%;height:64px;border-radius:16px;padding:0 15px;margin-bottom:16px;cursor:pointer;text-align:left;background:var(--red-tint);border:1px solid var(--red-b);}
-  .nj-ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(229,70,59,.14);color:var(--red);}
-  .nj-t{flex:1;min-width:0;} .nj-tt{font-size:15px;font-weight:600;color:var(--red);} .nj-ts{font-size:12.5px;color:var(--lsec);margin-top:1px;}
-  .nj-go{flex:none;color:var(--red);}
+  /* hero */
+  .hero{display:flex;align-items:center;gap:13px;width:100%;min-height:62px;border-radius:16px;padding:11px 15px;margin:14px 0 18px;cursor:pointer;text-align:left;}
+  .hero.alert{background:var(--red);}
+  .hero.book{background:var(--accent);}
+  .hero .ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(255,255,255,.18);color:#fff;}
+  .hero .ht{flex:1;min-width:0;color:#fff;}
+  .hero .htt{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em;}
+  .hero .hts{display:block;font-size:13px;opacity:.9;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hero .hgo{flex:none;color:#fff;opacity:.95;}
 
-  .qa{display:flex;justify-content:space-between;margin-bottom:22px;}
-  .qa .b{display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;cursor:pointer;}
-  .qa .circ{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-tint);color:var(--accent);}
-  .qa .circ.g{background:rgba(52,199,89,.12);color:var(--green);}
-  .qa .lab{font-size:10.5px;color:var(--lsec);}
+  /* actions */
+  .qa{display:flex;justify-content:space-between;margin-bottom:24px;padding:0 2px;}
+  .qa .b{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
+  .qa .circ{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--fill);color:var(--label);}
+  .qa .circ.green{color:var(--green);}
+  .qa .lab{font-size:11px;color:var(--lsec);}
 
-  .sec-t{font-size:12px;font-weight:600;color:var(--l2);letter-spacing:.06em;text-transform:uppercase;padding:0 4px 8px;}
-  .cardb{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
-  .addrow{display:flex;align-items:center;gap:9px;padding:14px 16px;color:var(--accent);font-size:14.5px;cursor:pointer;}
+  .sec{margin-bottom:18px;}
+  .sec-h{padding:0 4px 8px;}
+  .cardb{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+  .addrow{display:flex;align-items:center;gap:9px;padding:15px 16px;color:var(--accent);font-size:15px;cursor:pointer;}
   .addrow + .addrow{border-top:.5px solid var(--sep);}
-  .nempty{padding:13px 16px;font-size:13px;color:var(--l3);}
 
-  .svc{padding:13px 16px;}
-  .svc-row{display:flex;align-items:center;gap:10px;font-size:14px;}
-  .svc-row + .svc-row{margin-top:10px;}
-  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
-  .svc-u{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .svc-when{font-size:12.5px;flex:none;} .svc-when.over{color:var(--red);} .svc-when.soon{color:var(--amber);}
-  .svc-rec{font-size:12.5px;color:var(--accent);flex:none;margin-left:10px;cursor:pointer;}
+  /* service */
+  .svc{padding:6px 16px;}
+  .svc-row{display:flex;align-items:center;gap:11px;padding:9px 0;cursor:pointer;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--warn);}
+  .svc-u{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .svc-when{font-size:13px;color:var(--warn);flex:none;}
+  .svc-chev{color:var(--l3);flex:none;}
   .svc-ok{font-size:13px;color:var(--l3);padding:11px 16px;border-top:.5px solid var(--sep);}
 
+  /* objects */
   .obj{padding:14px 16px;}
-  .obj-h{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;}
-  .obj-pin{font-size:11px;font-weight:500;color:var(--accent);}
-  .obj-tools{margin-left:auto;display:flex;gap:6px;color:var(--accent);}
-  .obj-addr{font-size:12.5px;color:var(--lsec);margin-top:2px;}
-  .obj-key{font-size:12px;color:var(--gold);margin-top:5px;display:flex;gap:6px;align-items:center;}
-  .unit{display:flex;align-items:flex-start;gap:11px;margin-top:11px;}
-  .unit-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);display:flex;align-items:center;justify-content:center;color:var(--l3);flex:none;margin-top:1px;}
-  .unit-n{font-size:13.5px;} .unit-s{font-size:11.5px;color:var(--l3);margin-top:1px;}
-  .unit-due{font-size:12px;flex:none;margin-left:auto;} .unit-due.over{color:var(--red);}
-  .obj-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:.5px solid var(--sep);font-size:12.5px;color:var(--lsec);}
-  .obj-book{color:var(--accent);font-weight:500;cursor:pointer;}
+  .obj-h{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:600;letter-spacing:-.01em;}
+  .obj-edit{margin-left:auto;color:var(--accent);}
+  .obj-addr{font-size:13px;color:var(--lsec);margin-top:3px;display:flex;align-items:center;gap:5px;cursor:pointer;}
+  .obj-addr .ac{color:var(--accent);margin-left:auto;}
+  .obj-key{font-size:13px;color:var(--gold);margin-top:6px;display:flex;gap:6px;align-items:center;}
+  .unit{display:flex;align-items:baseline;gap:8px;margin-top:11px;}
+  .unit-n{font-size:15px;} .unit-s{font-size:13px;color:var(--l3);}
+  .obj-foot{display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:.5px solid var(--sep);font-size:13px;color:var(--lsec);}
+  .obj-book{color:var(--accent);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px;}
 
-  .ref{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;}
+  /* reference */
+  .ref{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;gap:10px;}
   .ref + .ref{border-top:.5px solid var(--sep);}
-  .ref .l{font-size:14.5px;} .ref .r{font-size:13px;color:var(--lsec);display:flex;align-items:center;gap:7px;}
-  .ref .r .debt{color:var(--gold);font-weight:600;}
+  .ref .l{font-size:13px;color:var(--lsec);flex:none;}
+  .ref .r{font-size:15px;font-weight:600;color:var(--label);flex:1;min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ref .r.debt{color:var(--red);}
+  .ref .chev{color:var(--l3);flex:none;}
 
   .toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.82);color:#fff;font-size:13px;padding:9px 16px;border-radius:11px;opacity:0;transition:.25s;z-index:9;pointer-events:none;max-width:80%;text-align:center;}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
-  <div class="cap"><b>Babun2 — одна карточка.</b> Создания как отдельного экрана нет. Тап по клиенту → открываю карточку и правлю прямо в ней. «+» → та же карточка, пустая, вношу данные в те же поля. Имя и телефон — редактируемые сразу.</div>
+  <div class="cap"><b>Babun2 — единая карточка (v2, спокойнее).</b> 4 размера шрифта, строгий цвет, один «громкий» блок (hero). «+» → создание (пусто), тап по клиенту → просмотр/правка. Кликай.</div>
 
   <div class="device"><div class="screen">
     <div class="statusbar"><span class="time">9:41</span><div class="island"></div>
@@ -155,100 +163,111 @@
       <section class="view active" id="v-list">
         <div class="body">
           <div class="lhead">
-            <span class="big">Клиенты</span>
+            <span class="t1">Клиенты</span>
             <span class="plus" onclick="openCard(null)" title="Новый клиент">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>
             </span>
           </div>
           <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg> Поиск</div>
+          <div class="sortbar" onclick="toast('Сначала с долгом')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg> Сначала с долгом</div>
           <div class="lcard" id="list-rows"></div>
           <div style="height:24px"></div>
         </div>
       </section>
 
-      <!-- ============ CARD (one screen for create + open) ============ -->
+      <!-- ============ CARD ============ -->
       <section class="view" id="v-card">
         <div class="nav">
           <div class="l"><span class="lnk" onclick="go('v-list')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Клиенты</span></div>
           <div class="r">
-            <span class="lnk m-new off" id="done-btn" style="font-weight:600" onclick="saveNew()">Готово</span>
-            <span class="icbtn m-real"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span>
+            <span class="lnk off" id="done-btn" data-show="new" style="font-weight:600" onclick="saveNew()">Готово</span>
+            <span class="icbtn" data-show="lean rich"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span>
           </div>
         </div>
         <div class="body"><div class="pad">
 
-          <!-- editable header (always) -->
-          <div class="hero-wrap">
-            <div class="hbody">
-              <input class="in name" id="c-name" placeholder="Имя — необязательно" autocomplete="off">
-              <div class="fldp">
-                <input class="in phone" id="c-phone" placeholder="Телефон" oninput="onPhone()" autocomplete="tel" inputmode="tel">
-                <span class="okdot" id="c-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
-              </div>
-              <div class="hmoney m-real" id="c-money"></div>
-              <div class="hmeta m-real" id="c-meta"></div>
-              <div class="htrust m-real" id="c-trust"></div>
+          <!-- header (poster) -->
+          <div class="hbody">
+            <input class="in name" id="c-name" placeholder="Имя (можно позже)" autocomplete="off">
+            <div class="fldp">
+              <input class="in phone" id="c-phone" placeholder="Телефон" oninput="onPhone()" autocomplete="tel" inputmode="tel">
+              <span class="okdot" id="c-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
             </div>
+            <div class="hdebt" id="c-debt" data-show="lean rich">Долг €135</div>
+            <div class="htrust" id="c-trust" data-show="lean rich"></div>
           </div>
 
-          <!-- live dedupe (shows while typing a matching phone) -->
-          <div class="dedupe m-new gone" id="c-dedupe">
-            <div class="dd-h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg> Похоже, такой уже есть</div>
-            <div class="dd-row"><div class="rt"><div style="font-size:14px">Анна Петрова</div><div class="rs" style="margin-top:0">+357 99 12 34 56 · Лимассол</div></div><div class="dd-open" onclick="openCard('ap')">Открыть</div></div>
+          <!-- dedupe (create only, on match) -->
+          <div class="dedupe gone" id="c-dedupe" data-show="new">
+            <div class="dd-h">Похоже, такой уже есть</div>
+            <div class="dd-row"><div class="dd-t"><div style="font-weight:600">Анна Петрова</div><div class="t4">+357 99 12 34 56 · Лимассол</div></div><div class="dd-open" onclick="openCard('ap')">Открыть</div></div>
           </div>
 
-          <!-- NEXT-JOB hero (existing) -->
-          <div class="nextjob m-real" onclick="book()">
-            <div class="nj-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
-            <div class="nj-t"><div class="nj-tt">ТО просрочено · Спальня</div><div class="nj-ts">Записать на ТО — команда и дата подставлены</div></div>
-            <span class="nj-go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          <!-- hero: rich (overdue, solid red) -->
+          <div class="hero alert" data-show="rich" onclick="book()">
+            <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <span class="ht"><span class="htt">ТО просрочено · 18 дн · Спальня</span><span class="hts">Daikin FTXS35 · Y&amp;D · вт 14:00</span></span>
+            <span class="hgo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          </div>
+          <!-- hero: lean (new-saved, accent «Записать») -->
+          <div class="hero book gone" data-show="lean" onclick="book()">
+            <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span>
+            <span class="ht"><span class="htt">Записать</span><span class="hts">Первый визит этого клиента</span></span>
+            <span class="hgo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </div>
 
-          <!-- 5 actions (existing) -->
-          <div class="qa m-real">
-            <div class="b" onclick="toast('Звоним…')"><div class="circ g"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.8.4 1.6.7 2.3a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.7-1.3a2 2 0 0 1 2.1-.4c.7.3 1.5.6 2.3.7A2 2 0 0 1 22 16.9z"/></svg></div><span class="lab">Звонок</span></div>
-            <div class="b" onclick="book()"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg></div><span class="lab">Записать</span></div>
-            <div class="b" onclick="toast('WhatsApp')"><div class="circ g"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div><span class="lab">WhatsApp</span></div>
-            <div class="b" onclick="toast('Переход в чат')"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span class="lab">Чат</span></div>
-            <div class="b" onclick="toast('Напоминание')"><div class="circ"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div><span class="lab">Напомнить</span></div>
+          <!-- actions -->
+          <div class="qa" data-show="lean rich">
+            <div class="b" onclick="toast('Звоним…')"><div class="circ green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.8.4 1.6.7 2.3a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.7-1.3a2 2 0 0 1 2.1-.4c.7.3 1.5.6 2.3.7A2 2 0 0 1 22 16.9z"/></svg></div><span class="lab">Звонок</span></div>
+            <div class="b" onclick="book()"><div class="circ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg></div><span class="lab">Записать</span></div>
+            <div class="b" onclick="toast('WhatsApp')"><div class="circ green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div><span class="lab">WhatsApp</span></div>
+            <div class="b" onclick="toast('Чат')"><div class="circ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span class="lab">Чат</span></div>
+            <div class="b" onclick="toast('Напоминание')"><div class="circ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div><span class="lab">Напомнить</span></div>
           </div>
 
-          <!-- service (existing) -->
-          <div class="m-real">
-            <div class="sec-t">Обслуживание</div>
+          <!-- service (rich; overdue unit lives in the hero, so only the others here) -->
+          <div class="sec" data-show="rich">
+            <div class="sec-h tc">Обслуживание</div>
             <div class="cardb">
               <div class="svc">
-                <div class="svc-row"><span class="dot" style="background:var(--red)"></span><span class="svc-u">Спальня · Daikin FTXB</span><span class="svc-when over">−18 дн</span><span class="svc-rec" onclick="book()">Записать ТО</span></div>
-                <div class="svc-row"><span class="dot" style="background:var(--amber)"></span><span class="svc-u">Гостиная · Mitsubishi</span><span class="svc-when soon">через 9 дн</span><span class="svc-rec" onclick="book()">Записать ТО</span></div>
+                <div class="svc-row" onclick="book()"><span class="dot"></span><span class="svc-u">Гостиная · Mitsubishi MSZ-AP · через 9 дн</span><span class="svc-chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
               </div>
               <div class="svc-ok">Офис · 3 юнита — всё по графику</div>
             </div>
           </div>
 
-          <!-- objects (existing) -->
-          <div class="m-real">
-            <div class="sec-t">Объекты</div>
+          <!-- objects (rich) -->
+          <div class="sec" data-show="rich">
             <div class="cardb">
               <div class="obj">
-                <div class="obj-h">Дом <span class="obj-pin">· основной</span><span class="obj-tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></div>
-                <div class="obj-addr">Лимассол, Agios Tychonas 21</div>
+                <div class="obj-h">Дом <span class="obj-edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></div>
+                <div class="obj-addr" onclick="toast('Открыть в Картах')">Лимассол, Agios Tychonas 21 <span class="ac"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span></div>
                 <div class="obj-key"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.5 12.5 8-8M16 7l2 2M19 4l2 2"/></svg> зелёная дверь, домофон 25</div>
-                <div class="unit"><div class="unit-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h4"/></svg></div><div class="rt"><div class="unit-n">Спальня · Daikin FTXS35 · сплит</div><div class="unit-s">ТО раз в 12 мес · посл. апр 2024</div></div><span class="unit-due over">просрочено</span></div>
-                <div class="obj-foot"><span>8 визитов · посл. 14 апр</span><span class="obj-book" onclick="book()">Записать сюда</span></div>
+                <div class="unit"><span class="unit-n">Спальня · Daikin FTXS35</span><span class="unit-s">установлен 2017 · ТО раз в 12 мес</span></div>
+                <div class="obj-foot"><span>посл. 14 апр</span><span class="obj-book" onclick="book()">Записать сюда <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
               </div>
-              <div class="addrow" onclick="toast('Добавить объект')">＋ объект</div>
+              <div class="addrow" onclick="toast('Добавить объект')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить объект</div>
             </div>
           </div>
 
-          <!-- reference rows (existing) -->
-          <div class="cardb m-real">
-            <div class="ref" onclick="toast('Визиты')"><span class="l">Визиты</span><span class="r">8 · посл. 10 мая <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
-            <div class="ref" onclick="toast('Финансы')"><span class="l">Финансы</span><span class="r"><span class="debt">долг €135</span> <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
-            <div class="ref" onclick="toast('Заметки')"><span class="l">Заметки</span><span class="r">2 <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
-            <div class="ref" onclick="toast('О клиенте')"><span class="l">О клиенте</span><span class="r">ДР 14 мар · VIP <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></span></div>
+          <!-- reference (rich) — label quiet, value loud -->
+          <div class="sec" data-show="rich">
+            <div class="cardb">
+              <div class="ref" onclick="toast('Финансы')"><span class="l">Финансы</span><span class="r debt">долг €135</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+              <div class="ref" onclick="toast('Визиты')"><span class="l">Визиты</span><span class="r">8 · был 10 мая</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+              <div class="ref" onclick="toast('Заметки')"><span class="l">Заметки</span><span class="r" style="font-weight:400;color:var(--lsec)">«звонить после 18»</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+              <div class="ref" onclick="toast('Контакты')"><span class="l">Контакты</span><span class="r" style="font-weight:400">+357 99… · ещё 1</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+              <div class="ref" onclick="toast('О клиенте')"><span class="l">О клиенте</span><span class="r" style="font-weight:400;color:var(--lsec)">ДР 14 мар · метка, тег</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+            </div>
           </div>
 
-          <!-- create state ends here: just phone + name + dedupe (maximally simple) -->
+          <!-- lean (saved, no data yet) add-rows -->
+          <div class="sec" data-show="lean">
+            <div class="cardb">
+              <div class="addrow" onclick="toast('Добавить объект')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить объект (адрес, кондиционеры)</div>
+              <div class="addrow" onclick="toast('Добавить заметку')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>Добавить заметку</div>
+            </div>
+          </div>
 
         </div></div>
       </section>
@@ -257,30 +276,29 @@
     <div class="toast" id="toast"></div>
   </div></div>
 
-  <div class="cap" style="opacity:.8">Одна страница. Имя/телефон редактируются сразу. Пустая = новый клиент; заполненная = открыл существующего. Производные блоки (деньги, обслуживание, hero) появляются, когда есть данные.</div>
+  <div class="cap" style="opacity:.8">Хедер-постер: имя · телефон · долг (если есть) · одна серая строка. Доход — в строке, не зелёным. Один красный источник — hero.</div>
 
 <script>
   const CLIENTS = [
-    { id:"cm", name:"Сергей Морозов", phone:"+357 99 123 456", ini:"СМ", color:"#E5463B", star:true,
-      money:'<span class="inc">€1 120</span><span class="debt">долг €135</span><span class="exp">ждём €120</span>',
-      meta:"🕘 10 мая · Y&D · Лимассол", trust:"Клиент с 2023 · 8 визитов · средний €140",
-      rowSub:'<span class="g">€1 120</span><span class="d">долг €135</span><span>· 10 мая</span>' },
-    { id:"ap", name:"Анна Петрова", phone:"+357 99 12 34 56", ini:"АП", color:"#5E5CE6", star:false,
-      money:'<span class="inc">€640</span><span class="exp">ждём €80</span>',
-      meta:"🕘 2 мая · A&K · Лимассол", trust:"Клиент с 2024 · 4 визита · средний €160",
-      rowSub:'<span class="g">€640</span><span>· 2 мая</span>' },
-    { id:"dk", name:"Дмитрий Котов", phone:"+357 96 555 777", ini:"ДК", color:"#0FB5A6", star:false,
-      money:"", meta:"", trust:"Новый клиент · ещё нет визитов",
-      rowSub:'<span style="color:var(--l3)">ещё не был</span>' },
+    { id:"cm", name:"Сергей Морозов", phone:"+357 99 123 456", star:true, mode:"rich",
+      debt:"Долг €135", trust:"VIP · 8 визитов · €1 120 · был 10 мая",
+      sig:{cls:"debt", text:"долг €135"} },
+    { id:"ap", name:"Анна Петрова", phone:"+357 99 12 34 56", star:false, mode:"rich",
+      debt:"", trust:"4 визита · €640 · был 2 мая",
+      sig:{cls:"", text:"2 мая"} },
+    { id:"dk", name:"Дмитрий Котов", phone:"+357 96 555 777", star:false, mode:"lean",
+      debt:"", trust:"Новый клиент · ещё нет визитов",
+      sig:{cls:"muted", text:"ещё не был"} },
   ];
 
   function renderList(){
     document.getElementById("list-rows").innerHTML = CLIENTS.map(c => `
       <div class="row" onclick="openCard('${c.id}')">
         <div class="rt">
-          <div class="rn">${c.name} ${c.star?'<span class="star"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>':''}</div>
-          <div class="rs">${c.rowSub}</div>
+          <span class="rn">${c.name}</span>
+          ${c.star ? '<span class="star"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>' : ''}
         </div>
+        <span class="rsig ${c.sig.cls}">${c.sig.text}</span>
         <span class="chev"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
       </div>`).join("");
   }
@@ -291,32 +309,26 @@
     document.querySelector("#"+id+" .body")?.scrollTo(0,0);
   }
 
-  function initials(name){
-    const p = name.trim().split(/\s+/).filter(Boolean);
-    if (!p.length) return "";
-    return (p[0][0] + (p[1] ? p[1][0] : "")).toUpperCase();
-  }
-
-  function setMode(isNew){
-    document.querySelectorAll(".m-new").forEach(e => e.classList.toggle("gone", !isNew));
-    document.querySelectorAll(".m-real").forEach(e => e.classList.toggle("gone", isNew));
-    document.getElementById("v-card").classList.toggle("creating", isNew);
+  function applyMode(mode){ // 'new' | 'lean' | 'rich'
+    document.querySelectorAll("#v-card [data-show]").forEach(e => {
+      e.classList.toggle("gone", !e.getAttribute("data-show").split(" ").includes(mode));
+    });
+    document.getElementById("v-card").classList.toggle("creating", mode === "new");
   }
 
   function openCard(id){
     const c = id ? CLIENTS.find(x => x.id === id) : null;
-    setMode(!c);
     if (c){
+      applyMode(c.mode);
       document.getElementById("c-name").value = c.name;
       document.getElementById("c-phone").value = c.phone;
-      document.getElementById("c-money").innerHTML = c.money;
-      document.getElementById("c-money").classList.toggle("gone", !c.money);
-      document.getElementById("c-meta").innerHTML = c.meta;
-      document.getElementById("c-meta").classList.toggle("gone", !c.meta);
+      const debtEl = document.getElementById("c-debt");
+      debtEl.textContent = c.debt; debtEl.classList.toggle("gone", !c.debt);
       document.getElementById("c-trust").textContent = c.trust;
-      document.getElementById("c-ok").classList.add("on");
+      document.getElementById("c-ok").classList.remove("on");
       document.getElementById("c-dedupe").classList.add("gone");
     } else {
+      applyMode("new");
       document.getElementById("c-name").value = "";
       document.getElementById("c-phone").value = "";
       document.getElementById("c-ok").classList.remove("on");
