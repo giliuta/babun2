@@ -75,7 +75,6 @@ const ClientPanel = dynamic(
   { ssr: false },
 );
 import { haptic } from "@/lib/haptics";
-import { useIsDesktop } from "@/lib/useIsDesktop";
 import {
   buildStatsMap,
   isLongSilence,
@@ -156,14 +155,6 @@ export default function ClientsPage() {
   const clientsCapTooltip = clientsAtCap
     ? `Достигнут лимит ${quotaSnap.quotas.clients} клиентов. Перейдите на Pro в Настройках → Тариф и оплата.`
     : undefined;
-  const isDesktop = useIsDesktop();
-  // STORY-056 — desktop preview-in-dialog. On lg+ tapping a card sets
-  // this id and we render <ClientPanel> in a centred modal instead of
-  // routing to the dedicated /[id] page (which feels like a stretched
-  // mobile screen on a 1440-px monitor). Mobile keeps the route push
-  // so the back-button history works.
-  const [inlineProfileId, setInlineProfileId] = useState<string | null>(null);
-
   const toast = useToast();
   const [search, setSearch] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -1017,9 +1008,9 @@ export default function ClientsPage() {
                         else next.add(client.id);
                         return next;
                       });
-                    } else if (isDesktop) {
-                      setInlineProfileId(client.id);
                     } else {
+                      // v813 — unified card: every tap (desktop + mobile)
+                      // opens the one canonical page; no more desktop modal.
                       router.push(`/dashboard/clients/${client.id}`);
                     }
                   }}
@@ -1426,35 +1417,9 @@ export default function ClientsPage() {
         );
       })()}
 
-      {/* STORY-056 — desktop client preview dialog.  Renders ClientPanel
-          inside a large centred modal on lg+, so the user can review or
-          edit a client without leaving the list page (mobile still
-          pushes to /[id] for the native back-gesture experience). */}
-      {inlineProfileId && (() => {
-        const inlineClient = clients.find((c) => c.id === inlineProfileId);
-        if (!inlineClient) return null;
-        return (
-          <div
-            className="fixed inset-0 z-[70] hidden lg:flex items-center justify-center bg-black/40 p-6"
-            onClick={() => setInlineProfileId(null)}
-          >
-            <div
-              className="w-full max-w-[820px] bg-[var(--surface-card)] rounded-2xl shadow-[var(--shadow-sheet)] flex flex-col overflow-hidden"
-              style={{ height: "min(85vh, 760px)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ClientPanel
-                client={inlineClient}
-                appointments={appointments}
-                onUpdate={(updated) => {
-                  void upsertClient(updated);
-                }}
-                onClose={() => setInlineProfileId(null)}
-              />
-            </div>
-          </div>
-        );
-      })()}
+      {/* v813 — desktop preview modal retired: every tap now opens the
+          one canonical /[id] card (unified «Карта-диспетчер»). ClientPanel
+          stays only for the new-client draft below. */}
 
       {/* Bulk SMS blast */}
       {smsBlastOpen && (
