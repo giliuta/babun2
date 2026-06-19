@@ -179,9 +179,8 @@
 
           <!-- editable header (always) -->
           <div class="hero-wrap">
-            <div class="ava-btn" id="c-ava-btn"><div class="ava big" id="c-ava"></div></div>
             <div class="hbody">
-              <input class="in name" id="c-name" placeholder="Имя — необязательно" oninput="onName()" autocomplete="off">
+              <input class="in name" id="c-name" placeholder="Имя — необязательно" autocomplete="off">
               <div class="fldp">
                 <input class="in phone" id="c-phone" placeholder="Телефон" oninput="onPhone()" autocomplete="tel" inputmode="tel">
                 <span class="okdot" id="c-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
@@ -195,7 +194,7 @@
           <!-- live dedupe (shows while typing a matching phone) -->
           <div class="dedupe m-new gone" id="c-dedupe">
             <div class="dd-h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg> Похоже, такой уже есть</div>
-            <div class="dd-row"><div class="dd-ava">АП</div><div class="rt"><div style="font-size:14px">Анна Петрова</div><div class="rs" style="margin-top:0">+357 99 12 34 56 · Лимассол</div></div><div class="dd-open" onclick="openCard('ap')">Открыть</div></div>
+            <div class="dd-row"><div class="rt"><div style="font-size:14px">Анна Петрова</div><div class="rs" style="margin-top:0">+357 99 12 34 56 · Лимассол</div></div><div class="dd-open" onclick="openCard('ap')">Открыть</div></div>
           </div>
 
           <!-- NEXT-JOB hero (existing) -->
@@ -278,7 +277,6 @@
   function renderList(){
     document.getElementById("list-rows").innerHTML = CLIENTS.map(c => `
       <div class="row" onclick="openCard('${c.id}')">
-        <div class="ava" style="background:${c.color}">${c.ini}</div>
         <div class="rt">
           <div class="rn">${c.name} ${c.star?'<span class="star"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>':''}</div>
           <div class="rs">${c.rowSub}</div>
@@ -307,7 +305,6 @@
 
   function openCard(id){
     const c = id ? CLIENTS.find(x => x.id === id) : null;
-    const ava = document.getElementById("c-ava");
     setMode(!c);
     if (c){
       document.getElementById("c-name").value = c.name;
@@ -317,14 +314,11 @@
       document.getElementById("c-meta").innerHTML = c.meta;
       document.getElementById("c-meta").classList.toggle("gone", !c.meta);
       document.getElementById("c-trust").textContent = c.trust;
-      ava.className = "ava big"; ava.innerHTML = ""; ava.textContent = c.ini; ava.style.background = c.color;
       document.getElementById("c-ok").classList.add("on");
       document.getElementById("c-dedupe").classList.add("gone");
     } else {
       document.getElementById("c-name").value = "";
       document.getElementById("c-phone").value = "";
-      ava.className = "ava big ph"; ava.style.background = "";
-      ava.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
       document.getElementById("c-ok").classList.remove("on");
       document.getElementById("c-dedupe").classList.add("gone");
       document.getElementById("done-btn").classList.add("off");
@@ -333,14 +327,6 @@
     document.getElementById("v-card").classList.add("active");
     document.querySelector("#v-card .body").scrollTo(0,0);
     if (!c) requestAnimationFrame(() => document.getElementById("c-phone").focus());
-  }
-
-  function onName(){
-    const v = document.getElementById("c-name").value;
-    const ava = document.getElementById("c-ava");
-    const ini = initials(v);
-    if (ini){ ava.className = "ava big"; ava.innerHTML = ""; ava.textContent = ini; ava.style.background = "#8E8E93"; }
-    else { ava.className = "ava big ph"; ava.textContent = ""; ava.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>'; }
   }
 
   function onPhone(){
