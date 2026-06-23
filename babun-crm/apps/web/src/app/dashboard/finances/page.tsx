@@ -220,6 +220,9 @@ export default function FinancesPage() {
             transactions={feedTx}
             accounts={accounts}
             teams={teams}
+            categories={categories}
+            clients={clients}
+            appointments={appointments}
             onTxTap={setPopupTx}
           />
         )}
