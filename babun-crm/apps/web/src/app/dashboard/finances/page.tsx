@@ -180,6 +180,7 @@ export default function FinancesPage() {
         }
       />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] pb-[120px]">
+        <div className="max-w-3xl mx-auto">
         <FinanceOverview
           teams={teams}
           scopeTeamId={scopeTeamId}
@@ -222,6 +223,7 @@ export default function FinancesPage() {
             onTxTap={setPopupTx}
           />
         )}
+        </div>
       </div>
 
       {/* Sticky bottom action bar (Slice 1 keeps 3 buttons; Slice 2 → one «Операция») */}
@@ -229,7 +231,7 @@ export default function FinancesPage() {
         className="fixed left-0 right-0 bottom-[64px] z-30 px-3 pt-2 pb-2 bg-[var(--surface-card)]/95 backdrop-blur border-t border-[var(--separator)]"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-3xl mx-auto">
           <button
             type="button"
             onClick={() => setOperationOpen(true)}

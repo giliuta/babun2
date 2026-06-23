@@ -283,7 +283,7 @@ export default function OperationSheet({
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0"
             autoFocus
-            className="w-[160px] bg-transparent text-[34px] font-bold text-center tabular-nums focus:outline-none placeholder:text-[var(--label-tertiary)]"
+            className="w-[160px] bg-transparent text-[34px] font-bold text-center tabular-nums focus:outline-none placeholder:text-[var(--label-tertiary)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             style={{ color: tone }}
           />
         </div>
