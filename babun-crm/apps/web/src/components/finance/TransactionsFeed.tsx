@@ -34,11 +34,8 @@ export default function TransactionsFeed({
   if (groups.length === 0) {
     return (
       <div className="px-3 pt-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--label-tertiary)] mb-1.5">
-          Движения
-        </div>
         <div className="bg-[var(--surface-card)] rounded-[12px] px-3 py-6 text-center text-[12px] text-[var(--label-tertiary)]">
-          Нет движений за выбранный период
+          Нет операций за выбранный период
         </div>
       </div>
     );
@@ -55,9 +52,6 @@ export default function TransactionsFeed({
 
   return (
     <div className="px-3 pt-3 pb-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--label-tertiary)] mb-1.5">
-        Движения
-      </div>
       <div className="space-y-2">
         {groups.map((g) => (
           <div key={g.date} className="bg-[var(--surface-card)] rounded-[12px] overflow-hidden">
