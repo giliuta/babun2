@@ -10,12 +10,32 @@ import DialogModal from "@/components/appointment/DialogModal";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 import { splitVatInclusive } from "@babun/shared/local/finance/invoice-ledger";
+import { loadCompany } from "@babun/shared/local/finance/company";
+import {
+  generateLedgerInvoicePDF,
+  type LedgerInvoicePdfLine,
+} from "@babun/shared/local/finance/ledger-invoice-pdf";
+import { downloadBlob } from "@babun/shared/local/finance/invoice";
 
 interface InvoiceSheetProps {
   open: boolean;
   onClose: () => void;
   transaction: FinanceTransaction;
+  /** Resolved client name for the PDF "Bill to" block. */
+  clientName?: string | null;
   onIssued: (invoice: { id: string; number: string; pdf_url: string | null }) => void;
+}
+
+interface IssuedInvoice {
+  number: string;
+  lines: LedgerInvoicePdfLine[];
+  net: number;
+  vat: number;
+  total: number;
+  vatPercent: number;
+  issuedOn: string;
+  dueOn: string | null;
+  notes: string | null;
 }
 
 function todayYmd(): string {
@@ -27,6 +47,7 @@ export default function InvoiceSheet({
   open,
   onClose,
   transaction,
+  clientName,
   onIssued,
 }: InvoiceSheetProps) {
   const [title, setTitle] = useState("Услуги");
@@ -38,6 +59,7 @@ export default function InvoiceSheet({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [issued, setIssued] = useState<IssuedInvoice | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -50,6 +72,7 @@ export default function InvoiceSheet({
       setNotes("");
       setSubmitting(false);
       setError(null);
+      setIssued(null);
     }
   }, [open, transaction]);
 
@@ -93,7 +116,24 @@ export default function InvoiceSheet({
         invoice: { id: string; number: string; pdf_url: string | null };
       };
       onIssued(data.invoice);
-      onClose();
+      setIssued({
+        number: data.invoice.number,
+        lines: [
+          {
+            title: title.trim(),
+            qty: 1,
+            unit_price: net,
+            total: net,
+          },
+        ],
+        net,
+        vat,
+        total,
+        vatPercent: vatRate,
+        issuedOn,
+        dueOn: dueOn || null,
+        notes: notes.trim() || null,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -101,7 +141,72 @@ export default function InvoiceSheet({
     }
   };
 
+  const handleDownload = () => {
+    if (!issued) return;
+    const { blob, filename } = generateLedgerInvoicePDF({
+      kind: "invoice",
+      number: issued.number,
+      issued_on: issued.issuedOn,
+      due_on: issued.dueOn,
+      currency: "EUR",
+      subtotal_net: issued.net,
+      vat_percent: issued.vatPercent,
+      vat_amount: issued.vat,
+      total: issued.total,
+      notes: issued.notes,
+      lines: issued.lines,
+      company: loadCompany(),
+      clientName,
+    });
+    downloadBlob(blob, filename);
+  };
+
   if (!open) return null;
+
+  if (issued) {
+    return (
+      <DialogModal
+        open={open}
+        onClose={onClose}
+        title="Инвойс выставлен"
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="flex-1 h-12 rounded-[var(--radius-pill)] font-semibold text-[14px] bg-[var(--accent)] text-[var(--label-on-accent)] active:scale-[0.98] transition"
+            >
+              Скачать PDF
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-12 px-5 rounded-[var(--radius-pill)] font-semibold text-[14px] text-[var(--label-secondary)] border border-[var(--separator)] active:scale-[0.98] transition"
+            >
+              Готово
+            </button>
+          </div>
+        }
+      >
+        <div className="px-4 py-5 text-center space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-full bg-[var(--system-green)]/15 flex items-center justify-center text-[28px]">
+            ✓
+          </div>
+          <div className="text-[17px] font-semibold text-[var(--label)]">
+            {issued.number}
+          </div>
+          <div className="text-[28px] font-bold tabular-nums text-[var(--label)]">
+            {formatEUR(issued.total)}
+          </div>
+          <p className="text-[12px] text-[var(--label-tertiary)] leading-relaxed px-2">
+            Документ готов. «Скачать PDF» — чтобы сохранить или отправить
+            клиенту. Реквизиты компании берутся из Настроек → Финансы →
+            Реквизиты и НДС.
+          </p>
+        </div>
+      </DialogModal>
+    );
+  }
 
   return (
     <DialogModal

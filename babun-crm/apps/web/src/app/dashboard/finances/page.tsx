@@ -374,6 +374,9 @@ export default function FinancesPage() {
           open
           onClose={() => setInvoiceTx(null)}
           transaction={invoiceTx}
+          clientName={
+            clients.find((c) => c.id === invoiceTx.client_id)?.full_name ?? null
+          }
           onIssued={() => {
             void refreshTransactions();
           }}
