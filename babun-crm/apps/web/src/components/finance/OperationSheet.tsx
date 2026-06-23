@@ -29,6 +29,10 @@ interface OperationSheetProps {
   clients: Client[];
   services: Service[];
   onSubmit: (draft: TransactionDraft) => Promise<void>;
+  onAddCategory?: (
+    name: string,
+    type: "income" | "expense",
+  ) => Promise<FinanceCategory>;
 }
 
 const METHODS: Array<{ key: PaymentMethod; label: string; emoji: string }> = [
@@ -63,6 +67,7 @@ export default function OperationSheet({
   clients,
   services,
   onSubmit,
+  onAddCategory,
 }: OperationSheetProps) {
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
@@ -73,6 +78,8 @@ export default function OperationSheet({
   const [comment, setComment] = useState("");
   const [apptId, setApptId] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [addingCat, setAddingCat] = useState(false);
+  const [newCat, setNewCat] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -86,6 +93,8 @@ export default function OperationSheet({
       setComment("");
       setApptId(null);
       setClientId(null);
+      setAddingCat(false);
+      setNewCat("");
       setSubmitting(false);
     }
   }, [open, accounts]);
@@ -126,6 +135,8 @@ export default function OperationSheet({
   const switchType = (t: "income" | "expense") => {
     setType(t);
     setCategoryId(null);
+    setAddingCat(false);
+    setNewCat("");
     if (t === "expense") {
       setApptId(null);
       setClientId(null);
@@ -173,6 +184,65 @@ export default function OperationSheet({
       setSubmitting(false);
     }
   };
+
+  const handleCommitCat = async () => {
+    const n = newCat.trim();
+    if (!n || !onAddCategory) {
+      setAddingCat(false);
+      return;
+    }
+    try {
+      const cat = await onAddCategory(n, type);
+      setCategoryId(cat.id);
+    } catch (e) {
+      console.error("add category failed", e);
+    }
+    setAddingCat(false);
+    setNewCat("");
+  };
+
+  const categoryChips = (
+    <ChipRow>
+      {visibleCategories.map((c) => (
+        <Chip key={c.id} active={categoryId === c.id} onClick={() => setCategoryId(c.id)}>
+          {c.icon ?? "•"} {c.name}
+        </Chip>
+      ))}
+      {onAddCategory &&
+        (addingCat ? (
+          <>
+            <input
+              type="text"
+              value={newCat}
+              onChange={(e) => setNewCat(e.target.value)}
+              placeholder="Название"
+              autoFocus
+              className="flex-shrink-0 w-[124px] h-8 px-3 rounded-full text-[13px] border border-[var(--accent)] bg-[var(--surface-card)] text-[var(--label)] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleCommitCat}
+              aria-label="Добавить категорию"
+              className="flex-shrink-0 h-8 w-8 rounded-full bg-[var(--accent)] text-[var(--label-on-accent)] inline-flex items-center justify-center"
+            >
+              ✓
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setAddingCat(true);
+              setNewCat("");
+            }}
+            aria-label="Новая категория"
+            className="flex-shrink-0 h-8 px-3 rounded-full text-[16px] font-semibold bg-[var(--surface-card)] text-[var(--accent)] border border-[var(--separator)]"
+          >
+            ＋
+          </button>
+        ))}
+    </ChipRow>
+  );
 
   if (!open) return null;
   const tone = type === "income" ? "var(--system-green)" : "var(--system-red)";
@@ -272,31 +342,11 @@ export default function OperationSheet({
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
             </Field>
 
-            {visibleCategories.length > 0 && (
-              <Field label="Услуга">
-                <ChipRow>
-                  {visibleCategories.map((c) => (
-                    <Chip key={c.id} active={categoryId === c.id} onClick={() => setCategoryId(c.id)}>
-                      {c.icon ?? "•"} {c.name}
-                    </Chip>
-                  ))}
-                </ChipRow>
-              </Field>
-            )}
+            <Field label="Услуга">{categoryChips}</Field>
           </>
         ) : (
           <>
-            {visibleCategories.length > 0 && (
-              <Field label="Категория">
-                <ChipRow>
-                  {visibleCategories.map((c) => (
-                    <Chip key={c.id} active={categoryId === c.id} onClick={() => setCategoryId(c.id)}>
-                      {c.icon ?? "•"} {c.name}
-                    </Chip>
-                  ))}
-                </ChipRow>
-              </Field>
-            )}
+            <Field label="Категория">{categoryChips}</Field>
 
             <Field label="Комментарий">
               <input
