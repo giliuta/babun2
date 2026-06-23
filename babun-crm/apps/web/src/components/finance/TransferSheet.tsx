@@ -57,8 +57,13 @@ export default function TransferSheet({
   const canSave =
     numericAmount > 0 && fromId !== "" && toId !== "" && fromId !== toId;
 
-  const teamName = (brigadeId: string) =>
-    teams.find((t) => t.id === brigadeId)?.name ?? brigadeId;
+  const teamColor = (a: Account) =>
+    teams.find((t) => t.id === a.brigade_id)?.color ?? "var(--label-quaternary)";
+
+  const swap = () => {
+    setFromId(toId);
+    setToId(fromId);
+  };
 
   const handleSave = async () => {
     if (!canSave || submitting) return;
@@ -101,33 +106,43 @@ export default function TransferSheet({
     >
       <div className="px-3 py-3 space-y-3">
         <Field label="Откуда" required>
-          <select
-            value={fromId}
-            onChange={(e) => setFromId(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">— выбрать —</option>
+          <ChipRow>
             {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.icon ?? "💵"} {a.name} · {teamName(a.brigade_id)}
-              </option>
+              <AccountChip
+                key={a.id}
+                account={a}
+                dotColor={teamColor(a)}
+                active={fromId === a.id}
+                onClick={() => setFromId(a.id)}
+              />
             ))}
-          </select>
+          </ChipRow>
         </Field>
 
-        <Field label="Куда" required>
-          <select
-            value={toId}
-            onChange={(e) => setToId(e.target.value)}
-            className={inputCls}
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={swap}
+            aria-label="Поменять местами"
+            className="w-8 h-8 rounded-full bg-[var(--fill-tertiary)] text-[var(--accent)] inline-flex items-center justify-center text-[16px] active:scale-90 transition"
           >
-            <option value="">— выбрать —</option>
+            ⇅
+          </button>
+        </div>
+
+        <Field label="Куда" required>
+          <ChipRow>
             {accounts.map((a) => (
-              <option key={a.id} value={a.id} disabled={a.id === fromId}>
-                {a.icon ?? "💵"} {a.name} · {teamName(a.brigade_id)}
-              </option>
+              <AccountChip
+                key={a.id}
+                account={a}
+                dotColor={teamColor(a)}
+                active={toId === a.id}
+                disabled={a.id === fromId}
+                onClick={() => setToId(a.id)}
+              />
             ))}
-          </select>
+          </ChipRow>
         </Field>
 
         <Field label="Сумма" required>
@@ -193,6 +208,46 @@ function Field({
       </div>
       {children}
     </div>
+  );
+}
+
+function ChipRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">{children}</div>
+  );
+}
+
+function AccountChip({
+  account,
+  dotColor,
+  active,
+  disabled,
+  onClick,
+}: {
+  account: Account;
+  dotColor: string;
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-medium border transition-colors disabled:opacity-35 ${
+        active
+          ? "bg-[var(--accent)] text-[var(--label-on-accent)] border-transparent"
+          : "bg-[var(--surface-card)] text-[var(--label)] border-[var(--separator)]"
+      }`}
+    >
+      <span
+        className="w-[7px] h-[7px] rounded-full flex-shrink-0"
+        style={{ backgroundColor: dotColor }}
+      />
+      <span>{account.icon ?? "💵"}</span>
+      <span className="whitespace-nowrap">{account.name}</span>
+    </button>
   );
 }
 

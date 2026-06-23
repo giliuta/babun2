@@ -14,6 +14,7 @@ import type { Account } from "@babun/shared/local/finance/account";
 import type { PaymentMethod } from "@babun/shared/local/finance/transaction";
 import type { FinanceCategory } from "@babun/shared/db/repositories/finance-categories";
 import type { TransactionDraft } from "@babun/shared/db/repositories/finance-transactions";
+import type { FinanceTemplate } from "@babun/shared/local/finance/template";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { Client } from "@babun/shared/local/clients";
 import type { Service } from "@babun/shared/local/services";
@@ -25,6 +26,8 @@ interface OperationSheetProps {
   /** Accounts already scoped to the active team. */
   accounts: Account[];
   categories: FinanceCategory[];
+  /** Quick-entry shortcuts curated in Настройки → Финансы → Шаблоны. */
+  templates?: FinanceTemplate[];
   appointments: Appointment[];
   clients: Client[];
   services: Service[];
@@ -63,6 +66,7 @@ export default function OperationSheet({
   teamId,
   accounts,
   categories,
+  templates = [],
   appointments,
   clients,
   services,
@@ -138,6 +142,23 @@ export default function OperationSheet({
     setAddingCat(false);
     setNewCat("");
     if (t === "expense") {
+      setApptId(null);
+      setClientId(null);
+    }
+  };
+
+  const applyTemplate = (t: FinanceTemplate) => {
+    setType(t.kind);
+    setAmount(t.amount ? String(t.amount) : "");
+    setCategoryId(t.category_id);
+    setAddingCat(false);
+    setNewCat("");
+    if (t.payment_method) setMethod(t.payment_method);
+    // Only adopt the template's account if it exists in the active scope.
+    if (t.account_id && accounts.some((a) => a.id === t.account_id)) {
+      setAccountId(t.account_id);
+    }
+    if (t.kind === "expense") {
       setApptId(null);
       setClientId(null);
     }
@@ -270,6 +291,31 @@ export default function OperationSheet({
           <SegBtn label="Доход" active={type === "income"} color="var(--system-green)" onClick={() => switchType("income")} />
           <SegBtn label="Расход" active={type === "expense"} color="var(--system-red)" onClick={() => switchType("expense")} />
         </div>
+
+        {/* Quick-entry templates — tap fills the form */}
+        {templates.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
+            {templates.map((t) => {
+              const green = t.kind === "income";
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => applyTemplate(t)}
+                  className="flex-shrink-0 h-8 pl-3 pr-2.5 rounded-full text-[13px] font-medium bg-[var(--fill-tertiary)] text-[var(--label)] inline-flex items-center gap-1.5 active:scale-[0.97] transition"
+                >
+                  <span className="truncate max-w-[120px]">{t.name}</span>
+                  <span
+                    className="tabular-nums font-semibold"
+                    style={{ color: green ? "var(--system-green)" : "var(--system-red)" }}
+                  >
+                    {green ? "+" : "−"}{formatEUR(t.amount)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Amount — native numeric keyboard */}
         <div className="flex items-center justify-center gap-1 py-1">

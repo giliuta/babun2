@@ -2,7 +2,16 @@
 // / Произвольно. Returns a YYYY-MM-DD range compared against
 // `finance_transactions.occurred_on`.
 
-export type PeriodKind = "today" | "yesterday" | "week" | "month" | "year" | "custom";
+export type PeriodKind =
+  | "today"
+  | "yesterday"
+  | "week"
+  | "lastweek"
+  | "month"
+  | "lastmonth"
+  | "year"
+  | "lastyear"
+  | "custom";
 
 export interface PeriodRange {
   from: string; // inclusive YYYY-MM-DD
@@ -45,14 +54,29 @@ export function getPeriodRange(sel: PeriodSelection, now: Date = new Date()): Pe
       const sunday = addDays(monday, 6);
       return { from: toYmd(monday), to: toYmd(sunday) };
     }
+    case "lastweek": {
+      const dow = (today.getDay() + 6) % 7;
+      const lastMonday = addDays(today, -dow - 7);
+      return { from: toYmd(lastMonday), to: toYmd(addDays(lastMonday, 6)) };
+    }
     case "month": {
       const start = new Date(today.getFullYear(), today.getMonth(), 1);
       const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       return { from: toYmd(start), to: toYmd(end) };
     }
+    case "lastmonth": {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { from: toYmd(start), to: toYmd(end) };
+    }
     case "year": {
       const start = new Date(today.getFullYear(), 0, 1);
       const end = new Date(today.getFullYear(), 11, 31);
+      return { from: toYmd(start), to: toYmd(end) };
+    }
+    case "lastyear": {
+      const start = new Date(today.getFullYear() - 1, 0, 1);
+      const end = new Date(today.getFullYear() - 1, 11, 31);
       return { from: toYmd(start), to: toYmd(end) };
     }
     case "custom":
@@ -64,17 +88,31 @@ export function getPeriodRange(sel: PeriodSelection, now: Date = new Date()): Pe
 export const PERIOD_LABELS: Record<PeriodKind, string> = {
   today: "Сегодня",
   yesterday: "Вчера",
-  week: "Неделя",
-  month: "Месяц",
-  year: "Год",
-  custom: "Произвольно",
+  week: "Текущая неделя",
+  lastweek: "Прошлая неделя",
+  month: "Текущий месяц",
+  lastmonth: "Прошлый месяц",
+  year: "Текущий год",
+  lastyear: "Прошлый год",
+  custom: "Свой период",
 };
 
 export const PERIOD_ORDER: PeriodKind[] = [
   "today",
   "yesterday",
   "week",
+  "lastweek",
   "month",
+  "lastmonth",
   "year",
+  "lastyear",
   "custom",
+];
+
+/** Paired current/previous presets for the period popup blocks. */
+export const PERIOD_BLOCKS: Array<[PeriodKind, PeriodKind]> = [
+  ["today", "yesterday"],
+  ["week", "lastweek"],
+  ["month", "lastmonth"],
+  ["year", "lastyear"],
 ];
