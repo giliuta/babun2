@@ -20,6 +20,7 @@ import {
 } from "@/components/layout/DashboardClientLayout";
 import FinanceOverview, { type HomeView } from "@/components/finance/FinanceOverview";
 import AccountsPanel from "@/components/finance/AccountsPanel";
+import AnalyticsSheet from "@/components/finance/AnalyticsSheet";
 import DebtorsList from "@/components/finance/DebtorsList";
 import TransactionsFeed from "@/components/finance/TransactionsFeed";
 import OperationSheet from "@/components/finance/OperationSheet";
@@ -96,6 +97,9 @@ export default function FinancesPage() {
     transfer: createTransferTx,
     refresh: refreshTransactions,
   } = useFinanceTransactions(tenantId, range, listOpts);
+  // All-team transactions in the period — only the analytics «по бригадам»
+  // section needs the cross-team view; everything else stays scoped.
+  const { transactions: allTeamTx } = useFinanceTransactions(tenantId, range, {});
   const { categories, add: addCategory } = useFinanceCategories(tenantId);
 
   const totals = useMemo(
@@ -163,6 +167,7 @@ export default function FinancesPage() {
 
   // ─── Action sheets state ────────────────────────────────────────────
   const [operationOpen, setOperationOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [popupTx, setPopupTx] = useState<FinanceTransaction | null>(null);
   const [invoiceTx, setInvoiceTx] = useState<FinanceTransaction | null>(null);
@@ -197,6 +202,20 @@ export default function FinancesPage() {
             className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--label-secondary)] active:bg-[var(--fill-tertiary)] transition press-scale"
           >
             <Settings size={20} strokeWidth={2} />
+          </button>
+        }
+        rightContent={
+          <button
+            type="button"
+            onClick={() => setAnalyticsOpen(true)}
+            aria-label="Аналитика"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--accent)] active:bg-[var(--fill-tertiary)] transition press-scale"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+              <rect x="7" y="11" width="3" height="6" rx="1" />
+              <rect x="13" y="7" width="3" height="10" rx="1" />
+            </svg>
           </button>
         }
       />
@@ -266,6 +285,27 @@ export default function FinancesPage() {
           </button>
         </div>
       </div>
+
+      {analyticsOpen && (
+        <AnalyticsSheet
+          open
+          onClose={() => setAnalyticsOpen(false)}
+          scopeLabel={teams.find((t) => t.id === scopeTeamId)?.name ?? "Все"}
+          range={range}
+          totals={totals}
+          acctTotal={acctTotal}
+          scopedTx={transactions}
+          allTeamTx={allTeamTx}
+          teams={teams}
+          categories={categories}
+          services={services}
+          appointments={appointments}
+          onBrigadeTap={(id) => {
+            setScopeTeamId(id);
+            setAnalyticsOpen(false);
+          }}
+        />
+      )}
 
       {operationOpen && (
         <OperationSheet
