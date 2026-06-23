@@ -12,11 +12,6 @@ import {
   type PeriodRange,
 } from "@/lib/finance/period";
 
-const MONTHS_SHORT = [
-  "янв.", "фев.", "мар.", "апр.", "мая", "июн.",
-  "июл.", "авг.", "сен.", "окт.", "ноя.", "дек.",
-];
-
 const PRESETS: PeriodKind[] = ["today", "yesterday", "week", "month", "year"];
 
 function parse(ymd: string): { d: number; m: number; y: number } {
@@ -24,12 +19,16 @@ function parse(ymd: string): { d: number; m: number; y: number } {
   return { d: dt.getDate(), m: dt.getMonth(), y: dt.getFullYear() };
 }
 
-function formatRange(from: string, to: string): string {
-  const a = parse(from);
-  const b = parse(to);
-  if (from === to) return `${a.d} ${MONTHS_SHORT[a.m]}`;
-  if (a.m === b.m && a.y === b.y) return `${a.d}–${b.d} ${MONTHS_SHORT[b.m]}`;
-  return `${a.d} ${MONTHS_SHORT[a.m]} – ${b.d} ${MONTHS_SHORT[b.m]}`;
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+function dmy(ymd: string): string {
+  const a = parse(ymd);
+  return `${pad2(a.d)}.${pad2(a.m + 1)}.${String(a.y).slice(2)}`;
+}
+function formatFullRange(from: string, to: string): string {
+  if (from === to) return dmy(from);
+  return `${dmy(from)} – ${dmy(to)}`;
 }
 
 interface PeriodPickerProps {
@@ -51,10 +50,10 @@ export default function PeriodPicker({
   const [fromDate, setFromDate] = useState(range.from);
   const [toDate, setToDate] = useState(range.to);
 
-  const openModal = () => {
+  const openWith = (custom: boolean) => {
     setFromDate(range.from);
     setToDate(range.to);
-    setCustomMode(value === "custom");
+    setCustomMode(custom);
     setOpen(true);
   };
 
@@ -73,15 +72,23 @@ export default function PeriodPicker({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openModal}
-        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-[var(--fill-tertiary)] text-[14px] font-semibold text-[var(--label)] active:scale-[0.98] transition"
-      >
-        <span className="text-[13px]">📅</span>
-        <span className="tabular-nums">{formatRange(range.from, range.to)}</span>
-        <span className="text-[10px] text-[var(--label-tertiary)]">▼</span>
-      </button>
+      <div className="flex items-center justify-between gap-2 py-0.5">
+        <button
+          type="button"
+          onClick={() => openWith(false)}
+          className="inline-flex items-center gap-1 text-[16px] font-semibold text-[var(--label)] active:opacity-60 transition"
+        >
+          {value === "custom" ? "Свой период" : PERIOD_LABELS[value]}
+          <span className="text-[11px] text-[var(--label-tertiary)]">▾</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => openWith(true)}
+          className="text-[15px] font-semibold tabular-nums text-[var(--label)] active:opacity-60 transition"
+        >
+          {formatFullRange(range.from, range.to)}
+        </button>
+      </div>
 
       {open && (
         <div
