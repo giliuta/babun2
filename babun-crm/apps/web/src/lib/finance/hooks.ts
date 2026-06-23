@@ -33,7 +33,9 @@ import {
 } from "@babun/shared/db/repositories/finance-templates";
 import {
   listFinanceCategories,
+  insertFinanceCategory,
   type FinanceCategory,
+  type FinanceCategoryKind,
 } from "@babun/shared/db/repositories/finance-categories";
 import type { Account } from "@babun/shared/local/finance/account";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
@@ -267,6 +269,7 @@ export function useFinanceCategories(tenantId: string): {
   categories: FinanceCategory[];
   loading: boolean;
   error: string | null;
+  add: (name: string, type: FinanceCategoryKind) => Promise<FinanceCategory>;
 } {
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -282,5 +285,17 @@ export function useFinanceCategories(tenantId: string): {
     return () => { alive = false; };
   }, [tenantId]);
 
-  return { categories, loading, error };
+  const add = useCallback(
+    async (name: string, type: FinanceCategoryKind): Promise<FinanceCategory> => {
+      const cat = await insertFinanceCategory(getSupabaseBrowser(), tenantId, {
+        name,
+        type,
+      });
+      setCategories((prev) => [cat, ...prev]);
+      return cat;
+    },
+    [tenantId],
+  );
+
+  return { categories, loading, error, add };
 }

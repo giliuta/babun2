@@ -90,7 +90,7 @@ export default function FinancesPage() {
     transfer: createTransferTx,
     refresh: refreshTransactions,
   } = useFinanceTransactions(tenantId, range, listOpts);
-  const { categories } = useFinanceCategories(tenantId);
+  const { categories, add: addCategory } = useFinanceCategories(tenantId);
 
   const totals = useMemo(
     () =>
@@ -243,6 +243,7 @@ export default function FinancesPage() {
           appointments={appointments}
           clients={clients}
           services={services}
+          onAddCategory={addCategory}
           onSubmit={async (draft) => {
             await addTransaction(draft);
           }}

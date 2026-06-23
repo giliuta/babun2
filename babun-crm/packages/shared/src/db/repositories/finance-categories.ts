@@ -49,3 +49,35 @@ export async function listFinanceCategories(
   if (error) throw new Error(`listFinanceCategories: ${error.message}`);
   return ((data ?? []) as Row[]).map(rowToCategory);
 }
+
+export interface NewFinanceCategory {
+  name: string;
+  type: FinanceCategoryKind;
+  icon?: string | null;
+  color?: string | null;
+}
+
+/** Inserts a tenant-owned category. RLS (finance_categories_write_own)
+ *  already permits authenticated tenant inserts; slug is auto-generated
+ *  (unique, non-meaningful) since the human label lives in `name`. */
+export async function insertFinanceCategory(
+  supabase: DbSupabase,
+  tenantId: string,
+  draft: NewFinanceCategory,
+): Promise<FinanceCategory> {
+  const slug = `custom-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const { data, error } = await supabase
+    .from("finance_categories")
+    .insert({
+      tenant_id: tenantId,
+      slug,
+      name: draft.name.trim(),
+      type: draft.type,
+      icon: draft.icon ?? "🏷️",
+      color: draft.color ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(`insertFinanceCategory: ${error.message}`);
+  return rowToCategory(data as Row);
+}
