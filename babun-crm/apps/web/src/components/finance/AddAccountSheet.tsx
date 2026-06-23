@@ -1,12 +1,13 @@
 "use client";
 
-// Create a new account (money bucket) for a brigade. Centered modal.
+// Create OR edit an account (money bucket) for a brigade. Centered modal.
 // kind → preset icon; name defaults from the kind but stays editable.
-// Saves via the parent's onSubmit (useAccounts.add → accounts repo).
+// Create saves via onSubmit (useAccounts.add); edit via onUpdate; the
+// «Удалить счёт» button soft-closes via onDelete (two-tap confirm).
 
 import { useEffect, useState } from "react";
 import type { Team } from "@babun/shared/local/masters";
-import type { AccountKind } from "@babun/shared/local/finance/account";
+import type { Account, AccountKind } from "@babun/shared/local/finance/account";
 import type { AccountDraft } from "@babun/shared/db/repositories/accounts";
 
 const KINDS: Array<{ kind: AccountKind; label: string; icon: string }> = [
@@ -21,7 +22,11 @@ interface AddAccountSheetProps {
   onClose: () => void;
   teams: Team[];
   defaultBrigadeId?: string;
-  onSubmit: (draft: AccountDraft) => Promise<void>;
+  /** When set, the sheet edits this account instead of creating. */
+  account?: Account;
+  onSubmit?: (draft: AccountDraft) => Promise<void>;
+  onUpdate?: (id: string, patch: Partial<AccountDraft>) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 export default function AddAccountSheet({
@@ -29,18 +34,23 @@ export default function AddAccountSheet({
   onClose,
   teams,
   defaultBrigadeId,
+  account,
   onSubmit,
+  onUpdate,
+  onDelete,
 }: AddAccountSheetProps) {
-  // Parent mounts this only while open (`{addAccountOpen && <…/>}`), so
-  // these initialisers run fresh on every open — no reset effect needed
-  // (which would trip react-hooks/set-state-in-effect).
+  const editing = !!account;
+  // Parent mounts this only while open, so initialisers run fresh on each open.
   const [brigadeId, setBrigadeId] = useState(
-    defaultBrigadeId ?? teams[0]?.id ?? "",
+    account?.brigade_id ?? defaultBrigadeId ?? teams[0]?.id ?? "",
   );
-  const [kind, setKind] = useState<AccountKind>("cash");
-  const [name, setName] = useState("Наличные");
-  const [opening, setOpening] = useState("");
+  const [kind, setKind] = useState<AccountKind>(account?.kind ?? "cash");
+  const [name, setName] = useState(account?.name ?? "Наличные");
+  const [opening, setOpening] = useState(
+    account ? String(account.opening_balance) : "",
+  );
   const [saving, setSaving] = useState(false);
+  const [deleteArmed, setDeleteArmed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -60,8 +70,6 @@ export default function AddAccountSheet({
 
   const pickKind = (k: AccountKind, label: string) => {
     setKind(k);
-    // Auto-fill the name only while it's still a default (or empty), so
-    // a user-typed custom name is never clobbered.
     setName((prev) => {
       const isDefault = KINDS.some((x) => x.label === prev) || prev.trim() === "";
       return isDefault ? label : prev;
@@ -79,13 +87,33 @@ export default function AddAccountSheet({
     setSaving(true);
     try {
       const icon = KINDS.find((x) => x.kind === kind)?.icon ?? null;
-      await onSubmit({
+      const draft: AccountDraft = {
         brigade_id: brigadeId,
         name: name.trim(),
         kind,
         opening_balance: openingNum,
         icon,
-      });
+      };
+      if (editing && account && onUpdate) {
+        await onUpdate(account.id, draft);
+      } else if (onSubmit) {
+        await onSubmit(draft);
+      }
+      onClose();
+    } catch {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!account || !onDelete) return;
+    if (!deleteArmed) {
+      setDeleteArmed(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onDelete(account.id);
       onClose();
     } catch {
       setSaving(false);
@@ -103,7 +131,7 @@ export default function AddAccountSheet({
       >
         <div className="px-4 pt-4 pb-3">
           <div className="text-[17px] font-semibold text-[var(--label)]">
-            Новый счёт
+            {editing ? "Счёт" : "Новый счёт"}
           </div>
         </div>
 
@@ -172,7 +200,7 @@ export default function AddAccountSheet({
 
           <div>
             <div className="text-[12px] font-medium text-[var(--label-secondary)] mb-1.5">
-              Начальный баланс
+              {editing ? "Баланс" : "Начальный баланс"}
             </div>
             <div className="flex items-center h-11 px-3.5 bg-[var(--fill-tertiary)] rounded-[10px]">
               <span className="text-[15px] text-[var(--label-secondary)]">€</span>
@@ -202,9 +230,19 @@ export default function AddAccountSheet({
               disabled={!canSave}
               className="flex-1 h-11 rounded-[var(--radius-pill)] text-[14px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] disabled:opacity-50"
             >
-              {saving ? "Сохраняю…" : "Создать"}
+              {saving ? "Сохраняю…" : editing ? "Сохранить" : "Создать"}
             </button>
           </div>
+
+          {editing && onDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="w-full h-10 rounded-[var(--radius-pill)] text-[14px] font-semibold text-[var(--system-red)] active:bg-[var(--fill-quaternary)] transition"
+            >
+              {deleteArmed ? "Нажмите ещё раз — удалить" : "Удалить счёт"}
+            </button>
+          )}
         </div>
       </div>
     </div>

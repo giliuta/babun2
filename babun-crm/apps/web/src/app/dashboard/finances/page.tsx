@@ -42,6 +42,7 @@ import {
   computeAccountBalance,
 } from "@/lib/finance/ledger-compute";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
+import type { Account } from "@babun/shared/local/finance/account";
 
 export default function FinancesPage() {
   const tenantId = useTenantId();
@@ -82,7 +83,12 @@ export default function FinancesPage() {
     [scopeTeamId],
   );
 
-  const { accounts, add: addAccount } = useAccounts(tenantId);
+  const {
+    accounts,
+    add: addAccount,
+    update: updateAccount,
+    close: closeAccount,
+  } = useAccounts(tenantId);
   const {
     transactions,
     add: addTransaction,
@@ -140,7 +146,7 @@ export default function FinancesPage() {
   const [transferOpen, setTransferOpen] = useState(false);
   const [popupTx, setPopupTx] = useState<FinanceTransaction | null>(null);
   const [invoiceTx, setInvoiceTx] = useState<FinanceTransaction | null>(null);
-  const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [accountSheet, setAccountSheet] = useState<"new" | Account | null>(null);
 
   const handleRefund = useCallback(
     async (tx: FinanceTransaction, amount: number) => {
@@ -195,8 +201,9 @@ export default function FinancesPage() {
           <AccountsPanel
             accounts={scopedAccounts}
             transactions={transactions}
+            onAccountTap={(a) => setAccountSheet(a)}
             onTransfer={() => setTransferOpen(true)}
-            onAddAccount={() => setAddAccountOpen(true)}
+            onAddAccount={() => setAccountSheet("new")}
             transferDisabled={accounts.length < 2}
           />
         ) : homeView === "debt" ? (
@@ -292,14 +299,21 @@ export default function FinancesPage() {
         />
       )}
 
-      {addAccountOpen && (
+      {accountSheet && (
         <AddAccountSheet
           open
-          onClose={() => setAddAccountOpen(false)}
+          onClose={() => setAccountSheet(null)}
           teams={teams}
           defaultBrigadeId={scopeTeamId ?? undefined}
+          account={accountSheet === "new" ? undefined : accountSheet}
           onSubmit={async (draft) => {
             await addAccount(draft);
+          }}
+          onUpdate={async (id, patch) => {
+            await updateAccount(id, patch);
+          }}
+          onDelete={async (id) => {
+            await closeAccount(id);
           }}
         />
       )}
