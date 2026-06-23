@@ -100,6 +100,14 @@ export default function AnalyticsSheet({
   }, [scopedTx, categories]);
   const maxCat = Math.max(1, ...expenseCats.map((c) => c.amount));
 
+  const exportableCount = useMemo(
+    () =>
+      scopedTx.filter(
+        (t) => t.type === "income" || t.type === "expense" || t.type === "refund",
+      ).length,
+    [scopedTx],
+  );
+
   const handleExportCsv = () => {
     const teamName = (id: string | null) =>
       (id && teams.find((t) => t.id === id)?.name) || "—";
@@ -231,7 +239,8 @@ export default function AnalyticsSheet({
         <button
           type="button"
           onClick={handleExportCsv}
-          className="w-full h-11 rounded-[var(--radius-pill)] text-[13px] font-semibold border border-[var(--separator)] bg-[var(--surface-card)] text-[var(--label)] inline-flex items-center justify-center gap-2 active:scale-[0.98] transition"
+          disabled={exportableCount === 0}
+          className="w-full h-11 rounded-[var(--radius-pill)] text-[13px] font-semibold border border-[var(--separator)] bg-[var(--surface-card)] text-[var(--label)] inline-flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40"
         >
           ⬇ Экспорт в CSV (Excel)
         </button>
