@@ -163,6 +163,7 @@ function TemplateEditor({
   const [brigadeId, setBrigadeId] = useState(initial?.brigade_id ?? "");
   const [accountId, setAccountId] = useState(initial?.account_id ?? "");
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? "");
+  const [confirmDel, setConfirmDel] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const numericAmount = parseFloat(amount.replace(",", ".")) || 0;
@@ -193,7 +194,10 @@ function TemplateEditor({
 
   const handleDelete = async () => {
     if (!onDelete || busy) return;
-    if (!confirm("Удалить шаблон?")) return;
+    if (!confirmDel) {
+      setConfirmDel(true);
+      return;
+    }
     setBusy(true);
     try {
       await onDelete();
@@ -214,9 +218,13 @@ function TemplateEditor({
               type="button"
               onClick={handleDelete}
               disabled={busy}
-              className="h-12 px-4 rounded-[var(--radius-pill)] text-[13px] font-semibold text-[var(--system-red)] border border-[var(--system-red)]/40 disabled:opacity-50"
+              className={`h-12 px-4 rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:opacity-50 transition-colors ${
+                confirmDel
+                  ? "bg-[var(--system-red)] text-[var(--label-on-accent)]"
+                  : "text-[var(--system-red)] border border-[var(--system-red)]/40"
+              }`}
             >
-              Удалить
+              {confirmDel ? "Точно?" : "Удалить"}
             </button>
           )}
           <button

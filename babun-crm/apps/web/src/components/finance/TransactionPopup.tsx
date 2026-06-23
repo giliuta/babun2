@@ -54,6 +54,7 @@ export default function TransactionPopup({
 }: TransactionPopupProps) {
   const [showRefundForm, setShowRefundForm] = useState(false);
   const [refundAmount, setRefundAmount] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (!open || !transaction) return null;
@@ -161,24 +162,39 @@ export default function TransactionPopup({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
                 disabled={busy}
-                className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold text-[var(--system-red)] border border-[var(--system-red)]/40 active:scale-[0.98] disabled:opacity-50"
+                className={`flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold active:scale-[0.98] disabled:opacity-50 transition-colors ${
+                  confirmDelete
+                    ? "bg-[var(--system-red)] text-[var(--label-on-accent)] border border-transparent"
+                    : "text-[var(--system-red)] border border-[var(--system-red)]/40"
+                }`}
               >
-                Удалить
+                {confirmDelete ? "Точно удалить?" : "Удалить"}
               </button>
-              {canRefund && (
+              {confirmDelete ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRefundForm(true);
-                    setRefundAmount(String(refundRemaining));
-                  }}
+                  onClick={() => setConfirmDelete(false)}
                   disabled={busy}
-                  className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] active:scale-[0.98] disabled:opacity-50"
+                  className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold text-[var(--label-secondary)] border border-[var(--separator)] active:scale-[0.98] disabled:opacity-50"
                 >
-                  Создать возврат
+                  Отмена
                 </button>
+              ) : (
+                canRefund && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRefundForm(true);
+                      setRefundAmount(String(refundRemaining));
+                    }}
+                    disabled={busy}
+                    className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    Создать возврат
+                  </button>
+                )
               )}
             </div>
           </div>
