@@ -35,8 +35,11 @@ import {
 import {
   listFinanceCategories,
   insertFinanceCategory,
+  updateFinanceCategory,
+  deleteFinanceCategory,
   type FinanceCategory,
   type FinanceCategoryKind,
+  type FinanceCategoryPatch,
 } from "@babun/shared/db/repositories/finance-categories";
 import type { Account } from "@babun/shared/local/finance/account";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
@@ -331,7 +334,13 @@ export function useFinanceCategories(tenantId: string): {
   categories: FinanceCategory[];
   loading: boolean;
   error: string | null;
-  add: (name: string, type: FinanceCategoryKind) => Promise<FinanceCategory>;
+  add: (
+    name: string,
+    type: FinanceCategoryKind,
+    icon?: string | null,
+  ) => Promise<FinanceCategory>;
+  update: (id: string, patch: FinanceCategoryPatch) => Promise<void>;
+  remove: (id: string) => Promise<void>;
 } {
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -348,10 +357,15 @@ export function useFinanceCategories(tenantId: string): {
   }, [tenantId]);
 
   const add = useCallback(
-    async (name: string, type: FinanceCategoryKind): Promise<FinanceCategory> => {
+    async (
+      name: string,
+      type: FinanceCategoryKind,
+      icon?: string | null,
+    ): Promise<FinanceCategory> => {
       const cat = await insertFinanceCategory(getSupabaseBrowser(), tenantId, {
         name,
         type,
+        icon: icon ?? undefined,
       });
       setCategories((prev) => [cat, ...prev]);
       return cat;
@@ -359,5 +373,20 @@ export function useFinanceCategories(tenantId: string): {
     [tenantId],
   );
 
-  return { categories, loading, error, add };
+  const update = useCallback(
+    async (id: string, patch: FinanceCategoryPatch): Promise<void> => {
+      await updateFinanceCategory(getSupabaseBrowser(), id, patch);
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      );
+    },
+    [],
+  );
+
+  const remove = useCallback(async (id: string): Promise<void> => {
+    await deleteFinanceCategory(getSupabaseBrowser(), id);
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  return { categories, loading, error, add, update, remove };
 }

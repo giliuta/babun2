@@ -81,3 +81,40 @@ export async function insertFinanceCategory(
   if (error) throw new Error(`insertFinanceCategory: ${error.message}`);
   return rowToCategory(data as Row);
 }
+
+export interface FinanceCategoryPatch {
+  name?: string;
+  icon?: string | null;
+  color?: string | null;
+}
+
+/** Updates a tenant-owned category. RLS blocks edits to global defaults
+ *  (tenant_id IS NULL), so the UI must only call this for own rows. */
+export async function updateFinanceCategory(
+  supabase: DbSupabase,
+  id: string,
+  patch: FinanceCategoryPatch,
+): Promise<void> {
+  const update: Partial<Database["public"]["Tables"]["finance_categories"]["Update"]> = {};
+  if (patch.name !== undefined) update.name = patch.name.trim();
+  if (patch.icon !== undefined) update.icon = patch.icon;
+  if (patch.color !== undefined) update.color = patch.color;
+  const { error } = await supabase
+    .from("finance_categories")
+    .update(update)
+    .eq("id", id);
+  if (error) throw new Error(`updateFinanceCategory: ${error.message}`);
+}
+
+/** Deletes a tenant-owned category. Transactions/templates referencing it
+ *  keep working — category_id FKs are ON DELETE SET NULL. */
+export async function deleteFinanceCategory(
+  supabase: DbSupabase,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("finance_categories")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(`deleteFinanceCategory: ${error.message}`);
+}

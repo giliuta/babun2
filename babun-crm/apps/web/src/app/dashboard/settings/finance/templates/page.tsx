@@ -36,7 +36,7 @@ export default function FinanceTemplatesPage() {
 
   return (
     <>
-      <PageHeader title="Шаблоны транзакций" backHref="/dashboard/settings" />
+      <PageHeader title="Шаблоны операций" backHref="/dashboard/settings/finance" />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-xl mx-auto px-4 py-4 space-y-3">
           <div className="text-[12px] text-[var(--label-secondary)] leading-snug">
