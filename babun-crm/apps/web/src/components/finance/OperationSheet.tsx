@@ -7,8 +7,11 @@
 //  • Расход — category + free comment.
 // Submits the existing TransactionDraft via the page's insertTransaction.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DialogModal from "@/components/appointment/DialogModal";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/imageCompress";
+import { uploadReceipt } from "@babun/shared/db/repositories/day-extra-receipts";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { Account } from "@babun/shared/local/finance/account";
 import type { PaymentMethod } from "@babun/shared/local/finance/transaction";
@@ -22,6 +25,7 @@ import type { Service } from "@babun/shared/local/services";
 interface OperationSheetProps {
   open: boolean;
   onClose: () => void;
+  tenantId: string;
   teamId: string | null;
   /** Accounts already scoped to the active team. */
   accounts: Account[];
@@ -63,6 +67,7 @@ function shortDate(ymd: string): string {
 export default function OperationSheet({
   open,
   onClose,
+  tenantId,
   teamId,
   accounts,
   categories,
@@ -84,7 +89,10 @@ export default function OperationSheet({
   const [clientId, setClientId] = useState<string | null>(null);
   const [addingCat, setAddingCat] = useState(false);
   const [newCat, setNewCat] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -99,9 +107,36 @@ export default function OperationSheet({
       setClientId(null);
       setAddingCat(false);
       setNewCat("");
+      setReceiptUrl(null);
+      setUploading(false);
       setSubmitting(false);
     }
   }, [open, accounts]);
+
+  const handleReceiptPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const blob = await compressImage(file);
+      const extraId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `tx-${Date.now()}`;
+      const path = await uploadReceipt(getSupabaseBrowser(), {
+        tenantId,
+        extraId,
+        file: blob,
+        fileName: file.name,
+      });
+      setReceiptUrl(path);
+    } catch (err) {
+      console.error("uploadReceipt failed", err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const visibleCategories = useMemo(
     () => categories.filter((c) => c.type === type),
@@ -186,6 +221,7 @@ export default function OperationSheet({
               appointment_id: apptId,
               payment_method: method,
               occurred_on: date,
+              receipt_url: receiptUrl,
             }
           : {
               type: "expense",
@@ -196,6 +232,7 @@ export default function OperationSheet({
               payment_method: method,
               notes: comment.trim() || null,
               occurred_on: date,
+              receipt_url: receiptUrl,
             };
       await onSubmit(draft);
       onClose();
@@ -419,6 +456,30 @@ export default function OperationSheet({
               </Chip>
             ))}
           </ChipRow>
+        </Field>
+
+        {/* Receipt photo — optional, stored on the transaction */}
+        <Field label="Чек">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleReceiptPick}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full h-11 rounded-[10px] border border-dashed border-[var(--separator)] bg-[var(--fill-tertiary)] text-[13px] font-medium text-[var(--label-secondary)] inline-flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-60"
+          >
+            {uploading
+              ? "Загрузка…"
+              : receiptUrl
+                ? "✓ Чек прикреплён · заменить"
+                : "📎 Прикрепить фото чека"}
+          </button>
         </Field>
       </div>
     </DialogModal>

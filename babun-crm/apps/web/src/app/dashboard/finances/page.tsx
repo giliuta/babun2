@@ -33,6 +33,7 @@ import {
   useAccountBalances,
   useFinanceTransactions,
   useFinanceCategories,
+  useFinanceTemplates,
 } from "@/lib/finance/hooks";
 import {
   getPeriodRange,
@@ -101,6 +102,13 @@ export default function FinancesPage() {
   // section needs the cross-team view; everything else stays scoped.
   const { transactions: allTeamTx } = useFinanceTransactions(tenantId, range, {});
   const { categories, add: addCategory } = useFinanceCategories(tenantId);
+  const { templates } = useFinanceTemplates(tenantId);
+
+  // Templates relevant to the active scope: global ones + this brigade's.
+  const scopedTemplates = useMemo(
+    () => templates.filter((t) => !t.brigade_id || t.brigade_id === scopeTeamId),
+    [templates, scopeTeamId],
+  );
 
   const totals = useMemo(
     () =>
@@ -311,9 +319,11 @@ export default function FinancesPage() {
         <OperationSheet
           open
           onClose={() => setOperationOpen(false)}
+          tenantId={tenantId}
           teamId={scopeTeamId}
           accounts={scopedAccounts}
           categories={categories}
+          templates={scopedTemplates}
           appointments={appointments}
           clients={clients}
           services={services}
