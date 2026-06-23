@@ -1,9 +1,9 @@
 "use client";
 
-// Day-grouped feed of finance_transactions (mockup «Вариант 3», Bumpix-style
-// in our tokens): each day shows its net; each row = colored left bar (by
-// type) + category icon + «время · контрагент» over the description, amount
-// on the right. Tap → detail popup.
+// Day-grouped feed of finance_transactions (mockup «Вариант 3» final):
+// rounded accent pill on the left (green income / red expense, like the
+// Services page), no icon, «время · клиент» over the description (black),
+// amount on the right. Multi-service visits list the services (вариант B).
 
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
@@ -12,14 +12,8 @@ import type { Team } from "@babun/shared/local/masters";
 import type { FinanceCategory } from "@babun/shared/db/repositories/finance-categories";
 import type { Client } from "@babun/shared/local/clients";
 import type { Appointment } from "@babun/shared/local/appointments";
+import type { Service } from "@babun/shared/local/services";
 import { groupByDay } from "@/lib/finance/ledger-compute";
-
-const PAYMENT_EMOJI: Record<string, string> = {
-  cash: "💵",
-  card: "💳",
-  transfer: "🏦",
-  other: "📦",
-};
 
 interface TransactionsFeedProps {
   transactions: FinanceTransaction[];
@@ -28,6 +22,7 @@ interface TransactionsFeedProps {
   categories: FinanceCategory[];
   clients: Client[];
   appointments: Appointment[];
+  services: Service[];
   onTxTap?: (tx: FinanceTransaction) => void;
 }
 
@@ -38,6 +33,7 @@ export default function TransactionsFeed({
   categories,
   clients,
   appointments,
+  services,
   onTxTap,
 }: TransactionsFeedProps) {
   const groups = groupByDay(transactions);
@@ -57,8 +53,10 @@ export default function TransactionsFeed({
     id ? teams.find((t) => t.id === id)?.name ?? "" : "";
   const clientName = (id: string | null): string =>
     id ? clients.find((c) => c.id === id)?.full_name ?? "" : "";
-  const apptTime = (id: string | null): string =>
-    id ? appointments.find((a) => a.id === id)?.time_start ?? "" : "";
+  const appt = (id: string | null): Appointment | null =>
+    id ? appointments.find((a) => a.id === id) ?? null : null;
+  const serviceName = (id: string): string =>
+    services.find((s) => s.id === id)?.name ?? "";
 
   return (
     <div className="px-3 pt-3 pb-2">
@@ -71,7 +69,7 @@ export default function TransactionsFeed({
               </span>
               <span
                 className={`text-[13px] font-bold tabular-nums ${
-                  g.net < 0 ? "text-[var(--system-red)]" : "text-[var(--label)]"
+                  g.net < 0 ? "text-[var(--system-red)]" : "text-[var(--system-green)]"
                 }`}
               >
                 {g.net >= 0 ? "+" : "−"}
@@ -87,19 +85,27 @@ export default function TransactionsFeed({
               const cat = tx.category_id
                 ? categories.find((c) => c.id === tx.category_id)
                 : null;
-              const emoji =
-                cat?.icon ||
-                (tx.payment_method ? PAYMENT_EMOJI[tx.payment_method] : null) ||
-                (isTr ? "⇄" : "•");
-              const desc =
-                cat?.name ||
-                tx.notes ||
-                (isTr ? "Перевод" : isEx ? "Расход" : "Поступление");
+              const a = appt(tx.appointment_id);
 
-              // context line: время · контрагент (income) / комментарий (expense)
+              // description — for income, list the visit's services (вариант B)
+              let desc = "";
+              if (isIn && a && a.service_ids.length > 0) {
+                desc = a.service_ids
+                  .map(serviceName)
+                  .filter(Boolean)
+                  .join(", ");
+              }
+              if (!desc) {
+                desc =
+                  cat?.name ||
+                  tx.notes ||
+                  (isTr ? "Перевод" : isEx ? "Расход" : "Поступление");
+              }
+
+              // context line: время · клиент (income) / комментарий (expense)
               let ctx = "";
               if (isIn) {
-                ctx = [apptTime(tx.appointment_id), clientName(tx.client_id)]
+                ctx = [a?.time_start ?? "", clientName(tx.client_id)]
                   .filter(Boolean)
                   .join(" · ");
               } else if (isEx && cat && tx.notes) {
@@ -116,11 +122,9 @@ export default function TransactionsFeed({
                 : isEx
                   ? "var(--system-red)"
                   : "var(--label-quaternary)";
-              const descCls = isIn
-                ? "text-[var(--system-green)] font-semibold"
-                : isEx
-                  ? "text-[var(--label)] font-medium"
-                  : "text-[var(--label-secondary)] font-medium";
+              const descCls = isTr
+                ? "text-[var(--label-secondary)] font-medium"
+                : "text-[var(--label)] font-semibold";
               const amountCls = isIn
                 ? "text-[var(--system-green)]"
                 : isEx
@@ -133,15 +137,12 @@ export default function TransactionsFeed({
                   key={tx.id}
                   type="button"
                   onClick={() => onTxTap?.(tx)}
-                  className="w-full flex items-center gap-0 pr-3.5 text-left border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)] transition-colors min-h-[58px]"
+                  className="w-full flex items-center gap-3 pl-3.5 pr-3.5 text-left border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)] transition-colors min-h-[56px]"
                 >
                   <span
-                    className="w-[3px] self-stretch flex-none my-[9px] rounded-r-[2px]"
+                    className="w-[7px] h-9 flex-none rounded-full"
                     style={{ background: barColor }}
                   />
-                  <span className="w-[34px] h-[34px] rounded-[9px] bg-[var(--fill-quaternary)] flex items-center justify-center text-[16px] flex-none ml-2.5 mr-3">
-                    {emoji}
-                  </span>
                   <div className="flex-1 min-w-0">
                     {ctx && (
                       <div className="text-[12px] text-[var(--label-tertiary)] truncate">

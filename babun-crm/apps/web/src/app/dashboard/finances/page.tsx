@@ -223,6 +223,7 @@ export default function FinancesPage() {
             categories={categories}
             clients={clients}
             appointments={appointments}
+            services={services}
             onTxTap={setPopupTx}
           />
         )}
