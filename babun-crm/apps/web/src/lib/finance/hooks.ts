@@ -15,6 +15,7 @@ import {
 } from "@babun/shared/db/repositories/accounts";
 import {
   listTransactionsForRange,
+  listAccountBalanceDeltas,
   insertTransaction,
   updateTransaction,
   deleteTransaction,
@@ -104,6 +105,49 @@ export function useAccounts(tenantId: string): UseAccountsResult {
   return { accounts, loading, error, refresh, add, update, close };
 }
 
+export interface UseAccountBalancesResult {
+  /** accountId → all-time signed delta (add to opening_balance). */
+  deltas: Map<string, number>;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+/**
+ * All-time per-account signed deltas, independent of the viewed period —
+ * the account balance is a running total of every movement ever, so it
+ * must NOT use the period-windowed transaction list. Call refresh()
+ * after any ledger mutation to keep balances live.
+ */
+export function useAccountBalances(tenantId: string): UseAccountBalancesResult {
+  const [deltas, setDeltas] = useState<Map<string, number>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const map = await listAccountBalanceDeltas(getSupabaseBrowser(), tenantId);
+      if (alive.current) {
+        setDeltas(map);
+        setError(null);
+      }
+    } catch (e) {
+      if (alive.current) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (alive.current) setLoading(false);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { deltas, loading, error, refresh };
+}
+
 export interface UseFinanceTransactionsResult {
   transactions: FinanceTransaction[];
   loading: boolean;
@@ -129,6 +173,21 @@ export function useFinanceTransactions(
 
   // Stable key for opts so the effect only re-fires on real changes.
   const optsKey = JSON.stringify(opts);
+
+  // A freshly-written row only belongs in local state if it falls inside
+  // the currently-viewed window (date range + team filter). Otherwise an
+  // optimistic prepend would show a row the next refetch can't reproduce.
+  const inWindow = useCallback(
+    (tx: FinanceTransaction): boolean => {
+      if (tx.occurred_on < range.from || tx.occurred_on > range.to) return false;
+      const bids = opts.brigadeIds;
+      if (bids && bids.length > 0 && (!tx.team_id || !bids.includes(tx.team_id)))
+        return false;
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [range.from, range.to, optsKey],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -159,10 +218,10 @@ export function useFinanceTransactions(
   const add = useCallback(
     async (draft: TransactionDraft) => {
       const tx = await insertTransaction(getSupabaseBrowser(), tenantId, draft);
-      if (alive.current) setTransactions((prev) => [tx, ...prev]);
+      if (alive.current && inWindow(tx)) setTransactions((prev) => [tx, ...prev]);
       return tx;
     },
-    [tenantId],
+    [tenantId, inWindow],
   );
 
   const update = useCallback(
@@ -185,9 +244,12 @@ export function useFinanceTransactions(
   const transfer = useCallback(
     async (t: TransferDraft) => {
       const { source, destination } = await createTransfer(getSupabaseBrowser(), tenantId, t);
-      if (alive.current) setTransactions((prev) => [destination, source, ...prev]);
+      if (alive.current) {
+        const fresh = [destination, source].filter(inWindow);
+        if (fresh.length > 0) setTransactions((prev) => [...fresh, ...prev]);
+      }
     },
-    [tenantId],
+    [tenantId, inWindow],
   );
 
   const removeTransfer = useCallback(async (groupId: string) => {

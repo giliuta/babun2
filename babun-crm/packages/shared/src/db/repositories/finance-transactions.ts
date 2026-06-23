@@ -85,6 +85,42 @@ export async function listTransactionsForRange(
   return ((data ?? []) as Row[]).map(rowToTx);
 }
 
+/**
+ * All-time per-account signed deltas for balance computation. Account
+ * balance = opening_balance + Σ delta. This is intentionally NOT
+ * date-windowed: a running balance must reflect every movement ever,
+ * not just the currently-viewed period. Returns a slim projection
+ * (account_id, type, amount) to keep the payload small.
+ */
+export async function listAccountBalanceDeltas(
+  supabase: DbSupabase,
+  tenantId: string,
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("finance_transactions")
+    .select("account_id, type, amount")
+    .eq("tenant_id", tenantId)
+    .not("account_id", "is", null);
+  if (error) throw new Error(`listAccountBalanceDeltas: ${error.message}`);
+  const rows = (data ?? []) as Array<
+    Pick<Row, "account_id" | "type" | "amount">
+  >;
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.account_id) continue;
+    const amt = Number(r.amount ?? 0);
+    // mirror signedAmount(): expense −amt, refund −|amt|, income/transfer +amt
+    const delta =
+      r.type === "expense"
+        ? -amt
+        : r.type === "refund"
+          ? -Math.abs(amt)
+          : amt;
+    map.set(r.account_id, (map.get(r.account_id) ?? 0) + delta);
+  }
+  return map;
+}
+
 export interface TransactionDraft {
   type: Exclude<TransactionType, "transfer">; // transfers use a separate helper
   amount: number;
@@ -174,9 +210,9 @@ export interface TransferDraft {
 /**
  * Create a pair of `transfer`-type rows sharing the same
  * `transfer_group_id`. The source row is negative, the destination is
- * positive — so summing the pair across the tenant is zero. The pair
- * lives or dies together: if either insert fails, we attempt to roll
- * back the other so the ledger never carries a half-transfer.
+ * positive — so summing the pair across the tenant is zero. Both legs
+ * are written in a SINGLE multi-row insert so Postgres commits or rolls
+ * back the pair atomically — the ledger can never carry a half-transfer.
  */
 export async function createTransfer(
   supabase: DbSupabase,
@@ -189,11 +225,12 @@ export async function createTransfer(
       : `tg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const occurredOn = t.occurred_on ?? new Date().toISOString().slice(0, 10);
   const baseNotes = t.notes ?? null;
+  const magnitude = Math.abs(t.amount);
 
   const sourceInsert: Insert = {
     tenant_id: tenantId,
     type: "transfer",
-    amount: -Math.abs(t.amount),
+    amount: -magnitude,
     account_id: t.from_account_id,
     team_id: t.brigade_id ?? null,
     notes: baseNotes,
@@ -204,7 +241,7 @@ export async function createTransfer(
   const destInsert: Insert = {
     tenant_id: tenantId,
     type: "transfer",
-    amount: Math.abs(t.amount),
+    amount: magnitude,
     account_id: t.to_account_id,
     team_id: t.brigade_id ?? null,
     notes: baseNotes,
@@ -213,24 +250,19 @@ export async function createTransfer(
     source: "manual",
   };
 
-  const { data: src, error: srcErr } = await supabase
+  const { data, error } = await supabase
     .from("finance_transactions")
-    .insert(sourceInsert)
-    .select("*")
-    .single();
-  if (srcErr || !src) throw new Error(`createTransfer (source): ${srcErr?.message}`);
-
-  const { data: dst, error: dstErr } = await supabase
-    .from("finance_transactions")
-    .insert(destInsert)
-    .select("*")
-    .single();
-  if (dstErr || !dst) {
-    // best-effort rollback so the ledger never carries a half-transfer
-    await supabase.from("finance_transactions").delete().eq("id", src.id);
-    throw new Error(`createTransfer (destination): ${dstErr?.message}`);
+    .insert([sourceInsert, destInsert])
+    .select("*");
+  if (error || !data || data.length !== 2) {
+    throw new Error(`createTransfer: ${error?.message ?? "expected 2 rows"}`);
   }
-  return { source: rowToTx(src as Row), destination: rowToTx(dst as Row) };
+  const rows = data as Row[];
+  // legs are distinguished by sign (source negative, destination positive)
+  const src = rows.find((r) => Number(r.amount) < 0);
+  const dst = rows.find((r) => Number(r.amount) > 0);
+  if (!src || !dst) throw new Error("createTransfer: could not identify legs");
+  return { source: rowToTx(src), destination: rowToTx(dst) };
 }
 
 /**

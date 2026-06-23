@@ -6,8 +6,6 @@
 
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { Account, AccountKind } from "@babun/shared/local/finance/account";
-import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
-import { computeAccountBalance } from "@/lib/finance/ledger-compute";
 
 const KIND_ICON: Record<AccountKind, string> = {
   cash: "💵",
@@ -19,8 +17,8 @@ const KIND_ICON: Record<AccountKind, string> = {
 interface AccountsPanelProps {
   /** Accounts already filtered to the active team. */
   accounts: Account[];
-  /** Tenant transactions in range — for balance computation. */
-  transactions: FinanceTransaction[];
+  /** accountId → all-time running balance (opening + every movement). */
+  balances: Map<string, number>;
   onAccountTap?: (account: Account) => void;
   onTransfer: () => void;
   onAddAccount: () => void;
@@ -29,7 +27,7 @@ interface AccountsPanelProps {
 
 export default function AccountsPanel({
   accounts,
-  transactions,
+  balances,
   onAccountTap,
   onTransfer,
   onAddAccount,
@@ -37,7 +35,7 @@ export default function AccountsPanel({
 }: AccountsPanelProps) {
   const rows = accounts.map((a) => ({
     a,
-    bal: computeAccountBalance(a, transactions),
+    bal: balances.get(a.id) ?? a.opening_balance,
   }));
   const total = rows.reduce((s, x) => s + x.bal, 0);
 

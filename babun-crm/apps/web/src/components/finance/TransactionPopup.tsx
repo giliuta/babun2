@@ -19,6 +19,8 @@ interface TransactionPopupProps {
   accounts: Account[];
   teams: Team[];
   categories: FinanceCategory[];
+  /** Σ already-refunded for this income — caps the new refund. */
+  alreadyRefunded?: number;
   onDelete: (tx: FinanceTransaction) => Promise<void>;
   onRefund: (tx: FinanceTransaction, amount: number) => Promise<void>;
   onInvoice?: (tx: FinanceTransaction) => void;
@@ -45,6 +47,7 @@ export default function TransactionPopup({
   accounts,
   teams,
   categories,
+  alreadyRefunded = 0,
   onDelete,
   onRefund,
   onInvoice,
@@ -71,7 +74,9 @@ export default function TransactionPopup({
       ? "+"
       : "−";
 
-  const canRefund = transaction.type === "income" && !showRefundForm;
+  const refundRemaining = Math.max(0, transaction.amount - alreadyRefunded);
+  const canRefund =
+    transaction.type === "income" && !showRefundForm && refundRemaining > 0;
   const canInvoice =
     transaction.type === "income" &&
     !transaction.invoice_id &&
@@ -79,7 +84,7 @@ export default function TransactionPopup({
     !showRefundForm;
 
   const refundNum = parseFloat(refundAmount.replace(",", "."));
-  const refundValid = Number.isFinite(refundNum) && refundNum > 0 && refundNum <= transaction.amount;
+  const refundValid = Number.isFinite(refundNum) && refundNum > 0 && refundNum <= refundRemaining;
 
   const handleDelete = async () => {
     if (busy) return;
@@ -167,7 +172,7 @@ export default function TransactionPopup({
                   type="button"
                   onClick={() => {
                     setShowRefundForm(true);
-                    setRefundAmount(String(transaction.amount));
+                    setRefundAmount(String(refundRemaining));
                   }}
                   disabled={busy}
                   className="flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold bg-[var(--accent)] text-[var(--label-on-accent)] active:scale-[0.98] disabled:opacity-50"
@@ -182,7 +187,7 @@ export default function TransactionPopup({
         {showRefundForm && (
           <div className="space-y-2 pt-1">
             <div className="text-[12px] font-medium text-[var(--label-secondary)]">
-              Сумма возврата (до {formatEUR(transaction.amount)})
+              Сумма возврата (до {formatEUR(refundRemaining)})
             </div>
             <div className="flex items-center bg-[var(--fill-tertiary)] rounded-[10px] px-3 h-11">
               <span className="text-[15px] text-[var(--label-secondary)]">€</span>
@@ -191,7 +196,7 @@ export default function TransactionPopup({
                 inputMode="decimal"
                 step="0.01"
                 min="0"
-                max={transaction.amount}
+                max={refundRemaining}
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
                 autoFocus

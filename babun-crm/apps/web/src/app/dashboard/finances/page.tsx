@@ -29,6 +29,7 @@ import InvoiceSheet from "@/components/finance/InvoiceSheet";
 import AddAccountSheet from "@/components/finance/AddAccountSheet";
 import {
   useAccounts,
+  useAccountBalances,
   useFinanceTransactions,
   useFinanceCategories,
 } from "@/lib/finance/hooks";
@@ -37,10 +38,7 @@ import {
   type PeriodKind,
   type PeriodRange,
 } from "@/lib/finance/period";
-import {
-  computePeriodTotals,
-  computeAccountBalance,
-} from "@/lib/finance/ledger-compute";
+import { computePeriodTotals } from "@/lib/finance/ledger-compute";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 import type { Account } from "@babun/shared/local/finance/account";
 
@@ -89,6 +87,8 @@ export default function FinancesPage() {
     update: updateAccount,
     close: closeAccount,
   } = useAccounts(tenantId);
+  const { deltas: balanceDeltas, refresh: refreshBalances } =
+    useAccountBalances(tenantId);
   const {
     transactions,
     add: addTransaction,
@@ -117,14 +117,34 @@ export default function FinancesPage() {
         : accounts,
     [accounts, scopeTeamId],
   );
+  // All-time running balance per account (opening + every movement ever),
+  // independent of the viewed period. See useAccountBalances.
+  const accountBalances = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of accounts) {
+      m.set(a.id, a.opening_balance + (balanceDeltas.get(a.id) ?? 0));
+    }
+    return m;
+  }, [accounts, balanceDeltas]);
   const acctTotal = useMemo(
     () =>
       scopedAccounts.reduce(
-        (s, a) => s + computeAccountBalance(a, transactions),
+        (s, a) => s + (accountBalances.get(a.id) ?? a.opening_balance),
         0,
       ),
-    [scopedAccounts, transactions],
+    [scopedAccounts, accountBalances],
   );
+
+  // Σ refunds already issued against each income, to cap further refunds.
+  const refundedByTx = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.type === "refund" && t.refund_of_id) {
+        m.set(t.refund_of_id, (m.get(t.refund_of_id) ?? 0) + Math.abs(t.amount));
+      }
+    }
+    return m;
+  }, [transactions]);
 
   const feedTx = useMemo(() => {
     if (homeView === "income")
@@ -160,8 +180,9 @@ export default function FinancesPage() {
         refund_of_id: tx.id,
         notes: `Возврат по операции от ${tx.occurred_on}`,
       });
+      await refreshBalances();
     },
-    [addTransaction],
+    [addTransaction, refreshBalances],
   );
 
   return (
@@ -201,7 +222,7 @@ export default function FinancesPage() {
         {homeView === "accounts" ? (
           <AccountsPanel
             accounts={scopedAccounts}
-            transactions={transactions}
+            balances={accountBalances}
             onAccountTap={(a) => setAccountSheet(a)}
             onTransfer={() => setTransferOpen(true)}
             onAddAccount={() => setAccountSheet("new")}
@@ -259,6 +280,7 @@ export default function FinancesPage() {
           onAddCategory={addCategory}
           onSubmit={async (draft) => {
             await addTransaction(draft);
+            await refreshBalances();
           }}
         />
       )}
@@ -271,6 +293,7 @@ export default function FinancesPage() {
           teams={teams}
           onSubmit={async (draft) => {
             await createTransferTx(draft);
+            await refreshBalances();
           }}
         />
       )}
@@ -283,8 +306,10 @@ export default function FinancesPage() {
           accounts={accounts}
           teams={teams}
           categories={categories}
+          alreadyRefunded={refundedByTx.get(popupTx.id) ?? 0}
           onDelete={async (tx) => {
             await removeTransaction(tx.id);
+            await refreshBalances();
           }}
           onRefund={handleRefund}
           onInvoice={(tx) => {
