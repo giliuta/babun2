@@ -2,10 +2,10 @@
 
 // /finances — finance_transactions ledger view.
 //
-// Home redesign (STORY-062 Slice 1): single-team scope + overview
-// (Счета · Доход/Расход · Долги|Прибыль) + inline accounts panel +
-// header-less feed. Reuses the existing Supabase hooks + ledger-compute;
-// entry sheets stay wired (Slice 2 replaces them with one «Операция»).
+// Single-team scope + overview (Счета · Доход/Расход · Долги|Прибыль) +
+// inline accounts panel + header-less feed + analytics popup. One
+// «Операция» entry (income/expense, templates, receipt). Reuses the
+// Supabase hooks in lib/finance/hooks + ledger-compute.
 
 import { useMemo, useState, useCallback, useEffect } from "react";
 import PageHeader from "@/components/layout/PageHeader";
@@ -278,7 +278,7 @@ export default function FinancesPage() {
         </div>
       </div>
 
-      {/* Sticky bottom action bar (Slice 1 keeps 3 buttons; Slice 2 → one «Операция») */}
+      {/* Sticky bottom action bar — one «Операция» entry */}
       <div
         className="fixed left-0 right-0 bottom-[64px] z-30 px-3 pt-2 pb-2 bg-[var(--surface-card)]/95 backdrop-blur border-t border-[var(--separator)]"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}

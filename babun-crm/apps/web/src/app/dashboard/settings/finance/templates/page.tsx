@@ -1,8 +1,8 @@
 "use client";
 
-// Templates CRUD for the +Расход / +Доход chip-row. Each template is
-// a pre-filled shortcut (Аренда €1500, ЗП Юре €800, Чаевые €20). The
-// chip-row in AddTransactionSheet reads from this list.
+// Templates CRUD for the «Операция» quick-entry chip-row. Each template
+// is a pre-filled shortcut (Аренда €1500, ЗП Юре €800, Чаевые €20). The
+// chip-row in OperationSheet reads from this list.
 
 import { useState } from "react";
 import PageHeader from "@/components/layout/PageHeader";
