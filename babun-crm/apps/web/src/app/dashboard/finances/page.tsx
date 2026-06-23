@@ -14,6 +14,7 @@ import { Settings } from "@babun/shared/icons";
 import {
   useAppointments,
   useClients,
+  useServices,
   useTeams,
   useTenantId,
 } from "@/components/layout/DashboardClientLayout";
@@ -21,7 +22,7 @@ import FinanceOverview, { type HomeView } from "@/components/finance/FinanceOver
 import AccountsPanel from "@/components/finance/AccountsPanel";
 import DebtorsList from "@/components/finance/DebtorsList";
 import TransactionsFeed from "@/components/finance/TransactionsFeed";
-import AddTransactionSheet from "@/components/finance/AddTransactionSheet";
+import OperationSheet from "@/components/finance/OperationSheet";
 import TransferSheet from "@/components/finance/TransferSheet";
 import TransactionPopup from "@/components/finance/TransactionPopup";
 import InvoiceSheet from "@/components/finance/InvoiceSheet";
@@ -29,7 +30,6 @@ import AddAccountSheet from "@/components/finance/AddAccountSheet";
 import {
   useAccounts,
   useFinanceTransactions,
-  useFinanceTemplates,
   useFinanceCategories,
 } from "@/lib/finance/hooks";
 import {
@@ -48,6 +48,7 @@ export default function FinancesPage() {
   const { teams } = useTeams();
   const { appointments } = useAppointments();
   const { clients } = useClients();
+  const { services } = useServices();
   const router = useRouter();
 
   // ─── Scope: one active team at a time (mockup Север/Юг) ─────────────
@@ -89,7 +90,6 @@ export default function FinancesPage() {
     transfer: createTransferTx,
     refresh: refreshTransactions,
   } = useFinanceTransactions(tenantId, range, listOpts);
-  const { templates } = useFinanceTemplates(tenantId);
   const { categories } = useFinanceCategories(tenantId);
 
   const totals = useMemo(
@@ -136,7 +136,7 @@ export default function FinancesPage() {
   );
 
   // ─── Action sheets state ────────────────────────────────────────────
-  const [addKind, setAddKind] = useState<"income" | "expense" | null>(null);
+  const [operationOpen, setOperationOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [popupTx, setPopupTx] = useState<FinanceTransaction | null>(null);
   const [invoiceTx, setInvoiceTx] = useState<FinanceTransaction | null>(null);
@@ -222,37 +222,27 @@ export default function FinancesPage() {
         className="fixed left-0 right-0 bottom-[64px] z-30 px-3 pt-2 pb-2 bg-[var(--surface-card)]/95 backdrop-blur border-t border-[var(--separator)]"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="max-w-lg mx-auto flex gap-2">
-          <ActionButton
-            tone="income"
-            label="+ Доход"
-            onClick={() => setAddKind("income")}
-          />
-          <ActionButton
-            tone="expense"
-            label="+ Расход"
-            onClick={() => setAddKind("expense")}
-          />
-          <ActionButton
-            tone="transfer"
-            label="↔ Перевод"
-            onClick={() => setTransferOpen(true)}
-            disabled={accounts.length < 2}
-          />
+        <div className="max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={() => setOperationOpen(true)}
+            className="w-full h-12 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--label-on-accent)] text-[16px] font-semibold inline-flex items-center justify-center gap-2 active:scale-[0.98] transition"
+          >
+            <span aria-hidden className="text-[20px] leading-none">＋</span> Операция
+          </button>
         </div>
       </div>
 
-      {addKind && (
-        <AddTransactionSheet
+      {operationOpen && (
+        <OperationSheet
           open
-          onClose={() => setAddKind(null)}
-          kind={addKind}
-          tenantId={tenantId}
-          accounts={accounts}
-          teams={teams}
+          onClose={() => setOperationOpen(false)}
+          teamId={scopeTeamId}
+          accounts={scopedAccounts}
           categories={categories}
-          templates={templates}
-          defaultBrigadeId={scopeTeamId ?? undefined}
+          appointments={appointments}
+          clients={clients}
+          services={services}
           onSubmit={async (draft) => {
             await addTransaction(draft);
           }}
@@ -316,31 +306,4 @@ export default function FinancesPage() {
   );
 }
 
-function ActionButton({
-  tone,
-  label,
-  onClick,
-  disabled,
-}: {
-  tone: "income" | "expense" | "transfer";
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  const cls =
-    tone === "income"
-      ? "bg-[var(--system-green)] text-[var(--label-on-accent)]"
-      : tone === "expense"
-        ? "bg-[var(--system-red)] text-[var(--label-on-accent)]"
-        : "bg-[var(--accent)] text-[var(--label-on-accent)]";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex-1 h-10 rounded-[var(--radius-pill)] text-[13px] font-semibold active:scale-[0.98] disabled:opacity-50 ${cls}`}
-    >
-      {label}
-    </button>
-  );
-}
+// Entry is now a single «Операция» button → OperationSheet (segment inside).
