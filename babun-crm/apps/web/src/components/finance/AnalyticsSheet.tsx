@@ -15,6 +15,12 @@ import {
   breakdownByBrigade,
   type PeriodTotals,
 } from "@/lib/finance/ledger-compute";
+import {
+  buildCsv,
+  downloadCsv,
+  FINANCE_CSV_COLUMNS,
+  type FinanceCsvRow,
+} from "@/lib/finance/csv-export";
 import type { PeriodRange } from "@/lib/finance/period";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 import type { Team } from "@babun/shared/local/masters";
@@ -93,6 +99,29 @@ export default function AnalyticsSheet({
       .sort((a, b) => b.amount - a.amount);
   }, [scopedTx, categories]);
   const maxCat = Math.max(1, ...expenseCats.map((c) => c.amount));
+
+  const handleExportCsv = () => {
+    const teamName = (id: string | null) =>
+      (id && teams.find((t) => t.id === id)?.name) || "—";
+    const rows: FinanceCsvRow[] = scopedTx
+      .filter((t) => t.type === "income" || t.type === "expense" || t.type === "refund")
+      .map((t) => ({
+        dateKey: t.occurred_on,
+        type: t.type === "expense" ? "expense" : "income",
+        teamName: teamName(t.team_id),
+        description:
+          t.type === "expense"
+            ? (t.category_id && categories.find((c) => c.id === t.category_id)?.name) ||
+              t.notes ||
+              "Расход"
+            : t.type === "refund"
+              ? `Возврат: ${incomeLabel(t, categories, services, appointments)}`
+              : incomeLabel(t, categories, services, appointments),
+        amount: t.amount,
+      }));
+    const csv = buildCsv(FINANCE_CSV_COLUMNS, rows);
+    downloadCsv(csv, `finance-${range.from}_${range.to}`);
+  };
 
   if (!open) return null;
 
@@ -197,6 +226,15 @@ export default function AnalyticsSheet({
             border
           />
         </div>
+
+        {/* Export */}
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="w-full h-11 rounded-[var(--radius-pill)] text-[13px] font-semibold border border-[var(--separator)] bg-[var(--surface-card)] text-[var(--label)] inline-flex items-center justify-center gap-2 active:scale-[0.98] transition"
+        >
+          ⬇ Экспорт в CSV (Excel)
+        </button>
       </div>
     </DialogModal>
   );
