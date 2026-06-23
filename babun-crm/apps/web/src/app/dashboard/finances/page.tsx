@@ -2,24 +2,24 @@
 
 // /finances — finance_transactions ledger view.
 //
-// Phases C + D of the redesign (see /root/.claude/plans/story-moonlit-biscuit.md).
-// Replaces the legacy localStorage-backed FinanceTabs/useFinanceData
-// stack with a clean ledger view fed entirely by Supabase, plus the
-// write-side action sheets (+Доход / +Расход / +Перевод) and the
-// transaction detail popup (Удалить / Создать возврат).
+// Home redesign (STORY-062 Slice 1): single-team scope + overview
+// (Счета · Доход/Расход · Долги|Прибыль) + inline accounts panel +
+// header-less feed. Reuses the existing Supabase hooks + ledger-compute;
+// entry sheets stay wired (Slice 2 replaces them with one «Операция»).
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useRouter } from "next/navigation";
 import { Settings } from "@babun/shared/icons";
 import {
   useAppointments,
+  useClients,
   useTeams,
   useTenantId,
 } from "@/components/layout/DashboardClientLayout";
-import FinanceHeader from "@/components/finance/FinanceHeader";
-import AccountsBlock from "@/components/finance/AccountsBlock";
-import BrigadeBreakdownBlock from "@/components/finance/BrigadeBreakdownBlock";
+import FinanceOverview, { type HomeView } from "@/components/finance/FinanceOverview";
+import AccountsPanel from "@/components/finance/AccountsPanel";
+import DebtorsList from "@/components/finance/DebtorsList";
 import TransactionsFeed from "@/components/finance/TransactionsFeed";
 import AddTransactionSheet from "@/components/finance/AddTransactionSheet";
 import TransferSheet from "@/components/finance/TransferSheet";
@@ -37,18 +37,28 @@ import {
   type PeriodKind,
   type PeriodRange,
 } from "@/lib/finance/period";
-import { computePeriodTotals } from "@/lib/finance/ledger-compute";
+import {
+  computePeriodTotals,
+  computeAccountBalance,
+} from "@/lib/finance/ledger-compute";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 
 export default function FinancesPage() {
   const tenantId = useTenantId();
   const { teams } = useTeams();
   const { appointments } = useAppointments();
-
+  const { clients } = useClients();
   const router = useRouter();
+
+  // ─── Scope: one active team at a time (mockup Север/Юг) ─────────────
+  const [scopeTeamId, setScopeTeamId] = useState<string | null>(null);
+  useEffect(() => {
+    if (scopeTeamId === null && teams.length > 0) setScopeTeamId(teams[0].id);
+  }, [teams, scopeTeamId]);
+
   const [period, setPeriod] = useState<PeriodKind>("month");
   const [customRange, setCustomRange] = useState<PeriodRange | null>(null);
-  const [selectedBrigadeIds, setSelectedBrigadeIds] = useState<string[]>([]);
+  const [homeView, setHomeView] = useState<HomeView>("all");
 
   const range = useMemo(
     () =>
@@ -62,9 +72,13 @@ export default function FinancesPage() {
     setPeriod("custom");
   }, []);
 
+  const brigadeFilter = useMemo(
+    () => (scopeTeamId ? [scopeTeamId] : []),
+    [scopeTeamId],
+  );
   const listOpts = useMemo(
-    () => (selectedBrigadeIds.length > 0 ? { brigadeIds: selectedBrigadeIds } : {}),
-    [selectedBrigadeIds],
+    () => (scopeTeamId ? { brigadeIds: [scopeTeamId] } : {}),
+    [scopeTeamId],
   );
 
   const { accounts, add: addAccount } = useAccounts(tenantId);
@@ -83,23 +97,43 @@ export default function FinancesPage() {
       computePeriodTotals({
         transactions,
         appointments,
-        brigadeFilter: selectedBrigadeIds,
+        brigadeFilter,
         fromDate: range.from,
         toDate: range.to,
       }),
-    [transactions, appointments, selectedBrigadeIds, range.from, range.to],
+    [transactions, appointments, brigadeFilter, range.from, range.to],
   );
 
-  const handleToggleBrigade = useCallback((brigadeId: string) => {
-    setSelectedBrigadeIds((prev) =>
-      prev.includes(brigadeId)
-        ? prev.filter((id) => id !== brigadeId)
-        : [...prev, brigadeId],
-    );
-  }, []);
-  const handleBrigadeTap = useCallback((brigadeId: string) => {
-    setSelectedBrigadeIds([brigadeId]);
-  }, []);
+  const scopedAccounts = useMemo(
+    () =>
+      scopeTeamId
+        ? accounts.filter((a) => a.brigade_id === scopeTeamId)
+        : accounts,
+    [accounts, scopeTeamId],
+  );
+  const acctTotal = useMemo(
+    () =>
+      scopedAccounts.reduce(
+        (s, a) => s + computeAccountBalance(a, transactions),
+        0,
+      ),
+    [scopedAccounts, transactions],
+  );
+
+  const feedTx = useMemo(() => {
+    if (homeView === "income")
+      return transactions.filter(
+        (t) => t.type === "income" || t.type === "refund",
+      );
+    if (homeView === "expense")
+      return transactions.filter((t) => t.type === "expense");
+    return transactions;
+  }, [transactions, homeView]);
+
+  const toggleView = useCallback(
+    (v: HomeView) => setHomeView((prev) => (prev === v ? "all" : v)),
+    [],
+  );
 
   // ─── Action sheets state ────────────────────────────────────────────
   const [addKind, setAddKind] = useState<"income" | "expense" | null>(null);
@@ -107,9 +141,6 @@ export default function FinancesPage() {
   const [popupTx, setPopupTx] = useState<FinanceTransaction | null>(null);
   const [invoiceTx, setInvoiceTx] = useState<FinanceTransaction | null>(null);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
-
-  const defaultBrigadeId =
-    selectedBrigadeIds.length === 1 ? selectedBrigadeIds[0] : undefined;
 
   const handleRefund = useCallback(
     async (tx: FinanceTransaction, amount: number) => {
@@ -143,44 +174,50 @@ export default function FinancesPage() {
         }
       />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)] pb-[120px]">
-        <FinanceHeader
+        <FinanceOverview
           teams={teams}
-          selectedBrigadeIds={selectedBrigadeIds}
-          onToggleBrigade={handleToggleBrigade}
+          scopeTeamId={scopeTeamId}
+          onScopeChange={setScopeTeamId}
           period={period}
           onPeriodChange={setPeriod}
           range={range}
           onCustomRange={handleCustomRange}
           totals={totals}
+          acctTotal={acctTotal}
+          view={homeView}
+          onTapAccounts={() => toggleView("accounts")}
+          onTapIncome={() => toggleView("income")}
+          onTapExpense={() => toggleView("expense")}
+          onTapDebt={() => toggleView("debt")}
         />
 
-        <BrigadeBreakdownBlock
-          teams={
-            selectedBrigadeIds.length === 0
-              ? teams
-              : teams.filter((t) => selectedBrigadeIds.includes(t.id))
-          }
-          transactions={transactions}
-          onBrigadeTap={handleBrigadeTap}
-        />
-
-        <AccountsBlock
-          accounts={accounts}
-          transactions={transactions}
-          teams={teams}
-          selectedBrigadeIds={selectedBrigadeIds}
-          onAddAccount={() => setAddAccountOpen(true)}
-        />
-
-        <TransactionsFeed
-          transactions={transactions}
-          accounts={accounts}
-          teams={teams}
-          onTxTap={setPopupTx}
-        />
+        {homeView === "accounts" ? (
+          <AccountsPanel
+            accounts={scopedAccounts}
+            transactions={transactions}
+            onTransfer={() => setTransferOpen(true)}
+            onAddAccount={() => setAddAccountOpen(true)}
+            transferDisabled={accounts.length < 2}
+          />
+        ) : homeView === "debt" ? (
+          <DebtorsList
+            appointments={appointments}
+            clients={clients}
+            teamId={scopeTeamId}
+            fromDate={range.from}
+            toDate={range.to}
+          />
+        ) : (
+          <TransactionsFeed
+            transactions={feedTx}
+            accounts={accounts}
+            teams={teams}
+            onTxTap={setPopupTx}
+          />
+        )}
       </div>
 
-      {/* Sticky bottom action bar */}
+      {/* Sticky bottom action bar (Slice 1 keeps 3 buttons; Slice 2 → one «Операция») */}
       <div
         className="fixed left-0 right-0 bottom-[64px] z-30 px-3 pt-2 pb-2 bg-[var(--surface-card)]/95 backdrop-blur border-t border-[var(--separator)]"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
@@ -215,7 +252,7 @@ export default function FinancesPage() {
           teams={teams}
           categories={categories}
           templates={templates}
-          defaultBrigadeId={defaultBrigadeId}
+          defaultBrigadeId={scopeTeamId ?? undefined}
           onSubmit={async (draft) => {
             await addTransaction(draft);
           }}
@@ -259,8 +296,6 @@ export default function FinancesPage() {
           onClose={() => setInvoiceTx(null)}
           transaction={invoiceTx}
           onIssued={() => {
-            // The route already linked invoice_id to the tx; refresh so
-            // the «Выставить инвойс» button disappears from popup.
             void refreshTransactions();
           }}
         />
@@ -271,7 +306,7 @@ export default function FinancesPage() {
           open
           onClose={() => setAddAccountOpen(false)}
           teams={teams}
-          defaultBrigadeId={defaultBrigadeId}
+          defaultBrigadeId={scopeTeamId ?? undefined}
           onSubmit={async (draft) => {
             await addAccount(draft);
           }}
