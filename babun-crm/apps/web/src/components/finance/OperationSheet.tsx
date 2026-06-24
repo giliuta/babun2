@@ -7,13 +7,17 @@
 //  • Расход — category + free comment.
 // Submits the existing TransactionDraft via the page's insertTransaction.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DialogModal from "@/components/appointment/DialogModal";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/imageCompress";
+import { uploadReceipt } from "@babun/shared/db/repositories/day-extra-receipts";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { Account } from "@babun/shared/local/finance/account";
 import type { PaymentMethod } from "@babun/shared/local/finance/transaction";
 import type { FinanceCategory } from "@babun/shared/db/repositories/finance-categories";
 import type { TransactionDraft } from "@babun/shared/db/repositories/finance-transactions";
+import type { FinanceTemplate } from "@babun/shared/local/finance/template";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { Client } from "@babun/shared/local/clients";
 import type { Service } from "@babun/shared/local/services";
@@ -21,10 +25,13 @@ import type { Service } from "@babun/shared/local/services";
 interface OperationSheetProps {
   open: boolean;
   onClose: () => void;
+  tenantId: string;
   teamId: string | null;
   /** Accounts already scoped to the active team. */
   accounts: Account[];
   categories: FinanceCategory[];
+  /** Quick-entry shortcuts curated in Настройки → Финансы → Шаблоны. */
+  templates?: FinanceTemplate[];
   appointments: Appointment[];
   clients: Client[];
   services: Service[];
@@ -60,9 +67,11 @@ function shortDate(ymd: string): string {
 export default function OperationSheet({
   open,
   onClose,
+  tenantId,
   teamId,
   accounts,
   categories,
+  templates = [],
   appointments,
   clients,
   services,
@@ -80,7 +89,10 @@ export default function OperationSheet({
   const [clientId, setClientId] = useState<string | null>(null);
   const [addingCat, setAddingCat] = useState(false);
   const [newCat, setNewCat] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -95,9 +107,36 @@ export default function OperationSheet({
       setClientId(null);
       setAddingCat(false);
       setNewCat("");
+      setReceiptUrl(null);
+      setUploading(false);
       setSubmitting(false);
     }
   }, [open, accounts]);
+
+  const handleReceiptPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const blob = await compressImage(file);
+      const extraId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `tx-${Date.now()}`;
+      const path = await uploadReceipt(getSupabaseBrowser(), {
+        tenantId,
+        extraId,
+        file: blob,
+        fileName: file.name,
+      });
+      setReceiptUrl(path);
+    } catch (err) {
+      console.error("uploadReceipt failed", err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const visibleCategories = useMemo(
     () => categories.filter((c) => c.type === type),
@@ -143,6 +182,23 @@ export default function OperationSheet({
     }
   };
 
+  const applyTemplate = (t: FinanceTemplate) => {
+    setType(t.kind);
+    setAmount(t.amount ? String(t.amount) : "");
+    setCategoryId(t.category_id);
+    setAddingCat(false);
+    setNewCat("");
+    if (t.payment_method) setMethod(t.payment_method);
+    // Only adopt the template's account if it exists in the active scope.
+    if (t.account_id && accounts.some((a) => a.id === t.account_id)) {
+      setAccountId(t.account_id);
+    }
+    if (t.kind === "expense") {
+      setApptId(null);
+      setClientId(null);
+    }
+  };
+
   const numericAmount = useMemo(() => {
     const parsed = parseFloat(amount.replace(",", "."));
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
@@ -165,6 +221,7 @@ export default function OperationSheet({
               appointment_id: apptId,
               payment_method: method,
               occurred_on: date,
+              receipt_url: receiptUrl,
             }
           : {
               type: "expense",
@@ -175,6 +232,7 @@ export default function OperationSheet({
               payment_method: method,
               notes: comment.trim() || null,
               occurred_on: date,
+              receipt_url: receiptUrl,
             };
       await onSubmit(draft);
       onClose();
@@ -270,6 +328,31 @@ export default function OperationSheet({
           <SegBtn label="Доход" active={type === "income"} color="var(--system-green)" onClick={() => switchType("income")} />
           <SegBtn label="Расход" active={type === "expense"} color="var(--system-red)" onClick={() => switchType("expense")} />
         </div>
+
+        {/* Quick-entry templates — tap fills the form */}
+        {templates.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
+            {templates.map((t) => {
+              const green = t.kind === "income";
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => applyTemplate(t)}
+                  className="flex-shrink-0 h-8 pl-3 pr-2.5 rounded-full text-[13px] font-medium bg-[var(--fill-tertiary)] text-[var(--label)] inline-flex items-center gap-1.5 active:scale-[0.97] transition"
+                >
+                  <span className="truncate max-w-[120px]">{t.name}</span>
+                  <span
+                    className="tabular-nums font-semibold"
+                    style={{ color: green ? "var(--system-green)" : "var(--system-red)" }}
+                  >
+                    {green ? "+" : "−"}{formatEUR(t.amount)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Amount — native numeric keyboard */}
         <div className="flex items-center justify-center gap-1 py-1">
@@ -373,6 +456,30 @@ export default function OperationSheet({
               </Chip>
             ))}
           </ChipRow>
+        </Field>
+
+        {/* Receipt photo — optional, stored on the transaction */}
+        <Field label="Чек">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleReceiptPick}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full h-11 rounded-[10px] border border-dashed border-[var(--separator)] bg-[var(--fill-tertiary)] text-[13px] font-medium text-[var(--label-secondary)] inline-flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-60"
+          >
+            {uploading
+              ? "Загрузка…"
+              : receiptUrl
+                ? "✓ Чек прикреплён · заменить"
+                : "📎 Прикрепить фото чека"}
+          </button>
         </Field>
       </div>
     </DialogModal>

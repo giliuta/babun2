@@ -19,8 +19,9 @@
 //     link_to_tx_id?:   uuid | null     // if set: set finance_transactions.invoice_id
 //   }
 //
-// Returns: { invoice, lines }. The PDF is generated and uploaded in
-// a separate phase (see Phase F).
+// Returns: { invoice, lines }. The PDF is generated client-side on
+// demand (InvoiceSheet → generateLedgerInvoicePDF) and downloaded by the
+// user; `pdf_url` stays null until/unless we add server-side archival.
 
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase/server";

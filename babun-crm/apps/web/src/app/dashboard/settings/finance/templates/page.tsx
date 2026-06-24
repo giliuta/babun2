@@ -1,8 +1,8 @@
 "use client";
 
-// Templates CRUD for the +Расход / +Доход chip-row. Each template is
-// a pre-filled shortcut (Аренда €1500, ЗП Юре €800, Чаевые €20). The
-// chip-row in AddTransactionSheet reads from this list.
+// Templates CRUD for the «Операция» quick-entry chip-row. Each template
+// is a pre-filled shortcut (Аренда €1500, ЗП Юре €800, Чаевые €20). The
+// chip-row in OperationSheet reads from this list.
 
 import { useState } from "react";
 import PageHeader from "@/components/layout/PageHeader";
@@ -36,7 +36,7 @@ export default function FinanceTemplatesPage() {
 
   return (
     <>
-      <PageHeader title="Шаблоны транзакций" backHref="/dashboard/settings" />
+      <PageHeader title="Шаблоны операций" backHref="/dashboard/settings/finance" />
       <div className="flex-1 overflow-y-auto bg-[var(--surface-grouped)]">
         <div className="max-w-xl mx-auto px-4 py-4 space-y-3">
           <div className="text-[12px] text-[var(--label-secondary)] leading-snug">
@@ -163,6 +163,7 @@ function TemplateEditor({
   const [brigadeId, setBrigadeId] = useState(initial?.brigade_id ?? "");
   const [accountId, setAccountId] = useState(initial?.account_id ?? "");
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? "");
+  const [confirmDel, setConfirmDel] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const numericAmount = parseFloat(amount.replace(",", ".")) || 0;
@@ -193,7 +194,10 @@ function TemplateEditor({
 
   const handleDelete = async () => {
     if (!onDelete || busy) return;
-    if (!confirm("Удалить шаблон?")) return;
+    if (!confirmDel) {
+      setConfirmDel(true);
+      return;
+    }
     setBusy(true);
     try {
       await onDelete();
@@ -214,9 +218,13 @@ function TemplateEditor({
               type="button"
               onClick={handleDelete}
               disabled={busy}
-              className="h-12 px-4 rounded-[var(--radius-pill)] text-[13px] font-semibold text-[var(--system-red)] border border-[var(--system-red)]/40 disabled:opacity-50"
+              className={`h-12 px-4 rounded-[var(--radius-pill)] text-[13px] font-semibold disabled:opacity-50 transition-colors ${
+                confirmDel
+                  ? "bg-[var(--system-red)] text-[var(--label-on-accent)]"
+                  : "text-[var(--system-red)] border border-[var(--system-red)]/40"
+              }`}
             >
-              Удалить
+              {confirmDel ? "Точно?" : "Удалить"}
             </button>
           )}
           <button

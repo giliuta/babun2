@@ -2,6 +2,7 @@
 // the /finances page passes in a window of transactions + the active
 // accounts + the appointment list and gets back ready numbers.
 
+import { signedAmount } from "@babun/shared/local/finance/transaction";
 import type {
   FinanceTransaction,
   TransactionType,
@@ -16,10 +17,6 @@ export interface PeriodTotals {
   expectedProfit: number; // planned-but-not-yet-paid appointments minus expense
   debt: number;     // completed-but-unpaid appointments
 }
-
-const isIncome = (t: FinanceTransaction) => t.type === "income";
-const isRefund = (t: FinanceTransaction) => t.type === "refund";
-const isExpense = (t: FinanceTransaction) => t.type === "expense";
 
 export interface ComputePeriodArgs {
   transactions: FinanceTransaction[];
@@ -38,9 +35,9 @@ export function computePeriodTotals(args: ComputePeriodArgs): PeriodTotals {
   let income = 0;
   let expense = 0;
   for (const t of txInBrigades) {
-    if (isIncome(t)) income += t.amount;
-    else if (isRefund(t)) income += t.amount; // already negative for refunds
-    else if (isExpense(t)) expense += t.amount;
+    // income column folds refunds in as negatives via signedAmount
+    if (t.type === "income" || t.type === "refund") income += signedAmount(t);
+    else if (t.type === "expense") expense += t.amount;
     // transfers net to zero across pair — ignored in P&L
   }
   const profit = income - expense;
@@ -85,10 +82,7 @@ export function computeAccountBalance(
   let balance = account.opening_balance;
   for (const t of transactions) {
     if (t.account_id !== account.id) continue;
-    if (t.type === "income") balance += t.amount;
-    else if (t.type === "refund") balance += t.amount; // already negative
-    else if (t.type === "expense") balance -= t.amount;
-    else if (t.type === "transfer") balance += t.amount; // sign carried on row
+    balance += signedAmount(t);
   }
   return balance;
 }
@@ -113,7 +107,7 @@ export function breakdownByBrigade(
     if (!t.team_id) continue;
     const row = map.get(t.team_id);
     if (!row) continue;
-    if (t.type === "income" || t.type === "refund") row.income += t.amount;
+    if (t.type === "income" || t.type === "refund") row.income += signedAmount(t);
     else if (t.type === "expense") row.expense += t.amount;
   }
   for (const row of map.values()) row.profit = row.income - row.expense;
@@ -138,8 +132,8 @@ export function groupByDay(transactions: FinanceTransaction[]): DayGroup[] {
   for (const [date, list] of byDate.entries()) {
     let net = 0;
     for (const t of list) {
-      if (t.type === "income" || t.type === "refund") net += t.amount;
-      else if (t.type === "expense") net -= t.amount;
+      if (t.type === "transfer") continue; // transfers are balance-neutral
+      net += signedAmount(t);
     }
     groups.push({ date, transactions: list, net });
   }
