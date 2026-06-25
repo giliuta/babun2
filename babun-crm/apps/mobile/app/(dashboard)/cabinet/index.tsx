@@ -75,11 +75,11 @@ export default function CabinetHome() {
         <Group>
           <MenuRow icon={Scissors} label="Услуги" href="/cabinet/services" />
           <Sep />
-          <MenuRow icon={Users} label="Команды" soon />
+          <MenuRow icon={Users} label="Команды" href="/cabinet/teams" />
           <Sep />
-          <MenuRow icon={Wrench} label="Мастера" soon />
+          <MenuRow icon={Wrench} label="Мастера" href="/cabinet/masters" />
           <Sep />
-          <MenuRow icon={MapPin} label="Города" soon />
+          <MenuRow icon={MapPin} label="Города" href="/cabinet/cities" />
         </Group>
 
         <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
