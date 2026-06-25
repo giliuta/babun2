@@ -1,15 +1,20 @@
-import { useMemo } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { FlatList, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Search } from "lucide-react-native";
 import {
   CHANNEL_COLORS,
   CHANNEL_LABELS,
   type Chat,
+  type ChatChannel,
 } from "@babun/shared/local/chats";
 import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { COLORS, ICON } from "@/components/ui/tokens";
 import { useChats } from "@/features/chats/store";
+
+const CHANNELS: ChatChannel[] = ["whatsapp", "telegram", "instagram", "sms"];
 
 function lastPreview(c: Chat): string {
   const m = c.messages[c.messages.length - 1];
@@ -88,14 +93,23 @@ function ChatRow({ c, onPress }: { c: Chat; onPress: () => void }) {
 export default function ChatsListScreen() {
   const router = useRouter();
   const { data: chats = [], isLoading } = useChats();
+  const [query, setQuery] = useState("");
+  const [channel, setChannel] = useState<ChatChannel | null>(null);
 
-  const sorted = useMemo(
-    () =>
-      [...chats].sort((a, b) =>
-        b.last_message_at.localeCompare(a.last_message_at),
-      ),
-    [chats],
-  );
+  const sorted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...chats]
+      .filter((c) => (channel ? c.channel === channel : true))
+      .filter((c) => {
+        if (!q) return true;
+        const last = c.messages[c.messages.length - 1]?.text ?? "";
+        return (
+          c.contact_name.toLowerCase().includes(q) ||
+          last.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => b.last_message_at.localeCompare(a.last_message_at));
+  }, [chats, query, channel]);
   const unread = useMemo(
     () => chats.reduce((s, c) => s + c.unread_count, 0),
     [chats],
@@ -108,6 +122,45 @@ export default function ChatsListScreen() {
         title="Чаты"
         subtitle={`${chats.length} диалогов${unread > 0 ? ` · ${unread} непрочитанных` : ""}`}
       />
+
+      <View className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl bg-neutral-100 px-3">
+        <Search color={COLORS.faint} size={ICON.sm} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Поиск по имени или тексту"
+          placeholderTextColor={COLORS.faint}
+          clearButtonMode="while-editing"
+          className="flex-1 py-2.5 text-base text-neutral-900"
+        />
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, maxHeight: 48 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8, alignItems: "center" }}
+      >
+        {[null, ...CHANNELS].map((ch) => {
+          const active = channel === ch;
+          const color = ch ? CHANNEL_COLORS[ch] : COLORS.brand;
+          return (
+            <Pressable
+              key={ch ?? "all"}
+              onPress={() => setChannel(ch)}
+              className="rounded-full px-3.5 py-1.5"
+              style={{ backgroundColor: active ? color : "#f5f5f5" }}
+            >
+              <Text
+                className="text-sm font-medium"
+                style={{ color: active ? "#fff" : "#404040" }}
+              >
+                {ch ? CHANNEL_LABELS[ch] : "Все"}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
       {isLoading ? (
         <EmptyState state="loading" fill />
       ) : (

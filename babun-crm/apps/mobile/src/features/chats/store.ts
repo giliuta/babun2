@@ -33,10 +33,22 @@ export function useChat(id: string): Chat | null {
   return data?.find((c) => c.id === id) ?? null;
 }
 
-export function useSendMessage() {
+// Apply a transform to one chat, persist, and update the cache.
+function useChatMutation<V>(fn: (chats: Chat[], v: V) => Chat[]) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ chatId, text }: { chatId: string; text: string }) => {
+    mutationFn: async (v: V) => {
+      const next = fn(loadChats(), v);
+      saveChats(next);
+      return next;
+    },
+    onSuccess: (next) => qc.setQueryData(["chats"], next),
+  });
+}
+
+export function useSendMessage() {
+  return useChatMutation<{ chatId: string; text: string; replyToId?: string | null }>(
+    (chats, { chatId, text, replyToId }) => {
       const now = new Date().toISOString();
       const msg: ChatMessage = {
         id: msgId(),
@@ -45,34 +57,60 @@ export function useSendMessage() {
         status: "sent",
         content_type: "text",
         timestamp: now,
+        ...(replyToId ? { reply_to_id: replyToId } : {}),
       };
-      const next = loadChats().map((c) =>
+      return chats.map((c) =>
+        c.id === chatId
+          ? { ...c, messages: [...c.messages, msg], last_message_at: now, draft: "" }
+          : c,
+      );
+    },
+  );
+}
+
+export function useStarMessage() {
+  return useChatMutation<{ chatId: string; messageId: string }>(
+    (chats, { chatId, messageId }) =>
+      chats.map((c) =>
         c.id === chatId
           ? {
               ...c,
-              messages: [...c.messages, msg],
-              last_message_at: now,
-              draft: "",
+              messages: c.messages.map((m) =>
+                m.id === messageId ? { ...m, is_starred: !m.is_starred } : m,
+              ),
             }
           : c,
-      );
-      saveChats(next);
-      return next;
-    },
-    onSuccess: (next) => qc.setQueryData(["chats"], next),
-  });
+      ),
+  );
+}
+
+export function useDeleteMessage() {
+  return useChatMutation<{ chatId: string; messageId: string }>(
+    (chats, { chatId, messageId }) =>
+      chats.map((c) =>
+        c.id === chatId
+          ? { ...c, messages: c.messages.filter((m) => m.id !== messageId) }
+          : c,
+      ),
+  );
+}
+
+export function useSetDraft() {
+  return useChatMutation<{ chatId: string; draft: string }>(
+    (chats, { chatId, draft }) =>
+      chats.map((c) => (c.id === chatId ? { ...c, draft } : c)),
+  );
+}
+
+export function useLinkClient() {
+  return useChatMutation<{ chatId: string; clientId: string | null }>(
+    (chats, { chatId, clientId }) =>
+      chats.map((c) => (c.id === chatId ? { ...c, client_id: clientId } : c)),
+  );
 }
 
 export function useMarkRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (chatId: string) => {
-      const next = loadChats().map((c) =>
-        c.id === chatId ? { ...c, unread_count: 0 } : c,
-      );
-      saveChats(next);
-      return next;
-    },
-    onSuccess: (next) => qc.setQueryData(["chats"], next),
-  });
+  return useChatMutation<string>((chats, chatId) =>
+    chats.map((c) => (c.id === chatId ? { ...c, unread_count: 0 } : c)),
+  );
 }
