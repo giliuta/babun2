@@ -10,7 +10,10 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { X } from "lucide-react-native";
-import type { PaymentMethod } from "@babun/shared/local/finance/transaction";
+import type {
+  FinanceTransaction,
+  PaymentMethod,
+} from "@babun/shared/local/finance/transaction";
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { COLORS, ICON } from "@/components/ui/tokens";
@@ -18,8 +21,10 @@ import { formatYMD, parseYMD } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
 import {
   useAccounts,
+  useDeleteTransaction,
   useFinanceCategories,
   useInsertTransaction,
+  useUpdateTransaction,
 } from "./queries";
 
 const PAYMENTS: { value: PaymentMethod; label: string }[] = [
@@ -62,17 +67,22 @@ export function OperationSheet({
   visible,
   onClose,
   defaultTeamId,
+  transaction,
 }: {
   visible: boolean;
   onClose: () => void;
   defaultTeamId?: string | null;
+  transaction?: FinanceTransaction | null;
 }) {
   const { data: categories = [] } = useFinanceCategories();
   const { data: teams = [] } = useTeams();
   const { data: accounts = [] } = useAccounts();
   const insert = useInsertTransaction();
+  const update = useUpdateTransaction();
+  const del = useDeleteTransaction();
+  const isEdit = !!transaction;
 
-  const [type, setType] = useState<"income" | "expense">("expense");
+  const [type, setType] = useState<"income" | "expense" | "refund">("expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [teamId, setTeamId] = useState<string | null>(defaultTeamId ?? null);
@@ -83,18 +93,33 @@ export function OperationSheet({
 
   useEffect(() => {
     if (!visible) return;
-    setType("expense");
-    setAmount("");
-    setCategoryId(null);
-    setTeamId(defaultTeamId ?? null);
-    setAccountId(null);
-    setPayment("cash");
-    setDate(formatYMD(new Date()));
-    setNotes("");
-  }, [visible, defaultTeamId]);
+    if (transaction) {
+      setType(transaction.type === "transfer" ? "expense" : transaction.type);
+      setAmount(String(transaction.amount));
+      setCategoryId(transaction.category_id ?? null);
+      setTeamId(transaction.team_id ?? null);
+      setAccountId(transaction.account_id ?? null);
+      setPayment((transaction.payment_method as PaymentMethod) ?? "cash");
+      setDate(transaction.occurred_on);
+      setNotes(transaction.notes ?? "");
+    } else {
+      setType("expense");
+      setAmount("");
+      setCategoryId(null);
+      setTeamId(defaultTeamId ?? null);
+      setAccountId(null);
+      setPayment("cash");
+      setDate(formatYMD(new Date()));
+      setNotes("");
+    }
+  }, [visible, defaultTeamId, transaction?.id]);
 
+  // Refund relates to income, so it picks income categories.
   const cats = useMemo(
-    () => categories.filter((c) => c.type === type),
+    () =>
+      categories.filter((c) =>
+        type === "expense" ? c.type === "expense" : c.type === "income",
+      ),
     [categories, type],
   );
   // Accounts for the chosen brigade (or all when none selected).
@@ -104,13 +129,13 @@ export function OperationSheet({
   );
 
   const amountNum = Number(amount.replace(",", ".")) || 0;
-  const canSave = amountNum > 0 && !insert.isPending;
+  const busy = insert.isPending || update.isPending;
+  const canSave = amountNum > 0 && !busy;
   const isExpense = type === "expense";
 
   const save = async () => {
     try {
-      await insert.mutateAsync({
-        type,
+      const draft = {
         amount: amountNum,
         category_id: categoryId,
         team_id: teamId,
@@ -118,11 +143,31 @@ export function OperationSheet({
         payment_method: payment,
         notes: notes.trim() || null,
         occurred_on: date,
-      });
+      };
+      if (isEdit && transaction) {
+        await update.mutateAsync({ id: transaction.id, patch: draft });
+      } else {
+        await insert.mutateAsync({ type, ...draft });
+      }
       onClose();
     } catch (e) {
       Alert.alert("Ошибка", (e as Error).message);
     }
+  };
+
+  const remove = () => {
+    if (!transaction) return;
+    Alert.alert("Удалить операцию?", "", [
+      { text: "Отмена", style: "cancel" },
+      {
+        text: "Удалить",
+        style: "destructive",
+        onPress: async () => {
+          await del.mutateAsync(transaction.id);
+          onClose();
+        },
+      },
+    ]);
   };
 
   return (
@@ -139,35 +184,44 @@ export function OperationSheet({
               <X color={COLORS.body} size={ICON.md} />
             </Pressable>
             <Text className="flex-1 text-center text-base font-semibold text-neutral-900">
-              Операция
+              {isEdit ? "Операция" : "Новая операция"}
             </Text>
-            <View className="w-10" />
+            {isEdit ? (
+              <Pressable onPress={remove} hitSlop={8} className="w-10 items-center">
+                <Text className="text-sm font-medium text-danger">Удалить</Text>
+              </Pressable>
+            ) : (
+              <View className="w-10" />
+            )}
           </View>
 
           <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
             {/* type segmented */}
             <View className="mx-3 mt-3 flex-row rounded-xl bg-neutral-200 p-1">
-              {(["expense", "income"] as const).map((t) => {
+              {(["expense", "income", "refund"] as const).map((t) => {
                 const active = type === t;
+                const tone =
+                  t === "expense"
+                    ? "text-danger"
+                    : t === "income"
+                      ? "text-success"
+                      : "text-amber-700";
+                const label =
+                  t === "expense" ? "Расход" : t === "income" ? "Доход" : "Возврат";
                 return (
                   <Pressable
                     key={t}
+                    disabled={isEdit}
                     onPress={() => {
                       setType(t);
                       setCategoryId(null);
                     }}
-                    className={`flex-1 items-center rounded-lg py-2 ${active ? "bg-white" : ""}`}
+                    className={`flex-1 items-center rounded-lg py-2 ${active ? "bg-white" : ""} ${isEdit && !active ? "opacity-40" : ""}`}
                   >
                     <Text
-                      className={`text-sm font-semibold ${
-                        active
-                          ? t === "expense"
-                            ? "text-danger"
-                            : "text-success"
-                          : "text-neutral-500"
-                      }`}
+                      className={`text-sm font-semibold ${active ? tone : "text-neutral-500"}`}
                     >
-                      {t === "expense" ? "Расход" : "Доход"}
+                      {label}
                     </Text>
                   </Pressable>
                 );
@@ -310,10 +364,18 @@ export function OperationSheet({
 
           <View className="border-t border-neutral-200 bg-white px-4 pb-7 pt-3">
             <Button
-              label={isExpense ? "Добавить расход" : "Добавить доход"}
+              label={
+                isEdit
+                  ? "Сохранить"
+                  : isExpense
+                    ? "Добавить расход"
+                    : type === "income"
+                      ? "Добавить доход"
+                      : "Добавить возврат"
+              }
               onPress={save}
               disabled={!canSave}
-              loading={insert.isPending}
+              loading={busy}
             />
           </View>
         </View>

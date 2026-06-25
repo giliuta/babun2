@@ -53,11 +53,11 @@ function Metric({
   );
 }
 
-function TxRow({ tx, onDelete }: { tx: FinanceTransaction; onDelete: () => void }) {
+function TxRow({ tx, onPress }: { tx: FinanceTransaction; onPress: () => void }) {
   const signed = signedAmount(tx);
   return (
     <Pressable
-      onLongPress={onDelete}
+      onPress={onPress}
       className="flex-row items-center bg-white px-4 py-3 active:bg-neutral-50"
     >
       <View className="flex-1 pr-3">
@@ -81,6 +81,7 @@ export default function FinancesTab() {
   const [period, setPeriod] = useState<Period>(defaultPeriod());
   const [scope, setScope] = useState<string | null>(null);
   const [opOpen, setOpOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<FinanceTransaction | null>(null);
   const [periodOpen, setPeriodOpen] = useState(false);
 
   const router = useRouter();
@@ -95,7 +96,6 @@ export default function FinancesTab() {
     isLoading,
     error,
   } = useTransactions(period.from, period.to, scope ? [scope] : undefined);
-  const del = useDeleteTransaction();
 
   const { income, expense, profit } = useMemo(() => {
     let income = 0;
@@ -123,16 +123,6 @@ export default function FinancesTab() {
       }));
   }, [txs]);
 
-  const confirmDelete = (tx: FinanceTransaction) => {
-    Alert.alert("Удалить операцию?", formatEURSigned(signedAmount(tx)), [
-      { text: "Отмена", style: "cancel" },
-      {
-        text: "Удалить",
-        style: "destructive",
-        onPress: () => del.mutate(tx.id),
-      },
-    ]);
-  };
 
   const header = (
     <View>
@@ -237,7 +227,13 @@ export default function FinancesTab() {
             </View>
           )}
           renderItem={({ item }) => (
-            <TxRow tx={item} onDelete={() => confirmDelete(item)} />
+            <TxRow
+              tx={item}
+              onPress={() => {
+                setEditingTx(item);
+                setOpOpen(true);
+              }}
+            />
           )}
           ItemSeparatorComponent={() => <View className="ml-4 h-px bg-neutral-100" />}
           ListEmptyComponent={
@@ -250,7 +246,10 @@ export default function FinancesTab() {
       )}
 
       <Pressable
-        onPress={() => setOpOpen(true)}
+        onPress={() => {
+          setEditingTx(null);
+          setOpOpen(true);
+        }}
         className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
         style={{
           shadowColor: COLORS.brand,
@@ -264,8 +263,12 @@ export default function FinancesTab() {
 
       <OperationSheet
         visible={opOpen}
-        onClose={() => setOpOpen(false)}
+        onClose={() => {
+          setOpOpen(false);
+          setEditingTx(null);
+        }}
         defaultTeamId={scope}
+        transaction={editingTx}
       />
       <PeriodModal
         visible={periodOpen}

@@ -7,6 +7,7 @@ import {
   deleteTransaction,
   insertTransaction,
   listTransactionsForRange,
+  updateTransaction,
   type TransactionDraft,
 } from "@babun/shared/db/repositories/finance-transactions";
 import { listAccounts } from "@babun/shared/db/repositories/accounts";
@@ -66,6 +67,15 @@ export function useInsertTransaction() {
   return useMutation({
     mutationFn: (draft: TransactionDraft) =>
       insertTransaction(supabase, tenantId as string, draft),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+  });
+}
+
+export function useUpdateTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<TransactionDraft> }) =>
+      updateTransaction(supabase, id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
   });
 }
