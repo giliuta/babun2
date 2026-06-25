@@ -12,12 +12,13 @@ import { COLORS, ICON } from "@/components/ui/tokens";
 import { formatYMD, humanDay, parseYMD } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { DayView } from "@/features/calendar/DayView";
+import { MonthView } from "@/features/calendar/MonthView";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
 import { useTeams } from "@/features/reference/queries";
 import { useCalendarSettings } from "@/features/settings/local-settings";
 
-type ViewMode = "agenda" | "day";
+type ViewMode = "agenda" | "day" | "month";
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -231,18 +232,23 @@ export default function CalendarTab() {
     setSheetOpen(true);
   };
 
+  const MODE_LABEL: Record<ViewMode, string> = {
+    agenda: "Список",
+    day: "День",
+    month: "Месяц",
+  };
   const toggle = (
     <View className="flex-row rounded-lg bg-neutral-200 p-0.5">
-      {(["agenda", "day"] as const).map((m) => (
+      {(["agenda", "day", "month"] as const).map((m) => (
         <Pressable
           key={m}
           onPress={() => setMode(m)}
-          className={`rounded-md px-3 py-1 ${mode === m ? "bg-white" : ""}`}
+          className={`rounded-md px-2.5 py-1 ${mode === m ? "bg-white" : ""}`}
         >
           <Text
             className={`text-xs font-semibold ${mode === m ? "text-neutral-900" : "text-neutral-500"}`}
           >
-            {m === "agenda" ? "Список" : "День"}
+            {MODE_LABEL[m]}
           </Text>
         </Pressable>
       ))}
@@ -340,7 +346,7 @@ export default function CalendarTab() {
             />
           }
         />
-      ) : (
+      ) : mode === "day" ? (
         <View className="flex-1">
           <NavRow
             label={dayLabel}
@@ -364,6 +370,30 @@ export default function CalendarTab() {
             }
             startHour={calSettings?.workStartHour}
             endHour={calSettings?.workEndHour}
+          />
+        </View>
+      ) : (
+        <View className="flex-1">
+          <NavRow
+            label={monthLabel}
+            onPrev={() =>
+              setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))
+            }
+            onNext={() =>
+              setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))
+            }
+            showToday={!sameMonth(formatYMD(today), cursor)}
+            onToday={() => setCursor(startOfMonth(new Date()))}
+          />
+          {teamChips}
+          <MonthView
+            month={cursor}
+            appointments={monthAppts}
+            onPickDay={(d) => {
+              setDay(startOfDay(d));
+              setCursor(startOfMonth(d));
+              setMode("day");
+            }}
           />
         </View>
       )}
