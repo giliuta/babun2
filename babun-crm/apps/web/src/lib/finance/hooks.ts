@@ -60,7 +60,12 @@ export function useAccounts(tenantId: string): UseAccountsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -127,7 +132,12 @@ export function useAccountBalances(tenantId: string): UseAccountBalancesResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -172,7 +182,12 @@ export function useFinanceTransactions(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   // Stable key for opts so the effect only re-fires on real changes.
   const optsKey = JSON.stringify(opts);
@@ -280,7 +295,12 @@ export function useFinanceTemplates(tenantId: string): UseFinanceTemplatesResult
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);

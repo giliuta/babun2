@@ -1,0 +1,122 @@
+// PersonalBlock (mobile port of apps/web/.../blocks/PersonalBlock.tsx)
+// STORY-034 — Личное: Город · ДР · Email · Язык. Reference data for
+// SMS templates and birthday reminders; nothing here drives behavior.
+// Presentational only — receives client + update(), persists via the
+// composer's Supabase mutation.
+
+import { useEffect, useState } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
+import type { Client } from "@babun/shared/local/clients";
+
+interface PersonalBlockProps {
+  client: Client;
+  update: (patch: Partial<Client>) => void;
+}
+
+const LANG_OPTIONS: { value: string; label: string; flag: string }[] = [
+  { value: "ru", label: "RU", flag: "🇷🇺" },
+  { value: "en", label: "EN", flag: "🇬🇧" },
+  { value: "el", label: "EL", flag: "🇬🇷" },
+];
+
+// Tap-to-edit text field, saves on blur (matches the [id].tsx pattern).
+function EditableField({
+  value,
+  onSave,
+  placeholder,
+  keyboardType,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+  placeholder?: string;
+  keyboardType?: "default" | "email-address" | "numbers-and-punctuation";
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  return (
+    <TextInput
+      value={draft}
+      onChangeText={setDraft}
+      onBlur={() => {
+        if (draft.trim() !== value) onSave(draft.trim());
+      }}
+      placeholder={placeholder}
+      placeholderTextColor="#a3a3a3"
+      keyboardType={keyboardType}
+      autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
+      className="h-9 flex-1 rounded-lg bg-neutral-100 px-2 text-[13px] text-neutral-900"
+    />
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View className="flex-row items-center gap-2">
+      <Text className="w-28 shrink-0 text-xs text-neutral-500">{label}</Text>
+      {children}
+    </View>
+  );
+}
+
+export function PersonalBlock({ client, update }: PersonalBlockProps) {
+  return (
+    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
+      <Text className="px-1 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+        Личное
+      </Text>
+      <View className="gap-2.5 px-1">
+        <Row label="Город">
+          <EditableField
+            value={client.city}
+            onSave={(v) => update({ city: v })}
+            placeholder="Пафос"
+          />
+        </Row>
+        <Row label="День рождения">
+          {/* No native date picker dependency assumed — plain YYYY-MM-DD
+              text input, matching the [id].tsx birthday field. */}
+          <EditableField
+            value={client.birthday}
+            onSave={(v) => update({ birthday: v })}
+            placeholder="ГГГГ-ММ-ДД"
+            keyboardType="numbers-and-punctuation"
+          />
+        </Row>
+        <Row label="Email">
+          <EditableField
+            value={client.email}
+            onSave={(v) => update({ email: v })}
+            placeholder="email@example.com"
+            keyboardType="email-address"
+          />
+        </Row>
+        <Row label="Язык">
+          <View className="flex-1 flex-row gap-1">
+            {LANG_OPTIONS.map((l) => {
+              const active = (client.language ?? "") === l.value;
+              return (
+                <Pressable
+                  key={l.value}
+                  onPress={() => update({ language: active ? "" : l.value })}
+                  className={`h-7 items-center justify-center rounded-full px-2.5 active:opacity-70 ${
+                    active ? "bg-brand" : "bg-neutral-100"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      active ? "text-white" : "text-neutral-500"
+                    }`}
+                  >
+                    {l.flag} {l.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Row>
+      </View>
+    </View>
+  );
+}
+
+export default PersonalBlock;

@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style data-omelette-injected>html,body{background:transparent}</style><script data-omelette-injected>(()=>{var j=[];var x=false;var S=30000;var f=3000;document.addEventListener("DOMContentLoaded",()=>{const H=window.Babel;const G="om-src-id";if(H&&H.registerPlugin&&!(H.availablePlugins&&H.availablePlugins[G])){H.registerPlugin(G,({types:Y})=>({visitor:{JSXOpeningElement(U,Q){const J=U.node;if(J.name&&J.name.type==="JSXMemberExpression")return;for(let V=0;V<J.attributes.length;V++){const L=J.attributes[V];if(L.type==="JSXAttribute"&&L.name&&L.name.name==="data-om-id")return}const W=Q.file&&Q.file.opts&&Q.file.opts.filename||"?";const Z=J.loc&&J.loc.start;const z=`jsx:${W}:${J.start??0}:${Z?Z.line:0}:${Z?Z.column+1:0}`;J.attributes.push(Y.jsxAttribute(Y.jsxIdentifier("data-om-id"),Y.stringLiteral(z)))}}}))}const k="om-text-extract";let A=false;if(x&&H&&H.registerPlugin&&!(H.availablePlugins&&H.availablePlugins[k])){const Y=window.React;if(Y&&Y.useSyncExternalStore&&Y.createElement){A=true;const U={};const Q=new Set;let J=0;window.__omTextO=U;window.__omTextSet=(z)=>{for(const V in z){const L=z[V];if(L==null)delete U[V];else U[V]=L}J++;Q.forEach((V)=>V())};const W=(z)=>{Q.add(z);return()=>Q.delete(z)};const Z=()=>J;window.__OmT=function z(V){Y.useSyncExternalStore(W,Z,Z);return Y.createElement("span",{"data-om-text":V.i,className:"__om-t"},V.i in U?U[V.i]:V.children)};H.registerPlugin(k,({types:z})=>{const V={style:1,script:1,noscript:1,textarea:1,title:1,option:1,text:1,tspan:1,textPath:1};const L={placeholder:1,alt:1,title:1,label:1,"aria-label":1,"aria-description":1,"aria-placeholder":1};const _=($,C)=>z.logicalExpression("??",z.memberExpression(z.logicalExpression("||",z.memberExpression(z.identifier("window"),z.identifier("__omTextO")),z.objectExpression([])),z.stringLiteral($),true),C);const E=($)=>$.file&&$.file.opts&&$.file.opts.filename||"?";const B=($)=>$.file&&$.file.code||"";const b=($,C)=>{const X=(F)=>F&&F.start!=null&&F.end!=null&&(F.type==="StringLiteral"||F.type==="TemplateLiteral"&&F.expressions.length===0)?[F.start,F.end]:null;const N=X(C);if(N)return N;if(C&&C.type==="Identifier"){const F=$.scope.getBinding(C.name);if(F&&F.constant&&F.path.node.type==="VariableDeclarator"){return X(F.path.node.init)}}return null};const M=($,C,X)=>{const N=$.node;let F=false;const w=(K,q)=>{F=true;return z.jsxElement(z.jsxOpeningElement(z.jsxIdentifier("__OmT"),[z.jsxAttribute(z.jsxIdentifier("i"),z.stringLiteral(K))],false),z.jsxClosingElement(z.jsxIdentifier("__OmT")),[q],false)};const D=N.children.map((K)=>{if(K.type==="JSXText"){if(K.start==null||K.end==null)return K;const q=X.slice(K.start,K.end);const R=q.length-q.trimStart().length;const m=q.length-q.trimEnd().length;if(R+m>=q.length)return K;return w(`txt:${C}:${K.start+R}:${K.end-m}`,K)}if(K.type==="JSXExpressionContainer"){const q=b($,K.expression);if(q)return w(`str:${C}:${q[0]}:${q[1]}`,K)}return K});if(F)N.children=D};return{visitor:{JSXOpeningElement($,C){const X=$.node;const N=E(C);const F={};for(let w=0;w<X.attributes.length;w++){const D=X.attributes[w];if(D.type!=="JSXAttribute"||!D.name)continue;const K=D.name.name;if(!L[K])continue;if(!D.value||D.value.type!=="StringLiteral")continue;if(D.value.start==null||D.value.end==null)continue;const q=`txt:${N}:${D.value.start}:${D.value.end}`;F[K]=q;D.value=z.jsxExpressionContainer(_(q,z.stringLiteral(D.value.value)))}if(Object.keys(F).length){X.attributes.push(z.jsxAttribute(z.jsxIdentifier("data-om-text-attrs"),z.stringLiteral(JSON.stringify(F))))}},JSXElement($,C){const X=$.node.openingElement;const N=X&&X.name&&X.name.name;if(N==="__OmT")return;if(typeof N==="string"&&V[N])return;M($,E(C),B(C))},JSXFragment($,C){M($,E(C),B(C))}}}})}}const u=A?["transform-react-jsx-source",G,k]:["transform-react-jsx-source",G];document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((Y,U)=>{const Q=Y.getAttribute("data-plugins")||"";const J=u.filter((W)=>Q.indexOf(W)<0);if(J.length){Y.setAttribute("data-plugins",Q?`${Q},${J.join(",")}`:J.join(","))}if(!Y.hasAttribute("data-filename")){Y.setAttribute("data-filename",Y.getAttribute("src")||`inline-${U}`)}})});var y=window.parent;if(y&&y!==window){const H=(Q,J)=>{try{y.postMessage({__omelette_log:true,type:Q,data:J},"*")}catch{}};["log","warn","error"].forEach((Q)=>{const J=console[Q];console[Q]=(...W)=>{const Z=W.map((z)=>{try{return typeof z==="object"?JSON.stringify(z):String(z)}catch{try{return String(z)}catch{return"[unstringifiable]"}}}).join(" ");H(Q,Z);J.apply(console,W)}});window.addEventListener("error",(Q)=>{const J=Q.target;if(J&&J!==window&&J.tagName){const W=J.src||J.href||"";H("resource_error",`${J.tagName} failed to load: ${W}`)}else{H("error",`${Q.message||"Unknown error"} at ${Q.filename||"?"}:${Q.lineno||0}:${Q.colno||0}`)}},true);window.addEventListener("unhandledrejection",(Q)=>{const J=Q.reason;const W=J instanceof Error?`${J.message} ${J.stack}`:String(J);H("error",`Unhandled rejection: ${W}`)});const G=()=>{try{y.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(document.readyState==="complete")G();else window.addEventListener("load",G);if(window.ResizeObserver)new ResizeObserver(G).observe(document.documentElement);const k={};let A=0;window.claude={complete(Q){return new Promise((J,W)=>{if(!j.length){W(new Error("claude.complete: no parent origin"));return}const Z=`c${++A}`;const z=()=>setTimeout(()=>{delete k[Z];W(new Error(`claude.complete: no data for ${S/1000}s`))},S);const V=z();k[Z]={resolve:J,reject:W,text:"",t:V,arm:z};try{for(const L of j){y.postMessage({__om_api:true,id:Z,body:Q},L)}}catch(L){clearTimeout(V);delete k[Z];W(L)}})}};const u={};let Y=0;window.omelette={writeFile:(Q,J)=>new Promise((W,Z)=>{if(!j.length){W();return}const z=`f${++Y}`;const V=setTimeout(()=>{delete u[z];W()},f);u[z]={resolve:W,reject:Z,t:V};try{for(const L of j){y.postMessage({__om_file:true,id:z,op:"write",path:Q,content:J},L)}}catch{clearTimeout(V);delete u[z];W()}})};const U=(Q)=>{try{return JSON.stringify(Q)}catch{return JSON.stringify(String(Q))}};window.addEventListener("message",(Q)=>{if(j.indexOf(Q.origin)<0)return;if(Q.source!==y)return;const J=Q.data;if(!J)return;if(J.type==="omelette-preview-refresh"){if(typeof J.token!=="string"||!/^[0-9a-f.-]+(\.(rc|pr-[0-9]+))?(\.[0-9]+\.[0-9a-f]{16})?$/.test(J.token))return;const z=Math.max(1,Math.floor((J.expiresAt||0)-Date.now()/1000));document.cookie="__Host-omelette-preview="+J.token+"; Path=/; Secure; SameSite=None; Partitioned; Max-Age="+z;return}if(J.__om_file_r){const z=u[J.id];if(!z)return;clearTimeout(z.t);delete u[J.id];if(J.ok)z.resolve();else z.reject(new Error(J.error||"write failed"));return}if(J.__om_api_r){const z=k[J.id];if(!z)return;if(J.error!=null){clearTimeout(z.t);delete k[J.id];z.reject(new Error(J.error));return}if(J.chunk!=null){clearTimeout(z.t);z.t=z.arm();z.text+=J.chunk;return}if(J.done){clearTimeout(z.t);delete k[J.id];z.resolve(J.text!=null?J.text:z.text);return}return}if(!J.__om_eval)return;const W=J;const Z=(z)=>{Q.source.postMessage({...z,__om_eval_r:1,id:W.id},Q.origin)};try{const z=(0,eval)(W.code);if(z&&typeof z.then==="function"){z.then((V)=>Z({ok:1,v:U(V)}),(V)=>Z({ok:0,e:String(V)}))}else{Z({ok:1,v:U(z)})}}catch(z){Z({ok:0,e:String(z)})}})}})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script>
+/* iOS-style С/До wheel picker (ported from Clients), self-contained: never
+   triggers a DC re-render — only commits on «Применить» via window.__dcComp. */
+(function(){
+  var M_NOM=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  var M_SH=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  var IH=30, YEARS=[]; for(var y=2024;y<=2030;y++) YEARS.push(y);
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function dim(y,mo){ return new Date(y,mo+1,0).getDate(); }
+  function parseYmd(s){ var a=String(s||'').split('-').map(Number); if(!a[0]){ var t=new Date(); return {y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}; } return {y:a[0],m:a[1]-1,d:a[2]}; }
+  function toYmd(st){ return st.y+'-'+pad(st.m+1)+'-'+pad(st.d); }
+  function fmtShort(st){ return st.d+' '+M_SH[st.m]; }
+  function fmtDMY(st){ return pad(st.d)+'.'+pad(st.m+1)+'.'+String(st.y).slice(2); }
+  function markCur(w,idx){ var os=w.querySelectorAll('.wopt'); for(var i=0;i<os.length;i++) os[i].classList.toggle('cur',+os[i].getAttribute('data-i')===idx); }
+  function makeWheel(w,count,label,initIdx,onCommit){
+    var html='<div class="wspacer"></div>';
+    for(var i=0;i<count;i++) html+='<div class="wopt" data-i="'+i+'">'+label(i)+'</div>';
+    html+='<div class="wspacer"></div>'; w.innerHTML=html;
+    var suppress=true,t; w.scrollTop=initIdx*IH; markCur(w,initIdx);
+    setTimeout(function(){ suppress=false; },180);
+    w.onscroll=function(){ var idx=Math.max(0,Math.min(count-1,Math.round(w.scrollTop/IH))); markCur(w,idx); if(suppress) return; clearTimeout(t); t=setTimeout(function(){ onCommit(idx); },90); };
+  }
+  function build(host){
+    var st={ from:parseYmd(host.getAttribute('data-from')), to:parseYmd(host.getAttribute('data-to')), active:'from' };
+    host.innerHTML=''
+      +'<div class="wseg"><button class="wseg-b on" data-e="from"><span class="k">С</span><span class="v" data-f="1"></span></button><button class="wseg-b" data-e="to"><span class="k">До</span><span class="v" data-t="1"></span></button></div>'
+      +'<div class="wheels"><div class="wheel wheel-day" data-d="1"></div><div class="wheel wheel-mon" data-m="1"></div><div class="wheel wheel-year" data-y="1"></div><div class="wband"></div></div>'
+      +'<button class="wdone" data-apply="1">Применить</button>';
+    var wF=host.querySelector('[data-f]'), wT=host.querySelector('[data-t]');
+    var dEl=host.querySelector('[data-d]'), mEl=host.querySelector('[data-m]'), yEl=host.querySelector('[data-y]');
+    function cur(){ return st[st.active]; }
+    function labels(){ wF.textContent=fmtDMY(st.from); wT.textContent=fmtDMY(st.to); }
+    function buildDay(){ var c=cur(); var max=dim(c.y,c.m); if(c.d>max)c.d=max; makeWheel(dEl,max,function(i){ return String(i+1); },c.d-1,function(i){ cur().d=i+1; labels(); }); }
+    function buildAll(){ buildDay(); makeWheel(mEl,12,function(i){ return M_NOM[i]; },cur().m,function(i){ cur().m=i; buildDay(); labels(); }); var yi=YEARS.indexOf(cur().y); makeWheel(yEl,YEARS.length,function(i){ return String(YEARS[i]); },yi<0?YEARS.length-1:yi,function(i){ cur().y=YEARS[i]; buildDay(); labels(); }); }
+    var segs=host.querySelectorAll('.wseg-b');
+    for(var i=0;i<segs.length;i++){ (function(b){ b.addEventListener('click',function(){ st.active=b.getAttribute('data-e'); for(var j=0;j<segs.length;j++) segs[j].classList.toggle('on',segs[j]===b); buildAll(); }); })(segs[i]); }
+    host.querySelector('[data-apply]').addEventListener('click',function(){ var f=toYmd(st.from),t=toYmd(st.to); if(f>t){ var z=f; f=t; t=z; } if(window.__dcComp&&window.__dcComp.applyCustomRange) window.__dcComp.applyCustomRange(f,t); });
+    labels(); buildAll();
+  }
+  function post(){ var hs=document.querySelectorAll('.fin-pcv'); for(var i=0;i<hs.length;i++){ if(hs[i].getAttribute('data-built')==='1') continue; hs[i].setAttribute('data-built','1'); try{ build(hs[i]); }catch(e){ console.error('wheel build',e); } } }
+  function hook(){ if(!window.__dcRender){ setTimeout(hook,40); return; } var orig=window.__dcRender; window.__dcRender=function(){ orig(); try{ post(); }catch(e){} }; post(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',hook); else hook();
+})();
+</script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{display:none}
+  @keyframes dimIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+  @keyframes pushIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .fcard:active{transform:scale(.98)}
+  .hide-scrollbar::-webkit-scrollbar{display:none}
+  .popup-dim{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.42);animation:dimIn .2s ease}
+  .popup-card{width:340px;max-width:100%;max-height:84vh;display:flex;flex-direction:column;background:var(--card);border-radius:20px;box-shadow:0 24px 64px -14px rgba(0,0,0,.45);overflow:hidden;animation:popIn .24s cubic-bezier(.2,.9,.3,1.25)}
+  .popup-head{flex:none;position:relative;display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 50px;border-bottom:.5px solid var(--sep)}
+  .popup-title{font-size:16px;font-weight:700}
+  .popup-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--fill);color:var(--l2);border:0;cursor:pointer}
+  .popup-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 18px}
+  .fin-pcv{padding:2px 2px 4px}
+  .wrange{display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:700;color:var(--label);padding:2px 0 12px}
+  .wrange .wa{color:var(--l3);font-weight:400}
+  .wseg{display:flex;gap:3px;background:var(--fill);border-radius:13px;padding:3px;margin:0 0 12px}
+  .wseg-b{flex:1;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;border:0;background:none;font-family:inherit;transition:background .15s}
+  .wseg-b.on{background:var(--card);box-shadow:var(--shadow)}
+  .wseg-b .k{font-size:11px;font-weight:600;color:var(--l3)}
+  .wseg-b.on .k{color:var(--accent)}
+  .wseg-b .v{font-size:15px;font-weight:700;color:var(--label)}
+  .wheels{position:relative;display:flex;height:150px}
+  .wheel{flex:1 1 auto;overflow-y:scroll;scroll-snap-type:y mandatory;text-align:center;-webkit-overflow-scrolling:touch;scrollbar-width:none;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%)}
+  .wheel::-webkit-scrollbar{display:none}
+  .wheel-day{flex:0 0 58px}
+  .wheel-year{flex:0 0 76px}
+  .wopt{height:30px;line-height:30px;scroll-snap-align:center;font-size:17px;color:var(--l3);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wopt.cur{color:var(--label);font-weight:600}
+  .wspacer{height:60px}
+  .wband{position:absolute;left:6px;right:6px;top:50%;height:30px;transform:translateY(-50%);pointer-events:none;background:var(--fill);border-radius:8px}
+  .wdone{margin-top:14px;height:48px;width:100%;border-radius:13px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;border:0;font-family:inherit}
+</style>
+</helmet>
+
+<div style="--grouped:#EFEFF4;--card:#FFFFFF;--card2:#F2F2F7;--sep:rgba(60,60,67,0.10);--label:#000;--l2:#3C3C4399;--l3:rgba(60,60,67,0.30);--l4:rgba(60,60,67,0.18);--fill:rgba(118,118,128,0.12);--fill2:rgba(116,116,128,0.08);--red:#FF3B30;--orange:#FF9500;--green:#34C759;--accent:#3E88F7;--accent2:#2D7BE5;--accent-tint:rgba(62,136,247,0.12);--orange-tint:rgba(255,149,0,0.12);--green-tint:rgba(52,199,89,0.12);--red-tint:rgba(255,59,48,0.12);--debt:#E8A100;--debt-tint:rgba(232,161,0,0.16);--profit:#34AADC;--profit-tint:rgba(52,170,220,0.12);--glass:rgba(255,255,255,0.78);--shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);--fab:0 8px 24px -6px rgba(62,136,247,.45),0 2px 6px rgba(0,0,0,.12);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;background:#dfe2e8;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,system-ui,sans-serif;color:var(--label);font-variant-numeric:tabular-nums">
+
+  <div style="width:414px;border:11px solid #0b0b0d;border-radius:56px;background:#0b0b0d;box-shadow:0 50px 90px -30px rgba(15,23,42,.55),0 10px 30px -10px rgba(15,23,42,.25)">
+    <div style="width:392px;height:812px;background:var(--grouped);border-radius:45px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+
+      <!-- status bar -->
+      <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;background:var(--card);position:relative;z-index:5">
+        <span style="font-size:15px;font-weight:600;letter-spacing:.02em">9:41</span>
+        <div style="position:absolute;left:50%;top:8px;transform:translateX(-50%);width:108px;height:28px;background:#000;border-radius:18px"></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#000"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a11 11 0 0 1 15 0"/><path d="M3.6 6.8a7.2 7.2 0 0 1 9.8 0"/><path d="M6.2 9.3a3.4 3.4 0 0 1 4.6 0"/><circle cx="8.5" cy="11.2" r=".7" fill="#000" stroke="none"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="1" y="1" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="3" y="3" width="16" height="7" rx="1.5" fill="#000"/><rect x="23" y="4.5" width="2" height="4" rx="1" fill="#000" fill-opacity=".4"/></svg>
+        </div>
+      </div>
+
+      <!-- header: settings · date range · analytics -->
+      <div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:var(--card);position:relative;z-index:5">
+        <button onClick="{{ openSettings }}" aria-label="Настройки" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;color:var(--l2);background:none;border:0;cursor:pointer;border-radius:50%"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;min-width:0">
+          <span style="font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--label)">Финансы</span>
+        </div>
+
+        <button onClick="{{ openAnalytics }}" aria-label="Аналитика" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;color:var(--accent);background:none;border:0;cursor:pointer;border-radius:50%"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="13" y="7" width="3" height="10" rx="1"/><rect x="19" y="13" width="0.5" height="4"/></svg></button>
+      </div>
+
+      <!-- brigade chips (как есть) -->
+      <div style="flex:none;padding:8px 14px 6px;background:var(--card);position:relative;z-index:5">
+        <div class="hide-scrollbar" style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none">
+          <sc-for list="{{ brigadeChips }}" as="b" hint-placeholder-count="2">
+            <button onClick="{{ b.onPick }}" aria-pressed="{{ b.active }}" style="{{ b.style }}">{{ b.name }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <!-- период — слева название (фильтр, ⌄), справа точные даты -->
+      <div style="flex:none;padding:7px 16px 8px;background:var(--card);border-top:.5px solid var(--sep);border-bottom:.5px solid var(--sep);position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between">
+        <button onClick="{{ openPeriod }}" aria-label="{{ periodA11y }}" style="display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 2px;background:none;border:0;cursor:pointer;font-family:inherit">
+          <span style="font-size:15px;font-weight:600;color:var(--label)">{{ periodTitle }}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--l3)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="margin-top:1px"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button onClick="{{ openPeriodCustom }}" aria-label="Выбрать диапазон дат" style="height:30px;padding:0 2px;display:inline-flex;align-items:center;background:none;border:0;cursor:pointer;font-family:inherit">
+          <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--label);font-variant-numeric:tabular-nums;white-space:nowrap">{{ periodNum }}</span>
+        </button>
+      </div>
+
+      <!-- scroll content -->
+      <div style="flex:1;overflow-y:auto;background:var(--grouped)">
+
+        <!-- OVERVIEW (#6 grouped-iOS premium): Счета отдельно · Доход/Расход · Долги|Прибыль строкой -->
+        <div style="background:var(--grouped);box-sizing:border-box;padding:12px 16px 0">
+          <style>
+            .ov-tap{cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;border:0;transition:background .14s ease,transform .12s ease,box-shadow .14s ease}
+            .ov-tap:active{transform:scale(.985)}
+            .ov-num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+            .dbt-row:first-child{border-top:0 !important}
+          </style>
+
+          <!-- Счета — отдельной мини-карточкой -->
+          <button class="ov-tap" onClick="{{ openAccounts }}" aria-pressed="{{ showAccountsInline }}" style="display:flex;width:100%;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:9px 14px;box-shadow:{{ acctHeadShadow }};text-align:left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="3" y="6" width="18" height="13" rx="2.6" stroke="var(--l2)" stroke-width="1.7"/><path d="M3 10h18" stroke="var(--l2)" stroke-width="1.7"/><circle cx="16.5" cy="14.5" r="1.15" fill="var(--l2)"/></svg>
+            <span style="font-size:14px;color:var(--l2);font-weight:600;letter-spacing:-.01em">Счета</span>
+            <span class="ov-num" style="margin-left:auto;font-size:15px;font-weight:600;color:var(--label)">{{ acctGrandStr }}</span>
+            <svg width="8" height="13" viewBox="0 0 8 13" fill="none" style="flex:none;margin-left:2px"><path d="M1.5 1.5 6 6.5 1.5 11.5" stroke="var(--l3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div style="height:10px"></div>
+
+          <!-- Доход / Расход -->
+          <div style="background:var(--card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex">
+            <button class="ov-tap" onClick="{{ tapIncome }}" aria-pressed="{{ incSel }}" style="flex:1;padding:12px 16px 13px;background:{{ ovIncBg }};text-align:left">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);flex:none"></span><span style="font-size:12px;font-weight:600;color:var(--l2);letter-spacing:-.01em">Доход</span></div>
+              <div class="ov-num" style="font-size:22px;font-weight:700;color:var(--green);line-height:1">{{ incomeStr }}</div>
+            </button>
+            <div style="width:.5px;background:var(--sep);align-self:stretch;margin:10px 0"></div>
+            <button class="ov-tap" onClick="{{ tapExpense }}" aria-pressed="{{ exSel }}" style="flex:1;padding:12px 16px 13px;background:{{ ovExpBg }};text-align:left">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);flex:none"></span><span style="font-size:12px;font-weight:600;color:var(--l2);letter-spacing:-.01em">Расход</span></div>
+              <div class="ov-num" style="font-size:22px;font-weight:700;color:var(--red);line-height:1">{{ expenseStr }}</div>
+            </button>
+          </div>
+
+          <div style="height:8px"></div>
+
+          <!-- Долги | Прибыль — строкой -->
+          <div style="display:flex;gap:8px">
+            <button class="ov-tap" onClick="{{ openDebt }}" aria-pressed="{{ debtActive }}" style="flex:1;display:flex;align-items:center;gap:8px;background:{{ ovDebtBg }};border-radius:12px;padding:10px 13px;box-shadow:{{ ovDebtShadow }};text-align:left">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--debt);flex:none"></span>
+              <span style="font-size:13px;font-weight:600;color:var(--l2);letter-spacing:-.01em">Долги</span>
+              <span class="ov-num" style="margin-left:auto;font-size:15px;font-weight:700;color:var(--debt)">{{ debtStr }}</span>
+              <svg width="7" height="12" viewBox="0 0 8 13" fill="none" style="flex:none"><path d="M1.5 1.5 6 6.5 1.5 11.5" stroke="var(--l3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="ov-tap" onClick="{{ tapProfit }}" aria-pressed="{{ profitActive }}" style="flex:1;display:flex;align-items:center;gap:8px;border-radius:12px;padding:10px 13px;background:{{ ovProfitBg }};box-shadow:{{ ovProfitShadow }};text-align:left">
+              <span style="font-size:13px;font-weight:600;color:#2C8AB5;letter-spacing:-.01em">Прибыль</span>
+              <span class="ov-num" style="margin-left:auto;font-size:15px;font-weight:700;color:var(--profit)">{{ profitStr }}</span>
+            </button>
+          </div>
+
+          <div style="height:4px"></div>
+        </div>
+
+
+        <!-- content: feed / должники / разбор прибыли (по тапу показателя) -->
+        <div style="padding:16px 16px 22px">
+          <sc-if value="{{ showFeedHeader }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;margin:0 2px 8px;min-height:30px">
+            <sc-if value="{{ notBreakdown }}" hint-placeholder-val="{{ true }}">
+              <span style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">{{ feedSectionTitle }}</span>
+              <sc-if value="{{ showViewReset }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetView }}" style="margin-left:auto;font-size:13px;font-weight:600;color:var(--accent);background:none;border:0;cursor:pointer;font-family:inherit">Все</button></sc-if>
+            </sc-if>
+            <sc-if value="{{ isBreakdown }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">{{ breakdownTitle }}</span>
+              <div style="margin-left:auto;display:inline-flex;background:var(--fill);border-radius:8px;padding:2px;gap:2px">
+                <button onClick="{{ pvBars }}" aria-label="Списком" style="{{ pvBarsStyle }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+                <button onClick="{{ pvChart }}" aria-label="Доли" style="{{ pvChartStyle }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M12 12 L12 3.5 A8.5 8.5 0 0 1 20.5 12 Z" fill="currentColor" stroke="none"/></svg></button>
+              </div>
+            </sc-if>
+          </div>
+          </sc-if>
+
+          <!-- ЛЕНТА (Все/Доход/Расход) -->
+          <sc-if value="{{ showFeed }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ feedEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:40px 24px;text-align:center;color:var(--l3);font-size:14px">Нет операций за этот период</div>
+            </sc-if>
+            <sc-if value="{{ feedHas }}" hint-placeholder-val="{{ true }}">
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+                <sc-for list="{{ feedRows }}" as="tx" hint-placeholder-count="6">
+                  <button onClick="{{ tx.onTap }}" style="{{ tx.rowStyle }}">
+                    <span style="width:3px;align-self:stretch;flex:none;background:{{ tx.barColor }};margin:8px 0;border-radius:0 2px 2px 0"></span>
+                    <span style="width:34px;height:34px;border-radius:9px;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">{{ tx.emoji }}</span>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ tx.title }}</div>
+                      <div style="font-size:12px;color:var(--l3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ tx.dateStr }} · {{ tx.sub }}</div>
+                    </div>
+                    <span style="font-size:16px;font-weight:600;flex:none;color:{{ tx.amountColor }};padding-right:14px">{{ tx.amountStr }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <!-- ДОЛЖНИКИ (тап по Долги) -->
+          <sc-if value="{{ showDebtInline }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+              <sc-for list="{{ debts }}" as="d" hint-placeholder-count="3">
+                <div class="dbt-row" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:.5px solid var(--sep)">
+                  <span style="width:38px;height:38px;border-radius:50%;background:var(--debt-tint);color:var(--debt);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none">{{ d.initials }}</span>
+                  <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">{{ d.name }}</div><div style="font-size:12px;color:{{ d.metaColor }}">{{ d.meta }}</div></div>
+                  <span style="font-size:16px;font-weight:700;color:var(--debt);flex:none">{{ d.amountStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- РАЗБОР ПРИБЫЛИ: услуги · количество · сумма + переключатель Списком/Доли% -->
+          <sc-if value="{{ isBreakdown }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px 10px">
+
+              <sc-if value="{{ incSectionShow }}" hint-placeholder-val="{{ true }}">
+              <sc-if value="{{ profitDivider }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:baseline;margin-bottom:9px">
+                  <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Что принесло денег</span>
+                  <span class="ov-num" style="margin-left:auto;font-size:14px;font-weight:700;color:var(--green)">+{{ incomeStr }}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noInc }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--l3);padding:2px 0 6px">Нет доходов за период</div></sc-if>
+              <sc-if value="{{ profitIsBars }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ incomeCats }}" as="c" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;padding:11px 0;border-top:.5px solid var(--sep)"><span style="font-size:15px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span><span style="font-size:12px;color:var(--l3);margin-left:8px;flex:none">{{ c.countStr }}</span><span class="ov-num" style="margin-left:auto;padding-left:10px;font-size:15px;font-weight:600;color:{{ c.amountColor }};flex:none">{{ c.amountStr }}</span></div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ profitIsChart }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:14px;padding:4px 0 2px">
+                  <div style="position:relative;width:92px;height:92px;flex:none"><div style="width:92px;height:92px;border-radius:50%;background:{{ incomePieGrad }}"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:var(--card)"></div></div>
+                  <div style="flex:1;min-width:0">
+                    <sc-for list="{{ incomeCats }}" as="c" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:7px;padding:3px 0"><span style="width:9px;height:9px;border-radius:2px;background:{{ c.color }};flex:none"></span><span style="font-size:13px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span><span style="font-size:11px;color:var(--l3);flex:none">{{ c.countStr }}</span><span class="ov-num" style="margin-left:auto;font-size:13px;font-weight:700;flex:none;color:{{ c.pctColor }}">{{ c.pctStr }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              </sc-if>
+
+              <sc-if value="{{ profitDivider }}" hint-placeholder-val="{{ false }}">
+                <div style="height:.5px;background:var(--sep);margin:13px 0 14px"></div>
+              </sc-if>
+
+              <sc-if value="{{ expSectionShow }}" hint-placeholder-val="{{ true }}">
+              <sc-if value="{{ profitDivider }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:baseline;margin-bottom:9px">
+                  <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Куда ушёл расход</span>
+                  <span class="ov-num" style="margin-left:auto;font-size:14px;font-weight:700;color:var(--red)">−{{ expenseStr }}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noExp }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--l3);padding:2px 0 6px">Нет расходов за период</div></sc-if>
+              <sc-if value="{{ profitIsBars }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ expenseCats }}" as="c" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;padding:11px 0;border-top:.5px solid var(--sep)"><span style="font-size:15px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span><span style="font-size:12px;color:var(--l3);margin-left:8px;flex:none">{{ c.countStr }}</span><span class="ov-num" style="margin-left:auto;padding-left:10px;font-size:15px;font-weight:600;color:{{ c.amountColor }};flex:none">{{ c.amountStr }}</span></div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ profitIsChart }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:14px;padding:4px 0 2px">
+                  <div style="position:relative;width:92px;height:92px;flex:none"><div style="width:92px;height:92px;border-radius:50%;background:{{ expensePieGrad }}"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:var(--card)"></div></div>
+                  <div style="flex:1;min-width:0">
+                    <sc-for list="{{ expenseCats }}" as="c" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:center;gap:7px;padding:3px 0"><span style="width:9px;height:9px;border-radius:2px;background:{{ c.color }};flex:none"></span><span style="font-size:13px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span><span style="font-size:11px;color:var(--l3);flex:none">{{ c.countStr }}</span><span class="ov-num" style="margin-left:auto;font-size:13px;font-weight:700;flex:none;color:{{ c.pctColor }}">{{ c.pctStr }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              </sc-if>
+
+            </div>
+          </sc-if>
+
+          <!-- СЧЕТА (инлайн): группы + перевод/новый счёт + покрытие зарплат -->
+          <sc-if value="{{ showAccountsInline }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:.5px solid var(--sep)"><span style="font-size:13px;color:var(--l3)">{{ acctCountStr }}</span><span class="ov-num" style="font-size:18px;font-weight:700">{{ acctGrandStr }}</span></div>
+              <sc-for list="{{ acctRows }}" as="r" hint-placeholder-count="7">
+                <sc-if value="{{ r.isHeader }}"><div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);padding:11px 16px 4px">{{ r.title }}</div></sc-if>
+                <sc-if value="{{ r.isAcct }}">
+                  <button onClick="{{ r.onTap }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:8px 16px;background:none;border:0;cursor:pointer;font-family:inherit;text-align:left">
+                    <span style="width:34px;height:34px;border-radius:9px;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none">{{ r.emoji }}</span>
+                    <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">{{ r.name }}</div><sc-if value="{{ r.hasTag }}"><div style="font-size:12px;font-weight:600;color:{{ r.tagColor }};margin-top:1px">{{ r.tag }}</div></sc-if></div>
+                    <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:{{ r.balColor }}">{{ r.balanceStr }}</span>
+                    <span style="color:var(--l3);display:flex;flex:none"><svg width="8" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+                  </button>
+                </sc-if>
+              </sc-for>
+              <div style="padding:10px 12px 12px;border-top:.5px solid var(--sep)">
+                <button onClick="{{ openTransfer }}" style="width:100%;height:44px;border-radius:12px;background:var(--fill);color:var(--label);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H7"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h14"/></svg>Перевод</button>
+                <button onClick="{{ openAddAccount }}" style="width:100%;height:40px;margin-top:6px;background:none;color:var(--accent);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">＋ Новый счёт</button>
+              </div>
+            </div>
+            <sc-if value="{{ hasPayroll }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ openSalary }}" style="width:100%;display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--card);border-radius:12px;padding:11px 14px;box-shadow:var(--shadow);border:0;cursor:pointer;font-family:inherit;text-align:left">
+                <span style="font-size:16px;flex:none">👷</span>
+                <span style="font-size:14px;color:var(--label)">Зарплаты · {{ payMonth }}</span>
+                <span class="ov-num" style="margin-left:auto;font-size:15px;font-weight:700;color:var(--label)">{{ payrollDueStr }}</span>
+                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;background:{{ payBadgeBg }};color:{{ payBadgeColor }}">{{ payBadgeText }}</span>
+              </button>
+            </sc-if>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- entry: type chosen up front -->
+      <div style="flex:none;padding:8px 16px 8px;background:linear-gradient(to top,var(--grouped) 60%,rgba(239,239,244,0));position:relative;z-index:5;margin-top:-12px">
+        <div style="display:flex;gap:10px">
+          <button onClick="{{ openAdd }}" style="flex:1;height:52px;border:0;border-radius:9999px;background:var(--accent);color:#fff;font-size:17px;font-weight:600;box-shadow:0 8px 22px -8px rgba(0,122,255,.45),0 2px 6px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-family:inherit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Операция</button>
+        </div>
+      </div>
+
+      <!-- tab bar -->
+      <div style="height:62px;flex:none;display:flex;align-items:flex-start;justify-content:space-around;padding:7px 6px 0;background:var(--glass);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep);position:relative;z-index:5">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--l2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span style="font-size:10px;font-weight:500">Календарь</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--l2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span style="font-size:10px;font-weight:500">Клиенты</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--l2);position:relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span style="font-size:10px;font-weight:500">Чаты</span><span style="position:absolute;top:-2px;right:16px;min-width:16px;height:16px;padding:0 4px;border-radius:9999px;background:var(--red);color:#fff;font-size:10px;font-weight:600;line-height:16px;text-align:center;box-shadow:0 0 0 2px var(--glass)">3</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--accent)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span style="font-size:10px;font-weight:600">Финансы</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--l2)"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.7"/></svg><span style="font-size:10px;font-weight:500">Кабинет</span></div>
+      </div>
+
+      <!-- ============ OVERLAYS ============ -->
+      <sc-if value="{{ showAdd }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">Операция</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="display:flex;background:var(--fill);border-radius:10px;padding:3px;gap:3px;margin:2px 0 6px">
+                <button onClick="{{ setIncomeType }}" style="{{ segIncStyle }}">Доход</button>
+                <button onClick="{{ setExpenseType }}" style="{{ segExpStyle }}">Расход</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:2px;margin:10px 0 14px">
+                <span style="font-size:34px;font-weight:700;color:{{ amtColor }}">€</span>
+                <input value="{{ draftAmount }}" onInput="{{ onAmount }}" inputmode="decimal" placeholder="0" style="width:150px;font-size:42px;font-weight:700;letter-spacing:-.02em;color:{{ amtColor }};border:0;background:none;outline:none;text-align:center;font-family:inherit;padding:0;-webkit-appearance:none"/>
+              </div>
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Счёт</div>
+              <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px">
+                <sc-for list="{{ addAccounts }}" as="op" hint-placeholder-count="4">
+                  <button onClick="{{ op.onPick }}" style="{{ op.style }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ op.dotColor }}"></span>{{ op.name }}</button>
+                </sc-for>
+              </div>
+              <sc-if value="{{ isIncomeAdd }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">За что · запись в календаре</div>
+                <div style="background:var(--card2);border-radius:12px;overflow:hidden;margin-bottom:14px">
+                  <sc-for list="{{ apptRows }}" as="ap" hint-placeholder-count="3">
+                    <button onClick="{{ ap.onPick }}" style="{{ ap.style }}"><span style="{{ ap.dotStyle }}"></span><span style="flex:1;min-width:0;text-align:left"><span style="display:block;font-size:15px;font-weight:500;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ap.client }}</span><span style="display:block;font-size:12px;color:var(--l3)">{{ ap.sub }}</span></span><span style="font-size:12px;color:var(--l3);flex:none;white-space:nowrap">{{ ap.when }}</span></button>
+                  </sc-for>
+                  <sc-if value="{{ apptEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:16px;font-size:13px;color:var(--l3);text-align:center">Нет записей в календаре</div></sc-if>
+                </div>
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Дата выполнения</div>
+                <input type="date" value="{{ draftDate }}" onInput="{{ onDate }}" style="width:100%;box-sizing:border-box;font-size:15px;color:var(--label);border:0;background:var(--fill2);border-radius:10px;padding:11px 12px;outline:none;font-family:inherit;margin-bottom:14px"/>
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Услуга</div>
+                <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:16px">
+                  <sc-for list="{{ addCats }}" as="ct" hint-placeholder-count="4">
+                    <button onClick="{{ ct.onPick }}" style="{{ ct.style }}">{{ ct.e }} {{ ct.k }}</button>
+                  </sc-for>
+                  <sc-if value="{{ catAdding }}" hint-placeholder-val="{{ false }}">
+                    <input value="{{ newCat }}" onInput="{{ onNewCat }}" placeholder="Название" style="flex:none;width:118px;font-size:13px;color:var(--label);border:1.5px solid var(--accent);background:var(--card);border-radius:9999px;padding:0 13px;height:34px;outline:none;font-family:inherit"/>
+                    <button onClick="{{ commitCat }}" style="flex:none;height:34px;width:34px;border-radius:50%;background:var(--accent);color:#fff;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+                  </sc-if>
+                  <sc-if value="{{ catNotAdding }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ startAddCat }}" style="flex:none;height:34px;padding:0 13px;border-radius:9999px;background:var(--fill);color:var(--accent);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit">＋</button>
+                  </sc-if>
+                </div>
+              </sc-if>
+              <sc-if value="{{ isExpenseAdd }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Категория</div>
+                <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px">
+                  <sc-for list="{{ addCats }}" as="ct" hint-placeholder-count="4">
+                    <button onClick="{{ ct.onPick }}" style="{{ ct.style }}">{{ ct.e }} {{ ct.k }}</button>
+                  </sc-for>
+                  <sc-if value="{{ catAdding }}" hint-placeholder-val="{{ false }}">
+                    <input value="{{ newCat }}" onInput="{{ onNewCat }}" placeholder="Название" style="flex:none;width:118px;font-size:13px;color:var(--label);border:1.5px solid var(--accent);background:var(--card);border-radius:9999px;padding:0 13px;height:34px;outline:none;font-family:inherit"/>
+                    <button onClick="{{ commitCat }}" style="flex:none;height:34px;width:34px;border-radius:50%;background:var(--accent);color:#fff;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+                  </sc-if>
+                  <sc-if value="{{ catNotAdding }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ startAddCat }}" style="flex:none;height:34px;padding:0 13px;border-radius:9999px;background:var(--fill);color:var(--accent);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit">＋</button>
+                  </sc-if>
+                </div>
+                <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Комментарий</div>
+                <input value="{{ draftComment }}" onInput="{{ onComment }}" placeholder="Например: обед бригады" style="width:100%;box-sizing:border-box;font-size:16px;color:var(--label);border:0;background:var(--fill2);border-radius:10px;padding:12px 14px;outline:none;font-family:inherit;margin-bottom:16px"/>
+                <sc-if value="{{ vatShow }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">НДС</div>
+                  <div style="display:flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px;margin-bottom:8px">
+                    <button onClick="{{ vmNone }}" style="{{ vmNoneStyle }}">нет</button>
+                    <button onClick="{{ vmAdd }}" style="{{ vmAddStyle }}">+НДС сверху</button>
+                    <button onClick="{{ vmIncl }}" style="{{ vmInclStyle }}">включён</button>
+                  </div>
+                  <sc-if value="{{ vatOn }}" hint-placeholder-val="{{ true }}">
+                    <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:7px">
+                      <sc-for list="{{ vatRatesUI }}" as="vr" hint-placeholder-count="4"><button onClick="{{ vr.onPick }}" style="{{ vr.style }}">{{ vr.label }}</button></sc-for>
+                    </div>
+                    <div style="font-size:13px;color:var(--l2);margin:0 2px 12px;font-variant-numeric:tabular-nums">{{ vatLiveStr }}</div>
+                  </sc-if>
+                </sc-if>
+              </sc-if>
+              <button onClick="{{ saveTx }}" style="{{ saveBtnStyle }}">Сохранить</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- transaction detail -->
+      <sc-if value="{{ showTx }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">Операция</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="display:flex;align-items:center;gap:14px;padding:0 2px 16px;border-bottom:.5px solid var(--sep)">
+                <span style="width:48px;height:48px;border-radius:13px;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none">{{ detailEmoji }}</span>
+                <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:600">{{ detailTitle }}</div><div style="font-size:13px;color:var(--l2);margin-top:2px">{{ detailMeta }}</div></div>
+                <span style="font-size:22px;font-weight:700;color:{{ detailColor }};flex:none">{{ detailAmount }}</span>
+              </div>
+              <sc-if value="{{ canMakeReceipt }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ makeReceipt }}" style="margin-top:14px;width:100%;height:50px;border-radius:14px;background:var(--accent-tint);color:var(--accent);font-size:16px;font-weight:600;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1V2l-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>{{ receiptBtnLabel }}</button>
+              </sc-if>
+              <button onClick="{{ deleteTx }}" style="margin-top:10px;width:100%;height:50px;border-radius:14px;background:var(--card2);color:var(--red);font-size:16px;font-weight:600;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Удалить</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- add account -->
+      <sc-if value="{{ showAccount }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">{{ acctTitle }}</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Команда</div>
+              <div style="display:flex;gap:7px;margin-bottom:6px">
+                <button onClick="{{ acctBrSever }}" style="{{ abSev }}"><span style="width:8px;height:8px;border-radius:50%;background:#3E88F7"></span>Север</button>
+                <button onClick="{{ acctBrYug }}" style="{{ abYug }}"><span style="width:8px;height:8px;border-radius:50%;background:#34C759"></span>Юг</button>
+              </div>
+              <sc-if value="{{ acctIsEdit }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:var(--l3);margin:0 2px 14px">Сменить команду — это перенос счёта. История операций сохранится.</div></sc-if>
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:8px 2px 7px">Тип</div>
+              <div style="display:flex;gap:7px;margin-bottom:14px">
+                <sc-for list="{{ acctKinds }}" as="kd" hint-placeholder-count="3">
+                  <button onClick="{{ kd.onPick }}" style="{{ kd.style }}">{{ kd.e }} {{ kd.label }}</button>
+                </sc-for>
+              </div>
+              <div style="background:var(--card2);border-radius:12px;overflow:hidden;margin-bottom:16px">
+                <div style="display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px"><span style="font-size:15px;color:var(--l2);width:88px;flex:none">Название</span><input value="{{ acctName }}" onInput="{{ setAcctName }}" placeholder="Напр. Касса" style="flex:1;font-size:16px;color:var(--label);border:0;background:none;outline:none;text-align:right;font-family:inherit"/></div>
+                <div style="height:.5px;background:var(--sep);margin-left:14px"></div>
+                <div style="display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px"><span style="font-size:15px;color:var(--l2);width:88px;flex:none">Баланс</span><span style="color:var(--l3);font-size:16px">€</span><input value="{{ acctBalance }}" onInput="{{ setAcctBalance }}" inputmode="numeric" placeholder="0" style="flex:1;font-size:16px;color:var(--label);border:0;background:none;outline:none;text-align:left;font-family:inherit"/></div>
+              </div>
+              <div style="background:var(--card2);border-radius:12px;overflow:hidden;margin-bottom:16px">
+                <button onClick="{{ toggleVatReserve }}" style="width:100%;display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;background:none;border:0;cursor:pointer;font-family:inherit"><span style="flex:1;text-align:left;font-size:15px;color:var(--label)">Счёт НДС (резерв)</span><span style="{{ vrTrack }}"><span style="{{ vrKnob }}"></span></span></button>
+                <div style="height:.5px;background:var(--sep);margin-left:14px"></div>
+                <button onClick="{{ toggleSalarySrc }}" style="width:100%;display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;background:none;border:0;cursor:pointer;font-family:inherit"><span style="flex:1;text-align:left;font-size:15px;color:var(--label)">Источник зарплат</span><span style="{{ ssTrack }}"><span style="{{ ssKnob }}"></span></span></button>
+                <div style="height:.5px;background:var(--sep);margin-left:14px"></div>
+                <button onClick="{{ togglePersonal }}" style="width:100%;display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;background:none;border:0;cursor:pointer;font-family:inherit"><span style="flex:1;text-align:left;font-size:15px;color:var(--label)">Личный счёт</span><span style="{{ psTrack }}"><span style="{{ psKnob }}"></span></span></button>
+              </div>
+              <button onClick="{{ saveAccount }}" style="{{ saveAcctStyle }}">{{ saveAcctLabel }}</button>
+              <sc-if value="{{ acctIsEdit }}" hint-placeholder-val="{{ false }}"><button onClick="{{ removeAccount }}" style="width:100%;height:46px;margin-top:10px;border-radius:9999px;border:0;background:none;color:var(--red);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit">Удалить счёт</button></sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== EMPLOYEES (список) ===== -->
+      <sc-if value="{{ showEmployees }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">Сотрудники</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll" style="padding:0 0 4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-bottom:.5px solid var(--sep)"><span style="font-size:13px;color:var(--l3)">Фонд за месяц</span><span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">{{ payrollAllStr }}</span></div>
+              <sc-for list="{{ empRows }}" as="e" hint-placeholder-count="3">
+                <button onClick="{{ e.onTap }}" class="dbt-row" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:.5px solid var(--sep);background:none;border-left:0;border-right:0;cursor:pointer;font-family:inherit;text-align:left">
+                  <span style="width:36px;height:36px;border-radius:50%;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none">👷</span>
+                  <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">{{ e.name }}</div><div style="font-size:12px;font-weight:600;color:{{ e.brigadeColor }};margin-top:1px">{{ e.brigadeName }}</div></div>
+                  <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums">{{ e.salaryStr }}</span>
+                  <span style="color:var(--l3);display:flex;flex:none"><svg width="8" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="flex:none;padding:10px 18px;border-top:.5px solid var(--sep)">
+              <button onClick="{{ addEmployee }}" style="width:100%;height:44px;border-radius:11px;background:var(--accent-tint);color:var(--accent);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit">＋ Добавить сотрудника</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== EMPLOYEE EDIT ===== -->
+      <sc-if value="{{ showEmpEdit }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">{{ empEditTitle }}</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Бригада</div>
+              <div style="display:flex;gap:7px;margin-bottom:14px">
+                <button onClick="{{ empBrSev }}" style="{{ empBrSevStyle }}"><span style="width:8px;height:8px;border-radius:50%;background:#3E88F7"></span>Север</button>
+                <button onClick="{{ empBrYug }}" style="{{ empBrYugStyle }}"><span style="width:8px;height:8px;border-radius:50%;background:#34C759"></span>Юг</button>
+              </div>
+              <div style="background:var(--card2);border-radius:12px;overflow:hidden;margin-bottom:16px">
+                <div style="display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px"><span style="font-size:15px;color:var(--l2);width:88px;flex:none">Имя</span><input value="{{ empName }}" onInput="{{ setEmpName }}" placeholder="Напр. Юрий" style="flex:1;font-size:16px;color:var(--label);border:0;background:none;outline:none;text-align:right;font-family:inherit"/></div>
+                <div style="height:.5px;background:var(--sep);margin-left:14px"></div>
+                <div style="display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px"><span style="font-size:15px;color:var(--l2);width:88px;flex:none">Оклад</span><span style="color:var(--l3);font-size:16px">€</span><input value="{{ empSalary }}" onInput="{{ setEmpSalary }}" inputmode="numeric" placeholder="0" style="flex:1;font-size:16px;color:var(--label);border:0;background:none;outline:none;text-align:left;font-family:inherit"/><span style="font-size:13px;color:var(--l3)">/мес</span></div>
+              </div>
+              <button onClick="{{ saveEmployee }}" style="{{ saveAcctStyle }}">{{ empSaveLabel }}</button>
+              <sc-if value="{{ empIsEdit }}" hint-placeholder-val="{{ false }}"><button onClick="{{ removeEmployee }}" style="width:100%;height:46px;margin-top:10px;border-radius:9999px;border:0;background:none;color:var(--red);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit">Удалить сотрудника</button></sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- debts -->
+      <sc-if value="{{ showDebt }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">Долги клиентов</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px 10px"><span style="font-size:13px;color:var(--l2)">Всего к получению</span><span style="font-size:18px;font-weight:700;color:var(--debt)">{{ debtTotalStr }}</span></div>
+              <sc-for list="{{ debts }}" as="d" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:13px;padding:11px 2px;border-top:.5px solid var(--sep)">
+                  <span style="width:40px;height:40px;border-radius:50%;background:var(--debt-tint);color:var(--debt);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex:none">{{ d.initials }}</span>
+                  <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">{{ d.name }}</div><div style="font-size:12px;color:{{ d.metaColor }}">{{ d.meta }}</div></div>
+                  <div style="text-align:right;flex:none"><div style="font-size:16px;font-weight:700;color:var(--debt)">{{ d.amountStr }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== PERIOD: список периодов + Применить (тап по названию) ===== -->
+      <sc-if value="{{ showPeriod }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card" style="width:320px">
+            <div class="popup-head"><span class="popup-title">Период</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll" style="padding:10px 14px 12px">
+              <sc-for list="{{ periodBlocks }}" as="bl" hint-placeholder-count="4">
+                <div style="background:var(--card2);border-radius:12px;overflow:hidden;margin-bottom:8px">
+                  <button onClick="{{ bl.r1.onPick }}" aria-pressed="{{ bl.r1.active }}" style="{{ bl.r1.rowStyle }}">
+                    <span style="font-size:15px;color:{{ bl.r1.nameColor }}">{{ bl.r1.name }}</span>
+                    <span class="ov-num" style="margin-left:auto;font-size:13px;color:var(--l3)">{{ bl.r1.rangeStr }}</span>
+                    <sc-if value="{{ bl.r1.active }}"><span style="color:var(--accent);display:flex;margin-left:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></sc-if>
+                  </button>
+                  <div style="height:.5px;background:var(--sep);margin-left:14px"></div>
+                  <button onClick="{{ bl.r2.onPick }}" aria-pressed="{{ bl.r2.active }}" style="{{ bl.r2.rowStyle }}">
+                    <span style="font-size:15px;color:{{ bl.r2.nameColor }}">{{ bl.r2.name }}</span>
+                    <span class="ov-num" style="margin-left:auto;font-size:13px;color:var(--l3)">{{ bl.r2.rangeStr }}</span>
+                    <sc-if value="{{ bl.r2.active }}"><span style="color:var(--accent);display:flex;margin-left:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></sc-if>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== PERIOD CUSTOM: диапазон дат, крутилки С–До (тап по датам) ===== -->
+      <sc-if value="{{ showPeriodCustom }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card" style="width:336px">
+            <div class="popup-head"><span class="popup-title">Свой период</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll" style="padding:12px 14px 16px">
+              <div class="fin-pcv" data-from="{{ calFrom }}" data-to="{{ calTo }}"></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== SETTINGS (separate pushed page) ===== -->
+      <sc-if value="{{ showSettings }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:0;right:0;top:44px;bottom:0;z-index:45;background:var(--grouped);display:flex;flex-direction:column;animation:pushIn .3s cubic-bezier(.32,.72,0,1)">
+          <div style="height:50px;flex:none;display:flex;align-items:center;padding:0 6px;background:var(--card);border-bottom:.5px solid var(--sep);position:relative">
+            <button onClick="{{ closeSheet }}" style="display:flex;align-items:center;gap:1px;height:42px;padding:0 8px 0 2px;color:var(--accent);background:none;border:0;cursor:pointer;font-family:inherit;font-size:16px"><svg width="12" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Финансы</button>
+            <span style="position:absolute;left:0;right:0;text-align:center;font-size:17px;font-weight:600;pointer-events:none">Настройки</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:18px 16px 24px">
+            <sc-for list="{{ settingsSections }}" as="sec" hint-placeholder-count="3">
+              <div style="font-size:13px;font-weight:600;color:var(--l2);text-transform:uppercase;letter-spacing:.03em;margin:0 4px 8px">{{ sec.title }}</div>
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:22px">
+                <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="3">
+                  <button onClick="{{ r.onTap }}" style="{{ r.style }}">
+                    <span style="width:30px;height:30px;border-radius:8px;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">{{ r.emoji }}</span>
+                    <span style="flex:1;font-size:15px;font-weight:500;color:var(--label);text-align:left">{{ r.title }}</span>
+                    <sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}"><span style="{{ r.swTrack }}"><span style="{{ r.swKnob }}"></span></span></sc-if>
+                    <sc-if value="{{ r.isNav }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;color:var(--l3)">{{ r.value }}</span><span style="color:var(--l3);display:flex"><svg width="9" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-for>
+            <div style="font-size:12px;color:var(--l3);text-align:center">Babun · AirFix · валюта € EUR</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== ANALYTICS (centered popup) ===== -->
+      <sc-if value="{{ showAnalytics }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card" style="width:360px">
+            <div class="popup-head"><span class="popup-title">Аналитика</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll" style="background:var(--grouped);padding:14px 14px 18px">
+              <div style="font-size:12px;color:var(--l2);margin:0 2px 10px">{{ scopeLabel }} · {{ periodRangeLabel }}</div>
+              <div style="background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px">
+                <div style="font-size:12px;color:var(--l2)">Прибыль</div>
+                <div style="font-size:30px;font-weight:700;letter-spacing:-.02em;color:{{ profitColor }};line-height:1.05">{{ profitStr }}</div>
+                <div style="display:flex;margin-top:14px;padding-top:14px;border-top:.5px solid var(--sep)">
+                  <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Доход</div><div style="font-size:18px;font-weight:700;color:var(--green)">{{ incomeStr }}</div></div>
+                  <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Расход</div><div style="font-size:18px;font-weight:700;color:var(--red)">{{ expenseStr }}</div></div>
+                  <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Операций</div><div style="font-size:18px;font-weight:700">{{ txCount }}</div></div>
+                </div>
+              </div>
+              <sc-if value="{{ anVatShow }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2);margin:0 2px 8px">НДС за период · {{ anVatBasisStr }}</div>
+                <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:14px">
+                  <div style="display:flex">
+                    <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Выходной</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{ anVatOutStr }}</div></div>
+                    <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Входной</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{ anVatInStr }}</div></div>
+                    <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">К уплате</div><div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{ anVatDueStr }}</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;margin-top:12px;padding-top:12px;border-top:.5px solid var(--sep)">
+                    <span style="font-size:13px;color:var(--l2)">Резерв (Банк AirFix)</span>
+                    <span style="margin-left:auto;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">{{ anVatReserveStr }}</span>
+                    <sc-if value="{{ anVatReserveOk }}" hint-placeholder-val="{{ true }}"><span style="margin-left:8px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;background:var(--green-tint);color:#1c7d3e">хватает ✓</span></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ hasPayroll }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2);margin:0 2px 8px">Зарплаты</div>
+                <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:14px">
+                  <div style="display:flex;align-items:center"><span style="font-size:15px;color:var(--label)">Фонд за месяц</span><span style="margin-left:auto;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">{{ anPayrollStr }}</span></div>
+                  <div style="display:flex;margin-top:12px;padding-top:12px;border-top:.5px solid var(--sep)">
+                    <div style="flex:1"><div style="font-size:11px;color:#3E88F7;text-transform:uppercase;letter-spacing:.03em">Север</div><div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">{{ anPaySevStr }}</div></div>
+                    <div style="flex:1"><div style="font-size:11px;color:#34C759;text-transform:uppercase;letter-spacing:.03em">Юг</div><div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">{{ anPayYugStr }}</div></div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2);margin:0 2px 8px">Доходы по услугам</div>
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:16px 14px 6px;margin-bottom:14px">
+                <sc-if value="{{ pieEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 0 16px;text-align:center;color:var(--l3);font-size:13px">Нет доходов за период</div></sc-if>
+                <sc-if value="{{ pieHas }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:relative;width:132px;height:132px;margin:0 auto 10px">
+                    <div style="width:132px;height:132px;border-radius:50%;background:{{ pieGradient }}"></div>
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:86px;height:86px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:10px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Доход</div><div style="font-size:16px;font-weight:700;color:var(--green)">{{ pieTotalStr }}</div></div>
+                  </div>
+                  <sc-for list="{{ pieRows }}" as="r" hint-placeholder-count="4">
+                    <div style="{{ r.rowStyle }}">
+                      <span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};flex:none"></span>
+                      <span style="flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+                      <span style="font-size:12px;color:var(--l3);width:26px;text-align:right">{{ r.countStr }}</span>
+                      <span style="font-size:12px;color:var(--l3);width:36px;text-align:right">{{ r.pctStr }}</span>
+                      <span style="font-size:14px;font-weight:700;color:var(--green);width:60px;text-align:right">{{ r.amountStr }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+              <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2);margin:0 2px 8px">Прибыль по бригадам</div>
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:6px 14px;margin-bottom:14px">
+                <sc-for list="{{ byBrigade }}" as="b" hint-placeholder-count="2">
+                  <div style="padding:10px 0;border-top:.5px solid var(--sep)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px"><span style="font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:{{ b.color }}"></span>{{ b.name }}</span><span style="font-size:15px;font-weight:700;color:{{ b.profitColor }}">{{ b.profitStr }}</span></div>
+                    <div style="height:7px;border-radius:9999px;background:var(--fill);overflow:hidden"><div style="height:100%;width:{{ b.pct }};background:{{ b.color }};border-radius:9999px"></div></div>
+                    <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12px;color:var(--l3)"><span>Доход {{ b.incomeStr }}</span><span>Расход {{ b.expenseStr }}</span></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2);margin:0 2px 8px">Документы за период</div>
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px;margin-bottom:14px">
+                <div style="display:flex;margin-bottom:10px">
+                  <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Выставлено</div><div style="font-size:17px;font-weight:700">{{ docIssuedStr }}</div></div>
+                  <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Оплачено</div><div style="font-size:17px;font-weight:700;color:var(--green)">{{ docPaidStr }}</div></div>
+                  <div style="flex:1"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Дебиторка</div><div style="font-size:17px;font-weight:700;color:var(--debt)">{{ docOutstandingStr }}</div></div>
+                </div>
+                <div style="height:6px;border-radius:9999px;background:var(--fill);overflow:hidden;margin-bottom:12px"><div style="height:100%;width:{{ issuedPct }};background:var(--green);border-radius:9999px"></div></div>
+                <button onClick="{{ openDocs }}" style="width:100%;height:42px;border-radius:11px;background:var(--accent-tint);color:var(--accent);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px">📄 Открыть документы</button>
+              </div>
+              <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2);margin:0 2px 8px">Расходы по категориям</div>
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:6px 14px;margin-bottom:14px">
+                <sc-if value="{{ catsEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:18px 0;text-align:center;color:var(--l3);font-size:13px">Нет расходов за период</div></sc-if>
+                <sc-for list="{{ byCategory }}" as="c" hint-placeholder-count="4">
+                  <div style="padding:9px 0;border-top:.5px solid var(--sep)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px">{{ c.emoji }} {{ c.name }}</span><span style="font-size:14px;font-weight:600">{{ c.amountStr }}</span></div>
+                    <div style="height:6px;border-radius:9999px;background:var(--fill);overflow:hidden"><div style="height:100%;width:{{ c.pct }};background:var(--red);opacity:.55;border-radius:9999px"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:50px;padding:0 14px"><span style="font-size:14px;color:var(--l2)">Всего на счетах</span><span style="font-size:16px;font-weight:700">{{ acctTotalStr }}</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:50px;padding:0 14px;border-top:.5px solid var(--sep)"><span style="font-size:14px;color:var(--l2)">Долги клиентов</span><span style="font-size:16px;font-weight:700;color:var(--debt)">{{ debtTotalStr }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ACCOUNTS popup retired — accounts render inline (homeView==='accounts'), scoped to the current team -->
+
+
+      <!-- ===== TRANSFER (centered popup) ===== -->
+      <sc-if value="{{ showTransfer }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head"><span class="popup-title">Перевод</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Откуда</div>
+              <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:8px">
+                <sc-for list="{{ xferFrom }}" as="a" hint-placeholder-count="3"><button onClick="{{ a.onPick }}" style="{{ a.style }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ a.dot }};flex:none"></span><span style="font-size:14px">{{ a.emoji }}</span> {{ a.name }}</button></sc-for>
+              </div>
+              <div style="display:flex;justify-content:center;margin:0 0 6px"><button onClick="{{ xSwap }}" aria-label="Поменять местами" style="width:32px;height:32px;border-radius:50%;background:var(--fill);color:var(--accent);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px">⇅</button></div>
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Куда</div>
+              <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px">
+                <sc-for list="{{ xferTo }}" as="a" hint-placeholder-count="3"><button onClick="{{ a.onPick }}" style="{{ a.style }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ a.dot }};flex:none"></span><span style="font-size:14px">{{ a.emoji }}</span> {{ a.name }}</button></sc-for>
+              </div>
+              <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:7px">
+                <button onClick="{{ xFocusAmount }}" style="{{ xAmountBox }}"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Сумма</div><div style="font-size:20px;font-weight:700;margin-top:1px;color:{{ xAmountColor }}">{{ xAmountDisplay }}</div></button>
+                <sc-if value="{{ xFeeOn }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ xFocusFee }}" style="{{ xFeeBox }}"><div style="font-size:11px;color:var(--l3);text-transform:uppercase;letter-spacing:.03em">Комиссия</div><div style="font-size:20px;font-weight:700;margin-top:1px;color:{{ xFeeColor }}">{{ xFeeDisplay }}</div></button>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:11px">
+                <span style="font-size:12px;color:var(--l3)">{{ xResultStr }}</span>
+                <sc-if value="{{ xFeeOff }}" hint-placeholder-val="{{ true }}"><button onClick="{{ xShowFee }}" style="background:none;border:0;cursor:pointer;font-family:inherit;color:var(--accent);font-size:13px;font-weight:500;padding:2px 4px">＋ Комиссия</button></sc-if>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                <sc-for list="{{ xPad }}" as="key" hint-placeholder-count="9"><button onClick="{{ key.onClick }}" style="height:46px;border-radius:13px;background:var(--fill2);font-size:22px;font-weight:500;color:var(--label);border:0;cursor:pointer;font-family:inherit">{{ key.label }}</button></sc-for>
+                <button onClick="{{ xPadBack }}" style="height:46px;border-radius:13px;background:var(--fill2);border:0;cursor:pointer;color:var(--l2);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="m18 9-6 6M12 9l6 6"/></svg></button>
+                <button onClick="{{ xPadZero }}" style="height:46px;border-radius:13px;background:var(--fill2);font-size:22px;font-weight:500;color:var(--label);border:0;cursor:pointer;font-family:inherit">0</button>
+                <button onClick="{{ saveTransfer }}" style="{{ xSaveStyle }}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== DOCUMENTS (pushed page) ===== -->
+      <sc-if value="{{ showDocuments }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:0;right:0;top:44px;bottom:0;z-index:45;background:var(--grouped);display:flex;flex-direction:column;animation:pushIn .3s cubic-bezier(.32,.72,0,1)">
+          <div style="height:50px;flex:none;display:flex;align-items:center;padding:0 6px;background:var(--card);border-bottom:.5px solid var(--sep);position:relative">
+            <button onClick="{{ closeSheet }}" style="display:flex;align-items:center;gap:1px;height:42px;padding:0 8px 0 2px;color:var(--accent);background:none;border:0;cursor:pointer;font-family:inherit;font-size:16px;z-index:1"><svg width="12" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Финансы</button>
+            <span style="position:absolute;left:0;right:0;text-align:center;font-size:17px;font-weight:600;pointer-events:none">Документы</span>
+            <button onClick="{{ openInvForm }}" style="margin-left:auto;height:34px;padding:0 13px;border-radius:9999px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;border:0;cursor:pointer;font-family:inherit;z-index:1">＋ Инвойс</button>
+          </div>
+          <div style="flex:none;padding:10px 14px 8px;background:var(--card);border-bottom:.5px solid var(--sep)">
+            <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto;margin-bottom:8px">
+              <sc-for list="{{ docTypeChips }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onPick }}" style="{{ c.style }}">{{ c.label }}</button></sc-for>
+            </div>
+            <div class="hide-scrollbar" style="display:flex;gap:7px;overflow-x:auto">
+              <sc-for list="{{ docStatusChips }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.onPick }}" style="{{ c.style }}">{{ c.label }}</button></sc-for>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:14px 16px 16px">
+            <div style="font-size:12px;color:var(--l3);margin:0 2px 8px">{{ scopeLabel }} · {{ periodRangeLabel }}</div>
+            <sc-if value="{{ docsEmpty }}" hint-placeholder-val="{{ false }}"><div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:40px 24px;text-align:center;color:var(--l3);font-size:14px">Нет документов за период</div></sc-if>
+            <sc-if value="{{ docsHas }}" hint-placeholder-val="{{ true }}">
+              <div style="background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+                <sc-for list="{{ docRows }}" as="d" hint-placeholder-count="6">
+                  <button onClick="{{ d.onTap }}" style="{{ d.rowStyle }}">
+                    <span style="width:34px;height:34px;border-radius:9px;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">{{ d.icon }}</span>
+                    <div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.title }}</div><div style="font-size:12px;color:var(--l3);margin-top:1px">{{ d.sub }}</div></div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none"><span style="font-size:15px;font-weight:700">{{ d.grossStr }}</span><span style="{{ d.statusStyle }}">{{ d.statusLabel }}</span></div>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div style="flex:none;padding:10px 16px 14px;background:var(--card);border-top:.5px solid var(--sep)">
+            <button onClick="{{ exportBatch }}" style="width:100%;height:50px;border-radius:13px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;border:0;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>{{ docsExportLabel }}</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== INVOICE FORM (centered popup) ===== -->
+      <sc-if value="{{ showInvForm }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card" style="width:360px">
+            <div class="popup-head"><span class="popup-title">Новый инвойс</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll" style="background:var(--grouped);padding:14px 14px 18px">
+              <div style="font-size:12px;color:var(--l3);margin:0 2px 8px">№ {{ invNumberPreview }}</div>
+              <div style="background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px"><span style="font-size:15px;color:var(--l2);width:74px;flex:none">Клиент</span><input value="{{ invClient }}" onInput="{{ setInvClient }}" placeholder="Имя или компания" style="flex:1;font-size:16px;color:var(--label);border:0;background:none;outline:none;text-align:right;font-family:inherit"/></div>
+              </div>
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Позиции</div>
+              <div style="background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px">
+                <sc-for list="{{ ivItems }}" as="it" hint-placeholder-count="2">
+                  <div style="padding:10px 12px;border-top:.5px solid var(--sep)">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <input value="{{ it.name }}" onInput="{{ it.onName }}" placeholder="Наименование" style="flex:1;font-size:15px;color:var(--label);border:0;background:none;outline:none;font-family:inherit"/>
+                      <button onClick="{{ it.onDel }}" aria-label="Удалить позицию" style="width:26px;height:26px;border-radius:50%;background:var(--fill);color:var(--l3);border:0;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <input value="{{ it.qty }}" onInput="{{ it.onQty }}" inputmode="decimal" placeholder="Кол-во" style="width:62px;font-size:14px;color:var(--label);border:0;background:var(--fill2);border-radius:8px;padding:6px 8px;outline:none;font-family:inherit"/>
+                      <span style="color:var(--l3);font-size:13px">×</span>
+                      <input value="{{ it.price }}" onInput="{{ it.onPrice }}" inputmode="decimal" placeholder="Цена €" style="width:84px;font-size:14px;color:var(--label);border:0;background:var(--fill2);border-radius:8px;padding:6px 8px;outline:none;font-family:inherit"/>
+                      <span style="margin-left:auto;font-size:14px;font-weight:600">{{ it.lineStr }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+                <button onClick="{{ invAddItem }}" style="width:100%;min-height:44px;border:0;border-top:.5px solid var(--sep);background:none;color:var(--accent);font-size:15px;font-weight:500;cursor:pointer;font-family:inherit">＋ Позиция</button>
+              </div>
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">НДС</div>
+              <div style="display:flex;background:var(--fill);border-radius:10px;padding:3px;gap:3px;margin-bottom:14px">
+                <sc-for list="{{ ivRateChips }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.onPick }}" style="{{ r.style }}">{{ r.label }}</button></sc-for>
+              </div>
+              <div style="background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--l2);margin-bottom:6px"><span>Без НДС</span><span>{{ ivNetStr }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--l2);margin-bottom:6px"><span>{{ ivVatLabel }}</span><span>{{ ivVatStr }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:700;padding-top:8px;border-top:.5px solid var(--sep)"><span>Итого</span><span>{{ ivGrossStr }}</span></div>
+              </div>
+              <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l3);margin:0 2px 7px">Статус</div>
+              <div style="display:flex;background:var(--fill);border-radius:10px;padding:3px;gap:3px;margin-bottom:16px">
+                <button onClick="{{ setInvDraft }}" style="{{ invStatusDraft }}">Черновик</button>
+                <button onClick="{{ setInvIssued }}" style="{{ invStatusIssued }}">Выставлен</button>
+                <button onClick="{{ setInvPaid }}" style="{{ invStatusPaid }}">Оплачен</button>
+              </div>
+              <button onClick="{{ saveInvoice }}" style="{{ saveInvStyle }}">Создать инвойс</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== DOC PREVIEW (centered popup) ===== -->
+      <sc-if value="{{ showDocPreview }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head">
+              <button onClick="{{ backToDocs }}" aria-label="Назад" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--fill);color:var(--accent);border:0;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+              <span class="popup-title">{{ pvTitle }}</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="display:flex;align-items:center;gap:11px;padding-bottom:12px;border-bottom:.5px solid var(--sep)">
+                <span style="width:40px;height:40px;border-radius:11px;background:var(--accent-tint);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">{{ pvLogo }}</span>
+                <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700">{{ pvCompany }}</div><div style="font-size:12px;color:var(--l3)">{{ pvCompanyMeta }}</div></div>
+                <span style="{{ pvStatusStyle }}">{{ pvStatusLabel }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:.5px solid var(--sep)">
+                <div><div style="font-size:11px;color:var(--l3);text-transform:uppercase">Клиент</div><div style="font-size:15px;font-weight:600">{{ pvClient }}</div></div>
+                <div style="text-align:right"><div style="font-size:11px;color:var(--l3);text-transform:uppercase">Дата</div><div style="font-size:15px;font-weight:600">{{ pvDate }}</div></div>
+              </div>
+              <sc-if value="{{ pvHasItems }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:8px 0 4px">
+                  <sc-for list="{{ pvItems }}" as="it" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:baseline;gap:8px;padding:6px 0"><div style="flex:1;min-width:0"><div style="font-size:14px">{{ it.name }}</div><div style="font-size:12px;color:var(--l3)">{{ it.qtyPrice }}</div></div><span style="font-size:14px;font-weight:600">{{ it.lineStr }}</span></div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <div style="padding:10px 0 4px;border-top:.5px solid var(--sep)">
+                <sc-if value="{{ pvShowVat }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--l2);margin-bottom:5px"><span>Без НДС</span><span>{{ pvNetStr }}</span></div>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--l2);margin-bottom:5px"><span>{{ pvVatLabel }}</span><span>{{ pvVatStr }}</span></div>
+                </sc-if>
+                <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700"><span>Итого</span><span>{{ pvGrossStr }}</span></div>
+              </div>
+              <div style="font-size:12px;color:var(--l3);margin:10px 0 14px">{{ pvRequisites }}</div>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ shareDoc }}" style="flex:1;height:46px;border-radius:13px;background:var(--accent);color:#fff;font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>Отправить</button>
+                <sc-if value="{{ pvIsInvoice }}" hint-placeholder-val="{{ true }}"><button onClick="{{ markPaid }}" style="flex:none;height:46px;padding:0 16px;border-radius:13px;background:var(--green-tint);color:var(--green);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit">Оплачен</button></sc-if>
+                <button onClick="{{ deleteDoc }}" aria-label="Удалить" style="flex:none;width:46px;height:46px;border-radius:13px;background:var(--card2);color:var(--red);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== EXPORT CONFIRM (centered popup) ===== -->
+      <sc-if value="{{ showExportConfirm }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" class="popup-dim">
+          <div onClick="{{ stop }}" class="popup-card">
+            <div class="popup-head">
+              <button onClick="{{ backToDocs }}" aria-label="Назад" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--fill);color:var(--accent);border:0;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+              <span class="popup-title">Отдать бухгалтеру</span>
+              <button onClick="{{ closeSheet }}" aria-label="Закрыть" class="popup-x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="popup-scroll">
+              <div style="text-align:center;margin-bottom:14px">
+                <div style="width:52px;height:52px;border-radius:14px;background:var(--accent-tint);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px">📦</div>
+                <div style="font-size:15px;color:var(--l2)">{{ exportPeriodLabel }}</div>
+              </div>
+              <div style="background:var(--card2);border-radius:12px;overflow:hidden;margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;min-height:44px;align-items:center;padding:0 14px"><span style="font-size:14px;color:var(--l2)">Документов</span><span style="font-size:15px;font-weight:600">{{ exportCount }}</span></div>
+                <div style="display:flex;justify-content:space-between;min-height:44px;align-items:center;padding:0 14px;border-top:.5px solid var(--sep)"><span style="font-size:14px;color:var(--l2)">Инвойсы · Чеки</span><span style="font-size:15px;font-weight:600">{{ exportInvCount }} · {{ exportRcptCount }}</span></div>
+                <div style="display:flex;justify-content:space-between;min-height:44px;align-items:center;padding:0 14px;border-top:.5px solid var(--sep)"><span style="font-size:14px;color:var(--l2)">Сумма</span><span style="font-size:15px;font-weight:700">{{ exportTotalStr }}</span></div>
+              </div>
+              <button onClick="{{ doExport }}" style="width:100%;height:50px;border-radius:14px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;border:0;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:9px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>Отправить PDF + CSV</button>
+              <button onClick="{{ doExport }}" style="width:100%;height:46px;border-radius:14px;background:var(--card2);color:var(--accent);font-size:15px;font-weight:600;border:0;cursor:pointer;font-family:inherit">Скопировать ссылку</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:478,&quot;height&quot;:920}}">
+class Component extends DCLogic {
+  MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  MSHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  MGEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  APP_TODAY = '2026-06-15';
+  SETTINGS = [
+    {title:'Компания и документы', rows:[
+      {emoji:'🏢',title:'Реквизиты компании',value:'AirFix'},
+      {emoji:'🧾',title:'Документы и экспорт',value:''},
+      {emoji:'🧮',title:'НДС по умолчанию',value:'19%'},
+      {emoji:'🔢',title:'Нумерация инвойсов',value:'AF-2026-…'},
+      {emoji:'💶',title:'Валюта',value:'€ EUR'},
+    ]},
+    {title:'Структура', rows:[
+      {emoji:'💳',title:'Счета и кошельки',value:'4'},
+      {emoji:'🏷️',title:'Категории',value:'8'},
+      {emoji:'👥',title:'Бригады и доступ',value:'2'},
+    ]},
+    {title:'Автоматизация', rows:[
+      {emoji:'🔁',title:'Шаблоны и автооперации',value:''},
+      {emoji:'🔔',title:'Напоминания о долгах',value:'Вкл'},
+    ]},
+  ];
+  BR = { sever:{name:'Север',color:'#3E88F7'}, yug:{name:'Юг',color:'#34C759'} };
+  CATS = {
+    income:[{k:'Монтаж',e:'🔧'},{k:'Ремонт',e:'🛠'},{k:'Сервис',e:'💨'},{k:'Договор',e:'📄'}],
+    expense:[{k:'Топливо',e:'⛽'},{k:'Материалы',e:'📦'},{k:'Питание',e:'🍽'},{k:'Прочее',e:'🧾'}],
+  };
+  KINDS = [{v:'cash',e:'💵',label:'Наличные'},{v:'card',e:'💳',label:'Карта'},{v:'bank',e:'🏦',label:'Банк'},{v:'company',e:'🏛',label:'Компания'}];
+  DEBTS = [
+    {initials:'МК',name:'Михаил Костас',meta:'просрочено 4 дня · Север',overdue:true,amount:320},
+    {initials:'ЕД',name:'Елена Дмитриу',meta:'срок 18 июн · Юг',overdue:false,amount:180},
+    {initials:'АП',name:'Андреас Папас',meta:'срок 22 июн · Север',overdue:false,amount:80},
+  ];
+  DOC_STATUS = { draft:{label:'Черновик',color:'var(--l3)',tint:'var(--fill)'}, issued:{label:'Выставлен',color:'var(--orange)',tint:'var(--orange-tint)'}, paid:{label:'Оплачен',color:'var(--green)',tint:'var(--green-tint)'} };
+  VAT_RATES = [0,9,19];
+  COUNTRIES = { CY:{name:'Кипр',rates:[0,5,9,19],std:19}, GR:{name:'Греция',rates:[0,6,13,24],std:24}, DE:{name:'Германия',rates:[0,7,19],std:19}, GB:{name:'Великобритания',rates:[0,5,20],std:20} };
+
+  state = {
+    scope: 'sever',
+    period: { kind:'month', anchor:'2026-06-15', from:null, to:null },
+    pPick: null,
+    cal: { y:2026, m:5, from:null, to:null },
+    feedFilter: 'all',
+    homeView: 'all',
+    profitView: 'bars',
+    acctFilter: null,
+    acctExpanded: false,
+    sheet: null,
+    activeTxId: null,
+    draft: { type:'expense', amount:'', accountId:null, category:'Топливо', client:'', comment:'', date:'2026-06-15', time:'', apptId:null },
+    expenseCats: [{k:'Топливо',e:'⛽'},{k:'Материалы',e:'📦'},{k:'Питание',e:'🍽'},{k:'Прочее',e:'🧾'}],
+    serviceCats: [{k:'Монтаж',e:'🔧'},{k:'Ремонт',e:'🛠'},{k:'Сервис',e:'💨'},{k:'Договор',e:'📄'}],
+    appointments: [
+      {id:'ap1',brigade:'sever',client:'ООО «Лагуна»',service:'Монтаж',date:'2026-06-15',time:'09:30',address:'Лимасол'},
+      {id:'ap2',brigade:'sever',client:'Костас М.',service:'Сервис',date:'2026-06-15',time:'13:00',address:'Пафос'},
+      {id:'ap3',brigade:'sever',client:'Отель «Бриз»',service:'Сервис',date:'2026-06-16',time:'11:00',address:'Лимасол'},
+      {id:'ap4',brigade:'yug',client:'Café Mango',service:'Монтаж',date:'2026-06-15',time:'10:00',address:'Айя-Напа'},
+      {id:'ap5',brigade:'yug',client:'Hotel Asterias',service:'Договор',date:'2026-06-16',time:'15:00',address:'Ларнака'},
+    ],
+    catAdding: false, newCat: '',
+    acct: { name:'', kind:'cash', emoji:'💵', brigade:'sever', balance:'' },
+    accounts: [
+      {id:'a1',name:'Наличные',emoji:'💵',brigade:'sever',role:'cash',country:'CY',vatReserve:false,salarySource:true,personal:false,opening:1240,balance:1240},
+      {id:'a2',name:'Карта Юры',emoji:'💳',brigade:'sever',role:'card',country:'CY',vatReserve:false,salarySource:true,personal:false,opening:4020,balance:4020},
+      {id:'a3',name:'Касса Юг',emoji:'💵',brigade:'yug',role:'cash',country:'CY',vatReserve:false,salarySource:true,personal:false,opening:1000,balance:1000},
+      {id:'a4',name:'Банк AirFix',emoji:'🏦',brigade:'yug',role:'company',country:'CY',vatReserve:true,salarySource:false,personal:false,opening:9240,balance:9240},
+    ],
+    txs: [
+      {id:'t1',date:'2026-06-15',type:'income',amount:520,emoji:'🔧',title:'Оплата за монтаж',sub:'ООО «Лагуна»',accountId:'a1'},
+      {id:'t2',date:'2026-06-15',type:'expense',amount:80,emoji:'⛽',title:'Бензин',sub:'Топливо',accountId:'a3'},
+      {id:'t3',date:'2026-06-15',type:'income',amount:300,emoji:'💨',title:'Чистка кондиционера',sub:'Костас М.',accountId:'a2'},
+      {id:'t4',date:'2026-06-14',type:'income',amount:690,emoji:'🛠',title:'Ремонт кондиционера',sub:'Анастасия П.',accountId:'a2'},
+      {id:'t5',date:'2026-06-14',type:'expense',amount:310,emoji:'📦',title:'Запчасти',sub:'Материалы',accountId:'a4'},
+      {id:'t6',date:'2026-06-14',type:'expense',amount:120,emoji:'🍽',title:'Обед бригады',sub:'Питание',accountId:'a1'},
+      {id:'t7',date:'2026-06-13',type:'income',amount:450,emoji:'🔧',title:'Установка',sub:'Café Mango',accountId:'a3'},
+      {id:'t8',date:'2026-06-13',type:'income',amount:1200,emoji:'📄',title:'Оплата по договору',sub:'Hotel Asterias',accountId:'a4'},
+      {id:'t9',date:'2026-06-13',type:'expense',amount:60,emoji:'🧾',title:'Парковка',sub:'Прочее',accountId:'a1'},
+      {id:'t10',date:'2026-06-12',type:'income',amount:260,emoji:'💨',title:'Чистка кондиционера',sub:'Мария К.',accountId:'a2'},
+      {id:'t11',date:'2026-06-11',type:'income',amount:240,emoji:'💨',title:'Чистка кондиционера',sub:'Отель «Бриз»',accountId:'a1'},
+      {id:'t12',date:'2026-06-10',type:'income',amount:300,emoji:'🔧',title:'Оплата за монтаж',sub:'Никос П.',accountId:'a2'},
+      {id:'t13',date:'2026-06-10',type:'expense',amount:70,emoji:'🍽',title:'Обед бригады',sub:'Питание',accountId:'a1'},
+    ],
+    nextId: 14,
+    // --- transfers (live in txs as type:'transfer') ---
+    xfer: { fromId:null, toId:null, amount:'', fee:'', editingFee:false },
+    // --- documents: receipts + invoices in ONE array ---
+    docs: [
+      {id:'d1',kind:'receipt',number:'',date:'2026-06-15',clientName:'ООО «Лагуна»',brigade:'sever',status:'paid',txId:'t1',items:[],vatRate:0,net:520,vat:0,gross:520,note:'Оплата за монтаж'},
+      {id:'d2',kind:'invoice',number:'AF-2026-013',date:'2026-06-13',clientName:'Hotel Asterias',brigade:'yug',status:'paid',txId:'t8',vatRate:19,items:[{name:'Договор обслуживания',qty:1,price:1008.40}],net:1008.40,vat:191.60,gross:1200,note:''},
+      {id:'d3',kind:'invoice',number:'AF-2026-012',date:'2026-06-11',clientName:'Café Mango',brigade:'yug',status:'issued',txId:null,vatRate:0,items:[{name:'Установка кондиционера',qty:2,price:225}],net:450,vat:0,gross:450,note:'без НДС'},
+    ],
+    company: { name:'AirFix', vatId:'CY10391847X', address:'Лимасол, ул. Спиру 12', requisites:'IBAN CY69 0050 0000 1234 5678', logo:'❄️', vatRegistered:true, country:'CY', vatRateDefault:19, vatBasis:'accrual', payrollDay:1, closedThrough:null, invPrefix:'AF', invNextSeq:14, invYear:2026 },
+    employees: [
+      {id:'e1',name:'Юрий',brigade:'sever',salary:1400,active:true},
+      {id:'e2',name:'Деметрис',brigade:'yug',salary:1300,active:true},
+      {id:'e3',name:'Андреас',brigade:'yug',salary:1100,active:true},
+    ],
+    emp: { id:null,name:'',brigade:'sever',salary:'' },
+    docFilter: { type:'all', status:'all' },
+    inv: { id:null, clientName:'', date:'2026-06-15', items:[{name:'',qty:'1',price:''}], vatOn:true, vatRate:19, status:'draft', txId:null, note:'' },
+    previewDocId: null,
+  };
+
+  // ── helpers ──
+  fmt(n){ const s=Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'); return '€'+s; }
+  signed(n){ return (n>=0?'+':'−')+this.fmt(n); }
+  acc(id){ return this.state.accounts.find(a=>a.id===id); }
+  accBrigades(a){ return [a&&a.brigade?a.brigade:'sever']; }
+  isShared(a){ return false; }
+  plural(n,one,few,many){ const m10=n%10,m100=n%100; if(m10===1&&m100!==11)return one; if(m10>=2&&m10<=4&&(m100<10||m100>=20))return few; return many; }
+  ratesFor(code){ return (this.COUNTRIES[code]||this.COUNTRIES.CY).rates; }
+  swTrack(on){ return 'width:46px;height:28px;border-radius:14px;flex:none;position:relative;display:inline-block;transition:background .15s;background:'+(on?'var(--green)':'var(--l4)'); }
+  swKnob(on){ return 'position:absolute;top:2px;left:'+(on?'20px':'2px')+';width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s'; }
+  vatCalc(amount,mode,rate){ const r=(mode==='none'||!rate)?0:rate; if(mode==='incl'){ const net=Math.round(amount/(1+r/100)); return {net,vat:amount-net,gross:amount,rate:r}; } if(mode==='add'){ const vat=Math.round(amount*r/100); return {net:amount,vat,gross:amount+vat,rate:r}; } return {net:amount,vat:0,gross:amount,rate:0}; }
+  brigadeOf(tx){ if(tx.brigade) return tx.brigade; const a=this.acc(tx.accountId); return a?this.accBrigades(a)[0]:'sever'; }
+  inScope(brigade){ return brigade===this.state.scope; }
+  dayLabel(date){ const d=parseInt(date.slice(8),10); const m=parseInt(date.slice(5,7),10)-1; const lbl=d+' '+this.MSHORT[m]; return date==='2026-06-15' ? 'Сегодня · '+lbl : lbl; }
+  shortDay(date){ if(date===this.APP_TODAY) return 'сегодня'; if(date===this.addDays(this.APP_TODAY,-1)) return 'вчера'; const d=parseInt(date.slice(8),10),m=parseInt(date.slice(5,7),10)-1; return d+' '+this.MSHORT[m]; }
+  visibleAccounts(){ return this.state.accounts.filter(a=>(a.brigade||'sever')===this.state.scope); }
+  // dates
+  ymd(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+  parse(s){ return new Date(s+'T00:00:00'); }
+  addDays(s,n){ const dt=this.parse(s); dt.setDate(dt.getDate()+n); return this.ymd(dt); }
+  diffDays(a,b){ return Math.round((this.parse(b)-this.parse(a))/86400000); }
+  p2(n){ return String(n).padStart(2,'0'); }
+  mondayOf(s){ const d=this.parse(s); const dow=(d.getDay()+6)%7; return this.addDays(s,-dow); }
+  weekRange(kind,anchor){ const mon=this.mondayOf(anchor); if(kind==='2weeks') return {from:this.addDays(mon,-7), to:this.addDays(mon,6)}; return {from:mon, to:this.addDays(mon,6)}; }
+  rangeForKind(kind,anchor){
+    let r;
+    if(kind==='today'||kind==='yesterday') r={from:anchor,to:anchor};
+    else if(kind==='7d') r={from:this.addDays(anchor,-6),to:anchor};
+    else if(kind==='month'){ const dt=this.parse(anchor); const f=new Date(dt.getFullYear(),dt.getMonth(),1),l=new Date(dt.getFullYear(),dt.getMonth()+1,0); r={from:this.ymd(f),to:this.ymd(l)}; }
+    else if(kind==='year'){ const y=this.parse(anchor).getFullYear(); r={from:y+'-01-01',to:y+'-12-31'}; }
+    else return '';
+    return this.rangeLabel(r.from,r.to,kind);
+  }
+  getRange(){
+    const p=this.state.period;
+    if(p.kind==='custom') return {from:p.from,to:p.to};
+    if(p.kind==='today'||p.kind==='yesterday') return {from:p.anchor,to:p.anchor};
+    if(p.kind==='7d') return {from:this.addDays(p.anchor,-6),to:p.anchor};
+    if(p.kind==='last30') return {from:this.addDays(p.anchor,-29),to:p.anchor};
+    if(p.kind==='month'){ const dt=this.parse(p.anchor); const f=new Date(dt.getFullYear(),dt.getMonth(),1),l=new Date(dt.getFullYear(),dt.getMonth()+1,0); return {from:this.ymd(f),to:this.ymd(l)}; }
+    if(p.kind==='year'){ const y=this.parse(p.anchor).getFullYear(); return {from:y+'-01-01',to:y+'-12-31'}; }
+    if(p.kind==='week'||p.kind==='lastweek'||p.kind==='2weeks') return this.weekRange(p.kind,p.anchor);
+    return {from:p.anchor,to:p.anchor};
+  }
+  rangeLabel(from,to,kind){
+    const pf=this.parse(from),pt=this.parse(to);
+    if(kind==='year') return pf.getFullYear()+' год';
+    const df=pf.getDate(),dt=pt.getDate(),mf=pf.getMonth(),mt=pt.getMonth();
+    if(from===to) return df+' '+this.MGEN[mf];
+    if(mf===mt && pf.getFullYear()===pt.getFullYear()) return df+'–'+dt+' '+this.MGEN[mf];
+    return df+' '+this.MSHORT[mf]+' – '+dt+' '+this.MSHORT[mt];
+  }
+  periodTitle(){
+    const p=this.state.period;
+    if(p.kind==='custom') return 'Свой период';
+    if(p.kind==='today'||p.kind==='yesterday') return this.kindLabelOf(p.kind);
+    if(p.kind==='month'){ if(this.isCurrentPeriod()) return 'Текущий месяц'; const a=this.parse(p.anchor),now=this.parse(this.APP_TODAY),pm=new Date(now.getFullYear(),now.getMonth()-1,1); return (a.getFullYear()===pm.getFullYear()&&a.getMonth()===pm.getMonth())?'Прошлый месяц':this.MONTHS[a.getMonth()]; }
+    if(p.kind==='year'){ if(this.isCurrentPeriod()) return 'Текущий год'; const yr=this.parse(p.anchor).getFullYear(),ny=this.parse(this.APP_TODAY).getFullYear(); return yr===ny-1?'Прошлый год':(yr+' год'); }
+    if(p.kind==='week')  return this.isCurrentPeriod()?'Текущая неделя':'Неделя';
+    if(p.kind==='lastweek') return 'Прошлая неделя';
+    if(p.kind==='2weeks')   return '2 недели';
+    return this.kindLabelOf(p.kind) || this.dmyRange(this.getRange().from,this.getRange().to);
+  }
+  periodSub(){ const r=this.getRange(); return this.rangeLabel(r.from,r.to,this.state.period.kind); }
+  dmyRange(from,to){ const f=this.parse(from),t=this.parse(to); const df=this.p2(f.getDate())+'.'+this.p2(f.getMonth()+1); const dt=this.p2(t.getDate())+'.'+this.p2(t.getMonth()+1); const yf=f.getFullYear(),yt=t.getFullYear(); if(from===to) return df+'.'+yt; if(yf===yt) return df+' – '+dt+'.'+yt; return df+'.'+yf+' – '+dt+'.'+yt; }
+  dmyShort(from,to){ const f=this.parse(from),t=this.parse(to); const a=this.p2(f.getDate())+'.'+this.p2(f.getMonth()+1)+'.'+String(f.getFullYear()).slice(2); const b=this.p2(t.getDate())+'.'+this.p2(t.getMonth()+1)+'.'+String(t.getFullYear()).slice(2); return from===to?a:a+' – '+b; }
+  plOps(n){ const a=Math.abs(n)%100,b=a%10; if(a>10&&a<20)return 'операций'; if(b>1&&b<5)return 'операции'; if(b===1)return 'операция'; return 'операций'; }
+  kindLabelOf(k){ return ({today:'Сегодня',yesterday:'Вчера',week:'Эта неделя',lastweek:'Прошлая неделя','2weeks':'2 недели','7d':'Последние 7 дней',last30:'Последние 30 дней',month:'Месяц',year:'Год',custom:'Свой период'})[k]||''; }
+  countInRange(from,to){ const S=this.state; return S.txs.filter(t=>this.txBrigades(t).includes(S.scope) && t.date>=from && t.date<=to && (!S.acctFilter||this.txTouchesAccount(t,S.acctFilter))).length; }
+  shortRange(from,to){
+    const pf=this.parse(from),pt=this.parse(to);
+    const df=pf.getDate(),dt=pt.getDate(),mf=pf.getMonth(),mt=pt.getMonth();
+    if(from===to) return df+' '+this.MSHORT[mf];
+    if(mf===mt && pf.getFullYear()===pt.getFullYear()) return df+'–'+dt+' '+this.MSHORT[mf];
+    return df+' '+this.MSHORT[mf]+' – '+dt+' '+this.MSHORT[mt];
+  }
+  isCurrentPeriod(){
+    const p=this.state.period, now=this.parse(this.APP_TODAY);
+    if(p.kind==='custom') return false;
+    if(p.kind==='today')     return p.anchor===this.APP_TODAY;
+    if(p.kind==='yesterday') return p.anchor===this.addDays(this.APP_TODAY,-1);
+    if(p.kind==='7d')        return p.anchor===this.APP_TODAY;
+    if(p.kind==='week')     return this.mondayOf(p.anchor)===this.mondayOf(this.APP_TODAY);
+    if(p.kind==='lastweek') return this.mondayOf(p.anchor)===this.addDays(this.mondayOf(this.APP_TODAY),-7);
+    if(p.kind==='2weeks')   return this.mondayOf(p.anchor)===this.mondayOf(this.APP_TODAY);
+    const a=this.parse(p.anchor);
+    if(p.kind==='month') return a.getFullYear()===now.getFullYear() && a.getMonth()===now.getMonth();
+    if(p.kind==='year')  return a.getFullYear()===now.getFullYear();
+    return false;
+  }
+  canStepNext(){ const p=this.state.period; if(p.kind==='week'||p.kind==='lastweek'||p.kind==='2weeks') return this.mondayOf(p.anchor) < this.mondayOf(this.APP_TODAY); return this.getRange().to < this.APP_TODAY; }
+  resetToCurrent(){
+    const k=this.state.period.kind==='custom'?'month':this.state.period.kind;
+    let anchor=this.APP_TODAY;
+    if(k==='yesterday') anchor=this.addDays(this.APP_TODAY,-1);
+    if(k==='week'||k==='2weeks') anchor=this.mondayOf(this.APP_TODAY);
+    if(k==='lastweek') anchor=this.addDays(this.mondayOf(this.APP_TODAY),-7);
+    this.setState({period:{kind:k,anchor,from:null,to:null},sheet:null});
+  }
+
+  // ── actions ──
+  setScope(s){ this.setState({scope:s, acctFilter:null}); }
+  setFeed(f){ this.setState({feedFilter:f}); }
+  toggleFeed(target){ this.setState(s=>({feedFilter: s.feedFilter===target ? 'all' : target})); }
+  toggleView(v){ this.setState(s=>({homeView: s.homeView===v ? 'all' : v})); }
+  setProfitView(v){ this.setState({profitView:v}); }
+  toggleAcct(id){ this.setState(s=>({acctFilter: s.acctFilter===id ? null : id})); }
+  toggleAcctPanel(){ this.setState(s=>({acctExpanded: !s.acctExpanded})); }
+  openAccounts(){ this.setState(s=>({sheet:null,homeView:s.homeView==='accounts'?'all':'accounts'})); }
+  openEmployees(){ this.setState({sheet:'employees'}); }
+  openEmpEdit(id){ const e=id?this.state.employees.find(x=>x.id===id):null; this.setState({sheet:'empEdit',emp:e?{...e}:{id:null,name:'',brigade:this.state.scope,salary:''}}); }
+  setEmpField(f,v){ this.setState(s=>({emp:{...s.emp,[f]:v}})); }
+  saveEmployee(){ const e=this.state.emp; const name=(e.name||'').trim(); const sal=parseInt((''+e.salary).replace(/[^0-9]/g,'')||'0',10)||0; if(!name||!sal) return; this.setState(s=>{ let emps; if(e.id){ emps=s.employees.map(x=>x.id===e.id?{...x,name,brigade:e.brigade,salary:sal}:x); } else { emps=[...s.employees,{id:'e'+Date.now(),name,brigade:e.brigade,salary:sal,active:true}]; } return {employees:emps,sheet:'employees'}; }); }
+  removeEmployee(){ const e=this.state.emp; if(!e.id){ this.setState({sheet:'employees'}); return; } this.setState(s=>({employees:s.employees.filter(x=>x.id!==e.id),sheet:'employees'})); }
+  setAcctAll(){ this.setState({acctFilter:null}); }
+  step(dir){
+    this.setState(s=>{
+      const p={...s.period};
+      if(p.kind==='today'||p.kind==='yesterday') p.anchor=this.addDays(p.anchor,dir);
+      else if(p.kind==='7d') p.anchor=this.addDays(p.anchor,dir*7);
+      else if(p.kind==='week'||p.kind==='lastweek'||p.kind==='2weeks') p.anchor=this.addDays(p.anchor,dir*7);
+      else if(p.kind==='month'){ const dt=this.parse(p.anchor); dt.setMonth(dt.getMonth()+dir); p.anchor=this.ymd(dt); }
+      else if(p.kind==='year'){ const dt=this.parse(p.anchor); dt.setFullYear(dt.getFullYear()+dir); p.anchor=this.ymd(dt); }
+      else if(p.kind==='custom'){ const len=this.diffDays(p.from,p.to)+1; p.from=this.addDays(p.from,dir*len); p.to=this.addDays(p.to,dir*len); p.anchor=p.from; }
+      return {period:p};
+    });
+  }
+  openPeriod(){ const r=this.getRange(); const p=this.state.period; this.setState({sheet:'period',pPick:{from:r.from,to:r.to,per:{kind:p.kind,anchor:p.anchor}}}); }
+  pickPreset(per,from,to){ this.setState({pPick:{from,to,per}}); }
+  applyPicked(){ const p=this.state.pPick; if(!p||!p.per) return; if(p.per.kind==='custom'){ this.openPeriodCustom(); return; } this.applyPreset(p.per); }
+  openPeriodCustom(){ const r=this.getRange(); const f=this.parse(r.from); this.setState({sheet:'periodCustom',cal:{y:f.getFullYear(),m:f.getMonth(),from:r.from,to:r.to}}); }
+  backToPresets(){ this.setState({sheet:'period'}); }
+  setPreset(kind){
+    if(kind==='custom'){ this.openPeriodCustom(); return; }
+    let anchor=this.APP_TODAY;
+    if(kind==='yesterday') anchor=this.addDays(this.APP_TODAY,-1);
+    if(kind==='week'||kind==='2weeks') anchor=this.mondayOf(this.APP_TODAY);
+    if(kind==='lastweek') anchor=this.addDays(this.mondayOf(this.APP_TODAY),-7);
+    this.setState({period:{kind,anchor,from:null,to:null},sheet:null});
+  }
+  applyPreset(p){ this.setState({period:{kind:p.kind,anchor:p.anchor,from:null,to:null},sheet:null}); }
+  calShift(dir){ this.setState(s=>{ let m=s.cal.m+dir,y=s.cal.y; if(m<0){m=11;y--;} if(m>11){m=0;y++;} return {cal:{...s.cal,m,y}}; }); }
+  calPick(ds){ this.setState(s=>{ const c={...s.cal}; if(!c.from||(c.from&&c.to)){ c.from=ds; c.to=null; } else { if(ds<c.from){ c.to=c.from; c.from=ds; } else c.to=ds; } return {cal:c}; }); }
+  applyCustom(){ const c=this.state.cal; if(!c.from) return; const from=c.from,to=c.to||c.from; this.setState({period:{kind:'custom',anchor:from,from,to},sheet:null}); }
+  applyCustomRange(from,to){ this.setState({period:{kind:'custom',anchor:from,from,to},sheet:null}); }
+  openSettings(){ this.setState({sheet:'settings'}); }
+  toggleVatReg(){ this.setState(s=>({company:{...s.company,vatRegistered:!s.company.vatRegistered}})); }
+  cycleCountry(){ const ks=Object.keys(this.COUNTRIES); this.setState(s=>{ const nc=ks[(ks.indexOf(s.company.country)+1)%ks.length]; return {company:{...s.company,country:nc,vatRateDefault:this.COUNTRIES[nc].std}}; }); }
+  cycleRate(){ this.setState(s=>{ const rs=this.ratesFor(s.company.country).filter(r=>r>0); const nr=rs[(rs.indexOf(s.company.vatRateDefault)+1)%rs.length]; return {company:{...s.company,vatRateDefault:nr}}; }); }
+  toggleBasis(){ this.setState(s=>({company:{...s.company,vatBasis:s.company.vatBasis==='cash'?'accrual':'cash'}})); }
+  toggleClose(){ this.setState(s=>({company:{...s.company,closedThrough:s.company.closedThrough?null:'31.05.26'}})); }
+  buildSettings(){
+    const s=this.state, co=s.company, reg=co.vatRegistered;
+    const rowS='display:flex;align-items:center;gap:13px;width:100%;min-height:54px;padding:7px 14px;border:0;border-top:.5px solid var(--sep);background:transparent;cursor:pointer;font-family:inherit';
+    const nav=(emoji,title,value,onTap)=>({emoji,title,value,isNav:true,isToggle:false,style:rowS,onTap});
+    const tog=(emoji,title,on,onTap)=>({emoji,title,isToggle:true,isNav:false,swTrack:this.swTrack(on),swKnob:this.swKnob(on),style:rowS,onTap});
+    const comp=[ nav('🏢','Реквизиты',co.name,()=>{}), tog('🧮','Плательщик НДС',reg,()=>this.toggleVatReg()) ];
+    if(reg){ comp.push(nav('🌍','Страна',this.COUNTRIES[co.country].name,()=>this.cycleCountry())); comp.push(nav('＃','Ставка НДС',co.vatRateDefault+'%',()=>this.cycleRate())); comp.push(nav('🗓','Учёт НДС',co.vatBasis==='cash'?'По оплате':'По отгрузке',()=>this.toggleBasis())); }
+    comp.push(nav('🔢','Нумерация инвойсов',co.invPrefix+'-'+co.invYear+'-…',()=>{}));
+    comp.push(nav('🧾','Документы и экспорт','',()=>this.openDocs()));
+    comp.push(nav('💶','Валюта','€ EUR',()=>{}));
+    return [
+      {title:'Компания и документы',rows:comp},
+      {title:'Зарплаты',rows:[ nav('👷','Сотрудники',String(s.employees.filter(e=>e.active).length),()=>this.openEmployees()), nav('📅','День выплаты',co.payrollDay+' числа',()=>{}) ]},
+      {title:'Структура',rows:[ nav('💳','Счета и кошельки',String(s.accounts.length),()=>this.openAccounts()), nav('🏷️','Категории',String(this.CATS.income.length+this.CATS.expense.length),()=>{}), nav('👥','Бригады',String(Object.keys(this.BR).length),()=>{}) ]},
+      {title:'Период',rows:[ nav('🔒','Закрыть период',co.closedThrough?('до '+co.closedThrough):'выкл',()=>this.toggleClose()) ]},
+      {title:'Автоматизация',rows:[ nav('🔁','Шаблоны и автооперации','',()=>{}), nav('🔔','Напоминания о долгах','Вкл',()=>{}) ]},
+    ];
+  }
+  openAnalytics(){ this.setState({sheet:'analytics'}); }
+  close(){ this.setState({sheet:null,activeTxId:null,previewDocId:null}); }
+
+  openAdd(type){
+    type = type || 'expense';
+    const first=this.visibleAccounts()[0]||this.state.accounts[0];
+    const reg=this.state.company.vatRegistered;
+    const cat0=(type==='income'?this.state.serviceCats:this.state.expenseCats)[0];
+    this.setState({sheet:'add',catAdding:false,newCat:'',draft:{type,amount:'',accountId:first.id,category:cat0?cat0.k:'',client:'',comment:'',date:this.APP_TODAY,time:'',apptId:null,vatMode:reg?'add':'none',vatRate:this.state.company.vatRateDefault}});
+  }
+  setType(t){ this.setState(s=>{ const c0=(t==='income'?s.serviceCats:s.expenseCats)[0]; return {catAdding:false,draft:{...s.draft,type:t,category:c0?c0.k:'',apptId:t==='income'?s.draft.apptId:null}}; }); }
+  setVatMode(m){ this.setState(s=>({draft:{...s.draft,vatMode:m}})); }
+  setVatRate(r){ this.setState(s=>({draft:{...s.draft,vatRate:r,vatMode:s.draft.vatMode==='none'?'add':s.draft.vatMode}})); }
+  pushDigit(d){ this.setState(s=>{ const a=(s.draft.amount+d).replace(/^0+/,''); return {draft:{...s.draft,amount:a.slice(0,7)}}; }); }
+  back(){ this.setState(s=>({draft:{...s.draft,amount:s.draft.amount.slice(0,-1)}})); }
+  pickAccount(id){ this.setState(s=>({draft:{...s.draft,accountId:id}})); }
+  pickCat(k){ this.setState(s=>({draft:{...s.draft,category:k}})); }
+  setAmount(v){ this.setState(s=>({draft:{...s.draft,amount:(''+v).replace(/[^0-9.,]/g,'')}})); }
+  setClient(v){ this.setState(s=>({draft:{...s.draft,client:v}})); }
+  setComment(v){ this.setState(s=>({draft:{...s.draft,comment:v}})); }
+  setOpDate(v){ this.setState(s=>({draft:{...s.draft,date:v||this.APP_TODAY}})); }
+  setOpTime(v){ this.setState(s=>({draft:{...s.draft,time:v}})); }
+  startAddCat(){ this.setState({catAdding:true,newCat:''}); }
+  setNewCat(v){ this.setState({newCat:v}); }
+  commitNewCat(){ const n=(this.state.newCat||'').trim(); if(!n){ this.setState({catAdding:false}); return; } this.setState(s=>{ const isInc=s.draft.type==='income'; const key=isInc?'serviceCats':'expenseCats'; const list=s[key]; const ex=list.some(c=>c.k.toLowerCase()===n.toLowerCase()); const upd=ex?list:[...list,{k:n,e:'🏷️'}]; return {[key]:upd,catAdding:false,newCat:'',draft:{...s.draft,category:n}}; }); }
+  pickAppt(id){ this.setState(s=>{ const ap=s.appointments.find(a=>a.id===id); if(!ap) return {}; return {draft:{...s.draft,apptId:id,client:ap.client,category:ap.service,date:ap.date,time:ap.time}}; }); }
+  saveTx(){
+    const d=this.state.draft; const n=parseFloat((''+(d.amount||'0')).replace(',','.'))||0;
+    if(!n || !d.accountId) return;
+    const list=d.type==='income'?this.state.serviceCats:this.state.expenseCats;
+    const cat=list.find(c=>c.k===d.category)||list[0]||{k:d.category||'Прочее',e:'🏷️'};
+    const reg=this.state.company.vatRegistered;
+    const isExp=d.type==='expense';
+    const m=this.vatCalc(n, (reg&&isExp)?(d.vatMode||'none'):'none', d.vatRate);
+    const cashOut=(isExp&&d.vatMode==='add')?m.gross:n; // money that hits the account
+    const sub=d.type==='income'?((d.client||'').trim()||'Клиент'):((d.comment||'').trim()||cat.k);
+    const tx={id:'t'+this.state.nextId,date:d.date||this.APP_TODAY,time:d.type==='income'?(d.time||''):'',type:d.type,amount:cashOut,emoji:cat.e,title:cat.k,sub,accountId:d.accountId,brigade:this.state.scope,apptId:d.type==='income'?(d.apptId||null):null,net:m.net,vatMode:isExp?(d.vatMode||'none'):'none',vatRate:m.rate,vatAmount:m.vat,vatRecoverable:reg&&isExp&&d.vatMode!=='none'};
+    this.setState(s=>{
+      const accounts=s.accounts.map(a=>a.id===d.accountId?{...a,balance:a.balance+(d.type==='income'?cashOut:-cashOut)}:a);
+      return {txs:[tx,...s.txs],accounts,nextId:s.nextId+1,sheet:null};
+    });
+  }
+  openTx(id){ this.setState({sheet:'tx',activeTxId:id}); }
+  deleteTx(){
+    const tx=this.state.txs.find(t=>t.id===this.state.activeTxId); if(!tx){this.close();return;}
+    this.setState(s=>{
+      let accounts;
+      if(tx.type==='transfer'){ accounts=s.accounts.map(a=>a.id===tx.fromAccountId?{...a,balance:a.balance+tx.amount}:a.id===tx.toAccountId?{...a,balance:a.balance-(tx.amount-tx.fee)}:a); }
+      else { accounts=s.accounts.map(a=>a.id===tx.accountId?{...a,balance:a.balance-(tx.type==='income'?tx.amount:-tx.amount)}:a); }
+      return {txs:s.txs.filter(t=>t.id!==tx.id),accounts,sheet:null,activeTxId:null};
+    });
+  }
+  openDebt(){ this.setState({sheet:'debt'}); }
+  openAddAccount(){ this.setState({sheet:'account',acct:{id:null,name:'',kind:'cash',emoji:'💵',brigade:this.state.scope,country:this.state.company.country,vatReserve:false,salarySource:true,personal:false,balance:''}}); }
+  openAccountEdit(id){ const a=this.state.accounts.find(x=>x.id===id); if(!a) return; this.setState({sheet:'account',acct:{id:a.id,name:a.name,kind:a.role||'cash',emoji:a.emoji,brigade:a.brigade||'sever',country:a.country||this.state.company.country,vatReserve:!!a.vatReserve,salarySource:a.salarySource!==false,personal:!!a.personal,balance:String(a.balance)}}); }
+  setAcctField(f,v){ this.setState(s=>({acct:{...s.acct,[f]:v}})); }
+  setKind(k){ const kd=this.KINDS.find(x=>x.v===k); this.setState(s=>({acct:{...s.acct,kind:k,emoji:kd.e}})); }
+  setAcctBrigade(b){ this.setState(s=>({acct:{...s.acct,brigade:b}})); }
+  toggleAcctFlag(f){ this.setState(s=>({acct:{...s.acct,[f]:!s.acct[f]}})); }
+  saveAccount(){
+    const a=this.state.acct; const name=(a.name||'').trim(); if(!name) return;
+    const bal=parseInt((''+a.balance).replace(/[^0-9]/g,'')||'0',10)||0;
+    const br=a.brigade||this.state.scope;
+    const id=a.id||('a'+Date.now());
+    const rec={id,name,emoji:a.emoji,brigade:br,role:a.kind||'cash',country:a.country||'CY',vatReserve:!!a.vatReserve,salarySource:!!a.salarySource,personal:!!a.personal,balance:bal};
+    this.setState(s=>{
+      let accounts=a.id ? s.accounts.map(x=>x.id===id?{...x,...rec}:x) : [...s.accounts,{...rec,opening:bal}];
+      if(rec.vatReserve) accounts=accounts.map(x=>(x.brigade===rec.brigade?{...x,vatReserve:x.id===id}:x));
+      return {accounts,sheet:null,homeView:'accounts'};
+    });
+  }
+  removeAccount(){ const a=this.state.acct; if(!a.id){ this.setState({sheet:null,homeView:'accounts'}); return; } this.setState(s=>({accounts:s.accounts.filter(x=>x.id!==a.id),sheet:null,homeView:'accounts'})); }
+
+  // ── transfers ──
+  txTouchesAccount(t,id){ return t.type==='transfer' ? (t.fromAccountId===id||t.toAccountId===id) : t.accountId===id; }
+  txBrigades(t){ if(t.type!=='transfer') return [this.brigadeOf(t)]; const f=this.acc(t.fromAccountId),to=this.acc(t.toAccountId); return [...new Set([...(f?this.accBrigades(f):[]),...(to?this.accBrigades(to):[])])]; }
+  allAccountsOrdered(){ const sc=this.state.scope; return [...this.state.accounts].sort((a,b)=>(((a.brigade||'sever')===sc)?0:1)-(((b.brigade||'sever')===sc)?0:1)); }
+  openTransfer(){ const v=this.allAccountsOrdered(); const fromId=(v[0]||this.state.accounts[0]).id; const to=v.find(a=>a.id!==fromId); this.setState({sheet:'transfer',xfer:{fromId,toId:to?to.id:null,amount:'',fee:'',editingFee:false,feeOn:false}}); }
+  xPickFrom(id){ this.setState(s=>{ const x={...s.xfer,fromId:id}; if(x.toId===id){ const alt=this.allAccountsOrdered().find(a=>a.id!==id); x.toId=alt?alt.id:null; } return {xfer:x}; }); }
+  xPickTo(id){ this.setState(s=>{ const x={...s.xfer,toId:id}; if(x.fromId===id){ const alt=this.allAccountsOrdered().find(a=>a.id!==id); x.fromId=alt?alt.id:null; } return {xfer:x}; }); }
+  xShowFee(){ this.setState(s=>({xfer:{...s.xfer,feeOn:true,editingFee:true}})); }
+  xSwap(){ this.setState(s=>({xfer:{...s.xfer,fromId:s.xfer.toId,toId:s.xfer.fromId}})); }
+  xFocusAmount(){ this.setState(s=>({xfer:{...s.xfer,editingFee:false}})); }
+  xFocusFee(){ this.setState(s=>({xfer:{...s.xfer,editingFee:true}})); }
+  xPush(dg){ this.setState(s=>{ const x={...s.xfer}; const k=x.editingFee?'fee':'amount'; x[k]=(x[k]+dg).replace(/^0+/,'').slice(0,7); return {xfer:x}; }); }
+  xBack(){ this.setState(s=>{ const x={...s.xfer}; const k=x.editingFee?'fee':'amount'; x[k]=x[k].slice(0,-1); return {xfer:x}; }); }
+  saveTransfer(){
+    const x=this.state.xfer; const A=parseInt(x.amount||'0',10), F=parseInt(x.fee||'0',10)||0;
+    if(!A||!x.fromId||!x.toId||x.fromId===x.toId||F>=A) return;
+    const from=this.acc(x.fromId), to=this.acc(x.toId);
+    const tx={id:'t'+this.state.nextId,date:this.APP_TODAY,type:'transfer',fromAccountId:x.fromId,toAccountId:x.toId,amount:A,fee:F,emoji:'⇄',title:from.name+' → '+to.name,sub:F>0?('Перевод · комиссия '+this.fmt(F)):'Перевод',accountId:x.fromId};
+    this.setState(s=>{ const accounts=s.accounts.map(a=>a.id===x.fromId?{...a,balance:a.balance-A}:a.id===x.toId?{...a,balance:a.balance+(A-F)}:a); return {txs:[tx,...s.txs],accounts,nextId:s.nextId+1,sheet:null}; });
+  }
+
+  // ── documents (receipts + invoices) ──
+  fmt2(n){ const neg=n<0; n=Math.abs(n); const s=n.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d),)/g,' '); return (neg?'−':'')+'€'+s; }
+  round2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
+  lineNet(it){ const q=parseFloat(String(it.qty).replace(',','.'))||0, p=parseFloat(String(it.price).replace(',','.'))||0; return this.round2(q*p); }
+  invMath(items,vatOn,rate){ const net=this.round2(items.reduce((a,it)=>a+this.lineNet(it),0)); const r=vatOn?(rate||0):0; const vat=this.round2(net*r/100); return {net,vat,gross:this.round2(net+vat),rate:r}; }
+  nextInvNumber(){ const c=this.state.company; return c.invPrefix+'-'+c.invYear+'-'+String(c.invNextSeq).padStart(3,'0'); }
+  openDocs(){ this.setState({sheet:'documents'}); }
+  setDocType(t){ this.setState(s=>({docFilter:{...s.docFilter,type:t}})); }
+  setDocStatus(st){ this.setState(s=>({docFilter:{...s.docFilter,status:st}})); }
+  openDocPreview(id){ this.setState({sheet:'docPreview',previewDocId:id}); }
+  backToDocs(){ this.setState({sheet:'documents',previewDocId:null}); }
+  markDocStatus(st){ this.setState(s=>({docs:s.docs.map(dd=>dd.id===s.previewDocId?{...dd,status:st}:dd)})); }
+  deleteDoc(){ this.setState(s=>({docs:s.docs.filter(dd=>dd.id!==s.previewDocId),sheet:'documents',previewDocId:null})); }
+  makeReceipt(){ const tx=this.state.txs.find(t=>t.id===this.state.activeTxId); if(!tx) return; const ex=this.state.docs.find(dd=>dd.kind==='receipt'&&dd.txId===tx.id); if(ex){ this.setState({sheet:'docPreview',previewDocId:ex.id}); return; } const id='d'+Date.now(); const doc={id,kind:'receipt',number:'',date:tx.date,clientName:tx.sub||'Клиент',brigade:this.brigadeOf(tx),status:'paid',txId:tx.id,items:[],vatRate:0,net:tx.amount,vat:0,gross:tx.amount,note:tx.title}; this.setState(s=>({docs:[doc,...s.docs],sheet:'docPreview',previewDocId:id})); }
+  openInvForm(){ const c=this.state.company; this.setState({sheet:'invForm',inv:{id:null,clientName:'',date:this.APP_TODAY,items:[{name:'',qty:'1',price:''}],vatOn:true,vatRate:c.vatRateDefault,status:'draft',txId:null,note:''}}); }
+  invSet(f,v){ this.setState(s=>({inv:{...s.inv,[f]:v}})); }
+  invItemSet(i,f,v){ this.setState(s=>({inv:{...s.inv,items:s.inv.items.map((it,k)=>k===i?{...it,[f]:v}:it)}})); }
+  invAddItem(){ this.setState(s=>({inv:{...s.inv,items:[...s.inv.items,{name:'',qty:'1',price:''}]}})); }
+  invDelItem(i){ this.setState(s=>{ const items=s.inv.items.filter((_,k)=>k!==i); return {inv:{...s.inv,items:items.length?items:[{name:'',qty:'1',price:''}]}}; }); }
+  invToggleVatOff(){ this.setState(s=>({inv:{...s.inv,vatOn:false,vatRate:0}})); }
+  invSetRate(r){ this.setState(s=>({inv:{...s.inv,vatRate:r,vatOn:true}})); }
+  invSetStatus(st){ this.setState(s=>({inv:{...s.inv,status:st}})); }
+  saveInvoice(){ const v=this.state.inv; const items=v.items.filter(it=>(it.name||'').trim()||this.lineNet(it)>0); if(!items.length||!(v.clientName||'').trim()) return; const m=this.invMath(items,v.vatOn,v.vatRate); this.setState(s=>{ const c=s.company; const doc={id:'d'+Date.now(),kind:'invoice',number:this.nextInvNumber(),date:v.date,clientName:v.clientName.trim(),brigade:s.scope,status:v.status,txId:null,vatRate:m.rate,items:items.map(it=>({name:(it.name||'').trim()||'Позиция',qty:parseFloat(String(it.qty).replace(',','.'))||1,price:parseFloat(String(it.price).replace(',','.'))||0})),net:m.net,vat:m.vat,gross:m.gross,note:v.note}; return {docs:[doc,...s.docs],company:{...c,invNextSeq:c.invNextSeq+1},sheet:'docPreview',previewDocId:doc.id}; }); }
+  openInvoices(){ this.setState({sheet:'documents',docFilter:{type:'invoice',status:'issued'}}); }
+  shareDoc(){ }
+  exportBatch(){ this.setState({sheet:'exportConfirm'}); }
+  doExport(){ this.setState({sheet:'documents'}); }
+
+  // ── style strings ──
+  chip(active,withDot){ return 'height:36px;padding:0 '+(withDot?'15':'18')+'px;border-radius:9999px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:7px;border:0;cursor:pointer;font-family:inherit;white-space:nowrap;'+(active?'background:var(--accent);color:#fff':'background:var(--fill);color:var(--label)'); }
+  miniChip(active){ return 'flex:none;height:34px;padding:0 13px;border-radius:9999px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;border:0;cursor:pointer;font-family:inherit;white-space:nowrap;'+(active?'background:var(--accent);color:#fff':'background:var(--fill);color:var(--label)'); }
+  ff(active){ return 'background:none;border:0;cursor:pointer;font-family:inherit;font-size:13px;padding:6px 0;font-weight:600;'+(active?'color:var(--label)':'color:var(--l3)'); }
+  seg(active,color){ return 'flex:1;height:36px;border-radius:9px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;border:0;cursor:pointer;font-family:inherit;'+(active?'background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:'+color:'background:none;color:var(--l2)'); }
+  segScope(active){ return 'flex:1;height:38px;border-radius:9px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-family:inherit;'+(active?'background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:var(--label)':'background:transparent;color:var(--l2)'); }
+  brigadeChip(active,color){ return 'flex:none;height:40px;padding:0 16px;border-radius:9999px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap;cursor:pointer;font-family:inherit;outline:none;transition:background .15s,color .15s;border:1.5px solid '+color+';'+(active?'background:'+color+';color:#fff':'background:var(--card);color:'+color); }
+  feedCard(sel,color,tint){ return 'flex:1;text-align:left;border-radius:13px;padding:11px 13px 12px;border:0;cursor:pointer;font-family:inherit;transition:background .15s,box-shadow .15s;'+(sel?'background:'+tint+';box-shadow:inset 0 0 0 1.5px '+color:'background:var(--card2);box-shadow:inset 0 0 0 1.5px transparent'); }
+  acctChip(active){ return 'flex:none;min-width:96px;border-radius:13px;padding:9px 13px;border:0;cursor:pointer;font-family:inherit;text-align:left;white-space:nowrap;transition:background .15s,box-shadow .15s;'+(active?'background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);color:var(--accent)':'background:var(--card);box-shadow:var(--shadow);color:var(--label)'); }
+  totCell(sel,tint,divider){ return 'flex:1;padding:11px 13px;border:0;'+(divider?'border-left:.5px solid var(--sep);':'')+'background:'+(sel?tint:'transparent')+';cursor:pointer;text-align:left;font-family:inherit;transition:background .15s'; }
+  pulseCell(sel,tint){ return 'flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px;border:0;border-radius:10px;cursor:pointer;font-family:inherit;transition:background .15s;background:'+(sel?tint:'transparent'); }
+  docTypeChip(active){ return 'flex:none;height:32px;padding:0 14px;border-radius:9999px;font-size:13px;font-weight:600;border:0;cursor:pointer;font-family:inherit;white-space:nowrap;'+(active?'background:var(--accent);color:#fff':'background:var(--fill);color:var(--label)'); }
+  statusPill(st){ const s=this.DOC_STATUS[st]; return 'height:22px;padding:0 9px;border-radius:9999px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;background:'+s.tint+';color:'+s.color; }
+  vatRateChip(active){ return 'flex:1;height:34px;border-radius:9px;font-size:14px;font-weight:600;border:0;cursor:pointer;font-family:inherit;'+(active?'background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:var(--accent)':'background:none;color:var(--l2)'); }
+  invStatusSeg(active,color){ return 'flex:1;height:34px;border-radius:9px;font-size:13px;font-weight:600;border:0;cursor:pointer;font-family:inherit;'+(active?'background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:'+color:'background:none;color:var(--l2)'); }
+
+  renderVals(){
+    const S=this.state;
+    const range=this.getRange();
+    const inRange=(t)=>t.date>=range.from && t.date<=range.to;
+    const scopeTxs=S.txs.filter(t=>this.txBrigades(t).includes(S.scope) && inRange(t) && (!S.acctFilter || this.txTouchesAccount(t,S.acctFilter)));
+    const income=scopeTxs.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+    const expense=scopeTxs.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+    const profit=income-expense;
+    const transferFees=scopeTxs.filter(t=>t.type==='transfer').reduce((a,t)=>{ const f=this.acc(t.fromAccountId); return a + ((f&&f.brigade===S.scope)?(t.fee||0):0); },0);
+    const profitNet=income-expense-transferFees;
+    const hv=S.homeView;
+    const incSel=hv==='income', exSel=hv==='expense', debtActive=hv==='debt', profitActive=hv==='profit', gross=income+expense;
+    // profit breakdown + previous-period comparison
+    const marginPct=income>0?Math.round(profit/income*100):0;
+    const _len=Math.round((this.parse(range.to)-this.parse(range.from))/86400000)+1;
+    const _pTo=this.addDays(range.from,-1), _pFrom=this.addDays(_pTo,-(_len-1));
+    const _pTx=S.txs.filter(t=>this.txBrigades(t).includes(S.scope)&&t.date>=_pFrom&&t.date<=_pTo&&(!S.acctFilter||this.txTouchesAccount(t,S.acctFilter)));
+    const _pInc=_pTx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+    const _pExp=_pTx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+    const prevProfit=_pInc-_pExp, profitDelta=profit-prevProfit, prevHas=(_pInc+_pExp)>0;
+    const vAcc=this.visibleAccounts();
+    const acctTotal=vAcc.reduce((a,x)=>a+x.balance,0);
+    const acctChips=vAcc.map(a=>({emoji:a.emoji,name:a.name,balanceStr:this.fmt(a.balance),active:S.acctFilter===a.id,onTap:()=>this.toggleAcct(a.id),style:this.acctChip(S.acctFilter===a.id)}));
+
+    // accounts — only the current team's own accounts (one account = one team)
+    const allAcc=this.visibleAccounts();
+    const acctGrand=allAcc.reduce((a,x)=>a+x.balance,0);
+    const acctRowOf=a=>({isHeader:false,isAcct:true,id:a.id,emoji:a.emoji,name:a.name,tag:'',tagColor:'var(--l3)',hasTag:false,balanceStr:this.fmt(a.balance),balColor:a.balance===0?'var(--l3)':'var(--label)',onTap:()=>this.openAccountEdit(a.id)});
+    const acctRows=allAcc.map(acctRowOf);
+    const acctCountStr=allAcc.length+' '+this.plural(allAcc.length,'счёт','счёта','счетов');
+
+    // feed (scope + filter)
+    let feed=scopeTxs;
+    if(hv==='income') feed=feed.filter(t=>t.type==='income');
+    if(hv==='expense') feed=feed.filter(t=>t.type==='expense');
+    const showFeed=(hv==='all');
+    const isBreakdown=(hv==='income'||hv==='expense'||hv==='profit');
+    const incSectionShow=(hv==='income'||hv==='profit'), expSectionShow=(hv==='expense'||hv==='profit'), profitDivider=(hv==='profit');
+    const showAccountsInline=hv==='accounts';
+    const feedSectionTitle={all:'Движения',income:'Доходы',expense:'Расходы',debt:'Должники',profit:'Прибыль за период',accounts:'Счета'}[hv]||'Движения';
+    const marginStr=marginPct+'%';
+    const expenseNegStr='−'+this.fmt(expense);
+    const transferFeesStr=transferFees>0?('−'+this.fmt(transferFees)):'';
+    const prevDeltaStr=(profitDelta>=0?'▲ ':'▼ ')+this.fmt(Math.abs(profitDelta));
+    const prevDeltaColor=profitDelta>=0?'var(--green)':'var(--red)';
+    const prevDeltaPctStr=(prevHas&&prevProfit!==0)?((profitDelta>=0?'+':'−')+Math.abs(Math.round(profitDelta/Math.abs(prevProfit)*100))+'%'):'';
+    const _SH='0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04)';
+    const ovIncBg=incSel?'rgba(52,199,89,.18)':'rgba(52,199,89,.05)';
+    const ovExpBg=exSel?'rgba(255,59,48,.16)':'rgba(255,59,48,.045)';
+    const ovDebtBg=debtActive?'var(--debt-tint)':'var(--card)';
+    const ovDebtShadow=debtActive?('inset 0 0 0 1.5px var(--debt),'+_SH):_SH;
+    const ovProfitBg=profitActive?'rgba(52,170,220,.16)':'rgba(52,170,220,.07)';
+    const ovProfitShadow=profitActive?'inset 0 0 0 1.5px var(--profit)':'inset 0 0 0 .5px rgba(52,170,220,.16)';
+    // profit panel — категории дохода/расхода (что принесло / куда ушло), с количеством и долями
+    const _grp=(arr,keyFn)=>{ const m={}; arr.forEach(t=>{ const k=keyFn(t)||'Прочее'; if(!m[k])m[k]={amount:0,count:0}; m[k].amount+=t.amount; m[k].count++; }); return Object.entries(m).map(([name,v])=>({name,amount:v.amount,count:v.count})).sort((a,b)=>b.amount-a.amount); };
+    const _incCats=_grp(scopeTxs.filter(t=>t.type==='income'), t=>t.title);
+    const _expCats=_grp(scopeTxs.filter(t=>t.type==='expense'), t=>t.sub);
+    const _incMax=Math.max(1,..._incCats.map(x=>x.amount)), _expMax=Math.max(1,..._expCats.map(x=>x.amount));
+    const _incTot=_incCats.reduce((a,x)=>a+x.amount,0)||1, _expTot=_expCats.reduce((a,x)=>a+x.amount,0)||1;
+    const _IPAL=['#34C759','#3E88F7','#5E5CE6','#00C7BE','#FFCC00','#FF7A00'];
+    const _EPAL=['#FF3B30','#FF9500','#FF2D55','#8E8E93','#5E5CE6','#FFCC00'];
+    const incomeCats=_incCats.map((x,i)=>({name:x.name,countStr:'×'+x.count,amountStr:'+'+this.fmt(x.amount),amountColor:'var(--green)',pctColor:'var(--green)',pctStr:Math.round(x.amount/_incTot*100)+'%',barPct:Math.round(x.amount/_incMax*100)+'%',bar:_IPAL[i%_IPAL.length],color:_IPAL[i%_IPAL.length]}));
+    const expenseCats=_expCats.map((x,i)=>({name:x.name,countStr:'×'+x.count,amountStr:'−'+this.fmt(x.amount),amountColor:'var(--red)',pctColor:'var(--red)',pctStr:Math.round(x.amount/_expTot*100)+'%',barPct:Math.round(x.amount/_expMax*100)+'%',bar:_EPAL[i%_EPAL.length],color:_EPAL[i%_EPAL.length]}));
+    const hasIncomeCats=incomeCats.length>0, hasExpenseCats=expenseCats.length>0;
+    const _pieGrad=(cats,tot,pal)=>{ if(!cats.length)return 'var(--fill)'; let cum=0; const st=cats.map((c,i)=>{const p0=cum,p1=cum+c.amount/tot*100;cum=p1;return pal[i%pal.length]+' '+p0.toFixed(2)+'% '+p1.toFixed(2)+'%';}); return 'conic-gradient('+st.join(',')+')'; };
+    const incomePieGrad=_pieGrad(_incCats,_incTot,_IPAL), expensePieGrad=_pieGrad(_expCats,_expTot,_EPAL);
+    const _pv=S.profitView||'bars';
+    const _pseg=(on)=>'display:flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:7px;border:0;cursor:pointer;font-family:inherit;'+(on?'background:var(--card);color:var(--label);box-shadow:var(--shadow)':'background:none;color:var(--l3)');
+
+    // ===== НДС за период (по компании) + покрытие зарплат =====
+    const reg=S.company.vatRegistered;
+    const _vd=S.docs.filter(dd=>dd.kind==='invoice'&&(dd.status==='issued'||dd.status==='paid')&&dd.date>=range.from&&dd.date<=range.to);
+    const outputVat=reg?Math.round(_vd.reduce((a,dd)=>a+(dd.vat||0),0)):0;
+    const inputVat=reg?Math.round(S.txs.filter(t=>t.type==='expense'&&inRange(t)&&t.vatRecoverable&&t.vatAmount>0).reduce((a,t)=>a+t.vatAmount,0)):0;
+    const vatPayable=outputVat-inputVat, vatRefund=vatPayable<0;
+    const vatReserveBal=S.accounts.filter(a=>a.vatReserve).reduce((a,x)=>a+x.balance,0);
+    const vatCovered=vatReserveBal>=Math.max(0,vatPayable);
+    const _empAct=S.employees.filter(e=>e.active);
+    const empScope=_empAct.filter(e=>e.brigade===S.scope);
+    const payrollDue=empScope.reduce((a,e)=>a+e.salary,0);
+    const payrollAll=_empAct.reduce((a,e)=>a+e.salary,0);
+    const availCash=S.accounts.filter(a=>a.salarySource&&this.accBrigades(a).includes(S.scope)).reduce((a,x)=>a+x.balance,0);
+    const payrollCovered=availCash>=payrollDue, payrollShort=Math.max(0,payrollDue-availCash);
+    const hasPayroll=empScope.length>0, payMonth=this.MGEN[this.parse(range.from).getMonth()];
+    const empRows=_empAct.map(e=>({name:e.name,brigadeName:this.BR[e.brigade].name,brigadeColor:this.BR[e.brigade].color,salaryStr:this.fmt(e.salary),onTap:()=>this.openEmpEdit(e.id)}));
+    const ed=S.emp;
+    // active-filter echo line (account · type)
+    const fnotes=[];
+    if(S.acctFilter){ const fa=this.acc(S.acctFilter); if(fa) fnotes.push(fa.name); }
+    if(incSel) fnotes.push('только доход'); else if(exSel) fnotes.push('только расход');
+    const feedNote=fnotes.length?'· '+fnotes.join(' · '):'';
+    // group by date desc
+    const dates=[...new Set(feed.map(t=>t.date))].sort().reverse();
+    const groups=dates.map(date=>{
+      const items=feed.filter(t=>t.date===date);
+      const dayTotal=items.reduce((a,t)=>a+(t.type==='income'?t.amount:t.type==='expense'?-t.amount:0),0);
+      return {
+        dayLabel:this.dayLabel(date),
+        dayTotalStr:this.signed(dayTotal),
+        dayTotalColor:dayTotal>=0?'var(--green)':'var(--red)',
+        items:items.map(t=>{
+          const br=this.brigadeOf(t); const meta=this.BR[br];
+          return {
+            emoji:t.emoji,title:t.title,sub:t.sub,
+            brigadeName:meta.name,dotColor:meta.color,
+            amountStr:t.type==='income'?'+'+this.fmt(t.amount):t.type==='expense'?'−'+this.fmt(t.amount):this.fmt(t.amount),
+            amountColor:t.type==='income'?'var(--green)':t.type==='expense'?'var(--red)':'var(--l2)',
+            onTap:()=>this.openTx(t.id),
+          };
+        }),
+      };
+    });
+
+    // flat feed rows (SE-style: type-bar + per-row date, no day grouping)
+    const feedSorted=[...feed].sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:0);
+    const feedRows=feedSorted.map((t,idx)=>{ const isT=t.type==='transfer'; return {
+      emoji:t.emoji,title:t.title,sub:t.sub,dateStr:this.shortDay(t.date),
+      amountStr: isT?this.fmt(t.amount):(t.type==='income'?'+'+this.fmt(t.amount):'−'+this.fmt(t.amount)),
+      amountColor: isT?'var(--l2)':(t.type==='income'?'var(--green)':'var(--red)'),
+      barColor: isT?'var(--l3)':(t.type==='income'?'var(--green)':'var(--red)'),
+      rowStyle:'width:100%;min-height:60px;display:flex;align-items:center;gap:11px;padding:0;background:none;border:0;'+(idx===0?'':'border-top:.5px solid var(--sep);')+'cursor:pointer;text-align:left;font-family:inherit',
+      onTap:()=>this.openTx(t.id) }; });
+
+    // add sheet derived
+    const d=S.draft; const amtN=parseFloat((''+(d.amount||'0')).replace(',','.'))||0;
+    // VAT entry (gated by company.vatRegistered)
+    const vatShow=S.company.vatRegistered;
+    const _segS=(on)=>'flex:1;text-align:center;font-size:13px;padding:7px 2px;border-radius:7px;border:0;cursor:pointer;font-family:inherit;font-weight:600;'+(on?'background:var(--card);color:var(--label);box-shadow:var(--shadow)':'background:none;color:var(--l2)');
+    const _opSeg=(on,color)=>'flex:1;text-align:center;font-size:14px;padding:9px 2px;border-radius:8px;border:0;cursor:pointer;font-family:inherit;font-weight:600;'+(on?'background:var(--card);color:'+color+';box-shadow:var(--shadow)':'background:none;color:var(--l2)');
+    const _dAcc=this.acc(d.accountId); const _vcountry=(_dAcc&&_dAcc.country)||S.company.country;
+    const vatOn=(d.vatMode&&d.vatMode!=='none');
+    const vatRatesUI=this.ratesFor(_vcountry).map(r=>({label:r+'%',onPick:()=>this.setVatRate(r),style:this.vatRateChip(vatOn&&d.vatRate===r)}));
+    const _vm=this.vatCalc(amtN,d.vatMode||'none',d.vatRate);
+    const vatLiveStr=(!vatOn)?'':('без НДС '+this.fmt(_vm.net)+' · НДС '+this.fmt(_vm.vat)+(d.vatMode==='add'?(' · к оплате '+this.fmt(_vm.gross)):''));
+    const addAccounts=vAcc.map(a=>({name:a.name,dotColor:this.BR[a.brigade].color,onPick:()=>this.pickAccount(a.id),style:this.miniChip(d.accountId===a.id)+';'+(d.accountId===a.id?'':'')}));
+    const addCats=(d.type==='income'?(S.serviceCats||[]):(S.expenseCats||[])).map(c=>({k:c.k,e:c.e,onPick:()=>this.pickCat(c.k),style:this.miniChip(d.category===c.k)}));
+    const _scopeAppts=(S.appointments||[]).filter(a=>a.brigade===S.scope);
+    const apptRows=_scopeAppts.map(ap=>({client:ap.client,sub:ap.service,when:this.shortDay(ap.date)+' '+ap.time,onPick:()=>this.pickAppt(ap.id),style:'width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(d.apptId===ap.id?'rgba(0,122,255,.10)':'none')+';border:0;border-top:.5px solid var(--sep);cursor:pointer;font-family:inherit',dotStyle:'width:18px;height:18px;border-radius:50%;flex:none;box-sizing:border-box;border:'+(d.apptId===ap.id?'5px solid var(--accent)':'2px solid var(--l4)')}));
+    const apptEmpty=_scopeAppts.length===0;
+    const pad=['1','2','3','4','5','6','7','8','9'].map(n=>({label:n,onClick:()=>this.pushDigit(n)}));
+    const canSave=amtN>0 && !!d.accountId;
+    const saveColor=d.type==='income'?'var(--green)':'var(--red)';
+    const saveStyle='height:48px;border-radius:13px;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;'+(canSave?'background:'+saveColor:'background:var(--l4);pointer-events:none');
+
+    // tx detail
+    const at=S.txs.find(t=>t.id===S.activeTxId);
+    let detail={};
+    if(at){
+      if(at.type==='transfer'){ const f=this.acc(at.fromAccountId),to=this.acc(at.toAccountId);
+        detail={detailEmoji:'⇄',detailTitle:(f?f.name:'?')+' → '+(to?to.name:'?'),detailMeta:this.dayLabel(at.date)+' · Перевод'+(at.fee>0?' · комиссия '+this.fmt(at.fee):''),detailAmount:this.fmt(at.amount),detailColor:'var(--l2)'};
+      } else { const br=this.BR[this.brigadeOf(at)];
+        detail={detailEmoji:at.emoji,detailTitle:at.title,detailMeta:this.dayLabel(at.date)+' · '+br.name+' · '+at.sub,
+          detailAmount:at.type==='income'?'+'+this.fmt(at.amount):at.type==='expense'?'−'+this.fmt(at.amount):this.fmt(at.amount),
+          detailColor:at.type==='income'?'var(--green)':at.type==='expense'?'var(--red)':'var(--l2)'};
+      }
+    }
+
+    // account sheet
+    const ac=S.acct;
+    const acctKinds=this.KINDS.map(k=>({e:k.e,label:k.label,onPick:()=>this.setKind(k.v),style:this.miniChip(ac.kind===k.v)}));
+    const canSaveAcct=!!(ac.name||'').trim();
+
+    // debts
+    const debtTotal=this.DEBTS.reduce((a,x)=>a+x.amount,0);
+    const debts=this.DEBTS.map(x=>({initials:x.initials,name:x.name,meta:x.meta,metaColor:x.overdue?'var(--red)':'var(--l3)',amountStr:this.fmt(x.amount)}));
+
+    // period header
+    const KIND_LBL={today:'Сегодня',yesterday:'Вчера',week:'Эта неделя',lastweek:'Прошлая неделя','2weeks':'2 недели',month:'Месяц',year:'Год',custom:'Свой период'};
+    const rangeLbl=this.rangeLabel(range.from,range.to,S.period.kind);
+
+    // presets
+    // SE-Бумбокс preset list (как в твоём приложении)
+    const T=this.APP_TODAY, dtN=this.parse(T), yrN=dtN.getFullYear();
+    const monthOf=(d)=>({from:this.ymd(new Date(d.getFullYear(),d.getMonth(),1)),to:this.ymd(new Date(d.getFullYear(),d.getMonth()+1,0))});
+    const lastMonthDt=new Date(yrN,dtN.getMonth()-1,1);
+    const PDEFS=[
+      {short:'Сегодня',full:'Сегодня',per:{kind:'today',anchor:T},r:{from:T,to:T}},
+      {short:'Вчера',full:'Вчера',per:{kind:'yesterday',anchor:this.addDays(T,-1)},r:{from:this.addDays(T,-1),to:this.addDays(T,-1)}},
+      {short:'Тек. неделя',full:'Текущая неделя',per:{kind:'week',anchor:this.mondayOf(T)},r:this.weekRange('week',this.mondayOf(T))},
+      {short:'Прош. неделя',full:'Прошлая неделя',per:{kind:'lastweek',anchor:this.addDays(this.mondayOf(T),-7)},r:this.weekRange('lastweek',this.addDays(this.mondayOf(T),-7))},
+      {short:'Тек. мес.',full:'Текущий месяц',per:{kind:'month',anchor:T},r:monthOf(dtN)},
+      {short:'Прош. мес.',full:'Прошлый месяц',per:{kind:'month',anchor:this.ymd(lastMonthDt)},r:monthOf(lastMonthDt)},
+      {short:'Тек. год',full:'Текущий год',per:{kind:'year',anchor:T},r:{from:yrN+'-01-01',to:yrN+'-12-31'}},
+      {short:'Прош. год',full:'Прошлый год',per:{kind:'year',anchor:(yrN-1)+'-06-15'},r:{from:(yrN-1)+'-01-01',to:(yrN-1)+'-12-31'}},
+    ];
+    const pk=S.pPick;
+    const presets=PDEFS.map((pd)=>{
+      const active=!!(pk && pk.from===pd.r.from && pk.to===pd.r.to);
+      return { short:pd.short, full:pd.full, active,
+        rowStyle:'width:100%;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 18px;border:0;border-bottom:.5px solid var(--sep);background:'+(active?'var(--accent-tint)':'none')+';cursor:pointer;font-family:inherit;text-align:left',
+        nameColor:active?'var(--accent)':'var(--label)',
+        onPick:()=>this.pickPreset(pd.per,pd.r.from,pd.r.to) };
+    });
+    // период — сгруппировано по единицам: День/Неделя/Месяц/Год × (текущий/прошлый)
+    const _chip=(on)=>'height:34px;padding:0 16px;border-radius:9999px;border:0;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;'+(on?'background:var(--accent-tint);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)':'background:var(--fill);color:var(--label)');
+    const _po=(pd,cell)=>{const on=!!(pk&&pk.from===pd.r.from&&pk.to===pd.r.to);return {label:cell,style:_chip(on),onPick:()=>this.pickPreset(pd.per,pd.r.from,pd.r.to)};};
+    const periodGroups=[
+      {label:'День',   a:_po(PDEFS[0],'Сегодня'), b:_po(PDEFS[1],'Вчера')},
+      {label:'Неделя', a:_po(PDEFS[2],'Эта'),     b:_po(PDEFS[3],'Прошлая')},
+      {label:'Месяц',  a:_po(PDEFS[4],'Этот'),    b:_po(PDEFS[5],'Прошлый')},
+      {label:'Год',    a:_po(PDEFS[6],'Этот'),    b:_po(PDEFS[7],'Прошлый')},
+    ];
+    // период — компактно, блоками, без заголовков; имя + диапазон + галочка
+    const _rlbl=(pd)=>pd.per.kind==='year'?String(this.parse(pd.r.from).getFullYear()):this.rangeLabel(pd.r.from,pd.r.to,pd.per.kind);
+    const _opt=(pd,full)=>{const on=!!(pk&&pk.from===pd.r.from&&pk.to===pd.r.to);return {name:full,rangeStr:_rlbl(pd),active:on,nameColor:on?'var(--accent)':'var(--label)',rowStyle:'width:100%;display:flex;align-items:center;height:42px;padding:0 14px;border:0;cursor:pointer;font-family:inherit;text-align:left;background:'+(on?'var(--accent-tint)':'none'),onPick:()=>this.applyPreset(pd.per)};};
+    const periodBlocks=[
+      {r1:_opt(PDEFS[0],'Сегодня'),        r2:_opt(PDEFS[1],'Вчера')},
+      {r1:_opt(PDEFS[2],'Текущая неделя'), r2:_opt(PDEFS[3],'Прошлая неделя')},
+      {r1:_opt(PDEFS[4],'Текущий месяц'),  r2:_opt(PDEFS[5],'Прошлый месяц')},
+      {r1:_opt(PDEFS[6],'Текущий год'),    r2:_opt(PDEFS[7],'Прошлый год')},
+    ];
+
+    // calendar
+    const cal=S.cal;
+    const firstDow=(new Date(cal.y,cal.m,1).getDay()+6)%7;
+    const dim=new Date(cal.y,cal.m+1,0).getDate();
+    const calDays=[];
+    for(let i=0;i<firstDow;i++) calDays.push({label:'',style:'height:36px;visibility:hidden;pointer-events:none;border:0;background:none',onClick:()=>{}});
+    for(let dd=1;dd<=dim;dd++){
+      const ds=cal.y+'-'+String(cal.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+      const isEdge=ds===cal.from||ds===cal.to;
+      const isMid=cal.from&&cal.to&&ds>cal.from&&ds<cal.to;
+      const isToday=ds===this.APP_TODAY;
+      let st='height:36px;display:flex;align-items:center;justify-content:center;border:0;cursor:pointer;font-size:15px;font-variant-numeric:tabular-nums;font-family:inherit;border-radius:9px;background:none;color:var(--label);';
+      if(isEdge) st+='background:var(--accent);color:#fff;font-weight:700;';
+      else if(isMid) st+='background:var(--accent-tint);color:var(--label);border-radius:0;';
+      else if(isToday) st+='font-weight:700;color:var(--accent);';
+      calDays.push({label:String(dd),style:st,onClick:()=>this.calPick(ds)});
+    }
+
+    // analytics
+    const txCount=scopeTxs.length;
+    const byBrigadeRaw=['sever','yug'].map(br=>{
+      const txs=S.txs.filter(t=>this.brigadeOf(t)===br && inRange(t));
+      const inc=txs.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+      const exp=txs.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+      const fee=txs.filter(t=>t.type==='transfer').reduce((a,t)=>a+(t.fee||0),0);
+      return {br,inc,exp,p:inc-exp-fee};
+    });
+    const maxBr=Math.max(1,...byBrigadeRaw.map(b=>Math.abs(b.p)));
+    const byBrigade=byBrigadeRaw.map(b=>({name:this.BR[b.br].name,color:this.BR[b.br].color,profitStr:this.signed(b.p),profitColor:'var(--profit)',incomeStr:this.fmt(b.inc),expenseStr:this.fmt(b.exp),pct:Math.round(Math.abs(b.p)/maxBr*100)+'%'}));
+    const catMap={};
+    scopeTxs.filter(t=>t.type==='expense').forEach(t=>{ if(!catMap[t.title]) catMap[t.title]={amount:0,emoji:t.emoji}; catMap[t.title].amount+=t.amount; });
+    const catArr=Object.keys(catMap).map(k=>({name:k,amount:catMap[k].amount,emoji:catMap[k].emoji})).sort((a,b)=>b.amount-a.amount);
+    const maxCat=Math.max(1,...catArr.map(c=>c.amount));
+    const byCategory=catArr.map(c=>({emoji:c.emoji,name:c.name,amountStr:this.fmt(c.amount),pct:Math.round(c.amount/maxCat*100)+'%'}));
+
+    // income-by-category PIE (круговая «по услугам», как в SE Бумбокс)
+    const PIE_COLORS=['#3E88F7','#34C759','#FF9500','#5E5CE6','#FF2D55','#00C7BE','#FFCC00','#FF7A00'];
+    const incMap={};
+    scopeTxs.filter(t=>t.type==='income').forEach(t=>{ if(!incMap[t.title]) incMap[t.title]={amount:0,count:0}; incMap[t.title].amount+=t.amount; incMap[t.title].count++; });
+    const incArr=Object.keys(incMap).map(k=>({name:k,amount:incMap[k].amount,count:incMap[k].count})).sort((a,b)=>b.amount-a.amount);
+    const incTotalReal=incArr.reduce((a,c)=>a+c.amount,0); const incTot=incTotalReal||1;
+    let pieCum=0; const pieStops=incArr.map((c,i)=>{ const p0=pieCum,p1=pieCum+c.amount/incTot*100; pieCum=p1; return PIE_COLORS[i%PIE_COLORS.length]+' '+p0.toFixed(2)+'% '+p1.toFixed(2)+'%'; });
+    const pieGradient=pieStops.length?('conic-gradient('+pieStops.join(',')+')'):'var(--fill)';
+    const pieRows=incArr.map((c,i)=>({color:PIE_COLORS[i%PIE_COLORS.length],name:c.name,countStr:'×'+c.count,pctStr:Math.round(c.amount/incTot*100)+'%',amountStr:'+'+this.fmt(c.amount),rowStyle:'display:flex;align-items:center;gap:8px;padding:8px 0;'+(i>0?'border-top:.5px solid var(--sep);':'')}));
+    const pieTotalStr=this.fmt(incTotalReal);
+
+    // ── transfer popup derived ──
+    const X=S.xfer; const xA=parseInt(X.amount||'0',10), xF=parseInt(X.fee||'0',10)||0;
+    const xToAcc=this.acc(X.toId); const xCanSave=xA>0&&X.fromId&&X.toId&&X.fromId!==X.toId&&xF<xA;
+    const grp3=(n)=>'€'+(n?n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '):'0');
+    const xAll=this.allAccountsOrdered();
+    const xFromAcc=this.acc(X.fromId);
+    const xCross=!!(xFromAcc&&xToAcc&&xFromAcc.brigade!==xToAcc.brigade);
+    const xFeeOn=!!X.feeOn, xFeeOff=!X.feeOn;
+    const xferFrom=xAll.map(a=>({name:a.name,emoji:a.emoji,dot:this.BR[a.brigade].color,onPick:()=>this.xPickFrom(a.id),style:this.miniChip(a.id===X.fromId)}));
+    const xferTo=xAll.map(a=>({name:a.name,emoji:a.emoji,dot:this.BR[a.brigade].color,onPick:()=>this.xPickTo(a.id),style:this.miniChip(a.id===X.toId)}));
+    const xPad=['1','2','3','4','5','6','7','8','9'].map(n=>({label:n,onClick:()=>this.xPush(n)}));
+    const xAmountDisplay=grp3(xA), xFeeDisplay=grp3(xF);
+    const xAmountColor=xA?'var(--label)':'var(--l3)', xFeeColor=xF?'var(--label)':'var(--l3)';
+    const xBoxBase='flex:1;border-radius:13px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;border:0;transition:box-shadow .15s;';
+    const xAmountBox=xBoxBase+(X.editingFee?'background:var(--fill2);box-shadow:inset 0 0 0 1.5px transparent':'background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent)');
+    const xFeeBox=xBoxBase+(X.editingFee?'background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent)':'background:var(--fill2);box-shadow:inset 0 0 0 1.5px transparent');
+    const xResultStr=(xToAcc&&xA)?((xCross?this.BR[xToAcc.brigade].name+' · ':'')+xToAcc.name+' получит '+this.fmt(xA-xF)):'Укажите сумму перевода';
+    const xSaveStyle='height:48px;border-radius:13px;border:0;cursor:pointer;color:#fff;font-size:17px;font-weight:600;font-family:inherit;'+(xCanSave?'background:var(--accent)':'background:var(--l4);pointer-events:none');
+
+    // ── documents derived ──
+    const allDocs=[...S.docs].sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:(a.number<b.number?1:-1));
+    const visDocs=allDocs.filter(dd=>this.inScope(dd.brigade) && (S.docFilter.type==='all'||dd.kind===S.docFilter.type) && (S.docFilter.status==='all'||dd.status===S.docFilter.status) && inRange(dd));
+    const docRows=visDocs.map(dd=>{ const st=this.DOC_STATUS[dd.status]; return {id:dd.id,icon:dd.kind==='receipt'?'🧾':'📄',title:dd.kind==='receipt'?('Чек · '+dd.clientName):(dd.number+' · '+dd.clientName),sub:this.shortDay(dd.date)+' · '+this.BR[dd.brigade].name,grossStr:this.fmt2(dd.gross),statusLabel:st.label,statusStyle:this.statusPill(dd.status),onTap:()=>this.openDocPreview(dd.id),rowStyle:'width:100%;min-height:62px;display:flex;align-items:center;gap:11px;padding:0 14px;background:none;border:0;border-top:.5px solid var(--sep);cursor:pointer;text-align:left;font-family:inherit'}; });
+    const outstanding=S.docs.filter(dd=>this.inScope(dd.brigade)&&dd.kind==='invoice'&&dd.status==='issued').reduce((a,dd)=>a+dd.gross,0);
+    const issuedTotal=visDocs.filter(dd=>dd.kind==='invoice').reduce((a,dd)=>a+dd.gross,0);
+    const paidTotal=visDocs.filter(dd=>dd.status==='paid').reduce((a,dd)=>a+dd.gross,0);
+    const issuedPct=(issuedTotal?Math.round(paidTotal/issuedTotal*100):0)+'%';
+    const docTypeChips=[['all','Все'],['invoice','Инвойсы'],['receipt','Чеки']].map(p=>({label:p[1],style:this.docTypeChip(S.docFilter.type===p[0]),onPick:()=>this.setDocType(p[0])}));
+    const docStatusChips=[['all','Все'],['draft','Черновик'],['issued','Выставлен'],['paid','Оплачен']].map(p=>({label:p[1],style:this.docTypeChip(S.docFilter.status===p[0]),onPick:()=>this.setDocStatus(p[0])}));
+    const docsExportLabel='Отдать бухгалтеру · '+visDocs.length;
+    const canMakeReceipt=!!(at&&at.type==='income');
+
+    // ── invoice form derived ──
+    const iv=S.inv;
+    const ivItems=iv.items.map((it,idx)=>({idx,name:it.name,qty:String(it.qty),price:String(it.price),lineStr:this.fmt2(this.lineNet(it)),onName:(e)=>this.invItemSet(idx,'name',e.target.value),onQty:(e)=>this.invItemSet(idx,'qty',e.target.value.replace(/[^0-9.,]/g,'')),onPrice:(e)=>this.invItemSet(idx,'price',e.target.value.replace(/[^0-9.,]/g,'')),onDel:()=>this.invDelItem(idx)}));
+    const ivM=this.invMath(iv.items,iv.vatOn,iv.vatRate);
+    const ivRateChips=this.VAT_RATES.map(r=>({label:r===0?'без НДС':(r+'%'),style:this.vatRateChip(r===0?!iv.vatOn:(iv.vatOn&&iv.vatRate===r)),onPick:()=> r===0?this.invToggleVatOff():this.invSetRate(r)}));
+    const ivCanSave=!!(iv.clientName||'').trim() && iv.items.some(it=>(it.name||'').trim()||this.lineNet(it)>0);
+
+    // ── doc preview derived ──
+    const pv=S.docs.find(dd=>dd.id===S.previewDocId); let preview={};
+    if(pv){ const pst=this.DOC_STATUS[pv.status]; const c=S.company; preview={pvIsInvoice:pv.kind==='invoice',pvTitle:pv.kind==='receipt'?'Чек':('Инвойс '+pv.number),pvCompany:c.name,pvCompanyMeta:c.vatId+' · '+c.address,pvLogo:c.logo,pvRequisites:c.requisites,pvClient:pv.clientName,pvDate:this.rangeLabel(pv.date,pv.date,'custom'),pvStatusLabel:pst.label,pvStatusStyle:this.statusPill(pv.status),pvItems:pv.items.map(it=>({name:it.name,qtyPrice:it.qty+' × '+this.fmt2(it.price),lineStr:this.fmt2(this.round2(it.qty*it.price))})),pvHasItems:pv.items.length>0,pvNetStr:this.fmt2(pv.net),pvVatStr:this.fmt2(pv.vat),pvVatLabel:pv.vatRate>0?('НДС '+pv.vatRate+'%'):'без НДС',pvGrossStr:this.fmt2(pv.gross),pvShowVat:pv.kind==='invoice',pvNote:pv.note}; }
+
+    // ── v3 derived ──
+    const addTitle=d.type==='income'?'Доход':'Расход';
+    const addTitleColor=d.type==='income'?'var(--green)':'var(--red)';
+    const rcptExists=!!(at&&S.docs.find(dd=>dd.kind==='receipt'&&dd.txId===at.id));
+    const receiptBtnLabel=rcptExists?'Открыть чек':'Чек по операции';
+    const expInv=visDocs.filter(dd=>dd.kind==='invoice').length;
+    const expRcpt=visDocs.filter(dd=>dd.kind==='receipt').length;
+    const expTotal=visDocs.reduce((a,dd)=>a+dd.gross,0);
+    const exportPeriodLabel=this.periodTitle()+' · '+this.periodSub();
+
+    return {
+      // transfers
+      openTransfer:()=>this.openTransfer(),showTransfer:S.sheet==='transfer',
+      xferFrom,xferTo,xSwap:()=>this.xSwap(),
+      xFocusAmount:()=>this.xFocusAmount(),xFocusFee:()=>this.xFocusFee(),
+      xAmountDisplay,xFeeDisplay,xAmountColor,xFeeColor,xAmountBox,xFeeBox,
+      xPad,xPadZero:()=>this.xPush('0'),xPadBack:()=>this.xBack(),
+      xResultStr,saveTransfer:()=>this.saveTransfer(),xSaveStyle,
+      xCross,xFeeOn,xFeeOff,xShowFee:()=>this.xShowFee(),
+      // v3 entry + receivables + export
+      openIncome:()=>this.openAdd('income'),openExpense:()=>this.openAdd('expense'),
+      addTitle,addTitleColor,
+      hasReceivables:(debtTotal>0||outstanding>0),openInvoices:()=>this.openInvoices(),
+      receiptBtnLabel,
+      showExportConfirm:S.sheet==='exportConfirm',doExport:()=>this.doExport(),
+      exportPeriodLabel,exportCount:visDocs.length,exportInvCount:expInv,exportRcptCount:expRcpt,exportTotalStr:this.fmt2(expTotal),
+      // documents
+      openDocs:()=>this.openDocs(),showDocuments:S.sheet==='documents',
+      docRows,docsHas:docRows.length>0,docsEmpty:docRows.length===0,
+      docTypeChips,docStatusChips,docsExportLabel,exportBatch:()=>this.exportBatch(),
+      hasOutstanding:outstanding>0,outstandingStr:this.fmt(outstanding),
+      docIssuedStr:this.fmt(issuedTotal),docPaidStr:this.fmt(paidTotal),docOutstandingStr:this.fmt(outstanding),issuedPct,
+      canMakeReceipt,makeReceipt:()=>this.makeReceipt(),
+      // invoice form
+      openInvForm:()=>this.openInvForm(),showInvForm:S.sheet==='invForm',
+      invClient:iv.clientName,setInvClient:(e)=>this.invSet('clientName',e.target.value),
+      invNote:iv.note,setInvNote:(e)=>this.invSet('note',e.target.value),
+      ivItems,invAddItem:()=>this.invAddItem(),ivRateChips,invNumberPreview:this.nextInvNumber(),
+      ivNetStr:this.fmt2(ivM.net),ivVatStr:this.fmt2(ivM.vat),ivVatLabel:ivM.rate>0?('НДС '+ivM.rate+'%'):'без НДС',ivGrossStr:this.fmt2(ivM.gross),
+      invStatusDraft:this.invStatusSeg(iv.status==='draft','var(--l2)'),invStatusIssued:this.invStatusSeg(iv.status==='issued','var(--orange)'),invStatusPaid:this.invStatusSeg(iv.status==='paid','var(--green)'),
+      setInvDraft:()=>this.invSetStatus('draft'),setInvIssued:()=>this.invSetStatus('issued'),setInvPaid:()=>this.invSetStatus('paid'),
+      saveInvoice:()=>this.saveInvoice(),saveInvStyle:'height:50px;border-radius:14px;border:0;cursor:pointer;color:#fff;font-size:17px;font-weight:600;font-family:inherit;'+(ivCanSave?'background:var(--accent)':'background:var(--l4);pointer-events:none'),
+      // doc preview
+      showDocPreview:S.sheet==='docPreview',backToDocs:()=>this.backToDocs(),
+      markPaid:()=>this.markDocStatus('paid'),markIssued:()=>this.markDocStatus('issued'),deleteDoc:()=>this.deleteDoc(),shareDoc:()=>this.shareDoc(),
+      pvIsInvoice:preview.pvIsInvoice,pvTitle:preview.pvTitle,pvCompany:preview.pvCompany,pvCompanyMeta:preview.pvCompanyMeta,pvLogo:preview.pvLogo,pvRequisites:preview.pvRequisites,pvClient:preview.pvClient,pvDate:preview.pvDate,pvStatusLabel:preview.pvStatusLabel,pvStatusStyle:preview.pvStatusStyle,pvItems:preview.pvItems,pvHasItems:preview.pvHasItems,pvNetStr:preview.pvNetStr,pvVatStr:preview.pvVatStr,pvVatLabel:preview.pvVatLabel,pvGrossStr:preview.pvGrossStr,pvShowVat:preview.pvShowVat,pvNote:preview.pvNote,
+
+      periodKindLabel:KIND_LBL[S.period.kind],
+      periodRangeLabel:rangeLbl,
+      periodNum:this.dmyShort(range.from,range.to),
+      periodTitle:this.periodTitle(),
+      periodSub:this.periodSub(),
+      periodCaretRot:S.sheet==='period'?'transform:rotate(180deg)':'',
+      periodTitleColor:this.isCurrentPeriod()?'var(--label)':'var(--accent)',
+      notCurrent:!this.isCurrentPeriod(),
+      periodA11y:'Период: '+this.periodTitle()+', '+this.periodSub()+'. Открыть выбор периода',
+      stepNextStyle:'width:34px;height:42px;display:flex;align-items:center;justify-content:center;background:none;border:0;border-radius:50%;'+(this.canStepNext()?'color:var(--accent);cursor:pointer':'color:var(--l4);pointer-events:none'),
+      resetToCurrent:()=>this.resetToCurrent(),
+      txCountInPeriod:txCount,
+      periodCaption:'· '+rangeLbl,
+      stepPrev:()=>this.step(-1),stepNext:()=>this.step(1),
+      openPeriod:()=>this.openPeriod(),openPeriodCustom:()=>this.openPeriodCustom(),openSettings:()=>this.openSettings(),openAnalytics:()=>this.openAnalytics(),
+      applyPicked:()=>this.applyPicked(),applyPickedStyle:'height:46px;width:100%;border-radius:13px;border:0;cursor:pointer;font-size:16px;font-weight:600;font-family:inherit;background:var(--accent);color:#fff',
+      showPeriod:S.sheet==='period',showPeriodCustom:S.sheet==='periodCustom',showSettings:S.sheet==='settings',showAnalytics:S.sheet==='analytics',
+      presets,periodGroups,periodBlocks,backToPresets:()=>this.backToPresets(),
+      calTitle:this.MONTHS[cal.m]+' '+cal.y,calDays,calPrev:()=>this.calShift(-1),calNext:()=>this.calShift(1),
+      calFromStr:cal.from?this.dmyRange(cal.from,cal.from):'—',calToStr:cal.to?this.dmyRange(cal.to,cal.to):'—',
+      calFrom:range.from,calTo:range.to,
+      calFromColor:cal.from?'var(--label)':'var(--l3)',calToColor:cal.to?'var(--label)':'var(--l3)',
+      applyCustom:()=>this.applyCustom(),applyStyle:'height:48px;width:100%;border-radius:13px;border:0;cursor:pointer;font-size:16px;font-weight:600;font-family:inherit;display:flex;align-items:center;justify-content:center;'+(cal.from?'background:var(--accent);color:#fff':'background:var(--fill);color:var(--l3);pointer-events:none'),
+      settingsSections:this.buildSettings(),
+      scopeLabel:'Бригада '+this.BR[S.scope].name,
+      txCount,byBrigade,byCategory,catsEmpty:byCategory.length===0,
+      pieGradient,pieRows,pieHas:incArr.length>0,pieEmpty:incArr.length===0,pieTotalStr,
+
+      profitStr:this.signed(profitNet),profitColor:'var(--profit)',
+      incomeStr:this.fmt(income),expenseStr:this.fmt(expense),
+      incSel,exSel,debtActive,profitActive,
+      tapIncome:()=>this.toggleView('income'),tapExpense:()=>this.toggleView('expense'),tapProfit:()=>this.toggleView('profit'),
+      showFeed,showDebtInline:debtActive,showProfitInline:profitActive,notProfit:!profitActive,showAccountsInline,feedSectionTitle,
+      isBreakdown,notBreakdown:!isBreakdown,incSectionShow,expSectionShow,profitDivider,breakdownTitle:({income:'Доход',expense:'Расход',profit:'Прибыль'})[hv]||'',
+      acctHeadShadow:(hv==='accounts')?('inset 0 0 0 1.5px var(--l3),'+_SH):_SH,
+      notAll:hv!=='all',showViewReset:hv!=='all'&&hv!=='accounts',showFeedHeader:hv!=='all',resetView:()=>this.setState({homeView:'all'}),
+      marginStr,expenseNegStr,transferFeesStr,hasTransferFees:transferFees>0,
+      prevDeltaStr,prevDeltaColor,prevDeltaPctStr,prevHas,
+      ovIncBg,ovExpBg,ovDebtBg,ovDebtShadow,ovProfitBg,ovProfitShadow,
+      incomeCats,expenseCats,hasIncomeCats,hasExpenseCats,noInc:!hasIncomeCats,noExp:!hasExpenseCats,
+      incomePieGrad,expensePieGrad,profitIsBars:_pv==='bars',profitIsChart:_pv==='chart',
+      pvBars:()=>this.setProfitView('bars'),pvChart:()=>this.setProfitView('chart'),pvBarsStyle:_pseg(_pv==='bars'),pvChartStyle:_pseg(_pv==='chart'),
+      vatRowShow:reg,vatRowLabel:vatRefund?'НДС к возврату':'НДС к уплате',vatPayableStr:this.fmt(Math.abs(vatPayable)),
+      vatBadgeText:vatRefund?'к возврату':(vatCovered?'покрыто ✓':('не хватает '+this.fmt(Math.max(0,Math.max(0,vatPayable)-vatReserveBal)))),
+      vatBadgeColor:(vatRefund||vatCovered)?'#1c7d3e':'var(--red)',vatBadgeBg:(vatRefund||vatCovered)?'var(--green-tint)':'var(--red-tint)',
+      openVat:()=>this.openAnalytics(),
+      hasPayroll,payMonth,payrollDueStr:this.fmt(payrollDue),
+      payBadgeText:payrollCovered?'покрыто ✓':('не хватает '+this.fmt(payrollShort)),
+      payBadgeColor:payrollCovered?'#1c7d3e':'var(--red)',payBadgeBg:payrollCovered?'var(--green-tint)':'var(--red-tint)',
+      openSalary:()=>this.openEmployees(),
+      anVatShow:reg,anVatOutStr:this.fmt(outputVat),anVatInStr:this.fmt(inputVat),anVatDueStr:(vatRefund?'−':'')+this.fmt(Math.abs(vatPayable)),anVatReserveStr:this.fmt(vatReserveBal),anVatReserveOk:vatCovered,anVatBasisStr:S.company.vatBasis==='cash'?'по оплате':'по отгрузке',
+      anPayrollStr:this.fmt(payrollAll),anPaySevStr:this.fmt(_empAct.filter(e=>e.brigade==='sever').reduce((a,e)=>a+e.salary,0)),anPayYugStr:this.fmt(_empAct.filter(e=>e.brigade==='yug').reduce((a,e)=>a+e.salary,0)),
+      showEmployees:S.sheet==='employees',showEmpEdit:S.sheet==='empEdit',
+      empRows,payrollAllStr:this.fmt(payrollAll),addEmployee:()=>this.openEmpEdit(null),
+      empName:ed.name,empSalary:ed.salary,setEmpName:(e)=>this.setEmpField('name',e.target.value),setEmpSalary:(e)=>this.setEmpField('salary',e.target.value.replace(/[^0-9]/g,'')),
+      empBrSev:()=>this.setEmpField('brigade','sever'),empBrYug:()=>this.setEmpField('brigade','yug'),
+      empBrSevStyle:this.miniChip(ed.brigade==='sever'),empBrYugStyle:this.miniChip(ed.brigade==='yug'),
+      empIsEdit:!!ed.id,empEditTitle:ed.id?'Сотрудник':'Новый сотрудник',empSaveLabel:ed.id?'Сохранить':'Добавить',
+      saveEmployee:()=>this.saveEmployee(),removeEmployee:()=>this.removeEmployee(),
+      cardIncome:this.feedCard(incSel,'var(--green)','var(--green-tint)'),
+      cardExpense:this.feedCard(exSel,'var(--red)','var(--red-tint)'),
+      totIncome:this.totCell(incSel,'var(--green-tint)',false),
+      totExpense:this.totCell(exSel,'var(--red-tint)',true),
+      pulseIncome:this.pulseCell(incSel,'var(--green-tint)'),pulseExpense:this.pulseCell(exSel,'var(--red-tint)'),
+      incLabelColor:incSel?'var(--green)':'var(--l3)',exLabelColor:exSel?'var(--red)':'var(--l3)',
+      incDotOpacity:incSel?'1':'0',exDotOpacity:exSel?'1':'0',
+      inPct:(gross?Math.round(income/gross*100):50)+'%',exPct:(gross?Math.round(expense/gross*100):50)+'%',
+      inBarOpacity:exSel?'.3':'1',exBarOpacity:incSel?'.3':'1',
+      feedFiltered:S.feedFilter!=='all'||!!S.acctFilter,feedFilterNote:feedNote,
+      hasDebt:debtTotal>0,debtStr:this.fmt(debtTotal),openDebt:()=>this.toggleView('debt'),
+      acctTotalStr:this.fmt(acctTotal),
+      openAccounts:()=>this.openAccounts(),showAccounts:S.sheet==='accounts',
+      acctRows,acctGrandStr:this.fmt(acctGrand),acctCountStr,
+      accounts:vAcc.map(a=>({emoji:a.emoji,name:a.name,brigadeName:this.BR[a.brigade].name,dotColor:this.BR[a.brigade].color,balanceStr:this.fmt(a.balance)})),
+      acctChips,acctAll:()=>this.setAcctAll(),acctAllSel:!S.acctFilter,acctAllStyle:this.acctChip(!S.acctFilter),
+      openAddAccount:()=>this.openAddAccount(),
+
+      segSever:this.segScope(S.scope==='sever'),segYug:this.segScope(S.scope==='yug'),
+      brigadeChips:Object.entries(this.BR).map(([id,m])=>({id,name:m.name,active:S.scope===id,style:this.brigadeChip(S.scope===id,m.color),onPick:()=>this.setScope(id)})),
+      scopeSever:()=>this.setScope('sever'),scopeYug:()=>this.setScope('yug'),
+      scopeDot:this.BR[S.scope].color,stop:(e)=>e.stopPropagation(),
+
+      ffAll:this.ff(S.feedFilter==='all'),ffIn:this.ff(S.feedFilter==='income'),ffEx:this.ff(S.feedFilter==='expense'),
+      ffAllClick:()=>this.setFeed('all'),ffInClick:()=>this.setFeed('income'),ffExClick:()=>this.setFeed('expense'),
+
+      groups,feedRows,feedHas:feed.length>0,feedEmpty:feed.length===0,
+      openAdd:()=>this.openAdd(),closeSheet:()=>this.close(),
+
+      showAdd:S.sheet==='add',showTx:S.sheet==='tx',showAccount:S.sheet==='account',showDebt:S.sheet==='debt',
+
+      segIn:this.seg(d.type==='income','var(--green)'),segEx:this.seg(d.type==='expense','var(--red)'),
+      setTypeIncome:()=>this.setType('income'),setTypeExpense:()=>this.setType('expense'),
+      amountDisplay:'€'+(amtN?amtN.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0'):'0'),
+      amountColor:amtN?'var(--label)':'var(--l3)',
+      addAccounts,addCats,pad,
+      isIncomeAdd:d.type==='income',isExpenseAdd:d.type==='expense',apptRows,apptEmpty,
+      segIncStyle:_opSeg(d.type==='income','var(--green)'),segExpStyle:_opSeg(d.type==='expense','var(--red)'),
+      setIncomeType:()=>this.setType('income'),setExpenseType:()=>this.setType('expense'),
+      amtColor:d.type==='income'?'var(--green)':'var(--red)',
+      draftAmount:d.amount,onAmount:(e)=>this.setAmount(e.target.value),
+      draftDate:d.date||'',onDate:(e)=>this.setOpDate(e.target.value),
+      draftTime:d.time||'',onTime:(e)=>this.setOpTime(e.target.value),
+      draftClient:d.client||'',onClient:(e)=>this.setClient(e.target.value),
+      draftComment:d.comment||'',onComment:(e)=>this.setComment(e.target.value),
+      catAdding:S.catAdding,catNotAdding:!S.catAdding,newCat:S.newCat||'',onNewCat:(e)=>this.setNewCat(e.target.value),startAddCat:()=>this.startAddCat(),commitCat:()=>this.commitNewCat(),
+      saveBtnStyle:'width:100%;height:50px;border-radius:13px;border:0;cursor:pointer;font-family:inherit;font-size:17px;font-weight:600;color:#fff;'+(canSave?'background:'+saveColor:'background:var(--l4);pointer-events:none'),
+      vatShow,vatOn,vatRatesUI,vatLiveStr,
+      vmNone:()=>this.setVatMode('none'),vmAdd:()=>this.setVatMode('add'),vmIncl:()=>this.setVatMode('incl'),
+      vmNoneStyle:_segS(d.vatMode==='none'||!d.vatMode),vmAddStyle:_segS(d.vatMode==='add'),vmInclStyle:_segS(d.vatMode==='incl'),
+      padZero:()=>this.pushDigit('0'),padBack:()=>this.back(),
+      saveTx:()=>this.saveTx(),saveStyle,
+
+      detailEmoji:detail.detailEmoji,detailTitle:detail.detailTitle,detailMeta:detail.detailMeta,detailAmount:detail.detailAmount,detailColor:detail.detailColor,
+      deleteTx:()=>this.deleteTx(),
+
+      acctName:ac.name,acctBalance:ac.balance,
+      setAcctName:(e)=>this.setAcctField('name',e.target.value),
+      setAcctBalance:(e)=>this.setAcctField('balance',e.target.value.replace(/[^0-9]/g,'')),
+      acctKinds,
+      abSev:this.miniChip(ac.brigade==='sever'),abYug:this.miniChip(ac.brigade==='yug'),
+      acctBrSever:()=>this.setAcctBrigade('sever'),acctBrYug:()=>this.setAcctBrigade('yug'),
+      acctTitle:ac.id?'Счёт':'Новый счёт',acctIsEdit:!!ac.id,saveAcctLabel:ac.id?'Сохранить':'Добавить счёт',
+      toggleVatReserve:()=>this.toggleAcctFlag('vatReserve'),toggleSalarySrc:()=>this.toggleAcctFlag('salarySource'),togglePersonal:()=>this.toggleAcctFlag('personal'),
+      vrTrack:this.swTrack(!!ac.vatReserve),vrKnob:this.swKnob(!!ac.vatReserve),
+      ssTrack:this.swTrack(!!ac.salarySource),ssKnob:this.swKnob(!!ac.salarySource),
+      psTrack:this.swTrack(!!ac.personal),psKnob:this.swKnob(!!ac.personal),
+      removeAccount:()=>this.removeAccount(),
+      saveAccount:()=>this.saveAccount(),
+      saveAcctStyle:'height:52px;border-radius:9999px;border:0;cursor:pointer;font-size:17px;font-weight:600;color:#fff;font-family:inherit;'+(canSaveAcct?'background:var(--accent)':'background:var(--l4);pointer-events:none'),
+
+      debts,debtTotalStr:this.fmt(debtTotal),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -28,6 +28,17 @@ const nextConfig: NextConfig = {
   // node_modules/next/dist/docs/.../turbopack.md § Root directory.
   turbopack: {
     root: monorepoRoot,
+    // Local dev under bun: Turbopack can't load Sentry's
+    // `require-in-the-middle` external (hashed specifier bun can't
+    // resolve → 500 on every SSR page). Swap the SDK for a no-op shim
+    // when the .env.local-only flag is set. No-op in prod (flag unset).
+    ...(process.env.NEXT_PUBLIC_DEV_NO_SENTRY === "1"
+      ? {
+          resolveAlias: {
+            "@sentry/nextjs": "./src/lib/observability/sentry-dev-noop.ts",
+          },
+        }
+      : {}),
   },
   async headers() {
     return [

@@ -1,0 +1,606 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;-webkit-font-smoothing:antialiased} ::-webkit-scrollbar{display:none}
+body{margin:0;--grouped:#EFEFF4;--card:#FFFFFF;--card2:#F2F2F7;--sep:rgba(60,60,67,0.10);--label:#000;--l2:#3C3C4399;--l3:rgba(60,60,67,0.30);--fill:rgba(118,118,128,0.12);--fill2:rgba(116,116,128,0.08);--accent:#3E88F7;--green:#34C759;--red:#FF3B30;--orange:#FF9500;--orange-tint:rgba(255,149,0,0.14);--shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);background:#e9ebf0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;color:var(--label);padding:18px}
+h1{font-size:16px;margin:2px 4px 14px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,392px);gap:16px 20px;justify-content:center;align-items:start}
+.card{width:392px}
+.lbl{display:flex;align-items:center;gap:8px;padding:0 2px 6px}
+.num{flex:none;width:23px;height:23px;border-radius:7px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.nm{font-size:13px;font-weight:600;color:var(--l2)}
+.meta{padding:7px 6px 0;font-size:11px;line-height:1.3;color:#6a7080}
+</style></head><body><h1>Разбор Прибыли — 8 вариантов (панель внизу при тапе), выбери номер</h1><div class="grid"><div class="card"><div class="lbl"><span class="num">1</span><span class="nm">trendBars</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:#fff;border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);padding:16px 16px 14px;width:100%;box-sizing:border-box;font-family:-apple-system,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;">
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 12px;">
+  <div style="font-size:12px;font-weight:500;letter-spacing:.04em;color:rgba(60,60,67,.6);text-transform:uppercase;">Прибыль · Июнь</div>
+  <div style="display:inline-flex;align-items:center;gap:3px;background:rgba(52,199,89,.12);color:#248A3D;font-size:12px;font-weight:500;padding:3px 8px;border-radius:7px;">
+    <span style="font-size:9px;line-height:1;">▲</span>+13%
+  </div>
+</div>
+
+<div style="font-size:34px;font-weight:600;letter-spacing:-.02em;color:#34AADC;line-height:1;margin:0 0 4px;">+€1 330</div>
+<div style="font-size:13px;color:rgba(60,60,67,.6);margin:0 0 16px;">прошлый месяц €1 180</div>
+
+<div style="display:flex;gap:8px;margin:0 0 18px;">
+  <div style="flex:1;background:#F2F2F7;border-radius:10px;padding:10px 11px;">
+    <div style="font-size:11px;font-weight:500;color:rgba(60,60,67,.6);margin:0 0 3px;">Доход</div>
+    <div style="font-size:16px;font-weight:600;color:#34C759;letter-spacing:-.01em;">+€1 510</div>
+  </div>
+  <div style="flex:1;background:#F2F2F7;border-radius:10px;padding:10px 11px;">
+    <div style="font-size:11px;font-weight:500;color:rgba(60,60,67,.6);margin:0 0 3px;">Расход</div>
+    <div style="font-size:16px;font-weight:600;color:#FF3B30;letter-spacing:-.01em;">−€180</div>
+  </div>
+  <div style="flex:1;background:#F2F2F7;border-radius:10px;padding:10px 11px;">
+    <div style="font-size:11px;font-weight:500;color:rgba(60,60,67,.6);margin:0 0 3px;">Маржа</div>
+    <div style="font-size:16px;font-weight:600;color:#000;letter-spacing:-.01em;">88%</div>
+  </div>
+</div>
+
+<div style="height:.5px;background:rgba(60,60,67,.1);margin:0 0 14px;"></div>
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 12px;">
+  <div style="font-size:13px;font-weight:500;color:#000;">Прибыль по месяцам</div>
+  <div style="font-size:12px;color:rgba(60,60,67,.6);">6 мес.</div>
+</div>
+
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:7px;height:96px;padding:0 1px;">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+    <div style="font-size:10px;color:rgba(60,60,67,.45);font-weight:500;">980</div>
+    <div style="width:100%;max-width:26px;height:73%;background:rgba(116,116,128,.16);border-radius:5px;"></div>
+    <div style="font-size:10px;color:rgba(60,60,67,.6);">Янв</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+    <div style="font-size:10px;color:rgba(60,60,67,.45);font-weight:500;">1120</div>
+    <div style="width:100%;max-width:26px;height:84%;background:rgba(116,116,128,.16);border-radius:5px;"></div>
+    <div style="font-size:10px;color:rgba(60,60,67,.6);">Фев</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+    <div style="font-size:10px;color:rgba(60,60,67,.45);font-weight:500;">760</div>
+    <div style="width:100%;max-width:26px;height:57%;background:rgba(116,116,128,.16);border-radius:5px;"></div>
+    <div style="font-size:10px;color:rgba(60,60,67,.6);">Мар</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+    <div style="font-size:10px;color:rgba(60,60,67,.45);font-weight:500;">1340</div>
+    <div style="width:100%;max-width:26px;height:100%;background:rgba(116,116,128,.16);border-radius:5px;"></div>
+    <div style="font-size:10px;color:rgba(60,60,67,.6);">Апр</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+    <div style="font-size:10px;color:rgba(60,60,67,.45);font-weight:500;">1180</div>
+    <div style="width:100%;max-width:26px;height:88%;background:rgba(116,116,128,.16);border-radius:5px;"></div>
+    <div style="font-size:10px;color:rgba(60,60,67,.6);">Май</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+    <div style="font-size:10px;color:#34AADC;font-weight:600;">1330</div>
+    <div style="width:100%;max-width:26px;height:99%;background:#34AADC;border-radius:5px;"></div>
+    <div style="font-size:10px;color:#34AADC;font-weight:600;">Июн</div>
+  </div>
+</div>
+
+</div></div><div class="meta">Core breakdown (доход/расход/маржа + blue profit hero) plus a calm 6-month CSS div-bar trend with June highlighted and ▲+13% — the trajectory is instantly readable, fully DC-portable (no SVG charts).</div></div><div class="card"><div class="lbl"><span class="num">2</span><span class="nm">vsPrev</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:var(--card);border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);padding:16px 16px 14px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:600;color:var(--label);letter-spacing:.01em;">Прибыль за период</div>
+    <div style="font-size:12px;color:var(--l2);">Июнь · Север</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <div style="background:var(--card2);border-radius:10px;padding:9px 11px;">
+      <div style="font-size:11px;color:var(--l2);letter-spacing:.02em;margin-bottom:3px;">ДОХОД</div>
+      <div style="font-size:17px;font-weight:600;color:var(--green);">+€1 510</div>
+    </div>
+    <div style="background:var(--card2);border-radius:10px;padding:9px 11px;">
+      <div style="font-size:11px;color:var(--l2);letter-spacing:.02em;margin-bottom:3px;">РАСХОД</div>
+      <div style="font-size:17px;font-weight:600;color:var(--red);">−€180</div>
+    </div>
+    <div style="background:rgba(52,170,220,.08);border-radius:10px;padding:9px 11px;">
+      <div style="font-size:11px;color:#2076a0;letter-spacing:.02em;margin-bottom:3px;">ПРИБЫЛЬ</div>
+      <div style="font-size:17px;font-weight:700;color:#34AADC;">+€1 330</div>
+    </div>
+    <div style="background:var(--card2);border-radius:10px;padding:9px 11px;">
+      <div style="font-size:11px;color:var(--l2);letter-spacing:.02em;margin-bottom:3px;">МАРЖА</div>
+      <div style="font-size:17px;font-weight:600;color:var(--label);">88%</div>
+    </div>
+  </div>
+
+  <div style="border-top:.5px solid var(--sep);padding-top:13px;margin-bottom:13px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px;">
+      <span style="font-size:12px;color:var(--l2);">vs прошлый месяц</span>
+      <span style="font-size:12px;font-weight:600;color:var(--green);">▲ +€150 · +13%</span>
+    </div>
+
+    <div style="display:flex;align-items:flex-end;gap:14px;height:72px;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+        <div style="font-size:11px;color:var(--l2);margin-bottom:5px;">€1 180</div>
+        <div style="width:100%;height:53%;background:var(--l3);border-radius:6px 6px 0 0;"></div>
+        <div style="font-size:11px;color:var(--l2);margin-top:6px;">Май</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+        <div style="font-size:11px;font-weight:600;color:#34AADC;margin-bottom:5px;">€1 330</div>
+        <div style="width:100%;height:60%;background:#34AADC;border-radius:6px 6px 0 0;"></div>
+        <div style="font-size:11px;color:var(--label);margin-top:6px;">Июнь</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:.5px solid var(--sep);padding-top:12px;margin-bottom:13px;">
+    <div style="font-size:11px;color:var(--l2);letter-spacing:.02em;margin-bottom:9px;">ПРИБЫЛЬ ПО БРИГАДАМ</div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+      <span style="font-size:12px;color:var(--label);width:42px;flex:none;">Север</span>
+      <div style="flex:1;height:8px;background:var(--fill2);border-radius:4px;overflow:hidden;">
+        <div style="width:100%;height:100%;background:#34AADC;border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;color:var(--label);width:54px;text-align:right;flex:none;">+€1 330</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;color:var(--label);width:42px;flex:none;">Юг</span>
+      <div style="flex:1;height:8px;background:var(--fill2);border-radius:4px;overflow:hidden;">
+        <div style="width:65%;height:100%;background:rgba(52,170,220,.45);border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;color:var(--label);width:54px;text-align:right;flex:none;">+€870</span>
+    </div>
+  </div>
+
+  <div style="border-top:.5px solid var(--sep);padding-top:12px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;">
+      <span style="font-size:11px;color:var(--l2);letter-spacing:.02em;">КУДА УШЛИ РАСХОДЫ</span>
+      <span style="font-size:11px;color:var(--l3);">€180</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--label);width:74px;flex:none;">Питание</span>
+      <div style="flex:1;height:8px;background:var(--fill2);border-radius:4px;overflow:hidden;">
+        <div style="width:67%;height:100%;background:var(--orange);border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;color:var(--l2);width:38px;text-align:right;flex:none;">€120</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;color:var(--label);width:74px;flex:none;">Топливо</span>
+      <div style="flex:1;height:8px;background:var(--fill2);border-radius:4px;overflow:hidden;">
+        <div style="width:44%;height:100%;background:var(--orange);opacity:.55;border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;color:var(--l2);width:38px;text-align:right;flex:none;">€80</span>
+    </div>
+  </div>
+
+</div></div><div class="meta">Core breakdown plus a hero «vs прошлый месяц» compare (€1 330 vs €1 180, ▲+13%) with a thin two-bar CSS chart, calm and premium.</div></div><div class="card"><div class="lbl"><span class="num">3</span><span class="nm">marginGauge</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:var(--card);border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);width:360px;box-sizing:border-box;padding:16px;font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;color:var(--label);">
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:13px;letter-spacing:.02em;color:var(--l2);">Прибыль за период</div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--green);">
+      <span style="font-size:10px;">▲</span>+13%
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+    <div style="font-size:34px;font-weight:700;letter-spacing:-.5px;color:#34AADC;line-height:1;">+€1 330</div>
+  </div>
+  <div style="font-size:12px;color:var(--l2);margin-bottom:16px;">пред. месяц €1 180</div>
+
+  <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <div style="flex:1;background:var(--card2);border-radius:10px;padding:9px 11px;">
+      <div style="font-size:10px;letter-spacing:.04em;color:var(--l2);text-transform:uppercase;margin-bottom:3px;">Доход</div>
+      <div style="font-size:15px;font-weight:600;color:var(--green);">+€1 510</div>
+    </div>
+    <div style="flex:1;background:var(--card2);border-radius:10px;padding:9px 11px;">
+      <div style="font-size:10px;letter-spacing:.04em;color:var(--l2);text-transform:uppercase;margin-bottom:3px;">Расход</div>
+      <div style="font-size:15px;font-weight:600;color:var(--red);">−€180</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:6px;display:flex;align-items:baseline;justify-content:space-between;">
+    <div style="font-size:12px;color:var(--l2);">Маржа · доля прибыли в доходе</div>
+    <div style="font-size:16px;font-weight:700;color:#34AADC;">88%</div>
+  </div>
+  <div style="position:relative;height:9px;border-radius:5px;background:var(--fill);overflow:hidden;margin-bottom:7px;">
+    <div style="position:absolute;top:0;left:0;height:100%;width:88%;border-radius:5px;background:#34AADC;"></div>
+    <div style="position:absolute;top:-2px;bottom:-2px;left:84%;width:1.5px;background:var(--l3);"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--l2);margin-bottom:18px;">
+    <span>пред. 84%  <span style="color:var(--green);font-weight:600;">▲ +4 п.п.</span></span>
+    <span style="color:var(--l3);">100%</span>
+  </div>
+
+  <div style="height:.5px;background:var(--sep);margin-bottom:14px;"></div>
+
+  <div style="font-size:11px;letter-spacing:.04em;color:var(--l2);text-transform:uppercase;margin-bottom:11px;">Прибыль по месяцам</div>
+  <div style="display:flex;align-items:flex-end;gap:7px;height:64px;margin-bottom:6px;">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:73%;border-radius:4px 4px 2px 2px;background:var(--l3);"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:84%;border-radius:4px 4px 2px 2px;background:var(--l3);"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:57%;border-radius:4px 4px 2px 2px;background:var(--l3);"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:100%;border-radius:4px 4px 2px 2px;background:var(--l3);"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:88%;border-radius:4px 4px 2px 2px;background:var(--l3);"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:99%;border-radius:4px 4px 2px 2px;background:#34AADC;"></div></div>
+  </div>
+  <div style="display:flex;gap:7px;font-size:10px;color:var(--l2);text-align:center;margin-bottom:18px;">
+    <span style="flex:1;">Янв</span><span style="flex:1;">Фев</span><span style="flex:1;">Мар</span><span style="flex:1;">Апр</span><span style="flex:1;">Май</span><span style="flex:1;color:#34AADC;font-weight:600;">Июн</span>
+  </div>
+
+  <div style="height:.5px;background:var(--sep);margin-bottom:14px;"></div>
+
+  <div style="font-size:11px;letter-spacing:.04em;color:var(--l2);text-transform:uppercase;margin-bottom:10px;">Куда уходит расход · Север</div>
+  <div style="display:flex;flex-direction:column;gap:9px;">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <span style="font-size:12px;color:var(--label);width:64px;flex-shrink:0;">Запчасти</span>
+      <div style="flex:1;height:7px;border-radius:4px;background:var(--fill);overflow:hidden;"><div style="height:100%;width:100%;border-radius:4px;background:var(--orange);"></div></div>
+      <span style="font-size:12px;font-weight:600;color:var(--label);width:40px;text-align:right;">€310</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;">
+      <span style="font-size:12px;color:var(--label);width:64px;flex-shrink:0;">Питание</span>
+      <div style="flex:1;height:7px;border-radius:4px;background:var(--fill);overflow:hidden;"><div style="height:100%;width:39%;border-radius:4px;background:var(--orange);opacity:.55;"></div></div>
+      <span style="font-size:12px;font-weight:600;color:var(--label);width:40px;text-align:right;">€120</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;">
+      <span style="font-size:12px;color:var(--label);width:64px;flex-shrink:0;">Топливо</span>
+      <div style="flex:1;height:7px;border-radius:4px;background:var(--fill);overflow:hidden;"><div style="height:100%;width:26%;border-radius:4px;background:var(--orange);opacity:.4;"></div></div>
+      <span style="font-size:12px;font-weight:600;color:var(--label);width:40px;text-align:right;">€80</span>
+    </div>
+  </div>
+
+</div></div><div class="meta">Core breakdown + a calm margin gauge (88% with prev-month marker) and two CSS div-bar charts (6-mo profit trend, expense split) that turn a flat list into a glanceable owner&#x27;s story — fully DC-runtime portable.</div></div><div class="card"><div class="lbl"><span class="num">4</span><span class="nm">brigadeSplit</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:var(--card,#fff);border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);padding:14px 16px 16px;width:100%;max-width:360px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;color:#000;">
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;">
+    <span style="font-size:13px;font-weight:600;letter-spacing:.02em;color:#34AADC;text-transform:uppercase;">Прибыль</span>
+    <span style="font-size:11px;color:rgba(60,60,67,.6);">Север · июнь</span>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;">
+    <span style="font-size:34px;font-weight:700;line-height:1;color:#34AADC;letter-spacing:-.01em;">+€1 330</span>
+    <span style="display:inline-flex;align-items:center;gap:2px;font-size:13px;font-weight:600;color:#34C759;background:rgba(52,199,89,.12);padding:2px 7px;border-radius:7px;">
+      <svg width="9" height="9" viewBox="0 0 10 10" style="vertical-align:middle;"><path d="M5 1.5 L9 7 L1 7 Z" fill="#34C759"/></svg>13%
+    </span>
+    <span style="font-size:11px;color:rgba(60,60,67,.6);margin-left:auto;">пред. €1 180</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <div style="background:#F2F2F7;border-radius:10px;padding:9px 11px;">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:.03em;color:rgba(60,60,67,.6);text-transform:uppercase;margin-bottom:3px;">Доход</div>
+      <div style="font-size:17px;font-weight:600;color:#34C759;">+€1 510</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:10px;padding:9px 11px;">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:.03em;color:rgba(60,60,67,.6);text-transform:uppercase;margin-bottom:3px;">Расход</div>
+      <div style="font-size:17px;font-weight:600;color:#FF3B30;">−€180</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:10px;padding:9px 11px;">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:.03em;color:rgba(60,60,67,.6);text-transform:uppercase;margin-bottom:3px;">Прибыль</div>
+      <div style="font-size:17px;font-weight:600;color:#34AADC;">+€1 330</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:10px;padding:9px 11px;">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:.03em;color:rgba(60,60,67,.6);text-transform:uppercase;margin-bottom:3px;">Маржа</div>
+      <div style="font-size:17px;font-weight:600;color:#000;">88%</div>
+    </div>
+  </div>
+
+  <div style="height:.5px;background:rgba(60,60,67,.10);margin:0 -16px 12px;"></div>
+
+  <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:rgba(60,60,67,.6);text-transform:uppercase;margin-bottom:9px;">Прибыль по бригадам</div>
+
+  <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px;">
+    <div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#000;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#34AADC;display:inline-block;"></span>Север
+        </span>
+        <span style="font-size:14px;font-weight:600;color:#34AADC;">+€1 330</span>
+      </div>
+      <div style="height:7px;border-radius:4px;background:rgba(118,118,128,.12);overflow:hidden;">
+        <div style="height:100%;width:100%;border-radius:4px;background:#34AADC;"></div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#000;">
+          <span style="width:8px;height:8px;border-radius:50%;background:rgba(52,170,220,.45);display:inline-block;"></span>Юг
+        </span>
+        <span style="font-size:14px;font-weight:600;color:rgba(60,60,67,.85);">+€870</span>
+      </div>
+      <div style="height:7px;border-radius:4px;background:rgba(118,118,128,.12);overflow:hidden;">
+        <div style="height:100%;width:65%;border-radius:4px;background:rgba(52,170,220,.45);"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:.5px;background:rgba(60,60,67,.10);margin:0 -16px 12px;"></div>
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;letter-spacing:.03em;color:rgba(60,60,67,.6);text-transform:uppercase;">Динамика · 6 мес</span>
+    <span style="font-size:11px;color:rgba(60,60,67,.6);">пик €1 340</span>
+  </div>
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:64px;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+      <div style="width:100%;max-width:26px;height:73%;background:rgba(52,170,220,.22);border-radius:4px 4px 2px 2px;"></div>
+      <span style="font-size:10px;color:rgba(60,60,67,.5);">Янв</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+      <div style="width:100%;max-width:26px;height:84%;background:rgba(52,170,220,.22);border-radius:4px 4px 2px 2px;"></div>
+      <span style="font-size:10px;color:rgba(60,60,67,.5);">Фев</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+      <div style="width:100%;max-width:26px;height:57%;background:rgba(52,170,220,.22);border-radius:4px 4px 2px 2px;"></div>
+      <span style="font-size:10px;color:rgba(60,60,67,.5);">Мар</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+      <div style="width:100%;max-width:26px;height:100%;background:rgba(52,170,220,.22);border-radius:4px 4px 2px 2px;"></div>
+      <span style="font-size:10px;color:rgba(60,60,67,.5);">Апр</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+      <div style="width:100%;max-width:26px;height:88%;background:rgba(52,170,220,.22);border-radius:4px 4px 2px 2px;"></div>
+      <span style="font-size:10px;color:rgba(60,60,67,.5);">Май</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;">
+      <div style="width:100%;max-width:26px;height:99%;background:#34AADC;border-radius:4px 4px 2px 2px;"></div>
+      <span style="font-size:10px;font-weight:600;color:#34AADC;">Июн</span>
+    </div>
+  </div>
+
+</div></div><div class="meta">Core breakdown (доход/расход/прибыль/маржа) plus the answer to &quot;who earns&quot; — per-brigade profit with share bars — and a 6-month CSS-bar trend so the owner sees the run-rate at a glance, all in one calm light-blue-accented card.</div></div><div class="card"><div class="lbl"><span class="num">5</span><span class="nm">topCats</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:var(--card,#fff);border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);width:100%;max-width:360px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums">
+
+  <div style="padding:14px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+    <div>
+      <div style="font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--l2,#3C3C4399);text-transform:uppercase">Прибыль · Июнь</div>
+      <div style="margin-top:3px;font-size:30px;font-weight:700;line-height:1;color:#34AADC;letter-spacing:-.01em">+€1 330</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;background:rgba(52,199,89,.12);color:#248A3D;font-size:13px;font-weight:600;padding:5px 9px;border-radius:8px;white-space:nowrap">
+      <span style="font-size:10px;line-height:1">▲</span>+13%
+    </div>
+  </div>
+  <div style="padding:0 16px 12px;font-size:12px;color:var(--l2,#3C3C4399)">пред. месяц €1 180</div>
+
+  <div style="height:.5px;background:var(--sep,rgba(60,60,67,.10))"></div>
+
+  <div style="padding:13px 16px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="background:var(--card2,#F2F2F7);border-radius:10px;padding:9px 11px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2,#3C3C4399);text-transform:uppercase">Доход</div>
+      <div style="margin-top:2px;font-size:17px;font-weight:600;color:#34C759">+€1 510</div>
+    </div>
+    <div style="background:var(--card2,#F2F2F7);border-radius:10px;padding:9px 11px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2,#3C3C4399);text-transform:uppercase">Расход</div>
+      <div style="margin-top:2px;font-size:17px;font-weight:600;color:#FF3B30">−€180</div>
+    </div>
+    <div style="background:var(--card2,#F2F2F7);border-radius:10px;padding:9px 11px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2,#3C3C4399);text-transform:uppercase">Прибыль</div>
+      <div style="margin-top:2px;font-size:17px;font-weight:600;color:#34AADC">+€1 330</div>
+    </div>
+    <div style="background:var(--card2,#F2F2F7);border-radius:10px;padding:9px 11px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2,#3C3C4399);text-transform:uppercase">Маржа</div>
+      <div style="margin-top:2px;font-size:17px;font-weight:600;color:var(--label,#000)">88%</div>
+    </div>
+  </div>
+
+  <div style="height:.5px;background:var(--sep,rgba(60,60,67,.10))"></div>
+
+  <div style="padding:13px 16px 15px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px">
+      <div style="font-size:13px;font-weight:600;color:var(--label,#000)">Куда ушёл расход</div>
+      <div style="font-size:12px;color:var(--l2,#3C3C4399)">€180 · Север</div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span style="color:var(--label,#000)">Запчасти</span>
+        <span style="font-weight:600;color:var(--label,#000)">€310</span>
+      </div>
+      <div style="height:7px;border-radius:4px;background:var(--fill,rgba(118,118,128,.12));overflow:hidden">
+        <div style="height:100%;width:100%;border-radius:4px;background:#FF9500"></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span style="color:var(--label,#000)">Питание</span>
+        <span style="font-weight:600;color:var(--label,#000)">€120</span>
+      </div>
+      <div style="height:7px;border-radius:4px;background:var(--fill,rgba(118,118,128,.12));overflow:hidden">
+        <div style="height:100%;width:39%;border-radius:4px;background:#FF9500"></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span style="color:var(--label,#000)">Топливо</span>
+        <span style="font-weight:600;color:var(--label,#000)">€80</span>
+      </div>
+      <div style="height:7px;border-radius:4px;background:var(--fill,rgba(118,118,128,.12));overflow:hidden">
+        <div style="height:100%;width:26%;border-radius:4px;background:#FF9500"></div>
+      </div>
+    </div>
+  </div>
+
+</div></div><div class="meta">Core breakdown stays as the hero, plus a ranked &quot;куда ушёл расход&quot; list with CSS share-bars so the owner instantly sees what eats the margin.</div></div><div class="card"><div class="lbl"><span class="num">6</span><span class="nm">goal</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:#fff;border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);padding:16px 16px 18px;width:100%;box-sizing:border-box;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Прибыль за период: доход 1510 евро, расход 180 евро, прибыль 1330 евро, маржа 88 процентов, цель 2000 евро выполнена на 67 процентов</h2>
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:500;letter-spacing:.02em;color:#3C3C4399;">ПРИБЫЛЬ ЗА ПЕРИОД</div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:#34C759;font-variant-numeric:tabular-nums;">
+      <span style="font-size:10px;">▲</span>+13%
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;">
+    <div style="font-size:34px;font-weight:600;letter-spacing:-.02em;color:#34AADC;font-variant-numeric:tabular-nums;line-height:1;">+€1 330</div>
+  </div>
+  <div style="font-size:12.5px;color:#3C3C4399;margin-bottom:16px;font-variant-numeric:tabular-nums;">прошлый месяц €1 180 · маржа 88%</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+    <div style="background:#F2F2F7;border-radius:10px;padding:10px 12px;">
+      <div style="font-size:11.5px;color:#3C3C4399;margin-bottom:3px;">ДОХОД</div>
+      <div style="font-size:17px;font-weight:600;color:#34C759;font-variant-numeric:tabular-nums;">+€1 510</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:10px;padding:10px 12px;">
+      <div style="font-size:11.5px;color:#3C3C4399;margin-bottom:3px;">РАСХОД</div>
+      <div style="font-size:17px;font-weight:600;color:#FF3B30;font-variant-numeric:tabular-nums;">−€180</div>
+    </div>
+  </div>
+
+  <div style="height:.5px;background:rgba(60,60,67,.10);margin:0 -16px 16px;"></div>
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#000;">
+      <i class="ti ti-target" style="font-size:15px;color:#34AADC;" aria-hidden="true"></i>Цель месяца
+      <span style="color:#3C3C4399;font-weight:400;font-variant-numeric:tabular-nums;">€2 000</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#34AADC;font-variant-numeric:tabular-nums;">67%</div>
+  </div>
+
+  <div style="position:relative;height:12px;border-radius:6px;background:rgba(116,116,128,.08);overflow:hidden;margin-bottom:9px;">
+    <div style="position:absolute;left:0;top:0;bottom:0;width:67%;border-radius:6px;background:#34AADC;"></div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;font-variant-numeric:tabular-nums;">
+    <span style="color:#3C3C4399;">осталось <span style="color:#000;font-weight:500;">€670</span></span>
+    <span style="color:#3C3C4399;">9 дней до конца месяца</span>
+  </div>
+
+</div></div><div class="meta">Calm core breakdown (доход/расход/маржа + hero прибыль with ▲+13% vs prev) topped with a motivating monthly-goal CSS bar: €2 000 · 67% · осталось €670, all DC-portable div-bars.</div></div><div class="card"><div class="lbl"><span class="num">7</span><span class="nm">waterfall</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:var(--card);border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);padding:16px 16px 14px;width:100%;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;color:var(--label);">
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+    <span style="font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--l2);text-transform:uppercase;">Прибыль за период</span>
+    <span style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--green);background:rgba(52,199,89,.12);padding:2px 7px;border-radius:7px;">▲ +13%</span>
+  </div>
+
+  <div style="display:flex;align-items:flex-end;gap:3px;margin-bottom:2px;">
+    <span style="font-size:34px;font-weight:700;letter-spacing:-.5px;line-height:1;color:#34AADC;">+€1 330</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--l2);margin-bottom:16px;">Прошлый месяц €1 180 · маржа <span style="color:var(--label);font-weight:600;">88%</span></div>
+
+  <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px;">
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2);width:62px;flex:none;text-transform:uppercase;">Доход</span>
+      <div style="flex:1;height:30px;background:var(--fill2);border-radius:7px;overflow:hidden;position:relative;">
+        <div style="position:absolute;inset:0 0 0 0;width:100%;background:rgba(52,199,89,.16);border-radius:7px;"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green);border-radius:7px 0 0 7px;"></div>
+      </div>
+      <span style="font-size:14px;font-weight:600;color:var(--green);width:58px;text-align:right;flex:none;">+€1 510</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2);width:62px;flex:none;text-transform:uppercase;">Расход</span>
+      <div style="flex:1;height:30px;background:var(--fill2);border-radius:7px;overflow:hidden;position:relative;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:11.9%;background:rgba(255,59,48,.18);border-radius:7px;"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red);border-radius:7px 0 0 7px;"></div>
+      </div>
+      <span style="font-size:14px;font-weight:600;color:var(--red);width:58px;text-align:right;flex:none;">−€180</span>
+    </div>
+
+    <div style="height:1px;background:var(--sep);margin:1px 0;"></div>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.03em;color:#34AADC;width:62px;flex:none;text-transform:uppercase;">Прибыль</span>
+      <div style="flex:1;height:34px;background:rgba(52,170,220,.08);border-radius:8px;overflow:hidden;position:relative;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:88%;background:rgba(52,170,220,.20);border-radius:8px;"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#34AADC;border-radius:8px 0 0 8px;"></div>
+        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:#1F6B8C;">маржа 88%</span>
+      </div>
+      <span style="font-size:15px;font-weight:700;color:#34AADC;width:58px;text-align:right;flex:none;">+€1 330</span>
+    </div>
+
+  </div>
+
+  <div style="height:1px;background:var(--sep);margin-bottom:13px;"></div>
+
+  <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2);text-transform:uppercase;margin-bottom:9px;">Прибыль по месяцам</div>
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:52px;margin-bottom:6px;">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:73%;background:var(--l3);border-radius:4px;"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:84%;background:var(--l3);border-radius:4px;"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:57%;background:var(--l3);border-radius:4px;"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:100%;background:var(--l3);border-radius:4px;"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:88%;background:var(--l3);border-radius:4px;"></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;"><div style="height:99%;background:#34AADC;border-radius:4px;"></div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;gap:6px;font-size:10px;color:var(--l3);">
+    <span style="flex:1;text-align:center;">Янв</span>
+    <span style="flex:1;text-align:center;">Фев</span>
+    <span style="flex:1;text-align:center;">Мар</span>
+    <span style="flex:1;text-align:center;">Апр</span>
+    <span style="flex:1;text-align:center;">Май</span>
+    <span style="flex:1;text-align:center;color:#34AADC;font-weight:600;">Июн</span>
+  </div>
+
+  <div style="height:1px;background:var(--sep);margin:13px 0;"></div>
+
+  <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2);text-transform:uppercase;margin-bottom:9px;">По бригадам</div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;font-weight:500;color:var(--label);width:48px;flex:none;">Север</span>
+      <div style="flex:1;height:8px;background:var(--fill2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:100%;background:#34AADC;border-radius:4px;"></div></div>
+      <span style="font-size:13px;font-weight:600;color:#34AADC;width:54px;text-align:right;flex:none;">+€1 330</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;font-weight:500;color:var(--label);width:48px;flex:none;">Юг</span>
+      <div style="flex:1;height:8px;background:var(--fill2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:65.4%;background:rgba(52,170,220,.45);border-radius:4px;"></div></div>
+      <span style="font-size:13px;font-weight:600;color:var(--l2);width:54px;text-align:right;flex:none;">+€870</span>
+    </div>
+  </div>
+
+</div></div><div class="meta">Превращает плоскую сводку в премиальный «водопад» Доход→Расход→Прибыль с пропорциональными CSS-барами, плюс тренд по месяцам и split по бригадам — всё в одну спокойную карточку, портируемую в DC.</div></div><div class="card"><div class="lbl"><span class="num">8</span><span class="nm">insightTrend</span></div><div style="width:392px;border:1px solid var(--sep);border-radius:16px;box-shadow:0 1px 5px rgba(15,23,42,.07);background:var(--grouped);padding:6px 16px 16px"><div style="display:flex;align-items:center;padding:10px 4px 8px"><span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--l2)">Прибыль за период</span><span style="margin-left:auto;font-size:12px;font-weight:600;color:var(--accent)">Все</span></div><div style="background:var(--card);border-radius:14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);padding:14px 16px 16px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;color:var(--label);">
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;">
+    <div style="font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--label);">Прибыль за июнь</div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--green);">
+      <span style="font-size:9px;line-height:1;">▲</span>+13%
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;">
+    <div style="font-size:30px;font-weight:700;letter-spacing:-.02em;color:#34AADC;line-height:1;">+€1 330</div>
+    <div style="font-size:12px;color:var(--l2);">маржа 88%</div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <div style="flex:1;background:var(--card2);border-radius:10px;padding:9px 10px;">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--l2);text-transform:uppercase;margin-bottom:3px;">Доход</div>
+      <div style="font-size:15px;font-weight:600;color:var(--green);">+€1 510</div>
+    </div>
+    <div style="flex:1;background:var(--card2);border-radius:10px;padding:9px 10px;">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--l2);text-transform:uppercase;margin-bottom:3px;">Расход</div>
+      <div style="font-size:15px;font-weight:600;color:var(--red);">−€180</div>
+    </div>
+    <div style="flex:1;background:rgba(52,170,220,.10);border-radius:10px;padding:9px 10px;">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.04em;color:rgba(52,170,220,.85);text-transform:uppercase;margin-bottom:3px;">Прибыль</div>
+      <div style="font-size:15px;font-weight:600;color:#34AADC;">+€1 330</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--l2);text-transform:uppercase;">Прибыль · 6 мес</div>
+    <div style="font-size:11px;font-weight:600;color:#34AADC;">€1 330</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-end;gap:6px;height:64px;margin-bottom:6px;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="width:100%;max-width:30px;height:73%;background:var(--l3);border-radius:5px 5px 3px 3px;"></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="width:100%;max-width:30px;height:84%;background:var(--l3);border-radius:5px 5px 3px 3px;"></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="width:100%;max-width:30px;height:57%;background:var(--l3);border-radius:5px 5px 3px 3px;"></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="width:100%;max-width:30px;height:100%;background:var(--l3);border-radius:5px 5px 3px 3px;"></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="width:100%;max-width:30px;height:88%;background:var(--l3);border-radius:5px 5px 3px 3px;"></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="width:100%;max-width:30px;height:99%;background:#34AADC;border-radius:5px 5px 3px 3px;"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:6px;margin-bottom:14px;">
+    <div style="flex:1;text-align:center;font-size:10px;color:var(--l2);">Янв</div>
+    <div style="flex:1;text-align:center;font-size:10px;color:var(--l2);">Фев</div>
+    <div style="flex:1;text-align:center;font-size:10px;color:var(--l2);">Мар</div>
+    <div style="flex:1;text-align:center;font-size:10px;color:var(--l2);">Апр</div>
+    <div style="flex:1;text-align:center;font-size:10px;color:var(--l2);">Май</div>
+    <div style="flex:1;text-align:center;font-size:10px;font-weight:600;color:#34AADC;">Июн</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;background:rgba(52,170,220,.07);border-radius:10px;padding:9px 11px;">
+    <div style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(52,170,220,.15);display:flex;align-items:center;justify-content:center;color:#34AADC;font-size:11px;line-height:1;">★</div>
+    <div style="font-size:12px;line-height:1.35;color:var(--label);">Лучший месяц за полгода — <span style="font-weight:600;">+€150</span> к прошлому, маржа <span style="font-weight:600;color:var(--green);">+5 п.п.</span></div>
+  </div>
+
+</div></div><div class="meta">Core breakdown stays, but the calm CSS-bar 6-month sparkline plus a single &quot;лучший месяц / +5 п.п.&quot; insight turns a flat list into a glanceable trend — premium and DC-portable (div bars, literal values, app tokens).</div></div></div></body></html>

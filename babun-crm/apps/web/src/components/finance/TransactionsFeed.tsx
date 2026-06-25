@@ -24,6 +24,8 @@ interface TransactionsFeedProps {
   appointments: Appointment[];
   services: Service[];
   onTxTap?: (tx: FinanceTransaction) => void;
+  /** Tapping an income row jumps to the client's record. */
+  onClientTap?: (clientId: string) => void;
 }
 
 export default function TransactionsFeed({
@@ -35,6 +37,7 @@ export default function TransactionsFeed({
   appointments,
   services,
   onTxTap,
+  onClientTap,
 }: TransactionsFeedProps) {
   const groups = groupByDay(transactions);
   if (groups.length === 0) {
@@ -87,7 +90,8 @@ export default function TransactionsFeed({
                 : null;
               const a = appt(tx.appointment_id);
 
-              // description — for income, list the visit's services (вариант B)
+              // title — the service NAME (visit services > the operation
+              // note), not the bare category. Falls back per type.
               let desc = "";
               if (isIn && a && a.service_ids.length > 0) {
                 desc = a.service_ids
@@ -96,16 +100,16 @@ export default function TransactionsFeed({
                   .join(", ");
               }
               if (!desc) {
-                desc =
-                  cat?.name ||
-                  tx.notes ||
-                  (isTr ? "Перевод" : isEx ? "Расход" : "Поступление");
+                desc = isIn
+                  ? tx.notes || cat?.name || "Поступление"
+                  : cat?.name || tx.notes || (isTr ? "Перевод" : "Расход");
               }
 
               // context line: время · клиент (income) / комментарий (expense)
               let ctx = "";
               if (isIn) {
-                ctx = [a?.time_start ?? "", clientName(tx.client_id)]
+                const time = a?.time_start || hhmm(tx.created_at);
+                ctx = [time, clientName(tx.client_id)]
                   .filter(Boolean)
                   .join(" · ");
               } else if (isEx && cat && tx.notes) {
@@ -136,7 +140,11 @@ export default function TransactionsFeed({
                 <button
                   key={tx.id}
                   type="button"
-                  onClick={() => onTxTap?.(tx)}
+                  onClick={() =>
+                    isIn && tx.client_id && onClientTap
+                      ? onClientTap(tx.client_id)
+                      : onTxTap?.(tx)
+                  }
                   className="w-full flex items-center gap-3 pl-3.5 pr-3.5 text-left border-t border-[var(--separator)] active:bg-[var(--fill-quaternary)] transition-colors min-h-[56px]"
                 >
                   <span
@@ -171,6 +179,14 @@ const RU_MONTHS_FULL = [
   "января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря",
 ];
+
+function hhmm(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(
+    d.getMinutes(),
+  ).padStart(2, "0")}`;
+}
 
 function dayLabel(dateKey: string): string {
   const d = new Date(`${dateKey}T00:00:00`);

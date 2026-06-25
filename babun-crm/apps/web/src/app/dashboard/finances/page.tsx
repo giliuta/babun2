@@ -22,6 +22,7 @@ import FinanceOverview, { type HomeView } from "@/components/finance/FinanceOver
 import AccountsPanel from "@/components/finance/AccountsPanel";
 import AnalyticsSheet from "@/components/finance/AnalyticsSheet";
 import DebtorsList from "@/components/finance/DebtorsList";
+import ProfitPanel from "@/components/finance/ProfitPanel";
 import TransactionsFeed from "@/components/finance/TransactionsFeed";
 import OperationSheet from "@/components/finance/OperationSheet";
 import TransferSheet from "@/components/finance/TransferSheet";
@@ -122,6 +123,20 @@ export default function FinancesPage() {
     [transactions, appointments, brigadeFilter, range.from, range.to],
   );
 
+  // Re-filter to the active team before any per-tx breakdown. The raw
+  // list can carry other teams' rows (transfer legs, optimistic adds),
+  // which is why computePeriodTotals re-filters too — the profit panel
+  // must scope identically so its totals match the overview «Прибыль».
+  const scopedTx = useMemo(
+    () =>
+      brigadeFilter.length > 0
+        ? transactions.filter(
+            (t) => t.team_id && brigadeFilter.includes(t.team_id),
+          )
+        : transactions,
+    [transactions, brigadeFilter],
+  );
+
   const scopedAccounts = useMemo(
     () =>
       scopeTeamId
@@ -160,13 +175,13 @@ export default function FinancesPage() {
 
   const feedTx = useMemo(() => {
     if (homeView === "income")
-      return transactions.filter(
+      return scopedTx.filter(
         (t) => t.type === "income" || t.type === "refund",
       );
     if (homeView === "expense")
-      return transactions.filter((t) => t.type === "expense");
-    return transactions;
-  }, [transactions, homeView]);
+      return scopedTx.filter((t) => t.type === "expense");
+    return scopedTx;
+  }, [scopedTx, homeView]);
 
   const toggleView = useCallback(
     (v: HomeView) => setHomeView((prev) => (prev === v ? "all" : v)),
@@ -244,6 +259,7 @@ export default function FinancesPage() {
           onTapIncome={() => toggleView("income")}
           onTapExpense={() => toggleView("expense")}
           onTapDebt={() => toggleView("debt")}
+          onTapProfit={() => toggleView("profit")}
         />
 
         {homeView === "accounts" ? (
@@ -263,6 +279,13 @@ export default function FinancesPage() {
             fromDate={range.from}
             toDate={range.to}
           />
+        ) : homeView === "profit" ? (
+          <ProfitPanel
+            transactions={scopedTx}
+            categories={categories}
+            services={services}
+            appointments={appointments}
+          />
         ) : (
           <TransactionsFeed
             transactions={feedTx}
@@ -273,6 +296,7 @@ export default function FinancesPage() {
             appointments={appointments}
             services={services}
             onTxTap={setPopupTx}
+            onClientTap={(id) => router.push(`/dashboard/clients/${id}`)}
           />
         )}
         </div>

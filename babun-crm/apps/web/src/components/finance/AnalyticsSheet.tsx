@@ -15,6 +15,7 @@ import {
   breakdownByBrigade,
   type PeriodTotals,
 } from "@/lib/finance/ledger-compute";
+import { incomeLabel, expenseLabel } from "@/lib/finance/breakdown";
 import {
   buildCsv,
   downloadCsv,
@@ -87,11 +88,7 @@ export default function AnalyticsSheet({
     const map = new Map<string, number>();
     for (const t of scopedTx) {
       if (t.type !== "expense") continue;
-      const name =
-        (t.category_id &&
-          categories.find((c) => c.id === t.category_id)?.name) ||
-        t.notes ||
-        "Прочее";
+      const name = expenseLabel(t, categories);
       map.set(name, (map.get(name) ?? 0) + t.amount);
     }
     return Array.from(map.entries())
@@ -296,27 +293,6 @@ function SummaryRow({
       </span>
     </div>
   );
-}
-
-function incomeLabel(
-  t: FinanceTransaction,
-  categories: FinanceCategory[],
-  services: Service[],
-  appointments: Appointment[],
-): string {
-  if (t.category_id) {
-    const c = categories.find((x) => x.id === t.category_id);
-    if (c) return c.name;
-  }
-  if (t.appointment_id) {
-    const a = appointments.find((x) => x.id === t.appointment_id);
-    const sid = a?.service_ids?.[0];
-    if (sid) {
-      const s = services.find((x) => x.id === sid);
-      if (s) return s.name;
-    }
-  }
-  return "Доход";
 }
 
 const RU_MONTHS_SHORT = [

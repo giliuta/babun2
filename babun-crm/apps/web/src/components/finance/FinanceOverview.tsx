@@ -2,7 +2,9 @@
 
 // Finances home overview (the approved mockup): single-team chips +
 // period + «Счета» mini-card + Доход/Расход + Долги|Прибыль row.
-// Tapping a metric tells the parent which panel to show below.
+// The whole block is sticky so it stays pinned while the operations feed
+// scrolls underneath. Tapping a metric tells the parent which panel to
+// show below and rings the active card (like «Долги»).
 
 import { formatEUR } from "@babun/shared/common/utils/money";
 import type { Team } from "@babun/shared/local/masters";
@@ -10,7 +12,7 @@ import type { PeriodTotals } from "@/lib/finance/ledger-compute";
 import PeriodPicker from "./PeriodPicker";
 import type { PeriodKind, PeriodRange } from "@/lib/finance/period";
 
-export type HomeView = "all" | "accounts" | "income" | "expense" | "debt";
+export type HomeView = "all" | "accounts" | "income" | "expense" | "debt" | "profit";
 
 const PROFIT_COLOR = "#34AADC"; // locked: прибыль is always light-blue
 
@@ -29,6 +31,7 @@ interface FinanceOverviewProps {
   onTapIncome: () => void;
   onTapExpense: () => void;
   onTapDebt: () => void;
+  onTapProfit: () => void;
 }
 
 export default function FinanceOverview({
@@ -46,11 +49,13 @@ export default function FinanceOverview({
   onTapIncome,
   onTapExpense,
   onTapDebt,
+  onTapProfit,
 }: FinanceOverviewProps) {
   return (
-    <>
-      {/* Team chips + period — sticky header band */}
-      <div className="sticky top-0 z-20 bg-[var(--surface-card)] border-b border-[var(--separator)] px-3 pt-2 pb-2 space-y-2">
+    // Whole overview pinned — only the feed below scrolls.
+    <div className="sticky top-0 z-20 bg-[var(--surface-grouped)]">
+      {/* Team chips + period */}
+      <div className="bg-[var(--surface-card)] border-b border-[var(--separator)] px-3 pt-2 pb-2 space-y-2">
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
           {teams.map((t) => {
             const active = scopeTeamId === t.id;
@@ -81,7 +86,7 @@ export default function FinanceOverview({
       </div>
 
       {/* Overview cards */}
-      <div className="bg-[var(--surface-grouped)] px-4 pt-3 space-y-2.5">
+      <div className="px-4 pt-3 pb-2.5 space-y-2">
         {/* Счета mini-card */}
         <button
           type="button"
@@ -101,25 +106,20 @@ export default function FinanceOverview({
           <ChevronRight />
         </button>
 
-        {/* Доход / Расход */}
-        <div className="flex bg-[var(--surface-card)] rounded-[14px] overflow-hidden shadow-[var(--shadow-card)]">
-          <MetricCell
+        {/* Доход / Расход — separate ring cards (active outline like «Долги») */}
+        <div className="flex gap-2">
+          <MetricCard
             label="Доход"
             value={totals.income}
             color="var(--system-green)"
             active={view === "income"}
-            activeBg="rgba(52,199,89,0.18)"
-            idleBg="rgba(52,199,89,0.05)"
             onClick={onTapIncome}
           />
-          <div className="w-px bg-[var(--separator)] my-2.5" />
-          <MetricCell
+          <MetricCard
             label="Расход"
             value={totals.expense}
             color="var(--system-red)"
             active={view === "expense"}
-            activeBg="rgba(255,59,48,0.16)"
-            idleBg="rgba(255,59,48,0.045)"
             onClick={onTapExpense}
             negative
           />
@@ -143,7 +143,21 @@ export default function FinanceOverview({
               {formatEUR(totals.debt)}
             </span>
           </button>
-          <div className="flex-1 flex items-center gap-2 rounded-[12px] px-3.5 py-2.5" style={{ backgroundColor: "rgba(52,170,220,0.10)" }}>
+          <button
+            type="button"
+            onClick={onTapProfit}
+            aria-pressed={view === "profit"}
+            aria-label="Разбор прибыли"
+            className="flex-1 flex items-center gap-2 rounded-[12px] px-3.5 py-2.5 active:scale-[0.99] transition"
+            style={{
+              backgroundColor:
+                view === "profit" ? "rgba(52,170,220,0.16)" : "rgba(52,170,220,0.07)",
+              boxShadow:
+                view === "profit"
+                  ? `inset 0 0 0 1.5px ${PROFIT_COLOR}`
+                  : "inset 0 0 0 0.5px rgba(52,170,220,0.16)",
+            }}
+          >
             <span className="text-[14px] font-semibold" style={{ color: PROFIT_COLOR }}>
               Прибыль
             </span>
@@ -151,20 +165,19 @@ export default function FinanceOverview({
               {totals.profit >= 0 ? "+" : "−"}
               {formatEUR(Math.abs(totals.profit))}
             </span>
-          </div>
+            <ChevronRight />
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-function MetricCell({
+function MetricCard({
   label,
   value,
   color,
   active,
-  activeBg,
-  idleBg,
   onClick,
   negative,
 }: {
@@ -172,8 +185,6 @@ function MetricCell({
   value: number;
   color: string;
   active: boolean;
-  activeBg: string;
-  idleBg: string;
   onClick: () => void;
   negative?: boolean;
 }) {
@@ -182,10 +193,12 @@ function MetricCell({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="flex-1 px-4 pt-3 pb-3.5 text-left active:scale-[0.99] transition"
-      style={{ backgroundColor: active ? activeBg : idleBg }}
+      className={`flex-1 text-left bg-[var(--surface-card)] rounded-[12px] px-3.5 py-2.5 active:scale-[0.99] transition ${
+        active ? "" : "shadow-[var(--shadow-card)]"
+      }`}
+      style={active ? { boxShadow: `inset 0 0 0 1.5px ${color}` } : undefined}
     >
-      <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="flex items-center gap-1.5 mb-1">
         <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
         <span className="text-[12px] font-semibold text-[var(--label-secondary)]">
           {label}

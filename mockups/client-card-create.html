@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Babun2 — карточка клиента (чисто и структурно)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css"/>
+<style>
+  :root{--accent:#3E88F7;--debt:#B0413A;--green:#34C759;--l1:#000;--l2:rgba(60,60,67,.6);--l3:rgba(60,60,67,.3);--sep:rgba(60,60,67,.12);--fill:rgba(118,118,128,.12);--grouped:#F2F2F7;--card:#fff;
+    --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font);background:radial-gradient(1200px 800px at 50% -10%,#fbfbfd 0%,#e7e9ee 55%,#dfe2e8 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px 16px 50px;color:var(--l1);font-variant-numeric:tabular-nums;}
+  .cap{font-size:12.5px;color:#6b7280;text-align:center;max-width:340px;line-height:1.45;}
+  .cap b{color:#374151;font-weight:600;}
+  .seg{display:flex;background:rgba(118,118,128,.12);border-radius:11px;padding:3px;gap:3px;width:280px;}
+  .seg button{flex:1;border:0;background:transparent;font:inherit;font-size:13px;color:var(--l2);padding:8px 0;border-radius:8px;cursor:pointer;}
+  .seg button.on{background:#fff;color:var(--l1);font-weight:600;box-shadow:0 1px 3px rgba(15,23,42,.12);}
+  .dev{width:340px;border:10px solid #0b0b0d;border-radius:48px;background:#0b0b0d;box-shadow:0 40px 80px -30px rgba(15,23,42,.5);}
+  .scr{width:320px;height:680px;background:var(--grouped);border-radius:38px;overflow:hidden;display:flex;flex-direction:column;}
+  .sb{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 22px 0 26px;background:var(--card);}
+  .sb .time{font-size:14px;font-weight:600;}
+  .island{width:90px;height:24px;background:#000;border-radius:14px;}
+  .nav{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--card);border-bottom:.5px solid var(--sep);}
+  .bk{color:var(--accent);font-size:14px;display:flex;align-items:center;gap:2px;}
+  .done{color:var(--l3);font-size:14px;font-weight:600;background:none;border:0;font-family:inherit;cursor:pointer;}
+  .done.ready{color:var(--accent);}
+  .dots{color:var(--accent);font-size:20px;display:none;}
+  .body{flex:1;overflow-y:auto;}
+  .body::-webkit-scrollbar{display:none;}
+  .pad{padding:14px 14px 28px;}
+
+  /* header: name + phone */
+  .head{margin:0 2px 14px;}
+  .fld{width:100%;border:0;background:transparent;font-family:inherit;outline:none;padding:1px 0;color:var(--l1);}
+  .nm{font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--l1);}.nm::placeholder{color:var(--l3);}
+  .phw{display:flex;align-items:center;gap:7px;margin-top:3px;}
+  .ph{font-size:15px;font-weight:400;color:var(--l2);}.ph::placeholder{color:var(--l3);}
+  .ck{color:var(--accent);opacity:0;transition:.15s;font-size:17px;}.ck.on{opacity:1;}
+  .viewm .nm{pointer-events:none;} .viewm .ph{pointer-events:none;}
+
+  /* dedupe */
+  .dd{margin:0 2px 14px;padding:11px 13px;background:var(--card);border-radius:13px;display:none;}
+  .dd-h{font-size:11px;font-weight:600;color:var(--l2);letter-spacing:.04em;margin-bottom:7px;text-transform:uppercase;}
+  .dd-row{display:flex;align-items:center;gap:10px;}
+
+  /* action buttons (iOS contacts style) */
+  .acts{display:flex;gap:8px;margin:0 0 16px;}
+  .act{flex:1;background:var(--card);border-radius:13px;padding:11px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;border:0;font-family:inherit;}
+  .act i{font-size:20px;color:var(--accent);}
+  .act span{font-size:11px;color:var(--l2);}
+  .act.book i{color:#fff;} .act.book{background:var(--accent);} .act.book span{color:#fff;}
+  .act.dis{opacity:.4;}
+
+  /* section header */
+  .sh{font-size:12px;font-weight:600;color:var(--l2);letter-spacing:.04em;margin:2px 4px 7px;text-transform:uppercase;}
+
+  /* grouped list */
+  .grp{background:var(--card);border-radius:13px;overflow:hidden;margin-bottom:16px;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;}
+  .row + .row{border-top:.5px solid var(--sep);}
+  .rl{font-size:14px;color:var(--l2);flex:none;}
+  .rv{font-size:15px;color:var(--l1);text-align:right;}
+  .rv.debt{color:var(--debt);font-weight:600;}
+
+  /* objects */
+  .obj{padding:13px 14px;}
+  .obj-t{font-size:16px;font-weight:600;}
+  .obj-a{font-size:13px;color:var(--l2);margin-top:2px;display:flex;align-items:center;gap:5px;}
+  .obj-u{font-size:14px;color:var(--l1);margin-top:8px;}
+  .obj-u .mut{color:var(--l3);font-size:13px;}
+  .addrow{display:flex;align-items:center;gap:8px;color:var(--accent);font-size:14px;padding:13px 14px;border-top:.5px solid var(--sep);cursor:pointer;}
+  .grp.flush .addrow{border-top:0;}
+  .hint{font-size:11.5px;color:var(--l3);text-align:center;margin:18px 10px 0;line-height:1.45;}
+</style>
+</head>
+<body>
+  <div class="cap"><b>Карточка клиента — одна страница (создание = просмотр).</b> Чисто и структурно: имя · телефон · связь · что сделано · объекты. Переключи режим.</div>
+  <div class="seg">
+    <button id="m-new" class="on" onclick="setMode('new')">Создание</button>
+    <button id="m-view" onclick="setMode('view')">Просмотр</button>
+  </div>
+  <div class="dev"><div class="scr">
+    <div class="sb"><span class="time">9:41</span><span class="island"></span><span><i class="ti ti-battery-3"></i></span></div>
+    <div class="nav">
+      <span class="bk"><i class="ti ti-chevron-left"></i> Клиенты</span>
+      <button class="done" id="done">Готово</button>
+      <span class="dots" id="dots"><i class="ti ti-dots"></i></span>
+    </div>
+    <div class="body"><div class="pad" id="card">
+
+      <div class="head">
+        <input class="fld nm" id="nm" placeholder="Имя">
+        <div class="phw"><input class="fld ph" id="ph" placeholder="Телефон" inputmode="tel" oninput="onPh()"><i class="ti ti-check ck" id="ck"></i></div>
+      </div>
+
+      <div class="dd" id="dd">
+        <div class="dd-h">Похоже, такой уже есть</div>
+        <div class="dd-row"><div style="flex:1"><div style="font-size:14px;font-weight:600">Анна Петрова</div><div style="font-size:12px;color:var(--l2)">+357 99 12 34 56 · Лимассол</div></div><span style="color:var(--accent);font-size:13px;font-weight:600">Открыть</span></div>
+      </div>
+
+      <div class="acts">
+        <button class="act" id="a-call"><i class="ti ti-phone"></i><span>Позвонить</span></button>
+        <button class="act" id="a-wa"><i class="ti ti-brand-whatsapp"></i><span>WhatsApp</span></button>
+        <button class="act" id="a-chat"><i class="ti ti-message"></i><span>Чат</span></button>
+        <button class="act book" id="a-book"><i class="ti ti-calendar-plus"></i><span>Записать</span></button>
+      </div>
+
+      <div id="summary">
+        <div class="sh">Сводка</div>
+        <div class="grp">
+          <div class="row"><span class="rl">Визитов</span><span class="rv">1</span></div>
+          <div class="row"><span class="rl">Последний</span><span class="rv">1 июн · Чистка</span></div>
+          <div class="row"><span class="rl">Оплата</span><span class="rv debt">долг €100</span></div>
+          <div class="row"><span class="rl">Следующее ТО</span><span class="rv">через 9 дн</span></div>
+          <div class="row"><span class="rl">Клиент с</span><span class="rv">июнь 2026</span></div>
+        </div>
+      </div>
+
+      <div class="sh">Объекты</div>
+      <div class="grp" id="objgrp">
+        <div class="obj" id="objfilled">
+          <div class="obj-t">Дом</div>
+          <div class="obj-a"><i class="ti ti-map-pin" style="font-size:13px"></i> Лимассол, Agios Tychonas 21</div>
+          <div class="obj-u">Спальня · Daikin FTXS35 <span class="mut">· ТО раз в 12 мес</span></div>
+        </div>
+        <div class="addrow"><i class="ti ti-plus"></i> Добавить объект</div>
+      </div>
+
+      <div class="hint" id="hint">Имя и телефон — и клиент в базе. Объекты и остальное добавишь когда угодно.</div>
+
+    </div></div>
+  </div></div>
+
+<script>
+  function onPh(){
+    var v=(document.getElementById('ph').value||'').replace(/\D/g,'');
+    var ok=v.length>=5, isNew=!document.getElementById('card').classList.contains('viewm');
+    document.getElementById('ck').classList.toggle('on',ok&&isNew);
+    document.getElementById('done').classList.toggle('ready',ok);
+    document.getElementById('dd').style.display=(ok&&isNew)?'block':'none';
+    if(isNew){['a-call','a-wa','a-chat','a-book'].forEach(function(id){document.getElementById(id).classList.toggle('dis',!ok);});}
+  }
+  function setMode(m){
+    var view=m==='view';
+    document.getElementById('m-new').classList.toggle('on',!view);
+    document.getElementById('m-view').classList.toggle('on',view);
+    document.getElementById('card').classList.toggle('viewm',view);
+    document.getElementById('done').style.display=view?'none':'block';
+    document.getElementById('dots').style.display=view?'inline':'none';
+    document.getElementById('summary').style.display=view?'block':'none';
+    document.getElementById('objfilled').style.display=view?'block':'none';
+    document.getElementById('hint').style.display=view?'none':'block';
+    var ph=document.getElementById('ph'), nm=document.getElementById('nm');
+    if(view){ph.value='+357 95 11 481';nm.value='Константин';}else{ph.value='';nm.value='';}
+    ['a-call','a-wa','a-chat','a-book'].forEach(function(id){document.getElementById(id).classList.toggle('dis',!view);});
+    document.getElementById('dd').style.display='none';
+    document.getElementById('ck').classList.remove('on');
+    onPh();
+  }
+  setMode('new');
+</script>
+</body>
+</html>
