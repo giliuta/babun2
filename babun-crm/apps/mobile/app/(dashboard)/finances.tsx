@@ -1,15 +1,31 @@
-import { useMemo } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
-import { formatEUR } from "@babun/shared/common/utils/money";
-import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
+import { useMemo, useState } from "react";
+import { Alert, Pressable, ScrollView, SectionList, Text, View } from "react-native";
+import { ChevronDown, Plus } from "lucide-react-native";
+import {
+  formatEUR,
+  formatEURSigned,
+} from "@babun/shared/common/utils/money";
+import {
+  signedAmount,
+  type FinanceTransaction,
+} from "@babun/shared/local/finance/transaction";
 import { Screen } from "@/components/ui/Screen";
-import { useTransactions } from "@/features/finances/queries";
-
-// Phase 6 first pass: a finances overview (income / expense / profit + the
-// operations list). Period picker, per-account scope and PDF are deferred to
-// the full finances v5 design.
-const FROM = "2026-01-01";
-const TO = "2026-12-31";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { COLORS } from "@/components/ui/tokens";
+import { humanDay } from "@/features/appointments/helpers";
+import { useTeams } from "@/features/reference/queries";
+import {
+  useDeleteTransaction,
+  useTransactions,
+} from "@/features/finances/queries";
+import { OperationSheet } from "@/features/finances/OperationSheet";
+import { PeriodModal } from "@/features/finances/PeriodModal";
+import {
+  defaultPeriod,
+  periodLabel,
+  type Period,
+} from "@/features/finances/period";
 
 const TYPE_LABEL: Record<FinanceTransaction["type"], string> = {
   income: "Доход",
@@ -18,7 +34,7 @@ const TYPE_LABEL: Record<FinanceTransaction["type"], string> = {
   refund: "Возврат",
 };
 
-function SummaryItem({
+function Metric({
   label,
   value,
   tone,
@@ -28,41 +44,50 @@ function SummaryItem({
   tone: string;
 }) {
   return (
-    <View>
+    <View className="flex-1">
       <Text className="text-xs text-neutral-500">{label}</Text>
       <Text className={`mt-0.5 text-lg font-bold ${tone}`}>{value}</Text>
     </View>
   );
 }
 
-function TxRow({ tx }: { tx: FinanceTransaction }) {
-  const isIncome = tx.type === "income";
-  const isExpense = tx.type === "expense";
+function TxRow({ tx, onDelete }: { tx: FinanceTransaction; onDelete: () => void }) {
+  const signed = signedAmount(tx);
   return (
-    <View className="flex-row items-center px-4 py-3">
+    <Pressable
+      onLongPress={onDelete}
+      className="flex-row items-center bg-white px-4 py-3 active:bg-neutral-50"
+    >
       <View className="flex-1 pr-3">
         <Text className="text-base text-neutral-900" numberOfLines={1}>
           {tx.notes || TYPE_LABEL[tx.type]}
         </Text>
-        <Text className="text-xs text-neutral-500 tabular-nums">
-          {tx.occurred_on}
-        </Text>
+        <Text className="text-xs text-neutral-400">{TYPE_LABEL[tx.type]}</Text>
       </View>
       <Text
         className={`text-base font-semibold tabular-nums ${
-          isIncome ? "text-success" : isExpense ? "text-danger" : "text-neutral-700"
+          signed >= 0 ? "text-success" : "text-danger"
         }`}
       >
-        {isExpense ? "−" : isIncome ? "+" : ""}
-        {formatEUR(tx.amount)}
+        {formatEURSigned(signed)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
 export default function FinancesTab() {
-  const { data, isLoading, error } = useTransactions(FROM, TO);
-  const txs = data ?? [];
+  const [period, setPeriod] = useState<Period>(defaultPeriod());
+  const [scope, setScope] = useState<string | null>(null);
+  const [opOpen, setOpOpen] = useState(false);
+  const [periodOpen, setPeriodOpen] = useState(false);
+
+  const { data: teams = [] } = useTeams();
+  const {
+    data: txs = [],
+    isLoading,
+    error,
+  } = useTransactions(period.from, period.to, scope ? [scope] : undefined);
+  const del = useDeleteTransaction();
 
   const { income, expense, profit } = useMemo(() => {
     let income = 0;
@@ -74,56 +99,155 @@ export default function FinancesTab() {
     return { income, expense, profit: income - expense };
   }, [txs]);
 
-  return (
-    <Screen>
-      <View className="px-4 pb-2 pt-4">
-        <Text className="text-2xl font-bold text-neutral-900">Финансы</Text>
-        <Text className="text-sm text-neutral-500">2026 год</Text>
-      </View>
+  const sections = useMemo(() => {
+    const byDate = new Map<string, FinanceTransaction[]>();
+    for (const t of txs) {
+      const arr = byDate.get(t.occurred_on) ?? [];
+      arr.push(t);
+      byDate.set(t.occurred_on, arr);
+    }
+    return [...byDate.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([date, data]) => ({
+        title: date,
+        net: data.reduce((s, t) => s + signedAmount(t), 0),
+        data,
+      }));
+  }, [txs]);
 
-      <View className="mx-4 mb-2 rounded-2xl bg-white p-4 shadow-sm">
-        <View className="flex-row justify-between">
-          <SummaryItem label="Доход" value={formatEUR(income)} tone="text-success" />
-          <SummaryItem label="Расход" value={formatEUR(expense)} tone="text-danger" />
+  const confirmDelete = (tx: FinanceTransaction) => {
+    Alert.alert("Удалить операцию?", formatEURSigned(signedAmount(tx)), [
+      { text: "Отмена", style: "cancel" },
+      {
+        text: "Удалить",
+        style: "destructive",
+        onPress: () => del.mutate(tx.id),
+      },
+    ]);
+  };
+
+  const header = (
+    <View>
+      {/* period selector */}
+      <Pressable
+        onPress={() => setPeriodOpen(true)}
+        className="mx-4 mb-1 mt-1 flex-row items-center self-start rounded-full bg-neutral-100 px-3 py-1.5 active:opacity-80"
+      >
+        <Text className="text-sm font-semibold text-neutral-800">
+          {periodLabel(period)}
+        </Text>
+        <ChevronDown color={COLORS.sub} size={16} />
+      </Pressable>
+
+      {/* team scope */}
+      {teams.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+        >
+          {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
+            const active = scope === t.id;
+            return (
+              <Pressable
+                key={t.id ?? "all"}
+                onPress={() => setScope(t.id)}
+                className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+              >
+                <Text
+                  className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+                >
+                  {t.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
+
+      {/* overview */}
+      <View className="mx-4 mb-2 mt-1 rounded-2xl bg-white p-4 shadow-sm">
+        <View className="flex-row">
+          <Metric label="Доход" value={formatEUR(income)} tone="text-success" />
+          <Metric label="Расход" value={formatEUR(expense)} tone="text-danger" />
         </View>
         <View className="my-3 h-px bg-neutral-100" />
         <View className="flex-row items-center justify-between">
           <Text className="text-sm text-neutral-500">Прибыль</Text>
-          <Text className="text-xl font-bold text-brand">{formatEUR(profit)}</Text>
+          <Text className="text-xl font-bold" style={{ color: COLORS.brandAccent }}>
+            {formatEUR(profit)}
+          </Text>
         </View>
       </View>
 
+      <Text className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+        Операции · {txs.length}
+      </Text>
+    </View>
+  );
+
+  return (
+    <Screen>
+      <ScreenHeader large title="Финансы" />
+
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <EmptyState state="loading" fill />
       ) : error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-sm text-danger">
-            {(error as Error).message}
-          </Text>
-        </View>
+        <EmptyState state="error" fill subtitle={(error as Error).message} />
       ) : (
-        <FlatList
+        <SectionList
           style={{ flex: 1 }}
-          data={txs}
+          sections={sections}
           keyExtractor={(t) => t.id}
-          ListHeaderComponent={
-            <Text className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Операции · {txs.length}
-            </Text>
-          }
-          renderItem={({ item }) => <TxRow tx={item} />}
-          ItemSeparatorComponent={() => (
-            <View className="ml-4 h-px bg-neutral-100" />
-          )}
-          ListEmptyComponent={
-            <View className="items-center pt-16">
-              <Text className="text-sm text-neutral-400">Нет операций</Text>
+          ListHeaderComponent={header}
+          contentContainerStyle={{ paddingBottom: 96 }}
+          renderSectionHeader={({ section }) => (
+            <View className="flex-row items-center justify-between bg-neutral-50 px-4 py-1.5">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                {humanDay(section.title)}
+              </Text>
+              <Text className="text-xs font-semibold text-neutral-500 tabular-nums">
+                {formatEURSigned(section.net)}
+              </Text>
             </View>
+          )}
+          renderItem={({ item }) => (
+            <TxRow tx={item} onDelete={() => confirmDelete(item)} />
+          )}
+          ItemSeparatorComponent={() => <View className="ml-4 h-px bg-neutral-100" />}
+          ListEmptyComponent={
+            <EmptyState
+              title="Нет операций за период"
+              subtitle="Нажмите + чтобы добавить"
+            />
           }
         />
       )}
+
+      <Pressable
+        onPress={() => setOpOpen(true)}
+        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
+        style={{
+          shadowColor: COLORS.brand,
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+        }}
+      >
+        <Plus color="#fff" size={28} />
+      </Pressable>
+
+      <OperationSheet
+        visible={opOpen}
+        onClose={() => setOpOpen(false)}
+        defaultTeamId={scope}
+      />
+      <PeriodModal
+        visible={periodOpen}
+        current={period}
+        onClose={() => setPeriodOpen(false)}
+        onApply={setPeriod}
+      />
     </Screen>
   );
 }
