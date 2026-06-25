@@ -1,17 +1,26 @@
 import { useMemo, useState } from "react";
-import { Pressable, SectionList, Text, View } from "react-native";
-import { Plus } from "lucide-react-native";
+import { Pressable, ScrollView, SectionList, Text, View } from "react-native";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { COLORS } from "@/components/ui/tokens";
+import { COLORS, ICON } from "@/components/ui/tokens";
 import { humanDay } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
+import { useTeams } from "@/features/reference/queries";
+
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function sameMonth(ymd: string, cursor: Date) {
+  const [y, m] = ymd.split("-").map(Number);
+  return y === cursor.getFullYear() && m - 1 === cursor.getMonth();
+}
 
 function AppointmentRow({
   apt,
@@ -60,7 +69,10 @@ function AppointmentRow({
 export default function CalendarTab() {
   const { data: appts = [], isLoading, error } = useAppointments();
   const { data: clients = [] } = useClients();
+  const { data: teams = [] } = useTeams();
 
+  const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
+  const [teamFilter, setTeamFilter] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
 
@@ -69,9 +81,19 @@ export default function CalendarTab() {
     [clients],
   );
 
+  const filtered = useMemo(
+    () =>
+      appts.filter(
+        (a) =>
+          sameMonth(a.date, cursor) &&
+          (teamFilter ? a.team_id === teamFilter : true),
+      ),
+    [appts, cursor, teamFilter],
+  );
+
   const sections = useMemo(() => {
     const byDate = new Map<string, Appointment[]>();
-    for (const a of appts) {
+    for (const a of filtered) {
       const arr = byDate.get(a.date) ?? [];
       arr.push(a);
       byDate.set(a.date, arr);
@@ -82,7 +104,17 @@ export default function CalendarTab() {
         title: d,
         data: data.sort((x, y) => x.time_start.localeCompare(y.time_start)),
       }));
-  }, [appts]);
+  }, [filtered]);
+
+  const monthLabel = cursor.toLocaleDateString("ru-RU", {
+    month: "long",
+    year: "numeric",
+  });
+  const shiftMonth = (delta: number) =>
+    setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
+  const isCurrentMonth =
+    cursor.getFullYear() === new Date().getFullYear() &&
+    cursor.getMonth() === new Date().getMonth();
 
   const openCreate = () => {
     setEditing(null);
@@ -93,9 +125,70 @@ export default function CalendarTab() {
     setSheetOpen(true);
   };
 
+  const header = (
+    <View>
+      {/* month nav */}
+      <View className="flex-row items-center justify-between px-3 pb-1 pt-1">
+        <Pressable
+          onPress={() => shiftMonth(-1)}
+          hitSlop={8}
+          className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+        >
+          <ChevronLeft color={COLORS.body} size={ICON.md} />
+        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Text className="text-base font-semibold capitalize text-neutral-900">
+            {monthLabel}
+          </Text>
+          {!isCurrentMonth ? (
+            <Pressable
+              onPress={() => setCursor(startOfMonth(new Date()))}
+              className="rounded-full bg-neutral-100 px-2.5 py-1 active:opacity-80"
+            >
+              <Text className="text-xs font-medium text-brand">Сегодня</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={() => shiftMonth(1)}
+          hitSlop={8}
+          className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+        >
+          <ChevronRight color={COLORS.body} size={ICON.md} />
+        </Pressable>
+      </View>
+
+      {/* team filter */}
+      {teams.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+        >
+          {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
+            const active = teamFilter === t.id;
+            return (
+              <Pressable
+                key={t.id ?? "all"}
+                onPress={() => setTeamFilter(t.id)}
+                className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+              >
+                <Text
+                  className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+                >
+                  {t.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
+
   return (
     <Screen>
-      <ScreenHeader large title="Календарь" subtitle={`${appts.length} записей`} />
+      <ScreenHeader large title="Календарь" subtitle={`${filtered.length} записей`} />
 
       {isLoading ? (
         <EmptyState state="loading" fill />
@@ -107,6 +200,7 @@ export default function CalendarTab() {
           sections={sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
+          ListHeaderComponent={header}
           contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
           renderSectionHeader={({ section }) => (
             <Text className="bg-neutral-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
@@ -123,16 +217,14 @@ export default function CalendarTab() {
           ItemSeparatorComponent={() => <View className="h-px bg-neutral-100" />}
           ListEmptyComponent={
             <EmptyState
-              fill
-              title="Записей пока нет"
-              subtitle="Нажмите + чтобы создать первую"
+              title="Нет записей в этом месяце"
+              subtitle="Нажмите + чтобы создать"
               action={{ label: "Новая запись", onPress: openCreate }}
             />
           }
         />
       )}
 
-      {/* FAB */}
       <Pressable
         onPress={openCreate}
         className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
