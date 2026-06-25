@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Alert, FlatList, Modal, Pressable, Text, View } from "react-native";
 import {
+  ArrowLeftRight,
   Banknote,
   CreditCard,
   Landmark,
@@ -18,8 +19,10 @@ import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { COLORS, ICON } from "@/components/ui/tokens";
 import { useTeams } from "@/features/reference/queries";
+import { formatYMD } from "@/features/appointments/helpers";
 import {
   useAccountsWithBalances,
+  useCreateTransfer,
   useInsertAccount,
   useSoftCloseAccount,
   type AccountWithBalance,
@@ -43,6 +46,7 @@ export default function AccountsScreen() {
   const { data: teams = [] } = useTeams();
   const insert = useInsertAccount();
   const closeAcc = useSoftCloseAccount();
+  const transfer = useCreateTransfer();
 
   const teamName = useMemo(
     () => new Map(teams.map((t) => [t.id, t.name])),
@@ -58,6 +62,29 @@ export default function AccountsScreen() {
   const [kind, setKind] = useState<AccountKind>("cash");
   const [brigadeId, setBrigadeId] = useState<string | null>(null);
   const [opening, setOpening] = useState("");
+
+  const [tOpen, setTOpen] = useState(false);
+  const [fromId, setFromId] = useState<string | null>(null);
+  const [toId, setToId] = useState<string | null>(null);
+  const [tAmount, setTAmount] = useState("");
+
+  const tNum = Number(tAmount.replace(",", ".")) || 0;
+  const canTransfer =
+    !!fromId && !!toId && fromId !== toId && tNum > 0 && !transfer.isPending;
+
+  const doTransfer = async () => {
+    if (!fromId || !toId) return;
+    await transfer.mutateAsync({
+      from_account_id: fromId,
+      to_account_id: toId,
+      amount: tNum,
+      occurred_on: formatYMD(new Date()),
+    });
+    setFromId(null);
+    setToId(null);
+    setTAmount("");
+    setTOpen(false);
+  };
 
   const reset = () => {
     setName("");
@@ -90,13 +117,24 @@ export default function AccountsScreen() {
       <ScreenHeader
         title="Счета"
         right={
-          <Pressable
-            onPress={() => setOpen(true)}
-            hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
-          >
-            <Plus color={COLORS.brand} size={ICON.md} />
-          </Pressable>
+          <View className="flex-row items-center">
+            {accounts.length >= 2 ? (
+              <Pressable
+                onPress={() => setTOpen(true)}
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+              >
+                <ArrowLeftRight color={COLORS.body} size={ICON.sm} />
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={() => setOpen(true)}
+              hitSlop={8}
+              className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            >
+              <Plus color={COLORS.brand} size={ICON.md} />
+            </Pressable>
+          </View>
         }
       />
 
@@ -210,6 +248,59 @@ export default function AccountsScreen() {
             onPress={add}
             disabled={!canSave}
             loading={insert.isPending}
+          />
+        </View>
+      </Modal>
+
+      {/* transfer */}
+      <Modal visible={tOpen} transparent animationType="slide" onRequestClose={() => setTOpen(false)}>
+        <Pressable className="flex-1 bg-black/30" onPress={() => setTOpen(false)} />
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
+          <Text className="mb-3 text-lg font-bold text-neutral-900">
+            Перевод между счетами
+          </Text>
+          <Text className="mb-2 text-xs font-medium text-neutral-500">Откуда</Text>
+          <View className="mb-3 flex-row flex-wrap gap-2">
+            {accounts.map((a) => (
+              <Pressable
+                key={a.id}
+                onPress={() => setFromId(a.id === fromId ? null : a.id)}
+                className={`rounded-full px-3.5 py-1.5 ${fromId === a.id ? "bg-danger" : "bg-neutral-100"}`}
+              >
+                <Text className={`text-sm font-medium ${fromId === a.id ? "text-white" : "text-neutral-700"}`}>
+                  {a.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text className="mb-2 text-xs font-medium text-neutral-500">Куда</Text>
+          <View className="mb-3 flex-row flex-wrap gap-2">
+            {accounts
+              .filter((a) => a.id !== fromId)
+              .map((a) => (
+                <Pressable
+                  key={a.id}
+                  onPress={() => setToId(a.id === toId ? null : a.id)}
+                  className={`rounded-full px-3.5 py-1.5 ${toId === a.id ? "bg-success" : "bg-neutral-100"}`}
+                >
+                  <Text className={`text-sm font-medium ${toId === a.id ? "text-white" : "text-neutral-700"}`}>
+                    {a.name}
+                  </Text>
+                </Pressable>
+              ))}
+          </View>
+          <Field
+            label="Сумма €"
+            value={tAmount}
+            onChangeText={setTAmount}
+            placeholder="0"
+            keyboardType="decimal-pad"
+          />
+          <Button
+            label="Перевести"
+            onPress={doTransfer}
+            disabled={!canTransfer}
+            loading={transfer.isPending}
           />
         </View>
       </Modal>

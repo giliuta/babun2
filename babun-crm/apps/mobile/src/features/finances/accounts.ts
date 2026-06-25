@@ -9,7 +9,11 @@ import {
   softCloseAccount,
   type AccountDraft,
 } from "@babun/shared/db/repositories/accounts";
-import { listAccountBalanceDeltas } from "@babun/shared/db/repositories/finance-transactions";
+import {
+  createTransfer,
+  listAccountBalanceDeltas,
+  type TransferDraft,
+} from "@babun/shared/db/repositories/finance-transactions";
 import type { Account } from "@babun/shared/local/finance/account";
 import { supabase } from "@/lib/supabase";
 import { useTenantId } from "@/lib/tenant";
@@ -51,5 +55,18 @@ export function useSoftCloseAccount() {
   return useMutation({
     mutationFn: (id: string) => softCloseAccount(supabase, id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+}
+
+export function useCreateTransfer() {
+  const tenantId = useTenantId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (draft: TransferDraft) =>
+      createTransfer(supabase, tenantId as string, draft),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
   });
 }
