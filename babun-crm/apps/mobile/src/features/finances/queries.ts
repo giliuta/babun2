@@ -10,7 +10,12 @@ import {
   type TransactionDraft,
 } from "@babun/shared/db/repositories/finance-transactions";
 import { listAccounts } from "@babun/shared/db/repositories/accounts";
-import { listFinanceCategories } from "@babun/shared/db/repositories/finance-categories";
+import {
+  deleteFinanceCategory,
+  insertFinanceCategory,
+  listFinanceCategories,
+  type NewFinanceCategory,
+} from "@babun/shared/db/repositories/finance-categories";
 import { supabase } from "@/lib/supabase";
 import { useTenantId } from "@/lib/tenant";
 
@@ -70,5 +75,23 @@ export function useDeleteTransaction() {
   return useMutation({
     mutationFn: (id: string) => deleteTransaction(supabase, id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+  });
+}
+
+export function useInsertCategory() {
+  const tenantId = useTenantId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (draft: NewFinanceCategory) =>
+      insertFinanceCategory(supabase, tenantId as string, draft),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["finance-categories"] }),
+  });
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteFinanceCategory(supabase, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["finance-categories"] }),
   });
 }

@@ -2,10 +2,15 @@ import { type ComponentType } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import {
+  Building2,
+  CalendarClock,
   ChevronRight,
+  CircleUser,
+  Gift,
   MapPin,
   Scissors,
   Users,
+  Wallet,
   Wrench,
 } from "lucide-react-native";
 import { Screen } from "@/components/ui/Screen";
@@ -83,15 +88,27 @@ export default function CabinetHome() {
         </Group>
 
         <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          Настройки
+        </Text>
+        <Group>
+          <MenuRow icon={Wallet} label="Категории" href="/cabinet/categories" />
+          <Sep />
+          <MenuRow icon={Building2} label="Бизнес" soon />
+          <Sep />
+          <MenuRow icon={CalendarClock} label="Календарь" soon />
+          <Sep />
+          <MenuRow icon={Gift} label="Лояльность" soon />
+        </Group>
+
+        <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
           Аккаунт
         </Text>
         <Group>
-          <View className="px-4 py-3">
-            <Text className="text-xs text-neutral-400">Вы вошли как</Text>
-            <Text className="mt-0.5 text-base text-neutral-900">
-              {session?.user.email ?? "—"}
-            </Text>
-          </View>
+          <MenuRow
+            icon={CircleUser}
+            label={session?.user.email ?? "Аккаунт"}
+            href="/cabinet/account"
+          />
         </Group>
 
         <View className="mx-3 mt-4">
