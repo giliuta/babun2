@@ -1,17 +1,15 @@
 import { useMemo } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import {
   CHANNEL_COLORS,
   CHANNEL_LABELS,
-  seedDemoChats,
   type Chat,
 } from "@babun/shared/local/chats";
 import { Screen } from "@/components/ui/Screen";
-
-// Phase 7 first pass: a conversation list. Chats are localStorage-only on web
-// (no Supabase table) and loadChats() is window-bound, so on mobile we render
-// the shared demo seed read-only until the storage codemod lands an MMKV-backed
-// loadChats + a thread/composer view.
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useChats } from "@/features/chats/store";
 
 function lastPreview(c: Chat): string {
   const m = c.messages[c.messages.length - 1];
@@ -19,7 +17,7 @@ function lastPreview(c: Chat): string {
   if (m.content_type === "image") return "📷 Фото";
   if (m.content_type === "audio") return "🎤 Голосовое";
   if (m.content_type === "location") return "📍 Геолокация";
-  return m.text;
+  return m.direction === "out" ? `Вы: ${m.text}` : m.text;
 }
 
 function shortTime(iso: string): string {
@@ -38,11 +36,14 @@ function shortTime(iso: string): string {
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
-function ChatRow({ c }: { c: Chat }) {
+function ChatRow({ c, onPress }: { c: Chat; onPress: () => void }) {
   const color = CHANNEL_COLORS[c.channel] ?? "#6b7280";
   const initial = (c.contact_name || "?").trim().slice(0, 1).toUpperCase();
   return (
-    <Pressable className="flex-row items-center px-4 py-3 active:bg-neutral-100">
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center px-4 py-3 active:bg-neutral-100"
+    >
       <View
         className="h-12 w-12 items-center justify-center rounded-full"
         style={{ backgroundColor: `${color}22` }}
@@ -84,13 +85,16 @@ function ChatRow({ c }: { c: Chat }) {
   );
 }
 
-export default function ChatsTab() {
-  const chats = useMemo(
+export default function ChatsListScreen() {
+  const router = useRouter();
+  const { data: chats = [], isLoading } = useChats();
+
+  const sorted = useMemo(
     () =>
-      seedDemoChats().sort((a, b) =>
+      [...chats].sort((a, b) =>
         b.last_message_at.localeCompare(a.last_message_at),
       ),
-    [],
+    [chats],
   );
   const unread = useMemo(
     () => chats.reduce((s, c) => s + c.unread_count, 0),
@@ -98,22 +102,29 @@ export default function ChatsTab() {
   );
 
   return (
-    <Screen>
-      <View className="px-4 pb-2 pt-4">
-        <Text className="text-2xl font-bold text-neutral-900">Чаты</Text>
-        <Text className="text-sm text-neutral-500">
-          {chats.length} диалогов{unread > 0 ? ` · ${unread} непрочитанных` : ""}
-        </Text>
-      </View>
-      <FlatList
-        style={{ flex: 1 }}
-        data={chats}
-        keyExtractor={(c) => c.id}
-        renderItem={({ item }) => <ChatRow c={item} />}
-        ItemSeparatorComponent={() => (
-          <View className="ml-[68px] h-px bg-neutral-100" />
-        )}
+    <Screen edges={["top"]}>
+      <ScreenHeader
+        large
+        title="Чаты"
+        subtitle={`${chats.length} диалогов${unread > 0 ? ` · ${unread} непрочитанных` : ""}`}
       />
+      {isLoading ? (
+        <EmptyState state="loading" fill />
+      ) : (
+        <FlatList
+          style={{ flex: 1 }}
+          data={sorted}
+          keyExtractor={(c) => c.id}
+          contentContainerStyle={{ flexGrow: 1 }}
+          renderItem={({ item }) => (
+            <ChatRow c={item} onPress={() => router.push(`/chats/${item.id}`)} />
+          )}
+          ItemSeparatorComponent={() => (
+            <View className="ml-[68px] h-px bg-neutral-100" />
+          )}
+          ListEmptyComponent={<EmptyState fill title="Нет диалогов" />}
+        />
+      )}
     </Screen>
   );
 }
