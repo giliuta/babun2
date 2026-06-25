@@ -16,7 +16,11 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { COLORS, ICON } from "@/components/ui/tokens";
 import { formatYMD, parseYMD } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
-import { useFinanceCategories, useInsertTransaction } from "./queries";
+import {
+  useAccounts,
+  useFinanceCategories,
+  useInsertTransaction,
+} from "./queries";
 
 const PAYMENTS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Наличные" },
@@ -65,12 +69,14 @@ export function OperationSheet({
 }) {
   const { data: categories = [] } = useFinanceCategories();
   const { data: teams = [] } = useTeams();
+  const { data: accounts = [] } = useAccounts();
   const insert = useInsertTransaction();
 
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [teamId, setTeamId] = useState<string | null>(defaultTeamId ?? null);
+  const [accountId, setAccountId] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [date, setDate] = useState(formatYMD(new Date()));
   const [notes, setNotes] = useState("");
@@ -81,6 +87,7 @@ export function OperationSheet({
     setAmount("");
     setCategoryId(null);
     setTeamId(defaultTeamId ?? null);
+    setAccountId(null);
     setPayment("cash");
     setDate(formatYMD(new Date()));
     setNotes("");
@@ -89,6 +96,11 @@ export function OperationSheet({
   const cats = useMemo(
     () => categories.filter((c) => c.type === type),
     [categories, type],
+  );
+  // Accounts for the chosen brigade (or all when none selected).
+  const teamAccounts = useMemo(
+    () => (teamId ? accounts.filter((a) => a.brigade_id === teamId) : accounts),
+    [accounts, teamId],
   );
 
   const amountNum = Number(amount.replace(",", ".")) || 0;
@@ -102,6 +114,7 @@ export function OperationSheet({
         amount: amountNum,
         category_id: categoryId,
         team_id: teamId,
+        account_id: accountId,
         payment_method: payment,
         notes: notes.trim() || null,
         occurred_on: date,
@@ -221,7 +234,36 @@ export function OperationSheet({
                       key={t.id}
                       label={t.name}
                       active={teamId === t.id}
-                      onPress={() => setTeamId(teamId === t.id ? null : t.id)}
+                      onPress={() => {
+                        setTeamId(teamId === t.id ? null : t.id);
+                        setAccountId(null);
+                      }}
+                    />
+                  ))}
+                </ScrollView>
+              </SectionCard>
+            ) : null}
+
+            {/* account */}
+            {teamAccounts.length > 0 ? (
+              <SectionCard title="Счёт">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    gap: 8,
+                  }}
+                >
+                  {teamAccounts.map((a) => (
+                    <Chip
+                      key={a.id}
+                      label={a.name}
+                      active={accountId === a.id}
+                      onPress={() =>
+                        setAccountId(accountId === a.id ? null : a.id)
+                      }
                     />
                   ))}
                 </ScrollView>
