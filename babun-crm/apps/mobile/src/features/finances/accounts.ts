@@ -1,0 +1,55 @@
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  insertAccount,
+  listAccounts,
+  softCloseAccount,
+  type AccountDraft,
+} from "@babun/shared/db/repositories/accounts";
+import { listAccountBalanceDeltas } from "@babun/shared/db/repositories/finance-transactions";
+import type { Account } from "@babun/shared/local/finance/account";
+import { supabase } from "@/lib/supabase";
+import { useTenantId } from "@/lib/tenant";
+
+export type { Account } from "@babun/shared/local/finance/account";
+export type AccountWithBalance = Account & { balance: number };
+
+// Accounts + live balance (opening_balance + signed transaction deltas).
+export function useAccountsWithBalances() {
+  const tenantId = useTenantId();
+  return useQuery({
+    queryKey: ["accounts", tenantId, "balances"],
+    enabled: !!tenantId,
+    queryFn: async (): Promise<AccountWithBalance[]> => {
+      const [accounts, deltas] = await Promise.all([
+        listAccounts(supabase, tenantId as string),
+        listAccountBalanceDeltas(supabase, tenantId as string),
+      ]);
+      return accounts.map((a) => ({
+        ...a,
+        balance: a.opening_balance + (deltas.get(a.id) ?? 0),
+      }));
+    },
+  });
+}
+
+export function useInsertAccount() {
+  const tenantId = useTenantId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (draft: AccountDraft) =>
+      insertAccount(supabase, tenantId as string, draft),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+}
+
+export function useSoftCloseAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => softCloseAccount(supabase, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+}

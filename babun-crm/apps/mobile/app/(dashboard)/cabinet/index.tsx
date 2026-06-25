@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CircleUser,
   Gift,
+  Landmark,
   MapPin,
   Scissors,
   Users,
@@ -92,6 +93,8 @@ export default function CabinetHome() {
         </Text>
         <Group>
           <MenuRow icon={Wallet} label="Категории" href="/cabinet/categories" />
+          <Sep />
+          <MenuRow icon={Landmark} label="Счета" href="/cabinet/accounts" />
           <Sep />
           <MenuRow icon={Building2} label="Бизнес" soon />
           <Sep />

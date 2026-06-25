@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, SectionList, Text, View } from "react-native";
-import { ChevronDown, Plus } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react-native";
 import {
   formatEUR,
   formatEURSigned,
@@ -21,6 +22,7 @@ import {
 } from "@/features/finances/queries";
 import { OperationSheet } from "@/features/finances/OperationSheet";
 import { PeriodModal } from "@/features/finances/PeriodModal";
+import { useAccountsWithBalances } from "@/features/finances/accounts";
 import {
   defaultPeriod,
   periodLabel,
@@ -81,7 +83,13 @@ export default function FinancesTab() {
   const [opOpen, setOpOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
 
+  const router = useRouter();
   const { data: teams = [] } = useTeams();
+  const { data: accounts = [] } = useAccountsWithBalances();
+  const accountsTotal = useMemo(
+    () => accounts.reduce((s, a) => s + a.balance, 0),
+    [accounts],
+  );
   const {
     data: txs = [],
     isLoading,
@@ -178,6 +186,23 @@ export default function FinancesTab() {
             {formatEUR(profit)}
           </Text>
         </View>
+        {accounts.length > 0 ? (
+          <>
+            <View className="my-3 h-px bg-neutral-100" />
+            <Pressable
+              onPress={() => router.push("/cabinet/accounts")}
+              className="flex-row items-center justify-between active:opacity-70"
+            >
+              <Text className="text-sm text-neutral-500">Счета</Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-base font-semibold text-neutral-900 tabular-nums">
+                  {formatEUR(accountsTotal)}
+                </Text>
+                <ChevronRight color={COLORS.chevron} size={16} />
+              </View>
+            </Pressable>
+          </>
+        ) : null}
       </View>
 
       <Text className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
