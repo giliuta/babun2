@@ -9,6 +9,7 @@ import {
   Gift,
   Landmark,
   MapPin,
+  Receipt,
   Scissors,
   Users,
   Wallet,
@@ -95,6 +96,8 @@ export default function CabinetHome() {
           <MenuRow icon={Wallet} label="Категории" href="/cabinet/categories" />
           <Sep />
           <MenuRow icon={Landmark} label="Счета" href="/cabinet/accounts" />
+          <Sep />
+          <MenuRow icon={Receipt} label="Шаблоны" href="/cabinet/templates" />
           <Sep />
           <MenuRow icon={Building2} label="Бизнес" href="/cabinet/business" />
           <Sep />

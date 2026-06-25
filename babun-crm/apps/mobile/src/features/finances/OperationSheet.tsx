@@ -17,6 +17,7 @@ import type {
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { COLORS, ICON } from "@/components/ui/tokens";
+import { formatEUR } from "@babun/shared/common/utils/money";
 import { formatYMD, parseYMD } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
 import {
@@ -26,6 +27,7 @@ import {
   useInsertTransaction,
   useUpdateTransaction,
 } from "./queries";
+import { useFinanceTemplates } from "./templates-queries";
 
 const PAYMENTS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Наличные" },
@@ -77,6 +79,7 @@ export function OperationSheet({
   const { data: categories = [] } = useFinanceCategories();
   const { data: teams = [] } = useTeams();
   const { data: accounts = [] } = useAccounts();
+  const { data: templates = [] } = useFinanceTemplates();
   const insert = useInsertTransaction();
   const update = useUpdateTransaction();
   const del = useDeleteTransaction();
@@ -196,6 +199,35 @@ export function OperationSheet({
           </View>
 
           <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+            {/* template quick-chips */}
+            {!isEdit && templates.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flexGrow: 0, maxHeight: 50 }}
+                contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, gap: 8, alignItems: "center" }}
+              >
+                {templates.map((t) => (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => {
+                      setType(t.kind);
+                      setAmount(String(t.amount));
+                      setCategoryId(t.category_id ?? null);
+                      if (t.brigade_id) setTeamId(t.brigade_id);
+                      if (t.account_id) setAccountId(t.account_id);
+                      if (t.payment_method) setPayment(t.payment_method as PaymentMethod);
+                    }}
+                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 active:opacity-70"
+                  >
+                    <Text className="text-sm font-medium text-neutral-700">
+                      {t.name} · {formatEUR(Number(t.amount))}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
+
             {/* type segmented */}
             <View className="mx-3 mt-3 flex-row rounded-xl bg-neutral-200 p-1">
               {(["expense", "income", "refund"] as const).map((t) => {
