@@ -50,7 +50,12 @@ export function AppointmentSheet({
   visible: boolean;
   onClose: () => void;
   appointment?: Appointment | null;
-  defaults?: { date?: string; time_start?: string };
+  defaults?: {
+    date?: string;
+    time_start?: string;
+    client_id?: string | null;
+    team_id?: string | null;
+  };
 }) {
   const isEdit = !!appointment;
   const { data: clients = [] } = useClients();
@@ -104,12 +109,12 @@ export function AppointmentSheet({
       setDurationTouched(true);
     } else {
       const today = formatYMD(new Date());
-      setClientId(null);
+      setClientId(defaults?.client_id ?? null);
       setDate(defaults?.date ?? today);
       setTimeStart(defaults?.time_start ?? "10:00");
       setTimeEnd(addMinutesHM(defaults?.time_start ?? "10:00", 60));
       setServiceIds([]);
-      setTeamId(null);
+      setTeamId(defaults?.team_id ?? null);
       setMasterId(null);
       setTotal("0");
       setCustomTotal(false);

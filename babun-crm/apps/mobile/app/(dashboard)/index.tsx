@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, SectionList, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
@@ -8,7 +9,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { COLORS, ICON } from "@/components/ui/tokens";
-import { humanDay } from "@/features/appointments/helpers";
+import { humanDay, parseYMD } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
@@ -71,10 +72,38 @@ export default function CalendarTab() {
   const { data: clients = [] } = useClients();
   const { data: teams = [] } = useTeams();
 
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    new?: string;
+    clientId?: string;
+    teamId?: string;
+    date?: string;
+  }>();
+
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
+  const [bookDefaults, setBookDefaults] = useState<
+    { client_id?: string | null; team_id?: string | null } | undefined
+  >(undefined);
+
+  // Deep-link / client-card "Записать" → open the booking sheet pre-aimed.
+  useEffect(() => {
+    if (params.new === "1") {
+      setEditing(null);
+      setBookDefaults({
+        client_id: params.clientId ?? null,
+        team_id: params.teamId ?? null,
+      });
+      setSheetOpen(true);
+      router.setParams({ new: undefined, clientId: undefined, teamId: undefined });
+    } else if (params.date) {
+      setCursor(startOfMonth(parseYMD(params.date)));
+      router.setParams({ date: undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.new, params.clientId, params.date]);
 
   const nameById = useMemo(
     () => new Map(clients.map((c) => [c.id, c.full_name])),
@@ -118,6 +147,7 @@ export default function CalendarTab() {
 
   const openCreate = () => {
     setEditing(null);
+    setBookDefaults(undefined);
     setSheetOpen(true);
   };
   const openEdit = (apt: Appointment) => {
@@ -242,6 +272,7 @@ export default function CalendarTab() {
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         appointment={editing}
+        defaults={bookDefaults}
       />
     </Screen>
   );
