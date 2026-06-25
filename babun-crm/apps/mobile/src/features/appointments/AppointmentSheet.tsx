@@ -10,15 +10,17 @@ import {
   View,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Check, Search, X } from "lucide-react-native";
+import { Check, Minus, Plus, Search, X } from "lucide-react-native";
 import {
   appointmentTotal,
+  globalDiscountAmount,
   totalDuration,
 } from "@babun/shared/local/finance/appointment-calc";
 import {
   createBlankAppointment,
   type Appointment,
   type AppointmentStatus,
+  type Discount,
 } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { Button } from "@/components/ui/Button";
@@ -32,7 +34,24 @@ import {
   useDeleteAppointment,
   useUpdateAppointment,
 } from "@/features/calendar/mutations";
-import { addMinutesHM, buildServices, formatHM, formatYMD, parseHM, parseYMD } from "./helpers";
+import {
+  addMinutesHM,
+  buildServices,
+  formatHM,
+  formatYMD,
+  parseHM,
+  parseYMD,
+  type ServiceOverride,
+} from "./helpers";
+
+const CANCEL_REASONS = [
+  "Клиент перенёс",
+  "Клиент отменил",
+  "Погода",
+  "Не дозвонились",
+  "Нет доступа",
+  "Дубль",
+];
 
 const STATUSES: { value: AppointmentStatus; label: string }[] = [
   { value: "scheduled", label: "Запланировано" },
@@ -83,6 +102,11 @@ export function AppointmentSheet({
   const [customTotal, setCustomTotal] = useState(false);
   const [status, setStatus] = useState<AppointmentStatus>("scheduled");
   const [comment, setComment] = useState("");
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, ServiceOverride>>({});
+  const [discountType, setDiscountType] = useState<"fixed" | "percent" | null>(null);
+  const [discountValue, setDiscountValue] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
 
   const [clientPicker, setClientPicker] = useState(false);
   const [servicePicker, setServicePicker] = useState(false);
@@ -106,6 +130,20 @@ export function AppointmentSheet({
       setCustomTotal(!!appointment.custom_total);
       setStatus(appointment.status);
       setComment(appointment.comment ?? "");
+      setLocationId(appointment.location_id ?? null);
+      setOverrides(
+        Object.fromEntries(
+          (appointment.services ?? []).map((s) => [
+            s.serviceId,
+            { qty: s.quantity, price: s.pricePerUnit },
+          ]),
+        ),
+      );
+      setDiscountType(appointment.global_discount?.type ?? null);
+      setDiscountValue(
+        appointment.global_discount ? String(appointment.global_discount.value) : "",
+      );
+      setCancelReason(appointment.cancel_reason ?? "");
       setDurationTouched(true);
     } else {
       const today = formatYMD(new Date());
@@ -120,18 +158,30 @@ export function AppointmentSheet({
       setCustomTotal(false);
       setStatus("scheduled");
       setComment("");
+      setLocationId(null);
+      setOverrides({});
+      setDiscountType(null);
+      setDiscountValue("");
+      setCancelReason("");
       setDurationTouched(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, appointment?.id]);
 
+  const globalDiscount = useMemo<Discount | null>(
+    () =>
+      discountType && Number(discountValue) > 0
+        ? { type: discountType, value: Number(discountValue) }
+        : null,
+    [discountType, discountValue],
+  );
   const selectedServices = useMemo(
-    () => buildServices(serviceIds, catalog),
-    [serviceIds, catalog],
+    () => buildServices(serviceIds, catalog, overrides),
+    [serviceIds, catalog, overrides],
   );
   const computedTotal = useMemo(
-    () => appointmentTotal(selectedServices),
-    [selectedServices],
+    () => appointmentTotal(selectedServices, globalDiscount),
+    [selectedServices, globalDiscount],
   );
   const computedDuration = useMemo(
     () => totalDuration(selectedServices),
@@ -167,6 +217,10 @@ export function AppointmentSheet({
     total_duration: computedDuration,
     comment: comment.trim(),
     status,
+    location_id: locationId,
+    global_discount: globalDiscount,
+    discount_amount: globalDiscountAmount(selectedServices, globalDiscount),
+    cancel_reason: status === "cancelled" ? cancelReason.trim() || null : null,
   });
 
   const save = async () => {
@@ -250,6 +304,25 @@ export function AppointmentSheet({
               </Pressable>
             </SectionCard>
 
+            {/* object / location */}
+            {client?.locations && client.locations.length > 0 ? (
+              <SectionCard title="Объект">
+                <ChipRow
+                  items={client.locations.map((l) => ({
+                    id: l.id,
+                    label: l.label || "Объект",
+                  }))}
+                  selected={locationId}
+                  onSelect={(id) => setLocationId(id === locationId ? null : id)}
+                />
+                {locationId ? (
+                  <Text className="px-4 pb-3 text-sm text-neutral-500">
+                    {client.locations.find((l) => l.id === locationId)?.address}
+                  </Text>
+                ) : null}
+              </SectionCard>
+            ) : null}
+
             {/* date + time */}
             <SectionCard title="Когда">
               <View className="flex-row items-center justify-between px-4 py-2.5">
@@ -304,17 +377,43 @@ export function AppointmentSheet({
               ) : (
                 serviceIds.map((id) => {
                   const s = catalog.get(id);
+                  const ov = overrides[id] ?? {};
+                  const qty = ov.qty ?? 1;
+                  const price = ov.price ?? (s ? Number(s.price) : 0);
+                  const setOv = (p: ServiceOverride) =>
+                    setOverrides((o) => ({ ...o, [id]: { ...o[id], ...p } }));
                   return (
                     <View
                       key={id}
-                      className="flex-row items-center justify-between px-4 py-2.5"
+                      className="flex-row items-center px-4 py-2.5"
                     >
                       <Text className="flex-1 pr-2 text-base text-neutral-900" numberOfLines={1}>
                         {s?.name ?? "Услуга"}
                       </Text>
-                      <Text className="text-sm text-neutral-500 tabular-nums">
-                        {formatEUR(s ? Number(s.price) : 0)}
+                      <Pressable
+                        onPress={() => setOv({ qty: Math.max(1, qty - 1) })}
+                        className="h-7 w-7 items-center justify-center rounded-full bg-neutral-100 active:opacity-70"
+                      >
+                        <Minus color={COLORS.body} size={13} />
+                      </Pressable>
+                      <Text className="w-6 text-center text-sm text-neutral-700 tabular-nums">
+                        {qty}
                       </Text>
+                      <Pressable
+                        onPress={() => setOv({ qty: qty + 1 })}
+                        className="h-7 w-7 items-center justify-center rounded-full bg-neutral-100 active:opacity-70"
+                      >
+                        <Plus color={COLORS.body} size={13} />
+                      </Pressable>
+                      <TextInput
+                        value={String(price)}
+                        onChangeText={(v) =>
+                          setOv({ price: Number(v.replace(",", ".")) || 0 })
+                        }
+                        keyboardType="decimal-pad"
+                        className="ml-2 w-14 text-right text-sm text-neutral-700 tabular-nums"
+                      />
+                      <Text className="text-sm text-neutral-400">€</Text>
                     </View>
                   );
                 })
@@ -368,6 +467,49 @@ export function AppointmentSheet({
               </View>
             </SectionCard>
 
+            {/* discount */}
+            <SectionCard title="Скидка">
+              <View className="flex-row items-center gap-2 p-3">
+                {(
+                  [
+                    { v: null, label: "Нет" },
+                    { v: "fixed", label: "€" },
+                    { v: "percent", label: "%" },
+                  ] as const
+                ).map((opt) => {
+                  const active = discountType === opt.v;
+                  return (
+                    <Pressable
+                      key={opt.label}
+                      onPress={() => setDiscountType(opt.v)}
+                      className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+                    >
+                      <Text
+                        className={`text-sm font-medium ${active ? "text-white" : "text-neutral-600"}`}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                {discountType ? (
+                  <TextInput
+                    value={discountValue}
+                    onChangeText={setDiscountValue}
+                    keyboardType="decimal-pad"
+                    placeholder={discountType === "percent" ? "10" : "20"}
+                    placeholderTextColor={COLORS.faint}
+                    className="ml-2 flex-1 text-base text-neutral-900"
+                  />
+                ) : null}
+              </View>
+              {globalDiscount ? (
+                <Text className="px-4 pb-3 text-sm font-medium text-success">
+                  −{formatEUR(globalDiscountAmount(selectedServices, globalDiscount))}
+                </Text>
+              ) : null}
+            </SectionCard>
+
             {/* status */}
             <SectionCard title="Статус">
               <View className="flex-row flex-wrap gap-2 p-3">
@@ -389,6 +531,37 @@ export function AppointmentSheet({
                 })}
               </View>
             </SectionCard>
+
+            {/* cancel reason */}
+            {status === "cancelled" ? (
+              <SectionCard title="Причина отмены">
+                <View className="flex-row flex-wrap gap-2 p-3">
+                  {CANCEL_REASONS.map((r) => {
+                    const active = cancelReason === r;
+                    return (
+                      <Pressable
+                        key={r}
+                        onPress={() => setCancelReason(active ? "" : r)}
+                        className={`rounded-full px-3 py-1.5 ${active ? "bg-danger" : "bg-neutral-100"}`}
+                      >
+                        <Text
+                          className={`text-sm font-medium ${active ? "text-white" : "text-neutral-600"}`}
+                        >
+                          {r}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  value={cancelReason}
+                  onChangeText={setCancelReason}
+                  placeholder="Своя причина…"
+                  placeholderTextColor={COLORS.faint}
+                  className="px-4 pb-3 text-base text-neutral-900"
+                />
+              </SectionCard>
+            ) : null}
 
             {/* comment */}
             <SectionCard title="Комментарий">

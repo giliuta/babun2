@@ -33,22 +33,32 @@ export function addMinutesHM(hm: string, minutes: number): string {
   return `${pad2(Math.floor(norm / 60))}:${pad2(norm % 60)}`;
 }
 
-// Build the appointment's services[] from selected catalog ids (qty 1 each).
+export interface ServiceOverride {
+  qty?: number;
+  price?: number;
+}
+
+// Build the appointment's services[] from selected catalog ids, applying
+// per-service quantity / price overrides when present.
 export function buildServices(
   serviceIds: string[],
   catalog: Map<string, Service>,
+  overrides?: Record<string, ServiceOverride>,
 ): AppointmentService[] {
   return serviceIds.map((id) => {
     const c = catalog.get(id);
-    const price = c ? Number(c.price) : 0;
-    const duration = c ? c.duration_minutes : 60;
+    const catalogPrice = c ? Number(c.price) : 0;
+    const baseDuration = c ? c.duration_minutes : 60;
+    const ov = overrides?.[id];
+    const qty = ov?.qty != null && ov.qty > 0 ? ov.qty : 1;
+    const price = ov?.price != null ? ov.price : catalogPrice;
     return {
       serviceId: id,
-      quantity: 1,
+      quantity: qty,
       pricePerUnit: price,
-      originalPrice: price,
-      totalPrice: price,
-      duration,
+      originalPrice: catalogPrice,
+      totalPrice: price * qty,
+      duration: baseDuration * qty,
     };
   });
 }
