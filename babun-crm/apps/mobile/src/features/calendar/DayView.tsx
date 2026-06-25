@@ -3,9 +3,9 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { pad2 } from "@/features/appointments/helpers";
 
-const START_HOUR = 7;
-const END_HOUR = 23;
 const HOUR_H = 64;
+const DEFAULT_START = 7;
+const DEFAULT_END = 23;
 
 const STATUS_COLOR: Record<Appointment["status"], string> = {
   scheduled: "#4338ca",
@@ -25,27 +25,31 @@ export function DayView({
   isToday,
   onEdit,
   onCreateAt,
+  startHour = DEFAULT_START,
+  endHour = DEFAULT_END,
 }: {
   appointments: Appointment[];
   clientName: (a: Appointment) => string;
   isToday: boolean;
   onEdit: (a: Appointment) => void;
   onCreateAt: (timeStart: string) => void;
+  startHour?: number;
+  endHour?: number;
 }) {
   const hours = useMemo(() => {
     const out: number[] = [];
-    for (let h = START_HOUR; h <= END_HOUR; h++) out.push(h);
+    for (let h = startHour; h <= endHour; h++) out.push(h);
     return out;
-  }, []);
-  const totalH = (END_HOUR - START_HOUR) * HOUR_H;
+  }, [startHour, endHour]);
+  const totalH = (endHour - startHour) * HOUR_H;
 
   const nowTop = useMemo(() => {
     if (!isToday) return null;
     const now = new Date();
-    const min = now.getHours() * 60 + now.getMinutes() - START_HOUR * 60;
-    if (min < 0 || min > (END_HOUR - START_HOUR) * 60) return null;
+    const min = now.getHours() * 60 + now.getMinutes() - startHour * 60;
+    if (min < 0 || min > (endHour - startHour) * 60) return null;
     return (min / 60) * HOUR_H;
-  }, [isToday]);
+  }, [isToday, startHour, endHour]);
 
   return (
     <ScrollView
@@ -57,7 +61,7 @@ export function DayView({
         {hours.map((h) => (
           <View
             key={h}
-            style={{ position: "absolute", top: (h - START_HOUR) * HOUR_H, left: 0, right: 0 }}
+            style={{ position: "absolute", top: (h - startHour) * HOUR_H, left: 0, right: 0 }}
           >
             <Text
               style={{ position: "absolute", left: -52, top: -7, width: 46, textAlign: "right" }}
@@ -76,7 +80,7 @@ export function DayView({
             onPress={() => onCreateAt(`${pad2(h)}:00`)}
             style={{
               position: "absolute",
-              top: (h - START_HOUR) * HOUR_H,
+              top: (h - startHour) * HOUR_H,
               left: 0,
               right: 0,
               height: HOUR_H,
@@ -86,7 +90,7 @@ export function DayView({
 
         {/* appointment blocks */}
         {appointments.map((a) => {
-          const startMin = toMin(a.time_start) - START_HOUR * 60;
+          const startMin = toMin(a.time_start) - startHour * 60;
           const dur = Math.max(30, toMin(a.time_end) - toMin(a.time_start));
           const top = (startMin / 60) * HOUR_H;
           const height = Math.max(26, (dur / 60) * HOUR_H - 2);

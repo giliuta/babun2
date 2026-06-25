@@ -11,6 +11,8 @@
 // promoted. The client-card readout + AppointmentSheet auto-apply
 // nudge read the same shape regardless of source.
 
+import { getStorage } from "../storage/provider";
+
 export interface LoyaltyTier {
   /** Unique id within the tier list. */
   id: string;
@@ -46,38 +48,30 @@ export const STARTER_LOYALTY_TIERS: LoyaltyTier[] = [
 ];
 
 export function loadLoyalty(): LoyaltySettings {
-  if (typeof window === "undefined") return DEFAULT_LOYALTY;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_LOYALTY;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return DEFAULT_LOYALTY;
-    return {
-      enabled: Boolean(parsed.enabled),
-      tiers: Array.isArray(parsed.tiers)
-        ? parsed.tiers
-            .filter(
-              (t: unknown): t is LoyaltyTier =>
-                typeof t === "object" &&
-                t !== null &&
-                typeof (t as LoyaltyTier).threshold === "number" &&
-                typeof (t as LoyaltyTier).percent === "number",
-            )
-            .sort((a: LoyaltyTier, b: LoyaltyTier) => a.threshold - b.threshold)
-        : [],
-    };
-  } catch {
-    return DEFAULT_LOYALTY;
-  }
+  const parsed = getStorage().get<{ enabled?: unknown; tiers?: unknown }>(
+    STORAGE_KEY,
+  );
+  if (typeof parsed !== "object" || parsed === null) return DEFAULT_LOYALTY;
+  return {
+    enabled: Boolean(parsed.enabled),
+    tiers: Array.isArray(parsed.tiers)
+      ? parsed.tiers
+          .filter(
+            (t: unknown): t is LoyaltyTier =>
+              typeof t === "object" &&
+              t !== null &&
+              typeof (t as LoyaltyTier).threshold === "number" &&
+              typeof (t as LoyaltyTier).percent === "number",
+          )
+          .sort((a: LoyaltyTier, b: LoyaltyTier) => a.threshold - b.threshold)
+      : [],
+  };
 }
 
 export function saveLoyalty(settings: LoyaltySettings): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  getStorage().set(STORAGE_KEY, settings);
+  if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("babun:loyalty-changed"));
-  } catch {
-    // ignore
   }
 }
 

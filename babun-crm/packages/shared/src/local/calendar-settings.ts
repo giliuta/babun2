@@ -1,5 +1,7 @@
-// Calendar display settings. Persisted in localStorage.
-// Drives auto-scroll start position and grid range on the calendar.
+// Calendar display settings. Persisted via the storage seam (WebKVStorage
+// on web, MMKV on RN). Drives auto-scroll start position and grid range.
+
+import { getStorage } from "../storage/provider";
 
 export interface CalendarSettings {
   /** Visible-grid start hour. Determines what the user actually sees
@@ -80,19 +82,10 @@ export const TIMEZONE_OPTIONS: string[] = [
 ];
 
 export function loadCalendarSettings(): CalendarSettings {
-  if (typeof window === "undefined") return DEFAULT_CALENDAR_SETTINGS;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_CALENDAR_SETTINGS;
-    const parsed = JSON.parse(raw) as Partial<CalendarSettings>;
-    const merged: CalendarSettings = {
-      ...DEFAULT_CALENDAR_SETTINGS,
-      ...parsed,
-    };
-    return sanitizeCalendarSettings(merged);
-  } catch {
-    return DEFAULT_CALENDAR_SETTINGS;
-  }
+  // Storage seam (STORY-035): WebKVStorage on web, MMKV on RN.
+  const parsed = getStorage().get<Partial<CalendarSettings>>(STORAGE_KEY);
+  if (!parsed) return DEFAULT_CALENDAR_SETTINGS;
+  return sanitizeCalendarSettings({ ...DEFAULT_CALENDAR_SETTINGS, ...parsed });
 }
 
 // Repair settings loaded from older saves. v448 — flipped clamp
@@ -137,12 +130,7 @@ function sanitizeCalendarSettings(s: CalendarSettings): CalendarSettings {
 }
 
 export function saveCalendarSettings(settings: CalendarSettings): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    // ignore quota errors
-  }
+  getStorage().set(STORAGE_KEY, settings);
 }
 
 export function validateCalendarSettings(s: CalendarSettings): string | null {

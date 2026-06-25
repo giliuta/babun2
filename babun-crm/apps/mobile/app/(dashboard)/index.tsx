@@ -15,6 +15,7 @@ import { DayView } from "@/features/calendar/DayView";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
 import { useTeams } from "@/features/reference/queries";
+import { useCalendarSettings } from "@/features/settings/local-settings";
 
 type ViewMode = "agenda" | "day";
 
@@ -128,6 +129,7 @@ export default function CalendarTab() {
   const { data: appts = [], isLoading, error } = useAppointments();
   const { data: clients = [] } = useClients();
   const { data: teams = [] } = useTeams();
+  const { data: calSettings } = useCalendarSettings();
 
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -177,17 +179,19 @@ export default function CalendarTab() {
   const clientName = (a: Appointment) =>
     a.client_id ? nameById.get(a.client_id) ?? "" : "";
 
+  const hideCancelled = !!calSettings?.hideCancelled;
   const byTeam = (a: Appointment) =>
-    teamFilter ? a.team_id === teamFilter : true;
+    (teamFilter ? a.team_id === teamFilter : true) &&
+    (!hideCancelled || a.status !== "cancelled");
 
   const monthAppts = useMemo(
     () => appts.filter((a) => sameMonth(a.date, cursor) && byTeam(a)),
-    [appts, cursor, teamFilter],
+    [appts, cursor, teamFilter, hideCancelled],
   );
   const dayYmd = formatYMD(day);
   const dayAppts = useMemo(
     () => appts.filter((a) => a.date === dayYmd && byTeam(a)),
-    [appts, dayYmd, teamFilter],
+    [appts, dayYmd, teamFilter, hideCancelled],
   );
 
   const sections = useMemo(() => {
@@ -358,6 +362,8 @@ export default function CalendarTab() {
             onCreateAt={(timeStart) =>
               openCreate({ date: dayYmd, time_start: timeStart })
             }
+            startHour={calSettings?.workStartHour}
+            endHour={calSettings?.workEndHour}
           />
         </View>
       )}
