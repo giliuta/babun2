@@ -9,18 +9,31 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { COLORS, ICON } from "@/components/ui/tokens";
-import { humanDay, parseYMD } from "@/features/appointments/helpers";
+import { formatYMD, humanDay, parseYMD } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
+import { DayView } from "@/features/calendar/DayView";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
 import { useTeams } from "@/features/reference/queries";
 
+type ViewMode = "agenda" | "day";
+
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 function sameMonth(ymd: string, cursor: Date) {
   const [y, m] = ymd.split("-").map(Number);
   return y === cursor.getFullYear() && m - 1 === cursor.getMonth();
+}
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function AppointmentRow({
@@ -41,9 +54,7 @@ function AppointmentRow({
         <Text className="text-sm font-semibold text-neutral-900 tabular-nums">
           {apt.time_start}
         </Text>
-        <Text className="text-xs text-neutral-400 tabular-nums">
-          {apt.time_end}
-        </Text>
+        <Text className="text-xs text-neutral-400 tabular-nums">{apt.time_end}</Text>
       </View>
       <View className="ml-2 flex-1 border-l border-neutral-100 pl-3">
         <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
@@ -67,6 +78,52 @@ function AppointmentRow({
   );
 }
 
+function NavRow({
+  label,
+  onPrev,
+  onNext,
+  showToday,
+  onToday,
+}: {
+  label: string;
+  onPrev: () => void;
+  onNext: () => void;
+  showToday: boolean;
+  onToday: () => void;
+}) {
+  return (
+    <View className="flex-row items-center justify-between px-3 pb-1 pt-1">
+      <Pressable
+        onPress={onPrev}
+        hitSlop={8}
+        className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+      >
+        <ChevronLeft color={COLORS.body} size={ICON.md} />
+      </Pressable>
+      <View className="flex-row items-center gap-2">
+        <Text className="text-base font-semibold capitalize text-neutral-900">
+          {label}
+        </Text>
+        {showToday ? (
+          <Pressable
+            onPress={onToday}
+            className="rounded-full bg-neutral-100 px-2.5 py-1 active:opacity-80"
+          >
+            <Text className="text-xs font-medium text-brand">Сегодня</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      <Pressable
+        onPress={onNext}
+        hitSlop={8}
+        className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+      >
+        <ChevronRight color={COLORS.body} size={ICON.md} />
+      </Pressable>
+    </View>
+  );
+}
+
 export default function CalendarTab() {
   const { data: appts = [], isLoading, error } = useAppointments();
   const { data: clients = [] } = useClients();
@@ -80,15 +137,21 @@ export default function CalendarTab() {
     date?: string;
   }>();
 
+  const [mode, setMode] = useState<ViewMode>("agenda");
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
+  const [day, setDay] = useState(() => startOfDay(new Date()));
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [bookDefaults, setBookDefaults] = useState<
-    { client_id?: string | null; team_id?: string | null } | undefined
+    {
+      date?: string;
+      time_start?: string;
+      client_id?: string | null;
+      team_id?: string | null;
+    } | undefined
   >(undefined);
 
-  // Deep-link / client-card "Записать" → open the booking sheet pre-aimed.
   useEffect(() => {
     if (params.new === "1") {
       setEditing(null);
@@ -99,7 +162,9 @@ export default function CalendarTab() {
       setSheetOpen(true);
       router.setParams({ new: undefined, clientId: undefined, teamId: undefined });
     } else if (params.date) {
-      setCursor(startOfMonth(parseYMD(params.date)));
+      const d = parseYMD(params.date);
+      setCursor(startOfMonth(d));
+      setDay(startOfDay(d));
       router.setParams({ date: undefined });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,20 +174,25 @@ export default function CalendarTab() {
     () => new Map(clients.map((c) => [c.id, c.full_name])),
     [clients],
   );
+  const clientName = (a: Appointment) =>
+    a.client_id ? nameById.get(a.client_id) ?? "" : "";
 
-  const filtered = useMemo(
-    () =>
-      appts.filter(
-        (a) =>
-          sameMonth(a.date, cursor) &&
-          (teamFilter ? a.team_id === teamFilter : true),
-      ),
+  const byTeam = (a: Appointment) =>
+    teamFilter ? a.team_id === teamFilter : true;
+
+  const monthAppts = useMemo(
+    () => appts.filter((a) => sameMonth(a.date, cursor) && byTeam(a)),
     [appts, cursor, teamFilter],
+  );
+  const dayYmd = formatYMD(day);
+  const dayAppts = useMemo(
+    () => appts.filter((a) => a.date === dayYmd && byTeam(a)),
+    [appts, dayYmd, teamFilter],
   );
 
   const sections = useMemo(() => {
     const byDate = new Map<string, Appointment[]>();
-    for (const a of filtered) {
+    for (const a of monthAppts) {
       const arr = byDate.get(a.date) ?? [];
       arr.push(a);
       byDate.set(a.date, arr);
@@ -133,104 +203,117 @@ export default function CalendarTab() {
         title: d,
         data: data.sort((x, y) => x.time_start.localeCompare(y.time_start)),
       }));
-  }, [filtered]);
+  }, [monthAppts]);
 
+  const today = new Date();
   const monthLabel = cursor.toLocaleDateString("ru-RU", {
     month: "long",
     year: "numeric",
   });
-  const shiftMonth = (delta: number) =>
-    setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
-  const isCurrentMonth =
-    cursor.getFullYear() === new Date().getFullYear() &&
-    cursor.getMonth() === new Date().getMonth();
+  const dayLabel = day.toLocaleDateString("ru-RU", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+  });
 
-  const openCreate = () => {
+  const openCreate = (defaults?: typeof bookDefaults) => {
     setEditing(null);
-    setBookDefaults(undefined);
+    setBookDefaults(defaults);
     setSheetOpen(true);
   };
   const openEdit = (apt: Appointment) => {
     setEditing(apt);
+    setBookDefaults(undefined);
     setSheetOpen(true);
   };
 
-  const header = (
-    <View>
-      {/* month nav */}
-      <View className="flex-row items-center justify-between px-3 pb-1 pt-1">
+  const toggle = (
+    <View className="flex-row rounded-lg bg-neutral-200 p-0.5">
+      {(["agenda", "day"] as const).map((m) => (
         <Pressable
-          onPress={() => shiftMonth(-1)}
-          hitSlop={8}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+          key={m}
+          onPress={() => setMode(m)}
+          className={`rounded-md px-3 py-1 ${mode === m ? "bg-white" : ""}`}
         >
-          <ChevronLeft color={COLORS.body} size={ICON.md} />
-        </Pressable>
-        <View className="flex-row items-center gap-2">
-          <Text className="text-base font-semibold capitalize text-neutral-900">
-            {monthLabel}
+          <Text
+            className={`text-xs font-semibold ${mode === m ? "text-neutral-900" : "text-neutral-500"}`}
+          >
+            {m === "agenda" ? "Список" : "День"}
           </Text>
-          {!isCurrentMonth ? (
-            <Pressable
-              onPress={() => setCursor(startOfMonth(new Date()))}
-              className="rounded-full bg-neutral-100 px-2.5 py-1 active:opacity-80"
-            >
-              <Text className="text-xs font-medium text-brand">Сегодня</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable
-          onPress={() => shiftMonth(1)}
-          hitSlop={8}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
-        >
-          <ChevronRight color={COLORS.body} size={ICON.md} />
         </Pressable>
-      </View>
-
-      {/* team filter */}
-      {teams.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
-        >
-          {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
-            const active = teamFilter === t.id;
-            return (
-              <Pressable
-                key={t.id ?? "all"}
-                onPress={() => setTeamFilter(t.id)}
-                className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
-              >
-                <Text
-                  className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
-                >
-                  {t.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
+      ))}
     </View>
   );
 
+  const teamChips =
+    teams.length > 0 ? (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, maxHeight: 52 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
+          const active = teamFilter === t.id;
+          return (
+            <Pressable
+              key={t.id ?? "all"}
+              onPress={() => setTeamFilter(t.id)}
+              className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+            >
+              <Text
+                className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+              >
+                {t.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    ) : null;
+
+  const count = mode === "agenda" ? monthAppts.length : dayAppts.length;
+
   return (
     <Screen>
-      <ScreenHeader large title="Календарь" subtitle={`${filtered.length} записей`} />
+      <ScreenHeader
+        large
+        title="Календарь"
+        subtitle={`${count} записей`}
+        right={toggle}
+      />
 
       {isLoading ? (
         <EmptyState state="loading" fill />
       ) : error ? (
         <EmptyState state="error" fill subtitle={(error as Error).message} />
-      ) : (
+      ) : mode === "agenda" ? (
         <SectionList
           style={{ flex: 1 }}
           sections={sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
-          ListHeaderComponent={header}
+          ListHeaderComponent={
+            <View>
+              <NavRow
+                label={monthLabel}
+                onPrev={() =>
+                  setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))
+                }
+                onNext={() =>
+                  setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))
+                }
+                showToday={!sameMonth(formatYMD(today), cursor)}
+                onToday={() => setCursor(startOfMonth(new Date()))}
+              />
+              {teamChips}
+            </View>
+          }
           contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
           renderSectionHeader={({ section }) => (
             <Text className="bg-neutral-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
@@ -240,7 +323,7 @@ export default function CalendarTab() {
           renderItem={({ item }) => (
             <AppointmentRow
               apt={item}
-              clientName={item.client_id ? nameById.get(item.client_id) ?? "" : ""}
+              clientName={clientName(item)}
               onPress={() => openEdit(item)}
             />
           )}
@@ -249,14 +332,38 @@ export default function CalendarTab() {
             <EmptyState
               title="Нет записей в этом месяце"
               subtitle="Нажмите + чтобы создать"
-              action={{ label: "Новая запись", onPress: openCreate }}
+              action={{ label: "Новая запись", onPress: () => openCreate() }}
             />
           }
         />
+      ) : (
+        <View className="flex-1">
+          <NavRow
+            label={dayLabel}
+            onPrev={() =>
+              setDay((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1))
+            }
+            onNext={() =>
+              setDay((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1))
+            }
+            showToday={!isSameDay(day, today)}
+            onToday={() => setDay(startOfDay(new Date()))}
+          />
+          {teamChips}
+          <DayView
+            appointments={dayAppts}
+            clientName={clientName}
+            isToday={isSameDay(day, today)}
+            onEdit={openEdit}
+            onCreateAt={(timeStart) =>
+              openCreate({ date: dayYmd, time_start: timeStart })
+            }
+          />
+        </View>
       )}
 
       <Pressable
-        onPress={openCreate}
+        onPress={() => openCreate(mode === "day" ? { date: dayYmd } : undefined)}
         className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
         style={{
           shadowColor: COLORS.brand,
