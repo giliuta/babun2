@@ -1,35 +1,17 @@
-import { useMemo } from "react";
-import { ActivityIndicator, SectionList, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import { Pressable, SectionList, Text, View } from "react-native";
+import { Plus } from "lucide-react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { StatusBadge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { COLORS } from "@/components/ui/tokens";
+import { humanDay } from "@/features/appointments/helpers";
+import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
-
-// Phase 4 first pass: an agenda view (appointments grouped by day). The full
-// drag/pinch/swipe day-grid calendar is a later iteration.
-
-const STATUS: Record<
-  Appointment["status"],
-  { label: string; cls: string }
-> = {
-  scheduled: { label: "Запланировано", cls: "bg-brand/10 text-brand" },
-  in_progress: { label: "В работе", cls: "bg-warning/15 text-amber-700" },
-  completed: { label: "Выполнено", cls: "bg-success/15 text-success" },
-  cancelled: { label: "Отменено", cls: "bg-neutral-100 text-neutral-500" },
-};
-
-function formatDayHeader(ymd: string): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
-  if (Number.isNaN(date.getTime())) return ymd;
-  return date.toLocaleDateString("ru-RU", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-  });
-}
 
 function AppointmentRow({
   apt,
@@ -40,9 +22,11 @@ function AppointmentRow({
   clientName: string;
   onPress: () => void;
 }) {
-  const s = STATUS[apt.status];
   return (
-    <View className="flex-row items-center bg-white px-4 py-3">
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center bg-white px-4 py-3 active:bg-neutral-50"
+    >
       <View className="w-14">
         <Text className="text-sm font-semibold text-neutral-900 tabular-nums">
           {apt.time_start}
@@ -61,9 +45,7 @@ function AppointmentRow({
           </Text>
         ) : null}
         <View className="mt-1 flex-row items-center gap-2">
-          <Text className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.cls}`}>
-            {s.label}
-          </Text>
+          <StatusBadge status={apt.status} />
           {apt.total_amount ? (
             <Text className="text-xs font-semibold text-neutral-700 tabular-nums">
               {formatEUR(apt.total_amount)}
@@ -71,14 +53,16 @@ function AppointmentRow({
           ) : null}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 export default function CalendarTab() {
-  const router = useRouter();
   const { data: appts = [], isLoading, error } = useAppointments();
   const { data: clients = [] } = useClients();
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<Appointment | null>(null);
 
   const nameById = useMemo(
     () => new Map(clients.map((c) => [c.id, c.full_name])),
@@ -94,59 +78,79 @@ export default function CalendarTab() {
     }
     return [...byDate.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, data]) => ({
-        title: date,
+      .map(([d, data]) => ({
+        title: d,
         data: data.sort((x, y) => x.time_start.localeCompare(y.time_start)),
       }));
   }, [appts]);
 
+  const openCreate = () => {
+    setEditing(null);
+    setSheetOpen(true);
+  };
+  const openEdit = (apt: Appointment) => {
+    setEditing(apt);
+    setSheetOpen(true);
+  };
+
   return (
     <Screen>
-      <View className="px-4 pb-2 pt-4">
-        <Text className="text-2xl font-bold text-neutral-900">Календарь</Text>
-        <Text className="text-sm text-neutral-500">{appts.length} записей</Text>
-      </View>
+      <ScreenHeader large title="Календарь" subtitle={`${appts.length} записей`} />
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <EmptyState state="loading" fill />
       ) : error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-sm text-danger">
-            {(error as Error).message}
-          </Text>
-        </View>
+        <EmptyState state="error" fill subtitle={(error as Error).message} />
       ) : (
         <SectionList
           style={{ flex: 1 }}
           sections={sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
+          contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
           renderSectionHeader={({ section }) => (
             <Text className="bg-neutral-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              {formatDayHeader(section.title)}
+              {humanDay(section.title)}
             </Text>
           )}
           renderItem={({ item }) => (
             <AppointmentRow
               apt={item}
               clientName={item.client_id ? nameById.get(item.client_id) ?? "" : ""}
-              onPress={() =>
-                item.client_id && router.push(`/clients/${item.client_id}`)
-              }
+              onPress={() => openEdit(item)}
             />
           )}
-          ItemSeparatorComponent={() => (
-            <View className="h-px bg-neutral-100" />
-          )}
+          ItemSeparatorComponent={() => <View className="h-px bg-neutral-100" />}
           ListEmptyComponent={
-            <View className="items-center pt-20">
-              <Text className="text-sm text-neutral-400">Записей пока нет</Text>
-            </View>
+            <EmptyState
+              fill
+              title="Записей пока нет"
+              subtitle="Нажмите + чтобы создать первую"
+              action={{ label: "Новая запись", onPress: openCreate }}
+            />
           }
         />
       )}
+
+      {/* FAB */}
+      <Pressable
+        onPress={openCreate}
+        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
+        style={{
+          shadowColor: COLORS.brand,
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+        }}
+      >
+        <Plus color="#fff" size={28} />
+      </Pressable>
+
+      <AppointmentSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        appointment={editing}
+      />
     </Screen>
   );
 }

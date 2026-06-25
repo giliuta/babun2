@@ -38,6 +38,13 @@
         {
           "faceIDPermission": "Babun использует Face ID для безопасного хранения входа."
         }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Babun использует фото для снимков объектов и выполненных работ клиента."
+        }
       ]
     ],
     "experiments": {
