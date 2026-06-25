@@ -57,6 +57,35 @@ export function useCreateClient() {
   });
 }
 
+// Bulk import (CSV). Creates clients sequentially via the shared repo, then
+// invalidates the list once. Reports progress through onProgress.
+export function useImportClients() {
+  const tenantId = useTenantId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      drafts,
+      onProgress,
+    }: {
+      drafts: Partial<Client>[];
+      onProgress?: (done: number, total: number) => void;
+    }) => {
+      let created = 0;
+      for (const d of drafts) {
+        await createClientRepo(
+          supabase,
+          createBlankClient(d),
+          tenantId as string,
+        );
+        created++;
+        onProgress?.(created, drafts.length);
+      }
+      return created;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
+  });
+}
+
 export function useClientTags() {
   const tenantId = useTenantId();
   return useQuery({

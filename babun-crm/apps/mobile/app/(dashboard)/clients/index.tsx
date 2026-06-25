@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Filter, Plus, Search } from "lucide-react-native";
+import { Filter, Plus, Search, Upload } from "lucide-react-native";
 import type { Client } from "@babun/shared/local/clients";
 import { matchesClient } from "@babun/shared/local/selectors/client-search";
 import { Screen } from "@/components/ui/Screen";
@@ -22,6 +22,7 @@ import {
   type ClientsFilter,
 } from "@/features/clients/filter";
 import { ClientsFilterSheet } from "@/features/clients/ClientsFilterSheet";
+import { ImportSheet } from "@/features/clients/ImportSheet";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -70,6 +71,7 @@ export default function ClientsListScreen() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ClientsFilter>(EMPTY_FILTER);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const clients = data ?? [];
   const cities = useMemo(() => cityOptions(clients), [clients]);
@@ -97,12 +99,20 @@ export default function ClientsListScreen() {
               : `${clients.length} всего`}
           </Text>
         </View>
-        <Pressable
-          onPress={() => router.push("/clients/new")}
-          className="h-10 w-10 items-center justify-center rounded-full bg-brand active:opacity-80"
-        >
-          <Plus color="#fff" size={22} />
-        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={() => setImportOpen(true)}
+            className="h-10 w-10 items-center justify-center rounded-full bg-neutral-100 active:opacity-80"
+          >
+            <Upload color="#404040" size={20} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/clients/new")}
+            className="h-10 w-10 items-center justify-center rounded-full bg-brand active:opacity-80"
+          >
+            <Plus color="#fff" size={22} />
+          </Pressable>
+        </View>
       </View>
 
       <View className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl bg-neutral-100 px-3">
@@ -189,6 +199,7 @@ export default function ClientsListScreen() {
         tags={tags}
         cities={cities}
       />
+      <ImportSheet visible={importOpen} onClose={() => setImportOpen(false)} />
     </Screen>
   );
 }
