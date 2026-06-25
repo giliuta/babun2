@@ -1,10 +1,18 @@
 import { Text, View } from "react-native";
 import { RefListScreen } from "@/features/reference/RefListScreen";
-import { useCreateTeam, useTeams, type Team } from "@/features/reference/queries";
+import {
+  useCreateTeam,
+  useDeleteTeam,
+  useTeams,
+  useUpdateTeam,
+  type Team,
+} from "@/features/reference/queries";
 
 export default function TeamsScreen() {
   const { data: teams = [], isLoading } = useTeams();
   const create = useCreateTeam();
+  const update = useUpdateTeam();
+  const del = useDeleteTeam();
   return (
     <RefListScreen<Team>
       title="Команды"
@@ -18,6 +26,16 @@ export default function TeamsScreen() {
       onCreate={async (v) => {
         await create.mutateAsync({ name: v.name, region: v.region });
       }}
+      onUpdate={async (id, v) => {
+        await update.mutateAsync({
+          id,
+          patch: { name: v.name, region: v.region || null },
+        });
+      }}
+      onDelete={async (id) => {
+        await del.mutateAsync(id);
+      }}
+      itemToValues={(t) => ({ name: t.name, region: t.region ?? "" })}
       renderItem={(t) => (
         <View className="px-4 py-3">
           <Text className="text-base font-semibold text-neutral-900">{t.name}</Text>

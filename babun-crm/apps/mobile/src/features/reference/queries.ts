@@ -134,3 +134,54 @@ export function useCreateCity() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["cities"] }),
   });
 }
+
+// ─── Update / delete (generic) ───────────────────────────────────────
+// Delete is a soft-delete (is_active=false): keeps FK integrity for
+// appointments that reference team_id / master_id, and the list filter
+// (is_active=true) hides them.
+type RefTable = "teams" | "masters" | "cities" | "services";
+
+function useRefUpdate(table: RefTable) {
+  const tenantId = useTenantId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Record<string, unknown>;
+    }) => {
+      const { error } = await (supabase.from(table) as any)
+        .update(patch)
+        .eq("tenant_id", tenantId as string)
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [table] }),
+  });
+}
+
+function useRefDelete(table: RefTable) {
+  const tenantId = useTenantId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from(table) as any)
+        .update({ is_active: false })
+        .eq("tenant_id", tenantId as string)
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [table] }),
+  });
+}
+
+export const useUpdateTeam = () => useRefUpdate("teams");
+export const useDeleteTeam = () => useRefDelete("teams");
+export const useUpdateMaster = () => useRefUpdate("masters");
+export const useDeleteMaster = () => useRefDelete("masters");
+export const useUpdateCity = () => useRefUpdate("cities");
+export const useDeleteCity = () => useRefDelete("cities");
+export const useUpdateService = () => useRefUpdate("services");
+export const useDeleteService = () => useRefDelete("services");
