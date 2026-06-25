@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, SectionList, Text, View } from "react-native";
+import { Pressable, ScrollView, SectionList, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react-native";
 import {
@@ -17,10 +17,11 @@ import { COLORS } from "@/components/ui/tokens";
 import { humanDay } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
 import {
-  useDeleteTransaction,
+  useFinanceCategories,
   useTransactions,
 } from "@/features/finances/queries";
 import { OperationSheet } from "@/features/finances/OperationSheet";
+import { ProfitBreakdown } from "@/features/finances/ProfitBreakdown";
 import { PeriodModal } from "@/features/finances/PeriodModal";
 import { useAccountsWithBalances } from "@/features/finances/accounts";
 import {
@@ -82,6 +83,8 @@ export default function FinancesTab() {
   const [scope, setScope] = useState<string | null>(null);
   const [opOpen, setOpOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<FinanceTransaction | null>(null);
+  const [finView, setFinView] = useState<"feed" | "breakdown">("feed");
+  const { data: categories = [] } = useFinanceCategories();
   const [periodOpen, setPeriodOpen] = useState(false);
 
   const router = useRouter();
@@ -124,7 +127,7 @@ export default function FinancesTab() {
   }, [txs]);
 
 
-  const header = (
+  const controls = (
     <View>
       {/* period selector */}
       <Pressable
@@ -142,7 +145,8 @@ export default function FinancesTab() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+          style={{ flexGrow: 0, maxHeight: 48 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: "center" }}
         >
           {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
             const active = scope === t.id;
@@ -162,7 +166,11 @@ export default function FinancesTab() {
           })}
         </ScrollView>
       ) : null}
+    </View>
+  );
 
+  const feedHeader = (
+    <View>
       {/* overview */}
       <View className="mx-4 mb-2 mt-1 rounded-2xl bg-white p-4 shadow-sm">
         <View className="flex-row">
@@ -201,20 +209,41 @@ export default function FinancesTab() {
     </View>
   );
 
+  const toggle = (
+    <View className="flex-row rounded-lg bg-neutral-200 p-0.5">
+      {(["feed", "breakdown"] as const).map((v) => (
+        <Pressable
+          key={v}
+          onPress={() => setFinView(v)}
+          className={`rounded-md px-2.5 py-1 ${finView === v ? "bg-white" : ""}`}
+        >
+          <Text
+            className={`text-xs font-semibold ${finView === v ? "text-neutral-900" : "text-neutral-500"}`}
+          >
+            {v === "feed" ? "Операции" : "Разбор"}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
   return (
     <Screen>
-      <ScreenHeader large title="Финансы" />
+      <ScreenHeader large title="Финансы" right={toggle} />
+      {controls}
 
       {isLoading ? (
         <EmptyState state="loading" fill />
       ) : error ? (
         <EmptyState state="error" fill subtitle={(error as Error).message} />
+      ) : finView === "breakdown" ? (
+        <ProfitBreakdown transactions={txs} categories={categories} />
       ) : (
         <SectionList
           style={{ flex: 1 }}
           sections={sections}
           keyExtractor={(t) => t.id}
-          ListHeaderComponent={header}
+          ListHeaderComponent={feedHeader}
           contentContainerStyle={{ paddingBottom: 96 }}
           renderSectionHeader={({ section }) => (
             <View className="flex-row items-center justify-between bg-neutral-50 px-4 py-1.5">
