@@ -6,6 +6,7 @@ import {
 import {
   createClient as createClientRepo,
   getClient,
+  listClientTags,
   listClients,
   updateClient,
 } from "@babun/shared/db/repositories/clients";
@@ -53,5 +54,14 @@ export function useCreateClient() {
     mutationFn: (overrides: Partial<Client>) =>
       createClientRepo(supabase, createBlankClient(overrides), tenantId as string),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
+  });
+}
+
+export function useClientTags() {
+  const tenantId = useTenantId();
+  return useQuery({
+    queryKey: ["client-tags", tenantId],
+    enabled: !!tenantId,
+    queryFn: () => listClientTags(supabase, tenantId as string),
   });
 }

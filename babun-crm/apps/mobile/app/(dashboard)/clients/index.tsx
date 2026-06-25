@@ -9,11 +9,19 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, Search } from "lucide-react-native";
+import { Filter, Plus, Search } from "lucide-react-native";
 import type { Client } from "@babun/shared/local/clients";
 import { matchesClient } from "@babun/shared/local/selectors/client-search";
 import { Screen } from "@/components/ui/Screen";
-import { useClients } from "@/features/clients/queries";
+import { useClients, useClientTags } from "@/features/clients/queries";
+import {
+  EMPTY_FILTER,
+  applyClientsFilter,
+  cityOptions,
+  filterActiveCount,
+  type ClientsFilter,
+} from "@/features/clients/filter";
+import { ClientsFilterSheet } from "@/features/clients/ClientsFilterSheet";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -58,23 +66,36 @@ function ClientRow({ client, onPress }: { client: Client; onPress: () => void })
 export default function ClientsListScreen() {
   const router = useRouter();
   const { data, isLoading, isRefetching, refetch, error } = useClients();
+  const { data: tags = [] } = useClientTags();
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<ClientsFilter>(EMPTY_FILTER);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   const clients = data ?? [];
+  const cities = useMemo(() => cityOptions(clients), [clients]);
+  const activeCount = filterActiveCount(filter);
 
   const visible = useMemo(() => {
     const sorted = [...clients].sort((a, b) =>
       a.full_name.localeCompare(b.full_name, "ru"),
     );
+    const byFilter = applyClientsFilter(sorted, filter);
     const q = query.trim();
-    return q ? sorted.filter((c) => matchesClient(c, q)) : sorted;
-  }, [clients, query]);
+    return q ? byFilter.filter((c) => matchesClient(c, q)) : byFilter;
+  }, [clients, query, filter]);
+
+  const filtering = activeCount > 0 || query.trim().length > 0;
 
   return (
     <Screen>
       <View className="flex-row items-center justify-between px-4 pb-2 pt-4">
         <View>
           <Text className="text-2xl font-bold text-neutral-900">Клиенты</Text>
-          <Text className="text-sm text-neutral-500">{clients.length} всего</Text>
+          <Text className="text-sm text-neutral-500">
+            {filtering
+              ? `Найдено: ${visible.length} из ${clients.length}`
+              : `${clients.length} всего`}
+          </Text>
         </View>
         <Pressable
           onPress={() => router.push("/clients/new")}
@@ -96,6 +117,31 @@ export default function ClientsListScreen() {
           className="flex-1 py-2.5 text-base text-neutral-900"
         />
       </View>
+
+      <Pressable
+        onPress={() => setSheetOpen(true)}
+        className={`mx-4 mb-2 flex-row items-center gap-2 rounded-xl border px-3 py-2.5 ${
+          activeCount
+            ? "border-brand/40 bg-brand/5"
+            : "border-neutral-200 bg-white active:bg-neutral-50"
+        }`}
+      >
+        <Filter color={activeCount ? "#4338ca" : "#737373"} size={16} />
+        <Text
+          className={`flex-1 text-sm ${activeCount ? "font-semibold text-brand" : "text-neutral-600"}`}
+        >
+          {activeCount ? `Фильтры · ${activeCount}` : "Фильтры"}
+        </Text>
+        {activeCount ? (
+          <Pressable
+            hitSlop={8}
+            onPress={() => setFilter(EMPTY_FILTER)}
+            className="active:opacity-60"
+          >
+            <Text className="text-xs text-neutral-400">Сбросить</Text>
+          </Pressable>
+        ) : null}
+      </Pressable>
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
@@ -128,12 +174,21 @@ export default function ClientsListScreen() {
           ListEmptyComponent={
             <View className="items-center px-6 pt-20">
               <Text className="text-sm text-neutral-400">
-                {query.trim() ? "Ничего не найдено" : "Пока нет клиентов"}
+                {filtering ? "Ничего не найдено" : "Пока нет клиентов"}
               </Text>
             </View>
           }
         />
       )}
+
+      <ClientsFilterSheet
+        visible={sheetOpen}
+        filter={filter}
+        onChange={setFilter}
+        onClose={() => setSheetOpen(false)}
+        tags={tags}
+        cities={cities}
+      />
     </Screen>
   );
 }
