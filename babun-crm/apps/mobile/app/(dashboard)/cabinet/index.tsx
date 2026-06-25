@@ -96,7 +96,7 @@ export default function CabinetHome() {
           <Sep />
           <MenuRow icon={Landmark} label="Счета" href="/cabinet/accounts" />
           <Sep />
-          <MenuRow icon={Building2} label="Бизнес" soon />
+          <MenuRow icon={Building2} label="Бизнес" href="/cabinet/business" />
           <Sep />
           <MenuRow icon={CalendarClock} label="Календарь" soon />
           <Sep />
