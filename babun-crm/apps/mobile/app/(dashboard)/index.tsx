@@ -14,6 +14,8 @@ import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { DayView } from "@/features/calendar/DayView";
 import { MonthView } from "@/features/calendar/MonthView";
 import { useAppointments } from "@/features/calendar/queries";
+import { useUpdateAppointment } from "@/features/calendar/mutations";
+import { useToast } from "@/components/ui/Toast";
 import { useClients } from "@/features/clients/queries";
 import { useTeams } from "@/features/reference/queries";
 import { useCalendarSettings } from "@/features/settings/local-settings";
@@ -131,6 +133,16 @@ export default function CalendarTab() {
   const { data: clients = [] } = useClients();
   const { data: teams = [] } = useTeams();
   const { data: calSettings } = useCalendarSettings();
+  const updateAppt = useUpdateAppointment();
+  const toast = useToast();
+
+  const reschedule = (apt: Appointment, newStart: string, newEnd: string) => {
+    if (apt.time_start === newStart) return;
+    updateAppt.mutate(
+      { id: apt.id, patch: { time_start: newStart, time_end: newEnd } },
+      { onSuccess: () => toast(`Перенесено на ${newStart}`) },
+    );
+  };
 
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -368,6 +380,7 @@ export default function CalendarTab() {
             onCreateAt={(timeStart) =>
               openCreate({ date: dayYmd, time_start: timeStart })
             }
+            onReschedule={reschedule}
             startHour={calSettings?.workStartHour}
             endHour={calSettings?.workEndHour}
           />
