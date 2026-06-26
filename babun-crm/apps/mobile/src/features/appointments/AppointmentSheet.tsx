@@ -26,6 +26,7 @@ import { formatEUR } from "@babun/shared/common/utils/money";
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { COLORS, ICON } from "@/components/ui/tokens";
+import { useToast } from "@/components/ui/Toast";
 import { useClients } from "@/features/clients/queries";
 import { useServices, type Service } from "@/features/services/queries";
 import { useMasters, useTeams } from "@/features/reference/queries";
@@ -84,6 +85,7 @@ export function AppointmentSheet({
   const createMut = useCreateAppointment();
   const updateMut = useUpdateAppointment();
   const deleteMut = useDeleteAppointment();
+  const toast = useToast();
 
   const catalog = useMemo(
     () => new Map(services.map((s) => [s.id, s])),
@@ -265,6 +267,13 @@ export function AppointmentSheet({
       } else {
         await createMut.mutateAsync(createBlankAppointment(buildPatch()));
       }
+      toast(
+        isEdit
+          ? "Сохранено"
+          : kind === "event"
+            ? "Событие создано"
+            : "Запись создана",
+      );
       onClose();
     } catch (e) {
       Alert.alert("Ошибка", (e as Error).message);

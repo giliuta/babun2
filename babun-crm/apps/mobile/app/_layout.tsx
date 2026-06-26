@@ -6,6 +6,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { AppProviders } from "@/providers/AppProviders";
 import { useSession } from "@/providers/SessionProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -38,7 +39,9 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AppProviders>
-      <RootNavigator />
+      <ToastProvider>
+        <RootNavigator />
+      </ToastProvider>
     </AppProviders>
   );
 }

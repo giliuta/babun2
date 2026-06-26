@@ -17,6 +17,7 @@ import type {
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { COLORS, ICON } from "@/components/ui/tokens";
+import { useToast } from "@/components/ui/Toast";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { formatYMD, parseYMD } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
@@ -83,6 +84,7 @@ export function OperationSheet({
   const insert = useInsertTransaction();
   const update = useUpdateTransaction();
   const del = useDeleteTransaction();
+  const toast = useToast();
   const isEdit = !!transaction;
 
   const [type, setType] = useState<"income" | "expense" | "refund">("expense");
@@ -152,6 +154,7 @@ export function OperationSheet({
       } else {
         await insert.mutateAsync({ type, ...draft });
       }
+      toast(isEdit ? "Сохранено" : "Операция добавлена");
       onClose();
     } catch (e) {
       Alert.alert("Ошибка", (e as Error).message);
