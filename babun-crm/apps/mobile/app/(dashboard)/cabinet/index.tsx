@@ -4,13 +4,16 @@ import { useRouter, type Href } from "expo-router";
 import {
   Boxes,
   Building2,
+  CalendarCheck2,
   CalendarClock,
   ChevronRight,
   CircleUser,
   Gift,
   Landmark,
   MapPin,
+  Package,
   Receipt,
+  RotateCw,
   Tags,
   Scissors,
   Users,
@@ -79,6 +82,17 @@ export default function CabinetHome() {
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
         <Text className="px-5 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          Смена
+        </Text>
+        <Group>
+          <MenuRow icon={CalendarCheck2} label="Закрыть день" href="/cabinet/close-day" />
+          <Sep />
+          <MenuRow icon={Package} label="Склад" href="/cabinet/inventory" />
+          <Sep />
+          <MenuRow icon={RotateCw} label="Повторяющиеся ТО" href="/cabinet/recurring" />
+        </Group>
+
+        <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
           Справочники
         </Text>
         <Group>
