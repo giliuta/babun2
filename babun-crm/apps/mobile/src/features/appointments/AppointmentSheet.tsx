@@ -107,6 +107,8 @@ export function AppointmentSheet({
   const [discountType, setDiscountType] = useState<"fixed" | "percent" | null>(null);
   const [discountValue, setDiscountValue] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [kind, setKind] = useState<"work" | "event">("work");
+  const [eventColor, setEventColor] = useState<string | null>(null);
 
   const [clientPicker, setClientPicker] = useState(false);
   const [servicePicker, setServicePicker] = useState(false);
@@ -144,6 +146,8 @@ export function AppointmentSheet({
         appointment.global_discount ? String(appointment.global_discount.value) : "",
       );
       setCancelReason(appointment.cancel_reason ?? "");
+      setKind(appointment.kind === "work" ? "work" : "event");
+      setEventColor(appointment.color_override ?? null);
       setDurationTouched(true);
     } else {
       const today = formatYMD(new Date());
@@ -163,6 +167,8 @@ export function AppointmentSheet({
       setDiscountType(null);
       setDiscountValue("");
       setCancelReason("");
+      setKind("work");
+      setEventColor(null);
       setDurationTouched(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -203,25 +209,54 @@ export function AppointmentSheet({
   const client = clients.find((c) => c.id === clientId) ?? null;
   const canSave = !!date && !createMut.isPending && !updateMut.isPending;
 
-  const buildPatch = (): Partial<Appointment> => ({
-    client_id: clientId,
-    date,
-    time_start: timeStart,
-    time_end: timeEnd,
-    team_id: teamId,
-    master_id: masterId,
-    service_ids: serviceIds,
-    services: selectedServices,
-    total_amount: effectiveTotal,
-    custom_total: customTotal,
-    total_duration: computedDuration,
-    comment: comment.trim(),
-    status,
-    location_id: locationId,
-    global_discount: globalDiscount,
-    discount_amount: globalDiscountAmount(selectedServices, globalDiscount),
-    cancel_reason: status === "cancelled" ? cancelReason.trim() || null : null,
-  });
+  const buildPatch = (): Partial<Appointment> => {
+    const cancel =
+      status === "cancelled" ? cancelReason.trim() || null : null;
+    if (kind === "event") {
+      // Personal/team event (meeting, lunch, break) — no client/services/money.
+      return {
+        kind: "event",
+        date,
+        time_start: timeStart,
+        time_end: timeEnd,
+        team_id: teamId,
+        master_id: masterId,
+        status,
+        comment: comment.trim(),
+        color_override: eventColor,
+        client_id: null,
+        location_id: null,
+        service_ids: [],
+        services: [],
+        total_amount: 0,
+        custom_total: false,
+        global_discount: null,
+        discount_amount: 0,
+        cancel_reason: cancel,
+      };
+    }
+    return {
+      kind: "work",
+      client_id: clientId,
+      date,
+      time_start: timeStart,
+      time_end: timeEnd,
+      team_id: teamId,
+      master_id: masterId,
+      service_ids: serviceIds,
+      services: selectedServices,
+      total_amount: effectiveTotal,
+      custom_total: customTotal,
+      total_duration: computedDuration,
+      comment: comment.trim(),
+      status,
+      location_id: locationId,
+      color_override: eventColor,
+      global_discount: globalDiscount,
+      discount_amount: globalDiscountAmount(selectedServices, globalDiscount),
+      cancel_reason: cancel,
+    };
+  };
 
   const save = async () => {
     try {
@@ -270,12 +305,37 @@ export function AppointmentSheet({
               <X color={COLORS.body} size={ICON.md} />
             </Pressable>
             <Text className="flex-1 text-center text-base font-semibold text-neutral-900">
-              {isEdit ? "Запись" : "Новая запись"}
+              {kind === "event"
+                ? isEdit
+                  ? "Событие"
+                  : "Новое событие"
+                : isEdit
+                  ? "Запись"
+                  : "Новая запись"}
             </Text>
             <View className="w-10" />
           </View>
 
           <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+            {/* kind toggle */}
+            <View className="mx-3 mt-3 flex-row rounded-xl bg-neutral-200 p-1">
+              {(["work", "event"] as const).map((k) => (
+                <Pressable
+                  key={k}
+                  onPress={() => setKind(k)}
+                  className={`flex-1 items-center rounded-lg py-2 ${kind === k ? "bg-white" : ""}`}
+                >
+                  <Text
+                    className={`text-sm font-semibold ${kind === k ? "text-neutral-900" : "text-neutral-500"}`}
+                  >
+                    {k === "work" ? "Работа" : "Событие"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {kind === "work" ? (
+              <>
             {/* client */}
             <SectionCard title="Клиент">
               <Pressable
@@ -323,6 +383,9 @@ export function AppointmentSheet({
               </SectionCard>
             ) : null}
 
+              </>
+            ) : null}
+
             {/* date + time */}
             <SectionCard title="Когда">
               <View className="flex-row items-center justify-between px-4 py-2.5">
@@ -362,6 +425,8 @@ export function AppointmentSheet({
               </View>
             </SectionCard>
 
+            {kind === "work" ? (
+              <>
             {/* services */}
             <SectionCard
               title="Услуги"
@@ -420,6 +485,9 @@ export function AppointmentSheet({
               )}
             </SectionCard>
 
+              </>
+            ) : null}
+
             {/* team / master */}
             {teams.length > 0 ? (
               <SectionCard title="Команда">
@@ -440,6 +508,8 @@ export function AppointmentSheet({
               </SectionCard>
             ) : null}
 
+            {kind === "work" ? (
+              <>
             {/* total */}
             <SectionCard title="Сумма">
               <View className="flex-row items-center px-4 py-2.5">
@@ -510,6 +580,28 @@ export function AppointmentSheet({
               ) : null}
             </SectionCard>
 
+              </>
+            ) : null}
+
+            {/* event color (event only) */}
+            {kind === "event" ? (
+              <SectionCard title="Цвет">
+                <View className="flex-row flex-wrap gap-3 p-3">
+                  {[
+                    "#4338ca", "#10b981", "#ef4444", "#f59e0b",
+                    "#06b6d4", "#a855f7", "#ec4899", "#737373",
+                  ].map((c) => (
+                    <Pressable
+                      key={c}
+                      onPress={() => setEventColor(c)}
+                      className={`h-9 w-9 rounded-full ${eventColor === c ? "border-2 border-neutral-900" : ""}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </View>
+              </SectionCard>
+            ) : null}
+
             {/* status */}
             <SectionCard title="Статус">
               <View className="flex-row flex-wrap gap-2 p-3">
@@ -563,13 +655,13 @@ export function AppointmentSheet({
               </SectionCard>
             ) : null}
 
-            {/* comment */}
-            <SectionCard title="Комментарий">
+            {/* comment / event title */}
+            <SectionCard title={kind === "event" ? "Название" : "Комментарий"}>
               <TextInput
                 value={comment}
                 onChangeText={setComment}
                 multiline
-                placeholder="Заметка для бригады…"
+                placeholder={kind === "event" ? "Обед, встреча, перерыв…" : "Заметка для бригады…"}
                 placeholderTextColor={COLORS.faint}
                 className="min-h-[64px] px-4 py-3 text-base text-neutral-900"
                 textAlignVertical="top"
@@ -591,9 +683,13 @@ export function AppointmentSheet({
           <View className="border-t border-neutral-200 bg-white px-4 pb-7 pt-3">
             <Button
               label={
-                isEdit
-                  ? `Сохранить · ${formatEUR(effectiveTotal)}`
-                  : `Создать · ${formatEUR(effectiveTotal)}`
+                kind === "event"
+                  ? isEdit
+                    ? "Сохранить"
+                    : "Создать событие"
+                  : isEdit
+                    ? `Сохранить · ${formatEUR(effectiveTotal)}`
+                    : `Создать · ${formatEUR(effectiveTotal)}`
               }
               onPress={save}
               disabled={!canSave}
