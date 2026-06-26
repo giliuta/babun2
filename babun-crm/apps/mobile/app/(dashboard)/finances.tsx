@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, SectionList, Text, View } from "react-native";
+import { Pressable, ScrollView, SectionList, Share, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react-native";
+import { ChevronDown, ChevronRight, Plus, Share2 } from "lucide-react-native";
 import {
   formatEUR,
   formatEURSigned,
@@ -209,7 +209,26 @@ export default function FinancesTab() {
     </View>
   );
 
-  const toggle = (
+  const exportCsv = async () => {
+    if (txs.length === 0) return;
+    const catName = new Map(categories.map((c) => [c.id, c.name]));
+    const header = "Дата;Тип;Категория;Сумма;Заметка";
+    const rows = txs.map((t) =>
+      [
+        t.occurred_on,
+        TYPE_LABEL[t.type],
+        t.category_id ? catName.get(t.category_id) ?? "" : "",
+        String(t.amount),
+        (t.notes ?? "").replace(/[;\n\r]/g, " "),
+      ].join(";"),
+    );
+    await Share.share({
+      message: [header, ...rows].join("\n"),
+      title: `Финансы ${period.from} – ${period.to}`,
+    });
+  };
+
+  const toggleSegmented = (
     <View className="flex-row rounded-lg bg-neutral-200 p-0.5">
       {(["feed", "breakdown"] as const).map((v) => (
         <Pressable
@@ -227,9 +246,22 @@ export default function FinancesTab() {
     </View>
   );
 
+  const headerRight = (
+    <View className="flex-row items-center gap-2">
+      <Pressable
+        onPress={exportCsv}
+        hitSlop={8}
+        className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+      >
+        <Share2 color={COLORS.body} size={18} />
+      </Pressable>
+      {toggleSegmented}
+    </View>
+  );
+
   return (
     <Screen>
-      <ScreenHeader large title="Финансы" right={toggle} />
+      <ScreenHeader large title="Финансы" right={headerRight} />
       {controls}
 
       {isLoading ? (
