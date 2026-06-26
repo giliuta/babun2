@@ -2,6 +2,7 @@ import { type ComponentType } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import {
+  Boxes,
   Building2,
   CalendarClock,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   Landmark,
   MapPin,
   Receipt,
+  Tags,
   Scissors,
   Users,
   Wallet,
@@ -104,6 +106,10 @@ export default function CabinetHome() {
           <MenuRow icon={CalendarClock} label="Календарь" href="/cabinet/calendar" />
           <Sep />
           <MenuRow icon={Gift} label="Лояльность" href="/cabinet/loyalty" />
+          <Sep />
+          <MenuRow icon={Tags} label="Типы событий" href="/cabinet/event-types" />
+          <Sep />
+          <MenuRow icon={Boxes} label="Типы объектов" href="/cabinet/object-types" />
         </Group>
 
         <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">

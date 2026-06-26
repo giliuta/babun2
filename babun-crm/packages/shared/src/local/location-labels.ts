@@ -5,6 +5,8 @@
 // Single-tenant for now; when multi-tenant lands, prefix key with
 // tenant id. Seed matches what was previously hard-coded.
 
+import { getStorage } from "../storage/provider";
+
 export interface LocationLabel {
   id: string;
   name: string;
@@ -26,24 +28,12 @@ export const HOME_SERVICE_LABELS_PRESET: LocationLabel[] = [
 ];
 
 export function loadLocationLabels(): LocationLabel[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  const parsed = getStorage().get<LocationLabel[]>(STORAGE_KEY);
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 export function saveLocationLabels(labels: LocationLabel[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(labels));
-  } catch {
-    // ignore quota errors
-  }
+  getStorage().set(STORAGE_KEY, labels);
 }
 
 export function generateLocationLabelId(): string {
