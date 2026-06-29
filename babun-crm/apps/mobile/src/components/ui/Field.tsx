@@ -9,10 +9,10 @@ export function Field({
 }: { label: string; error?: string | null } & TextInputProps) {
   return (
     <View className="mb-4">
-      <Text className="mb-1 text-sm font-medium text-neutral-700">{label}</Text>
+      <Text className="mb-1 text-sm font-medium text-sub">{label}</Text>
       <TextInput
-        placeholderTextColor="#a3a3a3"
-        className="rounded-xl border border-neutral-300 px-4 py-3 text-base text-neutral-900"
+        placeholderTextColor="#97a0ae"
+        className="rounded-[14px] border border-separator px-4 py-3 text-base text-ink"
         {...inputProps}
       />
       {error ? <Text className="mt-1 text-sm text-danger">{error}</Text> : null}
