@@ -1,19 +1,30 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
-import { Screen } from "@/components/ui/Screen";
-import { Field } from "@/components/ui/Field";
-import { Button } from "@/components/ui/Button";
+import { Text, TextInput } from "react-native";
+import { useRouter } from "expo-router";
+import {
+  AuthCard,
+  GhostLink,
+  InputCard,
+  InputDivider,
+  PillButton,
+} from "@/components/auth/AuthCard";
+import { COLORS } from "@/components/ui/tokens";
 import { supabase } from "@/lib/supabase";
 
+// Auth login. Mirrors the web LoginForm/AuthCard (STORY-037 G3): centered
+// Babun logo tile, 28px title, iOS grouped input card, pill CTA, ghost links.
+// OAuth (Google/Apple) is a separate native step — added later.
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
+  const formValid = email.trim().length > 0 && password.length > 0;
 
   async function handleSignIn() {
+    if (!formValid || loading) return;
     setError(null);
     setLoading(true);
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -26,43 +37,55 @@ export default function LoginScreen() {
   }
 
   return (
-    <Screen>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View className="flex-1 justify-center px-6">
-          <Text className="mb-1 text-3xl font-bold text-neutral-900">Babun</Text>
-          <Text className="mb-8 text-base text-neutral-500">Вход в кабинет</Text>
+    <AuthCard title="С возвращением" subtitle="Войдите, чтобы продолжить">
+      <InputCard>
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email"
+          placeholderTextColor={COLORS.faint}
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          inputMode="email"
+          returnKeyType="next"
+          className="h-[52px] px-4 text-[15px] text-ink"
+        />
+        <InputDivider />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Пароль"
+          placeholderTextColor={COLORS.faint}
+          secureTextEntry
+          autoComplete="current-password"
+          returnKeyType="go"
+          onSubmitEditing={handleSignIn}
+          className="h-[52px] px-4 text-[15px] text-ink"
+        />
+      </InputCard>
 
-          <Field
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            inputMode="email"
-            placeholder="you@example.com"
-          />
-          <Field
-            label="Пароль"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="current-password"
-            placeholder="••••••••"
-            error={error}
-          />
+      {error ? (
+        <Text className="mt-3 px-2 text-center text-[13px] text-danger">
+          {error}
+        </Text>
+      ) : null}
 
-          <Button
-            label="Войти"
-            onPress={handleSignIn}
-            disabled={!canSubmit}
-            loading={loading}
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </Screen>
+      <PillButton
+        label={loading ? "Входим…" : "Войти"}
+        onPress={handleSignIn}
+        disabled={!formValid}
+        loading={loading}
+      />
+
+      <GhostLink
+        label="Забыли пароль?"
+        onPress={() => router.push("/forgot-password")}
+      />
+      <GhostLink
+        label="Нет аккаунта? Зарегистрироваться"
+        onPress={() => router.push("/register")}
+      />
+    </AuthCard>
   );
 }

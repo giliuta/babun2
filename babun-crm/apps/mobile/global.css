@@ -11,12 +11,21 @@
 @source "./app";
 @source "./src";
 
-/* Brand palette → utilities (bg-brand / text-danger / text-success ...).
-   Mirrors CLAUDE.md: indigo-700, emerald-500, red-500, amber-400; finance accent. */
+/* «Halo Cobalt» design system → utilities (bg-brand / text-ink / bg-canvas ...).
+   Full spec: apps/mobile/docs/DESIGN-SYSTEM.md. Color = meaning:
+   cobalt = brand/action · green = money-in/profit · red = money-out/debt ·
+   amber = caution. */
 @theme {
-  --color-brand: #4338ca;
-  --color-brand-accent: #34aadc;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warning: #fbbf24;
+  --color-brand: #2c5be0; /* accent — brand / action */
+  --color-accent-from: #3e84ff; /* the only gradient (logo · CTA · FAB) */
+  --color-accent-to: #1f4fcc;
+  --color-brand-accent: #34aadc; /* finance accent (kept) */
+  --color-success: #1fb47a; /* money in / profit */
+  --color-danger: #f0473c; /* money out / debt / destructive */
+  --color-warning: #f5a623; /* caution */
+  --color-ink: #0b1220; /* text primary */
+  --color-sub: #5b6678; /* text secondary */
+  --color-faint: #97a0ae; /* text tertiary */
+  --color-separator: #e7ebf0; /* hairline — a color, never a 1px border */
+  --color-canvas: #f4f6f9; /* app ground — lifts white surfaces for free */
 }

@@ -1,18 +1,22 @@
-// Centralized design tokens. Hex values mirror global.css @theme so the JS
-// side (lucide icon colors, inline styles) stays in sync with the className
-// utilities (bg-brand / text-success / ...). One source of truth.
+// Centralized design tokens — «Halo Cobalt» (apps/mobile/docs/DESIGN-SYSTEM.md).
+// Hex values mirror global.css @theme so the JS side (lucide icon colors,
+// inline styles, svg gradients) stays in sync with the className utilities
+// (bg-brand / text-ink / bg-canvas / ...). One source of truth.
 export const COLORS = {
-  brand: "#4338ca", // indigo-700 — primary actions, links
+  brand: "#2c5be0", // accent — primary actions, links, brand
+  accentFrom: "#3e84ff", // the only gradient (logo · CTA · FAB)
+  accentTo: "#1f4fcc",
   brandAccent: "#34aadc", // finance / profit accent
-  success: "#10b981", // emerald-500
-  danger: "#ef4444", // red-500
-  warning: "#fbbf24", // amber-400
-  ink: "#171717", // neutral-900 — primary text
-  body: "#404040", // neutral-700 — strong icons / body
-  sub: "#737373", // neutral-500 — secondary text
-  faint: "#a3a3a3", // neutral-400 — tertiary text
-  chevron: "#c4c4c4", // neutral-300 — chevrons
-  hair: "#f5f5f5", // neutral-100 — separators / hairlines
+  success: "#1fb47a", // money in / profit
+  danger: "#f0473c", // money out / debt / destructive
+  warning: "#f5a623", // caution
+  ink: "#0b1220", // text primary
+  body: "#39414e", // strong icons / body
+  sub: "#5b6678", // text secondary
+  faint: "#97a0ae", // text tertiary
+  chevron: "#c4c4c4", // chevrons
+  hair: "#e7ebf0", // separator — a color, never a 1px border
+  canvas: "#f4f6f9", // app ground
   white: "#ffffff",
 } as const;
 
