@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { useAuthTheme } from "@/components/auth/theme";
 
 // «Вход в Babun» social stack — apps/mobile/docs/DESIGN-SYSTEM.md + the SaaS
 // login research spec. Three full-width 52pt pill buttons, equal weight,
@@ -11,11 +12,11 @@ import Svg, { Path } from "react-native-svg";
 // rebuild (Phase B) for brand compliance. Google is a compliant custom build
 // (Google Light spec: #fff fill, #747775 stroke, full-color G, #1F1F1F text).
 
-function AppleLogo() {
+function AppleLogo({ color = "#fff" }: { color?: string }) {
   return (
     <Svg width={18} height={18} viewBox="0 0 24 24">
       <Path
-        fill="#fff"
+        fill={color}
         d="M17.543 12.718c-.022-2.49 2.034-3.683 2.127-3.74-1.16-1.697-2.962-1.93-3.6-1.956-1.532-.155-2.99.903-3.766.903-.776 0-1.974-.88-3.247-.856-1.67.025-3.21.971-4.07 2.466-1.736 3.01-.444 7.466 1.245 9.91.826 1.197 1.81 2.54 3.1 2.493 1.243-.05 1.712-.806 3.214-.806 1.502 0 1.924.806 3.24.78 1.337-.025 2.183-1.22 3-2.42.943-1.39 1.332-2.734 1.354-2.803-.03-.013-2.597-.998-2.62-3.96zM15.06 5.42c.686-.83 1.15-1.985 1.023-3.135-.99.04-2.19.66-2.9 1.49-.636.736-1.193 1.91-1.043 3.037 1.105.086 2.234-.562 2.92-1.392z"
       />
     </Svg>
@@ -94,21 +95,25 @@ export function SocialButtons({
   loading?: "apple" | "google" | null;
   disabled?: boolean;
 }) {
+  const t = useAuthTheme();
+  // Apple HIG: white button on dark backgrounds, black on light.
+  const appleBg = t.dark ? "#ffffff" : "#000000";
+  const appleFg = t.dark ? "#000000" : "#ffffff";
   return (
     <View>
       <StackButton
-        bg="#000000"
-        textColor="#ffffff"
-        icon={<AppleLogo />}
+        bg={appleBg}
+        textColor={appleFg}
+        icon={<AppleLogo color={appleFg} />}
         label="Продолжить с Apple"
         onPress={onApple}
         busy={loading === "apple"}
         disabled={disabled}
       />
       <StackButton
-        bg="#ffffff"
-        border="#d9dee5"
-        textColor="#1f1f1f"
+        bg={t.googleBg}
+        border={t.googleBorder}
+        textColor={t.googleText}
         icon={<GoogleLogo />}
         label="Продолжить с Google"
         onPress={onGoogle}
@@ -121,11 +126,12 @@ export function SocialButtons({
 
 // «———— или ————» between the social buttons and the email/password fields.
 export function OrDivider() {
+  const t = useAuthTheme();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 16 }}>
-      <View style={{ flex: 1, height: 1, backgroundColor: "#e7ebf0" }} />
-      <Text style={{ fontSize: 12, fontWeight: "600", color: "#97a0ae" }}>или</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: "#e7ebf0" }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: t.separator }} />
+      <Text style={{ fontSize: 12, fontWeight: "600", color: t.sub }}>или</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: t.separator }} />
     </View>
   );
 }

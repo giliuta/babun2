@@ -12,6 +12,7 @@ import {
   PillButton,
 } from "@/components/auth/AuthCard";
 import { mapAuthError } from "@/components/auth/authErrors";
+import { useAuthTheme } from "@/components/auth/theme";
 import { supabase } from "@/lib/supabase";
 
 // Set-new-password screen — the exit of the reset flow. The recovery deep link
@@ -20,6 +21,7 @@ import { supabase } from "@/lib/supabase";
 // can set a new password instead of bouncing to the dashboard.
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const t = useAuthTheme();
   const url = Linking.useURL();
   const [ready, setReady] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -117,7 +119,7 @@ export default function ResetPasswordScreen() {
       </InputCard>
 
       {password.length > 0 && password.length < 8 ? (
-        <Text style={{ marginTop: 8, marginLeft: 4, fontSize: 13, color: "#5b6678" }}>
+        <Text style={{ marginTop: 8, marginLeft: 4, fontSize: 13, color: t.sub }}>
           Минимум 8 символов
         </Text>
       ) : null}

@@ -15,6 +15,7 @@ import {
 } from "@/components/auth/AuthCard";
 import { OrDivider, SocialButtons } from "@/components/auth/SocialAuthButtons";
 import { mapAuthError } from "@/components/auth/authErrors";
+import { useAuthTheme } from "@/components/auth/theme";
 import { supabase } from "@/lib/supabase";
 
 // «Создать аккаунт» — minimal sign-up: brand, Apple + Google, then name/email/
@@ -22,6 +23,7 @@ import { supabase } from "@/lib/supabase";
 // «Проверьте почту» state is an actionable hub (resend / open mail / fix email).
 export default function RegisterScreen() {
   const router = useRouter();
+  const t = useAuthTheme();
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const [fullName, setFullName] = useState("");
@@ -34,8 +36,8 @@ export default function RegisterScreen() {
 
   useEffect(() => {
     if (cooldown <= 0) return;
-    const t = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(id);
   }, [cooldown]);
 
   const valid =
@@ -90,7 +92,7 @@ export default function RegisterScreen() {
       <AuthCard title="Проверьте почту" subtitle="Подтвердите адрес, чтобы войти">
         <NoticeCard>
           Письмо со ссылкой ушло на{" "}
-          <Text style={{ fontWeight: "600", color: "#0b1220" }}>{email.trim()}</Text>.
+          <Text style={{ fontWeight: "600", color: t.ink }}>{email.trim()}</Text>.
           Откройте его, перейдите по ссылке — и возвращайтесь, чтобы войти.
         </NoticeCard>
         <PillButton label="Открыть Почту" onPress={openMail} />
@@ -155,7 +157,7 @@ export default function RegisterScreen() {
       </InputCard>
 
       {password.length > 0 && password.length < 8 ? (
-        <Text style={{ marginTop: 8, marginLeft: 4, fontSize: 13, color: "#5b6678" }}>
+        <Text style={{ marginTop: 8, marginLeft: 4, fontSize: 13, color: t.sub }}>
           Минимум 8 символов
         </Text>
       ) : null}
@@ -177,15 +179,15 @@ export default function RegisterScreen() {
           textAlign: "center",
           fontSize: 12,
           lineHeight: 17,
-          color: "#5b6678",
+          color: t.sub,
         }}
       >
         Создавая аккаунт, вы принимаете{" "}
-        <Text style={{ color: "#2c5be0" }} onPress={() => Linking.openURL("https://babun.app/terms")}>
+        <Text style={{ color: t.accent }} onPress={() => Linking.openURL("https://babun.app/terms")}>
           Условия
         </Text>{" "}
         и{" "}
-        <Text style={{ color: "#2c5be0" }} onPress={() => Linking.openURL("https://babun.app/privacy")}>
+        <Text style={{ color: t.accent }} onPress={() => Linking.openURL("https://babun.app/privacy")}>
           Конфиденциальность
         </Text>
       </Text>

@@ -11,6 +11,7 @@ import {
   NoticeCard,
   PillButton,
 } from "@/components/auth/AuthCard";
+import { useAuthTheme } from "@/components/auth/theme";
 import { supabase } from "@/lib/supabase";
 
 // Mirrors the web ForgotPasswordForm: enter email → reset link emailed (with a
@@ -18,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 // Same response whether the email exists or not (anti-enumeration).
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const t = useAuthTheme();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function ForgotPasswordScreen() {
       <AuthCard title="Проверьте почту" subtitle="Если такой email есть — мы отправили ссылку">
         <NoticeCard>
           Письмо ушло на{" "}
-          <Text style={{ fontWeight: "600", color: "#0b1220" }}>{email.trim()}</Text>.
+          <Text style={{ fontWeight: "600", color: t.ink }}>{email.trim()}</Text>.
           Откройте ссылку из письма — перейдёте на страницу нового пароля.
         </NoticeCard>
         <PillButton label="Открыть Почту" onPress={openMail} />
