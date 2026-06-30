@@ -21,7 +21,10 @@ import {
   Wrench,
 } from "lucide-react-native";
 import { Screen } from "@/components/ui/Screen";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { Divider } from "@/components/ui/Divider";
 import { Button } from "@/components/ui/Button";
+import { useThemeColors } from "@/theme/colors";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/providers/SessionProvider";
 
@@ -39,108 +42,123 @@ function MenuRow({
   soon?: boolean;
 }) {
   const router = useRouter();
+  const t = useThemeColors();
   const disabled = soon || !href;
   return (
     <Pressable
       onPress={() => href && router.push(href)}
       disabled={disabled}
-      className={`flex-row items-center px-4 py-3.5 ${disabled ? "" : "active:bg-neutral-50"}`}
+      className="flex-row items-center px-4 py-3.5"
+      style={({ pressed }) => ({
+        backgroundColor: pressed && !disabled ? t.pressed : "transparent",
+      })}
     >
-      <View className="h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
-        <Icon color="#4338ca" size={18} />
+      <View
+        style={{
+          height: 32,
+          width: 32,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 8,
+          backgroundColor: t.dark ? "rgba(90,134,255,0.16)" : "rgba(44,91,224,0.10)",
+        }}
+      >
+        <Icon color={t.accent} size={18} />
       </View>
-      <Text className="ml-3 flex-1 text-base text-neutral-900">{label}</Text>
+      <Text style={{ marginLeft: 12, flex: 1, fontSize: 16, color: t.ink }}>{label}</Text>
       {soon ? (
-        <Text className="text-xs text-neutral-400">скоро</Text>
+        <Text style={{ fontSize: 12, color: t.faint }}>скоро</Text>
       ) : (
-        <ChevronRight color="#c4c4c4" size={18} />
+        <ChevronRight color={t.chevron} size={18} />
       )}
     </Pressable>
   );
 }
 
-function Group({ children }: { children: React.ReactNode }) {
+function GroupLabel({ children }: { children: string }) {
+  const t = useThemeColors();
   return (
-    <View className="mx-3 mt-2 overflow-hidden rounded-2xl bg-white shadow-sm">
+    <Text
+      style={{
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 4,
+        fontSize: 12,
+        fontWeight: "600",
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
+        color: t.faint,
+      }}
+    >
       {children}
-    </View>
+    </Text>
   );
-}
-
-function Sep() {
-  return <View className="ml-14 h-px bg-neutral-100" />;
 }
 
 export default function CabinetHome() {
   const { session } = useSession();
+  const t = useThemeColors();
 
   return (
     <Screen>
       <View className="px-4 pb-1 pt-4">
-        <Text className="text-2xl font-bold text-neutral-900">Кабинет</Text>
+        <Text style={{ fontSize: 24, fontWeight: "700", color: t.ink }}>Кабинет</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
-        <Text className="px-5 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Смена
-        </Text>
-        <Group>
+        <GroupLabel>Смена</GroupLabel>
+        <SectionCard>
           <MenuRow icon={CalendarCheck2} label="Закрыть день" href="/cabinet/close-day" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Package} label="Склад" href="/cabinet/inventory" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={RotateCw} label="Повторяющиеся ТО" href="/cabinet/recurring" />
-        </Group>
+        </SectionCard>
 
-        <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Справочники
-        </Text>
-        <Group>
+        <GroupLabel>Справочники</GroupLabel>
+        <SectionCard>
           <MenuRow icon={Scissors} label="Услуги" href="/cabinet/services" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Users} label="Команды" href="/cabinet/teams" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Wrench} label="Мастера" href="/cabinet/masters" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={MapPin} label="Города" href="/cabinet/cities" />
-        </Group>
+        </SectionCard>
 
-        <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Настройки
-        </Text>
-        <Group>
+        <GroupLabel>Настройки</GroupLabel>
+        <SectionCard>
           <MenuRow icon={Wallet} label="Категории" href="/cabinet/categories" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Landmark} label="Счета" href="/cabinet/accounts" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Receipt} label="Шаблоны" href="/cabinet/templates" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Building2} label="Бизнес" href="/cabinet/business" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={CalendarClock} label="Календарь" href="/cabinet/calendar" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Gift} label="Лояльность" href="/cabinet/loyalty" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Tags} label="Типы событий" href="/cabinet/event-types" />
-          <Sep />
+          <Divider inset={56} />
           <MenuRow icon={Boxes} label="Типы объектов" href="/cabinet/object-types" />
-        </Group>
+        </SectionCard>
 
-        <Text className="px-5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Аккаунт
-        </Text>
-        <Group>
+        <GroupLabel>Аккаунт</GroupLabel>
+        <SectionCard>
           <MenuRow
             icon={CircleUser}
             label={session?.user.email ?? "Аккаунт"}
             href="/cabinet/account"
           />
-        </Group>
+        </SectionCard>
 
-        <View className="mx-3 mt-4">
+        <View className="mx-3 mt-5">
           <Button
             label="Выйти"
             variant="secondary"
+            tone="danger"
             onPress={() => supabase.auth.signOut()}
           />
         </View>

@@ -1,24 +1,31 @@
 import { ActivityIndicator, Pressable, Text } from "react-native";
 import { GradientButton } from "./GradientButton";
+import { useThemeColors } from "@/theme/colors";
 
 type Variant = "primary" | "secondary";
+type Tone = "default" | "danger";
 
 // App-wide button — «Halo Cobalt» (apps/mobile/docs/DESIGN-SYSTEM.md).
 // primary → cobalt gradient pill (halo sheen + press dip).
-// secondary → clean outline pill on white.
+// secondary → clean outline pill on surface; tone="danger" tints the label
+// (e.g. «Выйти») without shouting.
 export function Button({
   label,
   onPress,
   disabled,
   loading,
   variant = "primary",
+  tone = "default",
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
   variant?: Variant;
+  tone?: Tone;
 }) {
+  const t = useThemeColors();
+
   if (variant === "primary") {
     return (
       <GradientButton
@@ -31,27 +38,28 @@ export function Button({
   }
 
   const isDisabled = disabled || loading;
+  const tint = tone === "danger" ? t.danger : t.ink;
   return (
     <Pressable
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
-      style={{
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
         height: 52,
-        borderRadius: 999,
+        borderRadius: t.radius.pill,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: "#e7ebf0",
-        backgroundColor: "#ffffff",
-        opacity: isDisabled ? 0.5 : 1,
-      }}
+        borderColor: t.separator,
+        backgroundColor: t.surface,
+        opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+      })}
     >
       {loading ? (
-        <ActivityIndicator color="#2c5be0" />
+        <ActivityIndicator color={tone === "danger" ? t.danger : t.accent} />
       ) : (
-        <Text style={{ fontSize: 17, fontWeight: "600", color: "#0b1220" }}>
-          {label}
-        </Text>
+        <Text style={{ fontSize: 17, fontWeight: "600", color: tint }}>{label}</Text>
       )}
     </Pressable>
   );

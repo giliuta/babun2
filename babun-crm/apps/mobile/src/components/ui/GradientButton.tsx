@@ -4,15 +4,18 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useThemeColors } from "@/theme/colors";
 
 // The «Halo Cobalt» primary action — full-width cobalt-gradient pill with a
 // floating accent shadow, a slow halo sheen sweep, and a press dip. The ONLY
-// gradient surface in the app besides the logo/FAB. apps/mobile/docs/DESIGN-SYSTEM.md.
+// gradient surface in the app besides the logo/FAB. All motion gated on Reduce
+// Motion. apps/mobile/docs/DESIGN-SYSTEM.md.
 const FILL = { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 } as const;
 
 export function GradientButton({
@@ -28,14 +31,17 @@ export function GradientButton({
   loading?: boolean;
   sheen?: boolean;
 }) {
+  const t = useThemeColors();
+  const reduced = useReducedMotion();
   const filled = loading || !disabled;
   const pressable = !disabled && !loading;
+  const animate = sheen && !reduced;
   const [w, setW] = useState(0);
   const scale = useSharedValue(1);
   const sweep = useSharedValue(-160);
 
   useEffect(() => {
-    if (filled && sheen && w > 0) {
+    if (filled && animate && w > 0) {
       sweep.value = -160;
       sweep.value = withRepeat(
         withTiming(w + 60, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
@@ -43,7 +49,7 @@ export function GradientButton({
         false,
       );
     }
-  }, [filled, sheen, w, sweep]);
+  }, [filled, animate, w, sweep]);
 
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const sweepStyle = useAnimatedStyle(() => ({
@@ -54,24 +60,27 @@ export function GradientButton({
     <Pressable
       onPress={pressable ? onPress : undefined}
       onPressIn={() => {
-        if (pressable) scale.value = withTiming(0.97, { duration: 120 });
+        if (pressable && !reduced) scale.value = withTiming(0.97, { duration: 120 });
       }}
       onPressOut={() => {
-        scale.value = withSpring(1, { damping: 16 });
+        if (!reduced) scale.value = withSpring(1, { damping: 16 });
       }}
       disabled={!pressable}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !pressable, busy: !!loading }}
     >
       <Animated.View
         onLayout={(e) => setW(e.nativeEvent.layout.width)}
         style={[
           {
             height: 52,
-            borderRadius: 999,
+            borderRadius: t.radius.pill,
             overflow: "hidden",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: filled ? "#1f4fcc" : "#e7ebf0",
-            boxShadow: filled ? "0px 8px 28px rgba(44,91,224,0.28)" : undefined,
+            backgroundColor: filled ? t.accentTo : t.disabledFill,
+            boxShadow: filled ? t.brandShadow : undefined,
           },
           scaleStyle,
         ]}
@@ -80,14 +89,14 @@ export function GradientButton({
           <Svg style={FILL} width="100%" height="100%" pointerEvents="none">
             <Defs>
               <LinearGradient id="gbtn" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#3e84ff" />
-                <Stop offset="1" stopColor="#1f4fcc" />
+                <Stop offset="0" stopColor={t.accentFrom} />
+                <Stop offset="1" stopColor={t.accentTo} />
               </LinearGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#gbtn)" />
           </Svg>
         ) : null}
-        {filled && sheen ? (
+        {filled && animate ? (
           <Animated.View
             pointerEvents="none"
             style={[
@@ -97,9 +106,9 @@ export function GradientButton({
           />
         ) : null}
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={t.onAccent} />
         ) : (
-          <Text style={{ fontSize: 17, fontWeight: "600", color: filled ? "#fff" : "#97a0ae" }}>
+          <Text style={{ fontSize: 17, fontWeight: "600", color: filled ? t.onAccent : t.faint }}>
             {label}
           </Text>
         )}

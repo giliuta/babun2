@@ -15,7 +15,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 
 export interface RefField {
   key: string;
@@ -50,6 +51,7 @@ export function RefListScreen<T extends { id: string }>({
   renderItem: (item: T) => ReactElement;
   emptyText: string;
 }) {
+  const t = useThemeColors();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -115,9 +117,10 @@ export function RefListScreen<T extends { id: string }>({
           <Pressable
             onPress={openCreate}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={({ pressed }) => ({ backgroundColor: pressed ? t.pressed : "transparent" })}
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={t.accent} size={ICON.md} />
           </Pressable>
         }
       />
@@ -132,10 +135,7 @@ export function RefListScreen<T extends { id: string }>({
           contentContainerStyle={{ flexGrow: 1 }}
           renderItem={({ item }) =>
             editable ? (
-              <Pressable
-                onPress={() => openEdit(item)}
-                className="active:bg-neutral-50"
-              >
+              <Pressable onPress={() => openEdit(item)} className="active:opacity-60">
                 {renderItem(item)}
               </Pressable>
             ) : (
@@ -153,9 +153,16 @@ export function RefListScreen<T extends { id: string }>({
         animationType="slide"
         onRequestClose={close}
       >
-        <Pressable className="flex-1 bg-black/30" onPress={close} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">
+        <Pressable
+          className="flex-1"
+          style={{ backgroundColor: t.scrim }}
+          onPress={close}
+        />
+        <View
+          className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8"
+          style={{ backgroundColor: t.surface }}
+        >
+          <Text style={{ marginBottom: 12, fontSize: 18, fontWeight: "700", color: t.ink }}>
             {editing ? "Изменить" : "Добавить"}
           </Text>
           {fields.map((f, i) => (
@@ -180,7 +187,7 @@ export function RefListScreen<T extends { id: string }>({
               onPress={remove}
               className="mt-1 items-center py-3 active:opacity-70"
             >
-              <Text className="text-base font-medium text-danger">Удалить</Text>
+              <Text style={{ fontSize: 16, fontWeight: "500", color: t.danger }}>Удалить</Text>
             </Pressable>
           ) : null}
         </View>

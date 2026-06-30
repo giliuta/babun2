@@ -1,7 +1,8 @@
 import { type ComponentType, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
-import { COLORS, ICON } from "./tokens";
+import { ICON } from "./tokens";
+import { useThemeColors } from "@/theme/colors";
 
 // Standard list row: optional leading (avatar/icon) + title/subtitle +
 // optional trailing + optional chevron. 44px+ tap height.
@@ -12,7 +13,7 @@ export function ListItem({
   trailing,
   onPress,
   chevron,
-  titleClassName = "text-base text-neutral-900",
+  titleStyle,
 }: {
   leading?: ReactNode;
   title: string;
@@ -20,8 +21,9 @@ export function ListItem({
   trailing?: ReactNode;
   onPress?: () => void;
   chevron?: boolean;
-  titleClassName?: string;
+  titleStyle?: { color?: string; fontWeight?: "400" | "500" | "600" | "700" };
 }) {
+  const t = useThemeColors();
   const Comp = (onPress ? Pressable : View) as ComponentType<{
     onPress?: () => void;
     className?: string;
@@ -31,24 +33,22 @@ export function ListItem({
     <Comp
       onPress={onPress}
       className={`min-h-[52px] flex-row items-center px-4 py-2.5 ${
-        onPress ? "active:bg-neutral-50" : ""
+        onPress ? "active:opacity-60" : ""
       }`}
     >
       {leading ? <View className="mr-3">{leading}</View> : null}
       <View className="flex-1 pr-2">
-        <Text className={titleClassName} numberOfLines={1}>
+        <Text style={{ fontSize: 16, color: t.ink, ...titleStyle }} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text className="text-sm text-neutral-500" numberOfLines={1}>
+          <Text style={{ fontSize: 14, color: t.sub }} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
       </View>
       {trailing}
-      {chevron ? (
-        <ChevronRight color={COLORS.chevron} size={ICON.sm} />
-      ) : null}
+      {chevron ? <ChevronRight color={t.chevron} size={ICON.sm} /> : null}
     </Comp>
   );
 }

@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { RefListScreen } from "@/features/reference/RefListScreen";
+import { useThemeColors } from "@/theme/colors";
 import {
   useCreateService,
   useServices,
@@ -9,6 +10,7 @@ import {
 import { useDeleteService, useUpdateService } from "@/features/reference/queries";
 
 export default function ServicesScreen() {
+  const t = useThemeColors();
   const { data: services = [], isLoading } = useServices();
   const create = useCreateService();
   const update = useUpdateService();
@@ -48,12 +50,18 @@ export default function ServicesScreen() {
       renderItem={(s) => (
         <View className="flex-row items-center px-4 py-3">
           <View className="flex-1 pr-3">
-            <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
+            <Text
+              style={{ fontSize: 16, fontWeight: "600", color: t.ink }}
+              numberOfLines={1}
+            >
               {s.name}
             </Text>
-            <Text className="text-sm text-neutral-500">{s.duration_minutes} мин</Text>
+            <Text style={{ fontSize: 14, color: t.sub }}>{s.duration_minutes} мин</Text>
           </View>
-          <Text className="text-base font-semibold text-neutral-900 tabular-nums">
+          <Text
+            className="tabular-nums"
+            style={{ fontSize: 16, fontWeight: "600", color: t.ink }}
+          >
             {formatEUR(Number(s.price))}
           </Text>
         </View>

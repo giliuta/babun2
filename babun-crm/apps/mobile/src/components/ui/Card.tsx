@@ -1,25 +1,26 @@
 import { type ReactNode } from "react";
 import { Text, View, type ViewProps } from "react-native";
+import { useThemeColors } from "@/theme/colors";
 
 // «Halo Cobalt» surfaces — apps/mobile/docs/DESIGN-SYSTEM.md.
 
-// White grouped card: soft neutral elevation + a 1px frosted top-edge highlight
-// that reads as glass thickness without a real blur.
+// Grouped card: soft neutral elevation in light (dark lifts by tone, no grey
+// shadow) + a 1px frosted top-edge highlight that reads as glass thickness.
 export function Card({
   style,
   children,
   ...rest
 }: ViewProps & { children?: ReactNode }) {
+  const t = useThemeColors();
   return (
     <View
       {...rest}
       style={[
         {
-          borderRadius: 20,
-          backgroundColor: "#ffffff",
+          borderRadius: t.radius.card,
+          backgroundColor: t.surface,
           overflow: "hidden",
-          boxShadow:
-            "0px 1px 2px rgba(11,18,32,0.04), 0px 8px 24px rgba(11,18,32,0.06)",
+          boxShadow: t.cardShadow,
         },
         style,
       ]}
@@ -31,7 +32,7 @@ export function Card({
           left: 0,
           right: 0,
           height: 1,
-          backgroundColor: "rgba(255,255,255,0.9)",
+          backgroundColor: t.highlight,
         }}
       />
       {children}
@@ -41,13 +42,14 @@ export function Card({
 
 // Caption eyebrow above a section («ОПЕРАЦИИ», day dividers, settings groups).
 export function SectionHeader({ children }: { children: string }) {
+  const t = useThemeColors();
   return (
     <Text
       style={{
         fontSize: 11,
         fontWeight: "700",
         letterSpacing: 0.6,
-        color: "#97a0ae",
+        color: t.faint,
         textTransform: "uppercase",
         marginTop: 24,
         marginBottom: 8,

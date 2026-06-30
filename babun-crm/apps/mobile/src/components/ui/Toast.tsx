@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Animated, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useThemeColors } from "@/theme/colors";
 
 type ToastType = "success" | "error" | "info";
 type ToastState = { id: number; message: string; type: ToastType };
@@ -24,6 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const translateY = useRef(new Animated.Value(-12)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
+  const t = useThemeColors();
 
   const show = useCallback(
     (message: string, type: ToastType = "success") => {
@@ -43,12 +45,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [opacity, translateY],
   );
 
-  const bg =
+  const toastBg =
     toast?.type === "error"
-      ? "bg-danger"
+      ? t.danger
       : toast?.type === "info"
-        ? "bg-neutral-800"
-        : "bg-success";
+        ? t.dark
+          ? "#2a313d"
+          : "#1f2937"
+        : t.success;
 
   return (
     <ToastCtx.Provider value={show}>
@@ -65,7 +69,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             transform: [{ translateY }],
           }}
         >
-          <View className={`rounded-2xl px-4 py-3 shadow-lg ${bg}`}>
+          <View
+            className="rounded-2xl px-4 py-3 shadow-lg"
+            style={{ backgroundColor: toastBg }}
+          >
             <Text className="text-center text-sm font-semibold text-white">
               {toast.message}
             </Text>

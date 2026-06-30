@@ -2,7 +2,8 @@ import { type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { COLORS, ICON } from "./tokens";
+import { ICON } from "./tokens";
+import { useThemeColors } from "@/theme/colors";
 
 // Unified screen chrome. Two modes:
 //  - default: back chevron + centered-left title + optional right action (44px taps)
@@ -21,14 +22,15 @@ export function ScreenHeader({
   large?: boolean;
 }) {
   const router = useRouter();
+  const t = useThemeColors();
 
   if (large) {
     return (
       <View className="flex-row items-end justify-between px-4 pb-2 pt-4">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-neutral-900">{title}</Text>
+          <Text style={{ fontSize: 24, fontWeight: "700", color: t.ink }}>{title}</Text>
           {subtitle ? (
-            <Text className="text-sm text-neutral-500">{subtitle}</Text>
+            <Text style={{ fontSize: 14, color: t.sub }}>{subtitle}</Text>
           ) : null}
         </View>
         {right ? <View className="pb-1">{right}</View> : null}
@@ -37,23 +39,30 @@ export function ScreenHeader({
   }
 
   return (
-    <View className="flex-row items-center border-b border-neutral-100 px-1 py-1.5">
+    <View
+      className="flex-row items-center px-1 py-1.5"
+      style={{ borderBottomWidth: 1, borderBottomColor: t.separator }}
+    >
       <Pressable
         onPress={onBack ?? (() => router.back())}
         hitSlop={8}
-        className="h-11 w-11 items-center justify-center rounded-full active:bg-neutral-100"
+        style={({ pressed }) => ({
+          height: 44,
+          width: 44,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 999,
+          backgroundColor: pressed ? t.pressed : "transparent",
+        })}
       >
-        <ChevronLeft color={COLORS.body} size={ICON.md} />
+        <ChevronLeft color={t.body} size={ICON.md} />
       </Pressable>
       <View className="flex-1">
-        <Text
-          className="text-base font-semibold text-neutral-900"
-          numberOfLines={1}
-        >
+        <Text style={{ fontSize: 16, fontWeight: "600", color: t.ink }} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text className="text-xs text-neutral-500" numberOfLines={1}>
+          <Text style={{ fontSize: 12, color: t.sub }} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}

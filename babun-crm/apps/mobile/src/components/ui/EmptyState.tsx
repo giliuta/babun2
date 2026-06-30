@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { COLORS } from "./tokens";
+import { useThemeColors } from "@/theme/colors";
 
 // Consistent empty / loading / error surface. `fill` centers full-screen
 // (loading); otherwise it's a padded block usable as a FlatList
@@ -20,6 +20,7 @@ export function EmptyState({
   action?: { label: string; onPress: () => void };
   fill?: boolean;
 }) {
+  const t = useThemeColors();
   const wrap = fill
     ? "flex-1 items-center justify-center px-8"
     : "items-center px-8 py-16";
@@ -27,7 +28,7 @@ export function EmptyState({
   if (state === "loading") {
     return (
       <View className={wrap}>
-        <ActivityIndicator color={COLORS.brand} />
+        <ActivityIndicator color={t.accent} />
       </View>
     );
   }
@@ -36,23 +37,33 @@ export function EmptyState({
     <View className={wrap}>
       {icon ? <View className="mb-3 opacity-40">{icon}</View> : null}
       <Text
-        className={`text-center text-base font-medium ${
-          state === "error" ? "text-danger" : "text-neutral-500"
-        }`}
+        style={{
+          textAlign: "center",
+          fontSize: 16,
+          fontWeight: "500",
+          color: state === "error" ? t.danger : t.sub,
+        }}
       >
         {title ?? (state === "error" ? "Что-то пошло не так" : "Пусто")}
       </Text>
       {subtitle ? (
-        <Text className="mt-1 text-center text-sm text-neutral-400">
+        <Text style={{ marginTop: 4, textAlign: "center", fontSize: 14, color: t.faint }}>
           {subtitle}
         </Text>
       ) : null}
       {action ? (
         <Pressable
           onPress={action.onPress}
-          className="mt-4 rounded-full bg-brand px-5 py-2.5 active:opacity-80"
+          style={({ pressed }) => ({
+            marginTop: 16,
+            borderRadius: 999,
+            backgroundColor: t.accent,
+            paddingHorizontal: 20,
+            paddingVertical: 10,
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          <Text className="text-sm font-semibold text-white">
+          <Text style={{ fontSize: 14, fontWeight: "600", color: t.onAccent }}>
             {action.label}
           </Text>
         </Pressable>
