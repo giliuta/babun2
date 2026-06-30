@@ -20,6 +20,15 @@ import { useUpdateAppointment } from "@/features/calendar/mutations";
 
 const CLOSED_PREFIX = "babun:closed-day:";
 
+// Persisted closure snapshot — so the «День закрыт» summary survives a reload
+// (the old code stored a bare "1" and lost the cash figures).
+type ClosedRecord = {
+  closedAt: string;
+  expectedCash: number;
+  actualCash: number;
+  delta: number;
+};
+
 function Row({
   label,
   value,
@@ -57,9 +66,20 @@ export default function CloseDayScreen() {
 
   const todayKey = useMemo(() => formatYMD(new Date()), []);
   const [actualCashStr, setActualCashStr] = useState("");
-  const [closed, setClosed] = useState(
-    () => getStorage().getRaw(`${CLOSED_PREFIX}${todayKey}`) === "1",
-  );
+  const [closedRec, setClosedRec] = useState<ClosedRecord | null>(() => {
+    const raw = getStorage().getRaw(`${CLOSED_PREFIX}${todayKey}`);
+    if (!raw) return null;
+    if (raw === "1") {
+      // legacy bare flag — closed, but the cash figures weren't saved
+      return { closedAt: "", expectedCash: 0, actualCash: 0, delta: 0 };
+    }
+    try {
+      return JSON.parse(raw) as ClosedRecord;
+    } catch {
+      return null;
+    }
+  });
+  const closed = closedRec !== null;
 
   const nameById = useMemo(
     () => new Map(clients.map((c) => [c.id, c.full_name])),
@@ -68,7 +88,7 @@ export default function CloseDayScreen() {
   const clientName = (a: Appointment) =>
     (a.client_id && nameById.get(a.client_id)) || a.comment || "Запись";
 
-  const { completed, inProgress, stillScheduled, unpaid, income } =
+  const { completed, inProgress, stillScheduled, unpaid, income, cash } =
     useMemo(() => {
       const day = appts.filter((a) => a.date === todayKey);
       const completed = day.filter((a) => a.status === "completed");
@@ -78,10 +98,21 @@ export default function CloseDayScreen() {
       );
       const unpaid = completed.filter((a) => getDebtAmount(a) > 0);
       const income = completed.reduce((s, a) => s + (a.total_amount || 0), 0);
-      return { completed, inProgress, stillScheduled, unpaid, income };
+      // Expected TILL cash = cash-method payments received on the day's
+      // appointments. Card/transfer/unpaid jobs never hit the till, so the old
+      // `income` (total invoiced) made the касса delta meaningless.
+      const cash = day.reduce(
+        (s, a) =>
+          s +
+          (a.payments ?? [])
+            .filter((p) => p.method === "cash")
+            .reduce((ps, p) => ps + (p.amount || 0), 0),
+        0,
+      );
+      return { completed, inProgress, stillScheduled, unpaid, income, cash };
     }, [appts, todayKey]);
 
-  const expectedCash = income;
+  const expectedCash = cash;
   const actualCash = Math.round(Number(actualCashStr.replace(",", ".")) || 0);
   const delta = actualCash - expectedCash;
 
@@ -113,20 +144,26 @@ export default function CloseDayScreen() {
   };
 
   const closeDay = () => {
-    getStorage().setRaw(`${CLOSED_PREFIX}${todayKey}`, "1");
-    setClosed(true);
+    const rec: ClosedRecord = {
+      closedAt: new Date().toISOString(),
+      expectedCash,
+      actualCash,
+      delta,
+    };
+    getStorage().setRaw(`${CLOSED_PREFIX}${todayKey}`, JSON.stringify(rec));
+    setClosedRec(rec);
     toast("День закрыт");
   };
   const reopen = () => {
     getStorage().remove(`${CLOSED_PREFIX}${todayKey}`);
-    setClosed(false);
+    setClosedRec(null);
   };
 
   return (
     <Screen edges={["top"]}>
       <ScreenHeader title="Закрыть день" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
-        {closed ? (
+        {closedRec ? (
           <View
             className="mx-3 mt-2 flex-row items-start gap-3 rounded-2xl p-4"
             style={{ backgroundColor: t.success + "1a" }}
@@ -145,12 +182,12 @@ export default function CloseDayScreen() {
                 День закрыт
               </Text>
               <Text className="mt-0.5 text-[13px]" style={{ color: t.sub }}>
-                Касса {formatEUR(actualCash)} ·{" "}
-                {delta === 0
+                Касса {formatEUR(closedRec.actualCash)} ·{" "}
+                {closedRec.delta === 0
                   ? "без расхождений"
-                  : delta > 0
-                    ? `+${formatEUR(delta)}`
-                    : `${formatEUR(delta)}`}
+                  : closedRec.delta > 0
+                    ? `+${formatEUR(closedRec.delta)}`
+                    : `${formatEUR(closedRec.delta)}`}
               </Text>
               <Pressable onPress={reopen} className="mt-2 active:opacity-70">
                 <Text
