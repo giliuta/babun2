@@ -6,14 +6,21 @@ import {
   Users,
   Wallet,
 } from "lucide-react-native";
+import { useThemeColors } from "@/theme/colors";
 
 export default function DashboardLayout() {
+  const t = useThemeColors();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#4338ca",
-        tabBarInactiveTintColor: "#737373",
+        tabBarActiveTintColor: t.accent,
+        tabBarInactiveTintColor: t.faint,
+        sceneStyle: { backgroundColor: t.canvas },
+        tabBarStyle: {
+          backgroundColor: t.surface,
+          borderTopColor: t.separator,
+        },
       }}
     >
       <Tabs.Screen

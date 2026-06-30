@@ -28,7 +28,8 @@ import {
 import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useClients } from "@/features/clients/queries";
 import {
   useChat,
@@ -56,6 +57,7 @@ function bodyOf(m: ChatMessage): string {
 }
 
 export default function ChatThreadScreen() {
+  const t = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const chat = useChat(id);
   const { data: clients = [] } = useClients();
@@ -141,9 +143,9 @@ export default function ChatThreadScreen() {
           <Pressable
             onPress={() => setLinkOpen(true)}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Link2 color={linkedClient ? COLORS.brand : COLORS.faint} size={ICON.sm} />
+            <Link2 color={linkedClient ? t.accent : t.faint} size={ICON.sm} />
           </Pressable>
         }
       />
@@ -166,29 +168,50 @@ export default function ChatThreadScreen() {
                 className={`my-0.5 max-w-[82%] ${out ? "self-end" : "self-start"}`}
               >
                 <View
-                  className={`rounded-2xl px-3.5 py-2 ${out ? "bg-brand" : "bg-neutral-100"}`}
+                  className="rounded-2xl px-3.5 py-2"
+                  style={{
+                    backgroundColor: out
+                      ? t.accent
+                      : t.dark
+                        ? "rgba(255,255,255,0.07)"
+                        : "#eef1f5",
+                  }}
                 >
                   {quoted ? (
                     <View
-                      className={`mb-1 rounded-md border-l-2 px-2 py-1 ${out ? "border-white/60 bg-white/15" : "border-brand/50 bg-black/5"}`}
+                      className="mb-1 rounded-md border-l-2 px-2 py-1"
+                      style={{
+                        borderColor: out ? "rgba(255,255,255,0.6)" : t.accent,
+                        backgroundColor: out
+                          ? "rgba(255,255,255,0.15)"
+                          : t.dark
+                            ? "rgba(255,255,255,0.06)"
+                            : "rgba(11,18,32,0.05)",
+                      }}
                     >
                       <Text
-                        className={`text-[11px] ${out ? "text-white/80" : "text-neutral-500"}`}
+                        className="text-[11px]"
+                        style={{ color: out ? "rgba(255,255,255,0.8)" : t.sub }}
                         numberOfLines={1}
                       >
                         {bodyOf(quoted)}
                       </Text>
                     </View>
                   ) : null}
-                  <Text className={`text-base ${out ? "text-white" : "text-neutral-900"}`}>
+                  <Text
+                    className="text-base"
+                    style={{ color: out ? "#fff" : t.ink }}
+                  >
                     {bodyOf(item)}
                   </Text>
                 </View>
                 <View className={`mt-0.5 flex-row items-center gap-1 px-1 ${out ? "justify-end" : ""}`}>
                   {item.is_starred ? (
-                    <Star color={COLORS.warning} size={11} fill={COLORS.warning} />
+                    <Star color={t.warning} size={11} fill={t.warning} />
                   ) : null}
-                  <Text className="text-[10px] text-neutral-400">{msgTime(item.timestamp)}</Text>
+                  <Text className="text-[10px]" style={{ color: t.faint }}>
+                    {msgTime(item.timestamp)}
+                  </Text>
                 </View>
               </Pressable>
             );
@@ -201,38 +224,58 @@ export default function ChatThreadScreen() {
 
         {/* reply quote bar */}
         {replyTo ? (
-          <View className="flex-row items-center border-t border-neutral-100 bg-neutral-50 px-3 py-2">
-            <View className="mr-2 h-8 w-1 rounded-full bg-brand" />
-            <Text className="flex-1 text-sm text-neutral-600" numberOfLines={1}>
+          <View
+            className="flex-row items-center border-t px-3 py-2"
+            style={{ borderColor: t.separator, backgroundColor: t.canvas }}
+          >
+            <View
+              className="mr-2 h-8 w-1 rounded-full"
+              style={{ backgroundColor: t.accent }}
+            />
+            <Text
+              className="flex-1 text-sm"
+              style={{ color: t.sub }}
+              numberOfLines={1}
+            >
               {bodyOf(replyTo)}
             </Text>
             <Pressable onPress={() => setReplyTo(null)} hitSlop={8}>
-              <X color={COLORS.sub} size={16} />
+              <X color={t.sub} size={16} />
             </Pressable>
           </View>
         ) : null}
 
         {/* composer */}
-        <View className="flex-row items-end gap-2 border-t border-neutral-200 bg-white px-3 py-2 pb-6">
+        <View
+          className="flex-row items-end gap-2 border-t px-3 py-2 pb-6"
+          style={{ borderColor: t.separator, backgroundColor: t.surface }}
+        >
           <Pressable
             onPress={() => setQrOpen(true)}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Zap color={COLORS.brand} size={ICON.sm} />
+            <Zap color={t.accent} size={ICON.sm} />
           </Pressable>
           <TextInput
             value={draft}
             onChangeText={setDraft}
             onBlur={persistDraft}
             placeholder="Сообщение…"
-            placeholderTextColor={COLORS.faint}
+            placeholderTextColor={t.placeholder}
+            selectionColor={t.accent}
+            keyboardAppearance={t.dark ? "dark" : "light"}
             multiline
-            className="max-h-24 flex-1 rounded-2xl bg-neutral-100 px-4 py-2.5 text-base text-neutral-900"
+            className="max-h-24 flex-1 rounded-2xl px-4 py-2.5 text-base"
+            style={{
+              backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+              color: t.ink,
+            }}
           />
           <Pressable
             onPress={submit}
             disabled={!draft.trim()}
-            className={`h-10 w-10 items-center justify-center rounded-full ${draft.trim() ? "bg-brand active:opacity-80" : "bg-neutral-200"}`}
+            className={`h-10 w-10 items-center justify-center rounded-full ${draft.trim() ? "active:opacity-80" : ""}`}
+            style={{ backgroundColor: draft.trim() ? t.accent : t.disabledFill }}
           >
             <Send color="#fff" size={18} />
           </Pressable>
@@ -241,8 +284,15 @@ export default function ChatThreadScreen() {
 
       {/* message context menu */}
       <Modal visible={!!menuMsg} transparent animationType="fade" onRequestClose={() => setMenuMsg(null)}>
-        <Pressable className="flex-1 justify-end bg-black/30" onPress={() => setMenuMsg(null)}>
-          <View className="m-3 overflow-hidden rounded-2xl bg-white">
+        <Pressable
+          className="flex-1 justify-end"
+          style={{ backgroundColor: t.scrim }}
+          onPress={() => setMenuMsg(null)}
+        >
+          <View
+            className="m-3 overflow-hidden rounded-2xl"
+            style={{ backgroundColor: t.surface }}
+          >
             {[
               {
                 label: "Ответить",
@@ -273,10 +323,14 @@ export default function ChatThreadScreen() {
               <Pressable
                 key={a.label}
                 onPress={a.onPress}
-                className={`flex-row items-center gap-3 px-4 py-3.5 active:bg-neutral-50 ${i > 0 ? "border-t border-neutral-100" : ""}`}
+                className={`flex-row items-center gap-3 px-4 py-3.5 active:opacity-60 ${i > 0 ? "border-t" : ""}`}
+                style={i > 0 ? { borderColor: t.separator } : undefined}
               >
-                <a.icon color={a.danger ? COLORS.danger : COLORS.body} size={ICON.sm} />
-                <Text className={`text-base ${a.danger ? "text-danger" : "text-neutral-900"}`}>
+                <a.icon color={a.danger ? t.danger : t.body} size={ICON.sm} />
+                <Text
+                  className="text-base"
+                  style={{ color: a.danger ? t.danger : t.ink }}
+                >
                   {a.label}
                 </Text>
               </Pressable>
@@ -287,9 +341,18 @@ export default function ChatThreadScreen() {
 
       {/* quick replies */}
       <Modal visible={qrOpen} transparent animationType="slide" onRequestClose={() => setQrOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setQrOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 max-h-[70%] rounded-t-3xl bg-white p-4 pb-8">
-          <Text className="mb-2 text-lg font-bold text-neutral-900">Быстрые ответы</Text>
+        <Pressable
+          className="flex-1"
+          style={{ backgroundColor: t.scrim }}
+          onPress={() => setQrOpen(false)}
+        />
+        <View
+          className="absolute bottom-0 left-0 right-0 max-h-[70%] rounded-t-3xl p-4 pb-8"
+          style={{ backgroundColor: t.surface }}
+        >
+          <Text className="mb-2 text-lg font-bold" style={{ color: t.ink }}>
+            Быстрые ответы
+          </Text>
           <FlatList
             data={QUICK_REPLIES}
             keyExtractor={(q) => q.id}
@@ -302,12 +365,20 @@ export default function ChatThreadScreen() {
                     setDraft((d) => (d ? `${d} ${variant.text}` : variant.text));
                     setQrOpen(false);
                   }}
-                  className="border-b border-neutral-100 py-3 active:opacity-70"
+                  className="border-b py-3 active:opacity-70"
+                  style={{ borderColor: t.separator }}
                 >
-                  <Text className="text-sm font-semibold text-neutral-900">
+                  <Text
+                    className="text-sm font-semibold"
+                    style={{ color: t.ink }}
+                  >
                     {item.emoji} {item.title}
                   </Text>
-                  <Text className="mt-0.5 text-sm text-neutral-500" numberOfLines={2}>
+                  <Text
+                    className="mt-0.5 text-sm"
+                    style={{ color: t.sub }}
+                    numberOfLines={2}
+                  >
                     {variant.text}
                   </Text>
                 </Pressable>
@@ -319,10 +390,19 @@ export default function ChatThreadScreen() {
 
       {/* link client */}
       <Modal visible={linkOpen} transparent animationType="slide" onRequestClose={() => setLinkOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setLinkOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 h-[70%] rounded-t-3xl bg-white">
+        <Pressable
+          className="flex-1"
+          style={{ backgroundColor: t.scrim }}
+          onPress={() => setLinkOpen(false)}
+        />
+        <View
+          className="absolute bottom-0 left-0 right-0 h-[70%] rounded-t-3xl"
+          style={{ backgroundColor: t.surface }}
+        >
           <View className="flex-row items-center justify-between px-4 py-3">
-            <Text className="text-lg font-bold text-neutral-900">Привязать клиента</Text>
+            <Text className="text-lg font-bold" style={{ color: t.ink }}>
+              Привязать клиента
+            </Text>
             {linkedClient ? (
               <Pressable
                 onPress={() => {
@@ -330,18 +410,31 @@ export default function ChatThreadScreen() {
                   setLinkOpen(false);
                 }}
               >
-                <Text className="text-sm font-medium text-danger">Отвязать</Text>
+                <Text
+                  className="text-sm font-medium"
+                  style={{ color: t.danger }}
+                >
+                  Отвязать
+                </Text>
               </Pressable>
             ) : null}
           </View>
-          <View className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl bg-neutral-100 px-3">
-            <Search color={COLORS.faint} size={ICON.sm} />
+          <View
+            className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl px-3"
+            style={{
+              backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+            }}
+          >
+            <Search color={t.faint} size={ICON.sm} />
             <TextInput
               value={clientQuery}
               onChangeText={setClientQuery}
               placeholder="Поиск клиента"
-              placeholderTextColor={COLORS.faint}
-              className="flex-1 py-2 text-base text-neutral-900"
+              placeholderTextColor={t.placeholder}
+              selectionColor={t.accent}
+              keyboardAppearance={t.dark ? "dark" : "light"}
+              className="flex-1 py-2 text-base"
+              style={{ color: t.ink }}
             />
           </View>
           <FlatList
@@ -354,20 +447,29 @@ export default function ChatThreadScreen() {
                   linkClient.mutate({ chatId: chat.id, clientId: item.id });
                   setLinkOpen(false);
                 }}
-                className="flex-row items-center justify-between px-4 py-3 active:bg-neutral-50"
+                className="flex-row items-center justify-between px-4 py-3 active:opacity-60"
               >
                 <View>
-                  <Text className="text-base text-neutral-900">{item.full_name}</Text>
+                  <Text className="text-base" style={{ color: t.ink }}>
+                    {item.full_name}
+                  </Text>
                   {item.phone ? (
-                    <Text className="text-sm text-neutral-500">{item.phone}</Text>
+                    <Text className="text-sm" style={{ color: t.sub }}>
+                      {item.phone}
+                    </Text>
                   ) : null}
                 </View>
                 {chat.client_id === item.id ? (
-                  <Star color={COLORS.brand} size={ICON.sm} fill={COLORS.brand} />
+                  <Star color={t.accent} size={ICON.sm} fill={t.accent} />
                 ) : null}
               </Pressable>
             )}
-            ItemSeparatorComponent={() => <View className="ml-4 h-px bg-neutral-100" />}
+            ItemSeparatorComponent={() => (
+              <View
+                className="ml-4 h-px"
+                style={{ backgroundColor: t.separator }}
+              />
+            )}
           />
         </View>
       </Modal>

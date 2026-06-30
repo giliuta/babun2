@@ -11,7 +11,8 @@ import {
 import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useChats } from "@/features/chats/store";
 
 const CHANNELS: ChatChannel[] = ["whatsapp", "telegram", "instagram", "sms"];
@@ -42,12 +43,13 @@ function shortTime(iso: string): string {
 }
 
 function ChatRow({ c, onPress }: { c: Chat; onPress: () => void }) {
+  const t = useThemeColors();
   const color = CHANNEL_COLORS[c.channel] ?? "#6b7280";
   const initial = (c.contact_name || "?").trim().slice(0, 1).toUpperCase();
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center px-4 py-3 active:bg-neutral-100"
+      className="flex-row items-center px-4 py-3 active:opacity-60"
     >
       <View
         className="h-12 w-12 items-center justify-center rounded-full"
@@ -60,12 +62,13 @@ function ChatRow({ c, onPress }: { c: Chat; onPress: () => void }) {
       <View className="ml-3 flex-1">
         <View className="flex-row items-center justify-between">
           <Text
-            className="flex-1 pr-2 text-base font-semibold text-neutral-900"
+            className="flex-1 pr-2 text-base font-semibold"
+            style={{ color: t.ink }}
             numberOfLines={1}
           >
             {c.contact_name || "Без имени"}
           </Text>
-          <Text className="text-xs text-neutral-400">
+          <Text className="text-xs" style={{ color: t.faint }}>
             {shortTime(c.last_message_at)}
           </Text>
         </View>
@@ -73,13 +76,20 @@ function ChatRow({ c, onPress }: { c: Chat; onPress: () => void }) {
           <Text className="text-[11px] font-medium" style={{ color }}>
             {CHANNEL_LABELS[c.channel]}
           </Text>
-          <Text className="px-1 text-neutral-300">·</Text>
-          <Text className="flex-1 text-sm text-neutral-500" numberOfLines={1}>
+          <Text className="px-1" style={{ color: t.faint }}>·</Text>
+          <Text
+            className="flex-1 text-sm"
+            style={{ color: t.sub }}
+            numberOfLines={1}
+          >
             {lastPreview(c)}
           </Text>
           {c.unread_count > 0 ? (
-            <View className="ml-2 h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5">
-              <Text className="text-[11px] font-bold text-white">
+            <View
+              className="ml-2 h-5 min-w-[20px] items-center justify-center rounded-full px-1.5"
+              style={{ backgroundColor: t.accent }}
+            >
+              <Text className="text-[11px] font-bold" style={{ color: "#fff" }}>
                 {c.unread_count}
               </Text>
             </View>
@@ -91,6 +101,7 @@ function ChatRow({ c, onPress }: { c: Chat; onPress: () => void }) {
 }
 
 export default function ChatsListScreen() {
+  const t = useThemeColors();
   const router = useRouter();
   const { data: chats = [], isLoading } = useChats();
   const [query, setQuery] = useState("");
@@ -123,15 +134,21 @@ export default function ChatsListScreen() {
         subtitle={`${chats.length} диалогов${unread > 0 ? ` · ${unread} непрочитанных` : ""}`}
       />
 
-      <View className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl bg-neutral-100 px-3">
-        <Search color={COLORS.faint} size={ICON.sm} />
+      <View
+        className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl px-3"
+        style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+      >
+        <Search color={t.faint} size={ICON.sm} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Поиск по имени или тексту"
-          placeholderTextColor={COLORS.faint}
+          placeholderTextColor={t.placeholder}
+          selectionColor={t.accent}
+          keyboardAppearance={t.dark ? "dark" : "light"}
           clearButtonMode="while-editing"
-          className="flex-1 py-2.5 text-base text-neutral-900"
+          className="flex-1 py-2.5 text-base"
+          style={{ color: t.ink }}
         />
       </View>
       <ScrollView
@@ -142,17 +159,23 @@ export default function ChatsListScreen() {
       >
         {[null, ...CHANNELS].map((ch) => {
           const active = channel === ch;
-          const color = ch ? CHANNEL_COLORS[ch] : COLORS.brand;
+          const color = ch ? CHANNEL_COLORS[ch] : t.accent;
           return (
             <Pressable
               key={ch ?? "all"}
               onPress={() => setChannel(ch)}
               className="rounded-full px-3.5 py-1.5"
-              style={{ backgroundColor: active ? color : "#f5f5f5" }}
+              style={{
+                backgroundColor: active
+                  ? color
+                  : t.dark
+                    ? "rgba(255,255,255,0.07)"
+                    : "#eef1f5",
+              }}
             >
               <Text
                 className="text-sm font-medium"
-                style={{ color: active ? "#fff" : "#404040" }}
+                style={{ color: active ? "#fff" : t.body }}
               >
                 {ch ? CHANNEL_LABELS[ch] : "Все"}
               </Text>
@@ -173,7 +196,10 @@ export default function ChatsListScreen() {
             <ChatRow c={item} onPress={() => router.push(`/chats/${item.id}`)} />
           )}
           ItemSeparatorComponent={() => (
-            <View className="ml-[68px] h-px bg-neutral-100" />
+            <View
+              className="ml-[68px] h-px"
+              style={{ backgroundColor: t.separator }}
+            />
           )}
           ListEmptyComponent={<EmptyState fill title="Нет диалогов" />}
         />

@@ -11,12 +11,14 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useToast } from "@/components/ui/Toast";
 import { useTeams } from "@/features/reference/queries";
 import { useEquipment, useSaveEquipment } from "@/features/inventory/queries";
 
 export default function InventoryScreen() {
+  const th = useThemeColors();
   const { data: items = [], isLoading } = useEquipment();
   const { data: teams = [] } = useTeams();
   const save = useSaveEquipment();
@@ -91,9 +93,9 @@ export default function InventoryScreen() {
           <Pressable
             onPress={openNew}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={th.accent} size={ICON.md} />
           </Pressable>
         }
       />
@@ -108,19 +110,19 @@ export default function InventoryScreen() {
           renderItem={({ item }) => (
             <Pressable
               onPress={() => openEdit(item)}
-              className="flex-row items-center px-4 py-3 active:bg-neutral-50"
+              className="flex-row items-center px-4 py-3 active:opacity-60"
             >
               <View
                 className="mr-3 h-9 w-9 items-center justify-center rounded-xl"
-                style={{ backgroundColor: (item.color ?? COLORS.brand) + "1f" }}
+                style={{ backgroundColor: (item.color ?? th.accent) + "1f" }}
               >
-                <Package color={item.color ?? COLORS.brand} size={ICON.sm} />
+                <Package color={item.color ?? th.accent} size={ICON.sm} />
               </View>
               <View className="flex-1 pr-2">
-                <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
+                <Text className="text-base font-semibold" style={{ color: th.ink }} numberOfLines={1}>
                   {item.name}
                 </Text>
-                <Text className="text-sm text-neutral-500" numberOfLines={1}>
+                <Text className="text-sm" style={{ color: th.sub }} numberOfLines={1}>
                   {[
                     item.category,
                     item.serial && `№ ${item.serial}`,
@@ -133,7 +135,7 @@ export default function InventoryScreen() {
                 </Text>
               </View>
               <Pressable onPress={() => remove(item.id)} hitSlop={8}>
-                <Trash2 color={COLORS.danger} size={ICON.sm} />
+                <Trash2 color={th.danger} size={ICON.sm} />
               </Pressable>
             </Pressable>
           )}
@@ -149,9 +151,12 @@ export default function InventoryScreen() {
       )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">
+        <Pressable className="flex-1" style={{ backgroundColor: th.scrim }} onPress={() => setOpen(false)} />
+        <View
+          className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8"
+          style={{ backgroundColor: th.surface }}
+        >
+          <Text className="mb-3 text-lg font-bold" style={{ color: th.ink }}>
             {editing ? "Позиция" : "Новая позиция"}
           </Text>
           <Field label="Название" value={name} onChangeText={setName} placeholder="Манометр" autoFocus />
@@ -165,15 +170,26 @@ export default function InventoryScreen() {
           </View>
           {teams.length > 0 ? (
             <>
-              <Text className="mb-2 text-xs font-medium text-neutral-500">Бригада</Text>
+              <Text className="mb-2 text-xs font-medium" style={{ color: th.sub }}>Бригада</Text>
               <View className="mb-3 flex-row flex-wrap gap-2">
                 {[{ id: null as string | null, name: "На полке" }, ...teams].map((t) => (
                   <Pressable
                     key={t.id ?? "shelf"}
                     onPress={() => setTeamId(t.id)}
-                    className={`rounded-full px-3 py-1.5 ${teamId === t.id ? "bg-brand" : "bg-neutral-100"}`}
+                    className="rounded-full px-3 py-1.5"
+                    style={{
+                      backgroundColor:
+                        teamId === t.id
+                          ? th.accent
+                          : th.dark
+                            ? "rgba(255,255,255,0.07)"
+                            : "#eef1f5",
+                    }}
                   >
-                    <Text className={`text-sm ${teamId === t.id ? "text-white" : "text-neutral-700"}`}>
+                    <Text
+                      className="text-sm"
+                      style={{ color: teamId === t.id ? th.onAccent : th.sub }}
+                    >
                       {t.name}
                     </Text>
                   </Pressable>
@@ -191,7 +207,7 @@ export default function InventoryScreen() {
               }}
               className="mt-1 items-center py-3 active:opacity-70"
             >
-              <Text className="text-base font-medium text-danger">Удалить</Text>
+              <Text className="text-base font-medium" style={{ color: th.danger }}>Удалить</Text>
             </Pressable>
           ) : null}
         </View>

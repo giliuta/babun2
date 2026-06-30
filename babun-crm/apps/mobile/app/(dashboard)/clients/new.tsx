@@ -6,8 +6,10 @@ import { Screen } from "@/components/ui/Screen";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useCreateClient } from "@/features/clients/queries";
+import { useThemeColors } from "@/theme/colors";
 
 export default function NewClientScreen() {
+  const t = useThemeColors();
   const router = useRouter();
   const create = useCreateClient();
   const [phone, setPhone] = useState("");
@@ -32,14 +34,20 @@ export default function NewClientScreen() {
 
   return (
     <Screen edges={["top"]}>
-      <View className="flex-row items-center border-b border-neutral-100 px-2 py-2">
+      <View
+        className="flex-row items-center border-b px-2 py-2"
+        style={{ borderColor: t.separator }}
+      >
         <Pressable
           onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-neutral-100"
+          className="h-9 w-9 items-center justify-center rounded-lg active:opacity-60"
         >
-          <ChevronLeft color="#404040" size={22} />
+          <ChevronLeft color={t.body} size={22} />
         </Pressable>
-        <Text className="flex-1 text-base font-semibold text-neutral-900">
+        <Text
+          className="flex-1 text-base font-semibold"
+          style={{ color: t.ink }}
+        >
           Новый клиент
         </Text>
       </View>
@@ -60,7 +68,9 @@ export default function NewClientScreen() {
           placeholder="Имя клиента"
         />
         {error ? (
-          <Text className="mb-3 text-sm text-danger">{error}</Text>
+          <Text className="mb-3 text-sm" style={{ color: t.danger }}>
+            {error}
+          </Text>
         ) : null}
         <Button
           label="Создать"

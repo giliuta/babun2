@@ -8,7 +8,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useFinanceCategories } from "@/features/finances/queries";
 import {
   useDeleteTemplate,
@@ -21,6 +22,7 @@ export default function TemplatesScreen() {
   const { data: categories = [] } = useFinanceCategories();
   const insert = useInsertTemplate();
   const del = useDeleteTemplate();
+  const t = useThemeColors();
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -61,9 +63,9 @@ export default function TemplatesScreen() {
           <Pressable
             onPress={() => setOpen(true)}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={t.accent} size={ICON.md} />
           </Pressable>
         }
       />
@@ -73,25 +75,30 @@ export default function TemplatesScreen() {
         <FlatList
           style={{ flex: 1 }}
           data={templates}
-          keyExtractor={(t) => t.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={{ flexGrow: 1, paddingTop: 8 }}
           renderItem={({ item }) => (
             <View className="flex-row items-center px-4 py-3">
               <View className="flex-1 pr-2">
-                <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
+                <Text
+                  className="text-base font-semibold"
+                  style={{ color: t.ink }}
+                  numberOfLines={1}
+                >
                   {item.name}
                 </Text>
-                <Text className="text-xs text-neutral-400">
+                <Text className="text-xs" style={{ color: t.faint }}>
                   {item.kind === "expense" ? "Расход" : "Доход"}
                 </Text>
               </View>
               <Text
-                className={`mr-3 text-base font-bold tabular-nums ${item.kind === "expense" ? "text-danger" : "text-success"}`}
+                className="mr-3 text-base font-bold tabular-nums"
+                style={{ color: item.kind === "expense" ? t.danger : t.success }}
               >
                 {formatEUR(Number(item.amount))}
               </Text>
               <Pressable onPress={() => confirmDelete(item.id, item.name)} hitSlop={8}>
-                <Trash2 color={COLORS.danger} size={ICON.sm} />
+                <Trash2 color={t.danger} size={ICON.sm} />
               </Pressable>
             </View>
           )}
@@ -107,10 +114,22 @@ export default function TemplatesScreen() {
       )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">Новый шаблон</Text>
-          <View className="mb-3 flex-row rounded-xl bg-neutral-200 p-1">
+        <Pressable
+          className="flex-1"
+          style={{ backgroundColor: t.scrim }}
+          onPress={() => setOpen(false)}
+        />
+        <View
+          className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8"
+          style={{ backgroundColor: t.surface }}
+        >
+          <Text className="mb-3 text-lg font-bold" style={{ color: t.ink }}>
+            Новый шаблон
+          </Text>
+          <View
+            className="mb-3 flex-row rounded-xl p-1"
+            style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+          >
             {(["expense", "income"] as const).map((k) => (
               <Pressable
                 key={k}
@@ -118,10 +137,19 @@ export default function TemplatesScreen() {
                   setKind(k);
                   setCategoryId(null);
                 }}
-                className={`flex-1 items-center rounded-lg py-2 ${kind === k ? "bg-white" : ""}`}
+                className="flex-1 items-center rounded-lg py-2"
+                style={kind === k ? { backgroundColor: t.surface } : undefined}
               >
                 <Text
-                  className={`text-sm font-semibold ${kind === k ? (k === "expense" ? "text-danger" : "text-success") : "text-neutral-500"}`}
+                  className="text-sm font-semibold"
+                  style={{
+                    color:
+                      kind === k
+                        ? k === "expense"
+                          ? t.danger
+                          : t.success
+                        : t.sub,
+                  }}
                 >
                   {k === "expense" ? "Расход" : "Доход"}
                 </Text>
@@ -142,10 +170,19 @@ export default function TemplatesScreen() {
                 <Pressable
                   key={c.id}
                   onPress={() => setCategoryId(categoryId === c.id ? null : c.id)}
-                  className={`rounded-full px-3 py-1.5 ${categoryId === c.id ? "bg-brand" : "bg-neutral-100"}`}
+                  className="rounded-full px-3 py-1.5"
+                  style={{
+                    backgroundColor:
+                      categoryId === c.id
+                        ? t.accent
+                        : t.dark
+                          ? "rgba(255,255,255,0.07)"
+                          : "#eef1f5",
+                  }}
                 >
                   <Text
-                    className={`text-sm ${categoryId === c.id ? "text-white" : "text-neutral-700"}`}
+                    className="text-sm"
+                    style={{ color: categoryId === c.id ? t.onAccent : t.sub }}
                   >
                     {c.name}
                   </Text>

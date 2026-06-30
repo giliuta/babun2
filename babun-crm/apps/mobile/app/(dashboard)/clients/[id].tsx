@@ -33,6 +33,7 @@ import type { Client } from "@babun/shared/local/clients";
 import { buildStats } from "@babun/shared/local/selectors/client-stats";
 import { buildServiceDue } from "@babun/shared/local/selectors/service-due";
 import { Screen } from "@/components/ui/Screen";
+import { useThemeColors } from "@/theme/colors";
 import { useClient, useUpdateClient } from "@/features/clients/queries";
 import { useClientAppointments } from "@/features/clients/appointments";
 import ClientHeader from "@/features/clients/ClientHeader";
@@ -46,6 +47,7 @@ import PersonalBlock from "@/features/clients/blocks/PersonalBlock";
 import MetaBlock from "@/features/clients/blocks/MetaBlock";
 
 export default function ClientDetailScreen() {
+  const t = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -69,12 +71,17 @@ export default function ClientDetailScreen() {
   if (!client) {
     return (
       <Screen className="items-center justify-center px-6">
-        <Text className="mb-3 text-sm text-neutral-500">Клиент не найден</Text>
+        <Text className="mb-3 text-sm" style={{ color: t.sub }}>
+          Клиент не найден
+        </Text>
         <Pressable
           onPress={() => router.back()}
-          className="rounded-xl bg-brand px-4 py-2 active:opacity-80"
+          className="rounded-xl px-4 py-2 active:opacity-80"
+          style={{ backgroundColor: t.accent }}
         >
-          <Text className="font-semibold text-white">← К списку</Text>
+          <Text className="font-semibold" style={{ color: t.onAccent }}>
+            ← К списку
+          </Text>
         </Pressable>
       </Screen>
     );
@@ -117,23 +124,29 @@ export default function ClientDetailScreen() {
   return (
     <Screen edges={["top"]}>
       {/* Chrome: back + title + ⋯ menu */}
-      <View className="flex-row items-center border-b border-neutral-100 px-2 py-2">
+      <View
+        className="flex-row items-center border-b px-2 py-2"
+        style={{ borderColor: t.separator }}
+      >
         <Pressable
           onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-neutral-100"
+          className="h-9 w-9 items-center justify-center rounded-lg active:opacity-60"
           accessibilityLabel="Назад"
         >
-          <ChevronLeft color="#404040" size={22} />
+          <ChevronLeft color={t.body} size={22} />
         </Pressable>
-        <Text className="flex-1 text-base font-semibold text-neutral-900">
+        <Text
+          className="flex-1 text-base font-semibold"
+          style={{ color: t.ink }}
+        >
           Клиент
         </Text>
         <Pressable
           onPress={() => setMenuOpen((v) => !v)}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-neutral-100"
+          className="h-9 w-9 items-center justify-center rounded-lg active:opacity-60"
           accessibilityLabel="Ещё"
         >
-          <MoreHorizontal color="#404040" size={22} />
+          <MoreHorizontal color={t.body} size={22} />
         </Pressable>
       </View>
 
@@ -144,15 +157,18 @@ export default function ClientDetailScreen() {
             onPress={() => setMenuOpen(false)}
             className="absolute inset-0 z-10"
           />
-          <View className="absolute right-3 top-12 z-20 w-52 overflow-hidden rounded-xl bg-white shadow-lg">
+          <View
+            className="absolute right-3 top-12 z-20 w-52 overflow-hidden rounded-xl shadow-lg"
+            style={{ backgroundColor: t.surface }}
+          >
             <MenuItem
               label="Написать SMS"
               onPress={onMessage}
               disabled={!phoneDigits}
             />
-            <View className="h-px bg-neutral-100" />
+            <View className="h-px" style={{ backgroundColor: t.separator }} />
             <MenuItem label="Поделиться" onPress={onShare} />
-            <View className="h-px bg-neutral-100" />
+            <View className="h-px" style={{ backgroundColor: t.separator }} />
             <MenuItem
               label={
                 client.blacklisted
@@ -210,14 +226,16 @@ function MenuItem({
   disabled?: boolean;
   danger?: boolean;
 }) {
+  const t = useThemeColors();
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className={`px-4 py-3 active:bg-neutral-50 ${disabled ? "opacity-40" : ""}`}
+      className={`px-4 py-3 active:opacity-60 ${disabled ? "opacity-40" : ""}`}
     >
       <Text
-        className={`text-sm font-medium ${danger ? "text-danger" : "text-neutral-900"}`}
+        className="text-sm font-medium"
+        style={{ color: danger ? t.danger : t.ink }}
       >
         {label}
       </Text>

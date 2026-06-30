@@ -11,8 +11,8 @@ import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Button } from "@/components/ui/Button";
-import { COLORS } from "@/components/ui/tokens";
 import { useToast } from "@/components/ui/Toast";
+import { useThemeColors } from "@/theme/colors";
 import { formatYMD } from "@/features/appointments/helpers";
 import { useAppointments } from "@/features/calendar/queries";
 import { useClients } from "@/features/clients/queries";
@@ -29,11 +29,18 @@ function Row({
   value: string;
   tone?: "green" | "red";
 }) {
+  const t = useThemeColors();
   return (
     <View className="flex-row items-center justify-between px-4 py-2">
-      <Text className="text-[15px] text-neutral-500">{label}</Text>
+      <Text className="text-[15px]" style={{ color: t.sub }}>
+        {label}
+      </Text>
       <Text
-        className={`text-[15px] tabular-nums ${tone === "green" ? "font-bold text-success" : tone === "red" ? "font-bold text-danger" : "font-semibold text-neutral-900"}`}
+        className={`text-[15px] tabular-nums ${tone ? "font-bold" : "font-semibold"}`}
+        style={{
+          color:
+            tone === "green" ? t.success : tone === "red" ? t.danger : t.ink,
+        }}
       >
         {value}
       </Text>
@@ -46,6 +53,7 @@ export default function CloseDayScreen() {
   const { data: clients = [] } = useClients();
   const update = useUpdateAppointment();
   const toast = useToast();
+  const t = useThemeColors();
 
   const todayKey = useMemo(() => formatYMD(new Date()), []);
   const [actualCashStr, setActualCashStr] = useState("");
@@ -119,15 +127,24 @@ export default function CloseDayScreen() {
       <ScreenHeader title="Закрыть день" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
         {closed ? (
-          <View className="mx-3 mt-2 flex-row items-start gap-3 rounded-2xl bg-success/10 p-4">
-            <View className="h-10 w-10 items-center justify-center rounded-xl bg-success">
+          <View
+            className="mx-3 mt-2 flex-row items-start gap-3 rounded-2xl p-4"
+            style={{ backgroundColor: t.success + "1a" }}
+          >
+            <View
+              className="h-10 w-10 items-center justify-center rounded-xl"
+              style={{ backgroundColor: t.success }}
+            >
               <Check color="#fff" size={22} strokeWidth={2.5} />
             </View>
             <View className="flex-1">
-              <Text className="text-[17px] font-semibold text-neutral-900">
+              <Text
+                className="text-[17px] font-semibold"
+                style={{ color: t.ink }}
+              >
                 День закрыт
               </Text>
-              <Text className="mt-0.5 text-[13px] text-neutral-500">
+              <Text className="mt-0.5 text-[13px]" style={{ color: t.sub }}>
                 Касса {formatEUR(actualCash)} ·{" "}
                 {delta === 0
                   ? "без расхождений"
@@ -136,7 +153,10 @@ export default function CloseDayScreen() {
                     : `${formatEUR(delta)}`}
               </Text>
               <Pressable onPress={reopen} className="mt-2 active:opacity-70">
-                <Text className="text-[13px] font-semibold text-success underline">
+                <Text
+                  className="text-[13px] font-semibold underline"
+                  style={{ color: t.success }}
+                >
                   Открыть обратно
                 </Text>
               </Pressable>
@@ -156,42 +176,74 @@ export default function CloseDayScreen() {
             {unpaid.map((apt) => (
               <View
                 key={apt.id}
-                className="mx-3 my-1 flex-row items-center gap-3 rounded-xl bg-danger/5 p-2"
+                className="mx-3 my-1 flex-row items-center gap-3 rounded-xl p-2"
+                style={{ backgroundColor: t.danger + "0d" }}
               >
                 <View className="flex-1">
-                  <Text className="text-[15px] font-semibold text-neutral-900" numberOfLines={1}>
+                  <Text
+                    className="text-[15px] font-semibold"
+                    style={{ color: t.ink }}
+                    numberOfLines={1}
+                  >
                     {clientName(apt)}
                   </Text>
-                  <Text className="text-xs text-neutral-500 tabular-nums">
+                  <Text
+                    className="text-xs tabular-nums"
+                    style={{ color: t.sub }}
+                  >
                     {apt.time_start} · долг {formatEUR(getDebtAmount(apt))}
                   </Text>
                 </View>
                 <Pressable
                   onPress={() => markPaidCash(apt)}
-                  className="h-9 items-center justify-center rounded-lg bg-success px-3 active:opacity-80"
+                  className="h-9 items-center justify-center rounded-lg px-3 active:opacity-80"
+                  style={{ backgroundColor: t.success }}
                 >
-                  <Text className="text-[13px] font-semibold text-white">Оплачено</Text>
+                  <Text
+                    className="text-[13px] font-semibold"
+                    style={{ color: "#fff" }}
+                  >
+                    Оплачено
+                  </Text>
                 </Pressable>
               </View>
             ))}
             {stillScheduled.map((apt) => (
               <View
                 key={apt.id}
-                className="mx-3 my-1 flex-row items-center gap-3 rounded-xl bg-warning/10 p-2"
+                className="mx-3 my-1 flex-row items-center gap-3 rounded-xl p-2"
+                style={{ backgroundColor: t.warning + "1a" }}
               >
                 <View className="flex-1">
-                  <Text className="text-[15px] font-semibold text-neutral-900" numberOfLines={1}>
+                  <Text
+                    className="text-[15px] font-semibold"
+                    style={{ color: t.ink }}
+                    numberOfLines={1}
+                  >
                     {clientName(apt)}
                   </Text>
-                  <Text className="text-xs text-neutral-500 tabular-nums">
+                  <Text
+                    className="text-xs tabular-nums"
+                    style={{ color: t.sub }}
+                  >
                     {apt.time_start}–{apt.time_end} · ещё в плане
                   </Text>
                 </View>
                 <Pressable
                   onPress={() => moveToTomorrow(apt)}
-                  className="h-9 items-center justify-center rounded-lg bg-neutral-100 px-3 active:opacity-80"
+                  className="h-9 items-center justify-center rounded-lg px-3 active:opacity-80"
+                  style={{
+                    backgroundColor: t.dark
+                      ? "rgba(255,255,255,0.07)"
+                      : "#eef1f5",
+                  }}
                 >
-                  <Text className="text-[13px] font-semibold text-neutral-700">На завтра</Text>
+                  <Text
+                    className="text-[13px] font-semibold"
+                    style={{ color: t.sub }}
+                  >
+                    На завтра
+                  </Text>
                 </Pressable>
               </View>
             ))}
@@ -201,12 +253,20 @@ export default function CloseDayScreen() {
         {!closed ? (
           <SectionCard title="Касса" padded>
             <View className="flex-row items-baseline justify-between">
-              <Text className="text-[15px] text-neutral-500">Должно быть</Text>
-              <Text className="text-[15px] font-semibold text-neutral-900 tabular-nums">
+              <Text className="text-[15px]" style={{ color: t.sub }}>
+                Должно быть
+              </Text>
+              <Text
+                className="text-[15px] font-semibold tabular-nums"
+                style={{ color: t.ink }}
+              >
                 {formatEUR(expectedCash)}
               </Text>
             </View>
-            <Text className="mb-1.5 mt-3 text-[12px] font-semibold uppercase tracking-wider text-neutral-500">
+            <Text
+              className="mb-1.5 mt-3 text-[12px] font-semibold uppercase tracking-wider"
+              style={{ color: t.sub }}
+            >
               Сколько в кассе фактически (€)
             </Text>
             <TextInput
@@ -214,12 +274,19 @@ export default function CloseDayScreen() {
               onChangeText={setActualCashStr}
               keyboardType="decimal-pad"
               placeholder={String(expectedCash)}
-              placeholderTextColor={COLORS.faint}
-              className="h-12 rounded-[10px] bg-neutral-100 px-3.5 text-[17px] text-neutral-900 tabular-nums"
+              placeholderTextColor={t.placeholder}
+              selectionColor={t.accent}
+              keyboardAppearance={t.dark ? "dark" : "light"}
+              className="h-12 rounded-[10px] px-3.5 text-[17px] tabular-nums"
+              style={{
+                backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+                color: t.ink,
+              }}
             />
             {actualCashStr ? (
               <Text
-                className={`mt-2 text-[13px] font-medium tabular-nums ${delta >= 0 ? "text-success" : "text-danger"}`}
+                className="mt-2 text-[13px] font-medium tabular-nums"
+                style={{ color: delta >= 0 ? t.success : t.danger }}
               >
                 {delta === 0
                   ? "Касса сошлась"

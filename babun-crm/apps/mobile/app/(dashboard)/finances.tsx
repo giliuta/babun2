@@ -13,7 +13,7 @@ import {
 import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { COLORS } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { humanDay } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
 import {
@@ -46,31 +46,39 @@ function Metric({
   value: string;
   tone: string;
 }) {
+  const t = useThemeColors();
   return (
     <View className="flex-1">
-      <Text className="text-xs text-neutral-500">{label}</Text>
-      <Text className={`mt-0.5 text-lg font-bold ${tone}`}>{value}</Text>
+      <Text className="text-xs" style={{ color: t.sub }}>
+        {label}
+      </Text>
+      <Text className="mt-0.5 text-lg font-bold" style={{ color: tone }}>
+        {value}
+      </Text>
     </View>
   );
 }
 
 function TxRow({ tx, onPress }: { tx: FinanceTransaction; onPress: () => void }) {
+  const t = useThemeColors();
   const signed = signedAmount(tx);
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center bg-white px-4 py-3 active:bg-neutral-50"
+      className="flex-row items-center px-4 py-3 active:opacity-60"
+      style={{ backgroundColor: t.surface }}
     >
       <View className="flex-1 pr-3">
-        <Text className="text-base text-neutral-900" numberOfLines={1}>
+        <Text className="text-base" style={{ color: t.ink }} numberOfLines={1}>
           {tx.notes || TYPE_LABEL[tx.type]}
         </Text>
-        <Text className="text-xs text-neutral-400">{TYPE_LABEL[tx.type]}</Text>
+        <Text className="text-xs" style={{ color: t.faint }}>
+          {TYPE_LABEL[tx.type]}
+        </Text>
       </View>
       <Text
-        className={`text-base font-semibold tabular-nums ${
-          signed >= 0 ? "text-success" : "text-danger"
-        }`}
+        className="text-base font-semibold tabular-nums"
+        style={{ color: signed >= 0 ? t.success : t.danger }}
       >
         {formatEURSigned(signed)}
       </Text>
@@ -79,6 +87,7 @@ function TxRow({ tx, onPress }: { tx: FinanceTransaction; onPress: () => void })
 }
 
 export default function FinancesTab() {
+  const t = useThemeColors();
   const [period, setPeriod] = useState<Period>(defaultPeriod());
   const [scope, setScope] = useState<string | null>(null);
   const [opOpen, setOpOpen] = useState(false);
@@ -132,12 +141,13 @@ export default function FinancesTab() {
       {/* period selector */}
       <Pressable
         onPress={() => setPeriodOpen(true)}
-        className="mx-4 mb-1 mt-1 flex-row items-center self-start rounded-full bg-neutral-100 px-3 py-1.5 active:opacity-80"
+        className="mx-4 mb-1 mt-1 flex-row items-center self-start rounded-full px-3 py-1.5 active:opacity-80"
+        style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
       >
-        <Text className="text-sm font-semibold text-neutral-800">
+        <Text className="text-sm font-semibold" style={{ color: t.ink }}>
           {periodLabel(period)}
         </Text>
-        <ChevronDown color={COLORS.sub} size={16} />
+        <ChevronDown color={t.sub} size={16} />
       </Pressable>
 
       {/* team scope */}
@@ -148,18 +158,26 @@ export default function FinancesTab() {
           style={{ flexGrow: 0, maxHeight: 48 }}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: "center" }}
         >
-          {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
-            const active = scope === t.id;
+          {[{ id: null as string | null, name: "Все" }, ...teams].map((team) => {
+            const active = scope === team.id;
             return (
               <Pressable
-                key={t.id ?? "all"}
-                onPress={() => setScope(t.id)}
-                className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+                key={team.id ?? "all"}
+                onPress={() => setScope(team.id)}
+                className="rounded-full px-3.5 py-1.5"
+                style={{
+                  backgroundColor: active
+                    ? t.accent
+                    : t.dark
+                      ? "rgba(255,255,255,0.07)"
+                      : "#eef1f5",
+                }}
               >
                 <Text
-                  className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+                  className="text-sm font-medium"
+                  style={{ color: active ? t.onAccent : t.sub }}
                 >
-                  {t.name}
+                  {team.name}
                 </Text>
               </Pressable>
             );
@@ -172,38 +190,51 @@ export default function FinancesTab() {
   const feedHeader = (
     <View>
       {/* overview */}
-      <View className="mx-4 mb-2 mt-1 rounded-2xl bg-white p-4 shadow-sm">
+      <View
+        className="mx-4 mb-2 mt-1 rounded-2xl p-4 shadow-sm"
+        style={{ backgroundColor: t.surface }}
+      >
         <View className="flex-row">
-          <Metric label="Доход" value={formatEUR(income)} tone="text-success" />
-          <Metric label="Расход" value={formatEUR(expense)} tone="text-danger" />
+          <Metric label="Доход" value={formatEUR(income)} tone={t.success} />
+          <Metric label="Расход" value={formatEUR(expense)} tone={t.danger} />
         </View>
-        <View className="my-3 h-px bg-neutral-100" />
+        <View className="my-3 h-px" style={{ backgroundColor: t.separator }} />
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm text-neutral-500">Прибыль</Text>
-          <Text className="text-xl font-bold" style={{ color: COLORS.brandAccent }}>
+          <Text className="text-sm" style={{ color: t.sub }}>
+            Прибыль
+          </Text>
+          <Text className="text-xl font-bold" style={{ color: t.brandAccent }}>
             {formatEUR(profit)}
           </Text>
         </View>
         {accounts.length > 0 ? (
           <>
-            <View className="my-3 h-px bg-neutral-100" />
+            <View className="my-3 h-px" style={{ backgroundColor: t.separator }} />
             <Pressable
               onPress={() => router.push("/cabinet/accounts")}
               className="flex-row items-center justify-between active:opacity-70"
             >
-              <Text className="text-sm text-neutral-500">Счета</Text>
+              <Text className="text-sm" style={{ color: t.sub }}>
+                Счета
+              </Text>
               <View className="flex-row items-center gap-1">
-                <Text className="text-base font-semibold text-neutral-900 tabular-nums">
+                <Text
+                  className="text-base font-semibold tabular-nums"
+                  style={{ color: t.ink }}
+                >
                   {formatEUR(accountsTotal)}
                 </Text>
-                <ChevronRight color={COLORS.chevron} size={16} />
+                <ChevronRight color={t.chevron} size={16} />
               </View>
             </Pressable>
           </>
         ) : null}
       </View>
 
-      <Text className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+      <Text
+        className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: t.sub }}
+      >
         Операции · {txs.length}
       </Text>
     </View>
@@ -229,15 +260,20 @@ export default function FinancesTab() {
   };
 
   const toggleSegmented = (
-    <View className="flex-row rounded-lg bg-neutral-200 p-0.5">
+    <View
+      className="flex-row rounded-lg p-0.5"
+      style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+    >
       {(["feed", "breakdown"] as const).map((v) => (
         <Pressable
           key={v}
           onPress={() => setFinView(v)}
-          className={`rounded-md px-2.5 py-1 ${finView === v ? "bg-white" : ""}`}
+          className="rounded-md px-2.5 py-1"
+          style={finView === v ? { backgroundColor: t.surface } : undefined}
         >
           <Text
-            className={`text-xs font-semibold ${finView === v ? "text-neutral-900" : "text-neutral-500"}`}
+            className="text-xs font-semibold"
+            style={{ color: finView === v ? t.ink : t.sub }}
           >
             {v === "feed" ? "Операции" : "Разбор"}
           </Text>
@@ -251,9 +287,9 @@ export default function FinancesTab() {
       <Pressable
         onPress={exportCsv}
         hitSlop={8}
-        className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+        className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
       >
-        <Share2 color={COLORS.body} size={18} />
+        <Share2 color={t.body} size={18} />
       </Pressable>
       {toggleSegmented}
     </View>
@@ -278,11 +314,20 @@ export default function FinancesTab() {
           ListHeaderComponent={feedHeader}
           contentContainerStyle={{ paddingBottom: 96 }}
           renderSectionHeader={({ section }) => (
-            <View className="flex-row items-center justify-between bg-neutral-50 px-4 py-1.5">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            <View
+              className="flex-row items-center justify-between px-4 py-1.5"
+              style={{ backgroundColor: t.canvas }}
+            >
+              <Text
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: t.sub }}
+              >
                 {humanDay(section.title)}
               </Text>
-              <Text className="text-xs font-semibold text-neutral-500 tabular-nums">
+              <Text
+                className="text-xs font-semibold tabular-nums"
+                style={{ color: t.sub }}
+              >
                 {formatEURSigned(section.net)}
               </Text>
             </View>
@@ -296,7 +341,9 @@ export default function FinancesTab() {
               }}
             />
           )}
-          ItemSeparatorComponent={() => <View className="ml-4 h-px bg-neutral-100" />}
+          ItemSeparatorComponent={() => (
+            <View className="ml-4 h-px" style={{ backgroundColor: t.separator }} />
+          )}
           ListEmptyComponent={
             <EmptyState
               title="Нет операций за период"
@@ -311,15 +358,16 @@ export default function FinancesTab() {
           setEditingTx(null);
           setOpOpen(true);
         }}
-        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
+        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full active:opacity-90"
         style={{
-          shadowColor: COLORS.brand,
+          backgroundColor: t.accent,
+          shadowColor: t.accent,
           shadowOpacity: 0.3,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 4 },
         }}
       >
-        <Plus color="#fff" size={28} />
+        <Plus color={t.onAccent} size={28} />
       </Pressable>
 
       <OperationSheet

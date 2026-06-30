@@ -16,7 +16,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useToast } from "@/components/ui/Toast";
 import { formatYMD, humanDay } from "@/features/appointments/helpers";
 import { useClients } from "@/features/clients/queries";
@@ -27,13 +28,21 @@ import {
   useUpdateReminderStatus,
 } from "@/features/recurring/queries";
 
-function dueTone(next: string): { label: string; cls: string } {
+function dueTone(
+  next: string,
+  t: ReturnType<typeof useThemeColors>,
+): { label: string; color: string; bg: string } {
   const today = formatYMD(new Date());
-  if (next <= today) return { label: "Пора", cls: "bg-danger/10 text-danger" };
+  if (next <= today)
+    return { label: "Пора", color: t.danger, bg: t.danger + "1a" };
   const d = new Date(next).getTime() - Date.now();
   if (d <= 14 * 86400000)
-    return { label: "Скоро", cls: "bg-warning/15 text-amber-700" };
-  return { label: humanDay(next), cls: "bg-neutral-100 text-neutral-500" };
+    return { label: "Скоро", color: t.warning, bg: t.warning + "26" };
+  return {
+    label: humanDay(next),
+    color: t.sub,
+    bg: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+  };
 }
 
 export default function RecurringScreen() {
@@ -43,6 +52,7 @@ export default function RecurringScreen() {
   const setStatus = useUpdateReminderStatus();
   const del = useDeleteReminder();
   const toast = useToast();
+  const t = useThemeColors();
 
   const pending = useMemo(
     () => reminders.filter((r) => r.status === "pending"),
@@ -57,13 +67,13 @@ export default function RecurringScreen() {
 
   const client = clients.find((c) => c.id === clientId) ?? null;
   const filtered = useMemo(() => {
-    const t = q.trim().toLowerCase();
+    const query = q.trim().toLowerCase();
     return (
-      t
+      query
         ? clients.filter(
             (c) =>
-              c.full_name.toLowerCase().includes(t) ||
-              (c.phone ?? "").includes(t),
+              c.full_name.toLowerCase().includes(query) ||
+              (c.phone ?? "").includes(query),
           )
         : clients
     ).slice(0, 50);
@@ -104,9 +114,9 @@ export default function RecurringScreen() {
           <Pressable
             onPress={() => setOpen(true)}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={t.accent} size={ICON.md} />
           </Pressable>
         }
       />
@@ -119,26 +129,30 @@ export default function RecurringScreen() {
           keyExtractor={(r) => r.id}
           contentContainerStyle={{ flexGrow: 1, paddingTop: 8 }}
           renderItem={({ item }) => {
-            const tone = dueTone(item.next_due_date);
+            const tone = dueTone(item.next_due_date, t);
             return (
               <View className="flex-row items-center px-4 py-3">
                 <View className="flex-1 pr-2">
-                  <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
+                  <Text className="text-base font-semibold" style={{ color: t.ink }} numberOfLines={1}>
                     {item.client_name}
                   </Text>
-                  <Text className="text-sm text-neutral-500" numberOfLines={1}>
+                  <Text className="text-sm" style={{ color: t.sub }} numberOfLines={1}>
                     {item.service_summary}
                   </Text>
-                  <Text className={`mt-1 self-start overflow-hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone.cls}`}>
+                  <Text
+                    className="mt-1 self-start overflow-hidden rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    style={{ color: tone.color, backgroundColor: tone.bg }}
+                  >
                     {tone.label}
                   </Text>
                 </View>
                 {item.phone ? (
                   <Pressable
                     onPress={() => Linking.openURL(`tel:${item.phone}`)}
-                    className="mr-1 h-9 w-9 items-center justify-center rounded-full bg-success/10"
+                    className="mr-1 h-9 w-9 items-center justify-center rounded-full"
+                    style={{ backgroundColor: t.success + "1a" }}
                   >
-                    <Phone color={COLORS.success} size={ICON.sm} />
+                    <Phone color={t.success} size={ICON.sm} />
                   </Pressable>
                 ) : null}
                 <Pressable
@@ -146,15 +160,16 @@ export default function RecurringScreen() {
                     setStatus.mutate({ id: item.id, status: "booked" });
                     toast("Отмечено записанным");
                   }}
-                  className="mr-1 h-9 w-9 items-center justify-center rounded-full bg-brand/10"
+                  className="mr-1 h-9 w-9 items-center justify-center rounded-full"
+                  style={{ backgroundColor: t.accent + "1a" }}
                 >
-                  <Check color={COLORS.brand} size={ICON.sm} />
+                  <Check color={t.accent} size={ICON.sm} />
                 </Pressable>
                 <Pressable
                   onPress={() => del.mutate(item.id)}
-                  className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+                  className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
                 >
-                  <X color={COLORS.faint} size={ICON.sm} />
+                  <X color={t.faint} size={ICON.sm} />
                 </Pressable>
               </View>
             );
@@ -171,19 +186,28 @@ export default function RecurringScreen() {
       )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 h-[80%] rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">Напоминание</Text>
+        <Pressable className="flex-1" style={{ backgroundColor: t.scrim }} onPress={() => setOpen(false)} />
+        <View
+          className="absolute bottom-0 left-0 right-0 h-[80%] rounded-t-3xl p-5 pb-8"
+          style={{ backgroundColor: t.surface }}
+        >
+          <Text className="mb-3 text-lg font-bold" style={{ color: t.ink }}>Напоминание</Text>
           {!client ? (
             <>
-              <View className="mb-2 flex-row items-center gap-2 rounded-xl bg-neutral-100 px-3">
-                <Search color={COLORS.faint} size={ICON.sm} />
+              <View
+                className="mb-2 flex-row items-center gap-2 rounded-xl px-3"
+                style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+              >
+                <Search color={t.faint} size={ICON.sm} />
                 <TextInput
                   value={q}
                   onChangeText={setQ}
                   placeholder="Клиент"
-                  placeholderTextColor={COLORS.faint}
-                  className="flex-1 py-2.5 text-base text-neutral-900"
+                  placeholderTextColor={t.placeholder}
+                  selectionColor={t.accent}
+                  keyboardAppearance={t.dark ? "dark" : "light"}
+                  className="flex-1 py-2.5 text-base"
+                  style={{ color: t.ink }}
                 />
               </View>
               <FlatList
@@ -195,9 +219,9 @@ export default function RecurringScreen() {
                     onPress={() => setClientId(item.id)}
                     className="px-1 py-3 active:opacity-70"
                   >
-                    <Text className="text-base text-neutral-900">{item.full_name}</Text>
+                    <Text className="text-base" style={{ color: t.ink }}>{item.full_name}</Text>
                     {item.phone ? (
-                      <Text className="text-sm text-neutral-500">{item.phone}</Text>
+                      <Text className="text-sm" style={{ color: t.sub }}>{item.phone}</Text>
                     ) : null}
                   </Pressable>
                 )}
@@ -208,23 +232,35 @@ export default function RecurringScreen() {
             <>
               <Pressable
                 onPress={() => setClientId(null)}
-                className="mb-2 flex-row items-center justify-between rounded-xl bg-neutral-50 px-3 py-2.5"
+                className="mb-2 flex-row items-center justify-between rounded-xl px-3 py-2.5"
+                style={{ backgroundColor: t.canvas }}
               >
-                <Text className="text-base font-semibold text-neutral-900">
+                <Text className="text-base font-semibold" style={{ color: t.ink }}>
                   {client.full_name}
                 </Text>
-                <Text className="text-sm text-brand">Изменить</Text>
+                <Text className="text-sm" style={{ color: t.accent }}>Изменить</Text>
               </Pressable>
               <Field label="Что напомнить" value={summary} onChangeText={setSummary} placeholder="Чистка 2 шт" />
-              <Text className="mb-2 text-xs font-medium text-neutral-500">Через</Text>
+              <Text className="mb-2 text-xs font-medium" style={{ color: t.sub }}>Через</Text>
               <View className="mb-4 flex-row gap-2">
                 {[3, 6, 12].map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => setMonths(m)}
-                    className={`flex-1 items-center rounded-xl py-2.5 ${months === m ? "bg-brand" : "bg-neutral-100"}`}
+                    className="flex-1 items-center rounded-xl py-2.5"
+                    style={{
+                      backgroundColor:
+                        months === m
+                          ? t.accent
+                          : t.dark
+                            ? "rgba(255,255,255,0.07)"
+                            : "#eef1f5",
+                    }}
                   >
-                    <Text className={`text-sm font-semibold ${months === m ? "text-white" : "text-neutral-700"}`}>
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: months === m ? t.onAccent : t.sub }}
+                    >
                       {m} мес
                     </Text>
                   </Pressable>
