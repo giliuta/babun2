@@ -93,8 +93,8 @@ export function AuthCard({
   subtitle,
   children,
 }: {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   children: ReactNode;
 }) {
   const enter = useSharedValue(0);
@@ -117,9 +117,10 @@ export function AuthCard({
           <ScrollView
             contentContainerStyle={{
               flexGrow: 1,
+              justifyContent: "center",
               paddingHorizontal: 28,
-              paddingTop: 44,
-              paddingBottom: 16,
+              paddingTop: 24,
+              paddingBottom: 28,
             }}
             keyboardShouldPersistTaps="handled"
           >
@@ -131,22 +132,19 @@ export function AuthCard({
                 <Text style={{ marginTop: 16, fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -0.6, color: INK }}>
                   Babun
                 </Text>
-                <Text style={{ marginTop: 2, fontSize: 13, fontWeight: "500", color: FAINT }}>
-                  AirFix · Cyprus
-                </Text>
-                <Text style={{ marginTop: 26, fontSize: 26, lineHeight: 32, fontWeight: "700", letterSpacing: -0.4, color: INK, textAlign: "center" }}>
-                  {title}
-                </Text>
-                <Text style={{ marginTop: 4, fontSize: 15, color: SUB, textAlign: "center" }}>
-                  {subtitle}
-                </Text>
+                {title ? (
+                  <Text style={{ marginTop: 20, fontSize: 26, lineHeight: 32, fontWeight: "700", letterSpacing: -0.4, color: INK, textAlign: "center" }}>
+                    {title}
+                  </Text>
+                ) : null}
+                {subtitle ? (
+                  <Text style={{ marginTop: 6, fontSize: 15, color: SUB, textAlign: "center" }}>
+                    {subtitle}
+                  </Text>
+                ) : null}
               </View>
-              <View style={{ marginTop: 24 }}>{children}</View>
+              <View style={{ marginTop: 26 }}>{children}</View>
             </Animated.View>
-            <View style={{ flex: 1 }} />
-            <Text style={{ textAlign: "center", fontSize: 11, color: FAINT, paddingTop: 24 }}>
-              Babun © 2026
-            </Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Linking, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Text, TextInput } from "react-native";
 import { useRouter } from "expo-router";
-import { Check } from "lucide-react-native";
 import {
   AuthCard,
   GhostLink,
@@ -9,73 +8,80 @@ import {
   InputDivider,
   PillButton,
 } from "@/components/auth/AuthCard";
+import { OrDivider, SocialButtons } from "@/components/auth/SocialAuthButtons";
 import { COLORS } from "@/components/ui/tokens";
 import { supabase } from "@/lib/supabase";
 
-// Mirrors the web RegisterForm (v520 §3.1): name + email + password(≥8) +
-// Terms/Privacy ack. On success → SessionProvider redirects (confirm-email
-// off) or we show the "check your email" pending state (confirm-email on).
+const inputStyle = {
+  height: 52,
+  paddingHorizontal: 16,
+  fontSize: 15,
+  color: "#0b1220",
+} as const;
+
+// «Создать аккаунт» — minimal sign-up: brand, Apple + Google, then name/email/
+// password inline. Terms acceptance is a small legal line (no checkbox = fewer
+// taps). On success → SessionProvider redirects (or "check email" if confirm-on).
 export default function RegisterScreen() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const formValid =
-    agreed &&
+  const valid =
     fullName.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length >= 8;
 
   async function submit() {
-    if (!formValid || loading) return;
+    if (!valid || loading) return;
     setLoading(true);
     setError(null);
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { data, error: e } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: { data: { full_name: fullName.trim() } },
     });
-    if (signUpError) {
-      setError(signUpError.message);
+    if (e) {
+      setError(e.message);
       setLoading(false);
       return;
     }
-    // confirm-email OFF → signUp returns a session → onAuthStateChange swaps
-    // the navigator. ON → no session → show the pending state.
     if (!data.session) {
       setPending(true);
       setLoading(false);
     }
   }
 
+  const soon = (name: string) =>
+    Alert.alert(
+      name,
+      `Регистрация через ${name} подключаем в следующей сборке. Пока создайте аккаунт по почте.`,
+    );
+
   if (pending) {
     return (
-      <AuthCard
-        title="Проверьте почту"
-        subtitle="Мы отправили ссылку для подтверждения"
-      >
+      <AuthCard title="Проверьте почту" subtitle="Мы отправили ссылку для подтверждения">
         <InputCard>
-          <Text className="px-5 py-5 text-[14px] leading-relaxed text-neutral-500">
-            На <Text className="font-medium text-neutral-900">{email}</Text> ушло
-            письмо со ссылкой. Откройте его, перейдите по ссылке — и возвращайтесь
-            сюда, чтобы войти.
+          <Text style={{ paddingHorizontal: 20, paddingVertical: 20, fontSize: 14, lineHeight: 21, color: "#5b6678" }}>
+            На <Text style={{ fontWeight: "600", color: "#0b1220" }}>{email.trim()}</Text> ушло
+            письмо со ссылкой. Откройте его — и возвращайтесь, чтобы войти.
           </Text>
         </InputCard>
-        <GhostLink
-          label="Уже подтвердили? Войти"
-          onPress={() => router.replace("/login")}
-        />
+        <GhostLink label="Уже подтвердили? Войти" onPress={() => router.replace("/login")} />
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard title="Создайте аккаунт" subtitle="Это займёт 30 секунд">
+    <AuthCard title="Создать аккаунт">
+      <SocialButtons onApple={() => soon("Apple")} onGoogle={() => soon("Google")} />
+
+      <OrDivider />
+
       <InputCard>
         <TextInput
           value={fullName}
@@ -84,7 +90,8 @@ export default function RegisterScreen() {
           placeholderTextColor={COLORS.faint}
           autoComplete="name"
           maxLength={120}
-          className="h-[52px] px-4 text-[15px] text-ink"
+          returnKeyType="next"
+          style={inputStyle}
         />
         <InputDivider />
         <TextInput
@@ -96,53 +103,25 @@ export default function RegisterScreen() {
           autoComplete="email"
           keyboardType="email-address"
           inputMode="email"
-          className="h-[52px] px-4 text-[15px] text-ink"
+          returnKeyType="next"
+          style={inputStyle}
         />
         <InputDivider />
         <TextInput
           value={password}
           onChangeText={setPassword}
-          placeholder="Пароль (минимум 8 символов)"
+          placeholder="Пароль (от 8 символов)"
           placeholderTextColor={COLORS.faint}
           secureTextEntry
           autoComplete="new-password"
-          className="h-[52px] px-4 text-[15px] text-ink"
+          returnKeyType="go"
+          onSubmitEditing={submit}
+          style={inputStyle}
         />
       </InputCard>
 
-      {/* Terms / Privacy ack — required to enable the CTA. */}
-      <Pressable
-        onPress={() => setAgreed((v) => !v)}
-        className="mt-3 flex-row items-start gap-2.5 px-1 py-1"
-      >
-        <View
-          className={`mt-[2px] h-5 w-5 items-center justify-center rounded-md border ${
-            agreed ? "border-brand bg-brand" : "border-neutral-300 bg-white"
-          }`}
-        >
-          {agreed ? <Check color="#fff" size={14} /> : null}
-        </View>
-        <Text className="flex-1 text-[12px] leading-snug text-neutral-500">
-          Я согласен(на) с{" "}
-          <Text
-            className="text-brand underline"
-            onPress={() => Linking.openURL("https://babun.app/terms")}
-          >
-            Условиями
-          </Text>{" "}
-          и{" "}
-          <Text
-            className="text-brand underline"
-            onPress={() => Linking.openURL("https://babun.app/privacy")}
-          >
-            Политикой конфиденциальности
-          </Text>
-          .
-        </Text>
-      </Pressable>
-
       {error ? (
-        <Text className="mt-2 px-2 text-center text-[13px] text-danger">
+        <Text style={{ marginTop: 12, textAlign: "center", fontSize: 13, color: "#f0473c" }}>
           {error}
         </Text>
       ) : null}
@@ -150,19 +129,30 @@ export default function RegisterScreen() {
       <PillButton
         label={loading ? "Создаём…" : "Создать аккаунт"}
         onPress={submit}
-        disabled={!formValid}
+        disabled={!valid}
         loading={loading}
       />
 
-      <Text className="mt-2 px-2 text-center text-[11px] leading-snug text-neutral-500">
-        После регистрации мы отправим письмо со ссылкой подтверждения. Откройте
-        его — и возвращайтесь сюда, чтобы войти.
-      </Text>
+      <GhostLink label="Уже есть аккаунт? Войти" muted onPress={() => router.replace("/login")} />
 
-      <GhostLink
-        label="Уже есть аккаунт? Войти"
-        onPress={() => router.replace("/login")}
-      />
+      <Text
+        style={{
+          marginTop: 18,
+          textAlign: "center",
+          fontSize: 12,
+          lineHeight: 17,
+          color: "#97a0ae",
+        }}
+      >
+        Создавая аккаунт, вы принимаете{" "}
+        <Text style={{ color: "#2c5be0" }} onPress={() => Linking.openURL("https://babun.app/terms")}>
+          Условия
+        </Text>{" "}
+        и{" "}
+        <Text style={{ color: "#2c5be0" }} onPress={() => Linking.openURL("https://babun.app/privacy")}>
+          Конфиденциальность
+        </Text>
+      </Text>
     </AuthCard>
   );
 }

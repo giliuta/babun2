@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, TextInput } from "react-native";
+import { Alert, Linking, Text, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import {
   AuthCard,
@@ -8,12 +8,20 @@ import {
   InputDivider,
   PillButton,
 } from "@/components/auth/AuthCard";
+import { OrDivider, SocialButtons } from "@/components/auth/SocialAuthButtons";
 import { COLORS } from "@/components/ui/tokens";
 import { supabase } from "@/lib/supabase";
 
-// Auth login. Mirrors the web LoginForm/AuthCard (STORY-037 G3): centered
-// Babun logo tile, 28px title, iOS grouped input card, pill CTA, ghost links.
-// OAuth (Google/Apple) is a separate native step — added later.
+const inputStyle = {
+  height: 52,
+  paddingHorizontal: 16,
+  fontSize: 15,
+  color: "#0b1220",
+} as const;
+
+// «Вход в Babun» — minimal one-screen login: brand, Apple + Google, then
+// email/password right on the screen (fewest taps), plus register/forgot.
+// Apple/Google get native OAuth in the next rebuild; email/password works now.
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -21,23 +29,33 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const formValid = email.trim().length > 0 && password.length > 0;
+  const valid = email.trim().length > 0 && password.length > 0;
 
-  async function handleSignIn() {
-    if (!formValid || loading) return;
+  async function signIn() {
+    if (!valid || loading) return;
     setError(null);
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: e } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
     setLoading(false);
-    // On success, SessionProvider's onAuthStateChange triggers the redirect.
-    if (signInError) setError(signInError.message);
+    if (e) setError("Неверная почта или пароль");
+    // success → SessionProvider redirects
   }
 
+  const soon = (name: string) =>
+    Alert.alert(
+      name,
+      `Вход через ${name} подключаем в следующей сборке. Пока войдите по почте.`,
+    );
+
   return (
-    <AuthCard title="С возвращением" subtitle="Войдите, чтобы продолжить">
+    <AuthCard>
+      <SocialButtons onApple={() => soon("Apple")} onGoogle={() => soon("Google")} />
+
+      <OrDivider />
+
       <InputCard>
         <TextInput
           value={email}
@@ -48,8 +66,9 @@ export default function LoginScreen() {
           autoComplete="email"
           keyboardType="email-address"
           inputMode="email"
+          textContentType="username"
           returnKeyType="next"
-          className="h-[52px] px-4 text-[15px] text-ink"
+          style={inputStyle}
         />
         <InputDivider />
         <TextInput
@@ -60,32 +79,49 @@ export default function LoginScreen() {
           secureTextEntry
           autoComplete="current-password"
           returnKeyType="go"
-          onSubmitEditing={handleSignIn}
-          className="h-[52px] px-4 text-[15px] text-ink"
+          onSubmitEditing={signIn}
+          style={inputStyle}
         />
       </InputCard>
 
       {error ? (
-        <Text className="mt-3 px-2 text-center text-[13px] text-danger">
+        <Text style={{ marginTop: 12, textAlign: "center", fontSize: 13, color: "#f0473c" }}>
           {error}
         </Text>
       ) : null}
 
       <PillButton
         label={loading ? "Входим…" : "Войти"}
-        onPress={handleSignIn}
-        disabled={!formValid}
+        onPress={signIn}
+        disabled={!valid}
         loading={loading}
       />
 
-      <GhostLink
-        label="Забыли пароль?"
-        onPress={() => router.push("/forgot-password")}
-      />
+      <GhostLink label="Забыли пароль?" onPress={() => router.push("/forgot-password")} />
       <GhostLink
         label="Нет аккаунта? Зарегистрироваться"
+        muted
         onPress={() => router.push("/register")}
       />
+
+      <Text
+        style={{
+          marginTop: 18,
+          textAlign: "center",
+          fontSize: 12,
+          lineHeight: 17,
+          color: "#97a0ae",
+        }}
+      >
+        Продолжая, вы принимаете{" "}
+        <Text style={{ color: "#2c5be0" }} onPress={() => Linking.openURL("https://babun.app/terms")}>
+          Условия
+        </Text>{" "}
+        и{" "}
+        <Text style={{ color: "#2c5be0" }} onPress={() => Linking.openURL("https://babun.app/privacy")}>
+          Конфиденциальность
+        </Text>
+      </Text>
     </AuthCard>
   );
 }
