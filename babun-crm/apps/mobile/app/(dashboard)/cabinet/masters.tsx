@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { RefListScreen } from "@/features/reference/RefListScreen";
+import { useThemeColors } from "@/theme/colors";
 import {
   useCreateMaster,
   useDeleteMaster,
@@ -9,6 +10,7 @@ import {
 } from "@/features/reference/queries";
 
 export default function MastersScreen() {
+  const th = useThemeColors();
   const { data: masters = [], isLoading } = useMasters();
   const create = useCreateMaster();
   const update = useUpdateMaster();
@@ -38,11 +40,11 @@ export default function MastersScreen() {
       itemToValues={(m) => ({ full_name: m.full_name, phone: m.phone ?? "" })}
       renderItem={(m) => (
         <View className="px-4 py-3">
-          <Text className="text-base font-semibold text-neutral-900">
+          <Text style={{ fontSize: 16, fontWeight: "600", color: th.ink }}>
             {m.full_name}
           </Text>
           {m.phone ? (
-            <Text className="text-sm text-neutral-500">{m.phone}</Text>
+            <Text style={{ fontSize: 14, color: th.sub }}>{m.phone}</Text>
           ) : null}
         </View>
       )}

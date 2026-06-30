@@ -5,13 +5,15 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { Divider } from "@/components/ui/Divider";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/providers/SessionProvider";
+import { useThemeColors } from "@/theme/colors";
 import { supabase } from "@/lib/supabase";
 
 function Row({ label, value }: { label: string; value: string }) {
+  const t = useThemeColors();
   return (
     <View className="px-4 py-3">
-      <Text className="text-xs text-neutral-400">{label}</Text>
-      <Text className="mt-0.5 text-base text-neutral-900" selectable>
+      <Text style={{ fontSize: 12, color: t.faint }}>{label}</Text>
+      <Text style={{ marginTop: 2, fontSize: 16, color: t.ink }} selectable>
         {value}
       </Text>
     </View>
@@ -44,6 +46,7 @@ export default function AccountScreen() {
         <Button
           label="Выйти"
           variant="secondary"
+          tone="danger"
           onPress={() => supabase.auth.signOut()}
         />
       </View>

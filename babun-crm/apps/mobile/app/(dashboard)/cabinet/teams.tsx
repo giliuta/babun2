@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { RefListScreen } from "@/features/reference/RefListScreen";
+import { useThemeColors } from "@/theme/colors";
 import {
   useCreateTeam,
   useDeleteTeam,
@@ -9,6 +10,7 @@ import {
 } from "@/features/reference/queries";
 
 export default function TeamsScreen() {
+  const th = useThemeColors();
   const { data: teams = [], isLoading } = useTeams();
   const create = useCreateTeam();
   const update = useUpdateTeam();
@@ -36,11 +38,11 @@ export default function TeamsScreen() {
         await del.mutateAsync(id);
       }}
       itemToValues={(t) => ({ name: t.name, region: t.region ?? "" })}
-      renderItem={(t) => (
+      renderItem={(item) => (
         <View className="px-4 py-3">
-          <Text className="text-base font-semibold text-neutral-900">{t.name}</Text>
-          {t.region ? (
-            <Text className="text-sm text-neutral-500">{t.region}</Text>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: th.ink }}>{item.name}</Text>
+          {item.region ? (
+            <Text style={{ fontSize: 14, color: th.sub }}>{item.region}</Text>
           ) : null}
         </View>
       )}

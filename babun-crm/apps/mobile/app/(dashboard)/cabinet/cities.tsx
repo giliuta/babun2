@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { RefListScreen } from "@/features/reference/RefListScreen";
+import { useThemeColors } from "@/theme/colors";
 import {
   useCities,
   useCreateCity,
@@ -9,6 +10,7 @@ import {
 } from "@/features/reference/queries";
 
 export default function CitiesScreen() {
+  const th = useThemeColors();
   const { data: cities = [], isLoading } = useCities();
   const create = useCreateCity();
   const update = useUpdateCity();
@@ -38,9 +40,9 @@ export default function CitiesScreen() {
       itemToValues={(c) => ({ name: c.name, country: c.country ?? "" })}
       renderItem={(c) => (
         <View className="flex-row items-center justify-between px-4 py-3">
-          <Text className="text-base font-semibold text-neutral-900">{c.name}</Text>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: th.ink }}>{c.name}</Text>
           {c.country ? (
-            <Text className="text-sm text-neutral-500">{c.country}</Text>
+            <Text style={{ fontSize: 14, color: th.sub }}>{c.country}</Text>
           ) : null}
         </View>
       )}
