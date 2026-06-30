@@ -10,16 +10,17 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Divider } from "@/components/ui/Divider";
 import { Button } from "@/components/ui/Button";
-import { COLORS } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import {
   useCalendarSettings,
   useSaveCalendarSettings,
 } from "@/features/settings/local-settings";
 
 function Row({ label, right }: { label: string; right: React.ReactNode }) {
+  const t = useThemeColors();
   return (
     <View className="flex-row items-center justify-between px-1 py-2.5">
-      <Text className="text-base text-neutral-900">{label}</Text>
+      <Text style={{ color: t.ink }} className="text-base">{label}</Text>
       {right}
     </View>
   );
@@ -36,28 +37,33 @@ function Stepper({
   min: number;
   max: number;
 }) {
+  const t = useThemeColors();
+  const chipBg = t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5";
   return (
     <View className="flex-row items-center gap-3">
       <Pressable
         onPress={() => onChange(Math.max(min, value - 1))}
-        className="h-8 w-8 items-center justify-center rounded-full bg-neutral-100 active:opacity-70"
+        style={{ backgroundColor: chipBg }}
+        className="h-8 w-8 items-center justify-center rounded-full active:opacity-60"
       >
-        <Minus color={COLORS.body} size={16} />
+        <Minus color={t.body} size={16} />
       </Pressable>
-      <Text className="w-14 text-center text-base font-semibold text-neutral-900 tabular-nums">
+      <Text style={{ color: t.ink }} className="w-14 text-center text-base font-semibold tabular-nums">
         {String(value).padStart(2, "0")}:00
       </Text>
       <Pressable
         onPress={() => onChange(Math.min(max, value + 1))}
-        className="h-8 w-8 items-center justify-center rounded-full bg-neutral-100 active:opacity-70"
+        style={{ backgroundColor: chipBg }}
+        className="h-8 w-8 items-center justify-center rounded-full active:opacity-60"
       >
-        <Plus color={COLORS.body} size={16} />
+        <Plus color={t.body} size={16} />
       </Pressable>
     </View>
   );
 }
 
 export default function CalendarSettingsScreen() {
+  const t = useThemeColors();
   const { data: settings } = useCalendarSettings();
   const save = useSaveCalendarSettings();
   const [s, setS] = useState<CalendarSettings>(DEFAULT_CALENDAR_SETTINGS);
@@ -74,6 +80,8 @@ export default function CalendarSettingsScreen() {
     setS((prev) => ({ ...prev, ...p }));
     setDirty(true);
   };
+
+  const chipBg = t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5";
 
   return (
     <Screen edges={["top"]}>
@@ -113,10 +121,12 @@ export default function CalendarSettingsScreen() {
               <Pressable
                 key={g}
                 onPress={() => patch({ gridStep: g })}
-                className={`flex-1 items-center rounded-xl py-2.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+                style={{ backgroundColor: active ? t.accent : chipBg }}
+                className="flex-1 items-center rounded-xl py-2.5"
               >
                 <Text
-                  className={`text-sm font-semibold ${active ? "text-white" : "text-neutral-700"}`}
+                  style={{ color: active ? "#fff" : t.sub }}
+                  className="text-sm font-semibold"
                 >
                   {g} мин
                 </Text>
@@ -133,7 +143,7 @@ export default function CalendarSettingsScreen() {
             <Switch
               value={!!s.hideCancelled}
               onValueChange={(v) => patch({ hideCancelled: v })}
-              trackColor={{ true: COLORS.brand }}
+              trackColor={{ true: t.accent }}
             />
           }
         />

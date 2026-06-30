@@ -4,7 +4,7 @@ import { formatEUR } from "@babun/shared/common/utils/money";
 import type { FinanceTransaction } from "@babun/shared/local/finance/transaction";
 import type { FinanceCategory } from "@babun/shared/db/repositories/finance-categories";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { COLORS } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 
 type Row = { id: string; amt: number };
 
@@ -17,6 +17,7 @@ export function ProfitBreakdown({
   transactions: FinanceTransaction[];
   categories: FinanceCategory[];
 }) {
+  const th = useThemeColors();
   const catById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories],
@@ -62,7 +63,7 @@ export function ProfitBreakdown({
                 style={{ backgroundColor: c.color }}
               />
             ) : null}
-            <Text className="text-base text-neutral-900">
+            <Text className="text-base" style={{ color: th.ink }}>
               {c?.name ?? "Без категории"}
             </Text>
           </View>
@@ -70,7 +71,7 @@ export function ProfitBreakdown({
             {formatEUR(r.amt)}
           </Text>
         </View>
-        <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+        <View className="mt-1.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: th.separator }}>
           <View
             className="h-1.5 rounded-full"
             style={{ width: `${pct}%`, backgroundColor: color }}
@@ -86,11 +87,11 @@ export function ProfitBreakdown({
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 96 }}>
-      <View className="mx-3 mt-2 rounded-2xl bg-white p-4 shadow-sm">
-        <Text className="text-xs text-neutral-500">Прибыль за период</Text>
+      <View className="mx-3 mt-2 rounded-2xl p-4 shadow-sm" style={{ backgroundColor: th.surface }}>
+        <Text className="text-xs" style={{ color: th.sub }}>Прибыль за период</Text>
         <Text
           className="text-3xl font-bold"
-          style={{ color: COLORS.brandAccent }}
+          style={{ color: th.brandAccent }}
         >
           {formatEUR(income - expense)}
         </Text>
@@ -98,19 +99,19 @@ export function ProfitBreakdown({
 
       {expenseRows.length > 0 ? (
         <View className="mt-1">
-          <Text className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          <Text className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: th.sub }}>
             Расходы · {formatEUR(expense)}
           </Text>
-          {expenseRows.map((r) => renderRow(r, expense, COLORS.danger))}
+          {expenseRows.map((r) => renderRow(r, expense, th.danger))}
         </View>
       ) : null}
 
       {incomeRows.length > 0 ? (
         <View className="mt-1">
-          <Text className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          <Text className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: th.sub }}>
             Доходы · {formatEUR(income)}
           </Text>
-          {incomeRows.map((r) => renderRow(r, income, COLORS.success))}
+          {incomeRows.map((r) => renderRow(r, income, th.success))}
         </View>
       ) : null}
     </ScrollView>

@@ -1,6 +1,7 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import type { ClientTag } from "@babun/shared/local/clients";
 import { Button } from "@/components/ui/Button";
+import { useThemeColors } from "@/theme/colors";
 import {
   EMPTY_FILTER,
   STATUS_OPTIONS,
@@ -18,12 +19,17 @@ function Chip({
   color?: string;
   onPress: () => void;
 }) {
+  const t = useThemeColors();
   return (
     <Pressable
       onPress={onPress}
-      className={`mb-2 mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 ${
-        active ? "border-brand bg-brand/10" : "border-neutral-200 bg-white"
-      }`}
+      style={{
+        borderColor: active ? t.accent : t.separator,
+        backgroundColor: active
+          ? t.dark ? "rgba(44,91,224,0.18)" : "rgba(44,91,224,0.08)"
+          : t.surface,
+      }}
+      className="mb-2 mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5"
     >
       {color ? (
         <View
@@ -31,7 +37,8 @@ function Chip({
         />
       ) : null}
       <Text
-        className={`text-sm font-medium ${active ? "text-brand" : "text-neutral-700"}`}
+        style={{ color: active ? t.accent : t.sub }}
+        className="text-sm font-medium"
       >
         {label}
       </Text>
@@ -46,9 +53,13 @@ function Section({
   title: string;
   children: React.ReactNode;
 }) {
+  const t = useThemeColors();
   return (
     <View className="pt-3">
-      <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+      <Text
+        style={{ color: t.faint }}
+        className="mb-2 text-xs font-semibold uppercase tracking-wider"
+      >
         {title}
       </Text>
       <View className="flex-row flex-wrap">{children}</View>
@@ -71,6 +82,8 @@ export function ClientsFilterSheet({
   tags: ClientTag[];
   cities: string[];
 }) {
+  const t = useThemeColors();
+
   const toggleTag = (id: string) =>
     onChange({
       ...filter,
@@ -93,15 +106,18 @@ export function ClientsFilterSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable className="flex-1 bg-black/30" onPress={onClose} />
-      <View className="absolute bottom-0 left-0 right-0 max-h-[80%] rounded-t-3xl bg-white">
+      <Pressable style={{ flex: 1, backgroundColor: t.scrim }} onPress={onClose} />
+      <View
+        style={{ backgroundColor: t.surface }}
+        className="absolute bottom-0 left-0 right-0 max-h-[80%] rounded-t-3xl"
+      >
         <View className="items-center pt-2">
-          <View className="h-1 w-10 rounded-full bg-neutral-300" />
+          <View style={{ backgroundColor: t.separator }} className="h-1 w-10 rounded-full" />
         </View>
         <View className="flex-row items-center justify-between px-5 py-3">
-          <Text className="text-lg font-bold text-neutral-900">Фильтры</Text>
+          <Text style={{ color: t.ink }} className="text-lg font-bold">Фильтры</Text>
           <Pressable onPress={() => onChange(EMPTY_FILTER)}>
-            <Text className="text-sm font-medium text-brand">Сбросить</Text>
+            <Text style={{ color: t.accent }} className="text-sm font-medium">Сбросить</Text>
           </Pressable>
         </View>
 
@@ -119,13 +135,13 @@ export function ClientsFilterSheet({
 
           {tags.length ? (
             <Section title="Тег">
-              {tags.map((t) => (
+              {tags.map((tg) => (
                 <Chip
-                  key={t.id}
-                  label={t.name}
-                  color={t.color}
-                  active={filter.tagIds.includes(t.id)}
-                  onPress={() => toggleTag(t.id)}
+                  key={tg.id}
+                  label={tg.name}
+                  color={tg.color}
+                  active={filter.tagIds.includes(tg.id)}
+                  onPress={() => toggleTag(tg.id)}
                 />
               ))}
             </Section>
@@ -145,7 +161,7 @@ export function ClientsFilterSheet({
           ) : null}
         </ScrollView>
 
-        <View className="border-t border-neutral-100 p-4">
+        <View style={{ borderTopColor: t.separator, borderTopWidth: 1 }} className="p-4">
           <Button label="Показать" onPress={onClose} />
         </View>
       </View>

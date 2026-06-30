@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
+import { useThemeColors } from "@/theme/colors";
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -35,6 +36,7 @@ export function MonthView({
     return map;
   }, [appointments]);
 
+  const t = useThemeColors();
   const todayStr = ymd(new Date());
 
   return (
@@ -43,7 +45,8 @@ export function MonthView({
         {WD.map((w) => (
           <Text
             key={w}
-            className="flex-1 py-1 text-center text-xs font-medium text-neutral-400"
+            className="flex-1 py-1 text-center text-xs font-medium"
+            style={{ color: t.faint }}
           >
             {w}
           </Text>
@@ -61,26 +64,36 @@ export function MonthView({
                 <Pressable
                   key={key}
                   onPress={() => onPickDay(d)}
-                  className="flex-1 items-center border-t border-neutral-100 pt-1.5 active:bg-neutral-50"
+                  className="flex-1 items-center pt-1.5 active:opacity-60"
+                  style={{ borderTopWidth: 1, borderTopColor: t.separator }}
                 >
                   <View
-                    className={`h-7 w-7 items-center justify-center rounded-full ${isToday ? "bg-brand" : ""}`}
+                    className="h-7 w-7 items-center justify-center rounded-full"
+                    style={isToday ? { backgroundColor: t.accent } : undefined}
                   >
                     <Text
-                      className={`text-sm ${
-                        isToday
-                          ? "font-bold text-white"
+                      className="text-sm"
+                      style={{
+                        color: isToday
+                          ? "#fff"
                           : inMonth
-                            ? "text-neutral-900"
-                            : "text-neutral-300"
-                      }`}
+                            ? t.ink
+                            : t.faint,
+                        fontWeight: isToday ? "700" : undefined,
+                      }}
                     >
                       {d.getDate()}
                     </Text>
                   </View>
                   {count > 0 ? (
-                    <View className="mt-0.5 rounded-full bg-brand/15 px-1.5">
-                      <Text className="text-[10px] font-semibold text-brand">
+                    <View
+                      className="mt-0.5 rounded-full px-1.5"
+                      style={{ backgroundColor: t.dark ? "rgba(44,91,224,0.22)" : "rgba(44,91,224,0.12)" }}
+                    >
+                      <Text
+                        className="text-[10px] font-semibold"
+                        style={{ color: t.accent }}
+                      >
                         {count}
                       </Text>
                     </View>

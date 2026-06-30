@@ -23,6 +23,7 @@ import {
 } from "@/features/clients/filter";
 import { ClientsFilterSheet } from "@/features/clients/ClientsFilterSheet";
 import { ImportSheet } from "@/features/clients/ImportSheet";
+import { useThemeColors } from "@/theme/colors";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -30,32 +31,38 @@ function initials(name: string): string {
 }
 
 function ClientRow({ client, onPress }: { client: Client; onPress: () => void }) {
+  const t = useThemeColors();
   const owes = client.balance < 0;
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center px-4 py-3 active:bg-neutral-100"
+      className="flex-row items-center px-4 py-3 active:opacity-60"
     >
-      <View className="h-11 w-11 items-center justify-center rounded-full bg-brand/10">
-        <Text className="text-base font-semibold text-brand">
+      <View
+        className="h-11 w-11 items-center justify-center rounded-full"
+        style={{ backgroundColor: t.dark ? "rgba(44,91,224,0.18)" : "rgba(44,91,224,0.1)" }}
+      >
+        <Text className="text-base font-semibold" style={{ color: t.accent }}>
           {initials(client.full_name)}
         </Text>
       </View>
       <View className="ml-3 flex-1">
         <Text
-          className="text-base font-semibold text-neutral-900"
+          className="text-base font-semibold"
+          style={{ color: t.ink }}
           numberOfLines={1}
         >
           {client.full_name || "Без имени"}
         </Text>
-        <Text className="text-sm text-neutral-500" numberOfLines={1}>
+        <Text className="text-sm" style={{ color: t.sub }} numberOfLines={1}>
           {client.phone}
           {client.city ? ` · ${client.city}` : ""}
         </Text>
       </View>
       {client.balance !== 0 ? (
         <Text
-          className={`text-sm font-semibold ${owes ? "text-danger" : "text-success"}`}
+          className="text-sm font-semibold"
+          style={{ color: owes ? t.danger : t.success }}
         >
           {owes ? "−" : "+"}€{Math.abs(client.balance)}
         </Text>
@@ -65,6 +72,7 @@ function ClientRow({ client, onPress }: { client: Client; onPress: () => void })
 }
 
 export default function ClientsListScreen() {
+  const t = useThemeColors();
   const router = useRouter();
   const { data, isLoading, isRefetching, refetch, error } = useClients();
   const { data: tags = [] } = useClientTags();
@@ -92,8 +100,8 @@ export default function ClientsListScreen() {
     <Screen>
       <View className="flex-row items-center justify-between px-4 pb-2 pt-4">
         <View>
-          <Text className="text-2xl font-bold text-neutral-900">Клиенты</Text>
-          <Text className="text-sm text-neutral-500">
+          <Text className="text-2xl font-bold" style={{ color: t.ink }}>Клиенты</Text>
+          <Text className="text-sm" style={{ color: t.sub }}>
             {filtering
               ? `Найдено: ${visible.length} из ${clients.length}`
               : `${clients.length} всего`}
@@ -102,43 +110,53 @@ export default function ClientsListScreen() {
         <View className="flex-row items-center gap-2">
           <Pressable
             onPress={() => setImportOpen(true)}
-            className="h-10 w-10 items-center justify-center rounded-full bg-neutral-100 active:opacity-80"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-80"
+            style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
           >
-            <Upload color="#404040" size={20} />
+            <Upload color={t.body} size={20} />
           </Pressable>
           <Pressable
             onPress={() => router.push("/clients/new")}
-            className="h-10 w-10 items-center justify-center rounded-full bg-brand active:opacity-80"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-80"
+            style={{ backgroundColor: t.accent }}
           >
             <Plus color="#fff" size={22} />
           </Pressable>
         </View>
       </View>
 
-      <View className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl bg-neutral-100 px-3">
-        <Search color="#a3a3a3" size={18} />
+      <View
+        className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl px-3"
+        style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+      >
+        <Search color={t.faint} size={18} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Поиск по имени, телефону, адресу"
-          placeholderTextColor="#a3a3a3"
+          placeholderTextColor={t.placeholder}
+          selectionColor={t.accent}
+          keyboardAppearance={t.dark ? "dark" : "light"}
           autoCapitalize="none"
           clearButtonMode="while-editing"
-          className="flex-1 py-2.5 text-base text-neutral-900"
+          className="flex-1 py-2.5 text-base"
+          style={{ color: t.ink }}
         />
       </View>
 
       <Pressable
         onPress={() => setSheetOpen(true)}
-        className={`mx-4 mb-2 flex-row items-center gap-2 rounded-xl border px-3 py-2.5 ${
+        className="mx-4 mb-2 flex-row items-center gap-2 rounded-xl border px-3 py-2.5 active:opacity-60"
+        style={
           activeCount
-            ? "border-brand/40 bg-brand/5"
-            : "border-neutral-200 bg-white active:bg-neutral-50"
-        }`}
+            ? { borderColor: t.accent + "66", backgroundColor: t.dark ? "rgba(44,91,224,0.1)" : "rgba(44,91,224,0.05)" }
+            : { borderColor: t.separator, backgroundColor: t.surface }
+        }
       >
-        <Filter color={activeCount ? "#4338ca" : "#737373"} size={16} />
+        <Filter color={activeCount ? t.accent : t.faint} size={16} />
         <Text
-          className={`flex-1 text-sm ${activeCount ? "font-semibold text-brand" : "text-neutral-600"}`}
+          className="flex-1 text-sm"
+          style={{ color: activeCount ? t.accent : t.sub, fontWeight: activeCount ? "600" : "400" }}
         >
           {activeCount ? `Фильтры · ${activeCount}` : "Фильтры"}
         </Text>
@@ -148,7 +166,7 @@ export default function ClientsListScreen() {
             onPress={() => setFilter(EMPTY_FILTER)}
             className="active:opacity-60"
           >
-            <Text className="text-xs text-neutral-400">Сбросить</Text>
+            <Text className="text-xs" style={{ color: t.faint }}>Сбросить</Text>
           </Pressable>
         ) : null}
       </Pressable>
@@ -159,7 +177,7 @@ export default function ClientsListScreen() {
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-sm text-danger">
+          <Text className="text-center text-sm" style={{ color: t.danger }}>
             {(error as Error).message}
           </Text>
         </View>
@@ -176,14 +194,14 @@ export default function ClientsListScreen() {
             />
           )}
           ItemSeparatorComponent={() => (
-            <View className="ml-[68px] h-px bg-neutral-100" />
+            <View className="ml-[68px] h-px" style={{ backgroundColor: t.separator }} />
           )}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
           }
           ListEmptyComponent={
             <View className="items-center px-6 pt-20">
-              <Text className="text-sm text-neutral-400">
+              <Text className="text-sm" style={{ color: t.faint }}>
                 {filtering ? "Ничего не найдено" : "Пока нет клиентов"}
               </Text>
             </View>

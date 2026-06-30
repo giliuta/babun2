@@ -14,6 +14,7 @@ import { ArrowUpRight, Home, MapPin, Plus, Trash2 } from "lucide-react-native";
 import type { Client, Location } from "@babun/shared/local/clients";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { buildMapUrl } from "@babun/shared/common/utils/map-links";
+import { useThemeColors } from "@/theme/colors";
 
 interface ObjectsBlockProps {
   client: Client;
@@ -30,6 +31,7 @@ export default function ObjectsBlock({
   appointments,
   update,
 }: ObjectsBlockProps) {
+  const t = useThemeColors();
   const all = client.locations ?? [];
 
   // Pre-compute per-location visit counts so each row can show
@@ -79,13 +81,13 @@ export default function ObjectsBlock({
   };
 
   return (
-    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
-      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+    <View className="mx-3 mt-2 rounded-2xl p-3 shadow-sm" style={{ backgroundColor: t.surface }}>
+      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: t.sub }}>
         Объекты{all.length ? ` · ${all.length}` : ""}
       </Text>
 
       {all.length === 0 && !draft ? (
-        <Text className="px-1 py-2 text-[13px] text-neutral-400">
+        <Text className="px-1 py-2 text-[13px]" style={{ color: t.faint }}>
           Объектов пока нет — добавь дом или офис, чтобы привязать
           оборудование и адрес.
         </Text>
@@ -103,43 +105,52 @@ export default function ObjectsBlock({
       </View>
 
       {draft ? (
-        <View className="mt-2 gap-2 rounded-xl bg-neutral-100 p-3">
+        <View className="mt-2 gap-2 rounded-xl p-3" style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}>
           <TextInput
             value={draft.label}
             onChangeText={(v) => setDraft({ ...draft, label: v })}
             placeholder="Метка (Дом / Офис)"
-            placeholderTextColor="#a3a3a3"
-            className="rounded-lg bg-white px-3 py-2 text-sm text-neutral-900"
+            placeholderTextColor={t.placeholder}
+            selectionColor={t.accent}
+            keyboardAppearance={t.dark ? "dark" : "light"}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ backgroundColor: t.surface, color: t.ink }}
           />
           <TextInput
             value={draft.address}
             onChangeText={(v) => setDraft({ ...draft, address: v })}
             placeholder="Адрес или ссылка на карту"
-            placeholderTextColor="#a3a3a3"
-            className="rounded-lg bg-white px-3 py-2 text-sm text-neutral-900"
+            placeholderTextColor={t.placeholder}
+            selectionColor={t.accent}
+            keyboardAppearance={t.dark ? "dark" : "light"}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ backgroundColor: t.surface, color: t.ink }}
           />
           <TextInput
             value={draft.note}
             onChangeText={(v) => setDraft({ ...draft, note: v })}
             placeholder="Заметка (зелёная дверь, домофон 25)"
-            placeholderTextColor="#a3a3a3"
-            className="rounded-lg bg-white px-3 py-2 text-sm text-neutral-900"
+            placeholderTextColor={t.placeholder}
+            selectionColor={t.accent}
+            keyboardAppearance={t.dark ? "dark" : "light"}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ backgroundColor: t.surface, color: t.ink }}
           />
           <View className="flex-row gap-2">
             <Pressable
               onPress={saveDraft}
               disabled={!draft.address.trim()}
-              className={`flex-1 items-center rounded-lg py-2 ${
-                draft.address.trim() ? "bg-brand" : "bg-neutral-200"
-              }`}
+              className="flex-1 items-center rounded-lg py-2"
+              style={{ backgroundColor: draft.address.trim() ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
             >
-              <Text className="text-sm font-semibold text-white">Сохранить</Text>
+              <Text className="text-sm font-semibold" style={{ color: "#fff" }}>Сохранить</Text>
             </Pressable>
             <Pressable
               onPress={() => setDraft(null)}
-              className="items-center rounded-lg bg-neutral-200 px-4 py-2 active:opacity-70"
+              className="items-center rounded-lg px-4 py-2 active:opacity-70"
+              style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
             >
-              <Text className="text-sm font-semibold text-neutral-700">
+              <Text className="text-sm font-semibold" style={{ color: t.sub }}>
                 Отмена
               </Text>
             </Pressable>
@@ -150,8 +161,8 @@ export default function ObjectsBlock({
           onPress={() => setDraft({ label: "", address: "", note: "" })}
           className="mt-2 flex-row items-center gap-1.5 self-start px-1 py-1 active:opacity-60"
         >
-          <Plus color="#4f46e5" size={14} />
-          <Text className="text-[13px] font-semibold text-brand">
+          <Plus color={t.accent} size={14} />
+          <Text className="text-[13px] font-semibold" style={{ color: t.accent }}>
             {all.length > 0 ? "Добавить объект" : "Добавить первый объект"}
           </Text>
         </Pressable>
@@ -169,6 +180,8 @@ function ObjectRow({
   onRemove: () => void;
   history?: { count: number; lastDate: string };
 }) {
+  const t = useThemeColors();
+
   const openMaps = () => {
     // Apple Maps on iOS; the shared builder returns a universal URL
     // that Linking can hand off to the installed maps app.
@@ -184,41 +197,42 @@ function ObjectRow({
         : "визитов";
 
   return (
-    <View className="flex-row items-start gap-2 rounded-xl bg-neutral-100 p-3">
-      <View className="h-9 w-9 items-center justify-center rounded-lg bg-brand/10">
-        <Home color="#4f46e5" size={16} />
+    <View className="flex-row items-start gap-2 rounded-xl p-3" style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}>
+      <View className="h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: t.dark ? "rgba(44,91,224,0.18)" : "rgba(44,91,224,0.10)" }}>
+        <Home color={t.accent} size={16} />
       </View>
 
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center gap-1.5">
           <Text
-            className="text-sm font-semibold text-neutral-900"
+            className="text-sm font-semibold"
+            style={{ color: t.ink }}
             numberOfLines={1}
           >
             {loc.label || "Объект"}
           </Text>
           {loc.isPrimary ? (
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-brand">
+            <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: t.accent }}>
               основной
             </Text>
           ) : null}
         </View>
 
         <View className="flex-row items-center gap-1">
-          <MapPin color="#737373" size={10} />
-          <Text className="flex-1 text-xs text-neutral-500" numberOfLines={1}>
+          <MapPin color={t.faint} size={10} />
+          <Text className="flex-1 text-xs" style={{ color: t.sub }} numberOfLines={1}>
             {loc.address || "адрес не указан"}
           </Text>
         </View>
 
         {loc.note ? (
-          <Text className="mt-0.5 text-[11px] text-neutral-400" numberOfLines={1}>
+          <Text className="mt-0.5 text-[11px]" style={{ color: t.faint }} numberOfLines={1}>
             {loc.note}
           </Text>
         ) : null}
 
         {history && history.count > 0 ? (
-          <Text className="mt-0.5 text-[11px] text-neutral-500">
+          <Text className="mt-0.5 text-[11px]" style={{ color: t.sub }}>
             {history.count} {visitWord}
             {history.lastDate ? ` · посл. ${formatHistDate(history.lastDate)}` : ""}
           </Text>
@@ -228,17 +242,18 @@ function ObjectRow({
       {loc.address || loc.mapUrl ? (
         <Pressable
           onPress={openMaps}
-          className="h-8 w-8 items-center justify-center rounded-lg bg-brand/10 active:opacity-70"
+          className="h-8 w-8 items-center justify-center rounded-lg active:opacity-70"
+          style={{ backgroundColor: t.dark ? "rgba(44,91,224,0.18)" : "rgba(44,91,224,0.10)" }}
         >
-          <ArrowUpRight color="#4f46e5" size={14} />
+          <ArrowUpRight color={t.accent} size={14} />
         </Pressable>
       ) : null}
 
       <Pressable
         onPress={onRemove}
-        className="h-8 w-8 items-center justify-center rounded-lg active:bg-danger/10"
+        className="h-8 w-8 items-center justify-center rounded-lg active:opacity-60"
       >
-        <Trash2 color="#ef4444" size={14} />
+        <Trash2 color={t.danger} size={14} />
       </Pressable>
     </View>
   );

@@ -16,8 +16,9 @@ import type {
 } from "@babun/shared/local/finance/transaction";
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
 import { useToast } from "@/components/ui/Toast";
+import { useThemeColors } from "@/theme/colors";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { formatYMD, parseYMD } from "@/features/appointments/helpers";
 import { useTeams } from "@/features/reference/queries";
@@ -48,17 +49,19 @@ function Chip({
   onPress: () => void;
   tone?: "brand" | "danger" | "success";
 }) {
-  const bg = active
-    ? tone === "danger"
-      ? "bg-danger"
-      : tone === "success"
-        ? "bg-success"
-        : "bg-brand"
-    : "bg-neutral-100";
+  const t = useThemeColors();
+  const activeBg =
+    tone === "danger" ? t.danger : tone === "success" ? t.success : t.accent;
+  const inactiveBg = t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5";
   return (
-    <Pressable onPress={onPress} className={`rounded-full px-3.5 py-1.5 ${bg}`}>
+    <Pressable
+      onPress={onPress}
+      className="rounded-full px-3.5 py-1.5"
+      style={{ backgroundColor: active ? activeBg : inactiveBg }}
+    >
       <Text
-        className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+        className="text-sm font-medium"
+        style={{ color: active ? "#fff" : t.sub }}
       >
         {label}
       </Text>
@@ -77,6 +80,7 @@ export function OperationSheet({
   defaultTeamId?: string | null;
   transaction?: FinanceTransaction | null;
 }) {
+  const th = useThemeColors();
   const { data: categories = [] } = useFinanceCategories();
   const { data: teams = [] } = useTeams();
   const { data: accounts = [] } = useAccounts();
@@ -178,23 +182,23 @@ export function OperationSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
+      <View className="flex-1 justify-end" style={{ backgroundColor: th.scrim }}>
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="h-[86%] overflow-hidden rounded-t-3xl bg-neutral-50">
-          <View className="flex-row items-center border-b border-neutral-200 bg-white px-2 py-2">
+        <View className="h-[86%] overflow-hidden rounded-t-3xl" style={{ backgroundColor: th.canvas }}>
+          <View className="flex-row items-center px-2 py-2" style={{ backgroundColor: th.surface, borderBottomWidth: 1, borderBottomColor: th.separator }}>
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+              className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
             >
-              <X color={COLORS.body} size={ICON.md} />
+              <X color={th.body} size={ICON.md} />
             </Pressable>
-            <Text className="flex-1 text-center text-base font-semibold text-neutral-900">
+            <Text className="flex-1 text-center text-base font-semibold" style={{ color: th.ink }}>
               {isEdit ? "Операция" : "Новая операция"}
             </Text>
             {isEdit ? (
               <Pressable onPress={remove} hitSlop={8} className="w-10 items-center">
-                <Text className="text-sm font-medium text-danger">Удалить</Text>
+                <Text className="text-sm font-medium" style={{ color: th.danger }}>Удалить</Text>
               </Pressable>
             ) : (
               <View className="w-10" />
@@ -221,9 +225,10 @@ export function OperationSheet({
                       if (t.account_id) setAccountId(t.account_id);
                       if (t.payment_method) setPayment(t.payment_method as PaymentMethod);
                     }}
-                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 active:opacity-70"
+                    className="rounded-full px-3 py-1.5 active:opacity-70"
+                    style={{ backgroundColor: th.surface, borderWidth: 1, borderColor: th.separator }}
                   >
-                    <Text className="text-sm font-medium text-neutral-700">
+                    <Text className="text-sm font-medium" style={{ color: th.sub }}>
                       {t.name} · {formatEUR(Number(t.amount))}
                     </Text>
                   </Pressable>
@@ -232,29 +237,31 @@ export function OperationSheet({
             ) : null}
 
             {/* type segmented */}
-            <View className="mx-3 mt-3 flex-row rounded-xl bg-neutral-200 p-1">
-              {(["expense", "income", "refund"] as const).map((t) => {
-                const active = type === t;
-                const tone =
-                  t === "expense"
-                    ? "text-danger"
-                    : t === "income"
-                      ? "text-success"
-                      : "text-amber-700";
+            <View className="mx-3 mt-3 flex-row rounded-xl p-1" style={{ backgroundColor: th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}>
+              {(["expense", "income", "refund"] as const).map((seg) => {
+                const active = type === seg;
+                const activeColor =
+                  seg === "expense"
+                    ? th.danger
+                    : seg === "income"
+                      ? th.success
+                      : th.warning;
                 const label =
-                  t === "expense" ? "Расход" : t === "income" ? "Доход" : "Возврат";
+                  seg === "expense" ? "Расход" : seg === "income" ? "Доход" : "Возврат";
                 return (
                   <Pressable
-                    key={t}
+                    key={seg}
                     disabled={isEdit}
                     onPress={() => {
-                      setType(t);
+                      setType(seg);
                       setCategoryId(null);
                     }}
-                    className={`flex-1 items-center rounded-lg py-2 ${active ? "bg-white" : ""} ${isEdit && !active ? "opacity-40" : ""}`}
+                    className={`flex-1 items-center rounded-lg py-2 ${isEdit && !active ? "opacity-40" : ""}`}
+                    style={active ? { backgroundColor: th.surface } : undefined}
                   >
                     <Text
-                      className={`text-sm font-semibold ${active ? tone : "text-neutral-500"}`}
+                      className="text-sm font-semibold"
+                      style={{ color: active ? activeColor : th.faint }}
                     >
                       {label}
                     </Text>
@@ -272,10 +279,13 @@ export function OperationSheet({
                   keyboardType="decimal-pad"
                   autoFocus
                   placeholder="0"
-                  placeholderTextColor={COLORS.faint}
-                  className={`flex-1 text-3xl font-bold ${isExpense ? "text-danger" : "text-success"}`}
+                  placeholderTextColor={th.placeholder}
+                  selectionColor={th.accent}
+                  keyboardAppearance={th.dark ? "dark" : "light"}
+                  className="flex-1 text-3xl font-bold"
+                  style={{ color: isExpense ? th.danger : th.success }}
                 />
-                <Text className="text-3xl font-bold text-neutral-300">€</Text>
+                <Text className="text-3xl font-bold" style={{ color: th.faint }}>€</Text>
               </View>
             </SectionCard>
 
@@ -371,9 +381,9 @@ export function OperationSheet({
                   />
                 ))}
               </View>
-              <View className="ml-4 h-px bg-neutral-100" />
+              <View className="ml-4 h-px" style={{ backgroundColor: th.separator }} />
               <View className="flex-row items-center justify-between px-4 py-2.5">
-                <Text className="text-base text-neutral-900">Дата</Text>
+                <Text className="text-base" style={{ color: th.ink }}>Дата</Text>
                 <DateTimePicker
                   value={parseYMD(date)}
                   mode="date"
@@ -389,15 +399,18 @@ export function OperationSheet({
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Напр. бензин, материалы…"
-                placeholderTextColor={COLORS.faint}
-                className="px-4 py-3 text-base text-neutral-900"
+                placeholderTextColor={th.placeholder}
+                selectionColor={th.accent}
+                keyboardAppearance={th.dark ? "dark" : "light"}
+                className="px-4 py-3 text-base"
+                style={{ color: th.ink }}
               />
             </SectionCard>
 
             <View className="h-6" />
           </ScrollView>
 
-          <View className="border-t border-neutral-200 bg-white px-4 pb-7 pt-3">
+          <View className="px-4 pb-7 pt-3" style={{ backgroundColor: th.surface, borderTopWidth: 1, borderTopColor: th.separator }}>
             <Button
               label={
                 isEdit

@@ -8,7 +8,8 @@ import { Screen } from "@/components/ui/Screen";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { formatYMD, humanDay, parseYMD } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { DayView } from "@/features/calendar/DayView";
@@ -49,30 +50,32 @@ function AppointmentRow({
   clientName: string;
   onPress: () => void;
 }) {
+  const th = useThemeColors();
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center bg-white px-4 py-3 active:bg-neutral-50"
+      className="flex-row items-center px-4 py-3 active:opacity-60"
+      style={{ backgroundColor: th.surface }}
     >
       <View className="w-14">
-        <Text className="text-sm font-semibold text-neutral-900 tabular-nums">
+        <Text className="text-sm font-semibold tabular-nums" style={{ color: th.ink }}>
           {apt.time_start}
         </Text>
-        <Text className="text-xs text-neutral-400 tabular-nums">{apt.time_end}</Text>
+        <Text className="text-xs tabular-nums" style={{ color: th.faint }}>{apt.time_end}</Text>
       </View>
-      <View className="ml-2 flex-1 border-l border-neutral-100 pl-3">
-        <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
+      <View className="ml-2 flex-1 border-l pl-3" style={{ borderColor: th.separator }}>
+        <Text className="text-base font-semibold" style={{ color: th.ink }} numberOfLines={1}>
           {clientName || apt.comment || "Запись"}
         </Text>
         {apt.comment ? (
-          <Text className="text-sm text-neutral-500" numberOfLines={1}>
+          <Text className="text-sm" style={{ color: th.sub }} numberOfLines={1}>
             {apt.comment}
           </Text>
         ) : null}
         <View className="mt-1 flex-row items-center gap-2">
           <StatusBadge status={apt.status} />
           {apt.total_amount ? (
-            <Text className="text-xs font-semibold text-neutral-700 tabular-nums">
+            <Text className="text-xs font-semibold tabular-nums" style={{ color: th.sub }}>
               {formatEUR(apt.total_amount)}
             </Text>
           ) : null}
@@ -95,34 +98,36 @@ function NavRow({
   showToday: boolean;
   onToday: () => void;
 }) {
+  const th = useThemeColors();
   return (
     <View className="flex-row items-center justify-between px-3 pb-1 pt-1">
       <Pressable
         onPress={onPrev}
         hitSlop={8}
-        className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+        className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
       >
-        <ChevronLeft color={COLORS.body} size={ICON.md} />
+        <ChevronLeft color={th.body} size={ICON.md} />
       </Pressable>
       <View className="flex-row items-center gap-2">
-        <Text className="text-base font-semibold capitalize text-neutral-900">
+        <Text className="text-base font-semibold capitalize" style={{ color: th.ink }}>
           {label}
         </Text>
         {showToday ? (
           <Pressable
             onPress={onToday}
-            className="rounded-full bg-neutral-100 px-2.5 py-1 active:opacity-80"
+            className="rounded-full px-2.5 py-1 active:opacity-80"
+            style={{ backgroundColor: th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
           >
-            <Text className="text-xs font-medium text-brand">Сегодня</Text>
+            <Text className="text-xs font-medium" style={{ color: th.accent }}>Сегодня</Text>
           </Pressable>
         ) : null}
       </View>
       <Pressable
         onPress={onNext}
         hitSlop={8}
-        className="h-9 w-9 items-center justify-center rounded-full active:bg-neutral-100"
+        className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
       >
-        <ChevronRight color={COLORS.body} size={ICON.md} />
+        <ChevronRight color={th.body} size={ICON.md} />
       </Pressable>
     </View>
   );
@@ -244,21 +249,28 @@ export default function CalendarTab() {
     setSheetOpen(true);
   };
 
+  const t = useThemeColors();
+
   const MODE_LABEL: Record<ViewMode, string> = {
     agenda: "Список",
     day: "День",
     month: "Месяц",
   };
   const toggle = (
-    <View className="flex-row rounded-lg bg-neutral-200 p-0.5">
+    <View
+      className="flex-row rounded-lg p-0.5"
+      style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+    >
       {(["agenda", "day", "month"] as const).map((m) => (
         <Pressable
           key={m}
           onPress={() => setMode(m)}
-          className={`rounded-md px-2.5 py-1 ${mode === m ? "bg-white" : ""}`}
+          className="rounded-md px-2.5 py-1"
+          style={mode === m ? { backgroundColor: t.surface } : undefined}
         >
           <Text
-            className={`text-xs font-semibold ${mode === m ? "text-neutral-900" : "text-neutral-500"}`}
+            className="text-xs font-semibold"
+            style={{ color: mode === m ? t.ink : t.sub }}
           >
             {MODE_LABEL[m]}
           </Text>
@@ -280,18 +292,20 @@ export default function CalendarTab() {
           alignItems: "center",
         }}
       >
-        {[{ id: null as string | null, name: "Все" }, ...teams].map((t) => {
-          const active = teamFilter === t.id;
+        {[{ id: null as string | null, name: "Все" }, ...teams].map((tm) => {
+          const active = teamFilter === tm.id;
           return (
             <Pressable
-              key={t.id ?? "all"}
-              onPress={() => setTeamFilter(t.id)}
-              className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+              key={tm.id ?? "all"}
+              onPress={() => setTeamFilter(tm.id)}
+              className="rounded-full px-3.5 py-1.5"
+              style={{ backgroundColor: active ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
             >
               <Text
-                className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+                className="text-sm font-medium"
+                style={{ color: active ? "#fff" : t.sub }}
               >
-                {t.name}
+                {tm.name}
               </Text>
             </Pressable>
           );
@@ -338,7 +352,10 @@ export default function CalendarTab() {
           }
           contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
           renderSectionHeader={({ section }) => (
-            <Text className="bg-neutral-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            <Text
+              className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider"
+              style={{ backgroundColor: t.canvas, color: t.sub }}
+            >
               {humanDay(section.title)}
             </Text>
           )}
@@ -349,7 +366,7 @@ export default function CalendarTab() {
               onPress={() => openEdit(item)}
             />
           )}
-          ItemSeparatorComponent={() => <View className="h-px bg-neutral-100" />}
+          ItemSeparatorComponent={() => <View className="h-px" style={{ backgroundColor: t.separator }} />}
           ListEmptyComponent={
             <EmptyState
               title="Нет записей в этом месяце"
@@ -413,9 +430,10 @@ export default function CalendarTab() {
 
       <Pressable
         onPress={() => openCreate(mode === "day" ? { date: dayYmd } : undefined)}
-        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-brand active:opacity-90"
+        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full active:opacity-90"
         style={{
-          shadowColor: COLORS.brand,
+          backgroundColor: t.accent,
+          shadowColor: t.brandShadow,
           shadowOpacity: 0.3,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 4 },

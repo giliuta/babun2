@@ -7,13 +7,15 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import {
   useLocationLabels,
   useSaveLocationLabels,
 } from "@/features/settings/local-settings";
 
 export default function ObjectTypesScreen() {
+  const t = useThemeColors();
   const { data: labels = [], isLoading } = useLocationLabels();
   const save = useSaveLocationLabels();
   const [open, setOpen] = useState(false);
@@ -35,9 +37,9 @@ export default function ObjectTypesScreen() {
           <Pressable
             onPress={() => setOpen(true)}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={t.accent} size={ICON.md} />
           </Pressable>
         }
       />
@@ -51,9 +53,9 @@ export default function ObjectTypesScreen() {
           contentContainerStyle={{ flexGrow: 1, paddingTop: 8 }}
           renderItem={({ item }) => (
             <View className="flex-row items-center px-4 py-3">
-              <Text className="flex-1 text-base text-neutral-900">{item.name}</Text>
+              <Text className="flex-1 text-base" style={{ color: t.ink }}>{item.name}</Text>
               <Pressable onPress={() => remove(item.id)} hitSlop={8}>
-                <Trash2 color={COLORS.danger} size={ICON.sm} />
+                <Trash2 color={t.danger} size={ICON.sm} />
               </Pressable>
             </View>
           )}
@@ -69,9 +71,9 @@ export default function ObjectTypesScreen() {
       )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">Новый тип</Text>
+        <Pressable className="flex-1" style={{ backgroundColor: t.scrim }} onPress={() => setOpen(false)} />
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8" style={{ backgroundColor: t.surface }}>
+          <Text className="mb-3 text-lg font-bold" style={{ color: t.ink }}>Новый тип</Text>
           <Field label="Название" value={name} onChangeText={setName} placeholder="Вилла" autoFocus />
           <Button label="Добавить" onPress={add} disabled={!name.trim()} />
         </View>

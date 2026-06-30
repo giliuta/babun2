@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { pad2 } from "@/features/appointments/helpers";
+import { useThemeColors } from "@/theme/colors";
 
 const HOUR_H = 64;
 const DEFAULT_START = 7;
@@ -53,6 +54,7 @@ function DraggableBlock({
   onEdit: (a: Appointment) => void;
   onReschedule: (a: Appointment, newStart: string, newEnd: string) => void;
 }) {
+  const t = useThemeColors();
   const ty = useSharedValue(0);
   const active = useSharedValue(0);
   const color = (apt.color_override as string) || STATUS_COLOR[apt.status];
@@ -123,7 +125,7 @@ function DraggableBlock({
           {apt.time_start} · {label}
         </Text>
         {height > 40 && comment ? (
-          <Text style={{ color: "#737373", fontSize: 11 }} numberOfLines={1}>
+          <Text style={{ color: t.faint, fontSize: 11 }} numberOfLines={1}>
             {comment}
           </Text>
         ) : null}
@@ -151,6 +153,7 @@ export function DayView({
   startHour?: number;
   endHour?: number;
 }) {
+  const t = useThemeColors();
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = startHour; h <= endHour; h++) out.push(h);
@@ -179,12 +182,12 @@ export function DayView({
             style={{ position: "absolute", top: (h - startHour) * HOUR_H, left: 0, right: 0 }}
           >
             <Text
-              style={{ position: "absolute", left: -52, top: -7, width: 46, textAlign: "right" }}
-              className="text-xs text-neutral-400 tabular-nums"
+              style={{ position: "absolute", left: -52, top: -7, width: 46, textAlign: "right", color: t.faint, fontSize: 12 }}
+              className="tabular-nums"
             >
               {`${pad2(h)}:00`}
             </Text>
-            <View className="h-px bg-neutral-100" />
+            <View style={{ height: 1, backgroundColor: t.separator }} />
           </View>
         ))}
 
@@ -226,9 +229,9 @@ export function DayView({
         {/* now line */}
         {nowTop != null ? (
           <View style={{ position: "absolute", top: nowTop, left: -6, right: 0 }}>
-            <View className="flex-row items-center">
-              <View className="h-2.5 w-2.5 rounded-full bg-danger" />
-              <View className="h-[1.5px] flex-1 bg-danger" />
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: t.danger }} />
+              <View style={{ height: 1.5, flex: 1, backgroundColor: t.danger }} />
             </View>
           </View>
         ) : null}

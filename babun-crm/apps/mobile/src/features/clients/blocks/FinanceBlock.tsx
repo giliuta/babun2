@@ -5,6 +5,7 @@ import type { Appointment } from "@babun/shared/local/appointments";
 import { getPaidAmount } from "@babun/shared/local/appointments";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { formatEUR } from "@babun/shared/common/utils/money";
+import { useThemeColors } from "@/theme/colors";
 
 // FinanceBlock (mobile port of apps/web/.../blocks/FinanceBlock.tsx).
 //
@@ -36,6 +37,7 @@ interface PaidVisit {
 const HISTORY_LIMIT = 5;
 
 export default function FinanceBlock({ appointments, stats }: FinanceBlockProps) {
+  const t = useThemeColors();
   const ltv = Math.round(stats?.totalSpent ?? 0);
   const debt = Math.round(stats?.debt ?? 0);
   const lastVisit = stats?.lastVisitDate ?? "";
@@ -70,37 +72,41 @@ export default function FinanceBlock({ appointments, stats }: FinanceBlockProps)
       : 0;
 
   return (
-    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
-      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+    <View className="mx-3 mt-2 rounded-2xl p-3 shadow-sm" style={{ backgroundColor: t.surface }}>
+      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: t.sub }}>
         Финансы
       </Text>
 
       <View className="gap-2 px-1 py-1">
         <Row
-          icon={<Wallet color="#a3a3a3" size={14} />}
+          icon={<Wallet color={t.faint} size={14} />}
           label="LTV"
           value={ltv > 0 ? formatEUR(ltv) : "—"}
+          t={t}
         />
         <Row
-          icon={<TrendingUp color="#a3a3a3" size={14} />}
+          icon={<TrendingUp color={t.faint} size={14} />}
           label="Средний чек"
           value={avgTicket > 0 ? formatEUR(avgTicket) : "—"}
+          t={t}
         />
         <Row
-          icon={<Calendar color="#a3a3a3" size={14} />}
+          icon={<Calendar color={t.faint} size={14} />}
           label="Последняя оплата"
           value={lastPaymentDate ? formatVisitDate(lastPaymentDate) : "—"}
+          t={t}
         />
         <Row
           label="Последний визит"
           value={lastVisit ? formatVisitDate(lastVisit) : "—"}
+          t={t}
         />
-        {debt > 0 ? <Row label="Долг" value={formatEUR(debt)} tone="bad" /> : null}
+        {debt > 0 ? <Row label="Долг" value={formatEUR(debt)} tone="bad" t={t} /> : null}
       </View>
 
       {paidVisits.length > 0 ? (
-        <View className="mt-2 border-t border-neutral-100 pt-2">
-          <Text className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+        <View className="mt-2 border-t pt-2" style={{ borderColor: t.separator }}>
+          <Text className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: t.faint }}>
             История транзакций
           </Text>
           {paidVisits.slice(0, HISTORY_LIMIT).map((v) => (
@@ -108,17 +114,17 @@ export default function FinanceBlock({ appointments, stats }: FinanceBlockProps)
               key={v.id}
               className="flex-row items-center gap-2 px-1 py-0.5"
             >
-              <Text className="flex-1 text-xs text-neutral-500" numberOfLines={1}>
+              <Text className="flex-1 text-xs" style={{ color: t.sub }} numberOfLines={1}>
                 {formatVisitDate(v.date)}
                 {v.method ? ` · ${methodLabel(v.method)}` : ""}
               </Text>
-              <Text className="text-xs font-semibold text-success">
+              <Text className="text-xs font-semibold" style={{ color: t.success }}>
                 +{formatEUR(v.amount)}
               </Text>
             </View>
           ))}
           {paidVisits.length > HISTORY_LIMIT ? (
-            <Text className="px-1 pt-1 text-[11px] text-neutral-400">
+            <Text className="px-1 pt-1 text-[11px]" style={{ color: t.faint }}>
               + ещё {paidVisits.length - HISTORY_LIMIT} оплат
             </Text>
           ) : null}
@@ -133,18 +139,21 @@ function Row({
   label,
   value,
   tone = "default",
+  t,
 }: {
   icon?: React.ReactNode;
   label: string;
   value: string;
   tone?: "default" | "bad";
+  t: ReturnType<typeof useThemeColors>;
 }) {
   return (
     <View className="flex-row items-center gap-2">
       {icon ? <View className="shrink-0">{icon}</View> : null}
-      <Text className="flex-1 text-sm text-neutral-500">{label}</Text>
+      <Text className="flex-1 text-sm" style={{ color: t.sub }}>{label}</Text>
       <Text
-        className={`text-sm font-bold ${tone === "bad" ? "text-danger" : "text-neutral-900"}`}
+        className="text-sm font-bold"
+        style={{ color: tone === "bad" ? t.danger : t.ink }}
       >
         {value}
       </Text>

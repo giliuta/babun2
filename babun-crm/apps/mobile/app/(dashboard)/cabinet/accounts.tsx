@@ -17,7 +17,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useTeams } from "@/features/reference/queries";
 import { formatYMD } from "@/features/appointments/helpers";
 import {
@@ -42,6 +43,7 @@ const KINDS: { value: AccountKind; label: string }[] = [
 ];
 
 export default function AccountsScreen() {
+  const th = useThemeColors();
   const { data: accounts = [], isLoading } = useAccountsWithBalances();
   const { data: teams = [] } = useTeams();
   const insert = useInsertAccount();
@@ -122,27 +124,27 @@ export default function AccountsScreen() {
               <Pressable
                 onPress={() => setTOpen(true)}
                 hitSlop={8}
-                className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+                className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
               >
-                <ArrowLeftRight color={COLORS.body} size={ICON.sm} />
+                <ArrowLeftRight color={th.body} size={ICON.sm} />
               </Pressable>
             ) : null}
             <Pressable
               onPress={() => setOpen(true)}
               hitSlop={8}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+              className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
             >
-              <Plus color={COLORS.brand} size={ICON.md} />
+              <Plus color={th.accent} size={ICON.md} />
             </Pressable>
           </View>
         }
       />
 
-      <View className="mx-3 mt-2 rounded-2xl bg-white p-4 shadow-sm">
-        <Text className="text-xs text-neutral-500">Всего на счетах</Text>
+      <View className="mx-3 mt-2 rounded-2xl p-4 shadow-sm" style={{ backgroundColor: th.surface }}>
+        <Text className="text-xs" style={{ color: th.sub }}>Всего на счетах</Text>
         <Text
           className="mt-0.5 text-2xl font-bold"
-          style={{ color: COLORS.brandAccent }}
+          style={{ color: th.brandAccent }}
         >
           {formatEUR(total)}
         </Text>
@@ -161,20 +163,20 @@ export default function AccountsScreen() {
             return (
               <Pressable
                 onLongPress={() => confirmClose(item)}
-                className="flex-row items-center px-4 py-3 active:bg-neutral-50"
+                className="flex-row items-center px-4 py-3 active:opacity-60"
               >
-                <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl bg-brand/10">
-                  <Icon color={COLORS.brand} size={ICON.sm} />
+                <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: th.highlight }}>
+                  <Icon color={th.accent} size={ICON.sm} />
                 </View>
                 <View className="flex-1 pr-2">
-                  <Text className="text-base font-semibold text-neutral-900" numberOfLines={1}>
+                  <Text className="text-base font-semibold" style={{ color: th.ink }} numberOfLines={1}>
                     {item.name}
                   </Text>
-                  <Text className="text-xs text-neutral-500">
+                  <Text className="text-xs" style={{ color: th.sub }}>
                     {teamName.get(item.brigade_id) ?? "—"}
                   </Text>
                 </View>
-                <Text className="text-base font-bold text-neutral-900 tabular-nums">
+                <Text className="text-base font-bold tabular-nums" style={{ color: th.ink }}>
                   {formatEUR(item.balance)}
                 </Text>
               </Pressable>
@@ -192,9 +194,9 @@ export default function AccountsScreen() {
       )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">Новый счёт</Text>
+        <Pressable className="flex-1" style={{ backgroundColor: th.scrim }} onPress={() => setOpen(false)} />
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8" style={{ backgroundColor: th.surface }}>
+          <Text className="mb-3 text-lg font-bold" style={{ color: th.ink }}>Новый счёт</Text>
           <Field
             label="Название"
             value={name}
@@ -202,23 +204,24 @@ export default function AccountsScreen() {
             placeholder="Напр. Касса"
             autoFocus
           />
-          <Text className="mb-2 text-xs font-medium text-neutral-500">Тип</Text>
+          <Text className="mb-2 text-xs font-medium" style={{ color: th.sub }}>Тип</Text>
           <View className="mb-3 flex-row flex-wrap gap-2">
             {KINDS.map((k) => (
               <Pressable
                 key={k.value}
                 onPress={() => setKind(k.value)}
-                className={`rounded-full px-3.5 py-1.5 ${kind === k.value ? "bg-brand" : "bg-neutral-100"}`}
+                className="rounded-full px-3.5 py-1.5"
+                style={{ backgroundColor: kind === k.value ? th.accent : (th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
               >
-                <Text className={`text-sm font-medium ${kind === k.value ? "text-white" : "text-neutral-700"}`}>
+                <Text className="text-sm font-medium" style={{ color: kind === k.value ? "#fff" : th.sub }}>
                   {k.label}
                 </Text>
               </Pressable>
             ))}
           </View>
-          <Text className="mb-2 text-xs font-medium text-neutral-500">Бригада</Text>
+          <Text className="mb-2 text-xs font-medium" style={{ color: th.sub }}>Бригада</Text>
           {teams.length === 0 ? (
-            <Text className="mb-3 text-sm text-neutral-400">
+            <Text className="mb-3 text-sm" style={{ color: th.faint }}>
               Сначала добавьте команду в справочниках.
             </Text>
           ) : (
@@ -227,9 +230,10 @@ export default function AccountsScreen() {
                 <Pressable
                   key={t.id}
                   onPress={() => setBrigadeId(t.id)}
-                  className={`rounded-full px-3.5 py-1.5 ${brigadeId === t.id ? "bg-brand" : "bg-neutral-100"}`}
+                  className="rounded-full px-3.5 py-1.5"
+                  style={{ backgroundColor: brigadeId === t.id ? th.accent : (th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
                 >
-                  <Text className={`text-sm font-medium ${brigadeId === t.id ? "text-white" : "text-neutral-700"}`}>
+                  <Text className="text-sm font-medium" style={{ color: brigadeId === t.id ? "#fff" : th.sub }}>
                     {t.name}
                   </Text>
                 </Pressable>
@@ -254,26 +258,27 @@ export default function AccountsScreen() {
 
       {/* transfer */}
       <Modal visible={tOpen} transparent animationType="slide" onRequestClose={() => setTOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setTOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">
+        <Pressable className="flex-1" style={{ backgroundColor: th.scrim }} onPress={() => setTOpen(false)} />
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8" style={{ backgroundColor: th.surface }}>
+          <Text className="mb-3 text-lg font-bold" style={{ color: th.ink }}>
             Перевод между счетами
           </Text>
-          <Text className="mb-2 text-xs font-medium text-neutral-500">Откуда</Text>
+          <Text className="mb-2 text-xs font-medium" style={{ color: th.sub }}>Откуда</Text>
           <View className="mb-3 flex-row flex-wrap gap-2">
             {accounts.map((a) => (
               <Pressable
                 key={a.id}
                 onPress={() => setFromId(a.id === fromId ? null : a.id)}
-                className={`rounded-full px-3.5 py-1.5 ${fromId === a.id ? "bg-danger" : "bg-neutral-100"}`}
+                className="rounded-full px-3.5 py-1.5"
+                style={{ backgroundColor: fromId === a.id ? th.danger : (th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
               >
-                <Text className={`text-sm font-medium ${fromId === a.id ? "text-white" : "text-neutral-700"}`}>
+                <Text className="text-sm font-medium" style={{ color: fromId === a.id ? "#fff" : th.sub }}>
                   {a.name}
                 </Text>
               </Pressable>
             ))}
           </View>
-          <Text className="mb-2 text-xs font-medium text-neutral-500">Куда</Text>
+          <Text className="mb-2 text-xs font-medium" style={{ color: th.sub }}>Куда</Text>
           <View className="mb-3 flex-row flex-wrap gap-2">
             {accounts
               .filter((a) => a.id !== fromId)
@@ -281,9 +286,10 @@ export default function AccountsScreen() {
                 <Pressable
                   key={a.id}
                   onPress={() => setToId(a.id === toId ? null : a.id)}
-                  className={`rounded-full px-3.5 py-1.5 ${toId === a.id ? "bg-success" : "bg-neutral-100"}`}
+                  className="rounded-full px-3.5 py-1.5"
+                  style={{ backgroundColor: toId === a.id ? th.success : (th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
                 >
-                  <Text className={`text-sm font-medium ${toId === a.id ? "text-white" : "text-neutral-700"}`}>
+                  <Text className="text-sm font-medium" style={{ color: toId === a.id ? "#fff" : th.sub }}>
                     {a.name}
                   </Text>
                 </Pressable>

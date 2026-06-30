@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import { formatEUR } from "@babun/shared/common/utils/money";
+import { useThemeColors } from "@/theme/colors";
 
 // VisitsBlock (mobile port of apps/web/.../blocks/VisitsBlock.tsx).
 //
@@ -31,6 +32,7 @@ const LIMIT = 50;
 
 export default function VisitsBlock({ appointments }: VisitsBlockProps) {
   const router = useRouter();
+  const t = useThemeColors();
 
   const own = useMemo(
     () =>
@@ -41,13 +43,13 @@ export default function VisitsBlock({ appointments }: VisitsBlockProps) {
   );
 
   return (
-    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
-      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+    <View className="mx-3 mt-2 rounded-2xl p-3 shadow-sm" style={{ backgroundColor: t.surface }}>
+      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: t.sub }}>
         История визитов {own.length > 0 ? `· ${own.length}` : ""}
       </Text>
 
       {own.length === 0 ? (
-        <Text className="px-1 py-2 text-sm text-neutral-400">
+        <Text className="px-1 py-2 text-sm" style={{ color: t.faint }}>
           Записей пока нет.
         </Text>
       ) : (
@@ -64,7 +66,7 @@ export default function VisitsBlock({ appointments }: VisitsBlockProps) {
             />
           ))}
           {own.length > LIMIT ? (
-            <Text className="px-1 pt-2 text-center text-xs text-neutral-400">
+            <Text className="px-1 pt-2 text-center text-xs" style={{ color: t.faint }}>
               + ещё {own.length - LIMIT} визитов
             </Text>
           ) : null}
@@ -81,88 +83,90 @@ function VisitRow({
   apt: Appointment;
   onOpen: () => void;
 }) {
-  const status = statusPill(apt);
-  const payment = paymentPill(apt);
+  const t = useThemeColors();
+  const status = statusPill(apt, t);
+  const payment = paymentPill(apt, t);
   const summary = visitSummary(apt);
 
   return (
     <Pressable
       onPress={onOpen}
-      className="flex-row items-center gap-2 border-t border-neutral-100 py-2.5 active:bg-neutral-50"
+      className="flex-row items-center gap-2 py-2.5 active:opacity-60"
+      style={{ borderTopWidth: 1, borderTopColor: t.separator }}
     >
       <View className="min-w-0 flex-1">
-        <Text className="text-sm text-neutral-900" numberOfLines={1}>
+        <Text className="text-sm" style={{ color: t.ink }} numberOfLines={1}>
           {summary}
         </Text>
-        <Text className="text-xs text-neutral-500">
+        <Text className="text-xs" style={{ color: t.sub }}>
           {formatVisitDate(apt.date)} · {apt.time_start}
         </Text>
       </View>
 
       <View className="shrink-0 items-end gap-1">
-        <View className={`rounded-full px-2 py-0.5 ${status.bg}`}>
-          <Text className={`text-[10px] font-semibold ${status.text}`}>
+        <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: status.bg }}>
+          <Text className="text-[10px] font-semibold" style={{ color: status.text }}>
             {status.label}
           </Text>
         </View>
         {payment ? (
-          <View className={`rounded-full px-2 py-0.5 ${payment.bg}`}>
-            <Text className={`text-[10px] font-semibold ${payment.text}`}>
+          <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: payment.bg }}>
+            <Text className="text-[10px] font-semibold" style={{ color: payment.text }}>
               {payment.label}
             </Text>
           </View>
         ) : null}
       </View>
 
-      <Text className="w-16 shrink-0 text-right text-sm font-bold text-success">
+      <Text className="w-16 shrink-0 text-right text-sm font-bold" style={{ color: t.success }}>
         {formatEUR(apt.total_amount)}
       </Text>
     </Pressable>
   );
 }
 
-function statusPill(apt: Appointment): {
-  label: string;
-  bg: string;
-  text: string;
-} {
+type PillColors = { label: string; bg: string; text: string };
+type ThemeColors = ReturnType<typeof useThemeColors>;
+
+function statusPill(apt: Appointment, t: ThemeColors): PillColors {
   switch (apt.status) {
     case "completed":
-      return { label: "Выполнено", bg: "bg-success/15", text: "text-success" };
+      return { label: "Выполнено", bg: `${t.success}26`, text: t.success };
     case "cancelled":
       return {
         label: "Отменено",
-        bg: "bg-neutral-100",
-        text: "text-neutral-500",
+        bg: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+        text: t.sub,
       };
     case "in_progress":
-      return { label: "В работе", bg: "bg-warning/15", text: "text-amber-700" };
+      return { label: "В работе", bg: `${t.warning}26`, text: t.warning };
     default:
       return {
         label: "Запланировано",
-        bg: "bg-brand/10",
-        text: "text-brand",
+        bg: `${t.accent}1a`,
+        text: t.accent,
       };
   }
 }
 
 function paymentPill(
   apt: Appointment,
-): { label: string; bg: string; text: string } | null {
+  t: ThemeColors,
+): PillColors | null {
   if (apt.status !== "completed") return null;
   switch (apt.payment_status) {
     case "paid":
-      return { label: "Оплачено", bg: "bg-success/15", text: "text-success" };
+      return { label: "Оплачено", bg: `${t.success}26`, text: t.success };
     case "partial":
-      return { label: "Частично", bg: "bg-warning/15", text: "text-amber-700" };
+      return { label: "Частично", bg: `${t.warning}26`, text: t.warning };
     case "refunded":
-      return { label: "Возврат", bg: "bg-danger/10", text: "text-danger" };
+      return { label: "Возврат", bg: `${t.danger}1a`, text: t.danger };
     case "unpaid":
-      return { label: "К оплате", bg: "bg-warning/15", text: "text-amber-700" };
+      return { label: "К оплате", bg: `${t.warning}26`, text: t.warning };
     default:
       // Legacy fallback — rows older than the payment_status wiring.
       if (apt.payment) {
-        return { label: "Оплачено", bg: "bg-success/15", text: "text-success" };
+        return { label: "Оплачено", bg: `${t.success}26`, text: t.success };
       }
       return null;
   }

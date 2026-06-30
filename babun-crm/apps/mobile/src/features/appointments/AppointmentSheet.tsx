@@ -25,8 +25,9 @@ import {
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
 import { useToast } from "@/components/ui/Toast";
+import { useThemeColors } from "@/theme/colors";
 import { useClients } from "@/features/clients/queries";
 import { useServices, type Service } from "@/features/services/queries";
 import { useMasters, useTeams } from "@/features/reference/queries";
@@ -77,6 +78,7 @@ export function AppointmentSheet({
     team_id?: string | null;
   };
 }) {
+  const t = useThemeColors();
   const isEdit = !!appointment;
   const { data: clients = [] } = useClients();
   const { data: services = [] } = useServices();
@@ -301,19 +303,19 @@ export function AppointmentSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
+      <View className="flex-1 justify-end" style={{ backgroundColor: t.scrim }}>
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="h-[88%] overflow-hidden rounded-t-3xl bg-neutral-50">
+        <View className="h-[88%] overflow-hidden rounded-t-3xl" style={{ backgroundColor: t.canvas }}>
           {/* header */}
-          <View className="flex-row items-center border-b border-neutral-200 bg-white px-2 py-2">
+          <View className="flex-row items-center border-b px-2 py-2" style={{ borderColor: t.separator, backgroundColor: t.surface }}>
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+              className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
             >
-              <X color={COLORS.body} size={ICON.md} />
+              <X color={t.body} size={ICON.md} />
             </Pressable>
-            <Text className="flex-1 text-center text-base font-semibold text-neutral-900">
+            <Text className="flex-1 text-center text-base font-semibold" style={{ color: t.ink }}>
               {kind === "event"
                 ? isEdit
                   ? "Событие"
@@ -327,15 +329,17 @@ export function AppointmentSheet({
 
           <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
             {/* kind toggle */}
-            <View className="mx-3 mt-3 flex-row rounded-xl bg-neutral-200 p-1">
+            <View className="mx-3 mt-3 flex-row rounded-xl p-1" style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}>
               {(["work", "event"] as const).map((k) => (
                 <Pressable
                   key={k}
                   onPress={() => setKind(k)}
-                  className={`flex-1 items-center rounded-lg py-2 ${kind === k ? "bg-white" : ""}`}
+                  className="flex-1 items-center rounded-lg py-2"
+                  style={kind === k ? { backgroundColor: t.surface } : undefined}
                 >
                   <Text
-                    className={`text-sm font-semibold ${kind === k ? "text-neutral-900" : "text-neutral-500"}`}
+                    className="text-sm font-semibold"
+                    style={{ color: kind === k ? t.ink : t.sub }}
                   >
                     {k === "work" ? "Работа" : "Событие"}
                   </Text>
@@ -349,26 +353,26 @@ export function AppointmentSheet({
             <SectionCard title="Клиент">
               <Pressable
                 onPress={() => setClientPicker(true)}
-                className="flex-row items-center px-4 py-3 active:bg-neutral-50"
+                className="flex-row items-center px-4 py-3 active:opacity-60"
               >
                 <View className="flex-1">
                   {client ? (
                     <>
-                      <Text className="text-base font-semibold text-neutral-900">
+                      <Text className="text-base font-semibold" style={{ color: t.ink }}>
                         {client.full_name || "Без имени"}
                       </Text>
                       {client.phone ? (
-                        <Text className="text-sm text-neutral-500">
+                        <Text className="text-sm" style={{ color: t.sub }}>
                           {client.phone}
                         </Text>
                       ) : null}
                     </>
                   ) : (
-                    <Text className="text-base text-brand">Выбрать клиента</Text>
+                    <Text className="text-base" style={{ color: t.accent }}>Выбрать клиента</Text>
                   )}
                 </View>
                 {client ? (
-                  <Text className="text-sm font-medium text-brand">Изменить</Text>
+                  <Text className="text-sm font-medium" style={{ color: t.accent }}>Изменить</Text>
                 ) : null}
               </Pressable>
             </SectionCard>
@@ -385,7 +389,7 @@ export function AppointmentSheet({
                   onSelect={(id) => setLocationId(id === locationId ? null : id)}
                 />
                 {locationId ? (
-                  <Text className="px-4 pb-3 text-sm text-neutral-500">
+                  <Text className="px-4 pb-3 text-sm" style={{ color: t.sub }}>
                     {client.locations.find((l) => l.id === locationId)?.address}
                   </Text>
                 ) : null}
@@ -398,7 +402,7 @@ export function AppointmentSheet({
             {/* date + time */}
             <SectionCard title="Когда">
               <View className="flex-row items-center justify-between px-4 py-2.5">
-                <Text className="text-base text-neutral-900">Дата</Text>
+                <Text className="text-base" style={{ color: t.ink }}>Дата</Text>
                 <DateTimePicker
                   value={date ? parseYMD(date) : new Date()}
                   mode="date"
@@ -406,9 +410,9 @@ export function AppointmentSheet({
                   onChange={(_, d) => d && setDate(formatYMD(d))}
                 />
               </View>
-              <View className="ml-4 h-px bg-neutral-100" />
+              <View className="ml-4 h-px" style={{ backgroundColor: t.separator }} />
               <View className="flex-row items-center justify-between px-4 py-2.5">
-                <Text className="text-base text-neutral-900">Время</Text>
+                <Text className="text-base" style={{ color: t.ink }}>Время</Text>
                 <View className="flex-row items-center">
                   <DateTimePicker
                     value={parseHM(timeStart)}
@@ -417,7 +421,7 @@ export function AppointmentSheet({
                     minuteInterval={5}
                     onChange={(_, d) => d && setTimeStart(formatHM(d))}
                   />
-                  <Text className="px-1 text-neutral-400">–</Text>
+                  <Text className="px-1" style={{ color: t.faint }}>–</Text>
                   <DateTimePicker
                     value={parseHM(timeEnd)}
                     mode="time"
@@ -444,9 +448,9 @@ export function AppointmentSheet({
               {serviceIds.length === 0 ? (
                 <Pressable
                   onPress={() => setServicePicker(true)}
-                  className="px-4 py-3 active:bg-neutral-50"
+                  className="px-4 py-3 active:opacity-60"
                 >
-                  <Text className="text-base text-brand">Добавить услуги</Text>
+                  <Text className="text-base" style={{ color: t.accent }}>Добавить услуги</Text>
                 </Pressable>
               ) : (
                 serviceIds.map((id) => {
@@ -461,23 +465,25 @@ export function AppointmentSheet({
                       key={id}
                       className="flex-row items-center px-4 py-2.5"
                     >
-                      <Text className="flex-1 pr-2 text-base text-neutral-900" numberOfLines={1}>
+                      <Text className="flex-1 pr-2 text-base tabular-nums" style={{ color: t.ink }} numberOfLines={1}>
                         {s?.name ?? "Услуга"}
                       </Text>
                       <Pressable
                         onPress={() => setOv({ qty: Math.max(1, qty - 1) })}
-                        className="h-7 w-7 items-center justify-center rounded-full bg-neutral-100 active:opacity-70"
+                        className="h-7 w-7 items-center justify-center rounded-full active:opacity-70"
+                        style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
                       >
-                        <Minus color={COLORS.body} size={13} />
+                        <Minus color={t.body} size={13} />
                       </Pressable>
-                      <Text className="w-6 text-center text-sm text-neutral-700 tabular-nums">
+                      <Text className="w-6 text-center text-sm tabular-nums" style={{ color: t.sub }}>
                         {qty}
                       </Text>
                       <Pressable
                         onPress={() => setOv({ qty: qty + 1 })}
-                        className="h-7 w-7 items-center justify-center rounded-full bg-neutral-100 active:opacity-70"
+                        className="h-7 w-7 items-center justify-center rounded-full active:opacity-70"
+                        style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
                       >
-                        <Plus color={COLORS.body} size={13} />
+                        <Plus color={t.body} size={13} />
                       </Pressable>
                       <TextInput
                         value={String(price)}
@@ -485,9 +491,13 @@ export function AppointmentSheet({
                           setOv({ price: Number(v.replace(",", ".")) || 0 })
                         }
                         keyboardType="decimal-pad"
-                        className="ml-2 w-14 text-right text-sm text-neutral-700 tabular-nums"
+                        className="ml-2 w-14 text-right text-sm tabular-nums"
+                        style={{ color: t.sub }}
+                        placeholderTextColor={t.placeholder}
+                        selectionColor={t.accent}
+                        keyboardAppearance={t.dark ? "dark" : "light"}
                       />
-                      <Text className="text-sm text-neutral-400">€</Text>
+                      <Text className="text-sm" style={{ color: t.faint }}>€</Text>
                     </View>
                   );
                 })
@@ -529,18 +539,21 @@ export function AppointmentSheet({
                     setTotal(v);
                   }}
                   keyboardType="decimal-pad"
-                  className="flex-1 text-2xl font-bold text-neutral-900"
+                  className="flex-1 text-2xl font-bold"
+                  style={{ color: t.ink }}
                   placeholder="0"
-                  placeholderTextColor={COLORS.faint}
+                  placeholderTextColor={t.placeholder}
+                  selectionColor={t.accent}
+                  keyboardAppearance={t.dark ? "dark" : "light"}
                 />
-                <Text className="text-2xl font-bold text-neutral-400">€</Text>
+                <Text className="text-2xl font-bold" style={{ color: t.faint }}>€</Text>
                 {customTotal ? (
                   <Pressable
                     onPress={() => setCustomTotal(false)}
                     hitSlop={8}
                     className="ml-3"
                   >
-                    <Text className="text-sm font-medium text-brand">Авто</Text>
+                    <Text className="text-sm font-medium" style={{ color: t.accent }}>Авто</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -561,10 +574,12 @@ export function AppointmentSheet({
                     <Pressable
                       key={opt.label}
                       onPress={() => setDiscountType(opt.v)}
-                      className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+                      className="rounded-full px-3.5 py-1.5"
+                      style={{ backgroundColor: active ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
                     >
                       <Text
-                        className={`text-sm font-medium ${active ? "text-white" : "text-neutral-600"}`}
+                        className="text-sm font-medium"
+                        style={{ color: active ? "#fff" : t.sub }}
                       >
                         {opt.label}
                       </Text>
@@ -577,13 +592,16 @@ export function AppointmentSheet({
                     onChangeText={setDiscountValue}
                     keyboardType="decimal-pad"
                     placeholder={discountType === "percent" ? "10" : "20"}
-                    placeholderTextColor={COLORS.faint}
-                    className="ml-2 flex-1 text-base text-neutral-900"
+                    placeholderTextColor={t.placeholder}
+                    selectionColor={t.accent}
+                    keyboardAppearance={t.dark ? "dark" : "light"}
+                    className="ml-2 flex-1 text-base"
+                    style={{ color: t.ink }}
                   />
                 ) : null}
               </View>
               {globalDiscount ? (
-                <Text className="px-4 pb-3 text-sm font-medium text-success">
+                <Text className="px-4 pb-3 text-sm font-medium" style={{ color: t.success }}>
                   −{formatEUR(globalDiscountAmount(selectedServices, globalDiscount))}
                 </Text>
               ) : null}
@@ -603,8 +621,11 @@ export function AppointmentSheet({
                     <Pressable
                       key={c}
                       onPress={() => setEventColor(c)}
-                      className={`h-9 w-9 rounded-full ${eventColor === c ? "border-2 border-neutral-900" : ""}`}
-                      style={{ backgroundColor: c }}
+                      className="h-9 w-9 rounded-full"
+                      style={[
+                        { backgroundColor: c },
+                        eventColor === c ? { borderWidth: 2, borderColor: t.ink } : null,
+                      ]}
                     />
                   ))}
                 </View>
@@ -620,10 +641,12 @@ export function AppointmentSheet({
                     <Pressable
                       key={s.value}
                       onPress={() => setStatus(s.value)}
-                      className={`rounded-full px-3 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+                      className="rounded-full px-3 py-1.5"
+                      style={{ backgroundColor: active ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
                     >
                       <Text
-                        className={`text-sm font-medium ${active ? "text-white" : "text-neutral-600"}`}
+                        className="text-sm font-medium"
+                        style={{ color: active ? "#fff" : t.sub }}
                       >
                         {s.label}
                       </Text>
@@ -643,10 +666,12 @@ export function AppointmentSheet({
                       <Pressable
                         key={r}
                         onPress={() => setCancelReason(active ? "" : r)}
-                        className={`rounded-full px-3 py-1.5 ${active ? "bg-danger" : "bg-neutral-100"}`}
+                        className="rounded-full px-3 py-1.5"
+                        style={{ backgroundColor: active ? t.danger : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
                       >
                         <Text
-                          className={`text-sm font-medium ${active ? "text-white" : "text-neutral-600"}`}
+                          className="text-sm font-medium"
+                          style={{ color: active ? "#fff" : t.sub }}
                         >
                           {r}
                         </Text>
@@ -658,8 +683,11 @@ export function AppointmentSheet({
                   value={cancelReason}
                   onChangeText={setCancelReason}
                   placeholder="Своя причина…"
-                  placeholderTextColor={COLORS.faint}
-                  className="px-4 pb-3 text-base text-neutral-900"
+                  placeholderTextColor={t.placeholder}
+                  selectionColor={t.accent}
+                  keyboardAppearance={t.dark ? "dark" : "light"}
+                  className="px-4 pb-3 text-base"
+                  style={{ color: t.ink }}
                 />
               </SectionCard>
             ) : null}
@@ -671,15 +699,18 @@ export function AppointmentSheet({
                 onChangeText={setComment}
                 multiline
                 placeholder={kind === "event" ? "Обед, встреча, перерыв…" : "Заметка для бригады…"}
-                placeholderTextColor={COLORS.faint}
-                className="min-h-[64px] px-4 py-3 text-base text-neutral-900"
+                placeholderTextColor={t.placeholder}
+                selectionColor={t.accent}
+                keyboardAppearance={t.dark ? "dark" : "light"}
+                className="min-h-[64px] px-4 py-3 text-base"
+                style={{ color: t.ink }}
                 textAlignVertical="top"
               />
             </SectionCard>
 
             {isEdit ? (
               <Pressable onPress={remove} className="items-center py-5 active:opacity-70">
-                <Text className="text-base font-medium text-danger">
+                <Text className="text-base font-medium" style={{ color: t.danger }}>
                   Удалить запись
                 </Text>
               </Pressable>
@@ -689,7 +720,7 @@ export function AppointmentSheet({
           </ScrollView>
 
           {/* sticky footer */}
-          <View className="border-t border-neutral-200 bg-white px-4 pb-7 pt-3">
+          <View className="border-t px-4 pb-7 pt-3" style={{ borderColor: t.separator, backgroundColor: t.surface }}>
             <Button
               label={
                 kind === "event"
@@ -756,6 +787,7 @@ function ChipRow({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const t = useThemeColors();
   return (
     <ScrollView
       horizontal
@@ -768,10 +800,12 @@ function ChipRow({
           <Pressable
             key={it.id}
             onPress={() => onSelect(it.id)}
-            className={`rounded-full px-3.5 py-1.5 ${active ? "bg-brand" : "bg-neutral-100"}`}
+            className="rounded-full px-3.5 py-1.5"
+            style={{ backgroundColor: active ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
           >
             <Text
-              className={`text-sm font-medium ${active ? "text-white" : "text-neutral-700"}`}
+              className="text-sm font-medium"
+              style={{ color: active ? "#fff" : t.sub }}
             >
               {it.label}
             </Text>
@@ -803,6 +837,7 @@ function PickerModal({
   onPick?: (id: string) => void;
   onToggle?: (id: string) => void;
 }) {
+  const th = useThemeColors();
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -816,33 +851,36 @@ function PickerModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
+      <View className="flex-1 justify-end" style={{ backgroundColor: th.scrim }}>
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="h-[80%] overflow-hidden rounded-t-3xl bg-white">
-          <View className="flex-row items-center border-b border-neutral-100 px-2 py-2">
-            <Text className="flex-1 px-2 text-base font-semibold text-neutral-900">
+        <View className="h-[80%] overflow-hidden rounded-t-3xl" style={{ backgroundColor: th.surface }}>
+          <View className="flex-row items-center border-b px-2 py-2" style={{ borderColor: th.separator }}>
+            <Text className="flex-1 px-2 text-base font-semibold" style={{ color: th.ink }}>
               {title}
             </Text>
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              className={`h-10 items-center justify-center rounded-full active:bg-neutral-100 ${multi ? "px-3" : "w-10"}`}
+              className={`h-10 items-center justify-center rounded-full active:opacity-60 ${multi ? "px-3" : "w-10"}`}
             >
               {multi ? (
-                <Text className="text-sm font-semibold text-brand">Готово</Text>
+                <Text className="text-sm font-semibold" style={{ color: th.accent }}>Готово</Text>
               ) : (
-                <X color={COLORS.body} size={ICON.md} />
+                <X color={th.body} size={ICON.md} />
               )}
             </Pressable>
           </View>
           <View className="flex-row items-center gap-2 px-4 py-2">
-            <Search color={COLORS.faint} size={ICON.sm} />
+            <Search color={th.faint} size={ICON.sm} />
             <TextInput
               value={q}
               onChangeText={setQ}
               placeholder="Поиск…"
-              placeholderTextColor={COLORS.faint}
-              className="flex-1 py-1 text-base text-neutral-900"
+              placeholderTextColor={th.placeholder}
+              selectionColor={th.accent}
+              keyboardAppearance={th.dark ? "dark" : "light"}
+              className="flex-1 py-1 text-base"
+              style={{ color: th.ink }}
             />
           </View>
           <FlatList
@@ -855,24 +893,24 @@ function PickerModal({
               return (
                 <Pressable
                   onPress={() => (multi ? onToggle?.(item.id) : onPick?.(item.id))}
-                  className="flex-row items-center px-4 py-3 active:bg-neutral-50"
+                  className="flex-row items-center px-4 py-3 active:opacity-60"
                 >
                   <View className="flex-1 pr-2">
-                    <Text className="text-base text-neutral-900" numberOfLines={1}>
+                    <Text className="text-base" style={{ color: th.ink }} numberOfLines={1}>
                       {item.title}
                     </Text>
                     {item.subtitle ? (
-                      <Text className="text-sm text-neutral-500" numberOfLines={1}>
+                      <Text className="text-sm" style={{ color: th.sub }} numberOfLines={1}>
                         {item.subtitle}
                       </Text>
                     ) : null}
                   </View>
-                  {sel ? <Check color={COLORS.brand} size={ICON.md} /> : null}
+                  {sel ? <Check color={th.accent} size={ICON.md} /> : null}
                 </Pressable>
               );
             }}
             ItemSeparatorComponent={() => (
-              <View className="ml-4 h-px bg-neutral-100" />
+              <View className="ml-4 h-px" style={{ backgroundColor: th.separator }} />
             )}
           />
         </View>

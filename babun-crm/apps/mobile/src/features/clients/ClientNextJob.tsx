@@ -22,6 +22,7 @@ import type { Client } from "@babun/shared/local/clients";
 import type { Appointment } from "@babun/shared/local/appointments";
 import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
 import type { ServiceDueSummary } from "@babun/shared/local/selectors/service-due";
+import { useThemeColors } from "@/theme/colors";
 
 interface ClientNextJobProps {
   client: Client;
@@ -49,59 +50,13 @@ function aptLabel(nextApt: { date: string; time: string }): string {
   return `${d} ${MONTHS_RU_SHORT[m - 1] ?? ""} · ${nextApt.time}`;
 }
 
-// Tone palette. Solid surfaces (alert/accent) use white text; tinted
-// surfaces (warn/info) use the hue. iconColor is for the lucide icon.
-const TONE: Record<
-  Tone,
-  {
-    wrap: string;
-    iconBg: string;
-    iconColor: string;
-    title: string;
-    sub: string;
-    chevColor: string;
-  }
-> = {
-  alert: {
-    wrap: "bg-danger",
-    iconBg: "bg-white/20",
-    iconColor: "#ffffff",
-    title: "text-white",
-    sub: "text-white/85",
-    chevColor: "#ffffffe6",
-  },
-  accent: {
-    wrap: "bg-brand",
-    iconBg: "bg-white/20",
-    iconColor: "#ffffff",
-    title: "text-white",
-    sub: "text-white/85",
-    chevColor: "#ffffffe6",
-  },
-  warn: {
-    wrap: "bg-amber-50",
-    iconBg: "bg-amber-100",
-    iconColor: "#b45309",
-    title: "text-amber-700",
-    sub: "text-neutral-500",
-    chevColor: "#b45309",
-  },
-  info: {
-    wrap: "bg-brand/10",
-    iconBg: "bg-brand/15",
-    iconColor: "#4338ca",
-    title: "text-brand",
-    sub: "text-neutral-500",
-    chevColor: "#4338ca",
-  },
-};
-
 export default function ClientNextJob({
   client,
   stats,
   serviceDue,
 }: ClientNextJobProps) {
   const router = useRouter();
+  const th = useThemeColors();
 
   const primaryLocationId =
     client.locations?.find((l) => l.isPrimary)?.id ??
@@ -162,28 +117,84 @@ export default function ClientNextJob({
     onPress = () => goToBooking(primaryLocationId, stats?.lastTeamId ?? null);
   }
 
-  const t = TONE[tone];
+  // Tone-specific resolved values
+  const toneStyles: Record<
+    Tone,
+    {
+      wrapBg: string;
+      iconBg: string;
+      iconColor: string;
+      titleColor: string;
+      subColor: string;
+      chevColor: string;
+    }
+  > = {
+    alert: {
+      wrapBg: th.danger,
+      iconBg: "rgba(255,255,255,0.20)",
+      iconColor: "#ffffff",
+      titleColor: "#ffffff",
+      subColor: "rgba(255,255,255,0.85)",
+      chevColor: "rgba(255,255,255,0.90)",
+    },
+    accent: {
+      wrapBg: th.accent,
+      iconBg: "rgba(255,255,255,0.20)",
+      iconColor: "#ffffff",
+      titleColor: "#ffffff",
+      subColor: "rgba(255,255,255,0.85)",
+      chevColor: "rgba(255,255,255,0.90)",
+    },
+    warn: {
+      wrapBg: th.dark ? "rgba(251,191,36,0.15)" : "#fffbeb",
+      iconBg: th.dark ? "rgba(251,191,36,0.20)" : "#fef3c7",
+      iconColor: th.warning,
+      titleColor: th.warning,
+      subColor: th.sub,
+      chevColor: th.warning,
+    },
+    info: {
+      wrapBg: th.dark ? "rgba(44,91,224,0.15)" : "rgba(44,91,224,0.08)",
+      iconBg: th.dark ? "rgba(44,91,224,0.20)" : "rgba(44,91,224,0.12)",
+      iconColor: th.accent,
+      titleColor: th.accent,
+      subColor: th.sub,
+      chevColor: th.accent,
+    },
+  };
+
+  const ts = toneStyles[tone];
 
   return (
     <View className="mx-3 mt-2">
       <Pressable
         onPress={onPress}
-        className={`min-h-[62px] flex-row items-center gap-3 rounded-2xl px-3.5 py-2.5 active:opacity-90 ${t.wrap}`}
+        className="min-h-[62px] flex-row items-center gap-3 rounded-2xl px-3.5 py-2.5 active:opacity-90"
+        style={{ backgroundColor: ts.wrapBg }}
       >
         <View
-          className={`h-10 w-10 items-center justify-center rounded-xl ${t.iconBg}`}
+          className="h-10 w-10 items-center justify-center rounded-xl"
+          style={{ backgroundColor: ts.iconBg }}
         >
-          <Icon color={t.iconColor} size={20} strokeWidth={2} />
+          <Icon color={ts.iconColor} size={20} strokeWidth={2} />
         </View>
         <View className="flex-1">
-          <Text className={`text-base font-semibold ${t.title}`} numberOfLines={1}>
+          <Text
+            className="text-base font-semibold"
+            style={{ color: ts.titleColor }}
+            numberOfLines={1}
+          >
             {title}
           </Text>
-          <Text className={`text-[13px] ${t.sub}`} numberOfLines={1}>
+          <Text
+            className="text-[13px]"
+            style={{ color: ts.subColor }}
+            numberOfLines={1}
+          >
             {subtitle}
           </Text>
         </View>
-        <ChevronRight color={t.chevColor} size={22} strokeWidth={2.2} />
+        <ChevronRight color={ts.chevColor} size={22} strokeWidth={2.2} />
       </Pressable>
     </View>
   );

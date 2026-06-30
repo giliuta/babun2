@@ -8,7 +8,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import {
   useDeleteCategory,
   useFinanceCategories,
@@ -21,6 +22,7 @@ const SWATCHES = [
 ];
 
 export default function CategoriesScreen() {
+  const th = useThemeColors();
   const { data: cats = [], isLoading } = useFinanceCategories();
   const insert = useInsertCategory();
   const del = useDeleteCategory();
@@ -61,32 +63,37 @@ export default function CategoriesScreen() {
           <Pressable
             onPress={() => setOpen(true)}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={th.accent} size={ICON.md} />
           </Pressable>
         }
       />
 
-      <View className="mx-4 mt-3 flex-row rounded-xl bg-neutral-200 p-1">
-        {(["expense", "income"] as const).map((t) => {
-          const active = type === t;
+      <View
+        className="mx-4 mt-3 flex-row rounded-xl p-1"
+        style={{ backgroundColor: th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
+      >
+        {(["expense", "income"] as const).map((seg) => {
+          const active = type === seg;
           return (
             <Pressable
-              key={t}
-              onPress={() => setType(t)}
-              className={`flex-1 items-center rounded-lg py-2 ${active ? "bg-white" : ""}`}
+              key={seg}
+              onPress={() => setType(seg)}
+              className="flex-1 items-center rounded-lg py-2"
+              style={active ? { backgroundColor: th.surface } : undefined}
             >
               <Text
-                className={`text-sm font-semibold ${
-                  active
-                    ? t === "expense"
-                      ? "text-danger"
-                      : "text-success"
-                    : "text-neutral-500"
-                }`}
+                className="text-sm font-semibold"
+                style={{
+                  color: active
+                    ? seg === "expense"
+                      ? th.danger
+                      : th.success
+                    : th.sub,
+                }}
               >
-                {t === "expense" ? "Расходы" : "Доходы"}
+                {seg === "expense" ? "Расходы" : "Доходы"}
               </Text>
             </Pressable>
           );
@@ -105,15 +112,15 @@ export default function CategoriesScreen() {
             <View className="flex-row items-center px-4 py-3">
               <View
                 className="mr-3 h-7 w-7 rounded-full"
-                style={{ backgroundColor: item.color ?? COLORS.faint }}
+                style={{ backgroundColor: item.color ?? th.faint }}
               />
-              <Text className="flex-1 text-base text-neutral-900">{item.name}</Text>
+              <Text className="flex-1 text-base" style={{ color: th.ink }}>{item.name}</Text>
               {item.tenant_id ? (
                 <Pressable onPress={() => confirmDelete(item)} hitSlop={8}>
-                  <Trash2 color={COLORS.danger} size={ICON.sm} />
+                  <Trash2 color={th.danger} size={ICON.sm} />
                 </Pressable>
               ) : (
-                <Text className="text-xs text-neutral-300">станд.</Text>
+                <Text className="text-xs" style={{ color: th.faint }}>станд.</Text>
               )}
             </View>
           )}
@@ -125,9 +132,9 @@ export default function CategoriesScreen() {
       )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">
+        <Pressable className="flex-1" style={{ backgroundColor: th.scrim }} onPress={() => setOpen(false)} />
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8" style={{ backgroundColor: th.surface }}>
+          <Text className="mb-3 text-lg font-bold" style={{ color: th.ink }}>
             Новая категория · {type === "expense" ? "расход" : "доход"}
           </Text>
           <Field
@@ -137,14 +144,14 @@ export default function CategoriesScreen() {
             placeholder="Напр. Бензин"
             autoFocus
           />
-          <Text className="mb-2 text-xs font-medium text-neutral-500">Цвет</Text>
+          <Text className="mb-2 text-xs font-medium" style={{ color: th.sub }}>Цвет</Text>
           <View className="mb-4 flex-row flex-wrap gap-3">
             {SWATCHES.map((c) => (
               <Pressable
                 key={c}
                 onPress={() => setColor(c)}
-                className={`h-9 w-9 rounded-full ${color === c ? "border-2 border-neutral-900" : ""}`}
-                style={{ backgroundColor: c }}
+                className="h-9 w-9 rounded-full"
+                style={{ backgroundColor: c, borderWidth: color === c ? 2 : 0, borderColor: th.ink }}
               />
             ))}
           </View>

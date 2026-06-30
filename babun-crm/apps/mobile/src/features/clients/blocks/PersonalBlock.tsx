@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import type { Client } from "@babun/shared/local/clients";
+import { useThemeColors } from "@/theme/colors";
 
 interface PersonalBlockProps {
   client: Client;
@@ -31,6 +32,7 @@ function EditableField({
   placeholder?: string;
   keyboardType?: "default" | "email-address" | "numbers-and-punctuation";
 }) {
+  const t = useThemeColors();
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
   return (
@@ -41,27 +43,41 @@ function EditableField({
         if (draft.trim() !== value) onSave(draft.trim());
       }}
       placeholder={placeholder}
-      placeholderTextColor="#a3a3a3"
+      placeholderTextColor={t.placeholder}
       keyboardType={keyboardType}
       autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
-      className="h-9 flex-1 rounded-lg bg-neutral-100 px-2 text-[13px] text-neutral-900"
+      selectionColor={t.accent}
+      keyboardAppearance={t.dark ? "dark" : "light"}
+      className="h-9 flex-1 rounded-lg px-2 text-[13px]"
+      style={{
+        backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+        color: t.ink,
+      }}
     />
   );
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  const t = useThemeColors();
   return (
     <View className="flex-row items-center gap-2">
-      <Text className="w-28 shrink-0 text-xs text-neutral-500">{label}</Text>
+      <Text className="w-28 shrink-0 text-xs" style={{ color: t.sub }}>{label}</Text>
       {children}
     </View>
   );
 }
 
 export function PersonalBlock({ client, update }: PersonalBlockProps) {
+  const t = useThemeColors();
   return (
-    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
-      <Text className="px-1 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+    <View
+      className="mx-3 mt-2 rounded-2xl p-3 shadow-sm"
+      style={{ backgroundColor: t.surface }}
+    >
+      <Text
+        className="px-1 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: t.sub }}
+      >
         Личное
       </Text>
       <View className="gap-2.5 px-1">
@@ -98,14 +114,18 @@ export function PersonalBlock({ client, update }: PersonalBlockProps) {
                 <Pressable
                   key={l.value}
                   onPress={() => update({ language: active ? "" : l.value })}
-                  className={`h-7 items-center justify-center rounded-full px-2.5 active:opacity-70 ${
-                    active ? "bg-brand" : "bg-neutral-100"
-                  }`}
+                  className="h-7 items-center justify-center rounded-full px-2.5 active:opacity-60"
+                  style={{
+                    backgroundColor: active
+                      ? t.accent
+                      : t.dark
+                      ? "rgba(255,255,255,0.07)"
+                      : "#eef1f5",
+                  }}
                 >
                   <Text
-                    className={`text-xs font-semibold ${
-                      active ? "text-white" : "text-neutral-500"
-                    }`}
+                    className="text-xs font-semibold"
+                    style={{ color: active ? "#fff" : t.sub }}
                   >
                     {l.flag} {l.label}
                   </Text>

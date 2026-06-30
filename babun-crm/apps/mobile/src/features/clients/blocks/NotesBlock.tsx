@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { StickyNote, X } from "lucide-react-native";
 import type { Client, ClientNote } from "@babun/shared/local/clients";
+import { useThemeColors } from "@/theme/colors";
 
 interface NotesBlockProps {
   client: Client;
@@ -30,6 +31,7 @@ function genId(prefix: string): string {
 }
 
 export default function NotesBlock({ client, update }: NotesBlockProps) {
+  const t = useThemeColors();
   const [draft, setDraft] = useState("");
   const notes = client.notes ?? [];
 
@@ -49,8 +51,8 @@ export default function NotesBlock({ client, update }: NotesBlockProps) {
     update({ notes: notes.filter((n) => n.id !== id) });
 
   return (
-    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
-      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+    <View className="mx-3 mt-2 rounded-2xl p-3 shadow-sm" style={{ backgroundColor: t.surface }}>
+      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: t.sub }}>
         Заметки{notes.length ? ` · ${notes.length}` : ""}
       </Text>
 
@@ -61,34 +63,44 @@ export default function NotesBlock({ client, update }: NotesBlockProps) {
             onChangeText={setDraft}
             onSubmitEditing={submit}
             placeholder="Записать звонок / встречу / наблюдение"
-            placeholderTextColor="#a3a3a3"
-            className="h-9 flex-1 rounded-[10px] bg-neutral-100 px-3 text-[13px] text-neutral-900"
+            placeholderTextColor={t.placeholder}
+            selectionColor={t.accent}
+            keyboardAppearance={t.dark ? "dark" : "light"}
+            className="h-9 flex-1 rounded-[10px] px-3 text-[13px]"
+            style={{
+              backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+              color: t.ink,
+            }}
           />
           <Pressable
             onPress={submit}
             disabled={!draft.trim()}
-            className={`items-center justify-center rounded-[10px] px-4 ${
-              draft.trim() ? "bg-brand" : "bg-neutral-200"
-            }`}
+            className="items-center justify-center rounded-[10px] px-4"
+            style={{ backgroundColor: draft.trim() ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
           >
-            <Text className="text-sm font-semibold text-white">Добавить</Text>
+            <Text className="text-sm font-semibold" style={{ color: draft.trim() ? "#fff" : t.faint }}>Добавить</Text>
           </Pressable>
         </View>
 
         {notes.length === 0 ? (
           <View className="flex-row items-center gap-1.5 py-1">
-            <StickyNote color="#a3a3a3" size={12} />
-            <Text className="text-[12px] italic text-neutral-400">Пусто</Text>
+            <StickyNote color={t.faint} size={12} />
+            <Text className="text-[12px] italic" style={{ color: t.faint }}>Пусто</Text>
           </View>
         ) : (
           <View className="gap-1.5">
             {notes.map((n) => (
               <View
                 key={n.id}
-                className="flex-row items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-2"
+                className="flex-row items-start gap-2 rounded-lg p-2"
+                style={{
+                  backgroundColor: t.dark ? "rgba(234,179,8,0.12)" : "rgba(234,179,8,0.10)",
+                  borderWidth: 1,
+                  borderColor: t.dark ? "rgba(234,179,8,0.20)" : "rgba(234,179,8,0.25)",
+                }}
               >
-                <Text className="flex-1 text-[13px] text-amber-700">
-                  <Text className="text-[12px] text-amber-700">
+                <Text className="flex-1 text-[13px]" style={{ color: t.warning }}>
+                  <Text className="text-[12px]" style={{ color: t.warning }}>
                     {formatNoteDate(n.created_at)}{" "}
                   </Text>
                   {n.text}
@@ -97,7 +109,7 @@ export default function NotesBlock({ client, update }: NotesBlockProps) {
                   onPress={() => remove(n.id)}
                   className="h-6 w-6 items-center justify-center active:opacity-60"
                 >
-                  <X color="#b45309" size={13} />
+                  <X color={t.warning} size={13} />
                 </Pressable>
               </View>
             ))}

@@ -13,6 +13,7 @@ import {
   ACQUISITION_LABELS,
   type AcquisitionSource,
 } from "@babun/shared/local/clients";
+import { useThemeColors } from "@/theme/colors";
 
 interface MetaBlockProps {
   client: Client;
@@ -37,6 +38,8 @@ function formatCreatedAt(iso: string): string {
 }
 
 export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
+  const th = useThemeColors();
+
   const toggleTag = (id: string) =>
     update({
       tag_ids: client.tag_ids.includes(id)
@@ -44,9 +47,11 @@ export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
         : [...client.tag_ids, id],
     });
 
+  const chipInactiveBg = th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5";
+
   return (
-    <View className="mx-3 mt-2 rounded-2xl bg-white p-3 shadow-sm">
-      <Text className="px-1 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+    <View className="mx-3 mt-2 rounded-2xl p-3 shadow-sm" style={{ backgroundColor: th.surface }}>
+      <Text className="px-1 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: th.sub }}>
         Метаданные
       </Text>
 
@@ -54,7 +59,7 @@ export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
         {/* Источник обращения — web uses a <select>; RN has no native
             select, so render the options as a wrapping chip group. */}
         <View>
-          <Text className="mb-1.5 text-xs text-neutral-500">
+          <Text className="mb-1.5 text-xs" style={{ color: th.sub }}>
             Источник обращения
           </Text>
           <View className="flex-row flex-wrap gap-1.5">
@@ -64,14 +69,12 @@ export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
                 <Pressable
                   key={k}
                   onPress={() => update({ acquisition_source: k })}
-                  className={`h-7 items-center justify-center rounded-full px-2.5 active:opacity-70 ${
-                    active ? "bg-brand" : "bg-neutral-100"
-                  }`}
+                  className="h-7 items-center justify-center rounded-full px-2.5 active:opacity-60"
+                  style={{ backgroundColor: active ? th.accent : chipInactiveBg }}
                 >
                   <Text
-                    className={`text-xs font-semibold ${
-                      active ? "text-white" : "text-neutral-500"
-                    }`}
+                    className="text-xs font-semibold"
+                    style={{ color: active ? "#fff" : th.sub }}
                   >
                     {ACQUISITION_LABELS[k]}
                   </Text>
@@ -83,42 +86,42 @@ export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
 
         {/* Теги */}
         <View>
-          <Text className="mb-1.5 text-xs text-neutral-500">Теги</Text>
+          <Text className="mb-1.5 text-xs" style={{ color: th.sub }}>Теги</Text>
           {tags.length === 0 ? (
-            <Text className="text-xs italic text-neutral-400">
+            <Text className="text-xs italic" style={{ color: th.faint }}>
               Нет тегов в каталоге.
             </Text>
           ) : (
             <View className="flex-row flex-wrap gap-1.5">
-              {tags.map((t) => {
-                const active = client.tag_ids.includes(t.id);
+              {tags.map((tag) => {
+                const active = client.tag_ids.includes(tag.id);
                 return (
                   <Pressable
-                    key={t.id}
-                    onPress={() => toggleTag(t.id)}
-                    className="h-7 flex-row items-center gap-1 rounded-full border px-2.5 active:opacity-70"
+                    key={tag.id}
+                    onPress={() => toggleTag(tag.id)}
+                    className="h-7 flex-row items-center gap-1 rounded-full border px-2.5 active:opacity-60"
                     style={
                       active
                         ? {
-                            backgroundColor: `${t.color}22`,
-                            borderColor: t.color,
+                            backgroundColor: `${tag.color}22`,
+                            borderColor: tag.color,
                           }
                         : {
-                            backgroundColor: "#ffffff",
-                            borderColor: "#e5e5e5",
+                            backgroundColor: th.surface,
+                            borderColor: th.separator,
                           }
                     }
                   >
                     {active ? (
-                      <X color={t.color} size={10} strokeWidth={2.5} />
+                      <X color={tag.color} size={10} strokeWidth={2.5} />
                     ) : (
-                      <Plus color="#737373" size={10} strokeWidth={2.5} />
+                      <Plus color={th.faint} size={10} strokeWidth={2.5} />
                     )}
                     <Text
                       className="text-xs font-semibold"
-                      style={{ color: active ? t.color : "#737373" }}
+                      style={{ color: active ? tag.color : th.faint }}
                     >
-                      {t.name}
+                      {tag.name}
                     </Text>
                   </Pressable>
                 );
@@ -129,18 +132,16 @@ export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
 
         {/* Чёрный список — client.blacklisted. Not present in the web
             block, but the field exists and belongs with meta flags. */}
-        <View className="flex-row items-center justify-between border-t border-neutral-100 pt-3">
-          <Text className="text-[13px] text-neutral-700">Чёрный список</Text>
+        <View className="flex-row items-center justify-between border-t pt-3" style={{ borderColor: th.separator }}>
+          <Text className="text-[13px]" style={{ color: th.sub }}>Чёрный список</Text>
           <Pressable
             onPress={() => update({ blacklisted: !client.blacklisted })}
-            className={`h-7 items-center justify-center rounded-full px-3 active:opacity-70 ${
-              client.blacklisted ? "bg-danger" : "bg-neutral-100"
-            }`}
+            className="h-7 items-center justify-center rounded-full px-3 active:opacity-60"
+            style={{ backgroundColor: client.blacklisted ? th.danger : chipInactiveBg }}
           >
             <Text
-              className={`text-xs font-semibold ${
-                client.blacklisted ? "text-white" : "text-neutral-500"
-              }`}
+              className="text-xs font-semibold"
+              style={{ color: client.blacklisted ? "#fff" : th.sub }}
             >
               {client.blacklisted ? "В списке" : "Нет"}
             </Text>
@@ -148,7 +149,7 @@ export function MetaBlock({ client, update, tags = [] }: MetaBlockProps) {
         </View>
 
         {/* В базе с … */}
-        <Text className="border-t border-neutral-100 pt-3 text-xs text-neutral-400">
+        <Text className="border-t pt-3 text-xs" style={{ borderColor: th.separator, color: th.faint }}>
           В базе с {formatCreatedAt(client.created_at)}
         </Text>
       </View>

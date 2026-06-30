@@ -14,10 +14,12 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { Divider } from "@/components/ui/Divider";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { useLoyalty, useSaveLoyalty } from "@/features/settings/local-settings";
 
 export default function LoyaltyScreen() {
+  const th = useThemeColors();
   const { data } = useLoyalty();
   const save = useSaveLoyalty();
   const [s, setS] = useState<LoyaltySettings>(DEFAULT_LOYALTY);
@@ -67,9 +69,9 @@ export default function LoyaltyScreen() {
           <Pressable
             onPress={() => setOpen(true)}
             hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-neutral-100"
+            className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
           >
-            <Plus color={COLORS.brand} size={ICON.md} />
+            <Plus color={th.accent} size={ICON.md} />
           </Pressable>
         }
       />
@@ -77,11 +79,11 @@ export default function LoyaltyScreen() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
         <SectionCard padded>
           <View className="flex-row items-center justify-between px-1 py-1">
-            <Text className="text-base text-neutral-900">Программа лояльности</Text>
+            <Text className="text-base" style={{ color: th.ink }}>Программа лояльности</Text>
             <Switch
               value={s.enabled}
               onValueChange={(v) => patch({ enabled: v })}
-              trackColor={{ true: COLORS.brand }}
+              trackColor={{ true: th.accent }}
             />
           </View>
         </SectionCard>
@@ -89,7 +91,7 @@ export default function LoyaltyScreen() {
         <SectionCard title="Уровни — по числу визитов">
           {s.tiers.length === 0 ? (
             <View className="px-4 py-4">
-              <Text className="text-sm text-neutral-400">
+              <Text className="text-sm" style={{ color: th.faint }}>
                 Уровней пока нет. Клиент со столькими-то выполненными визитами
                 получает скидку.
               </Text>
@@ -99,7 +101,7 @@ export default function LoyaltyScreen() {
                 }
                 className="mt-2 active:opacity-70"
               >
-                <Text className="text-sm font-medium text-brand">
+                <Text className="text-sm font-medium" style={{ color: th.accent }}>
                   Загрузить пример (3 / 10 / 25 визитов)
                 </Text>
               </Pressable>
@@ -110,18 +112,18 @@ export default function LoyaltyScreen() {
                 {i > 0 ? <Divider inset={16} /> : null}
                 <View className="flex-row items-center px-4 py-3">
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-neutral-900">
+                    <Text className="text-base font-semibold" style={{ color: th.ink }}>
                       {t.label}
                     </Text>
-                    <Text className="text-sm text-neutral-500">
+                    <Text className="text-sm" style={{ color: th.sub }}>
                       от {t.threshold} визитов
                     </Text>
                   </View>
-                  <Text className="mr-3 text-base font-bold text-success">
+                  <Text className="mr-3 text-base font-bold" style={{ color: th.success }}>
                     −{t.percent}%
                   </Text>
                   <Pressable onPress={() => removeTier(t.id)} hitSlop={8}>
-                    <Trash2 color={COLORS.danger} size={ICON.sm} />
+                    <Trash2 color={th.danger} size={ICON.sm} />
                   </Pressable>
                 </View>
               </View>
@@ -140,9 +142,9 @@ export default function LoyaltyScreen() {
       </ScrollView>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/30" onPress={() => setOpen(false)} />
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">Новый уровень</Text>
+        <Pressable className="flex-1" style={{ backgroundColor: th.scrim }} onPress={() => setOpen(false)} />
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5 pb-8" style={{ backgroundColor: th.surface }}>
+          <Text className="mb-3 text-lg font-bold" style={{ color: th.ink }}>Новый уровень</Text>
           <Field label="Название" value={label} onChangeText={setLabel} placeholder="Серебро" autoFocus />
           <View className="flex-row gap-3">
             <View className="flex-1">

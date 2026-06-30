@@ -3,7 +3,8 @@ import { Modal, Pressable, Text, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Check } from "lucide-react-native";
 import { Button } from "@/components/ui/Button";
-import { COLORS, ICON } from "@/components/ui/tokens";
+import { ICON } from "@/components/ui/tokens";
+import { useThemeColors } from "@/theme/colors";
 import { formatYMD, parseYMD } from "@/features/appointments/helpers";
 import {
   makePeriod,
@@ -24,6 +25,7 @@ export function PeriodModal({
   onClose: () => void;
   onApply: (p: Period) => void;
 }) {
+  const t = useThemeColors();
   const [from, setFrom] = useState(current.from);
   const [to, setTo] = useState(current.to);
 
@@ -39,10 +41,10 @@ export function PeriodModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/40">
+      <View className="flex-1 justify-end" style={{ backgroundColor: t.scrim }}>
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="rounded-t-3xl bg-white p-5 pb-8">
-          <Text className="mb-3 text-lg font-bold text-neutral-900">Период</Text>
+        <View className="rounded-t-3xl p-5 pb-8" style={{ backgroundColor: t.surface }}>
+          <Text className="mb-3 text-lg font-bold" style={{ color: t.ink }}>Период</Text>
 
           {PRESET_ORDER.map((preset) => {
             const active = current.preset === preset;
@@ -50,23 +52,24 @@ export function PeriodModal({
               <Pressable
                 key={preset}
                 onPress={() => pickPreset(preset)}
-                className="flex-row items-center justify-between border-b border-neutral-100 py-3 active:opacity-70"
+                className="flex-row items-center justify-between py-3 active:opacity-70"
+                style={{ borderBottomWidth: 1, borderBottomColor: t.separator }}
               >
-                <Text className="text-base text-neutral-900">
+                <Text className="text-base" style={{ color: t.ink }}>
                   {PRESET_LABELS[preset]}
                 </Text>
-                {active ? <Check color={COLORS.brand} size={ICON.md} /> : null}
+                {active ? <Check color={t.accent} size={ICON.md} /> : null}
               </Pressable>
             );
           })}
 
           {/* custom range */}
-          <View className="mt-4 rounded-2xl bg-neutral-50 p-3">
-            <Text className="mb-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+          <View className="mt-4 rounded-2xl p-3" style={{ backgroundColor: t.canvas }}>
+            <Text className="mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: t.sub }}>
               Свой период
             </Text>
             <View className="flex-row items-center justify-between py-1.5">
-              <Text className="text-base text-neutral-900">С</Text>
+              <Text className="text-base" style={{ color: t.ink }}>С</Text>
               <DateTimePicker
                 value={parseYMD(from)}
                 mode="date"
@@ -75,7 +78,7 @@ export function PeriodModal({
               />
             </View>
             <View className="flex-row items-center justify-between py-1.5">
-              <Text className="text-base text-neutral-900">По</Text>
+              <Text className="text-base" style={{ color: t.ink }}>По</Text>
               <DateTimePicker
                 value={parseYMD(to)}
                 mode="date"
