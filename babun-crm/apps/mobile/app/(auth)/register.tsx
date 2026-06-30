@@ -1,42 +1,54 @@
-import { useState } from "react";
-import { Alert, Linking, Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Linking, Text, TextInput } from "react-native";
 import { useRouter } from "expo-router";
-import { Eye, EyeOff } from "lucide-react-native";
 import {
   AuthCard,
+  AuthField,
+  FormError,
   GhostLink,
   InputCard,
   InputDivider,
+  NoticeCard,
+  PasswordInput,
   PillButton,
+  SwitchLink,
 } from "@/components/auth/AuthCard";
 import { OrDivider, SocialButtons } from "@/components/auth/SocialAuthButtons";
-import { COLORS } from "@/components/ui/tokens";
+import { mapAuthError } from "@/components/auth/authErrors";
 import { supabase } from "@/lib/supabase";
 
-const inputStyle = {
-  height: 52,
-  paddingHorizontal: 16,
-  fontSize: 15,
-  color: "#0b1220",
-} as const;
-
 // «Создать аккаунт» — minimal sign-up: brand, Apple + Google, then name/email/
-// password inline. Terms acceptance is a small legal line (no checkbox = fewer
-// taps). On success → SessionProvider redirects (or "check email" if confirm-on).
+// password inline (chained return key). Terms is a one-line legal note. The
+// «Проверьте почту» state is an actionable hub (resend / open mail / fix email).
 export default function RegisterScreen() {
   const router = useRouter();
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
   const valid =
     fullName.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length >= 8;
+
+  function edit(set: (v: string) => void) {
+    return (v: string) => {
+      set(v);
+      if (error) setError(null);
+    };
+  }
 
   async function submit() {
     if (!valid || loading) return;
@@ -48,15 +60,24 @@ export default function RegisterScreen() {
       options: { data: { full_name: fullName.trim() } },
     });
     if (e) {
-      setError(e.message);
+      setError(mapAuthError(e, "signup"));
       setLoading(false);
       return;
     }
     if (!data.session) {
       setPending(true);
+      setCooldown(45);
       setLoading(false);
     }
   }
+
+  async function resend() {
+    if (cooldown > 0) return;
+    await supabase.auth.resend({ type: "signup", email: email.trim() });
+    setCooldown(45);
+  }
+
+  const openMail = () => Linking.openURL("message://").catch(() => undefined);
 
   const soon = (name: string) =>
     Alert.alert(
@@ -66,14 +87,20 @@ export default function RegisterScreen() {
 
   if (pending) {
     return (
-      <AuthCard title="Проверьте почту" subtitle="Мы отправили ссылку для подтверждения">
-        <InputCard>
-          <Text style={{ paddingHorizontal: 20, paddingVertical: 20, fontSize: 14, lineHeight: 21, color: "#5b6678" }}>
-            На <Text style={{ fontWeight: "600", color: "#0b1220" }}>{email.trim()}</Text> ушло
-            письмо со ссылкой. Откройте его — и возвращайтесь, чтобы войти.
-          </Text>
-        </InputCard>
-        <GhostLink label="Уже подтвердили? Войти" onPress={() => router.replace("/login")} />
+      <AuthCard title="Проверьте почту" subtitle="Подтвердите адрес, чтобы войти">
+        <NoticeCard>
+          Письмо со ссылкой ушло на{" "}
+          <Text style={{ fontWeight: "600", color: "#0b1220" }}>{email.trim()}</Text>.
+          Откройте его, перейдите по ссылке — и возвращайтесь, чтобы войти.
+        </NoticeCard>
+        <PillButton label="Открыть Почту" onPress={openMail} />
+        <GhostLink
+          label={cooldown > 0 ? `Отправить снова (${cooldown})` : "Отправить ещё раз"}
+          muted={cooldown > 0}
+          onPress={resend}
+        />
+        <GhostLink label="Изменить email" muted onPress={() => setPending(false)} />
+        <GhostLink label="Вернуться ко входу" muted onPress={() => router.replace("/login")} />
       </AuthCard>
     );
   }
@@ -85,65 +112,55 @@ export default function RegisterScreen() {
       <OrDivider />
 
       <InputCard>
-        <TextInput
+        <AuthField
           value={fullName}
-          onChangeText={setFullName}
+          onChangeText={edit(setFullName)}
           placeholder="Ваше имя"
-          placeholderTextColor={COLORS.faint}
+          accessibilityLabel="Ваше имя"
           autoComplete="name"
+          textContentType="name"
           maxLength={120}
           returnKeyType="next"
-          style={inputStyle}
+          blurOnSubmit={false}
+          onSubmitEditing={() => emailRef.current?.focus()}
         />
         <InputDivider />
-        <TextInput
+        <AuthField
+          ref={emailRef}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={edit(setEmail)}
           placeholder="Email"
-          placeholderTextColor={COLORS.faint}
+          accessibilityLabel="Email"
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
           inputMode="email"
+          textContentType="username"
           returnKeyType="next"
-          style={inputStyle}
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <InputDivider />
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Пароль (от 8 символов)"
-            placeholderTextColor={COLORS.faint}
-            secureTextEntry={!showPw}
-            autoComplete="new-password"
-            textContentType="newPassword"
-            returnKeyType="go"
-            onSubmitEditing={submit}
-            selectionColor="#2c5be0"
-            style={{ flex: 1, height: 52, paddingLeft: 16, paddingRight: 6, fontSize: 15, color: "#0b1220" }}
-          />
-          <Pressable
-            onPress={() => setShowPw((v) => !v)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={showPw ? "Скрыть пароль" : "Показать пароль"}
-            style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
-          >
-            {showPw ? (
-              <EyeOff color={COLORS.faint} size={20} />
-            ) : (
-              <Eye color={COLORS.faint} size={20} />
-            )}
-          </Pressable>
-        </View>
+        <PasswordInput
+          ref={passwordRef}
+          value={password}
+          onChangeText={edit(setPassword)}
+          placeholder="Пароль"
+          accessibilityLabel="Пароль"
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="go"
+          onSubmitEditing={submit}
+        />
       </InputCard>
 
-      {error ? (
-        <Text style={{ marginTop: 12, textAlign: "center", fontSize: 13, color: "#f0473c" }}>
-          {error}
+      {password.length > 0 && password.length < 8 ? (
+        <Text style={{ marginTop: 8, marginLeft: 4, fontSize: 13, color: "#5b6678" }}>
+          Минимум 8 символов
         </Text>
       ) : null}
+
+      <FormError message={error} />
 
       <PillButton
         label={loading ? "Создаём…" : "Создать аккаунт"}
@@ -152,15 +169,15 @@ export default function RegisterScreen() {
         loading={loading}
       />
 
-      <GhostLink label="Уже есть аккаунт? Войти" muted onPress={() => router.replace("/login")} />
+      <SwitchLink lead="Уже есть аккаунт?" action="Войти" onPress={() => router.replace("/login")} />
 
       <Text
         style={{
-          marginTop: 18,
+          marginTop: 16,
           textAlign: "center",
           fontSize: 12,
           lineHeight: 17,
-          color: "#97a0ae",
+          color: "#5b6678",
         }}
       >
         Создавая аккаунт, вы принимаете{" "}

@@ -19,9 +19,12 @@ function RootNavigator() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    // The password-recovery deep link creates a real session but must STAY on
+    // the reset-password screen to let the user set a new password.
+    const onResetPassword = segments[1] === "reset-password";
     if (!session && !inAuthGroup) {
       router.replace("/login");
-    } else if (session && inAuthGroup) {
+    } else if (session && inAuthGroup && !onResetPassword) {
       router.replace("/");
     }
 

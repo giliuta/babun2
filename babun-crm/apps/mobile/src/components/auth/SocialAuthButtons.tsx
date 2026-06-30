@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 // «Вход в Babun» social stack — apps/mobile/docs/DESIGN-SYSTEM.md + the SaaS
@@ -40,6 +40,8 @@ function StackButton({
   icon,
   label,
   onPress,
+  busy,
+  disabled,
 }: {
   bg: string;
   border?: string;
@@ -47,10 +49,17 @@ function StackButton({
   icon: React.ReactNode;
   label: string;
   onPress: () => void;
+  busy?: boolean;
+  disabled?: boolean;
 }) {
+  const off = disabled || busy;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={off ? undefined : onPress}
+      disabled={off}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled, busy: !!busy }}
       style={({ pressed }) => ({
         height: 52,
         borderRadius: 999,
@@ -62,23 +71,28 @@ function StackButton({
         backgroundColor: bg,
         borderWidth: border ? 1 : 0,
         borderColor: border,
-        opacity: pressed ? 0.85 : 1,
+        boxShadow: "0px 1px 2px rgba(11,18,32,0.04)",
+        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       })}
     >
-      {icon}
+      {busy ? <ActivityIndicator color={textColor} /> : icon}
       <Text style={{ fontSize: 16, fontWeight: "600", color: textColor }}>{label}</Text>
     </Pressable>
   );
 }
 
-// Apple + Google buttons — equal size/weight. Email/password is inline on the
-// screen below (fewer taps), so there is no email button here.
+// Apple + Google buttons — equal size/weight, with a busy/disabled contract for
+// when native OAuth lands. Email/password is inline on the screen below.
 export function SocialButtons({
   onApple,
   onGoogle,
+  loading = null,
+  disabled = false,
 }: {
   onApple: () => void;
   onGoogle: () => void;
+  loading?: "apple" | "google" | null;
+  disabled?: boolean;
 }) {
   return (
     <View>
@@ -88,14 +102,18 @@ export function SocialButtons({
         icon={<AppleLogo />}
         label="Продолжить с Apple"
         onPress={onApple}
+        busy={loading === "apple"}
+        disabled={disabled}
       />
       <StackButton
         bg="#ffffff"
-        border="#747775"
+        border="#d9dee5"
         textColor="#1f1f1f"
         icon={<GoogleLogo />}
         label="Продолжить с Google"
         onPress={onGoogle}
+        busy={loading === "google"}
+        disabled={disabled}
       />
     </View>
   );
