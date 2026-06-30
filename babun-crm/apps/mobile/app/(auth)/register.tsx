@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Alert, Linking, Text, TextInput } from "react-native";
+import { Alert, Linking, Pressable, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Eye, EyeOff } from "lucide-react-native";
 import {
   AuthCard,
   GhostLink,
@@ -27,6 +28,7 @@ export default function RegisterScreen() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -107,17 +109,34 @@ export default function RegisterScreen() {
           style={inputStyle}
         />
         <InputDivider />
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Пароль (от 8 символов)"
-          placeholderTextColor={COLORS.faint}
-          secureTextEntry
-          autoComplete="new-password"
-          returnKeyType="go"
-          onSubmitEditing={submit}
-          style={inputStyle}
-        />
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Пароль (от 8 символов)"
+            placeholderTextColor={COLORS.faint}
+            secureTextEntry={!showPw}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="go"
+            onSubmitEditing={submit}
+            selectionColor="#2c5be0"
+            style={{ flex: 1, height: 52, paddingLeft: 16, paddingRight: 6, fontSize: 15, color: "#0b1220" }}
+          />
+          <Pressable
+            onPress={() => setShowPw((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={showPw ? "Скрыть пароль" : "Показать пароль"}
+            style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+          >
+            {showPw ? (
+              <EyeOff color={COLORS.faint} size={20} />
+            ) : (
+              <Eye color={COLORS.faint} size={20} />
+            )}
+          </Pressable>
+        </View>
       </InputCard>
 
       {error ? (

@@ -9,9 +9,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import Svg, {
   Defs,
-  Line,
   LinearGradient,
   RadialGradient,
   Rect,
@@ -56,31 +56,43 @@ function AmbientHalo() {
   );
 }
 
-// 64×64 gradient tile with a snowflake/AC glyph + wet top sheen — the brand.
-function BrandMark() {
+// 64×64 cobalt gradient tile with a «b» monogram — category-neutral brand mark
+// (a snowflake read as HVAC; Babun is a general field-service CRM). Reusable.
+export function BrandMark({ size = 64 }: { size?: number }) {
   return (
     <View
+      accessibilityRole="image"
+      accessibilityLabel="Babun"
       style={{
-        height: 64,
-        width: 64,
-        borderRadius: 18,
+        height: size,
+        width: size,
+        borderRadius: size * 0.28,
         overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
         boxShadow: "0px 8px 28px rgba(44,91,224,0.30)",
       }}
     >
-      <Svg width={64} height={64}>
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
         <Defs>
           <LinearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={ACCENT_FROM} />
             <Stop offset="1" stopColor={ACCENT_TO} />
           </LinearGradient>
         </Defs>
-        <Rect width={64} height={64} fill="url(#mark)" />
-        <Line x1="32" y1="17" x2="32" y2="47" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" opacity={0.95} />
-        <Line x1="20" y1="24.5" x2="44" y2="39.5" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" opacity={0.95} />
-        <Line x1="20" y1="39.5" x2="44" y2="24.5" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" opacity={0.95} />
+        <Rect width={size} height={size} fill="url(#mark)" />
       </Svg>
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 30, backgroundColor: "rgba(255,255,255,0.16)" }} />
+      <Text
+        style={{
+          fontSize: size * 0.56,
+          lineHeight: size * 0.62,
+          fontWeight: "800",
+          color: "#fff",
+          marginTop: -size * 0.02,
+        }}
+      >
+        b
+      </Text>
     </View>
   );
 }
@@ -108,6 +120,7 @@ export function AuthCard({
 
   return (
     <View style={{ flex: 1, backgroundColor: CANVAS }}>
+      <StatusBar style="dark" />
       <AmbientHalo />
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
@@ -219,6 +232,9 @@ export function PillButton({
         scale.value = withSpring(1, { damping: 16 });
       }}
       disabled={!pressable}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !pressable, busy: !!loading }}
     >
       <Animated.View
         onLayout={(e) => setW(e.nativeEvent.layout.width)}
@@ -230,7 +246,7 @@ export function PillButton({
             overflow: "hidden",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: filled ? ACCENT_TO : SEP,
+            backgroundColor: filled ? ACCENT_TO : "#dde3ea",
             boxShadow: filled ? "0px 8px 28px rgba(44,91,224,0.28)" : undefined,
           },
           scaleStyle,
@@ -259,7 +275,7 @@ export function PillButton({
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={{ fontSize: 17, fontWeight: "600", color: filled ? "#fff" : FAINT }}>
+          <Text style={{ fontSize: 17, fontWeight: "600", color: filled ? "#fff" : SUB }}>
             {label}
           </Text>
         )}
@@ -281,6 +297,9 @@ export function GhostLink({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
       style={{ height: 44, alignItems: "center", justifyContent: "center", marginTop: 4 }}
     >
       <Text style={{ fontSize: 14, fontWeight: "500", color: muted ? SUB : ACCENT }}>
