@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Строка операции — финал + мульти-услуга</title>
+<style>
+  :root{
+    --green:#34C759; --red:#FF3B30; --orange:#FF9500;
+    --label:#000; --l2:#3C3C43; --l3:#8E8E93; --l4:#C7C7CC;
+    --card:#fff; --grouped:#EFEFF4; --fill2:#F2F2F7; --sep:rgba(60,60,67,.12);
+    --accent:#3E88F7;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--grouped);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--label);padding:14px 12px 48px}
+  .vlabel{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--l3);margin:22px 4px 7px}
+  .vlabel:first-child{margin-top:2px}
+  .vnote{font-size:12px;color:var(--l3);margin:0 4px 8px;line-height:1.35}
+  .card{background:var(--card);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05),0 0 0 .5px rgba(15,23,42,.04)}
+
+  .dayhdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px}
+  .dayhdr .d{font-size:12px;font-weight:600;color:var(--l3)}
+  .dayhdr .net{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px}
+
+  /* финальная строка: скруглённый бар как в Услугах, без иконки, имя чёрным */
+  .row{width:100%;display:flex;align-items:center;gap:12px;padding:8px 14px;min-height:56px;background:none;border:0;cursor:pointer;text-align:left;font-family:inherit}
+  .row + .row{border-top:.5px solid var(--sep)}
+  .pill{width:7px;height:36px;border-radius:9999px;flex:none;align-self:center}
+  .pill.g{background:var(--green)} .pill.r{background:var(--red)}
+  .mid{flex:1;min-width:0}
+  .when{font-size:12px;color:var(--l3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .desc{font-size:15px;font-weight:600;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .more{color:var(--l3);font-weight:600}
+  .amt{flex:none;font-variant-numeric:tabular-nums;font-weight:700;font-size:16px}
+  .amt.g{color:var(--green)} .amt.r{color:var(--red)}
+  /* подстроки услуг (для раскрытия) */
+  .svc{display:flex;justify-content:space-between;font-size:13px;color:var(--l2);padding:2px 0}
+  .svc .p{font-variant-numeric:tabular-nums;color:var(--l3)}
+</style>
+</head>
+<body>
+
+<!-- ФИНАЛ: одна услуга -->
+<div class="vlabel">Строка — финал (одна услуга)</div>
+<div class="vnote">Без эмодзи. Слева скруглённый бар как в Услугах (зелёный доход / красный расход). Сверху время·клиент, ниже описание ЧЁРНЫМ жирным, сумма цветная справа.</div>
+<div class="card">
+  <div class="dayhdr"><span class="d">Сегодня · 22 июня</span><span class="net" style="color:var(--green)">+€520</span></div>
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">20:30 · Костас М.</div><div class="desc">Чистка кондиционера</div></div><span class="amt g">+€300</span></button>
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">19:30 · Отель «Бриз»</div><div class="desc">Заправка фреоном</div></div><span class="amt g">+€80</span></button>
+  <button class="row"><span class="pill r"></span><div class="mid"><div class="when">14:30 · Обед бригады</div><div class="desc">Еда</div></div><span class="amt r">−€20</span></button>
+</div>
+
+<!-- МУЛЬТИ-УСЛУГА · A — сводка +N -->
+<div class="vlabel">Мульти · A — сводка «+N»</div>
+<div class="vnote">Один визит, несколько услуг → одна строка: первая услуга + «+N», справа общая сумма. Детали по тапу.</div>
+<div class="card">
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">15:00 · Катерина</div><div class="desc">Чистка <span class="more">+3</span></div></div><span class="amt g">+€450</span></button>
+</div>
+
+<!-- МУЛЬТИ-УСЛУГА · B — список услуг -->
+<div class="vlabel">Мульти · B — список услуг</div>
+<div class="vnote">Главное — клиент, ниже перечислены услуги в строку (обрезается). Сумма — итог визита.</div>
+<div class="card">
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">15:00 · Катерина</div><div class="desc" style="font-weight:500">Чистка, Заправка, Замена конденсатора…</div></div><span class="amt g">+€450</span></button>
+</div>
+
+<!-- МУЛЬТИ-УСЛУГА · C — раскрытие (как у Bumpix отдельными строками) -->
+<div class="vlabel">Мульти · C — каждая услуга отдельной строкой</div>
+<div class="vnote">Как у Bumpix: визит разворачивается в несколько строк — каждая услуга со своей суммой, общий клиент·время. «Не стакается».</div>
+<div class="card">
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">15:00 · Катерина</div><div class="desc">Чистка кондиционера</div></div><span class="amt g">+€150</span></button>
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">15:00 · Катерина</div><div class="desc">Заправка фреоном</div></div><span class="amt g">+€80</span></button>
+  <button class="row"><span class="pill g"></span><div class="mid"><div class="when">15:00 · Катерина</div><div class="desc">Замена конденсатора</div></div><span class="amt g">+€220</span></button>
+</div>
+
+</body>
+</html>

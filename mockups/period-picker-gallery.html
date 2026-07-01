@@ -1,0 +1,543 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;-webkit-font-smoothing:antialiased} ::-webkit-scrollbar{display:none}
+body{margin:0;--grouped:#EFEFF4;--card:#FFFFFF;--card2:#F2F2F7;--sep:rgba(60,60,67,0.10);--label:#000;--l2:#3C3C4399;--l3:rgba(60,60,67,0.30);--fill:rgba(118,118,128,0.12);--fill2:rgba(116,116,128,0.08);--accent:#3E88F7;--accent-tint:rgba(62,136,247,0.12);--green:#34C759;--orange:#FF9500;--debt:#E8A100;--profit:#34AADC;--shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);background:#dfe2e8;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;color:var(--label);padding:18px}
+h1{font-size:16px;margin:2px 4px 14px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,380px);gap:18px 22px;justify-content:center;align-items:start}
+.card{width:380px}
+.lbl{display:flex;align-items:center;gap:8px;padding:0 2px 6px}
+.num{flex:none;width:23px;height:23px;border-radius:7px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.nm{font-size:13px;font-weight:600;color:var(--l2)}
+.frame{border-radius:18px;overflow:hidden;box-shadow:0 1px 5px rgba(15,23,42,.08)}
+.meta{padding:7px 6px 0;font-size:11px;line-height:1.3;color:#6a7080}
+</style></head><body><h1>Пикер периода — 7 вариантов, выбери номер</h1><div class="grid"><div class="card"><div class="lbl"><span class="num">1</span><span class="nm">Период · матрица · matrix</span></div><div class="frame"><div style="min-height:540px;background:#EFEFF4;border-radius:18px;display:flex;align-items:center;justify-content:center;padding:18px;">
+  <div role="dialog" aria-label="Выбор периода" style="width:336px;background:#fff;border-radius:18px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.14);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-variant-numeric:tabular-nums;">
+
+    <div style="padding:16px 18px 12px;">
+      <div style="font-size:17px;font-weight:600;color:#000;letter-spacing:-.02em;">Период</div>
+      <div style="font-size:13px;color:#3C3C4399;margin-top:1px;">сегодня · 15 июня 2026</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:54px 1fr 1fr;align-items:end;padding:0 14px 6px;gap:8px;">
+      <div></div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#3C3C4399;text-align:left;padding-left:11px;">Текущий</div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#3C3C4399;text-align:left;padding-left:11px;">Прошлый</div>
+    </div>
+
+    <div style="padding:0 14px;display:flex;flex-direction:column;gap:7px;">
+
+      <div style="display:grid;grid-template-columns:54px 1fr 1fr;align-items:stretch;gap:8px;">
+        <div style="display:flex;align-items:center;font-size:13px;font-weight:600;color:#000;">День</div>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(118,118,128,.12);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Сегодня</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">15 июня</div>
+        </button>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(116,116,128,.08);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Вчера</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">14 июня</div>
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:54px 1fr 1fr;align-items:stretch;gap:8px;">
+        <div style="display:flex;align-items:center;font-size:13px;font-weight:600;color:#000;">Неделя</div>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(118,118,128,.12);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Эта</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">15–21 июня</div>
+        </button>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(116,116,128,.08);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Прошлая</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">8–14 июня</div>
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:54px 1fr 1fr;align-items:stretch;gap:8px;">
+        <div style="display:flex;align-items:center;font-size:13px;font-weight:600;color:#000;">Месяц</div>
+        <button aria-current="true" style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(62,136,247,.12);box-shadow:inset 0 0 0 1.5px #3E88F7;position:relative;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:14px;font-weight:600;color:#3E88F7;line-height:1.2;">Этот</span>
+            <span style="font-size:12px;color:#3E88F7;line-height:1;">✓</span>
+          </div>
+          <div style="font-size:11px;color:#3E88F7;opacity:.85;margin-top:2px;">1–30 июня</div>
+        </button>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(116,116,128,.08);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Прошлый</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">1–31 мая</div>
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:54px 1fr 1fr;align-items:stretch;gap:8px;">
+        <div style="display:flex;align-items:center;font-size:13px;font-weight:600;color:#000;">Год</div>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(118,118,128,.12);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Этот</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">2026</div>
+        </button>
+        <button style="all:unset;cursor:pointer;box-sizing:border-box;padding:9px 11px;border-radius:11px;background:rgba(116,116,128,.08);">
+          <div style="font-size:14px;font-weight:500;color:#000;line-height:1.2;">Прошлый</div>
+          <div style="font-size:11px;color:#3C3C4399;margin-top:2px;">2025</div>
+        </button>
+      </div>
+
+    </div>
+
+    <button style="all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;width:calc(100% - 28px);margin:12px 14px 0;padding:12px 14px;border-radius:11px;background:#F2F2F7;">
+      <span style="font-size:14px;font-weight:500;color:#000;">Свой период</span>
+      <span style="font-size:13px;color:#3C3C4399;">С–До  <span style="color:#3C3C4399;">›</span></span>
+    </button>
+
+    <div style="height:1px;background:rgba(60,60,67,.10);margin:14px 0 0;"></div>
+
+    <div style="padding:12px 14px 14px;">
+      <button style="all:unset;cursor:pointer;box-sizing:border-box;display:block;width:100%;text-align:center;padding:13px;border-radius:13px;background:#3E88F7;color:#fff;font-size:16px;font-weight:600;letter-spacing:-.01em;">Применить</button>
+    </div>
+
+  </div>
+</div></div><div class="meta">Таблица «Текущий/Прошлый» × День/Неделя/Месяц/Год: 4 семьи читаются как строки, даты под каждым значением оживляют сетку, выбор подсвечен accent-обводкой + ✓; тап выделяет ячейку, «Применить» подтверждает.</div></div><div class="card"><div class="lbl"><span class="num">2</span><span class="nm">Период · плитки-семейства · dateTiles</span></div><div class="frame"><div style="min-height:560px;background:var(--card2,#F2F2F7);border-radius:16px;display:flex;align-items:center;justify-content:center;padding:20px;">
+<div style="width:336px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04),0 12px 40px rgba(15,23,42,.16);font-family:-apple-system,system-ui,sans-serif;">
+
+  <div style="padding:18px 18px 6px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:18px;font-weight:600;color:#000;letter-spacing:-.01em;">Период</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:rgba(118,118,128,.12);display:flex;align-items:center;justify-content:center;color:#3C3C4399;font-size:15px;line-height:1;">✕</div>
+    </div>
+    <div style="font-size:13px;color:#3C3C4399;margin-top:2px;">15 июня 2026 · понедельник</div>
+  </div>
+
+  <div style="padding:14px 18px 4px;">
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(60,60,67,.30);margin:0 2px 8px;">День</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Сегодня</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">15 июня</div>
+      </div>
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Вчера</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">14 июня</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(60,60,67,.30);margin:0 2px 8px;">Неделя</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Текущая</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">15–21 июня</div>
+      </div>
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Прошлая</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">8–14 июня</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(60,60,67,.30);margin:0 2px 8px;">Месяц</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:rgba(62,136,247,.12);border:1.5px solid #3E88F7;border-radius:14px;padding:12px 13px;position:relative;">
+        <div style="position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;background:#3E88F7;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;line-height:1;">✓</div>
+        <div style="font-size:15px;font-weight:600;color:#185FA5;">Текущий</div>
+        <div style="font-size:13px;color:#3E88F7;margin-top:2px;font-variant-numeric:tabular-nums;">1–30 июня</div>
+      </div>
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Прошлый</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">1–31 мая</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(60,60,67,.30);margin:0 2px 8px;">Год</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Текущий</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">2026</div>
+      </div>
+      <div style="background:#F2F2F7;border:1px solid transparent;border-radius:14px;padding:12px 13px;">
+        <div style="font-size:15px;font-weight:600;color:#000;">Прошлый</div>
+        <div style="font-size:13px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">2025</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;margin:0 -2px 4px;border-radius:14px;background:#fff;border:1px solid rgba(60,60,67,.10);">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="font-size:16px;color:#3E88F7;line-height:1;">⊕</span>
+        <span style="font-size:15px;font-weight:600;color:#000;">Свой период</span>
+      </div>
+      <span style="color:rgba(60,60,67,.30);font-size:18px;line-height:1;">›</span>
+    </div>
+
+  </div>
+</div>
+</div></div><div class="meta">2×4 сетка плиток с подписями-датами, сгруппированных по семействам День/Неделя/Месяц/Год — выбор применяется по тапу (без кнопки «Применить»), активная плитка дана accent-tint с кольцом и галочкой.</div></div><div class="card"><div class="lbl"><span class="num">3</span><span class="nm">Период · по полочкам · rangeList</span></div><div class="frame"><div style="width:336px;margin:0 auto;background:#EFEFF4;border-radius:20px;padding:8px 0 14px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;color:#000;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 12px;">
+    <span style="font-size:13px;color:#3C3C4399;font-weight:400;width:28px;">​</span>
+    <span style="font-size:17px;font-weight:600;letter-spacing:.1px;">Период</span>
+    <span style="font-size:17px;color:#3E88F7;font-weight:400;width:28px;text-align:right;cursor:pointer;">×</span>
+  </div>
+
+  <div style="padding:0 8px 0;font-size:11px;font-weight:600;letter-spacing:.6px;color:#3C3C4399;text-transform:uppercase;margin:2px 0 7px 16px;">День</div>
+  <div style="margin:0 8px;background:#fff;border-radius:13px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Сегодня</span>
+      <span style="display:flex;align-items:center;gap:10px;"><span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">15 июня</span></span>
+    </div>
+    <div style="height:.5px;background:rgba(60,60,67,.10);margin-left:14px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Вчера</span>
+      <span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">14 июня</span>
+    </div>
+  </div>
+
+  <div style="padding:0 8px 0;font-size:11px;font-weight:600;letter-spacing:.6px;color:#3C3C4399;text-transform:uppercase;margin:18px 0 7px 16px;">Неделя</div>
+  <div style="margin:0 8px;background:#fff;border-radius:13px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Текущая неделя</span>
+      <span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">15–21 июня</span>
+    </div>
+    <div style="height:.5px;background:rgba(60,60,67,.10);margin-left:14px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Прошлая неделя</span>
+      <span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">8–14 июня</span>
+    </div>
+  </div>
+
+  <div style="padding:0 8px 0;font-size:11px;font-weight:600;letter-spacing:.6px;color:#3C3C4399;text-transform:uppercase;margin:18px 0 7px 16px;">Месяц</div>
+  <div style="margin:0 8px;background:#fff;border-radius:13px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;background:rgba(62,136,247,.12);cursor:pointer;">
+      <span style="display:flex;align-items:center;gap:9px;"><span style="color:#3E88F7;display:flex;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#3E88F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="font-size:16px;font-weight:500;color:#3E88F7;">Текущий месяц</span></span>
+      <span style="font-size:15px;color:#3E88F7;font-variant-numeric:tabular-nums;">1–30 июня</span>
+    </div>
+    <div style="height:.5px;background:rgba(60,60,67,.10);margin-left:14px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Прошлый месяц</span>
+      <span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">1–31 мая</span>
+    </div>
+  </div>
+
+  <div style="padding:0 8px 0;font-size:11px;font-weight:600;letter-spacing:.6px;color:#3C3C4399;text-transform:uppercase;margin:18px 0 7px 16px;">Год</div>
+  <div style="margin:0 8px;background:#fff;border-radius:13px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Текущий год</span>
+      <span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">2026</span>
+    </div>
+    <div style="height:.5px;background:rgba(60,60,67,.10);margin-left:14px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="font-size:16px;">Прошлый год</span>
+      <span style="font-size:15px;color:#3C3C4399;font-variant-numeric:tabular-nums;">2025</span>
+    </div>
+  </div>
+
+  <div style="margin:18px 8px 0;background:#fff;border-radius:13px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;cursor:pointer;">
+      <span style="display:flex;align-items:center;gap:9px;"><span style="color:#3E88F7;display:flex;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="#3E88F7" stroke-width="1.6"/><path d="M3.5 9h17M8 3.2v3.4M16 3.2v3.4" stroke="#3E88F7" stroke-width="1.6" stroke-linecap="round"/></svg></span><span style="font-size:16px;">Свой период</span></span>
+      <span style="font-size:20px;color:#3C3C4399;line-height:1;">›</span>
+    </div>
+  </div>
+
+</div></div><div class="meta">iOS grouped-inset list with День/Неделя/Месяц/Год section headers — each row pairs a name with its real date range in grey, tap applies instantly (no Применить), selected month tinted with accent checkmark.</div></div><div class="card"><div class="lbl"><span class="num">4</span><span class="nm">Период · хиро-карта · currentHero</span></div><div class="frame"><div style="width:336px; background:var(--card,#fff); border-radius:20px; box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.18); overflow:hidden; font-family:-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased;">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 16px 10px;">
+    <span style="font-size:13px; font-weight:500; letter-spacing:.02em; color:var(--l2,#3C3C4399); text-transform:uppercase;">Период</span>
+    <span role="button" aria-label="Закрыть" style="width:28px; height:28px; border-radius:50%; background:var(--fill,rgba(118,118,128,.12)); display:flex; align-items:center; justify-content:center; color:var(--l2,#3C3C4399); font-size:15px; line-height:1; cursor:pointer;">✕</span>
+  </div>
+
+  <div style="margin:0 16px 16px; padding:16px; border-radius:16px; background:var(--accent-tint,rgba(62,136,247,.12));">
+    <div style="display:flex; align-items:center; gap:7px; margin-bottom:6px;">
+      <span style="width:7px; height:7px; border-radius:50%; background:var(--accent,#3E88F7); display:inline-block;"></span>
+      <span style="font-size:12px; font-weight:600; letter-spacing:.03em; color:var(--accent,#3E88F7); text-transform:uppercase;">Выбрано</span>
+    </div>
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <div>
+        <div style="font-size:21px; font-weight:600; color:var(--label,#000); letter-spacing:-.01em; line-height:1.15;">Текущий месяц</div>
+        <div style="font-size:15px; color:var(--l2,#3C3C4399); margin-top:2px; font-variant-numeric:tabular-nums;">1 – 30 июня · 2026</div>
+      </div>
+      <span style="width:30px; height:30px; border-radius:50%; background:var(--accent,#3E88F7); display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:600;">✓</span>
+    </div>
+  </div>
+
+  <div style="padding:0 16px 8px;">
+
+    <div style="font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--l3,rgba(60,60,67,.30)); text-transform:uppercase; margin:4px 2px 8px;">День</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Сегодня</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">15 июня</div>
+      </div>
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Вчера</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">14 июня</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--l3,rgba(60,60,67,.30)); text-transform:uppercase; margin:4px 2px 8px;">Неделя</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Текущая</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">15–21 июня</div>
+      </div>
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Прошлая</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">8–14 июня</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--l3,rgba(60,60,67,.30)); text-transform:uppercase; margin:4px 2px 8px;">Месяц</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+      <div role="button" aria-current="true" style="background:var(--accent-tint,rgba(62,136,247,.12)); border-radius:12px; padding:10px 12px; box-shadow:inset 0 0 0 1.5px var(--accent,#3E88F7); cursor:pointer;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-size:15px; font-weight:600; color:var(--accent,#3E88F7);">Текущий</div>
+          <span style="color:var(--accent,#3E88F7); font-size:14px; font-weight:700;">✓</span>
+        </div>
+        <div style="font-size:13px; color:var(--accent,#3E88F7); opacity:.8; margin-top:1px; font-variant-numeric:tabular-nums;">1–30 июня</div>
+      </div>
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Прошлый</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">1–31 мая</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--l3,rgba(60,60,67,.30)); text-transform:uppercase; margin:4px 2px 8px;">Год</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px;">
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Текущий</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">2026</div>
+      </div>
+      <div role="button" style="background:var(--fill2,rgba(116,116,128,.08)); border-radius:12px; padding:10px 12px; cursor:pointer;">
+        <div style="font-size:15px; font-weight:500; color:var(--label,#000);">Прошлый</div>
+        <div style="font-size:13px; color:var(--l2,#3C3C4399); margin-top:1px; font-variant-numeric:tabular-nums;">2025</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin:6px 8px 8px; border-top:.5px solid var(--sep,rgba(60,60,67,.10));">
+    <div role="button" style="display:flex; align-items:center; justify-content:space-between; padding:14px 10px 12px; cursor:pointer;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="width:30px; height:30px; border-radius:9px; background:var(--fill,rgba(118,118,128,.12)); display:flex; align-items:center; justify-content:center; color:var(--accent,#3E88F7); font-size:15px;">⌖</span>
+        <span style="font-size:15px; font-weight:500; color:var(--label,#000);">Свой период</span>
+      </div>
+      <span style="font-size:13px; color:var(--l3,rgba(60,60,67,.30)); display:flex; align-items:center; gap:4px;"><span style="font-variant-numeric:tabular-nums;">С – До</span> <span style="font-size:17px; color:var(--l2,#3C3C4399);">›</span></span>
+    </div>
+  </div>
+
+</div></div><div class="meta">Хиро-карта с крупным текущим периодом + быстрые чипы-пары, сгруппированные по семействам День/Неделя/Месяц/Год; тап мгновенно применяет (без кнопки «Применить»), «Свой период ›» открывает отдельный С–До пикер.</div></div><div class="card"><div class="lbl"><span class="num">5</span><span class="nm">Период · сегмент + единицы · twoStep</span></div><div class="frame"><div style="width:336px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <div style="padding:18px 20px 14px;">
+    <div style="font-size:13px;font-weight:600;letter-spacing:.02em;color:#3C3C4399;text-transform:uppercase;">Период</div>
+    <div style="margin-top:5px;display:flex;align-items:baseline;gap:7px;">
+      <span style="font-size:21px;font-weight:600;color:#000;letter-spacing:-.01em;">Текущий месяц</span>
+    </div>
+    <div style="margin-top:2px;font-size:14px;color:#3C3C4399;font-variant-numeric:tabular-nums;">1–30 июня 2026</div>
+  </div>
+
+  <div style="height:.5px;background:rgba(60,60,67,.10);margin:0 20px;"></div>
+
+  <div style="padding:16px 20px 6px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:#3C3C4399;text-transform:uppercase;margin-bottom:9px;">Когда</div>
+    <div style="display:flex;background:rgba(118,118,128,.12);border-radius:11px;padding:2px;">
+      <div style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#3C3C4399;padding:8px 0;border-radius:9px;cursor:pointer;">Прошлый</div>
+      <div style="flex:1;text-align:center;font-size:15px;font-weight:600;color:#000;padding:8px 0;border-radius:9px;background:#fff;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.06);">Текущий</div>
+    </div>
+  </div>
+
+  <div style="padding:14px 20px 8px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:#3C3C4399;text-transform:uppercase;margin-bottom:9px;">Длина</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+
+      <div style="background:rgba(116,116,128,.08);border-radius:12px;padding:11px 12px;cursor:pointer;border:.5px solid transparent;">
+        <div style="font-size:15px;font-weight:500;color:#000;">День</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">15 июня</div>
+      </div>
+
+      <div style="background:rgba(116,116,128,.08);border-radius:12px;padding:11px 12px;cursor:pointer;border:.5px solid transparent;">
+        <div style="font-size:15px;font-weight:500;color:#000;">Неделя</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">15–21 июня</div>
+      </div>
+
+      <div style="background:rgba(62,136,247,.12);border-radius:12px;padding:11px 12px;cursor:pointer;border:.5px solid rgba(62,136,247,.35);position:relative;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:15px;font-weight:600;color:#3E88F7;">Месяц</div>
+          <span style="color:#3E88F7;font-size:13px;font-weight:700;line-height:1;">✓</span>
+        </div>
+        <div style="font-size:12px;color:#3E88F7;opacity:.85;margin-top:2px;font-variant-numeric:tabular-nums;">1–30 июня</div>
+      </div>
+
+      <div style="background:rgba(116,116,128,.08);border-radius:12px;padding:11px 12px;cursor:pointer;border:.5px solid transparent;">
+        <div style="font-size:15px;font-weight:500;color:#000;">Год</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:2px;font-variant-numeric:tabular-nums;">2026</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="padding:6px 20px 4px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(116,116,128,.08);border-radius:12px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:rgba(118,118,128,.12);color:#3C3C4399;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>
+        </span>
+        <span style="font-size:15px;font-weight:500;color:#000;">Свой период</span>
+      </div>
+      <span style="font-size:17px;color:#3C3C4399;line-height:1;">›</span>
+    </div>
+  </div>
+
+  <div style="height:.5px;background:rgba(60,60,67,.10);margin:12px 20px 0;"></div>
+
+  <div style="padding:14px 20px 18px;display:flex;gap:10px;">
+    <button style="flex:0 0 auto;padding:0 18px;height:46px;border:none;background:rgba(118,118,128,.12);color:#000;font-size:15px;font-weight:500;border-radius:13px;cursor:pointer;font-family:inherit;">Отмена</button>
+    <button style="flex:1;height:46px;border:none;background:#3E88F7;color:#fff;font-size:16px;font-weight:600;border-radius:13px;cursor:pointer;font-family:inherit;">Применить</button>
+  </div>
+
+</div></div><div class="meta">Two axes (Когда × Длина) instead of a flat list: a live header caption + dated unit chips make it structured and alive; selection = accent tint + ✓; tap chip = preview, «Применить» commits.</div></div><div class="card"><div class="lbl"><span class="num">7</span><span class="nm">Период · полочки · cardsRange</span></div><div class="frame"><div style="width:336px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-variant-numeric:tabular-nums;color:#000;">
+<div style="padding:18px 20px 14px;text-align:center;border-bottom:.5px solid rgba(60,60,67,.10);">
+  <div style="font-size:17px;font-weight:600;letter-spacing:-.2px;">Период</div>
+  <div style="font-size:13px;color:#3C3C4399;margin-top:2px;">сегодня · 15 июня 2026</div>
+</div>
+
+<div style="padding:14px 16px 6px;display:flex;flex-direction:column;gap:12px;">
+
+  <div style="background:#F2F2F7;border-radius:14px;padding:11px 12px 12px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#3C3C4399;margin:0 2px 9px;">День</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Сегодня</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">15 июня</div>
+      </div>
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Вчера</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">14 июня</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#F2F2F7;border-radius:14px;padding:11px 12px 12px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#3C3C4399;margin:0 2px 9px;">Неделя</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Текущая</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">15–21 июня</div>
+      </div>
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Прошлая</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">8–14 июня</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(62,136,247,.12);border-radius:14px;padding:11px 12px 12px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#3E88F7;margin:0 2px 9px;">Месяц</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:#3E88F7;border:.5px solid #3E88F7;border-radius:11px;padding:10px 11px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:14px;font-weight:600;line-height:1.1;color:#fff;">Текущий</div>
+          <span style="font-size:13px;color:#fff;line-height:1;">✓</span>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.82);margin-top:3px;">1–30 июня</div>
+      </div>
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Прошлый</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">1–31 мая</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#F2F2F7;border-radius:14px;padding:11px 12px 12px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#3C3C4399;margin:0 2px 9px;">Год</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Текущий</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">2026</div>
+      </div>
+      <div style="background:#fff;border:.5px solid rgba(60,60,67,.10);border-radius:11px;padding:10px 11px;">
+        <div style="font-size:14px;font-weight:600;line-height:1.1;">Прошлый</div>
+        <div style="font-size:12px;color:#3C3C4399;margin-top:3px;">2025</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<button style="display:flex;align-items:center;justify-content:space-between;width:calc(100% - 32px);margin:2px 16px 4px;background:transparent;border:none;border-top:.5px solid rgba(60,60,67,.10);padding:14px 4px 12px;cursor:pointer;font-family:inherit;">
+  <span style="font-size:15px;color:#000;">Свой период</span>
+  <span style="font-size:17px;color:#3C3C4399;line-height:1;">›</span>
+</button>
+
+<div style="padding:0 16px 18px;">
+  <button style="width:100%;background:#3E88F7;color:#fff;border:none;border-radius:13px;padding:13px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;">Применить</button>
+</div>
+
+</div></div><div class="meta">Четыре полочки-подкарточки (День/Неделя/Месяц/Год), внутри две пилюли текущий/прошлый с датами-подписями; выбранная группа тонирована accent-tint, активная пилюля залита accent с ✓. Тап по пилюле выделяет мгновенно, «Применить» фиксирует выбор; «Свой период ›» — отдельная строка к диапазону С–До.</div></div><div class="card"><div class="lbl"><span class="num">8</span><span class="nm">Период · сетка · compactGrid</span></div><div class="frame"><div style="width:336px;background:#fff;border-radius:18px;padding:14px 14px 10px;box-shadow:0 0 0 .5px rgba(15,23,42,.04),0 1px 2px rgba(15,23,42,.04);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;color:#000;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;box-sizing:border-box;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px;">
+    <span style="font-size:17px;font-weight:600;letter-spacing:-.2px;">Период</span>
+    <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:rgba(118,118,128,.12);color:#3C3C4399;font-size:15px;line-height:1;">✕</span>
+  </div>
+
+  <!-- ДЕНЬ -->
+  <div style="display:flex;align-items:center;gap:8px;padding:0 4px 7px;">
+    <span style="font-size:11px;font-weight:600;letter-spacing:.6px;color:rgba(60,60,67,.30);text-transform:uppercase;">День</span>
+    <span style="flex:1;height:.5px;background:rgba(60,60,67,.10);"></span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Сегодня</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">15 июня</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Вчера</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">14 июня</div>
+    </div>
+  </div>
+
+  <!-- НЕДЕЛЯ -->
+  <div style="display:flex;align-items:center;gap:8px;padding:0 4px 7px;">
+    <span style="font-size:11px;font-weight:600;letter-spacing:.6px;color:rgba(60,60,67,.30);text-transform:uppercase;">Неделя</span>
+    <span style="flex:1;height:.5px;background:rgba(60,60,67,.10);"></span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Текущая</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">15–21 июня</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Прошлая</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">8–14 июня</div>
+    </div>
+  </div>
+
+  <!-- МЕСЯЦ -->
+  <div style="display:flex;align-items:center;gap:8px;padding:0 4px 7px;">
+    <span style="font-size:11px;font-weight:600;letter-spacing:.6px;color:rgba(60,60,67,.30);text-transform:uppercase;">Месяц</span>
+    <span style="flex:1;height:.5px;background:rgba(60,60,67,.10);"></span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <div style="position:relative;background:rgba(62,136,247,.12);border:1px solid #3E88F7;border-radius:12px;padding:9px 11px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:15px;font-weight:600;letter-spacing:-.1px;color:#1f5fc4;">Текущий</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#3E88F7;color:#fff;font-size:11px;line-height:1;">✓</span>
+      </div>
+      <div style="font-size:12px;color:#3E88F7;margin-top:2px;">1–30 июня</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Прошлый</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">1–31 мая</div>
+    </div>
+  </div>
+
+  <!-- ГОД -->
+  <div style="display:flex;align-items:center;gap:8px;padding:0 4px 7px;">
+    <span style="font-size:11px;font-weight:600;letter-spacing:.6px;color:rgba(60,60,67,.30);text-transform:uppercase;">Год</span>
+    <span style="flex:1;height:.5px;background:rgba(60,60,67,.10);"></span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Текущий</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">2026</div>
+    </div>
+    <div style="background:#F2F2F7;border-radius:12px;padding:9px 11px;">
+      <div style="font-size:15px;font-weight:500;letter-spacing:-.1px;">Прошлый</div>
+      <div style="font-size:12px;color:#3C3C4399;margin-top:2px;">2025</div>
+    </div>
+  </div>
+
+  <!-- СВОЙ ПЕРИОД -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 6px 8px;margin-top:4px;border-top:.5px solid rgba(60,60,67,.10);">
+    <span style="font-size:15px;font-weight:500;letter-spacing:-.1px;color:#3E88F7;">Свой период</span>
+    <span style="font-size:17px;color:rgba(60,60,67,.30);line-height:1;">›</span>
+  </div>
+
+</div></div><div class="meta">Двухколоночная сетка Текущий/Прошлый с тонким ярлыком семейства (День/Неделя/Месяц/Год) и мелкой датой под каждым вариантом — тап применяет мгновенно, выбор обведён акцентом с галочкой, без кнопки «Применить».</div></div></div></body></html>

@@ -3,6 +3,7 @@
 // will migrate to Supabase with real webhook integrations later.
 
 import { generateId } from "./masters";
+import { getStorage } from "../storage/provider";
 
 export type ChatChannel = "whatsapp" | "instagram" | "telegram" | "sms";
 
@@ -66,15 +67,10 @@ export interface Chat {
 const STORAGE_KEY = "babun-chats";
 
 export function loadChats(): Chat[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  // Storage seam (STORY-035): WebKVStorage on web, MMKV on RN. Works on
+  // both platforms — replaces the prior window.localStorage-only path.
+  const parsed = getStorage().get<Chat[]>(STORAGE_KEY);
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 // STORY-053a follow-up — demo seed kept for on-demand demo data
@@ -85,12 +81,7 @@ export function seedDemoChats(): Chat[] {
 }
 
 export function saveChats(list: Chat[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // ignore
-  }
+  getStorage().set(STORAGE_KEY, list);
 }
 
 export function getTotalUnread(chats: Chat[]): number {

@@ -1,0 +1,203 @@
+import { useMemo } from "react";
+import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import type { Appointment } from "@babun/shared/local/appointments";
+import type { ClientStats } from "@babun/shared/local/selectors/client-stats";
+import { formatEUR } from "@babun/shared/common/utils/money";
+import { useThemeColors } from "@/theme/colors";
+
+// VisitsBlock (mobile port of apps/web/.../blocks/VisitsBlock.tsx).
+//
+// «История визитов» — appointment history newest-first, with status +
+// payment pills and the amount. Tapping a row jumps to the calendar
+// focused on that visit's date (web pushed /dashboard?date=…; mobile
+// routes to the dashboard tab with the same query param).
+//
+// DEGRADED vs web: the web summary string resolves service NAMES from a
+// `services` catalog prop. Mobile doesn't wire the services catalog into
+// the client card yet, so the summary falls back to a de-duped service
+// COUNT («N услуг») or the appointment comment. The «Повторить» one-tap
+// repeat button is also dropped (it built a /dashboard?new= deep link that
+// the mobile new-appointment flow doesn't accept yet — see composer TODO).
+//
+// `stats` is accepted for prop-contract parity with the other blocks; this
+// block derives everything it shows straight off `appointments`.
+
+interface VisitsBlockProps {
+  appointments: Appointment[];
+  stats?: ClientStats;
+}
+
+const LIMIT = 50;
+
+export default function VisitsBlock({ appointments }: VisitsBlockProps) {
+  const router = useRouter();
+  const t = useThemeColors();
+
+  const own = useMemo(
+    () =>
+      [...appointments].sort((a, b) =>
+        `${b.date}${b.time_start}`.localeCompare(`${a.date}${a.time_start}`),
+      ),
+    [appointments],
+  );
+
+  return (
+    <View className="mx-3 mt-2 rounded-2xl p-3 shadow-sm" style={{ backgroundColor: t.surface }}>
+      <Text className="px-1 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider" style={{ color: t.sub }}>
+        История визитов {own.length > 0 ? `· ${own.length}` : ""}
+      </Text>
+
+      {own.length === 0 ? (
+        <Text className="px-1 py-2 text-sm" style={{ color: t.faint }}>
+          Записей пока нет.
+        </Text>
+      ) : (
+        <View>
+          {own.slice(0, LIMIT).map((apt) => (
+            <VisitRow
+              key={apt.id}
+              apt={apt}
+              onOpen={() =>
+                router.push(
+                  `/(dashboard)?date=${encodeURIComponent(apt.date)}`,
+                )
+              }
+            />
+          ))}
+          {own.length > LIMIT ? (
+            <Text className="px-1 pt-2 text-center text-xs" style={{ color: t.faint }}>
+              + ещё {own.length - LIMIT} визитов
+            </Text>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function VisitRow({
+  apt,
+  onOpen,
+}: {
+  apt: Appointment;
+  onOpen: () => void;
+}) {
+  const t = useThemeColors();
+  const status = statusPill(apt, t);
+  const payment = paymentPill(apt, t);
+  const summary = visitSummary(apt);
+
+  return (
+    <Pressable
+      onPress={onOpen}
+      className="flex-row items-center gap-2 py-2.5 active:opacity-60"
+      style={{ borderTopWidth: 1, borderTopColor: t.separator }}
+    >
+      <View className="min-w-0 flex-1">
+        <Text className="text-sm" style={{ color: t.ink }} numberOfLines={1}>
+          {summary}
+        </Text>
+        <Text className="text-xs" style={{ color: t.sub }}>
+          {formatVisitDate(apt.date)} · {apt.time_start}
+        </Text>
+      </View>
+
+      <View className="shrink-0 items-end gap-1">
+        <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: status.bg }}>
+          <Text className="text-[10px] font-semibold" style={{ color: status.text }}>
+            {status.label}
+          </Text>
+        </View>
+        {payment ? (
+          <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: payment.bg }}>
+            <Text className="text-[10px] font-semibold" style={{ color: payment.text }}>
+              {payment.label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Text className="w-16 shrink-0 text-right text-sm font-bold" style={{ color: t.success }}>
+        {formatEUR(apt.total_amount)}
+      </Text>
+    </Pressable>
+  );
+}
+
+type PillColors = { label: string; bg: string; text: string };
+type ThemeColors = ReturnType<typeof useThemeColors>;
+
+function statusPill(apt: Appointment, t: ThemeColors): PillColors {
+  switch (apt.status) {
+    case "completed":
+      return { label: "Выполнено", bg: `${t.success}26`, text: t.success };
+    case "cancelled":
+      return {
+        label: "Отменено",
+        bg: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5",
+        text: t.sub,
+      };
+    case "in_progress":
+      return { label: "В работе", bg: `${t.warning}26`, text: t.warning };
+    default:
+      return {
+        label: "Запланировано",
+        bg: `${t.accent}1a`,
+        text: t.accent,
+      };
+  }
+}
+
+function paymentPill(
+  apt: Appointment,
+  t: ThemeColors,
+): PillColors | null {
+  if (apt.status !== "completed") return null;
+  switch (apt.payment_status) {
+    case "paid":
+      return { label: "Оплачено", bg: `${t.success}26`, text: t.success };
+    case "partial":
+      return { label: "Частично", bg: `${t.warning}26`, text: t.warning };
+    case "refunded":
+      return { label: "Возврат", bg: `${t.danger}1a`, text: t.danger };
+    case "unpaid":
+      return { label: "К оплате", bg: `${t.warning}26`, text: t.warning };
+    default:
+      // Legacy fallback — rows older than the payment_status wiring.
+      if (apt.payment) {
+        return { label: "Оплачено", bg: `${t.success}26`, text: t.success };
+      }
+      return null;
+  }
+}
+
+// Web resolves service names from a catalog; mobile lacks that wiring, so we
+// de-dupe service ids and show a count, falling back to the comment.
+function visitSummary(apt: Appointment): string {
+  const ids = new Set(
+    (apt.services ?? []).map((s) => s.serviceId).filter(Boolean),
+  );
+  if (ids.size > 0) {
+    return `${ids.size} ${pluralService(ids.size)}`;
+  }
+  return apt.comment?.trim() || "—";
+}
+
+function pluralService(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "услуга";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "услуги";
+  return "услуг";
+}
+
+function formatVisitDate(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return ymd;
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}

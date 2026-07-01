@@ -422,6 +422,50 @@ export type Database = {
           },
         ]
       }
+      cities: {
+        Row: {
+          color: string | null
+          country: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          country?: string
+          created_at?: string
+          id: string
+          is_active?: boolean
+          name: string
+          position?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          country?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_attachments: {
         Row: {
           client_id: string
@@ -746,6 +790,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "day_extras_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment: {
+        Row: {
+          assigned_team_id: string | null
+          category: string | null
+          color: string | null
+          created_at: string
+          id: string
+          installed_at: string | null
+          is_active: boolean
+          last_service_at: string | null
+          name: string
+          next_service_at: string | null
+          notes: string | null
+          position: number
+          serial: string | null
+          service_interval_months: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_team_id?: string | null
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          id: string
+          installed_at?: string | null
+          is_active?: boolean
+          last_service_at?: string | null
+          name: string
+          next_service_at?: string | null
+          notes?: string | null
+          position?: number
+          serial?: string | null
+          service_interval_months?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_team_id?: string | null
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean
+          last_service_at?: string | null
+          name?: string
+          next_service_at?: string | null
+          notes?: string | null
+          position?: number
+          serial?: string | null
+          service_interval_months?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1381,6 +1490,124 @@ export type Database = {
           },
         ]
       }
+      masters: {
+        Row: {
+          account_status: string | null
+          avatar_url: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string | null
+          position: number
+          profile: Json
+          role: string
+          team_id: string | null
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_status?: string | null
+          avatar_url?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id: string
+          is_active?: boolean
+          phone?: string | null
+          position?: number
+          profile?: Json
+          role?: string
+          team_id?: string | null
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_status?: string | null
+          avatar_url?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          position?: number
+          profile?: Json
+          role?: string
+          team_id?: string | null
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "masters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_event_types: {
+        Row: {
+          all_day: boolean
+          color: string
+          created_at: string
+          created_by: string | null
+          default_duration: number
+          icon: string
+          id: string
+          is_active: boolean
+          label: string
+          position: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          default_duration?: number
+          icon?: string
+          id: string
+          is_active?: boolean
+          label: string
+          position?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          default_duration?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          position?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_event_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_admins: {
         Row: {
           granted_at: string
@@ -1511,6 +1738,127 @@ export type Database = {
           },
           {
             foreignKeyName: "recurring_reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id: string
+          is_active?: boolean
+          name: string
+          position?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          available_weekdays: Json
+          brigade_ids: Json
+          bulk_price: number
+          bulk_threshold: number
+          category_id: string | null
+          color: string
+          cost_per_unit: number
+          created_at: string
+          duration_minutes: number
+          duration_tiers: Json | null
+          id: string
+          is_active: boolean
+          is_countable: boolean
+          material_costs: Json
+          name: string
+          online_enabled: boolean
+          position: number
+          price: number
+          price_tiers: Json | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_weekdays?: Json
+          brigade_ids?: Json
+          bulk_price?: number
+          bulk_threshold?: number
+          category_id?: string | null
+          color?: string
+          cost_per_unit?: number
+          created_at?: string
+          duration_minutes?: number
+          duration_tiers?: Json | null
+          id: string
+          is_active?: boolean
+          is_countable?: boolean
+          material_costs?: Json
+          name: string
+          online_enabled?: boolean
+          position?: number
+          price?: number
+          price_tiers?: Json | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_weekdays?: Json
+          brigade_ids?: Json
+          bulk_price?: number
+          bulk_threshold?: number
+          category_id?: string | null
+          color?: string
+          cost_per_unit?: number
+          created_at?: string
+          duration_minutes?: number
+          duration_tiers?: Json | null
+          id?: string
+          is_active?: boolean
+          is_countable?: boolean
+          material_costs?: Json
+          name?: string
+          online_enabled?: boolean
+          position?: number
+          price?: number
+          price_tiers?: Json | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1734,6 +2082,136 @@ export type Database = {
             foreignKeyName: "team_schedules_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          allow_overtime: boolean | null
+          appointment_blocks: Json | null
+          buffer_minutes: number | null
+          calendar_window_end: string | null
+          calendar_window_start: string | null
+          cities: Json
+          color: string | null
+          created_at: string
+          default_city: string | null
+          default_scroll_time: string | null
+          default_slot_minutes: number | null
+          helper_ids: Json
+          hide_cancelled: boolean | null
+          id: string
+          is_active: boolean
+          lead_id: string | null
+          lead_ids: Json
+          members: Json
+          name: string
+          payout_percentage: number
+          position: number
+          region: string | null
+          roles: Json
+          tenant_id: string
+          timezone: string | null
+          tint_days_by_label: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          allow_overtime?: boolean | null
+          appointment_blocks?: Json | null
+          buffer_minutes?: number | null
+          calendar_window_end?: string | null
+          calendar_window_start?: string | null
+          cities?: Json
+          color?: string | null
+          created_at?: string
+          default_city?: string | null
+          default_scroll_time?: string | null
+          default_slot_minutes?: number | null
+          helper_ids?: Json
+          hide_cancelled?: boolean | null
+          id: string
+          is_active?: boolean
+          lead_id?: string | null
+          lead_ids?: Json
+          members?: Json
+          name: string
+          payout_percentage?: number
+          position?: number
+          region?: string | null
+          roles?: Json
+          tenant_id: string
+          timezone?: string | null
+          tint_days_by_label?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          allow_overtime?: boolean | null
+          appointment_blocks?: Json | null
+          buffer_minutes?: number | null
+          calendar_window_end?: string | null
+          calendar_window_start?: string | null
+          cities?: Json
+          color?: string | null
+          created_at?: string
+          default_city?: string | null
+          default_scroll_time?: string | null
+          default_slot_minutes?: number | null
+          helper_ids?: Json
+          hide_cancelled?: boolean | null
+          id?: string
+          is_active?: boolean
+          lead_id?: string | null
+          lead_ids?: Json
+          members?: Json
+          name?: string
+          payout_percentage?: number
+          position?: number
+          region?: string | null
+          roles?: Json
+          tenant_id?: string
+          timezone?: string | null
+          tint_days_by_label?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_loyalty_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          tenant_id: string
+          tiers: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          tenant_id: string
+          tiers?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          tenant_id?: string
+          tiers?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_loyalty_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },

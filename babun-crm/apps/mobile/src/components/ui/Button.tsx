@@ -1,0 +1,66 @@
+import { ActivityIndicator, Pressable, Text } from "react-native";
+import { GradientButton } from "./GradientButton";
+import { useThemeColors } from "@/theme/colors";
+
+type Variant = "primary" | "secondary";
+type Tone = "default" | "danger";
+
+// App-wide button — «Halo Cobalt» (apps/mobile/docs/DESIGN-SYSTEM.md).
+// primary → cobalt gradient pill (halo sheen + press dip).
+// secondary → clean outline pill on surface; tone="danger" tints the label
+// (e.g. «Выйти») without shouting.
+export function Button({
+  label,
+  onPress,
+  disabled,
+  loading,
+  variant = "primary",
+  tone = "default",
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  variant?: Variant;
+  tone?: Tone;
+}) {
+  const t = useThemeColors();
+
+  if (variant === "primary") {
+    return (
+      <GradientButton
+        label={label}
+        onPress={onPress}
+        disabled={disabled}
+        loading={loading}
+      />
+    );
+  }
+
+  const isDisabled = disabled || loading;
+  const tint = tone === "danger" ? t.danger : t.ink;
+  return (
+    <Pressable
+      onPress={isDisabled ? undefined : onPress}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        height: 52,
+        borderRadius: t.radius.pill,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: t.separator,
+        backgroundColor: t.surface,
+        opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+      })}
+    >
+      {loading ? (
+        <ActivityIndicator color={tone === "danger" ? t.danger : t.accent} />
+      ) : (
+        <Text style={{ fontSize: 17, fontWeight: "600", color: tint }}>{label}</Text>
+      )}
+    </Pressable>
+  );
+}

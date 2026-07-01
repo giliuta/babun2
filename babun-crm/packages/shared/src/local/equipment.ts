@@ -17,6 +17,7 @@
 // prototype phase.
 
 import { generateId } from "./masters";
+import { getStorage } from "../storage/provider";
 
 export interface Equipment {
   id: string;
@@ -45,12 +46,9 @@ export interface Equipment {
 const STORAGE_KEY = "babun-equipment";
 
 export function loadEquipment(): Equipment[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+  const parsed = getStorage().get<Partial<Equipment>[]>(STORAGE_KEY);
+  if (!Array.isArray(parsed)) return [];
+  {
     return parsed.map((e: Partial<Equipment>) => ({
       id: e.id ?? generateId("eq"),
       name: e.name ?? "",
@@ -63,18 +61,11 @@ export function loadEquipment(): Equipment[] {
       created_at: e.created_at ?? new Date().toISOString(),
       sort_order: e.sort_order,
     })) as Equipment[];
-  } catch {
-    return [];
   }
 }
 
 export function saveEquipment(list: Equipment[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // Ignore quota errors.
-  }
+  getStorage().set(STORAGE_KEY, list);
 }
 
 export function createBlankEquipment(

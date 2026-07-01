@@ -6,6 +6,8 @@
 // Five iOS-Reminders-style defaults seed first-run; the user adds /
 // edits / deletes from /dashboard/settings/calendar/event-types.
 
+import { getStorage } from "../storage/provider";
+
 export type PersonalEventTypeIcon =
   | "coffee"
   | "briefcase"
@@ -52,15 +54,11 @@ export const SEED_PERSONAL_EVENT_TYPES: PersonalEventType[] = [
 ];
 
 export function loadPersonalEventTypes(): PersonalEventType[] {
-  if (typeof window === "undefined") return SEED_PERSONAL_EVENT_TYPES;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return SEED_PERSONAL_EVENT_TYPES;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return SEED_PERSONAL_EVENT_TYPES;
-    }
-    return parsed
+  const parsed = getStorage().get<PersonalEventType[]>(STORAGE_KEY);
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    return SEED_PERSONAL_EVENT_TYPES;
+  }
+  return parsed
       .map((p, i) => ({
         id: String(p.id ?? `ev-${Date.now()}-${i}`),
         label: String(p.label ?? "").trim() || "Без названия",
@@ -73,18 +71,10 @@ export function loadPersonalEventTypes(): PersonalEventType[] {
         order: Number.isFinite(p.order) ? Number(p.order) : i,
       }))
       .sort((a, b) => a.order - b.order);
-  } catch {
-    return SEED_PERSONAL_EVENT_TYPES;
-  }
 }
 
 export function savePersonalEventTypes(types: PersonalEventType[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(types));
-  } catch {
-    // ignore quota errors
-  }
+  getStorage().set(STORAGE_KEY, types);
 }
 
 export function generatePersonalEventTypeId(): string {
