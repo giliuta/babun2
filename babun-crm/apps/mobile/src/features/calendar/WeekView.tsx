@@ -5,6 +5,7 @@ import type { Appointment } from "@babun/shared/local/appointments";
 import { formatYMD } from "@/features/appointments/helpers";
 import { useThemeColors } from "@/theme/colors";
 import { DayColumn, TimeRail, RAIL_W } from "@/features/calendar/DayView";
+import { DayFinanceFooter } from "@/features/calendar/DayFinanceFooter";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -146,6 +147,8 @@ export function WeekView({
           ))}
         </View>
       </ScrollView>
+
+      <DayFinanceFooter days={days} appointments={appointments} onTapDay={onPickDay} />
     </View>
   );
 }
