@@ -240,7 +240,7 @@ export default function CalendarTab() {
 
   const headerTitle = (mode === "week" ? weekDays[3] : mode === "day" ? day : cursor)
     .toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
-    .replace(" г.", "");
+    .replace(/\s*г\.?\s*$/i, "");
 
   const goToday = () => {
     const now = new Date();
