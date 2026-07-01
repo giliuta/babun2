@@ -13,6 +13,8 @@ import { useThemeColors } from "@/theme/colors";
 import { formatYMD, humanDay, parseYMD } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { DayView } from "@/features/calendar/DayView";
+import { WeekView } from "@/features/calendar/WeekView";
+import { ViewModeDropdown, type CalMode } from "@/features/calendar/ViewModeDropdown";
 import { MonthView } from "@/features/calendar/MonthView";
 import { useAppointments } from "@/features/calendar/queries";
 import { useUpdateAppointment } from "@/features/calendar/mutations";
@@ -21,13 +23,22 @@ import { useClients } from "@/features/clients/queries";
 import { useTeams } from "@/features/reference/queries";
 import { useCalendarSettings } from "@/features/settings/local-settings";
 
-type ViewMode = "agenda" | "day" | "month";
-
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function mondayOf(d: Date) {
+  const x = startOfDay(d);
+  const wd = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - wd);
+  return x;
+}
+function addDays(d: Date, n: number) {
+  const x = startOfDay(d);
+  x.setDate(x.getDate() + n);
+  return x;
 }
 function sameMonth(ymd: string, cursor: Date) {
   const [y, m] = ymd.split("-").map(Number);
@@ -157,7 +168,7 @@ export default function CalendarTab() {
     date?: string;
   }>();
 
-  const [mode, setMode] = useState<ViewMode>("day");
+  const [mode, setMode] = useState<CalMode>("week");
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
@@ -224,6 +235,17 @@ export default function CalendarTab() {
     [appts, dayYmd, teamFilter, hideCancelled],
   );
 
+  const weekDays = useMemo(() => {
+    const mon = mondayOf(day);
+    return Array.from({ length: 7 }, (_, i) => addDays(mon, i));
+  }, [day]);
+  const weekYmds = useMemo(() => weekDays.map(formatYMD), [weekDays]);
+  const weekAppts = useMemo(
+    () => appts.filter((a) => weekYmds.includes(a.date) && byTeam(a)),
+    [appts, weekYmds, teamFilter, hideCancelled],
+  );
+  const weekLabel = `${weekDays[0].getDate()}–${weekDays[6].getDate()} ${weekDays[6].toLocaleDateString("ru-RU", { month: "short" })}`;
+
   const sections = useMemo(() => {
     const byDate = new Map<string, Appointment[]>();
     for (const a of monthAppts) {
@@ -263,33 +285,7 @@ export default function CalendarTab() {
 
   const t = useThemeColors();
 
-  const MODE_LABEL: Record<ViewMode, string> = {
-    agenda: "Список",
-    day: "День",
-    month: "Месяц",
-  };
-  const toggle = (
-    <View
-      className="flex-row rounded-lg p-0.5"
-      style={{ backgroundColor: t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
-    >
-      {(["agenda", "day", "month"] as const).map((m) => (
-        <Pressable
-          key={m}
-          onPress={() => setMode(m)}
-          className="rounded-md px-2.5 py-1"
-          style={mode === m ? { backgroundColor: t.surface } : undefined}
-        >
-          <Text
-            className="text-xs font-semibold"
-            style={{ color: mode === m ? t.ink : t.sub }}
-          >
-            {MODE_LABEL[m]}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
+  const toggle = <ViewModeDropdown mode={mode} onChange={setMode} />;
 
   const teamChips =
     teams.length > 0 ? (
@@ -325,7 +321,14 @@ export default function CalendarTab() {
       </ScrollView>
     ) : null;
 
-  const count = mode === "agenda" ? monthAppts.length : dayAppts.length;
+  const count =
+    mode === "agenda"
+      ? monthAppts.length
+      : mode === "week"
+        ? weekAppts.length
+        : mode === "month"
+          ? monthAppts.length
+          : dayAppts.length;
 
   return (
     <Screen>
@@ -387,6 +390,35 @@ export default function CalendarTab() {
             />
           }
         />
+      ) : mode === "week" ? (
+        <View className="flex-1">
+          <NavRow
+            label={weekLabel}
+            onPrev={() => setDay((d) => addDays(d, -7))}
+            onNext={() => setDay((d) => addDays(d, 7))}
+            showToday={!weekYmds.includes(formatYMD(today))}
+            onToday={() => setDay(startOfDay(new Date()))}
+          />
+          {teamChips}
+          <WeekView
+            days={weekDays}
+            appointments={weekAppts}
+            clientName={clientName}
+            teamColorFor={teamColorFor}
+            today={today}
+            onEdit={openEdit}
+            onCreateAt={(d, timeStart) =>
+              openCreate({ date: d, time_start: timeStart })
+            }
+            onReschedule={reschedule}
+            onPickDay={(d) => {
+              setDay(startOfDay(d));
+              setMode("day");
+            }}
+            startHour={calSettings?.workStartHour}
+            endHour={calSettings?.workEndHour}
+          />
+        </View>
       ) : mode === "day" ? (
         <View className="flex-1">
           <NavRow
@@ -402,13 +434,14 @@ export default function CalendarTab() {
           />
           {teamChips}
           <DayView
+            dateYmd={dayYmd}
             appointments={dayAppts}
             clientName={clientName}
             teamColorFor={teamColorFor}
             isToday={isSameDay(day, today)}
             onEdit={openEdit}
-            onCreateAt={(timeStart) =>
-              openCreate({ date: dayYmd, time_start: timeStart })
+            onCreateAt={(d, timeStart) =>
+              openCreate({ date: d, time_start: timeStart })
             }
             onReschedule={reschedule}
             startHour={calSettings?.workStartHour}
