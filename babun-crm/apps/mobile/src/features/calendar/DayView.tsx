@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import {
   Gesture,
@@ -11,61 +11,61 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { Check } from "lucide-react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { pad2 } from "@/features/appointments/helpers";
 import { useThemeColors } from "@/theme/colors";
+import { layoutDay, toMin, type PlacedAppt } from "@/features/calendar/layout";
+import { useBlockColors, type BlockColors } from "@/features/calendar/status-colors";
 
-const HOUR_H = 64;
+export const HOUR_H = 64;
+const RAIL_W = 48;
+const GAP = 3;
 const DEFAULT_START = 7;
 const DEFAULT_END = 23;
 
-const STATUS_COLOR: Record<Appointment["status"], string> = {
-  scheduled: "#4338ca",
-  in_progress: "#d97706",
-  completed: "#10b981",
-  cancelled: "#9ca3af",
-};
+const minToHM = (min: number) => `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`;
 
-const toMin = (hm: string) => {
-  const [h, m] = hm.split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
-};
-const minToHM = (min: number) =>
-  `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`;
-
-function DraggableBlock({
-  apt,
-  top,
-  height,
-  label,
-  comment,
+function Block({
+  placed,
+  laneW,
   startHour,
   endHour,
+  colors,
+  label,
+  service,
   onEdit,
   onReschedule,
 }: {
-  apt: Appointment;
-  top: number;
-  height: number;
-  label: string;
-  comment: string | null;
+  placed: PlacedAppt;
+  laneW: number;
   startHour: number;
   endHour: number;
+  colors: BlockColors;
+  label: string;
+  service: string | null;
   onEdit: (a: Appointment) => void;
-  onReschedule: (a: Appointment, newStart: string, newEnd: string) => void;
+  onReschedule: (a: Appointment, s: string, e: string) => void;
 }) {
   const t = useThemeColors();
+  const { apt, startMin, endMin, colIndex, colCount } = placed;
   const ty = useSharedValue(0);
   const active = useSharedValue(0);
-  const color = (apt.color_override as string) || STATUS_COLOR[apt.status];
+
+  const colW = laneW / colCount;
+  const top = ((startMin - startHour * 60) / 60) * HOUR_H;
+  const height = Math.max(((endMin - startMin) / 60) * HOUR_H - 2, 22);
+  const left = colIndex * colW + 1;
+  const width = colW - GAP;
+  const cancelled = apt.status === "cancelled";
+  const completed = apt.status === "completed";
 
   const commit = (translationY: number) => {
-    const duration = Math.max(15, toMin(apt.time_end) - toMin(apt.time_start));
+    const duration = Math.max(15, endMin - startMin);
     const dayStart = startHour * 60;
     const dayEnd = endHour * 60;
-    let newStart =
-      dayStart + Math.round(((top + translationY) / HOUR_H) * 60);
-    newStart = Math.round(newStart / 15) * 15; // snap to 15 min
+    let newStart = dayStart + Math.round(((top + translationY) / HOUR_H) * 60);
+    newStart = Math.round(newStart / 15) * 15;
     newStart = Math.max(dayStart, Math.min(dayEnd - duration, newStart));
     onReschedule(apt, minToHM(newStart), minToHM(newStart + duration));
   };
@@ -83,22 +83,21 @@ function DraggableBlock({
       ty.value = withSpring(0);
       active.value = withSpring(0);
     });
-
-  const tap = Gesture.Tap().maxDuration(250).onEnd(() => {
-    runOnJS(onEdit)(apt);
-  });
-
+  const tap = Gesture.Tap()
+    .maxDuration(250)
+    .onEnd(() => runOnJS(onEdit)(apt));
   const gesture = Gesture.Exclusive(pan, tap);
 
   const style = useAnimatedStyle(() => ({
     transform: [{ translateY: ty.value }, { scale: 1 + active.value * 0.03 }],
     zIndex: active.value > 0 ? 20 : 1,
-    elevation: active.value > 0 ? 6 : 0,
     shadowColor: "#000",
     shadowOpacity: active.value * 0.25,
-    shadowRadius: active.value * 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: active.value * 8,
+    shadowOffset: { width: 0, height: 3 },
   }));
+
+  const tall = height > 34;
 
   return (
     <GestureDetector gesture={gesture}>
@@ -107,27 +106,64 @@ function DraggableBlock({
           {
             position: "absolute",
             top,
-            left: 4,
-            right: 8,
+            left,
+            width,
             height,
-            backgroundColor: `${color}1f`,
-            borderLeftColor: color,
+            backgroundColor: colors.fill,
+            borderLeftColor: colors.stripe,
             borderLeftWidth: 3,
-            borderRadius: 8,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
+            borderRadius: 6,
+            paddingHorizontal: 6,
+            paddingVertical: 3,
             overflow: "hidden",
+            opacity: cancelled ? 0.55 : 1,
           },
           style,
         ]}
       >
-        <Text style={{ color, fontSize: 12, fontWeight: "600" }} numberOfLines={1}>
-          {apt.time_start} · {label}
+        {/* frosted top hairline like the web block's inset shadow */}
+        <View
+          style={{ position: "absolute", top: 0, left: 3, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.45)" }}
+        />
+        <Text
+          style={{ color: colors.base, fontSize: 11, fontWeight: "700", opacity: 0.9 }}
+          className="tabular-nums"
+          numberOfLines={1}
+        >
+          {apt.time_start}
         </Text>
-        {height > 40 && comment ? (
-          <Text style={{ color: t.faint, fontSize: 11 }} numberOfLines={1}>
-            {comment}
+        <Text
+          style={{
+            color: t.ink,
+            fontSize: 11,
+            fontWeight: "700",
+            textDecorationLine: cancelled ? "line-through" : "none",
+          }}
+          numberOfLines={tall ? 2 : 1}
+        >
+          {label}
+        </Text>
+        {tall && service ? (
+          <Text style={{ color: t.sub, fontSize: 11 }} numberOfLines={1}>
+            {service}
           </Text>
+        ) : null}
+        {completed ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 3,
+              right: 3,
+              height: 15,
+              width: 15,
+              borderRadius: 8,
+              backgroundColor: t.success,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Check color="#fff" size={10} strokeWidth={3} />
+          </View>
         ) : null}
       </Animated.View>
     </GestureDetector>
@@ -137,6 +173,8 @@ function DraggableBlock({
 export function DayView({
   appointments,
   clientName,
+  serviceLabel,
+  teamColorFor,
   isToday,
   onEdit,
   onCreateAt,
@@ -146,6 +184,8 @@ export function DayView({
 }: {
   appointments: Appointment[];
   clientName: (a: Appointment) => string;
+  serviceLabel?: (a: Appointment) => string | null;
+  teamColorFor?: (a: Appointment) => string | null;
   isToday: boolean;
   onEdit: (a: Appointment) => void;
   onCreateAt: (timeStart: string) => void;
@@ -154,6 +194,9 @@ export function DayView({
   endHour?: number;
 }) {
   const t = useThemeColors();
+  const blockColors = useBlockColors(teamColorFor);
+  const [laneW, setLaneW] = useState(0);
+
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = startHour; h <= endHour; h++) out.push(h);
@@ -161,80 +204,150 @@ export function DayView({
   }, [startHour, endHour]);
   const totalH = (endHour - startHour) * HOUR_H;
 
-  const nowTop = useMemo(() => {
+  const placements = useMemo(() => layoutDay(appointments), [appointments]);
+
+  const nowMin = useMemo(() => {
     if (!isToday) return null;
     const now = new Date();
     const min = now.getHours() * 60 + now.getMinutes() - startHour * 60;
     if (min < 0 || min > (endHour - startHour) * 60) return null;
-    return (min / 60) * HOUR_H;
+    return min;
   }, [isToday, startHour, endHour]);
+  const nowTop = nowMin != null ? (nowMin / 60) * HOUR_H : null;
+
+  const halfLine = t.dark ? "rgba(255,255,255,0.05)" : "rgba(60,60,67,0.07)";
 
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
+      contentContainerStyle={{ paddingBottom: 120, paddingTop: 6 }}
     >
-      <View style={{ height: totalH, marginLeft: 56, position: "relative" }}>
-        {/* hour gridlines + labels */}
-        {hours.map((h) => (
-          <View
-            key={h}
-            style={{ position: "absolute", top: (h - startHour) * HOUR_H, left: 0, right: 0 }}
-          >
+      <View style={{ flexDirection: "row", height: totalH }}>
+        {/* hour rail */}
+        <View style={{ width: RAIL_W }}>
+          {hours.map((h) => (
             <Text
-              style={{ position: "absolute", left: -52, top: -7, width: 46, textAlign: "right", color: t.faint, fontSize: 12 }}
+              key={h}
+              style={{
+                position: "absolute",
+                top: (h - startHour) * HOUR_H - (h === startHour ? 0 : 7),
+                right: 6,
+                width: RAIL_W - 8,
+                textAlign: "right",
+                color: t.faint,
+                fontSize: 12,
+                fontWeight: "600",
+              }}
               className="tabular-nums"
             >
               {`${pad2(h)}:00`}
             </Text>
-            <View style={{ height: 1, backgroundColor: t.separator }} />
-          </View>
-        ))}
+          ))}
+        </View>
 
-        {/* empty-slot tap layer (beneath the blocks) */}
-        {hours.slice(0, -1).map((h) => (
-          <Pressable
-            key={`slot-${h}`}
-            onPress={() => onCreateAt(`${pad2(h)}:00`)}
-            style={{
-              position: "absolute",
-              top: (h - startHour) * HOUR_H,
-              left: 0,
-              right: 0,
-              height: HOUR_H,
-            }}
-          />
-        ))}
-
-        {/* appointment blocks (draggable) */}
-        {appointments.map((a) => {
-          const startMin = toMin(a.time_start) - startHour * 60;
-          const dur = Math.max(30, toMin(a.time_end) - toMin(a.time_start));
-          return (
-            <DraggableBlock
-              key={a.id}
-              apt={a}
-              top={(startMin / 60) * HOUR_H}
-              height={Math.max(26, (dur / 60) * HOUR_H - 2)}
-              label={clientName(a) || a.comment || "Запись"}
-              comment={a.comment || null}
-              startHour={startHour}
-              endHour={endHour}
-              onEdit={onEdit}
-              onReschedule={onReschedule}
+        {/* day column */}
+        <View
+          onLayout={(e) => setLaneW(e.nativeEvent.layout.width)}
+          style={{
+            flex: 1,
+            position: "relative",
+            borderLeftWidth: 1,
+            borderLeftColor: t.separator,
+          }}
+        >
+          {/* past-time wash (today only) */}
+          {nowTop != null ? (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: nowTop,
+                backgroundColor: t.dark ? "rgba(255,255,255,0.02)" : "rgba(11,18,32,0.02)",
+              }}
             />
-          );
-        })}
+          ) : null}
 
-        {/* now line */}
-        {nowTop != null ? (
-          <View style={{ position: "absolute", top: nowTop, left: -6, right: 0 }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ height: 10, width: 10, borderRadius: 5, backgroundColor: t.danger }} />
-              <View style={{ height: 1.5, flex: 1, backgroundColor: t.danger }} />
+          {/* gridlines: hour + half-hour */}
+          {hours.map((h) => (
+            <View key={h}>
+              <View
+                style={{
+                  position: "absolute",
+                  top: (h - startHour) * HOUR_H,
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  backgroundColor: t.separator,
+                }}
+              />
+              {h < endHour ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: (h - startHour) * HOUR_H + HOUR_H / 2,
+                    left: 0,
+                    right: 0,
+                    height: 1,
+                    backgroundColor: halfLine,
+                  }}
+                />
+              ) : null}
             </View>
-          </View>
-        ) : null}
+          ))}
+
+          {/* empty-slot tap layer (beneath blocks) */}
+          {hours.slice(0, -1).map((h) => (
+            <Pressable
+              key={`slot-${h}`}
+              onPress={() => onCreateAt(`${pad2(h)}:00`)}
+              style={{
+                position: "absolute",
+                top: (h - startHour) * HOUR_H,
+                left: 0,
+                right: 0,
+                height: HOUR_H,
+              }}
+            />
+          ))}
+
+          {/* appointment blocks */}
+          {laneW > 0
+            ? placements.map((p) => (
+                <Block
+                  key={p.apt.id}
+                  placed={p}
+                  laneW={laneW}
+                  startHour={startHour}
+                  endHour={endHour}
+                  colors={blockColors(p.apt)}
+                  label={clientName(p.apt) || p.apt.comment || "Запись"}
+                  service={serviceLabel ? serviceLabel(p.apt) : p.apt.comment || null}
+                  onEdit={onEdit}
+                  onReschedule={onReschedule}
+                />
+              ))
+            : null}
+
+          {/* now line */}
+          {nowTop != null ? (
+            <View
+              style={{
+                position: "absolute",
+                top: nowTop,
+                left: -4,
+                right: 0,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+              pointerEvents="none"
+            >
+              <View style={{ height: 9, width: 9, borderRadius: 5, backgroundColor: t.danger }} />
+              <View style={{ height: 1.5, flex: 1, backgroundColor: t.danger, opacity: 0.85 }} />
+            </View>
+          ) : null}
+        </View>
       </View>
     </ScrollView>
   );

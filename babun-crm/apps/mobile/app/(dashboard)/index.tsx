@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, SectionList, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
@@ -157,7 +157,7 @@ export default function CalendarTab() {
     date?: string;
   }>();
 
-  const [mode, setMode] = useState<ViewMode>("agenda");
+  const [mode, setMode] = useState<ViewMode>("day");
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [teamFilter, setTeamFilter] = useState<string | null>(null);
@@ -196,6 +196,18 @@ export default function CalendarTab() {
   );
   const clientName = (a: Appointment) =>
     a.client_id ? nameById.get(a.client_id) ?? "" : "";
+
+  const teamColor = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const tm of teams as { id: string; color?: string | null }[]) {
+      if (tm.color) m.set(tm.id, tm.color);
+    }
+    return m;
+  }, [teams]);
+  const teamColorFor = useCallback(
+    (a: Appointment) => (a.team_id ? teamColor.get(a.team_id) ?? null : null),
+    [teamColor],
+  );
 
   const hideCancelled = !!calSettings?.hideCancelled;
   const byTeam = (a: Appointment) =>
@@ -392,6 +404,7 @@ export default function CalendarTab() {
           <DayView
             appointments={dayAppts}
             clientName={clientName}
+            teamColorFor={teamColorFor}
             isToday={isSameDay(day, today)}
             onEdit={openEdit}
             onCreateAt={(timeStart) =>
