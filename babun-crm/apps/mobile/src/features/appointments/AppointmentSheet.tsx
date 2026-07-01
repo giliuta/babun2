@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Check, Minus, Plus, Search, X } from "lucide-react-native";
+import { Check, ChevronLeft, Minus, Plus, Search, X } from "lucide-react-native";
 import {
   appointmentTotal,
   globalDiscountAmount,
@@ -28,7 +28,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { ICON } from "@/components/ui/tokens";
 import { useToast } from "@/components/ui/Toast";
 import { useThemeColors } from "@/theme/colors";
-import { useClients } from "@/features/clients/queries";
+import { useClients, useCreateClient } from "@/features/clients/queries";
 import { useServices, type Service } from "@/features/services/queries";
 import { useMasters, useTeams } from "@/features/reference/queries";
 import {
@@ -81,6 +81,7 @@ export function AppointmentSheet({
   const t = useThemeColors();
   const isEdit = !!appointment;
   const { data: clients = [] } = useClients();
+  const createClient = useCreateClient();
   const { data: services = [] } = useServices();
   const { data: teams = [] } = useTeams();
   const { data: masters = [] } = useMasters();
@@ -740,19 +741,21 @@ export function AppointmentSheet({
       </View>
 
       {/* client picker */}
-      <PickerModal
+      <ClientPickerModal
         visible={clientPicker}
         onClose={() => setClientPicker(false)}
-        title="Клиент"
-        items={clients.map((c) => ({
-          id: c.id,
-          title: c.full_name || "Без имени",
-          subtitle: c.phone ?? undefined,
-        }))}
-        selectedIds={clientId ? [clientId] : []}
+        clients={clients}
+        selectedId={clientId}
         onPick={(id) => {
           setClientId(id);
           setClientPicker(false);
+        }}
+        onCreate={async (name, phone) => {
+          const created = await createClient.mutateAsync({
+            full_name: name,
+            phone,
+          });
+          return created.id;
         }}
       />
 
@@ -827,6 +830,8 @@ function PickerModal({
   multi,
   onPick,
   onToggle,
+  createLabel,
+  onCreateNew,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -836,6 +841,8 @@ function PickerModal({
   multi?: boolean;
   onPick?: (id: string) => void;
   onToggle?: (id: string) => void;
+  createLabel?: string;
+  onCreateNew?: (query: string) => void;
 }) {
   const th = useThemeColors();
   const [q, setQ] = useState("");
@@ -888,6 +895,21 @@ function PickerModal({
             data={filtered}
             keyExtractor={(i) => i.id}
             keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              onCreateNew ? (
+                <Pressable
+                  onPress={() => onCreateNew(q.trim())}
+                  className="flex-row items-center gap-2 border-b px-4 py-3 active:opacity-60"
+                  style={{ borderColor: th.separator }}
+                >
+                  <Plus color={th.accent} size={ICON.md} />
+                  <Text className="text-base font-semibold" style={{ color: th.accent }}>
+                    {createLabel ?? "Создать"}
+                    {q.trim() ? ` «${q.trim()}»` : ""}
+                  </Text>
+                </Pressable>
+              ) : null
+            }
             renderItem={({ item }) => {
               const sel = selectedIds.includes(item.id);
               return (
@@ -913,6 +935,194 @@ function PickerModal({
               <View className="ml-4 h-px" style={{ backgroundColor: th.separator }} />
             )}
           />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// Calendar client picker with inline «Новый клиент» create — one Modal that
+// switches between the list and the create form (web parity; avoids the iOS
+// «can't present a modal while another dismisses» race of stacked modals).
+function ClientPickerModal({
+  visible,
+  onClose,
+  clients,
+  selectedId,
+  onPick,
+  onCreate,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  clients: { id: string; full_name: string | null; phone: string | null }[];
+  selectedId: string | null;
+  onPick: (id: string) => void;
+  onCreate: (name: string, phone: string) => Promise<string>;
+}) {
+  const t = useThemeColors();
+  const [q, setQ] = useState("");
+  const [mode, setMode] = useState<"list" | "create">("list");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setMode("list");
+      setQ("");
+      setName("");
+      setPhone("");
+    }
+  }, [visible]);
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return clients;
+    return clients.filter(
+      (c) =>
+        (c.full_name ?? "").toLowerCase().includes(s) ||
+        (c.phone ?? "").toLowerCase().includes(s),
+    );
+  }, [q, clients]);
+
+  const startCreate = () => {
+    const query = q.trim();
+    const isPhone = /^[+\d][\d\s()-]*$/.test(query);
+    setName(isPhone ? "" : query);
+    setPhone(isPhone ? query : "");
+    setMode("create");
+  };
+
+  const submit = async () => {
+    if (!name.trim() && !phone.trim()) return;
+    setBusy(true);
+    try {
+      const id = await onCreate(name.trim(), phone.trim());
+      onPick(id);
+    } catch (e) {
+      Alert.alert("Не удалось создать клиента", (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: t.scrim }}>
+        <Pressable className="flex-1" onPress={onClose} />
+        <View className="h-[80%] overflow-hidden rounded-t-3xl" style={{ backgroundColor: t.surface }}>
+          <View className="flex-row items-center border-b px-2 py-2" style={{ borderColor: t.separator }}>
+            {mode === "create" ? (
+              <Pressable
+                onPress={() => setMode("list")}
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
+              >
+                <ChevronLeft color={t.body} size={ICON.md} />
+              </Pressable>
+            ) : null}
+            <Text className="flex-1 px-2 text-base font-semibold" style={{ color: t.ink }}>
+              {mode === "create" ? "Новый клиент" : "Клиент"}
+            </Text>
+            <Pressable
+              onPress={onClose}
+              hitSlop={8}
+              className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
+            >
+              <X color={t.body} size={ICON.md} />
+            </Pressable>
+          </View>
+
+          {mode === "list" ? (
+            <>
+              <View className="flex-row items-center gap-2 px-4 py-2">
+                <Search color={t.faint} size={ICON.sm} />
+                <TextInput
+                  value={q}
+                  onChangeText={setQ}
+                  placeholder="Поиск…"
+                  placeholderTextColor={t.placeholder}
+                  selectionColor={t.accent}
+                  keyboardAppearance={t.dark ? "dark" : "light"}
+                  className="flex-1 py-1 text-base"
+                  style={{ color: t.ink }}
+                />
+              </View>
+              <FlatList
+                style={{ flex: 1 }}
+                data={filtered}
+                keyExtractor={(i) => i.id}
+                keyboardShouldPersistTaps="handled"
+                ListHeaderComponent={
+                  <Pressable
+                    onPress={startCreate}
+                    className="flex-row items-center gap-2 border-b px-4 py-3 active:opacity-60"
+                    style={{ borderColor: t.separator }}
+                  >
+                    <Plus color={t.accent} size={ICON.md} />
+                    <Text className="text-base font-semibold" style={{ color: t.accent }}>
+                      Новый клиент{q.trim() ? ` «${q.trim()}»` : ""}
+                    </Text>
+                  </Pressable>
+                }
+                renderItem={({ item }) => {
+                  const sel = item.id === selectedId;
+                  return (
+                    <Pressable
+                      onPress={() => onPick(item.id)}
+                      className="flex-row items-center px-4 py-3 active:opacity-60"
+                    >
+                      <View className="flex-1 pr-2">
+                        <Text className="text-base" style={{ color: t.ink }} numberOfLines={1}>
+                          {item.full_name || "Без имени"}
+                        </Text>
+                        {item.phone ? (
+                          <Text className="text-sm" style={{ color: t.sub }} numberOfLines={1}>
+                            {item.phone}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {sel ? <Check color={t.accent} size={ICON.md} /> : null}
+                    </Pressable>
+                  );
+                }}
+                ItemSeparatorComponent={() => (
+                  <View className="ml-4 h-px" style={{ backgroundColor: t.separator }} />
+                )}
+              />
+            </>
+          ) : (
+            <View className="px-5 pt-4">
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Имя клиента"
+                placeholderTextColor={t.placeholder}
+                selectionColor={t.accent}
+                keyboardAppearance={t.dark ? "dark" : "light"}
+                autoFocus
+                className="mb-2 rounded-[14px] border px-4 py-3 text-base"
+                style={{ borderColor: t.separator, color: t.ink }}
+              />
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+357 99 ..."
+                placeholderTextColor={t.placeholder}
+                selectionColor={t.accent}
+                keyboardType="phone-pad"
+                keyboardAppearance={t.dark ? "dark" : "light"}
+                className="mb-4 rounded-[14px] border px-4 py-3 text-base"
+                style={{ borderColor: t.separator, color: t.ink }}
+              />
+              <Button
+                label="Добавить"
+                onPress={submit}
+                disabled={(!name.trim() && !phone.trim()) || busy}
+                loading={busy}
+              />
+            </View>
+          )}
         </View>
       </View>
     </Modal>
