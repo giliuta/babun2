@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, SectionList, Text, View } from "react-native";
+import { Pressable, SectionList, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatEUR } from "@babun/shared/common/utils/money";
 import { Screen } from "@/components/ui/Screen";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ICON } from "@/components/ui/tokens";
 import { useThemeColors } from "@/theme/colors";
 import { formatYMD, humanDay, parseYMD } from "@/features/appointments/helpers";
 import { AppointmentSheet } from "@/features/appointments/AppointmentSheet";
 import { DayView } from "@/features/calendar/DayView";
 import { WeekView } from "@/features/calendar/WeekView";
-import { ViewModeDropdown, type CalMode } from "@/features/calendar/ViewModeDropdown";
+import { type CalMode } from "@/features/calendar/ViewModeDropdown";
+import { CalendarHeader } from "@/features/calendar/CalendarHeader";
+import { TeamChips } from "@/features/calendar/TeamChips";
 import { MonthView } from "@/features/calendar/MonthView";
 import { useAppointments } from "@/features/calendar/queries";
 import { useUpdateAppointment } from "@/features/calendar/mutations";
@@ -93,54 +94,6 @@ function AppointmentRow({
         </View>
       </View>
     </Pressable>
-  );
-}
-
-function NavRow({
-  label,
-  onPrev,
-  onNext,
-  showToday,
-  onToday,
-}: {
-  label: string;
-  onPrev: () => void;
-  onNext: () => void;
-  showToday: boolean;
-  onToday: () => void;
-}) {
-  const th = useThemeColors();
-  return (
-    <View className="flex-row items-center justify-between px-3 pb-1 pt-1">
-      <Pressable
-        onPress={onPrev}
-        hitSlop={8}
-        className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
-      >
-        <ChevronLeft color={th.body} size={ICON.md} />
-      </Pressable>
-      <View className="flex-row items-center gap-2">
-        <Text className="text-base font-semibold capitalize" style={{ color: th.ink }}>
-          {label}
-        </Text>
-        {showToday ? (
-          <Pressable
-            onPress={onToday}
-            className="rounded-full px-2.5 py-1 active:opacity-80"
-            style={{ backgroundColor: th.dark ? "rgba(255,255,255,0.07)" : "#eef1f5" }}
-          >
-            <Text className="text-xs font-medium" style={{ color: th.accent }}>Сегодня</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <Pressable
-        onPress={onNext}
-        hitSlop={8}
-        className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
-      >
-        <ChevronRight color={th.body} size={ICON.md} />
-      </Pressable>
-    </View>
   );
 }
 
@@ -285,59 +238,37 @@ export default function CalendarTab() {
 
   const t = useThemeColors();
 
-  const toggle = <ViewModeDropdown mode={mode} onChange={setMode} />;
+  const headerTitle = (mode === "week" ? weekDays[3] : mode === "day" ? day : cursor)
+    .toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
+    .replace(" г.", "");
 
-  const teamChips =
-    teams.length > 0 ? (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0, maxHeight: 52 }}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
-        {[{ id: null as string | null, name: "Все" }, ...teams].map((tm) => {
-          const active = teamFilter === tm.id;
-          return (
-            <Pressable
-              key={tm.id ?? "all"}
-              onPress={() => setTeamFilter(tm.id)}
-              className="rounded-full px-3.5 py-1.5"
-              style={{ backgroundColor: active ? t.accent : (t.dark ? "rgba(255,255,255,0.07)" : "#eef1f5") }}
-            >
-              <Text
-                className="text-sm font-medium"
-                style={{ color: active ? "#fff" : t.sub }}
-              >
-                {tm.name}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    ) : null;
-
-  const count =
-    mode === "agenda"
-      ? monthAppts.length
-      : mode === "week"
-        ? weekAppts.length
-        : mode === "month"
-          ? monthAppts.length
-          : dayAppts.length;
+  const goToday = () => {
+    const now = new Date();
+    setDay(startOfDay(now));
+    setCursor(startOfMonth(now));
+  };
+  const prevMonth = () =>
+    setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1));
+  const nextMonth = () =>
+    setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1));
+  const monthSwipe = Gesture.Pan()
+    .activeOffsetX([-25, 25])
+    .failOffsetY([-18, 18])
+    .onEnd((e) => {
+      if (e.translationX > 55) runOnJS(prevMonth)();
+      else if (e.translationX < -55) runOnJS(nextMonth)();
+    });
 
   return (
     <Screen>
-      <ScreenHeader
-        large
-        title="Календарь"
-        subtitle={`${count} записей`}
-        right={toggle}
+      <CalendarHeader
+        monthTitle={headerTitle}
+        mode={mode}
+        onModeChange={setMode}
+        onGear={() => router.push("/cabinet")}
+        onToday={goToday}
       />
+      <TeamChips teams={teams} activeId={teamFilter} onSelect={setTeamFilter} />
 
       {isLoading ? (
         <EmptyState state="loading" fill />
@@ -349,22 +280,6 @@ export default function CalendarTab() {
           sections={sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
-          ListHeaderComponent={
-            <View>
-              <NavRow
-                label={monthLabel}
-                onPrev={() =>
-                  setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))
-                }
-                onNext={() =>
-                  setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))
-                }
-                showToday={!sameMonth(formatYMD(today), cursor)}
-                onToday={() => setCursor(startOfMonth(new Date()))}
-              />
-              {teamChips}
-            </View>
-          }
           contentContainerStyle={{ paddingBottom: 96, flexGrow: 1 }}
           renderSectionHeader={({ section }) => (
             <Text
@@ -391,102 +306,62 @@ export default function CalendarTab() {
           }
         />
       ) : mode === "week" ? (
-        <View className="flex-1">
-          <NavRow
-            label={weekLabel}
-            onPrev={() => setDay((d) => addDays(d, -7))}
-            onNext={() => setDay((d) => addDays(d, 7))}
-            showToday={!weekYmds.includes(formatYMD(today))}
-            onToday={() => setDay(startOfDay(new Date()))}
-          />
-          {teamChips}
-          <WeekView
-            days={weekDays}
-            appointments={weekAppts}
-            clientName={clientName}
-            teamColorFor={teamColorFor}
-            today={today}
-            onEdit={openEdit}
-            onCreateAt={(d, timeStart) =>
-              openCreate({ date: d, time_start: timeStart })
-            }
-            onReschedule={reschedule}
-            onPickDay={(d) => {
-              setDay(startOfDay(d));
-              setMode("day");
-            }}
-            startHour={calSettings?.workStartHour}
-            endHour={calSettings?.workEndHour}
-          />
-        </View>
+        <WeekView
+          days={weekDays}
+          appointments={weekAppts}
+          clientName={clientName}
+          teamColorFor={teamColorFor}
+          today={today}
+          onEdit={openEdit}
+          onCreateAt={(d, timeStart) =>
+            openCreate({ date: d, time_start: timeStart })
+          }
+          onReschedule={reschedule}
+          onPickDay={(d) => {
+            setDay(startOfDay(d));
+            setMode("day");
+          }}
+          onPrev={() => setDay((d) => addDays(d, -7))}
+          onNext={() => setDay((d) => addDays(d, 7))}
+          startHour={calSettings?.workStartHour}
+          endHour={calSettings?.workEndHour}
+        />
       ) : mode === "day" ? (
-        <View className="flex-1">
-          <NavRow
-            label={dayLabel}
-            onPrev={() =>
-              setDay((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1))
-            }
-            onNext={() =>
-              setDay((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1))
-            }
-            showToday={!isSameDay(day, today)}
-            onToday={() => setDay(startOfDay(new Date()))}
-          />
-          {teamChips}
-          <DayView
-            dateYmd={dayYmd}
-            appointments={dayAppts}
-            clientName={clientName}
-            teamColorFor={teamColorFor}
-            isToday={isSameDay(day, today)}
-            onEdit={openEdit}
-            onCreateAt={(d, timeStart) =>
-              openCreate({ date: d, time_start: timeStart })
-            }
-            onReschedule={reschedule}
-            startHour={calSettings?.workStartHour}
-            endHour={calSettings?.workEndHour}
-          />
-        </View>
+        <DayView
+          dateYmd={dayYmd}
+          appointments={dayAppts}
+          clientName={clientName}
+          teamColorFor={teamColorFor}
+          isToday={isSameDay(day, today)}
+          onEdit={openEdit}
+          onCreateAt={(d, timeStart) =>
+            openCreate({ date: d, time_start: timeStart })
+          }
+          onReschedule={reschedule}
+          onPrev={() =>
+            setDay((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1))
+          }
+          onNext={() =>
+            setDay((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1))
+          }
+          startHour={calSettings?.workStartHour}
+          endHour={calSettings?.workEndHour}
+        />
       ) : (
-        <View className="flex-1">
-          <NavRow
-            label={monthLabel}
-            onPrev={() =>
-              setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1))
-            }
-            onNext={() =>
-              setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1))
-            }
-            showToday={!sameMonth(formatYMD(today), cursor)}
-            onToday={() => setCursor(startOfMonth(new Date()))}
-          />
-          {teamChips}
-          <MonthView
-            month={cursor}
-            appointments={monthAppts}
-            onPickDay={(d) => {
-              setDay(startOfDay(d));
-              setCursor(startOfMonth(d));
-              setMode("day");
-            }}
-          />
-        </View>
+        <GestureDetector gesture={monthSwipe}>
+          <View className="flex-1">
+            <MonthView
+              month={cursor}
+              appointments={monthAppts}
+              onPickDay={(d) => {
+                setDay(startOfDay(d));
+                setCursor(startOfMonth(d));
+                setMode("day");
+              }}
+            />
+          </View>
+        </GestureDetector>
       )}
-
-      <Pressable
-        onPress={() => openCreate(mode === "day" ? { date: dayYmd } : undefined)}
-        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full active:opacity-90"
-        style={{
-          backgroundColor: t.accent,
-          shadowColor: t.brandShadow,
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 4 },
-        }}
-      >
-        <Plus color="#fff" size={28} />
-      </Pressable>
 
       <AppointmentSheet
         visible={sheetOpen}

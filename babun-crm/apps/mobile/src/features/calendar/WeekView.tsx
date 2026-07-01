@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  ScrollView,
+} from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import type { Appointment } from "@babun/shared/local/appointments";
 import { formatYMD } from "@/features/appointments/helpers";
 import { useThemeColors } from "@/theme/colors";
@@ -31,6 +36,8 @@ export function WeekView({
   onCreateAt,
   onReschedule,
   onPickDay,
+  onPrev,
+  onNext,
   startHour,
   endHour,
 }: {
@@ -44,10 +51,19 @@ export function WeekView({
   onCreateAt: (dateYmd: string, timeStart: string) => void;
   onReschedule: (a: Appointment, s: string, e: string) => void;
   onPickDay: (d: Date) => void;
+  onPrev: () => void;
+  onNext: () => void;
   startHour?: number;
   endHour?: number;
 }) {
   const t = useThemeColors();
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-25, 25])
+    .failOffsetY([-18, 18])
+    .onEnd((e) => {
+      if (e.translationX > 55) runOnJS(onPrev)();
+      else if (e.translationX < -55) runOnJS(onNext)();
+    });
 
   const byDay = useMemo(() => {
     const m = new Map<string, Appointment[]>();
@@ -60,6 +76,7 @@ export function WeekView({
   }, [appointments]);
 
   return (
+    <GestureDetector gesture={swipe}>
     <View style={{ flex: 1 }}>
       {/* day headers */}
       <View
@@ -150,5 +167,6 @@ export function WeekView({
 
       <DayFinanceFooter days={days} appointments={appointments} onTapDay={onPickDay} />
     </View>
+    </GestureDetector>
   );
 }

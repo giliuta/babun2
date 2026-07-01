@@ -374,6 +374,8 @@ export function DayView({
   onEdit,
   onCreateAt,
   onReschedule,
+  onPrev,
+  onNext,
   startHour = DEFAULT_START,
   endHour = DEFAULT_END,
 }: {
@@ -386,30 +388,41 @@ export function DayView({
   onEdit: (a: Appointment) => void;
   onCreateAt: (dateYmd: string, timeStart: string) => void;
   onReschedule: (a: Appointment, newStart: string, newEnd: string) => void;
+  onPrev?: () => void;
+  onNext?: () => void;
   startHour?: number;
   endHour?: number;
 }) {
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-25, 25])
+    .failOffsetY([-18, 18])
+    .onEnd((e) => {
+      if (e.translationX > 55 && onPrev) runOnJS(onPrev)();
+      else if (e.translationX < -55 && onNext) runOnJS(onNext)();
+    });
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: 120, paddingTop: 6 }}
-    >
-      <View style={{ flexDirection: "row" }}>
-        <TimeRail startHour={startHour} endHour={endHour} />
-        <DayColumn
-          dateYmd={dateYmd}
-          appointments={appointments}
-          clientName={clientName}
-          serviceLabel={serviceLabel}
-          teamColorFor={teamColorFor}
-          isToday={isToday}
-          onEdit={onEdit}
-          onCreateAt={onCreateAt}
-          onReschedule={onReschedule}
-          startHour={startHour}
-          endHour={endHour}
-        />
-      </View>
-    </ScrollView>
+    <GestureDetector gesture={swipe}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 120, paddingTop: 6 }}
+      >
+        <View style={{ flexDirection: "row" }}>
+          <TimeRail startHour={startHour} endHour={endHour} />
+          <DayColumn
+            dateYmd={dateYmd}
+            appointments={appointments}
+            clientName={clientName}
+            serviceLabel={serviceLabel}
+            teamColorFor={teamColorFor}
+            isToday={isToday}
+            onEdit={onEdit}
+            onCreateAt={onCreateAt}
+            onReschedule={onReschedule}
+            startHour={startHour}
+            endHour={endHour}
+          />
+        </View>
+      </ScrollView>
+    </GestureDetector>
   );
 }
